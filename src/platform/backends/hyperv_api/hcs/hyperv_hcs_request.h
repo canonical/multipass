@@ -19,6 +19,7 @@
 
 #include <hyperv_api/hcs/hyperv_hcs_modify_memory_settings.h>
 #include <hyperv_api/hcs/hyperv_hcs_network_adapter.h>
+#include <hyperv_api/hcs/hyperv_hcs_plan9_share_params.h>
 #include <hyperv_api/hcs/hyperv_hcs_request_type.h>
 #include <hyperv_api/hcs/hyperv_hcs_resource_path.h>
 
@@ -36,8 +37,12 @@ struct HcsRequest
 {
     HcsResourcePath resource_path;
     HcsRequestType request_type;
-    std::variant<std::monostate, HcsNetworkAdapter, HcsModifyMemorySettings> settings{
-        std::monostate{}};
+    std::variant<std::monostate,
+                 HcsNetworkAdapter,
+                 HcsModifyMemorySettings,
+                 HcsAddPlan9ShareParameters,
+                 HcsRemovePlan9ShareParameters>
+        settings{std::monostate{}};
 };
 
 } // namespace multipass::hyperv::hcs
