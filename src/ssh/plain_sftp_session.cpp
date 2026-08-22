@@ -55,8 +55,8 @@ private:
 
 void check_client_status(mp::SSHProcess& client_process)
 {
-    // TODO@sftp should we have a way to wait for it to start running...
-    if (client_process.exit_recognized(250ms)) // TODO@sftp don't we need to try-catch this?
+    // should we have a way to wait for it to start running?
+    if (client_process.exit_recognized(250ms))
         throw std::runtime_error(client_process.read_std_error());
 }
 
