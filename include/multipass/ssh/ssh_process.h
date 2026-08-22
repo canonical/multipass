@@ -27,14 +27,17 @@ namespace multipass
 class SSHProcess : private DisabledCopyMove
 {
 public:
-    virtual ~SSHProcess() = default;
+    virtual ~SSHProcess() = default; // TODO should we make a better effort to kill the process?
 
     /**
      * Check whether the process has finished within the given timeout.
      * @param timeout Maximum time to wait for completion.
-     * @return @c true if the process finished and its exit code is available; @c false otherwise.
+     * @return @c true if the process finished and its exit code is available; @c false if that
+     *         could not be confirmed within the timeout.
      * @note A @c false return does not guarantee the process is still running — it may simply mean
      *       the exit code was not made available in time.
+     * @throws SSHProcessExitError if the exit status cannot be obtained for reasons other than the
+     *         timeout.
      */
     virtual bool exit_recognized(
         std::chrono::milliseconds timeout = std::chrono::milliseconds(10)) = 0;
