@@ -277,7 +277,8 @@ std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::ssh_exec_process(const s
         }
     }
 
-    assert(false && "we should never reach here");
+    // we should never reach here
+    mp::utils::UNREACHABLE();
 }
 
 std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::make_ssh_process(const std::string& cmd,
