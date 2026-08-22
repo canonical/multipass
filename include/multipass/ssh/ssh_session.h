@@ -49,7 +49,7 @@ public:
      * the same session. In other words, a process may execute only after any previous processes
      * have been destroyed or had exit_code called upon them.
      *
-     * TODO@sftp make it such that exit_code releases only when the process exits (not on timeout).
+     * TODO@sftp stop releasing the lock in exit_code entirely, require clients to destroy
      *
      * @param cmd The command to execute
      * @param whisper Whether to use trace rather than debug logging

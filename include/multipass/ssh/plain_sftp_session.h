@@ -61,7 +61,7 @@ public:
     PlainSftpSession(const PlainSftpSession&) = delete;
     PlainSftpSession& operator=(const PlainSftpSession&) = delete;
 
-    // TODO@sftp Make class final before enabling these
+    // Make class final before enabling these
     PlainSftpSession(PlainSftpSession&&) = delete;
     PlainSftpSession& operator=(PlainSftpSession&&) = delete;
 

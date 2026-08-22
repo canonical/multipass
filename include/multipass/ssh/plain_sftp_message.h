@@ -46,7 +46,7 @@ public:
     PlainSftpMessage(const PlainSftpMessage&) = delete;
     PlainSftpMessage& operator=(const PlainSftpMessage&) = delete;
 
-    // TODO@sftp Make class final before enabling these
+    // Make class final before enabling these
     PlainSftpMessage(PlainSftpMessage&&) = delete;
     PlainSftpMessage& operator=(PlainSftpMessage&&) = delete;
 
