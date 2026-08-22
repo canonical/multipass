@@ -22,6 +22,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/mount_handler.h>
+#include <multipass/platform.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
@@ -66,8 +67,8 @@ public:
     {
         return std::make_unique<DefaultVMImageVault>(image_hosts,
                                                      downloader,
-                                                     cache_dir_path,
-                                                     data_dir_path,
+                                                     MP_PLATFORM.qstr_to_path(cache_dir_path),
+                                                     MP_PLATFORM.qstr_to_path(data_dir_path),
                                                      days_to_expire);
     };
 

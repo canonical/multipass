@@ -130,6 +130,7 @@ public:
     virtual bool is_symlink(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual bool exists(const fs::path& path, std::error_code& err) const noexcept;
+    virtual bool is_directory(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual bool is_directory(const fs::path& path, std::error_code& err) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
@@ -139,6 +140,7 @@ public:
     virtual bool remove(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual bool remove(const fs::path& path, std::error_code& err) const noexcept;
+    virtual bool remove_all(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual void create_symlink(const fs::path& to,
                                 const fs::path& path,

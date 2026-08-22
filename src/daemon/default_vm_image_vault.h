@@ -23,7 +23,6 @@
 #include <multipass/vm_image.h>
 #include <shared/base_vm_image_vault.h>
 
-#include <QDir>
 #include <QFuture>
 
 #include <boost/json.hpp>
@@ -48,8 +47,8 @@ class DefaultVMImageVault final : public BaseVMImageVault
 public:
     DefaultVMImageVault(std::vector<VMImageHost*> image_host,
                         URLDownloader* downloader,
-                        const multipass::Path& cache_dir_path,
-                        const multipass::Path& data_dir_path,
+                        const std::filesystem::path& cache_dir_path,
+                        const std::filesystem::path& data_dir_path,
                         const multipass::days& days_to_expire);
     ~DefaultVMImageVault();
 
@@ -57,7 +56,7 @@ public:
                         const PrepareAction& prepare,
                         const ProgressMonitor& monitor,
                         const std::optional<std::string>& checksum,
-                        const Path& save_dir) override;
+                        const std::filesystem::path& save_dir) override;
     void remove(const std::string& name) override;
     bool has_record_for(const std::string& name) override;
     void prune_expired_images() override;
@@ -67,7 +66,8 @@ public:
                const std::string& destination_instance_name) override;
 
 private:
-    VMImage image_instance_from(const VMImage& prepared_image, const Path& dest_dir);
+    VMImage image_instance_from(const VMImage& prepared_image,
+                                const std::filesystem::path& dest_dir);
     VMImage download_and_prepare_source_image(const VMImageInfo& info,
                                               std::optional<VMImage>& existing_source_image,
                                               const QDir& image_dir,
@@ -80,15 +80,15 @@ private:
     VMImage finalize_image_records(const Query& query,
                                    const VMImage& prepared_image,
                                    const std::string& id,
-                                   const Path& dest_dir);
+                                   const std::filesystem::path& dest_dir);
     void persist_image_records();
     void persist_instance_records();
     void amend_db();
 
     URLDownloader* const url_downloader;
-    const QDir cache_dir;
-    const QDir data_dir;
-    const QDir images_dir;
+    const std::filesystem::path cache_dir;
+    const std::filesystem::path data_dir;
+    const std::filesystem::path images_dir;
     const days days_to_expire;
     std::mutex fetch_mutex;
 
