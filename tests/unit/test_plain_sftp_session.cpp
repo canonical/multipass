@@ -20,6 +20,7 @@
 #include "mock_sftp_client_steward.h"
 #include "stub_ssh_key_provider.h"
 
+#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/ssh/plain_sftp_session.h>
 #include <multipass/ssh/plain_ssh_session.h>
@@ -305,4 +306,56 @@ TEST_F(TestPlainSftpSession, renewClientPropagatesCleanUpFailure)
     MP_EXPECT_THROW_THAT(sftp_session->renew_client(),
                          std::runtime_error,
                          mpt::match_what(StrEq(error)));
+}
+
+TEST_F(TestPlainSftpSession, clientExitCodeReportsGracefulClientExit)
+{
+    expect_client_spawns<1>();
+
+    auto sftp_session = make_sftp_session(make_ssh_session());
+    ASSERT_THAT(sftp_session, NotNull());
+
+    // only now: a client that had already exited would keep the session from starting
+    exec_results[client_cmd] = {.exit_code = 0};
+
+    EXPECT_THAT(sftp_session->client_exit_code(), Optional(0));
+}
+
+TEST_F(TestPlainSftpSession, clientExitCodeReportsFailedClientExit)
+{
+    constexpr auto failure_code = 127;
+
+    expect_client_spawns<1>();
+
+    auto sftp_session = make_sftp_session(make_ssh_session());
+    ASSERT_THAT(sftp_session, NotNull());
+
+    exec_results[client_cmd] = {.exit_code = failure_code};
+
+    EXPECT_THAT(sftp_session->client_exit_code(), Optional(failure_code));
+}
+
+TEST_F(TestPlainSftpSession, clientExitCodeEmptyWhenClientDoesNotReport)
+{
+    expect_client_spawns<1>();
+
+    auto sftp_session = make_sftp_session(make_ssh_session());
+    ASSERT_THAT(sftp_session, NotNull());
+
+    // no exit code is registered for the client, so it never reports one
+    EXPECT_THAT(sftp_session->client_exit_code(), Eq(std::nullopt));
+}
+
+TEST_F(TestPlainSftpSession, clientExitCodePropagatesSSHError)
+{
+    expect_client_spawns<1>();
+
+    auto sftp_session = make_sftp_session(make_ssh_session());
+    ASSERT_THAT(sftp_session, NotNull());
+
+    ON_CALL(mock_libssh, ssh_event_dopoll).WillByDefault(Return(SSH_ERROR));
+
+    MP_EXPECT_THROW_THAT(sftp_session->client_exit_code(),
+                         mp::SSHProcessExitError,
+                         mpt::match_what(HasSubstr("ssh_event_dopoll failed")));
 }
