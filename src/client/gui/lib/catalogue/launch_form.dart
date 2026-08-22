@@ -58,6 +58,7 @@ class LaunchForm extends ConsumerStatefulWidget {
 }
 
 class _LaunchFormState extends ConsumerState<LaunchForm> {
+  static const defaultMaxInstanceNameLen = 255;
   final formKey = GlobalKey<FormState>();
   final mountFormKey = GlobalKey<FormState>();
   final launchRequest = LaunchRequest();
@@ -81,6 +82,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     final vmNames = ref.watch(vmNamesProvider);
     final deletedVms = ref.watch(deletedVmsProvider);
     final networksAsync = ref.watch(networksProvider);
+    final daemonInfo = ref.watch(daemonInfoProvider);
     final networks = networksAsync.when(
       data: (data) => data,
       loading: () => const <String>{},
@@ -91,6 +93,10 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           loading: () => null,
           error: (_, __) => null,
         );
+    final maxInstanceNameLen = daemonInfo.when(
+        data: (data) => data.maxInstanceNameLen,
+        error: (_, __) => defaultMaxInstanceNameLen,
+        loading: () => defaultMaxInstanceNameLen);
 
     final closeButton = IconButton(
       icon: const Icon(Icons.close),
@@ -102,7 +108,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       autofocus: true,
       helper: l10n.launchFormNameHelper,
       hint: randomName,
-      validator: nameValidator(vmNames, deletedVms, l10n),
+      validator: nameValidator(vmNames, deletedVms, l10n, maxInstanceNameLen),
       onSaved: (value) => launchRequest.instanceName =
           value.isNullOrBlank ? randomName : value!,
       width: 360,
@@ -415,17 +421,17 @@ void initiateLaunchFlow(
   ref.read(notificationsProvider.notifier).add(notification);
 }
 
-FormFieldValidator<String> nameValidator(
-  Iterable<String> existingNames,
-  Iterable<String> deletedNames,
-  AppLocalizations l10n,
-) {
+FormFieldValidator<String> nameValidator(Iterable<String> existingNames,
+    Iterable<String> deletedNames, AppLocalizations l10n, int maxNameLen) {
   return (String? value) {
     if (value!.isEmpty) {
       return null;
     }
     if (value.length < 2) {
       return l10n.usagePrimaryNameErrorTooShort;
+    }
+    if (value.length > maxNameLen) {
+      return l10n.usagePrimaryNameErrorTooLong;
     }
     if (RegExp(r'[^A-Za-z0-9\-]').hasMatch(value)) {
       return l10n.launchFormNameErrorInvalidChars;

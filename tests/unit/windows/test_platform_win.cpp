@@ -723,4 +723,9 @@ TEST(PlatformWin, test_qstr_path_conversion)
     EXPECT_EQ(MP_PLATFORM.path_to_qstr(MP_PLATFORM.qstr_to_path(special)), special);
 }
 
+TEST(PlatformWin, getMaximumFileNameLengthReturnsPositiveValue)
+{
+    EXPECT_GT(MP_PLATFORM.get_maximum_file_name_length("C:\\"), 0u);
+}
+
 } // namespace
