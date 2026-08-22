@@ -19,36 +19,21 @@
 
 #include <hyperv_api/hcn/hyperv_hcn_dns.h>
 
-#include <fmt/xchar.h>
-
 #include <optional>
 #include <string>
 
 namespace multipass::hyperv::hcn
 {
-struct HcnNetworkInfo
+struct HcnEndpointInfo
 {
     std::string guid;
-    std::string name;
-    std::string type;
-    std::optional<std::string> network_adapter_name;
+    std::string network_guid;
 
     /**
-     * DNS settings (suffix, search list, servers) reported by the network.
+     * DNS settings (suffix, search list, servers) the endpoint inherited
+     * from its network.
      */
     std::optional<HcnDns> dns;
 };
 
-}; // namespace multipass::hyperv::hcn
-
-/**
- * Formatter type specialization for HcnNetworkInfo
- */
-template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcn::HcnNetworkInfo, Char>
-    : formatter<basic_string_view<Char>, Char>
-{
-    template <typename FormatContext>
-    auto format(const multipass::hyperv::hcn::HcnNetworkInfo& info, FormatContext& ctx) const
-        -> FormatContext::iterator;
-};
+} // namespace multipass::hyperv::hcn

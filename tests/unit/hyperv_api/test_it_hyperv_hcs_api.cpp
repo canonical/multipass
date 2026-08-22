@@ -88,30 +88,6 @@ struct HyperVHCSAPI_IntegrationTests : public ::testing::Test
     }
 
 private:
-    std::vector<std::filesystem::path> find_split_parts(const std::filesystem::path& dir,
-                                                        const std::string& prefix)
-    {
-        std::vector<std::filesystem::path> parts;
-        for (const auto& entry : std::filesystem::directory_iterator(dir))
-        {
-            if (entry.path().filename().string().starts_with(prefix))
-                parts.push_back(entry.path());
-        }
-        std::ranges::sort(parts); // aa < ab < ac lexicographically
-        return parts;
-    }
-
-    void merge_files(std::span<const std::filesystem::path> parts,
-                     const std::filesystem::path& output)
-    {
-        std::ofstream out(output, std::ios::binary);
-        for (const auto& part : parts)
-        {
-            std::ifstream in(part, std::ios::binary);
-            out << in.rdbuf();
-        }
-    }
-
     void copy_test_vhdx_for_vm()
     {
         vhdx_path.emplace(make_tempfile_path(".vhdx"));
