@@ -71,7 +71,8 @@ long long mp::in_bytes(const std::string& mem_value)
                 mantissa *= kibi;
                 break;
             default:
-                assert(false && "Shouldn't be here (invalid unit)");
+                // Shouldn't be here (invalid unit)
+                mp::utils::UNREACHABLE();
             }
         }
 
