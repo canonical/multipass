@@ -85,12 +85,12 @@ public:
     void renew_client() override;
 
     /**
-     * @copydoc SftpSession::client_failed
+     * @copydoc SftpSession::client_exit_code
      *
-     * This waits briefly for the client process to exit. When its exit status cannot be obtained
-     * (e.g. timeout or SSH error), failure is assumed.
+     * This waits briefly for the client process's exit status, reporting no exit code when that
+     * does not come through in time.
      */
-    bool client_failed() override;
+    std::optional<int> client_exit_code() override;
 
 private:
     struct RawSftpSessionDeleter
