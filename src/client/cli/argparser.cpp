@@ -122,7 +122,7 @@ mp::ParseCode mp::ArgParser::prepare_alias_execution(const QString& alias)
 
 mp::ParseCode mp::ArgParser::parse(const std::optional<mp::AliasDict>& aliases)
 {
-    QCommandLineOption help_option(help_option_names, "Displays help on commandline options");
+    QCommandLineOption help_option(help_option_names, "Display this help message and exit.");
     QCommandLineOption verbose_option(
         {"v", "verbose"},
         "Increase logging verbosity. Repeat the 'v' in the short option for more detail. "
