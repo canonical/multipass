@@ -212,6 +212,23 @@ TEST_F(AppleVZUtils_UnitTests, asifImageResizesViaDiskutil)
     EXPECT_TRUE(diskutil_resize_called);
 }
 
+TEST_F(AppleVZUtils_UnitTests, resizeAsifImageIsNoOpWhenRequestedSizeWithinCurrentCapacity)
+{
+    std::string content(4096, '\0');
+    content.replace(0, 4, "shdw");
+    MP_UTILS.make_file_with_content(test_image.path(), content, true);
+
+    bool diskutil_called = false;
+    process_factory_scope->register_callback(
+        [&diskutil_called](mpt::MockProcess* process) { diskutil_called = true; });
+
+    mock_applevz_utils.AppleVZUtils::resize_image(mp::MemorySize::from_bytes(2048),
+                                                  test_image.path());
+
+    EXPECT_FALSE(diskutil_called);
+    EXPECT_EQ(std::filesystem::file_size(test_image.path()), 4096);
+}
+
 TEST_F(AppleVZUtils_UnitTests, nonAsifImageResizesToExactSize)
 {
     MP_UTILS.make_file_with_content(test_image.path(), "test", true);

@@ -80,6 +80,25 @@ bool is_asif_image(const std::filesystem::path& image_path)
 
 void resize_asif_image(const std::filesystem::path& image_path, const mp::MemorySize& disk_space)
 {
+    // ASIF images carry metadata overhead, so their capacity ends up slightly larger than the
+    // raw image they were created from.
+    std::error_code ec;
+    const auto current_size = std::filesystem::file_size(image_path, ec);
+    if (ec)
+        throw std::runtime_error(
+            fmt::format("Failed to determine size of image {}: {}", image_path, ec.message()));
+
+    const auto current_bytes = static_cast<long long>(current_size);
+    if (disk_space.in_bytes() <= current_bytes)
+    {
+        mpl::debug(category,
+                   "Skipping resize of {}: requested size {} does not exceed current capacity {}",
+                   image_path,
+                   disk_space.human_readable(),
+                   mp::MemorySize::from_bytes(current_bytes).human_readable());
+        return;
+    }
+
     run_process(
         QStringLiteral("diskutil"),
         QStringList() << "image" << "resize" << "--size" << QString::number(disk_space.in_bytes())
