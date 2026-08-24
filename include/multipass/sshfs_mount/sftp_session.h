@@ -64,6 +64,10 @@ public:
      *
      * If a stop was requested with #request_stop() in the meantime, this is a no-op: no new
      * client is spawned; the stop request survives.
+     *
+     * @throws SSHException if renewing the client fails. The session is left in a valid
+     * state with no client running; callers should either retry this method or destroy the
+     * session.
      */
     virtual void renew_client() = 0;
 

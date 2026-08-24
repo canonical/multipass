@@ -18,13 +18,14 @@
 #include <multipass/ssh/plain_sftp_session.h>
 
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_sftp_message.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/sshfs_mount/sftp_client_steward.h>
 
-#include <fmt/format.h>
+#include <scope_guard.hpp>
 
 #include <cassert>
 #include <chrono>
@@ -152,9 +153,11 @@ void mp::PlainSftpSession::spawn_client()
 {
     assert(!client_process && "precondition - no client may be running");
 
+    auto client_rollback = sg::make_scope_guard([this]() noexcept { client_process.reset(); });
     client_process = create_client_process(plain_ssh_session, client_cmd);
     raw_sftp_session = make_raw_sftp_session(plain_ssh_session.borrow_session(pass),
                                              client_process->borrow_channel(pass));
+    client_rollback.dismiss();
 }
 
 void mp::PlainSftpSession::renew_client()
@@ -181,7 +184,7 @@ void mp::PlainSftpSession::request_stop() noexcept
 std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
 {
     sftp_client_message raw_msg = nullptr;
-    while (!stop_requested.load())
+    while (!stop_requested.load() || !client_process)
     {
         int poll_result = poll_stdout(raw_sftp_session->channel, poll_interval.count());
         if (poll_result > 0) // bounded by session timeout
@@ -197,7 +200,7 @@ std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
 
 std::optional<int> mp::PlainSftpSession::client_exit_code()
 {
-    return client_process->exit_recognized(client_exit_timeout)
+    return client_process && client_process->exit_recognized(client_exit_timeout)
              ? std::optional{client_process->exit_code()}
              : std::nullopt;
 }
