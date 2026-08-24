@@ -44,10 +44,9 @@ struct AppleVZUtils_UnitTests : public testing::Test
 {
     AppleVZUtils_UnitTests()
     {
-        ON_CALL(mock_applevz_utils, convert_to_supported_format(_, _))
-            .WillByDefault([this](const std::filesystem::path& path, bool destructive) {
-                return mock_applevz_utils.AppleVZUtils::convert_to_supported_format(path,
-                                                                                    destructive);
+        ON_CALL(mock_applevz_utils, convert_to_supported_format(_))
+            .WillByDefault([this](const std::filesystem::path& path) {
+                return mock_applevz_utils.AppleVZUtils::convert_to_supported_format(path);
             });
     }
 
@@ -83,7 +82,7 @@ TEST_F(AppleVZUtils_UnitTests, convertUsesRawFormatOnPreMacOS26)
         }
     });
 
-    auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true);
+    auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path());
 
     EXPECT_EQ(result.extension(), ".raw");
     EXPECT_NE(result, test_image.path());
@@ -103,7 +102,7 @@ TEST_F(AppleVZUtils_UnitTests, convertIsNoOpWhenAlreadyRaw)
         }
     });
 
-    auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true);
+    auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path());
 
     EXPECT_EQ(result, test_image.path());
 }
@@ -118,7 +117,7 @@ TEST_F(AppleVZUtils_UnitTests, asifImagesNotConvertedOnMacOS26)
     process_factory_scope->register_callback(
         [&conversion_attempted](mpt::MockProcess* process) { conversion_attempted = true; });
 
-    auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true);
+    auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path());
 
     EXPECT_EQ(result, test_image.path());
     EXPECT_FALSE(conversion_attempted);
@@ -147,32 +146,10 @@ TEST_F(AppleVZUtils_UnitTests, nonAsifBytesTriggerConversionOnMacOS26)
         }
     });
 
-    const auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true);
+    const auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path());
 
     EXPECT_TRUE(asif_created);
     EXPECT_EQ(result.extension(), ".asif");
-}
-
-TEST_F(AppleVZUtils_UnitTests, conversionKeepsRawFileWhenNonDestructive)
-{
-    EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(true));
-
-    MP_UTILS.make_file_with_content(test_image.path(), std::string(4, '\xFF'), true);
-
-    process_factory_scope->register_callback([](mpt::MockProcess* process) {
-        if (process->program() == expected_qemu_img_path())
-        {
-            const auto args = process->arguments();
-            if (args.contains("info"))
-                EXPECT_CALL(*process, read_all_standard_output)
-                    .WillOnce(Return(QByteArray(R"({"format": "raw"})")));
-        }
-    });
-
-    const auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), false);
-
-    EXPECT_EQ(result.extension(), ".asif");
-    EXPECT_TRUE(std::filesystem::exists(test_image.path()));
 }
 
 TEST_F(AppleVZUtils_UnitTests, conversionRemovesAsifOnFailure)
@@ -204,42 +181,9 @@ TEST_F(AppleVZUtils_UnitTests, conversionRemovesAsifOnFailure)
         }
     });
 
-    EXPECT_THROW(MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true),
+    EXPECT_THROW(MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path()),
                  std::runtime_error);
     EXPECT_FALSE(std::filesystem::exists(asif_path.toStdString()));
-}
-
-TEST_F(AppleVZUtils_UnitTests, conversionKeepsRawOnNonDestructiveFailure)
-{
-    EXPECT_CALL(mock_applevz_utils, macos_at_least(26, 0, _)).WillOnce(Return(true));
-
-    MP_UTILS.make_file_with_content(test_image.path(), std::string(4, '\xFF'), true);
-
-    QString asif_path;
-    process_factory_scope->register_callback([&asif_path](mpt::MockProcess* process) {
-        if (process->program() == expected_qemu_img_path())
-        {
-            const auto args = process->arguments();
-            if (args.contains("info"))
-                EXPECT_CALL(*process, read_all_standard_output)
-                    .WillOnce(Return(QByteArray(R"({"format": "raw"})")));
-        }
-        else if (process->program() == "diskutil")
-        {
-            const auto args = process->arguments();
-            if (args.contains("image") && args.contains("create"))
-            {
-                asif_path = args.at(4);
-                MP_UTILS.make_file_with_content(asif_path.toStdString(), "placeholder", false);
-                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{1, std::nullopt}));
-            }
-        }
-    });
-
-    EXPECT_THROW(MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), false),
-                 std::runtime_error);
-    EXPECT_FALSE(std::filesystem::exists(asif_path.toStdString()));
-    EXPECT_TRUE(std::filesystem::exists(test_image.path()));
 }
 
 TEST_F(AppleVZUtils_UnitTests, asifImageResizesViaDiskutil)
@@ -346,7 +290,7 @@ TEST_F(AppleVZUtils_UnitTests, conversionDeletesIntermediateRawOnSuccess)
         }
     });
 
-    const auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true);
+    const auto result = MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path());
 
     EXPECT_EQ(result.extension(), ".asif");
     EXPECT_FALSE(std::filesystem::exists(raw_path.toStdString()));
@@ -389,7 +333,7 @@ TEST_F(AppleVZUtils_UnitTests, conversionDeletesFilesOnFailure)
         }
     });
 
-    EXPECT_THROW(MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path(), true),
+    EXPECT_THROW(MP_APPLEVZ_UTILS.convert_to_supported_format(test_image.path()),
                  std::runtime_error);
 
     EXPECT_FALSE(std::filesystem::exists(raw_path.toStdString()));

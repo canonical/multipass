@@ -82,7 +82,7 @@ TEST_F(AppleVZVirtualMachineFactory_UnitTests, prepareSourceImage)
     mp::VMImage source_image;
     source_image.image_path = source_path;
 
-    EXPECT_CALL(mock_applevz_utils, convert_to_supported_format(source_path, _))
+    EXPECT_CALL(mock_applevz_utils, convert_to_supported_format(source_path))
         .WillOnce(Return(converted_path));
 
     auto uut = construct_factory();
@@ -174,8 +174,7 @@ TEST_F(AppleVZVirtualMachineFactory_UnitTests, createVirtualMachine)
     desc.vm_name = "test-vm";
     desc.zone = "zone1";
 
-    EXPECT_CALL(mock_applevz_utils, convert_to_supported_format(_, _))
-        .WillRepeatedly(ReturnArg<0>());
+    EXPECT_CALL(mock_applevz_utils, convert_to_supported_format(_)).WillRepeatedly(ReturnArg<0>());
 
     EXPECT_CALL(mock_applevz, create_vm(_, _, _))
         .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(mp::applevz::CFError{})));
@@ -218,8 +217,7 @@ TEST_F(AppleVZVirtualMachineFactory_UnitTests, cloneCopiesRelevantFiles)
         .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(mp::applevz::CFError{})));
     EXPECT_CALL(mock_applevz, get_state(_))
         .WillRepeatedly(Return(mp::applevz::AppleVMState::stopped));
-    EXPECT_CALL(mock_applevz_utils, convert_to_supported_format(_, _))
-        .WillRepeatedly(ReturnArg<0>());
+    EXPECT_CALL(mock_applevz_utils, convert_to_supported_format(_)).WillRepeatedly(ReturnArg<0>());
     EXPECT_CALL(mock_applevz_utils, resize_image(_, _)).WillRepeatedly(Return());
 
     EXPECT_TRUE(uut->clone_bare_vm({},

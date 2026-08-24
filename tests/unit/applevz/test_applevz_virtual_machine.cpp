@@ -87,7 +87,7 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
         EXPECT_CALL(mock_applevz, get_state(_)).WillRepeatedly(Return(initial_state));
         EXPECT_CALL(mock_monitor, persist_state_for(desc.vm_name, _)).Times(AnyNumber());
 
-        EXPECT_CALL(mock_image_utils, convert_to_supported_format(_, _))
+        EXPECT_CALL(mock_image_utils, convert_to_supported_format(_))
             .WillRepeatedly(ReturnArg<0>());
         EXPECT_CALL(mock_image_utils, resize_image(_, _)).WillRepeatedly(Return());
 

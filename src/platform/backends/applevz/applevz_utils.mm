@@ -107,7 +107,7 @@ void make_sparse(const std::filesystem::path& raw_image_path, const mp::MemorySi
         throw std::runtime_error(fmt::format("Failed to resize file: {}", ec.message()));
 }
 
-std::filesystem::path convert_to_asif(const std::filesystem::path& source_path, bool destructive)
+std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
 {
     if (is_asif_image(source_path))
         return source_path;
@@ -138,10 +138,9 @@ std::filesystem::path convert_to_asif(const std::filesystem::path& source_path, 
 namespace multipass::applevz
 {
 std::filesystem::path AppleVZUtils::convert_to_supported_format(
-    const std::filesystem::path& image_path,
-    bool destructive) const
+    const std::filesystem::path& image_path) const
 {
-    return macos_at_least(26, 0) ? convert_to_asif(image_path, destructive)
+    return macos_at_least(26, 0) ? convert_to_asif(image_path)
                                  : backend::convert(image_path, "raw");
 }
 
