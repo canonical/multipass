@@ -258,7 +258,7 @@ TEST_F(TestPlainSftpSession, makeSftpSessionSucceeds)
 TEST_F(TestPlainSftpSession, renewClientCleansUpAfterFormerClientAndRespawns)
 {
     expect_client_spawns<2>(); // one client to begin with, another one to replace it
-    EXPECT_CALL(client_steward, clean_up_after_client(_, StrEq(source)));
+    EXPECT_CALL(client_steward, clean_up_after_client(_, StrEq(source))).Times(2);
 
     auto sftp_session = make_sftp_session(make_ssh_session());
     ASSERT_THAT(sftp_session, NotNull());
@@ -269,7 +269,7 @@ TEST_F(TestPlainSftpSession, renewClientCleansUpAfterFormerClientAndRespawns)
 TEST_F(TestPlainSftpSession, renewClientSupportsMultipleRespawns)
 {
     expect_client_spawns<3>(); // one client to begin with, two more respawns
-    EXPECT_CALL(client_steward, clean_up_after_client(_, StrEq(source))).Times(2);
+    EXPECT_CALL(client_steward, clean_up_after_client(_, StrEq(source))).Times(3);
 
     auto sftp_session = make_sftp_session(make_ssh_session());
     ASSERT_THAT(sftp_session, NotNull());
@@ -281,7 +281,7 @@ TEST_F(TestPlainSftpSession, renewClientSupportsMultipleRespawns)
 TEST_F(TestPlainSftpSession, renewClientNoopAfterStopRequested)
 {
     expect_client_spawns<1>(); // only the original client, no replacement
-    EXPECT_CALL(client_steward, clean_up_after_client).Times(0);
+    EXPECT_CALL(client_steward, clean_up_after_client).Times(1);
 
     auto sftp_session = make_sftp_session(make_ssh_session());
     ASSERT_THAT(sftp_session, NotNull());
@@ -298,7 +298,9 @@ TEST_F(TestPlainSftpSession, renewClientPropagatesCleanUpFailure)
     const std::string error = "could not unmount";
 
     expect_client_spawns<1>(); // the replacement never gets to run
-    EXPECT_CALL(client_steward, clean_up_after_client).WillOnce(Throw(std::runtime_error{error}));
+    EXPECT_CALL(client_steward, clean_up_after_client)
+        .WillOnce(Throw(std::runtime_error{error}))
+        .WillOnce(Return());
 
     auto sftp_session = make_sftp_session(make_ssh_session());
     ASSERT_THAT(sftp_session, NotNull());

@@ -58,6 +58,8 @@ public:
                      const SftpClientSteward& client_steward,
                      const std::string& source,
                      const std::string& target);
+    ~PlainSftpSession() override;
+
     PlainSftpSession(const PlainSftpSession&) = delete;
     PlainSftpSession& operator=(const PlainSftpSession&) = delete;
 

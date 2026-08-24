@@ -24,6 +24,7 @@
 #include <multipass/ssh/plain_sftp_message.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/sshfs_mount/sftp_client_steward.h>
+#include <multipass/top_catch_all.h>
 
 #include <scope_guard.hpp>
 
@@ -146,6 +147,15 @@ mp::PlainSftpSession::PlainSftpSession(PlainSSHSession&& ssh_session_obj,
       client_cmd{client_steward.compose_client_command(plain_ssh_session, source, target)}
 {
     spawn_client();
+}
+
+mp::PlainSftpSession::~PlainSftpSession()
+{
+    raw_sftp_session.reset(); // mind the order: this borrows the process's channel
+    client_process.reset();
+
+    mp::top_catch_all(category,
+                      [this] { client_steward.clean_up_after_client(plain_ssh_session, source); });
 }
 
 void mp::PlainSftpSession::spawn_client()
