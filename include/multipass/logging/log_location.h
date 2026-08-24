@@ -81,13 +81,4 @@ void debug_location(detail::with_source_location<std::string_view> category,
 {
     log_location(Level::debug, category, fmt, std::forward<Args>(args)...);
 }
-
-template <typename... Args>
-void error_location(detail::with_source_location<std::string_view> category,
-                    fmt::format_string<Args...> fmt,
-                    Args&&... args)
-{
-    log_location(Level::error, category, fmt, std::forward<Args>(args)...);
-}
-
 } // namespace multipass::logging

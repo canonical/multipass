@@ -77,8 +77,7 @@ struct TestLoggingSpinnerCallbacks : public TestSpinnerCallbacks,
                                                                                          term);
             break;
         default:
-            // shouldn't be here
-            mp::utils::UNREACHABLE();
+            mp::utils::UNREACHABLE("shouldn't be here");
         }
     }
 };
@@ -130,8 +129,7 @@ struct TestReplySpinnerCallbacks : public TestSpinnerCallbacks,
                                                                                          term);
             break;
         default:
-            // shouldn't be here
-            mp::utils::UNREACHABLE();
+            mp::utils::UNREACHABLE("shouldn't be here");
         }
     }
 };

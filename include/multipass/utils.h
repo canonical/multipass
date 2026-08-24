@@ -24,7 +24,6 @@
 #include <multipass/virtual_machine.h>
 
 #include <fmt/base.h>
-#include <fmt/format.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -33,8 +32,10 @@
 #include <filesystem>
 #include <functional>
 #include <future>
+#include <ranges>
 #include <source_location>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <QDir>
@@ -56,11 +57,13 @@ namespace utils
 {
 
 // Marks code that should never be reached: logs the location and aborts.
-[[noreturn]] inline void UNREACHABLE(std::source_location loc = std::source_location::current())
+[[noreturn]] inline void UNREACHABLE(std::string_view message,
+                                     std::source_location loc = std::source_location::current())
 {
     logging::log_location(logging::Level::error,
                           logging::detail::with_source_location<std::string_view>("FATAL", loc),
-                          "Reached code marked as unreachable");
+                          "Reached unreachable code: {}",
+                          message);
     std::abort();
 }
 

@@ -152,8 +152,7 @@ void mp::FileOps::write_transactionally(const QString& file_name, const QByteArr
         std::this_thread::sleep_for(delay);
     }
 
-    // We should never get here
-    mp::utils::UNREACHABLE();
+    mp::utils::UNREACHABLE("We should never get here");
 }
 
 void mp::FileOps::write_transactionally(const fs::path& file_name, std::string_view data) const
