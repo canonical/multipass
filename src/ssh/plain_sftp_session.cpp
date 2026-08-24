@@ -29,7 +29,6 @@
 
 #include <cassert>
 #include <chrono>
-#include <stdexcept>
 #include <utility>
 
 namespace mp = multipass;
@@ -58,7 +57,7 @@ void check_client_status(mp::SSHProcess& client_process)
 {
     // should we have a way to wait for it to start running?
     if (client_process.exit_recognized(client_exit_timeout))
-        throw std::runtime_error(client_process.read_std_error());
+        throw mp::SSHException(client_process.read_std_error());
 }
 
 auto create_client_process(mp::PlainSSHSession& session, const std::string& client_cmd)
