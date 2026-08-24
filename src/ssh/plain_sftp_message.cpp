@@ -132,7 +132,7 @@ bool mp::PlainSftpMessage::reply_attributes(const SftpAttributes& attributes)
 bool mp::PlainSftpMessage::reply_data(const void* data, size_t len)
 {
     assert(len <= static_cast<size_t>(std::numeric_limits<int>::max()) &&
-           "data replies are bounded by packet size");
+           "data replies are bounded by packet size"); // TODO@sftp UNREACHABLE (if not runtime)
     return MP_LIBSSH.sftp_reply_data(message.get(), data, static_cast<int>(len)) == SSH_OK;
 }
 
