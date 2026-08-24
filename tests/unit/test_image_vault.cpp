@@ -236,6 +236,25 @@ TEST_F(ImageVault, downloadsImage)
     EXPECT_TRUE(url_downloader.downloaded_urls.contains(host.image.url()));
 }
 
+TEST_F(ImageVault, emptyReleaseFallsBackToOsTitleVersionDirName)
+{
+    host.mock_bionic_image_info.release = "";
+    host.mock_bionic_image_info.os = "Fedora";
+    host.mock_bionic_image_info.release_title = "44";
+
+    mp::DefaultVMImageVault vault{hosts,
+                                  &url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+    vault.fetch_image(default_query, stub_prepare, stub_monitor, std::nullopt, instance_dir);
+
+    ASSERT_THAT(url_downloader.downloaded_files.size(), Eq(1));
+    const auto image_dir_name = QFileInfo{url_downloader.downloaded_files[0]}.dir().dirName();
+    EXPECT_THAT(image_dir_name, Eq(QString("Fedora-44-%1").arg(mpt::default_version)));
+    EXPECT_FALSE(image_dir_name.startsWith('-'));
+}
+
 TEST_F(ImageVault, downloadsImageXz)
 {
     mp::DefaultVMImageVault vault{hosts,

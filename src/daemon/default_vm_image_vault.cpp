@@ -316,9 +316,17 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const Query& query,
             }
             else
             {
-                const auto image_dir =
-                    MP_UTILS.make_dir(images_dir,
-                                      QString("%1-%2").arg(info->release).arg(info->version));
+                const auto image_dir_name = info->release.empty()
+                                              ? QString("%1-%2-%3")
+                                                    .arg(
+                                                        QString::fromStdString(info->os),
+                                                        QString::fromStdString(info->release_title),
+                                                        QString::fromStdString(info->version))
+                                              : QString("%1-%2").arg(
+                                                    QString::fromStdString(info->release),
+                                                    QString::fromStdString(info->version));
+
+                const auto image_dir = MP_UTILS.make_dir(images_dir, image_dir_name);
 
                 // Had to use std::bind here to workaround the 5 allowable function arguments
                 // constraint of QtConcurrent::run()
