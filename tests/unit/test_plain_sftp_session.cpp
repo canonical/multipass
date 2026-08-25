@@ -310,6 +310,55 @@ TEST_F(TestPlainSftpSession, renewClientPropagatesCleanUpFailure)
                          mpt::match_what(StrEq(error)));
 }
 
+TEST_F(TestPlainSftpSession, nextMessageReturnsMessageWhenPollSucceeds)
+{
+    expect_client_spawns<1>();
+
+    auto sftp_session = make_sftp_session(make_ssh_session());
+    ASSERT_THAT(sftp_session, NotNull());
+
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0)).WillOnce(Return(1));
+    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_sessions[0]))
+        .WillOnce(Return(&fake_client_msgs[1]));
+
+    EXPECT_THAT(sftp_session->next_message(), NotNull());
+}
+
+TEST_F(TestPlainSftpSession, nextMessagePollsAgainWhenNothingToReadYet)
+{
+    expect_client_spawns<1>();
+
+    auto sftp_session = make_sftp_session(make_ssh_session());
+    ASSERT_THAT(sftp_session, NotNull());
+
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0))
+        .WillOnce(Return(0))
+        .WillOnce(Return(1));
+    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_sessions[0]))
+        .WillOnce(Return(&fake_client_msgs[1]));
+
+    EXPECT_THAT(sftp_session->next_message(), NotNull());
+}
+
+TEST_F(TestPlainSftpSession, nextMessageReturnsNullOnError)
+{
+    expect_client_spawns<1>();
+
+    auto sftp_session = make_sftp_session(make_ssh_session());
+    ASSERT_THAT(sftp_session, NotNull());
+
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0))
+        .WillOnce(Return(SSH_ERROR))
+        .WillOnce(Return(1));
+    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_sessions[0]))
+        .WillOnce(Return(&fake_client_msgs[1]));
+
+    EXPECT_THAT(sftp_session->next_message(), IsNull());
+
+    // a further call still polls normally
+    EXPECT_THAT(sftp_session->next_message(), NotNull());
+}
+
 TEST_F(TestPlainSftpSession, clientExitCodeReportsGracefulClientExit)
 {
     expect_client_spawns<1>();
