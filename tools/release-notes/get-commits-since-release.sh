@@ -133,9 +133,10 @@ resolve_github_login() {
 
   local login=""
   # Name search is the primary path: it works for noreply emails and for
-  # people whose canonical email isn't linked to their GitHub account.
+  # people whose canonical email isn't linked to their GitHub account. Quote
+  # the name so multi-word names aren't split into free-text terms.
   local name_q
-  name_q=$(jq -rn --arg n "repo:${PR_REPO} author-name:$name" '$n|@uri')
+  name_q=$(jq -rn --arg n "repo:${PR_REPO} author-name:\"$name\"" '$n|@uri')
   login=$(gh api "search/commits?q=${name_q}" \
     --jq '.items[0].author.login // ""' 2>/dev/null || echo "")
 
@@ -148,32 +149,35 @@ resolve_github_login() {
       --jq '.items[0].author.login // ""' 2>/dev/null || echo "")
   fi
 
-  echo "$login" > "$cache_file"
+  # Only cache a successful resolution; an empty result is transient (offline,
+  # rate limit, auth) and must not poison future runs.
+  if [[ -n $login ]]; then
+    echo "$login" > "$cache_file"
+  else
+    echo "Warning: could not resolve a GitHub login for '$name' <$email>" >&2
+  fi
   echo "$login"
 }
 
 # Decide whether an author is a genuinely NEW contributor, defined as "first
-# shipped change": the person has no authored commit reachable from the
-# previous release tag NOR from main's history before that tag, and no merged
-# PR before the tag's date. Commit-author-name matching alone produces both
-# false positives (squash-merge/cherry-pick artifacts) and false negatives
-# (committer vs author mismatches), so when a local name looks new we verify
-# against GitHub history via the author's login.
+# shipped change": the person has no authored commit on any branch dated
+# before the release tag, and no merged PR dated before the tag. Local
+# commit-author-name matching alone produces both false positives
+# (squash-merge/cherry-pick artifacts) and false negatives (committer vs
+# author mismatches), so when a local name looks new we verify against GitHub
+# history via the author's login.
 #
-# Args: name, email, tag, tag_date (ISO-8601), candidate PRs by this author in
-#   the current range (newline-separated "number date" pairs).
+# Args: name, email, tag_date (ISO-8601).
 # Echoes "true" or "false".
 is_genuinely_new_author() {
   local name="$1"
   local email="$2"
-  local tag="$3"
-  local tag_date="$4"
-  local range_prs="$5"
+  local tag_date="$3"
 
   # Cheap local check first: any authored commit before the tag on ANY branch
-  # means not new. This is the historical behaviour and catches the common
-  # case offline.
-  if git log --all --before="$tag_date" --format='%aN' --author="$name" 2>/dev/null | grep -q .; then
+  # means not new. Match on the full %aN name, exactly as the caller's
+  # HISTORICAL_AUTHORS check does, so the two agree.
+  if git log --all --before="$tag_date" --format='%aN' 2>/dev/null | grep -Fxq "$name"; then
     echo "false"
     return
   fi
@@ -187,14 +191,13 @@ is_genuinely_new_author() {
     return
   fi
 
-  # Any merged PR by this login before the tag date means not new. Sort
-  # ascending so the earliest PR is returned even when the author has more
-  # PRs than the result limit.
+  # Any merged PR by this login before the tag date means not new. Sort by
+  # close date ascending so the earliest MERGED PR is first regardless of when
+  # PRs were opened; limit(1) avoids a SIGPIPE under `set -o pipefail`.
   local earlier
   earlier=$(gh search prs --repo "$PR_REPO" --author "$login" --merged \
-    --sort created --order asc --json number,closedAt --limit 20 2>/dev/null \
-    | jq -r --arg d "$tag_date" '.[] | select(.closedAt < $d) | .number' 2>/dev/null \
-    | head -1)
+    --sort closed --order asc --json number,closedAt --limit 20 2>/dev/null \
+    | jq -r --arg d "$tag_date" 'limit(1; .[] | select(.closedAt < $d)) | .number' 2>/dev/null)
   if [[ -n $earlier ]]; then
     echo "false"
     return
@@ -376,7 +379,12 @@ if [[ $GROUP_BY_AUTHOR == true ]]; then
 elif [[ $JSON_OUTPUT == true ]]; then
   # Generate JSON output with categorization
   HISTORICAL_AUTHORS=$(git log --all --before="$(git log -1 --format=%aI $LATEST_TAG)" --format=format:"%aN" 2>/dev/null | sort | uniq)
-  TAG_DATE=$(git log -1 --format=%aI "$LATEST_TAG")
+  # Use the tag's own date (when the release was actually cut) as the "shipped"
+  # cutoff. The tagged commit's author date can be days/weeks earlier, which
+  # would wrongly count work merged in between as "before release".
+  TAG_DATE=$(git for-each-ref --format='%(taggerdate:iso-strict)' "refs/tags/$LATEST_TAG")
+  # Lightweight tags have no tagger date; fall back to the commit date.
+  [[ -z $TAG_DATE ]] && TAG_DATE=$(git log -1 --format=%cI "$LATEST_TAG")
 
   # Enrichment requires the GitHub CLI
   if [[ $ENRICH == true ]] && ! command -v gh > /dev/null 2>&1; then
@@ -424,7 +432,7 @@ elif [[ $JSON_OUTPUT == true ]]; then
       # names unreliable). Only hits the network for candidate-new authors.
       if [[ $ENRICH == true ]] && command -v gh > /dev/null 2>&1; then
         author_login=$(resolve_github_login "$author" "$author_email")
-        is_new_author=$(is_genuinely_new_author "$author" "$author_email" "$LATEST_TAG" "$TAG_DATE" "")
+        is_new_author=$(is_genuinely_new_author "$author" "$author_email" "$TAG_DATE")
       else
         is_new_author=true
       fi
