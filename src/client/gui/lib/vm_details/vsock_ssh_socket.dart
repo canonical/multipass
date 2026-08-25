@@ -143,30 +143,39 @@ bool _isEintr() => _getErrnoPtr != null && _getErrnoPtr!().value == 4;
 ///
 /// [_cRead]/[_cWrite] block the calling thread, so each direction runs in its
 /// own [Isolate] to keep the main event loop free:
-///  * read isolate: loops on `read()`, forwarding chunks (`null` = EOF,
-///    `String` = error) over a [SendPort];
-///  * write isolate: hands back a command [SendPort], then `write()`s chunks and
-///    honours flush/shutdown commands.
+///  * read isolate: reads one chunk per request (pull-based for backpressure),
+///    forwarding it (`null` = EOF, `String` = error) over a [SendPort];
+///  * write isolate: hands back a command [SendPort], then `write()`s chunks,
+///    reports write errors, and honours flush/shutdown commands.
 ///
 /// [close] flushes pending writes before tearing down; [destroy] tears down now.
 class RawFdSSHSocket implements SSHSocket {
   final int fd;
 
-  // Inbound bytes, exposed via [stream].
-  final StreamController<Uint8List> _readController =
-      StreamController<Uint8List>();
+  // Inbound bytes, exposed via [stream]. Pull-based: the next chunk is only
+  // requested when there is unpaused demand, so a slow consumer applies
+  // backpressure to the socket.
+  late final StreamController<Uint8List> _readController =
+      StreamController<Uint8List>(
+    onListen: _onReadDemand,
+    onResume: _onReadDemand,
+    onCancel: _stopReading,
+  );
   // Outbound bytes, accepted via [sink]. Typed List<int> to match the interface;
   // normalised to Uint8List before crossing to the write isolate.
   final StreamController<List<int>> _writeController =
       StreamController<List<int>>();
 
   final ReceivePort _readReceivePort = ReceivePort();
-  // Receives the write isolate's command port during the handshake.
+  // Receives the write isolate's command port and any write errors.
   final ReceivePort _writeHandshakePort = ReceivePort();
 
   late final Future<Isolate> _readIsolateFuture;
   late final Future<Isolate> _writeIsolateFuture;
   final Completer<SendPort> _writePortCompleter = Completer<SendPort>();
+  // Completes with the read isolate's request port; used to pull each chunk.
+  final Completer<SendPort> _readPortCompleter = Completer<SendPort>();
+  bool _readRequestInFlight = false;
 
   StreamSubscription<List<int>>? _writeSubscription;
   bool _isClosed = false;
@@ -185,16 +194,26 @@ class RawFdSSHSocket implements SSHSocket {
   @override
   Future<void> get done => _writeController.done;
 
-  // Read isolate: pipes messages into [_readController]
-  // (Uint8List = data, String = error, null = EOF).
+  // Read isolate: stores its request port, pipes chunks into [_readController]
+  // (Uint8List = data, String = error, null = EOF), and pulls the next chunk
+  // while there is unpaused demand.
   void _initReadIsolate() {
     _readReceivePort.listen((message) {
+      if (message is SendPort) {
+        if (!_readPortCompleter.isCompleted)
+          _readPortCompleter.complete(message);
+        return;
+      }
+
+      _readRequestInFlight = false;
       if (message is Uint8List) {
         _readController.add(message);
+        _onReadDemand(); // Pull the next chunk unless paused.
       } else if (message is String) {
         _readController.addError(SocketException(message));
+        if (!_readController.isClosed) _readController.close();
       } else if (message == null) {
-        _readController.close();
+        if (!_readController.isClosed) _readController.close();
       }
     });
 
@@ -204,11 +223,40 @@ class RawFdSSHSocket implements SSHSocket {
     );
   }
 
+  // Requests one chunk from the read isolate, but only with unpaused demand and
+  // no request already outstanding — this is the backpressure valve.
+  void _onReadDemand() {
+    if (_isClosed || _readRequestInFlight || _readController.isPaused) return;
+    _readRequestInFlight = true;
+    _readPortCompleter.future.then((port) {
+      if (!_isClosed) port.send('read');
+    }).catchError((_) {});
+  }
+
+  // Tells the read isolate to stop and release its buffer.
+  void _stopReading() {
+    _readPortCompleter.future
+        .then((port) => port.send('stop'))
+        .catchError((_) {});
+  }
+
+  // Surfaces a write failure on the read stream, then tears down.
+  void _handleWriteError(String message) {
+    if (_isClosed) return;
+    if (!_readController.isClosed) {
+      _readController.addError(SocketException(message));
+    }
+    destroy();
+  }
+
   // Write isolate: after the handshake, forwards outbound chunks to its port.
   void _initWriteIsolate() async {
     _writeHandshakePort.listen((message) {
-      if (message is SendPort && !_writePortCompleter.isCompleted) {
-        _writePortCompleter.complete(message);
+      if (message is SendPort) {
+        if (!_writePortCompleter.isCompleted)
+          _writePortCompleter.complete(message);
+      } else if (message is String) {
+        _handleWriteError(message);
       }
     });
 
@@ -232,32 +280,52 @@ class RawFdSSHSocket implements SSHSocket {
     }
   }
 
-  // Read isolate body: block on read(), ship each chunk back.
+  // Read isolate body: reads one chunk per 'read' request (pull-based) and
+  // ships it back; 'stop' releases the buffer and ends the isolate.
   static void _readWorkerLoop(List<dynamic> args) {
     final SendPort sendPort = args[0];
     final int fd = args[1];
     const bufferSize = 16384;
     final buffer = calloc<Uint8>(bufferSize);
 
-    try {
+    late final RawReceivePort requestPort;
+    var closed = false;
+    void cleanup() {
+      if (closed) return;
+      closed = true;
+      calloc.free(buffer);
+      requestPort.close();
+    }
+
+    requestPort = RawReceivePort((message) {
+      if (message == 'stop') {
+        cleanup();
+        return;
+      }
+      // 'read': perform exactly one blocking read.
       while (true) {
         final bytesRead = _cRead(fd, buffer, bufferSize);
-        if (bytesRead == 0) break; // EOF.
-        if (bytesRead < 0) {
-          if (_isEintr()) continue; // Interrupted: retry.
+        if (bytesRead < 0 && _isEintr()) continue; // Interrupted: retry.
+        if (bytesRead == 0) {
+          sendPort.send(null); // EOF.
+          cleanup();
+        } else if (bytesRead < 0) {
           sendPort.send('Native socket read failed with code $bytesRead');
-          break;
+          cleanup();
+        } else {
+          // Copy out of the shared buffer before sending.
+          sendPort.send(Uint8List.fromList(buffer.asTypedList(bytesRead)));
         }
-        // Copy out of the shared buffer before sending.
-        sendPort.send(Uint8List.fromList(buffer.asTypedList(bytesRead)));
+        return;
       }
-    } finally {
-      calloc.free(buffer);
-      sendPort.send(null); // Signal EOF/teardown.
-    }
+    });
+
+    // Hand back the request port so the main isolate can pull chunks.
+    sendPort.send(requestPort.sendPort);
   }
 
-  // Write isolate body: drain outbound chunks, writing each fully to the fd.
+  // Write isolate body: drain outbound chunks, writing each fully to the fd,
+  // reporting a non-recoverable write failure back over the handshake port.
   static void _writeWorkerLoop(List<dynamic> args) {
     final SendPort handshakePort = args[0];
     final int fd = args[1];
@@ -287,7 +355,11 @@ class RawFdSSHSocket implements SSHSocket {
             message.length - bytesWritten,
           );
           if (result < 0 && _isEintr()) continue; // Interrupted: retry.
-          if (result <= 0) break; // Error/closed: drop the rest.
+          if (result <= 0) {
+            // Error/closed: report the failure and stop draining this chunk.
+            handshakePort.send('Native socket write failed with code $result');
+            break;
+          }
           bytesWritten += result;
         }
       } else if (message is _FlushCommand) {
@@ -333,9 +405,14 @@ class RawFdSSHSocket implements SSHSocket {
     _writeHandshakePort.close();
 
     if (!_readController.isClosed) _readController.close();
+    // Complete `done` for anyone awaiting it (e.g. the write-error path never
+    // goes through close()).
+    if (!_writeController.isClosed) _writeController.close();
 
     void finalizeTeardown() {
-      // Shut down first so the blocked read() returns EOF and its isolate
+      // Ask the (usually idle) read isolate to release its buffer and exit.
+      _stopReading();
+      // Shut down first so any blocked read() returns EOF and its isolate
       // exits: isolate.kill() can't interrupt a thread parked in a syscall.
       shutdownSocket(fd);
       _cClose(fd);

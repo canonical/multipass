@@ -120,6 +120,14 @@ final _defaultMountTarget = _lib.lookupFunction<
     ffi.Pointer<Utf8> Function(ffi.Pointer<Utf8>),
     ffi.Pointer<Utf8> Function(ffi.Pointer<Utf8>)>('default_mount_target');
 
+final _openVsockSocket = _lib.lookupFunction<
+    ffi.Int32 Function(ffi.Pointer<FfiSSHCoordinates>),
+    int Function(ffi.Pointer<FfiSSHCoordinates>)>('open_vsock_socket');
+
+final _shutdownSocket =
+    _lib.lookupFunction<ffi.Void Function(ffi.Int32), void Function(int)>(
+        'shutdown_socket');
+
 final class _NativeKeyCertificatePair extends ffi.Struct {
   // ignore: non_constant_identifier_names
   external ffi.Pointer<Utf8> pem_cert;
@@ -177,6 +185,19 @@ KeyCertificatePair getCertPair() {
 
 List<int> getRootCert() {
   return utf8.encode(_getRootCert().string);
+}
+
+/// Connects to the guest over the vsock-family transport in [coordinates].
+/// Returns a connected socket fd, or a negative value if the transport is
+/// unset/unsupported or the connection fails.
+int openVsockSocket(ffi.Pointer<FfiSSHCoordinates> coordinates) {
+  return _openVsockSocket(coordinates);
+}
+
+/// Shuts down both directions of an fd from [openVsockSocket] so a blocked
+/// `read()` sees EOF. The native side handles platform specifics.
+void shutdownSocket(int fd) {
+  _shutdownSocket(fd);
 }
 
 String settingsFile() => _settingsFile().string;
