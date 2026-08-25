@@ -129,3 +129,29 @@ TEST_F(TestPlainSftpMessage, submessageForwardsToLibssh)
     EXPECT_THAT(result, Optional(std::string_view{extension}));
     EXPECT_THAT(result->data(), Eq(extension)); // same address, no local var leak
 }
+
+TEST_F(TestPlainSftpMessage, flagsForwardsToLibssh)
+{
+    const auto msg = make_message();
+    constexpr uint32_t raw_flags = mp::SftpOpenFlags::write | mp::SftpOpenFlags::creat;
+
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_flags(&raw_msg)).WillOnce(Return(raw_flags));
+
+    EXPECT_THAT(msg->flags(), Eq(raw_flags));
+}
+
+TEST_F(TestPlainSftpMessage, offsetReadsRawField)
+{
+    raw_msg.offset = 123456789ull;
+    const auto msg = make_message();
+
+    EXPECT_THAT(msg->offset(), Eq(123456789ull));
+}
+
+TEST_F(TestPlainSftpMessage, lengthReadsRawField)
+{
+    raw_msg.len = 4096;
+    const auto msg = make_message();
+
+    EXPECT_THAT(msg->length(), Eq(4096u));
+}
