@@ -310,25 +310,36 @@ jq '{
     items: [.commits[] | select(.type == "docs" and .pr_number != null and (.skip | not)) | {subject, title: .pr_title, pr_number, author}]
   },
   new_authors: {
-    names: [.commits[] | select(.is_new_author == true)
+    names: [.commits[] | select(.is_new_author == true and (.skip_reason != "automation-author"))
       | (.author_login // .author)] | unique | sort
   }
 }' /tmp/commits-data.json
 ```
 
-`names` is just the logins. The linked PR is the contributor's actual FIRST
-PR, which is usually NOT in this release range (e.g. merged to main earlier
-but never shipped, or the range only contains a later cherry-pick of their
-work). Resolve it per login with their earliest merged PR:
+Note the filter is `.skip_reason != "automation-author"`, NOT `(.skip | not)`:
+a genuinely-new *human* contributor whose only in-range commits happen to be
+skip-filtered (e.g. a tests-only or CI-only change) must still be listed — only
+dependency/CI *bots* are excluded.
+
+`names` is a sorted list of logins (unresolvable ones fall back to display
+names — verify those by hand before publishing, since a display name with a
+space renders a broken `github.com/<name>` link). The linked PR is the
+contributor's actual FIRST PR, which is usually NOT in this release range
+(e.g. merged to main earlier but never shipped, or the range only contains a
+later cherry-pick of their work). Resolve it per login with their earliest
+merged PR (sort by close date, not creation, so a long-open PR merged late
+doesn't lose to a quick one):
 
 ```bash
-gh search prs --repo canonical/multipass --author <login> --merged \
-  --sort created --order asc --limit 1 --json number,title
+gh search prs --repo "${PR_REPO:-canonical/multipass}" --author <login> \
+  --merged --sort closed --order asc --limit 1 --json number,title
 ```
 
 The template renders each entry as
 `[@login](https://github.com/login), with their first contribution in PR ([#N](...))`
-where #N is that earliest PR.
+where #N is that earliest PR. Exclude `[bot]` logins from this section — the
+`copilot-swe-agent` carve-out keeps bot commits in the data, but bots are not
+"new contributors".
 
 **`is_new_author` means "first shipped change", and is verified against
 GitHub.** With `--enrich`, an author is only flagged new when they have (a) no
@@ -366,13 +377,14 @@ that shipped in this release.
    - This guides your curation in the template step
 
 4. **Fill template using curated data**:
-   - Set `# X.Y.Z` at the top
+   - Set `# X.Y.Z` at the top and the `(...)=` anchor (use the bare version, e.g. `1.17.0`)
    - Write brief description that captures the release theme
    - Prioritize features and fixes by your PR tier rankings
    - Organize by subsystem but within each, lead with high-impact items
    - Curate "breaking" list: **remove internal cleanups**, keep only user-facing removals
    - List new contributors with their first PR links
-   - Update diff link
+   - Update diff link: `{{PREVIOUS_TAG}}` is the tag (e.g. `v1.16.3`), `{{VERSION_TAG}}`
+     is the v-prefixed target tag (e.g. `v1.17.0`) so the compare URL is valid
 
 5. **Update the release-notes index**:
    - Add the new release to the table at the top of `docs/reference/release-notes/index.md`
