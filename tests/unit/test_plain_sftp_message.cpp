@@ -155,3 +155,95 @@ TEST_F(TestPlainSftpMessage, lengthReadsRawField)
 
     EXPECT_THAT(msg->length(), Eq(4096u));
 }
+
+TEST_F(TestPlainSftpMessage, attributesNulloptWhenAbsent)
+{
+    raw_msg.attr = nullptr;
+    const auto msg = make_message();
+
+    EXPECT_THAT(msg->attributes(), Eq(std::nullopt));
+}
+
+TEST_F(TestPlainSftpMessage, attributesMapsSelectFields)
+{
+    sftp_attributes_struct raw_attr{};
+    raw_attr.flags = mp::SftpAttrFlags::size | mp::SftpAttrFlags::uidgid;
+    raw_attr.size = 42;
+    raw_attr.uid = 1000;
+    raw_attr.gid = 1000;
+    raw_attr.permissions = 0644;
+    raw_attr.atime = 111;
+    raw_attr.mtime = 222;
+    raw_msg.attr = &raw_attr;
+
+    const auto msg = make_message();
+    const auto attributes = msg->attributes();
+
+    ASSERT_TRUE(attributes.has_value());
+    EXPECT_THAT(attributes->flags, Eq(raw_attr.flags));
+    EXPECT_THAT(attributes->size, Eq(raw_attr.size));
+    EXPECT_THAT(attributes->uid, Eq(raw_attr.uid));
+    EXPECT_THAT(attributes->gid, Eq(raw_attr.gid));
+    EXPECT_THAT(attributes->permissions, Eq(raw_attr.permissions));
+    EXPECT_THAT(attributes->atime, Eq(raw_attr.atime));
+    EXPECT_THAT(attributes->mtime, Eq(raw_attr.mtime));
+}
+
+TEST_F(TestPlainSftpMessage, handleForwardsToLibssh)
+{
+    raw_msg.sftp = fake_sftp;
+    raw_msg.handle = fake_handle;
+    const auto msg = make_message();
+
+    int registered_id = 7;
+    EXPECT_CALL(mock_libssh, sftp_handle(fake_sftp, fake_handle)).WillOnce(Return(&registered_id));
+
+    EXPECT_THAT(msg->handle(), Eq(static_cast<void*>(&registered_id)));
+}
+
+TEST_F(TestPlainSftpMessage, removeHandleRemovesResolvedHandle)
+{
+    raw_msg.sftp = fake_sftp;
+    raw_msg.handle = fake_handle;
+    const auto msg = make_message();
+
+    int registered_id = 7;
+    ON_CALL(mock_libssh, sftp_handle(fake_sftp, fake_handle)).WillByDefault(Return(&registered_id));
+    EXPECT_CALL(mock_libssh, sftp_handle_remove(fake_sftp, &registered_id)).Times(1);
+
+    msg->remove_handle();
+}
+
+TEST_F(TestPlainSftpMessage, removeHandleNoopWhenUnresolved)
+{
+    raw_msg.sftp = fake_sftp;
+    raw_msg.handle = fake_handle;
+    const auto msg = make_message();
+
+    ON_CALL(mock_libssh, sftp_handle(fake_sftp, fake_handle)).WillByDefault(Return(nullptr));
+    EXPECT_CALL(mock_libssh, sftp_handle_remove).Times(0);
+
+    msg->remove_handle();
+}
+
+TEST_F(TestPlainSftpMessage, replyStatusForwardsToLibssh)
+{
+    const auto msg = make_message();
+
+    const auto why = "because";
+    EXPECT_CALL(mock_libssh,
+                sftp_reply_status(&raw_msg,
+                                  static_cast<uint32_t>(mp::SftpStatus::no_such_file),
+                                  StrEq(why)))
+        .WillOnce(Return(SSH_OK));
+
+    EXPECT_TRUE(msg->reply_status(mp::SftpStatus::no_such_file, why));
+}
+
+TEST_F(TestPlainSftpMessage, replyStatusFailsOnLibsshError)
+{
+    const auto msg = make_message();
+    EXPECT_CALL(mock_libssh, sftp_reply_status(&raw_msg, _, _)).WillOnce(Return(SSH_ERROR));
+
+    EXPECT_FALSE(msg->reply_status(mp::SftpStatus::ok, "anything"));
+}
