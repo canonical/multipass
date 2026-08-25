@@ -54,7 +54,7 @@ orphan: true
 Special thanks to our new contributors
 
 {{#new_authors.names}}
-- [@{{.}}](https://github.com/{{.}})
+- [@{{.}}](https://github.com/{{.}}), with their first contribution in PR ([#NNNN](https://github.com/canonical/multipass/pull/NNNN))
 {{/new_authors.names}}
 
 ## Changes
