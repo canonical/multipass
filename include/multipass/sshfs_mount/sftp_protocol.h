@@ -35,6 +35,8 @@
 namespace multipass
 {
 
+// See sftp_wire_compat.cpp for compile-time checks that the constants below match libssh's
+
 /**
  * Type of SFTP request (SSH_FXP_* in the protocol spec).
  */

@@ -39,7 +39,7 @@ public:
     /**
      * C'tor taking ownership of a raw libssh SFTP message
      *
-     * @param message A reference to the the raw libssh SFTP message whose ownership is to be
+     * @param message A reference to the raw libssh SFTP message whose ownership is to be
      * adopted by this PlainSftpMessage
      */
     explicit PlainSftpMessage(sftp_client_message_struct& message) noexcept;
