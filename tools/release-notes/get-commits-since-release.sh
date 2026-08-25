@@ -108,8 +108,9 @@ classify_skip() {
       ;;
   esac
 
-  # Nothing matched: keep it (deps/cmake/build/docs are demoted downstream,
-  # not skipped, because human-authored ones can be notable).
+  # Nothing matched: keep it (deps/cmake/build/docs are evaluated downstream,
+  # not skipped, because human-authored ones can be user-facing, e.g. runtime
+  # upgrades or installability fixes).
   echo ""
 }
 

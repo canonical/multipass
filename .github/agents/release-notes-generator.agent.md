@@ -115,10 +115,14 @@ noise (CI/infra plumbing, or dependency/CI bot churn). They are **not enriched**
 (no PR body is fetched, so they never enter subagent context) and must be
 excluded from candidate selection and ranking. Carve-outs are baked in:
 `copilot-swe-agent[bot]` is treated as a real contributor (never skipped by
-author), and human-authored `deps`/`cmake`/`build` PRs are **kept** (demoted
-downstream, not skipped) because runtime upgrades like QEMU/gRPC/Flutter can be
-notable. Only reference skipped commits in aggregate (e.g. "N dependency bumps,
-N CI/infra changes").
+author), and human-authored `deps`/`cmake`/`build` PRs are **kept** so they can
+be evaluated downstream — runtime upgrades like QEMU/gRPC/Flutter change what
+users run, and build fixes can affect installability. Release notes focus on
+user-facing changes: pure infrastructure work (CI plumbing, packaging mechanics
+that don't change what ships or whether it installs) is skip-tier even when
+human-authored. Do not enumerate skipped commits in the notes; a one-line
+aggregate footnote (e.g. "N dependency bumps, N CI/infra changes") is optional
+and only warranted when the volume is remarkable.
 
 ## Data Validation Queries
 
@@ -266,6 +270,10 @@ Rules of thumb:
   nice-to-mention.
 - Internal refactors, test-only changes, and dependency bumps are skip unless
   they enable a user-visible capability.
+- Build, packaging, and CI plumbing is skip unless it affects installability
+  or platform support (e.g. a broken installer, a dropped OS version, a
+  runtime upgrade like QEMU/gRPC/Flutter that changes what users run). If the
+  only audience is the project's own build machinery, leave it out.
 
 Return JSON: [{ "pr_number", "user_impact", "novelty", "magnitude",
 "significance", "tier", "rank", "one_line_reason" }], ordered by rank
@@ -382,6 +390,8 @@ that shipped in this release.
    - Prioritize features and fixes by your PR tier rankings
    - Organize by subsystem but within each, lead with high-impact items
    - Curate "breaking" list: **remove internal cleanups**, keep only user-facing removals
+   - Keep the notes user-facing: skip-tier build/CI/packaging work gets no
+     section of its own, and areas with nothing user-facing are omitted
    - List new contributors with their first PR links
    - Update diff link: `{{PREVIOUS_TAG}}` is the tag (e.g. `v1.16.3`), `{{VERSION_TAG}}`
      is the v-prefixed target tag (e.g. `v1.17.0`) so the compare URL is valid
