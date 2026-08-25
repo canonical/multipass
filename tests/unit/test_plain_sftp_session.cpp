@@ -361,6 +361,26 @@ TEST_F(TestPlainSftpSession, nextMessageReturnsNullOnError)
     EXPECT_THAT(sftp_session->next_message(), NotNull());
 }
 
+TEST_F(TestPlainSftpSession, nextMessageReturnsNullWhenGetClientMessageFails)
+{
+    expect_client_spawns<1>();
+
+    auto sftp_session = make_sftp_session();
+    ASSERT_THAT(sftp_session, NotNull());
+
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0))
+        .Times(2)
+        .WillRepeatedly(Return(1));
+    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_sessions[0]))
+        .WillOnce(Return(nullptr)) // poll said data's ready, but the read itself failed
+        .WillOnce(Return(&fake_client_msgs[1]));
+
+    EXPECT_THAT(sftp_session->next_message(), IsNull());
+
+    // a further call still polls normally
+    EXPECT_THAT(sftp_session->next_message(), NotNull());
+}
+
 TEST_F(TestPlainSftpSession, clientExitCodeReportsGracefulClientExit)
 {
     expect_client_spawns<1>();
