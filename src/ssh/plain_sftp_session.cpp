@@ -201,6 +201,11 @@ std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
         else if (poll_result == 0)
             continue; // nothing to read yet
 
+        if (!raw_msg)
+            mpl::debug(category,
+                       "could not read the next client message: {}",
+                       MP_LIBSSH.ssh_get_error(plain_ssh_session.borrow_session(pass)));
+
         break; // at this point, we either have a message or a connection drop/desync/malfunction
     }
 
