@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_logger.h"
 #include "mock_ssh_process.h"
 #include "mock_ssh_session.h"
 
@@ -31,6 +32,7 @@
 #include <type_traits>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
@@ -44,6 +46,8 @@ struct TestSshfsClientSteward : public Test
 {
     TestSshfsClientSteward()
     {
+        logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
         ON_CALL(session, exec)
             .WillByDefault([this](const std::string& cmd, bool) -> std::unique_ptr<mp::SSHProcess> {
                 const auto& result = result_for(cmd);
@@ -86,6 +90,18 @@ struct TestSshfsClientSteward : public Test
         exec_results[fmt::format("sudo {} -V", distro_sshfs)] = {.std_out = version_info};
     }
 
+    void expect_fuse_version_warning()
+    {
+        logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                             "Unable to retrieve 'FUSE library version'");
+    }
+
+    void expect_unparseable_fuse_version_warning()
+    {
+        logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                             "Unable to parse the FUSE library version");
+    }
+
     /**
      * The command expected to mount with the sshfs on PATH, given the @p extra_options that its
      * fuse version calls for.
@@ -113,6 +129,7 @@ struct TestSshfsClientSteward : public Test
 
     NiceMock<mpt::MockSSHSession> session;
     mp::SshfsClientSteward steward;
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
 } // namespace
 
@@ -120,6 +137,7 @@ TEST_F(TestSshfsClientSteward, buildsCommandAroundSnapSshfs)
 {
     exec_results[snap_env_cmd] = {.std_out = "LD_LIBRARY_PATH=/snap/multipass-sshfs/x1/lib\n"
                                              "SNAP=/snap/multipass-sshfs/x1\n"};
+    expect_fuse_version_warning();
 
     EXPECT_THAT(steward.compose_client_command(session, source, target),
                 Eq(fmt::format("sudo -n env LD_LIBRARY_PATH=/snap/multipass-sshfs/x1/lib "
@@ -133,6 +151,8 @@ TEST_F(TestSshfsClientSteward, throwsWhenGuestHasNoSshfs)
 {
     exec_results[snap_env_cmd] = {.exit_code = 1};
     exec_results[which_cmd] = {.exit_code = 1};
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "Unable to determine if 'sshfs' is installed");
 
     EXPECT_THROW(steward.compose_client_command(session, source, target), mp::SSHFSMissingError);
 }
@@ -140,6 +160,7 @@ TEST_F(TestSshfsClientSteward, throwsWhenGuestHasNoSshfs)
 TEST_F(TestSshfsClientSteward, fallsBackToAvailableSshfs)
 {
     mock_distro_sshfs();
+    expect_fuse_version_warning();
 
     EXPECT_THAT(steward.compose_client_command(session, source, target),
                 Eq(expected_distro_command()));
@@ -164,6 +185,7 @@ TEST_F(TestSshfsClientSteward, asksCurrentFuseNotToCacheDirs)
 TEST_F(TestSshfsClientSteward, leavesFuseOptionsOutWhenTheVersionIsUnparseable)
 {
     mock_distro_sshfs("FUSE library version and then some gibberish\n");
+    expect_unparseable_fuse_version_warning();
 
     EXPECT_THAT(steward.compose_client_command(session, source, target),
                 Eq(expected_distro_command()));
@@ -172,6 +194,7 @@ TEST_F(TestSshfsClientSteward, leavesFuseOptionsOutWhenTheVersionIsUnparseable)
 TEST_F(TestSshfsClientSteward, leavesFuseOptionsOutWhenTheVersionIsAbsent)
 {
     mock_distro_sshfs("FUSE library version\n");
+    expect_unparseable_fuse_version_warning();
 
     EXPECT_THAT(steward.compose_client_command(session, source, target),
                 Eq(expected_distro_command()));
