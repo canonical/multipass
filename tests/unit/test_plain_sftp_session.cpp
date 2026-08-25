@@ -133,9 +133,11 @@ struct TestPlainSftpSession : public Test
         return mp::PlainSSHSession{"host", 42, "ubuntu", key_provider};
     }
 
-    std::unique_ptr<mp::SftpSession> make_sftp_session(mp::PlainSSHSession&& ssh_session) const
+    std::unique_ptr<mp::SftpSession> make_sftp_session(
+        std::optional<mp::PlainSSHSession> ssh_session = std::nullopt) const
     {
-        return std::move(ssh_session).make_sftp_session(client_steward, source, target);
+        return (ssh_session ? std::move(*ssh_session) : make_ssh_session())
+            .make_sftp_session(client_steward, source, target);
     }
 
     struct ExecResult
@@ -260,7 +262,7 @@ TEST_F(TestPlainSftpSession, renewClientCleansUpAfterFormerClientAndRespawns)
     expect_client_spawns<2>(); // one client to begin with, another one to replace it
     EXPECT_CALL(client_steward, clean_up_after_client(_, StrEq(source))).Times(2);
 
-    auto sftp_session = make_sftp_session(make_ssh_session());
+    auto sftp_session = make_sftp_session();
     ASSERT_THAT(sftp_session, NotNull());
 
     sftp_session->renew_client();
@@ -271,7 +273,7 @@ TEST_F(TestPlainSftpSession, renewClientSupportsMultipleRespawns)
     expect_client_spawns<3>(); // one client to begin with, two more respawns
     EXPECT_CALL(client_steward, clean_up_after_client(_, StrEq(source))).Times(3);
 
-    auto sftp_session = make_sftp_session(make_ssh_session());
+    auto sftp_session = make_sftp_session();
     ASSERT_THAT(sftp_session, NotNull());
 
     sftp_session->renew_client();
@@ -283,7 +285,7 @@ TEST_F(TestPlainSftpSession, renewClientNoopAfterStopRequested)
     expect_client_spawns<1>(); // only the original client, no replacement
     EXPECT_CALL(client_steward, clean_up_after_client).Times(1);
 
-    auto sftp_session = make_sftp_session(make_ssh_session());
+    auto sftp_session = make_sftp_session();
     ASSERT_THAT(sftp_session, NotNull());
 
     sftp_session->request_stop();
@@ -302,7 +304,7 @@ TEST_F(TestPlainSftpSession, renewClientPropagatesCleanUpFailure)
         .WillOnce(Throw(std::runtime_error{error}))
         .WillOnce(Return());
 
-    auto sftp_session = make_sftp_session(make_ssh_session());
+    auto sftp_session = make_sftp_session();
     ASSERT_THAT(sftp_session, NotNull());
 
     MP_EXPECT_THROW_THAT(sftp_session->renew_client(),
@@ -314,7 +316,7 @@ TEST_F(TestPlainSftpSession, nextMessageReturnsMessageWhenPollSucceeds)
 {
     expect_client_spawns<1>();
 
-    auto sftp_session = make_sftp_session(make_ssh_session());
+    auto sftp_session = make_sftp_session();
     ASSERT_THAT(sftp_session, NotNull());
 
     EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0)).WillOnce(Return(1));
@@ -328,7 +330,7 @@ TEST_F(TestPlainSftpSession, nextMessagePollsAgainWhenNothingToReadYet)
 {
     expect_client_spawns<1>();
 
-    auto sftp_session = make_sftp_session(make_ssh_session());
+    auto sftp_session = make_sftp_session();
     ASSERT_THAT(sftp_session, NotNull());
 
     EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0))
@@ -344,7 +346,7 @@ TEST_F(TestPlainSftpSession, nextMessageReturnsNullOnError)
 {
     expect_client_spawns<1>();
 
-    auto sftp_session = make_sftp_session(make_ssh_session());
+    auto sftp_session = make_sftp_session();
     ASSERT_THAT(sftp_session, NotNull());
 
     EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0))
@@ -363,7 +365,7 @@ TEST_F(TestPlainSftpSession, clientExitCodeReportsGracefulClientExit)
 {
     expect_client_spawns<1>();
 
-    auto sftp_session = make_sftp_session(make_ssh_session());
+    auto sftp_session = make_sftp_session();
     ASSERT_THAT(sftp_session, NotNull());
 
     // only now: a client that had already exited would keep the session from starting
@@ -378,7 +380,7 @@ TEST_F(TestPlainSftpSession, clientExitCodeReportsFailedClientExit)
 
     expect_client_spawns<1>();
 
-    auto sftp_session = make_sftp_session(make_ssh_session());
+    auto sftp_session = make_sftp_session();
     ASSERT_THAT(sftp_session, NotNull());
 
     exec_results[client_cmd] = {.exit_code = failure_code};
@@ -390,7 +392,7 @@ TEST_F(TestPlainSftpSession, clientExitCodeEmptyWhenClientDoesNotReport)
 {
     expect_client_spawns<1>();
 
-    auto sftp_session = make_sftp_session(make_ssh_session());
+    auto sftp_session = make_sftp_session();
     ASSERT_THAT(sftp_session, NotNull());
 
     // no exit code is registered for the client, so it never reports one
@@ -401,7 +403,7 @@ TEST_F(TestPlainSftpSession, clientExitCodePropagatesSSHError)
 {
     expect_client_spawns<1>();
 
-    auto sftp_session = make_sftp_session(make_ssh_session());
+    auto sftp_session = make_sftp_session();
     ASSERT_THAT(sftp_session, NotNull());
 
     ON_CALL(mock_libssh, ssh_event_dopoll).WillByDefault(Return(SSH_ERROR));
