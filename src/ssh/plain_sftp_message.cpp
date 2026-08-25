@@ -58,6 +58,7 @@ mp::SftpMessageType mp::PlainSftpMessage::type() const noexcept
 std::string_view mp::PlainSftpMessage::filename() const noexcept
 {
     const auto* raw = MP_LIBSSH.sftp_client_message_get_filename(message.get());
+    // ReSharper disable once CppDFALocalValueEscapesFunction
     return raw ? std::string_view{raw} : std::string_view{};
 }
 
