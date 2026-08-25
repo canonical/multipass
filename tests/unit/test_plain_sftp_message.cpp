@@ -107,3 +107,25 @@ TEST_F(TestPlainSftpMessage, dataReadsBinarySafeContent)
 
     EXPECT_THAT(msg->data(), Eq(std::string_view{raw, sizeof(raw)}));
 }
+
+TEST_F(TestPlainSftpMessage, submessageNulloptWhenAbsent)
+{
+    const auto msg = make_message();
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_submessage(&raw_msg))
+        .WillOnce(Return(nullptr));
+
+    EXPECT_THAT(msg->submessage(), Eq(std::nullopt));
+}
+
+TEST_F(TestPlainSftpMessage, submessageForwardsToLibssh)
+{
+    const auto msg = make_message();
+    const auto extension = "posix-rename@openssh.com";
+
+    EXPECT_CALL(mock_libssh, sftp_client_message_get_submessage(&raw_msg))
+        .WillOnce(Return(extension));
+
+    const auto result = msg->submessage();
+    EXPECT_THAT(result, Optional(std::string_view{extension}));
+    EXPECT_THAT(result->data(), Eq(extension)); // same address, no local var leak
+}
