@@ -1,6 +1,6 @@
 # Contributing to Multipass
 
-The Multipass team is very open to contributions from the community, whether these are feature ideas, issue/bug reports, change suggestions through pull requests, or discussions about Multipass. 
+The Multipass team is very open to contributions from the community, whether these are feature ideas, issue/bug reports, change suggestions through pull requests, or discussions about Multipass.
 While we are driven by our passion to improve Multipass and strive for high quality code, we have finite resources and must make careful decisions about where we spend our time.
 
 ## Guidelines
