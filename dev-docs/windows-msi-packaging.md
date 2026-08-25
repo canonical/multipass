@@ -29,8 +29,8 @@ WiX supports localized strings in order to appropriately display text in the use
 Due to the nature of how the Windows Installer performs installs and the complication of performing a silent installation, the install behavior of setting the driver has had to change.
 
 Previously, if the installer failed to enable the Hyper-V feature, a message box would appear asking the user if they would like to use VirtualBox instead. This functionality is no longer possible.
-- Firstly, during a silent installation, it would impossible to ask the user this.
-- Secondly, since enabling (or even querying the status of) Hyper-V requires elevated privileges, it must take place during the execution phase of the installation during a deferred custom action (See https://learn.microsoft.com/en-us/windows/win32/msi/installation-mechanism for more info). Deferred custom actions like this cannot set installer properties such as the the driver selection property, meaning that subsequent custom actions (such as the action that pre-populates the Multipass service config file) would not be able to act on any user selection (See https://learn.microsoft.com/en-us/windows/win32/msi/obtaining-context-information-for-deferred-execution-custom-actions for more info).
+- Firstly, during a silent installation, it would be impossible to ask the user this.
+- Secondly, since enabling (or even querying the status of) Hyper-V requires elevated privileges, it must take place during the execution phase of the installation during a deferred custom action (See https://learn.microsoft.com/en-us/windows/win32/msi/installation-mechanism for more info). Deferred custom actions like this cannot set installer properties such as the driver selection property, meaning that subsequent custom actions (such as the action that pre-populates the Multipass service config file) would not be able to act on any user selection (See https://learn.microsoft.com/en-us/windows/win32/msi/obtaining-context-information-for-deferred-execution-custom-actions for more info).
 
 > Property values that are set at the time the installation sequence is processed into script may be unavailable at the time of script execution. Only the following limited set of properties is always accessible to custom actions during script execution.
 
@@ -67,7 +67,7 @@ WiX is only one way to build msi files and they are independent technologies. Wi
   - [ ] Event Viewer
     - [ ] Multipass logs show up
   - [ ] Install Directory
-    - [ ] Correct directory and appropriate files (default is `C:\Program Files\Multipass')
+    - [ ] Correct directory and appropriate files (default is `C:\Program Files\Multipass`)
     - [ ] Modifying installation directory works
   - [ ] Ubuntu Mono font installed
   - [ ] Environment variables
@@ -76,8 +76,7 @@ WiX is only one way to build msi files and they are independent technologies. Wi
   - [ ] CLI
     - [ ] Client certificates installed
       - [ ] Present in `<user>\AppData\Local\multipass` and `<user>\AppData\Local\multipass-client-certificates`
-      - [ ] Key store created in `C:\ProgramData\Multipass\data\authenticated-
-certs\multipass_client_certs.pem`
+      - [ ] Key store created in `C:\ProgramData\Multipass\data\authenticated-certs\multipass_client_certs.pem`
     - [ ] Connects to Multipass service
   - [ ] GUI
     - [ ] Shortcut is available in the Start Menu

@@ -10,7 +10,7 @@ There are three requirements to run Hyper-V on a Windows Pro, Enterprise or Educ
 3. virtualization must be enabled in the guest.
 
 ## Host configuration
- ntel processors support nested virtualization starting in the Haswell series; some AMD processors also support it.
+Intel processors support nested virtualization starting in the Haswell series; some AMD processors also support it.
 
 ### KVM configuration
 The nesting should be enabled on KVM, through the `kvm-intel` or `kvm-amd` modules. For this, the options `nested` and `ept` (Extended Page Tables, see [here](https://en.wikipedia.org/wiki/Second_Level_Address_Translation#EPT)) must be enabled. They are enabled by default but, if not, they can be forced at boot time adding the file `/etc/modprobe.d/kvm-nested.conf` containing the lines

@@ -17,4 +17,3 @@ This documentation section only refers to Multipass development related topics.
 ## Flutter
 
 - [Managing Flutter](managing-flutter.md)
-

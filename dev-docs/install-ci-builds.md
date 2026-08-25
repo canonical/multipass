@@ -8,4 +8,3 @@ Think of it as `gh co 5135`, but instead of checking out the code it installs th
 
 - [https://github.com/sharder996/gh-install](https://github.com/sharder996/gh-install)
 - Install with `gh extension install sharder996/gh-install`
-
