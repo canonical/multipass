@@ -182,6 +182,14 @@ TEST_F(TestSshfsClientSteward, asksCurrentFuseNotToCacheDirs)
                 Eq(expected_distro_command(" -o dir_cache=no")));
 }
 
+TEST_F(TestSshfsClientSteward, treatsFuseVersionThreeAsCurrent)
+{
+    mock_distro_sshfs("FUSE library version 3.0.0\n");
+
+    EXPECT_THAT(steward.compose_client_command(session, source, target),
+                Eq(expected_distro_command(" -o dir_cache=no")));
+}
+
 TEST_F(TestSshfsClientSteward, leavesFuseOptionsOutWhenTheVersionIsUnparseable)
 {
     mock_distro_sshfs("FUSE library version and then some gibberish\n");
