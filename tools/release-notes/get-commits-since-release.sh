@@ -21,8 +21,12 @@ NC='\033[0m' # No Color
 # Helper functions for JSON generation
 extract_pr_number() {
   local subject="$1"
-  # Extract PR number from format like "(#5078)"
+  # Extract PR number from squash-merge format like "(#5078)", or from
+  # merge-commit format like "Merge pull request #5078 from ..." (used heavily
+  # before squash merging became the norm, e.g. the v1.15..v1.16 era).
   if [[ $subject =~ \(#([0-9]+)\) ]]; then
+    echo "${BASH_REMATCH[1]}"
+  elif [[ $subject =~ ^Merge\ pull\ request\ \#([0-9]+) ]]; then
     echo "${BASH_REMATCH[1]}"
   else
     echo ""
