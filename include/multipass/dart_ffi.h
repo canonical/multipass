@@ -1,4 +1,5 @@
 #pragma once
+#include <multipass/ssh/ssh_coordinates.h>
 #include <stdint.h>
 // clang-format off
 extern "C"
@@ -9,14 +10,6 @@ const char* multipass_version();
 char* generate_petname();
 
 char* get_server_address();
-
-enum VsockHostTag : uint32_t
-{
-    VSOCK_NONE = 0,
-    VSOCK_HVSOCK = 1,
-    VSOCK_VSOCK = 2,
-    VSOCK_USOCK = 3
-};
 
 union VsockHostUnion
 {
@@ -31,7 +24,7 @@ struct SSHCoordinatesFfi
     char* private_key_as_base64;
     uint32_t port;
     char* tcp_host;
-    enum VsockHostTag vsock_host_tag;
+    multipass::VsockHostTag vsock_host_tag;
     union VsockHostUnion vsock_host;
 };
 

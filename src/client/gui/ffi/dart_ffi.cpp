@@ -38,19 +38,19 @@ namespace
 
     switch (ffi_coordinates.vsock_host_tag)
     {
-    case VSOCK_NONE:
+    case mp::VSOCK_NONE:
         coordinates.vsock_host = std::monostate{};
         break;
-    case VSOCK_HVSOCK:
+    case mp::VSOCK_HVSOCK:
         coordinates.vsock_host = mp::HVSOCK{
             ffi_coordinates.vsock_host.hvsock_vmid
                 ? std::string(ffi_coordinates.vsock_host.hvsock_vmid)
                 : std::string()};
         break;
-    case VSOCK_VSOCK:
+    case mp::VSOCK_VSOCK:
         coordinates.vsock_host = mp::VSOCK{ffi_coordinates.vsock_host.vsock_cid};
         break;
-    case VSOCK_USOCK:
+    case mp::VSOCK_USOCK:
         coordinates.vsock_host = mp::USOCK{ffi_coordinates.vsock_host.usock_addr
                                                ? std::string(ffi_coordinates.vsock_host.usock_addr)
                                                : std::string()};

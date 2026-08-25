@@ -21,6 +21,21 @@
 #include <string>
 #include <variant>
 
+#ifndef __cplusplus
+extern "C"
+#else
+namespace multipass
+#endif
+{
+enum VsockHostTag : uint32_t
+{
+    VSOCK_NONE = 0,
+    VSOCK_HVSOCK = 1,
+    VSOCK_VSOCK = 2,
+    VSOCK_USOCK = 3
+};
+}
+
 namespace multipass
 {
 /**

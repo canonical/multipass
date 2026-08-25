@@ -49,6 +49,26 @@ QByteArray gen_hash(const std::string& path)
         .toHex()
         .left(8);
 }
+
+QString serialize_vsock_host(const mp::VSOCKHost& vsock_host)
+{
+    auto vsock_data = std::visit(
+        [](auto&& arg) {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, mp::HVSOCK>)
+                return arg.vmid;
+            else if constexpr (std::is_same_v<T, mp::VSOCK>)
+                return std::to_string(arg.cid);
+            else if constexpr (std::is_same_v<T, mp::USOCK>)
+                return arg.socket_address;
+            else if constexpr (std::is_same_v<T, std::monostate>)
+                return std::string{"NONE"};
+        },
+        vsock_host);
+    auto vsock_tag = std::to_string(vsock_host.index());
+    vsock_tag.push_back(' ');
+    return QString::fromStdString(vsock_tag + vsock_data);
+}
 } // namespace
 
 mp::SSHFSServerProcessSpec::SSHFSServerProcessSpec(const SSHFSServerConfig& config)
@@ -66,6 +86,7 @@ QStringList mp::SSHFSServerProcessSpec::arguments() const
     return QStringList() << QString::fromStdString(config.ssh_coordinates.tcp_host)
                          << QString::number(config.ssh_coordinates.port)
                          << QString::fromStdString(config.ssh_coordinates.username)
+                         << serialize_vsock_host(config.ssh_coordinates.vsock_host)
                          << QString::fromStdString(config.source_path)
                          << QString::fromStdString(config.target_path)
                          << serialise_id_mappings(config.uid_mappings)

@@ -118,20 +118,21 @@ TEST_F(SSHFSMountHandlerTest, mountCreatesSshfsProcess)
     auto sshfs_command = factory->process_list()[0];
     EXPECT_TRUE(sshfs_command.command.endsWith("sshfs_server"));
 
-    ASSERT_EQ(sshfs_command.arguments.size(), 8);
+    ASSERT_EQ(sshfs_command.arguments.size(), 9);
     EXPECT_EQ(sshfs_command.arguments[0], "localhost");
     EXPECT_EQ(sshfs_command.arguments[1], "42");
     EXPECT_EQ(sshfs_command.arguments[2], "ubuntu");
-    EXPECT_EQ(sshfs_command.arguments[3].toStdString(), source_path);
-    EXPECT_EQ(sshfs_command.arguments[4], "/the/target/path");
+    EXPECT_EQ(sshfs_command.arguments[3], "0 NONE");
+    EXPECT_EQ(sshfs_command.arguments[4].toStdString(), source_path);
+    EXPECT_EQ(sshfs_command.arguments[5], "/the/target/path");
     // Ordering of the next 2 options not guaranteed, hence the or-s.
-    EXPECT_TRUE(sshfs_command.arguments[5] == "6:10,5:-1," ||
-                sshfs_command.arguments[5] == "5:-1,6:10,");
-    EXPECT_TRUE(sshfs_command.arguments[6] == "3:4,1:2," ||
-                sshfs_command.arguments[6] == "1:2,3:4,");
+    EXPECT_TRUE(sshfs_command.arguments[6] == "6:10,5:-1," ||
+                sshfs_command.arguments[6] == "5:-1,6:10,");
+    EXPECT_TRUE(sshfs_command.arguments[7] == "3:4,1:2," ||
+                sshfs_command.arguments[7] == "1:2,3:4,");
 
     const QString log_level_as_string{QString::number(static_cast<int>(default_log_level))};
-    EXPECT_EQ(sshfs_command.arguments[7], log_level_as_string);
+    EXPECT_EQ(sshfs_command.arguments[8], log_level_as_string);
 }
 
 TEST_F(SSHFSMountHandlerTest, sshfsProcessFailingWithReturnCode9CausesException)
