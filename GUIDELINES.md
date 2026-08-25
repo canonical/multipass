@@ -31,7 +31,7 @@ precedence or priority.
 | General | Coding | Processes |
 |----|----|----|
 | MU: [Core principles](#core-principles-mu) | COD: [Generic engineering and coding](#generic-engineering-and-code-cod) | PR: [Pull Requests](#pull-requests-pr) |
-| GIT: [Git usage](#versioning-git)  | CPP: [C++](#c-cpp) | RVW: [Reviews](#reviews-rvw) |
+| GIT: [Git usage](#git-usage-git)  | CPP: [C++](#c-cpp) | RVW: [Reviews](#reviews-rvw) |
 | MSG: [Commit messages](#commit-messages-msg) | TXT: [Text](#text) | REL: [Releases](#releases-rel)|
 | META: [Meta guidelines](#meta-guidelines-meta)  | AI: [Artificial Intelligence](#artificial-intelligence-ai) |   |
 |   | FF: [Feature Flags](#feature-flags-ff) |   |
