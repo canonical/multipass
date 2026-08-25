@@ -121,8 +121,22 @@ users run, and build fixes can affect installability. Release notes focus on
 user-facing changes: pure infrastructure work (CI plumbing, packaging mechanics
 that don't change what ships or whether it installs) is skip-tier even when
 human-authored. Do not enumerate skipped commits in the notes; a one-line
-aggregate footnote (e.g. "N dependency bumps, N CI/infra changes") is optional
-and only warranted when the volume is remarkable.
+aggregate footnote (e.g. "Plus N CI/infra and dependency changes") is optional
+and only warranted when the volume is remarkable — keep it to a count, don't
+name the bumps.
+
+**No `Dependencies` section.** Routine dependency bumps (libssh, gRPC,
+protobuf, Flutter, actions/*) are not user-facing and must not get their own
+section or bullet list, however notable they feel. Mention a runtime upgrade
+inline only when it changes observable behavior, and even then fold it into the
+relevant feature/fix entry rather than a standalone Dependencies list.
+
+**`skip` filters the notes body, never people.** A human whose first
+contribution happens to be a `ci`/`tests`/`format` commit is still a new
+contributor — the skip flag decides what work is *described*, not *who is
+welcomed*. Never drop a person from "New contributors" because their commits
+were skip-filtered. Bots are the only exclusion there (`automation-author` via
+the jq filter, and any `[bot]` login by hand).
 
 ## Data Validation Queries
 
@@ -410,3 +424,7 @@ that shipped in this release.
    - Index table is updated with new release date and link
    - "What's new" section reflects current release
    - No important features skipped (compare against your validation query analysis)
+   - No standalone "Dependencies" section or dependency-bump bullet list
+   - New contributors match the `new_authors` jq output — re-run it and confirm
+     no flagged first-timer (incl. ci/tests-only humans) was dropped, and no
+     `[bot]` login was included
