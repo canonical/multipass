@@ -186,6 +186,11 @@ public:
         return delegate()->get_num_snapshots();
     }
 
+    std::shared_ptr<const Snapshot> get_head_snapshot() const override
+    {
+        return delegate()->get_head_snapshot();
+    }
+
     std::shared_ptr<const Snapshot> get_snapshot(const std::string& snapshot_name) const override
     {
         return delegate()->get_snapshot(snapshot_name);
