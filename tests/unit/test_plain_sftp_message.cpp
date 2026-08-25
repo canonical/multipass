@@ -282,6 +282,15 @@ TEST_F(TestPlainSftpMessage, replyAttributesForwardsConvertedFields)
     EXPECT_TRUE(msg->reply_attributes(attributes));
 }
 
+TEST_F(TestPlainSftpMessage, replyAttributesFailsOnLibsshError)
+{
+    const auto msg = make_message();
+
+    EXPECT_CALL(mock_libssh, sftp_reply_attr).WillOnce(Return(SSH_ERROR));
+
+    EXPECT_FALSE(msg->reply_attributes(mp::SftpAttributes{}));
+}
+
 TEST_F(TestPlainSftpMessage, replyDataForwardsPointerAndLength)
 {
     const auto msg = make_message();
@@ -311,6 +320,14 @@ TEST_F(TestPlainSftpMessage, replyNameForwardsToLibssh)
         .WillOnce(Return(SSH_OK));
 
     EXPECT_TRUE(msg->reply_name("target"));
+}
+
+TEST_F(TestPlainSftpMessage, replyNameFailsOnLibsshError)
+{
+    const auto msg = make_message();
+    EXPECT_CALL(mock_libssh, sftp_reply_name).WillOnce(Return(SSH_ERROR));
+
+    EXPECT_FALSE(msg->reply_name("target"));
 }
 
 TEST_F(TestPlainSftpMessage, replyHandleFailsWhenAllocFails)
