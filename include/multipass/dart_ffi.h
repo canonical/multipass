@@ -1,5 +1,5 @@
 #pragma once
-
+#include <stdint.h>
 // clang-format off
 extern "C"
 {
@@ -9,6 +9,31 @@ const char* multipass_version();
 char* generate_petname();
 
 char* get_server_address();
+
+enum VsockHostTag : uint32_t
+{
+    VSOCK_NONE = 0,
+    VSOCK_HVSOCK = 1,
+    VSOCK_VSOCK = 2,
+    VSOCK_USOCK = 3
+};
+
+union VsockHostUnion
+{
+    const char* hvsock_vmid;
+    uint32_t vsock_cid;
+    const char* usock_addr;
+};
+
+struct SSHCoordinatesFfi
+{
+    char* username;
+    char* private_key_as_base64;
+    uint32_t port;
+    char* tcp_host;
+    enum VsockHostTag vsock_host_tag;
+    union VsockHostUnion vsock_host;
+};
 
 struct KeyCertificatePair
 {
@@ -47,4 +72,13 @@ const char* human_readable_memory(long long bytes);
 long long get_total_disk_size();
 
 char* default_mount_target(char* source);
+
+// Connects to the guest over the vsock-family transport in `coordinates`
+// (HVSOCK/VSOCK/USOCK) and returns a connected, blocking socket fd. Returns a
+// negative value if the transport is unset/unsupported or the connection fails.
+int open_vsock_socket(const struct SSHCoordinatesFfi* coordinates);
+
+// Shuts down both directions of an fd from open_vsock_socket so a blocked
+// read() sees EOF. The native side handles platform specifics.
+void shutdown_socket(int fd);
 }

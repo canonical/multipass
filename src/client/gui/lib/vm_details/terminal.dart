@@ -17,7 +17,9 @@ import '../l10n/app_localizations.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
+import '../ssh_coordinates_ffi.dart';
 import '../vm_action.dart';
+import 'vsock_ssh_socket.dart';
 
 class RunningShellsNotifier extends Notifier<int> {
   RunningShellsNotifier(this.arg);
@@ -530,8 +532,11 @@ Future<void> sshIsolate(SshShellInfo info) async {
   final pem = SSHPem.decode(sshCoordinates.privKeyBase64);
   final rsa = RsaKeyPair.decode(pem);
 
-  final socket =
-      await SSHSocket.connect(sshCoordinates.tcpHost, sshCoordinates.port);
+  final coordinates = sshCoordinatesInfoToFfi(sshCoordinates);
+  // Socket owns the coordinates ptr
+  final socket = DualSSHSocket(coordinates);
+
+  await socket.connect();
 
   final client = SSHClient(
     socket,
