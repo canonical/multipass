@@ -84,6 +84,9 @@ The `tools/release-notes/get-commits-since-release.sh --json --enrich` script ou
       "type": "feature|fix|breaking|docs|performance|other",
       "pr_number": 5078,
       "is_new_author": false,
+      // Present only for authors the local history check flagged as new, when
+      // run with --enrich (resolved via the GitHub commit-search API):
+      "author_login": "github-username",
 
       // Present only with --enrich (null/absent for commits without a PR):
       "pr_title": "Full PR title",
@@ -307,10 +310,41 @@ jq '{
     items: [.commits[] | select(.type == "docs" and .pr_number != null and (.skip | not)) | {subject, title: .pr_title, pr_number, author}]
   },
   new_authors: {
-    names: [.commits[] | select(.is_new_author == true) | .author] | unique | sort
+    names: [.commits[] | select(.is_new_author == true)
+      | (.author_login // .author)] | unique | sort
   }
 }' /tmp/commits-data.json
 ```
+
+`names` is just the logins. The linked PR is the contributor's actual FIRST
+PR, which is usually NOT in this release range (e.g. merged to main earlier
+but never shipped, or the range only contains a later cherry-pick of their
+work). Resolve it per login with their earliest merged PR:
+
+```bash
+gh search prs --repo canonical/multipass --author <login> --merged \
+  --sort created --order asc --limit 1 --json number,title
+```
+
+The template renders each entry as
+`[@login](https://github.com/login), with their first contribution in PR ([#N](...))`
+where #N is that earliest PR.
+
+**`is_new_author` means "first shipped change", and is verified against
+GitHub.** With `--enrich`, an author is only flagged new when they have (a) no
+authored commit before the release tag on any branch AND (b) no merged PR
+dated before the tag. Check (b) is what makes it trustworthy: squash-merges
+and cherry-picks routinely record commits under a different author name than
+the person who wrote the change, so a contributor can look "new" to local git
+history when they are not (or vice versa). Use `author_login` (the resolved
+GitHub username) for the `[@login](https://github.com/login)` links — never
+guess a login from the display name. When `author_login` is absent (offline
+run or unresolvable), fall back to the display name and verify by hand before
+publishing. Note the wording is "first contribution in PR": the flagged commit
+may be one they authored without owning the PR (a squash-merge or cherry-pick
+landed under someone else's name), so the linked PR is their earliest merged
+PR overall — not necessarily a PR from this release, and not necessarily one
+that shipped in this release.
 
 ## Manual Release Notes Generation
 

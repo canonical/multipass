@@ -113,6 +113,96 @@ classify_skip() {
   echo ""
 }
 
+# Resolve a git author identity (name + email) to a GitHub login, using the
+# commit-search API. The local git author name alone is unreliable for
+# crediting: squash-merges and cherry-picks routinely record a different
+# author than the person who wrote the change. We search GitHub for commits
+# by this author and take the login GitHub reports. Echoes the login, or
+# nothing when unresolvable.
+resolve_github_login() {
+  local name="$1"
+  local email="$2"
+  local cache_key
+  cache_key=$(echo -n "${name}<${email}>" | shasum | cut -d' ' -f1)
+  local cache_file="$PR_CACHE_DIR/${PR_REPO//\//_}-author-${cache_key}.txt"
+
+  if [[ -s $cache_file ]]; then
+    cat "$cache_file"
+    return
+  fi
+
+  local login=""
+  # Name search is the primary path: it works for noreply emails and for
+  # people whose canonical email isn't linked to their GitHub account.
+  local name_q
+  name_q=$(jq -rn --arg n "repo:${PR_REPO} author-name:$name" '$n|@uri')
+  login=$(gh api "search/commits?q=${name_q}" \
+    --jq '.items[0].author.login // ""' 2>/dev/null || echo "")
+
+  # Fall back to email search when the name didn't resolve (e.g. the author
+  # has since changed their display name).
+  if [[ -z $login ]]; then
+    local email_q
+    email_q=$(jq -rn --arg e "repo:${PR_REPO} author-email:$email" '$e|@uri')
+    login=$(gh api "search/commits?q=${email_q}" \
+      --jq '.items[0].author.login // ""' 2>/dev/null || echo "")
+  fi
+
+  echo "$login" > "$cache_file"
+  echo "$login"
+}
+
+# Decide whether an author is a genuinely NEW contributor, defined as "first
+# shipped change": the person has no authored commit reachable from the
+# previous release tag NOR from main's history before that tag, and no merged
+# PR before the tag's date. Commit-author-name matching alone produces both
+# false positives (squash-merge/cherry-pick artifacts) and false negatives
+# (committer vs author mismatches), so when a local name looks new we verify
+# against GitHub history via the author's login.
+#
+# Args: name, email, tag, tag_date (ISO-8601), candidate PRs by this author in
+#   the current range (newline-separated "number date" pairs).
+# Echoes "true" or "false".
+is_genuinely_new_author() {
+  local name="$1"
+  local email="$2"
+  local tag="$3"
+  local tag_date="$4"
+  local range_prs="$5"
+
+  # Cheap local check first: any authored commit before the tag on ANY branch
+  # means not new. This is the historical behaviour and catches the common
+  # case offline.
+  if git log --all --before="$tag_date" --format='%aN' --author="$name" 2>/dev/null | grep -q .; then
+    echo "false"
+    return
+  fi
+
+  # Name looked new locally; verify against GitHub before believing it.
+  local login
+  login=$(resolve_github_login "$name" "$email")
+  if [[ -z $login ]]; then
+    # Can't resolve a login: fall back to the local verdict.
+    echo "true"
+    return
+  fi
+
+  # Any merged PR by this login before the tag date means not new. Sort
+  # ascending so the earliest PR is returned even when the author has more
+  # PRs than the result limit.
+  local earlier
+  earlier=$(gh search prs --repo "$PR_REPO" --author "$login" --merged \
+    --sort created --order asc --json number,closedAt --limit 20 2>/dev/null \
+    | jq -r --arg d "$tag_date" '.[] | select(.closedAt < $d) | .number' 2>/dev/null \
+    | head -1)
+  if [[ -n $earlier ]]; then
+    echo "false"
+    return
+  fi
+
+  echo "true"
+}
+
 # Default values
 FORMAT="oneline"
 GROUP_BY_AUTHOR=false
@@ -286,6 +376,7 @@ if [[ $GROUP_BY_AUTHOR == true ]]; then
 elif [[ $JSON_OUTPUT == true ]]; then
   # Generate JSON output with categorization
   HISTORICAL_AUTHORS=$(git log --all --before="$(git log -1 --format=%aI $LATEST_TAG)" --format=format:"%aN" 2>/dev/null | sort | uniq)
+  TAG_DATE=$(git log -1 --format=%aI "$LATEST_TAG")
 
   # Enrichment requires the GitHub CLI
   if [[ $ENRICH == true ]] && ! command -v gh > /dev/null 2>&1; then
@@ -311,7 +402,8 @@ elif [[ $JSON_OUTPUT == true ]]; then
 
     hash=$(echo "$line" | cut -d'|' -f1)
     author=$(echo "$line" | cut -d'|' -f2)
-    subject=$(echo "$line" | cut -d'|' -f3-)
+    author_email=$(echo "$line" | cut -d'|' -f3)
+    subject=$(echo "$line" | cut -d'|' -f4-)
 
     # Apply merge filter
     if [[ $MERGE_ONLY == true ]]; then
@@ -325,8 +417,17 @@ elif [[ $JSON_OUTPUT == true ]]; then
     category=$(extract_category "$subject")
 
     is_new_author=false
+    author_login=""
     if ! echo "$HISTORICAL_AUTHORS" | grep -Fxq "$author"; then
-      is_new_author=true
+      # Cheap local check says "new"; verify against GitHub history before
+      # believing it (squash-merge/cherry-pick artifacts make local author
+      # names unreliable). Only hits the network for candidate-new authors.
+      if [[ $ENRICH == true ]] && command -v gh > /dev/null 2>&1; then
+        author_login=$(resolve_github_login "$author" "$author_email")
+        is_new_author=$(is_genuinely_new_author "$author" "$author_email" "$LATEST_TAG" "$TAG_DATE" "")
+      else
+        is_new_author=true
+      fi
     fi
 
     # Early-exit classification: skip release-notes noise before enrichment.
@@ -365,6 +466,7 @@ elif [[ $JSON_OUTPUT == true ]]; then
     jq -nc \
       --arg hash "$hash" \
       --arg author "$author" \
+      --arg author_login "$author_login" \
       --arg subject "$subject" \
       --arg category "$category" \
       --arg type "$commit_type" \
@@ -384,6 +486,7 @@ elif [[ $JSON_OUTPUT == true ]]; then
         skip: $skip,
         skip_reason: (if $skip_reason == "" then null else $skip_reason end)
       }
+      + (if $author_login != "" then {author_login: $author_login} else {} end)
       + (if ($enrich | type) == "object" and ($enrich | keys | length) > 0 then {
           pr_title: ($enrich.title // null),
           pr_body: (($enrich.body // "") | .[0:4000]),
@@ -397,7 +500,7 @@ elif [[ $JSON_OUTPUT == true ]]; then
             | sort_by(-.count) | .[0:6]
           )
         } else {} end)' >> "$RECORDS_FILE"
-  done < <(git log "$LATEST_TAG..HEAD" --format="%h|%aN|%s")
+  done < <(git log "$LATEST_TAG..HEAD" --format="%h|%aN|%aE|%s")
 
   # Surface enrichment problems on stderr (stdout stays valid JSON).
   if [[ $ENRICH == true && $ENRICH_ATTEMPTED -gt 0 ]]; then
