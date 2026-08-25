@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "mock_libssh.h"
+#include "mock_logger.h"
 #include "mock_sftp_client_steward.h"
 #include "stub_ssh_key_provider.h"
 
@@ -39,6 +40,7 @@
 #include <utility>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
@@ -71,6 +73,8 @@ struct TestPlainSftpSession : public Test
 {
     TestPlainSftpSession()
     {
+        logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+
         ON_CALL(mock_libssh, ssh_new()).WillByDefault(Return(fake_session));
         ON_CALL(mock_libssh, ssh_options_set).WillByDefault(Return(SSH_OK));
         ON_CALL(mock_libssh, ssh_connect).WillByDefault(Return(SSH_OK));
@@ -198,6 +202,7 @@ struct TestPlainSftpSession : public Test
     mpt::StubSSHKeyProvider key_provider;
     mpt::MockLibssh::GuardedMock guarded_mock = mpt::MockLibssh::inject<NiceMock>();
     mpt::MockLibssh& mock_libssh = *guarded_mock.first;
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 
     constexpr static auto bad_addr = 0xdeadbeefdeadbeefull; // should reliably segfault on 32/64-bit
     ssh_session fake_session = reinterpret_cast<ssh_session>(bad_addr);
