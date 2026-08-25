@@ -247,3 +247,68 @@ TEST_F(TestPlainSftpMessage, replyStatusFailsOnLibsshError)
 
     EXPECT_FALSE(msg->reply_status(mp::SftpStatus::ok, "anything"));
 }
+
+TEST_F(TestPlainSftpMessage, replyStatusWithoutMessageUsesEmptyString)
+{
+    const auto msg = make_message();
+    EXPECT_CALL(mock_libssh, sftp_reply_status(&raw_msg, _, StrEq(""))).WillOnce(Return(SSH_OK));
+
+    // exercises SftpMessage's own convenience overload, forwarding into the one above
+    EXPECT_TRUE(msg->reply_status(mp::SftpStatus::ok));
+}
+
+TEST_F(TestPlainSftpMessage, replyAttributesForwardsConvertedFields)
+{
+    const auto msg = make_message();
+    constexpr mp::SftpAttributes attributes{.flags = mp::SftpAttrFlags::permissions,
+                                            .size = 10,
+                                            .uid = 1,
+                                            .gid = 2,
+                                            .permissions = 0755,
+                                            .atime = 3,
+                                            .mtime = 4};
+
+    const auto attr_matcher = Pointee(
+        AllOf(Field(&sftp_attributes_struct::flags, attributes.flags),
+              Field(&sftp_attributes_struct::size, attributes.size),
+              Field(&sftp_attributes_struct::uid, attributes.uid),
+              Field(&sftp_attributes_struct::gid, attributes.gid),
+              Field(&sftp_attributes_struct::permissions, attributes.permissions),
+              Field(&sftp_attributes_struct::atime, attributes.atime),
+              Field(&sftp_attributes_struct::mtime, attributes.mtime)));
+
+    EXPECT_CALL(mock_libssh, sftp_reply_attr(&raw_msg, attr_matcher)).WillOnce(Return(SSH_OK));
+
+    EXPECT_TRUE(msg->reply_attributes(attributes));
+}
+
+TEST_F(TestPlainSftpMessage, replyDataForwardsPointerAndLength)
+{
+    const auto msg = make_message();
+    const std::string payload = "hello";
+
+    EXPECT_CALL(mock_libssh,
+                sftp_reply_data(&raw_msg, payload.data(), static_cast<int>(payload.size())))
+        .WillOnce(Return(SSH_OK));
+
+    EXPECT_TRUE(msg->reply_data(payload.data(), payload.size()));
+}
+
+TEST_F(TestPlainSftpMessage, replyDataFailsOnLibsshError)
+{
+    const auto msg = make_message();
+    const std::string payload = "hello";
+
+    EXPECT_CALL(mock_libssh, sftp_reply_data).WillOnce(Return(SSH_ERROR));
+
+    EXPECT_FALSE(msg->reply_data(payload.data(), payload.size()));
+}
+
+TEST_F(TestPlainSftpMessage, replyNameForwardsToLibssh)
+{
+    const auto msg = make_message();
+    EXPECT_CALL(mock_libssh, sftp_reply_name(&raw_msg, StrEq("target"), IsNull()))
+        .WillOnce(Return(SSH_OK));
+
+    EXPECT_TRUE(msg->reply_name("target"));
+}
