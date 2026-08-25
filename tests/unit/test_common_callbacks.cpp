@@ -19,6 +19,8 @@
 #include "mock_client_rpc.h"
 #include "stub_terminal.h"
 
+#include <multipass/utils.h>
+
 #include <src/client/cli/cmd/animated_spinner.h>
 #include <src/client/cli/cmd/common_callbacks.h>
 
@@ -75,8 +77,7 @@ struct TestLoggingSpinnerCallbacks : public TestSpinnerCallbacks,
                                                                                          term);
             break;
         default:
-            assert(false && "shouldn't be here");
-            std::abort();
+            mp::utils::UNREACHABLE("shouldn't be here");
         }
     }
 };
@@ -128,8 +129,7 @@ struct TestReplySpinnerCallbacks : public TestSpinnerCallbacks,
                                                                                          term);
             break;
         default:
-            assert(false && "shouldn't be here");
-            throw std::runtime_error{"bad test instantiation"};
+            mp::utils::UNREACHABLE("shouldn't be here");
         }
     }
 };

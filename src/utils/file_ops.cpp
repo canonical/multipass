@@ -20,6 +20,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/posix.h>
+#include <multipass/utils.h>
 
 #include <chrono>
 #include <random>
@@ -151,7 +152,7 @@ void mp::FileOps::write_transactionally(const QString& file_name, const QByteArr
         std::this_thread::sleep_for(delay);
     }
 
-    assert(false && "We should never get here");
+    mp::utils::UNREACHABLE("We should never get here");
 }
 
 void mp::FileOps::write_transactionally(const fs::path& file_name, std::string_view data) const
