@@ -7,9 +7,11 @@ While we are driven by our passion to improve Multipass and strive for high qual
 
 Our [Coding Guidelines](GUIDELINES.md) cover various aspects around Git usage, coding, and processes. Please read them to understand what is important to us.
 
-### A special note on the usage of AI tools
+### A special note on the use of AI tools
 
 Especially with recent developments in AI-supported code generation, we must be careful when accepting external contributions for capacity and legal reasons. While we use AI tools in our development processes, too, we remain very careful about their outputs and expect our contributors to do the same.
+
+In particular, we expect code and review changes to be verified and understood by a human, PR descriptions and comments in discussions to be written in the author's own words.
 
 # General directions
 
