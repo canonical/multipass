@@ -1,10 +1,11 @@
 # Contributing to Multipass
 
-The Multipass team is very open for contributions from the community, whether these are feature ideas, bug report issues, change suggestions through pull requests, or discussions about Multipass. While we are driven by our passion to improve Multipass and strive for high quality code at the same time, we are limited by natural resources and must take careful decisions on where we can spend our time on.
+The Multipass team is very open to contributions from the community, whether these are feature ideas, issue/bug reports, change suggestions through pull requests, or discussions about Multipass. 
+While we are driven by our passion to improve Multipass and strive for high quality code, we have finite resources and must make careful decisions about where we spend our time.
 
 ## Guidelines
 
-Our [Coding Guidelines](GUIDELINES.md) detail various aspects around Git usage, coding, and processes.
+Our [Coding Guidelines](GUIDELINES.md) cover various aspects around Git usage, coding, and processes. Please read them to understand what is important to us.
 
 ### A special note on the usage of AI tools
 

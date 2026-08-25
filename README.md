@@ -11,7 +11,7 @@ Since it supports metadata for cloud-init, you can simulate a small cloud deploy
 
 | Service                                              | Status                                          |
 |------------------------------------------------------|:------------------------------------------------|
-| [CI](https://github.com/canonical/multipass/actions) | [![Build Status][gha-image-linux]][gha-url-linux] [![Build Status][gha-image-windows]][gha-url-windows] [![Build Status][gha-image-macos]][gha-url-macos] |
+| [CI](https://github.com/canonical/multipass/actions) | [![Linux CI][gha-image-linux]][gha-url-linux] [![Windows CI][gha-image-windows]][gha-url-windows] [![macOS CI][gha-image-macos]][gha-url-macos] |
 | [Snap](https://snapcraft.io/)                        | [![Build Status][snap-image]][snap-url]         |
 | [Codecov](https://codecov.io/)                       | [![Codecov Status][codecov-image]][codecov-url] |
 
