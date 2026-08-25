@@ -352,3 +352,43 @@ TEST_F(TestPlainSftpMessage, replyHandleFailsWhenSendFails)
 
     EXPECT_FALSE(msg->reply_handle(&id));
 }
+
+TEST_F(TestPlainSftpMessage, replyNamesAddForwardsConvertedFields)
+{
+    const auto msg = make_message();
+    constexpr mp::SftpAttributes attributes{.flags = mp::SftpAttrFlags::size, .size = 99};
+    constexpr auto* file = "file.txt";
+    constexpr auto* longname = "-rw-r--r-- ...";
+
+    const auto attr_matcher = Pointee(Field(&sftp_attributes_struct::size, attributes.size));
+    EXPECT_CALL(mock_libssh,
+                sftp_reply_names_add(&raw_msg, StrEq(file), StrEq(longname), attr_matcher))
+        .WillOnce(Return(SSH_OK));
+
+    EXPECT_TRUE(msg->reply_names_add(file, longname, attributes));
+}
+
+TEST_F(TestPlainSftpMessage, replyNamesAddFailsOnLibsshError)
+{
+    const auto msg = make_message();
+
+    EXPECT_CALL(mock_libssh, sftp_reply_names_add).WillOnce(Return(SSH_ERROR));
+
+    EXPECT_FALSE(msg->reply_names_add("file.txt", "-rw-r--r-- ...", mp::SftpAttributes{}));
+}
+
+TEST_F(TestPlainSftpMessage, replyNamesForwardsToLibssh)
+{
+    const auto msg = make_message();
+    EXPECT_CALL(mock_libssh, sftp_reply_names(&raw_msg)).WillOnce(Return(SSH_OK));
+
+    EXPECT_TRUE(msg->reply_names());
+}
+
+TEST_F(TestPlainSftpMessage, replyNamesFailsOnLibsshError)
+{
+    const auto msg = make_message();
+    EXPECT_CALL(mock_libssh, sftp_reply_names(&raw_msg)).WillOnce(Return(SSH_ERROR));
+
+    EXPECT_FALSE(msg->reply_names());
+}
