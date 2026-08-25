@@ -312,3 +312,43 @@ TEST_F(TestPlainSftpMessage, replyNameForwardsToLibssh)
 
     EXPECT_TRUE(msg->reply_name("target"));
 }
+
+TEST_F(TestPlainSftpMessage, replyHandleFailsWhenAllocFails)
+{
+    raw_msg.sftp = fake_sftp;
+    const auto msg = make_message();
+
+    int id = 42;
+    EXPECT_CALL(mock_libssh, sftp_handle_alloc(fake_sftp, &id)).WillOnce(Return(nullptr));
+    EXPECT_CALL(mock_libssh, sftp_reply_handle).Times(0);
+    EXPECT_CALL(mock_libssh, ssh_string_free).Times(0);
+
+    EXPECT_FALSE(msg->reply_handle(&id));
+}
+
+TEST_F(TestPlainSftpMessage, replyHandleSucceeds)
+{
+    raw_msg.sftp = fake_sftp;
+    const auto msg = make_message();
+
+    int id = 31;
+    EXPECT_CALL(mock_libssh, sftp_handle_alloc(fake_sftp, &id)).WillOnce(Return(fake_handle));
+    EXPECT_CALL(mock_libssh, sftp_reply_handle(&raw_msg, fake_handle)).WillOnce(Return(SSH_OK));
+    EXPECT_CALL(mock_libssh, ssh_string_free(fake_handle)).Times(1);
+
+    EXPECT_TRUE(msg->reply_handle(&id));
+}
+
+TEST_F(TestPlainSftpMessage, replyHandleFailsWhenSendFails)
+{
+    raw_msg.sftp = fake_sftp;
+    const auto msg = make_message();
+
+    int id = 42;
+    EXPECT_CALL(mock_libssh, sftp_handle_alloc(fake_sftp, &id)).WillOnce(Return(fake_handle));
+    EXPECT_CALL(mock_libssh, sftp_reply_handle(&raw_msg, fake_handle)).WillOnce(Return(SSH_ERROR));
+    EXPECT_CALL(mock_libssh, ssh_string_free(fake_handle))
+        .Times(1); // still freed, whatever happens
+
+    EXPECT_FALSE(msg->reply_handle(&id));
+}
