@@ -20,6 +20,8 @@
 #include "fake_key_data.h"
 #include "mock_logger.h"
 #include "mock_ssh_client.h"
+#include "mock_ssh_factory.h"
+#include "mock_ssh_session.h"
 #include "mock_ssh_test_fixture.h"
 #include "stub_console.h"
 #include "stub_ssh_key_provider.h"
@@ -28,22 +30,72 @@
 #include <multipass/ssh/ssh_client.h>
 #include <multipass/ssh/ssh_factory.h>
 
+#include <type_traits>
+#include <utility>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 namespace mpl = multipass::logging;
 
 namespace
 {
+void expect_ssh_coordinates_eq(const mp::SSHCoordinates& actual, const mp::SSHCoordinates& expected)
+{
+    EXPECT_EQ(actual.username, expected.username);
+    EXPECT_EQ(actual.private_key_as_base64, expected.private_key_as_base64);
+    EXPECT_EQ(actual.port, expected.port);
+    EXPECT_EQ(actual.tcp_host, expected.tcp_host);
+
+    std::visit(
+        [&actual](const auto& expected_vsock_host) {
+            using VSOCKHostData = std::decay_t<decltype(expected_vsock_host)>;
+            ASSERT_TRUE(std::holds_alternative<VSOCKHostData>(actual.vsock_host));
+
+            const auto& actual_vsock_host = std::get<VSOCKHostData>(actual.vsock_host);
+            if constexpr (std::is_same_v<VSOCKHostData, mp::HVSOCKData>)
+                EXPECT_EQ(actual_vsock_host.vmid, expected_vsock_host.vmid);
+            else if constexpr (std::is_same_v<VSOCKHostData, mp::VSOCKData>)
+                EXPECT_EQ(actual_vsock_host.cid, expected_vsock_host.cid);
+            else if constexpr (std::is_same_v<VSOCKHostData, mp::USOCKData>)
+                EXPECT_EQ(actual_vsock_host.socket_address, expected_vsock_host.socket_address);
+        },
+        expected.vsock_host);
+}
+
 struct SSHClient : public testing::Test
 {
     mp::SSHClient make_ssh_client()
     {
-        mp::SSHCoordinates coord{"ubuntu",
-                                 key_provider.private_key_as_base64(),
-                                 42,
-                                 "theanswertoeverything",
-                                 {}};
+        auto coord = make_ssh_coordinates(mp::VSOCKHost{std::monostate{}});
         return {MP_SSH_FACTORY.make_session(coord), console_creator};
+    }
+
+    mp::SSHCoordinates make_ssh_coordinates(mp::VSOCKHost vsock_host) const
+    {
+        return {"ubuntu",
+                key_provider.private_key_as_base64(),
+                42,
+                "theanswertoeverything",
+                std::move(vsock_host)};
+    }
+
+    mp::SSHCoordinates construct_ssh_client_and_capture_coordinates(
+        const mp::SSHCoordinates& coordinates)
+    {
+        REPLACE(ssh_channel_new,
+                [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
+        REPLACE(ssh_channel_free, [](auto...) { return; });
+
+        auto [mock_ssh_factory, guard] = mpt::MockSSHFactory::inject();
+        mp::SSHCoordinates captured_coordinates;
+        EXPECT_CALL(*mock_ssh_factory, make_session(testing::_))
+            .WillOnce([&captured_coordinates](const auto& forwarded_coordinates) {
+                captured_coordinates = forwarded_coordinates;
+                return std::make_unique<testing::NiceMock<mpt::MockSSHSession>>();
+            });
+
+        [[maybe_unused]] mp::SSHClient client{coordinates, console_creator};
+        return captured_coordinates;
     }
 
     const mpt::StubSSHKeyProvider key_provider;
@@ -62,6 +114,38 @@ TEST_F(SSHClient, standardCtorDoesNotThrow)
                              "theanswertoeverything",
                              {}};
     EXPECT_NO_THROW(mp::SSHClient(coord, console_creator));
+}
+
+TEST_F(SSHClient, forwardsNoVsockCoordinatesToMakeSession)
+{
+    const auto coordinates = make_ssh_coordinates(mp::VSOCKHost{std::monostate{}});
+
+    expect_ssh_coordinates_eq(construct_ssh_client_and_capture_coordinates(coordinates),
+                              coordinates);
+}
+
+TEST_F(SSHClient, forwardsHvsockCoordinatesToMakeSession)
+{
+    const auto coordinates = make_ssh_coordinates(mp::VSOCKHost{mp::HVSOCKData{"test-vmid"}});
+
+    expect_ssh_coordinates_eq(construct_ssh_client_and_capture_coordinates(coordinates),
+                              coordinates);
+}
+
+TEST_F(SSHClient, forwardsVsockCoordinatesToMakeSession)
+{
+    const auto coordinates = make_ssh_coordinates(mp::VSOCKHost{mp::VSOCKData{1234}});
+
+    expect_ssh_coordinates_eq(construct_ssh_client_and_capture_coordinates(coordinates),
+                              coordinates);
+}
+
+TEST_F(SSHClient, forwardsUsockCoordinatesToMakeSession)
+{
+    const auto coordinates = make_ssh_coordinates(mp::VSOCKHost{mp::USOCKData{"unix/socket/path"}});
+
+    expect_ssh_coordinates_eq(construct_ssh_client_and_capture_coordinates(coordinates),
+                              coordinates);
 }
 
 TEST_F(SSHClient, execSingleCommandReturnsOKNoFailure)

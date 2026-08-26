@@ -95,6 +95,7 @@ add_executable(multipass_cpp_tests
   test_file_ops.cpp
   test_format_utils.cpp
   test_global_settings_handlers.cpp
+  test_grpc_utils.cpp
   test_id_mappings.cpp
   test_image_vault.cpp
   test_image_vault_utils.cpp

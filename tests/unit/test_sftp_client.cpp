@@ -23,6 +23,8 @@
 #include "mock_sftp.h"
 #include "mock_sftp_dir_iterator.h"
 #include "mock_sftp_utils.h"
+#include "mock_ssh_factory.h"
+#include "mock_ssh_session.h"
 #include "mock_ssh_test_fixture.h"
 #include "stub_ssh_key_provider.h"
 
@@ -31,6 +33,9 @@
 #include <multipass/ssh/ssh_factory.h>
 
 #include <fmt/std.h>
+
+#include <type_traits>
+#include <utility>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -41,6 +46,29 @@ using namespace testing;
 
 namespace
 {
+
+void expect_ssh_coordinates_eq(const mp::SSHCoordinates& actual, const mp::SSHCoordinates& expected)
+{
+    EXPECT_EQ(actual.username, expected.username);
+    EXPECT_EQ(actual.private_key_as_base64, expected.private_key_as_base64);
+    EXPECT_EQ(actual.port, expected.port);
+    EXPECT_EQ(actual.tcp_host, expected.tcp_host);
+
+    std::visit(
+        [&actual](const auto& expected_vsock_host) {
+            using VSOCKHostData = std::decay_t<decltype(expected_vsock_host)>;
+            ASSERT_TRUE(std::holds_alternative<VSOCKHostData>(actual.vsock_host));
+
+            const auto& actual_vsock_host = std::get<VSOCKHostData>(actual.vsock_host);
+            if constexpr (std::is_same_v<VSOCKHostData, mp::HVSOCKData>)
+                EXPECT_EQ(actual_vsock_host.vmid, expected_vsock_host.vmid);
+            else if constexpr (std::is_same_v<VSOCKHostData, mp::VSOCKData>)
+                EXPECT_EQ(actual_vsock_host.cid, expected_vsock_host.cid);
+            else if constexpr (std::is_same_v<VSOCKHostData, mp::USOCKData>)
+                EXPECT_EQ(actual_vsock_host.socket_address, expected_vsock_host.socket_address);
+        },
+        expected.vsock_host);
+}
 
 sftp_file get_dummy_sftp_file(sftp_session sftp = nullptr)
 {
@@ -93,12 +121,34 @@ struct SFTPClient : public testing::Test
         return {MP_SSH_FACTORY.make_session(coord)};
     }
 
+    mp::SSHCoordinates make_ssh_coordinates(mp::VSOCKHost vsock_host) const
+    {
+        return {"ubuntu", key_provider.private_key_as_base64(), 43, "b", std::move(vsock_host)};
+    }
+
 // this is a macro since REPLACE only applies to the current scope and cannot be moved out.
 #define REPLACE_SFTP_INIT()                                                                        \
     REPLACE(sftp_init, [this](sftp_session sftp) {                                                 \
         sftp->limits = &limits;                                                                    \
         return SSH_OK;                                                                             \
     });
+
+    mp::SSHCoordinates construct_sftp_client_and_capture_coordinates(
+        const mp::SSHCoordinates& coordinates)
+    {
+        REPLACE_SFTP_INIT();
+
+        auto [mock_ssh_factory, guard] = mpt::MockSSHFactory::inject();
+        mp::SSHCoordinates captured_coordinates;
+        EXPECT_CALL(*mock_ssh_factory, make_session(_))
+            .WillOnce([&captured_coordinates](const auto& forwarded_coordinates) {
+                captured_coordinates = forwarded_coordinates;
+                return std::make_unique<NiceMock<mpt::MockSSHSession>>();
+            });
+
+        [[maybe_unused]] mp::SFTPClient client{coordinates};
+        return captured_coordinates;
+    }
 
     MockScope<decltype(mock_sftp_new)> sftp_new;
     MockScope<decltype(mock_sftp_free)> free_sftp;
@@ -128,6 +178,38 @@ struct SFTPClient : public testing::Test
 } // namespace
 
 // testing sftp_session
+
+TEST_F(SFTPClient, forwardsNoVsockCoordinatesToMakeSession)
+{
+    const auto coordinates = make_ssh_coordinates(mp::VSOCKHost{std::monostate{}});
+
+    expect_ssh_coordinates_eq(construct_sftp_client_and_capture_coordinates(coordinates),
+                              coordinates);
+}
+
+TEST_F(SFTPClient, forwardsHvsockCoordinatesToMakeSession)
+{
+    const auto coordinates = make_ssh_coordinates(mp::VSOCKHost{mp::HVSOCKData{"test-vmid"}});
+
+    expect_ssh_coordinates_eq(construct_sftp_client_and_capture_coordinates(coordinates),
+                              coordinates);
+}
+
+TEST_F(SFTPClient, forwardsVsockCoordinatesToMakeSession)
+{
+    const auto coordinates = make_ssh_coordinates(mp::VSOCKHost{mp::VSOCKData{1234}});
+
+    expect_ssh_coordinates_eq(construct_sftp_client_and_capture_coordinates(coordinates),
+                              coordinates);
+}
+
+TEST_F(SFTPClient, forwardsUsockCoordinatesToMakeSession)
+{
+    const auto coordinates = make_ssh_coordinates(mp::VSOCKHost{mp::USOCKData{"unix/socket/path"}});
+
+    expect_ssh_coordinates_eq(construct_sftp_client_and_capture_coordinates(coordinates),
+                              coordinates);
+}
 
 TEST_F(SFTPClient, throwsWhenUnableToAllocateSftpSession)
 {
