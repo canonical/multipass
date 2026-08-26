@@ -314,6 +314,58 @@ TEST_F(TestPlainSftpSession, makeSftpSessionThrowsOnHandshakeTimeout)
         mpt::match_what(HasSubstr("timed out waiting for the initial client message")));
 }
 
+TEST_F(TestPlainSftpSession, makeSftpSessionThrowsWhenInitMessageMissing)
+{
+    EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel))
+        .WillOnce(Return(&fake_sftp_sessions[0]));
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0)).WillOnce(Return(1));
+    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_sessions[0]))
+        .WillOnce(Return(nullptr));
+    EXPECT_CALL(mock_libssh, sftp_server_free(&fake_sftp_sessions[0])).Times(1);
+
+    auto session = make_ssh_session();
+    MP_EXPECT_THROW_THAT(static_cast<void>(make_sftp_session(std::move(session))),
+                         mp::SSHException,
+                         mpt::match_what(HasSubstr("Null client message")));
+}
+
+TEST_F(TestPlainSftpSession, makeSftpSessionThrowsWhenInitMessageHasWrongType)
+{
+    constexpr auto wrong_type = SSH_FXP_OPEN; // anything other than SSH_FXP_INIT
+    fake_client_msgs[0].type = wrong_type;
+
+    EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel))
+        .WillOnce(Return(&fake_sftp_sessions[0]));
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0)).WillOnce(Return(1));
+    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_sessions[0]))
+        .WillOnce(Return(&fake_client_msgs[0]));
+    EXPECT_CALL(mock_libssh, sftp_server_free(&fake_sftp_sessions[0])).Times(1);
+    EXPECT_CALL(mock_libssh, sftp_client_message_free(&fake_client_msgs[0])).Times(1);
+
+    auto session = make_ssh_session();
+    MP_EXPECT_THROW_THAT(static_cast<void>(make_sftp_session(std::move(session))),
+                         mp::SSHException,
+                         mpt::match_what(AllOf(HasSubstr(fmt::to_string(wrong_type)),
+                                               HasSubstr("instead of SSH_FXP_INIT"))));
+}
+
+TEST_F(TestPlainSftpSession, makeSftpSessionThrowsWhenVersionReplyFails)
+{
+    EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel))
+        .WillOnce(Return(&fake_sftp_sessions[0]));
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0)).WillOnce(Return(1));
+    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_sessions[0]))
+        .WillOnce(Return(&fake_client_msgs[0]));
+    EXPECT_CALL(mock_libssh, sftp_reply_version(&fake_client_msgs[0])).WillOnce(Return(SSH_ERROR));
+    EXPECT_CALL(mock_libssh, sftp_server_free(&fake_sftp_sessions[0])).Times(1);
+    EXPECT_CALL(mock_libssh, sftp_client_message_free(&fake_client_msgs[0])).Times(1);
+
+    auto session = make_ssh_session();
+    MP_EXPECT_THROW_THAT(static_cast<void>(make_sftp_session(std::move(session))),
+                         mp::SSHException,
+                         mpt::match_what(HasSubstr("Failed to process the SSH_FXP_INIT message")));
+}
+
 TEST_F(TestPlainSftpSession, makeSftpSessionSucceeds)
 {
     auto session = make_ssh_session();
