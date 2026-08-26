@@ -23,7 +23,7 @@ constexpr auto category = "dart-ffi";
 
 namespace
 {
-[[maybe_unused]] mp::SSHCoordinates to_ssh_coordinates(const SSHCoordinatesFfi& ffi_coordinates)
+mp::SSHCoordinates to_ssh_coordinates(const SSHCoordinatesFfi& ffi_coordinates)
 {
     mp::SSHCoordinates coordinates;
 
@@ -331,7 +331,8 @@ char* default_mount_target(char* source)
 int open_vsock_socket(const struct SSHCoordinatesFfi* coordinates)
 {
     // TODO: connect natively per transport and return a connected fd.
-    (void)coordinates;
+    auto ssh_coordinates{to_ssh_coordinates(*coordinates)};
+    (void)ssh_coordinates;
     return -1;
 }
 

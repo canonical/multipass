@@ -50,7 +50,10 @@ QByteArray gen_hash(const std::string& path)
         .left(8);
 }
 
-QString serialize_vsock_host(const mp::VSOCKHost& vsock_host)
+// Emits the vsock host as two separate arguments (tag then data) so that sshfs_server
+// parses them positionally. Keeping them distinct also preserves data containing spaces
+// (e.g. a USOCK path), which a single space-joined argument would corrupt.
+QStringList serialize_vsock_host(const mp::VSOCKHost& vsock_host)
 {
     auto vsock_data = std::visit(
         [](auto&& arg) {
@@ -65,9 +68,8 @@ QString serialize_vsock_host(const mp::VSOCKHost& vsock_host)
                 return std::string{"NONE"};
         },
         vsock_host);
-    auto vsock_tag = std::to_string(vsock_host.index());
-    vsock_tag.push_back(' ');
-    return QString::fromStdString(vsock_tag + vsock_data);
+    return QStringList() << QString::number(vsock_host.index())
+                         << QString::fromStdString(vsock_data);
 }
 } // namespace
 

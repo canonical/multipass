@@ -197,8 +197,7 @@ class RawFdSSHSocket implements SSHSocket {
   // Read isolate: stores its request port, pipes chunks into [_readController]
   // (Uint8List = data, String = error, null = EOF), and pulls the next chunk
   // while there is unpaused demand.
-  void _initReadIsolate() {
-    _readReceivePort.listen((message) {
+  void _initReadIsolate() {    _readReceivePort.listen((message) {
       if (message is SendPort) {
         if (!_readPortCompleter.isCompleted)
           _readPortCompleter.complete(message);

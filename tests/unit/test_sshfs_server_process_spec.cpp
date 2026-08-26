@@ -48,17 +48,18 @@ TEST_F(TestSSHFSServerProcessSpec, programCorrect)
 TEST_F(TestSSHFSServerProcessSpec, argumentsCorrect)
 {
     mp::SSHFSServerProcessSpec spec(config);
-    ASSERT_EQ(spec.arguments().size(), 9);
+    ASSERT_EQ(spec.arguments().size(), 10);
     EXPECT_EQ(spec.arguments()[0], "host");
     EXPECT_EQ(spec.arguments()[1], "42");
     EXPECT_EQ(spec.arguments()[2], "username");
-    EXPECT_EQ(spec.arguments()[3], "0 NONE");
-    EXPECT_EQ(spec.arguments()[4], "source_path");
-    EXPECT_EQ(spec.arguments()[5], "target_path");
+    EXPECT_EQ(spec.arguments()[3], "0");
+    EXPECT_EQ(spec.arguments()[4], "NONE");
+    EXPECT_EQ(spec.arguments()[5], "source_path");
+    EXPECT_EQ(spec.arguments()[6], "target_path");
     // Ordering of the next 2 options not guaranteed, hence the or-s.
-    EXPECT_TRUE(spec.arguments()[6] == "6:10,5:-1," || spec.arguments()[6] == "5:-1,6:10,");
-    EXPECT_TRUE(spec.arguments()[7] == "3:4,1:2," || spec.arguments()[7] == "1:2,3:4,");
-    EXPECT_EQ(spec.arguments()[8], "0");
+    EXPECT_TRUE(spec.arguments()[7] == "6:10,5:-1," || spec.arguments()[7] == "5:-1,6:10,");
+    EXPECT_TRUE(spec.arguments()[8] == "3:4,1:2," || spec.arguments()[8] == "1:2,3:4,");
+    EXPECT_EQ(spec.arguments()[9], "0");
 }
 
 TEST_F(TestSSHFSServerProcessSpec, environmentCorrect)
