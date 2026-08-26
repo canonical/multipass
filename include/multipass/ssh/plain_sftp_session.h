@@ -26,9 +26,9 @@
 #include <chrono>
 #include <string>
 
-struct sftp_session_struct;
+struct ssh_session_struct;
 struct ssh_channel_struct;
-typedef ssh_channel_struct* ssh_channel;
+struct sftp_session_struct;
 
 namespace multipass
 {
@@ -95,6 +95,9 @@ public:
     std::optional<int> client_exit_code() override;
 
 private:
+    using ssh_channel = ssh_channel_struct*;
+    using ssh_session = ssh_session_struct*;
+
     struct RawSftpSessionDeleter
     {
         void operator()(sftp_session_struct* session) const noexcept;

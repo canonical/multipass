@@ -24,13 +24,13 @@
 #include <string>
 
 struct ssh_key_struct;
-typedef ssh_key_struct* ssh_key;
 
 namespace multipass
 {
 class SSHKeyProvider : private DisabledCopyMove
 {
 public:
+    using ssh_key = ssh_key_struct*;
     virtual ~SSHKeyProvider() = default;
     virtual std::string private_key_as_base64() const = 0;
     virtual std::string public_key_as_base64() const = 0;
