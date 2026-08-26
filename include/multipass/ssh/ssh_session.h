@@ -22,9 +22,7 @@
 #include <memory>
 #include <string>
 
-// TODO@sftp remove
-struct ssh_session_struct;
-typedef struct ssh_session_struct* ssh_session;
+struct ssh_session_struct; // TODO@sftp remove once operator ssh_session is gone
 
 namespace multipass
 {
@@ -34,6 +32,8 @@ class SftpClientSteward;
 class SSHSession
 {
 public:
+    using ssh_session = ssh_session_struct*; // TODO@sftp remove once operator ssh_session is gone
+
     virtual ~SSHSession() = default;
 
     // Non-copyable (but movable by descendants, see below)
