@@ -105,16 +105,16 @@ int main(int argc, char* argv[])
     mp::VSOCKHost vsock_host;
     switch (vsock_tag)
     {
-    case mp::VSOCK_HVSOCK:
-        vsock_host = mp::HVSOCK{vsock_data};
+    case mp::VSOCKTAG_HVSOCK:
+        vsock_host = mp::HVSOCKData{vsock_data};
         break;
-    case mp::VSOCK_VSOCK:
-        vsock_host = mp::VSOCK{static_cast<uint32_t>(std::stoul(vsock_data))};
+    case mp::VSOCKTAG_VSOCK:
+        vsock_host = mp::VSOCKData{static_cast<uint32_t>(std::stoul(vsock_data))};
         break;
-    case mp::VSOCK_USOCK:
-        vsock_host = mp::USOCK{vsock_data};
+    case mp::VSOCKTAG_USOCK:
+        vsock_host = mp::USOCKData{vsock_data};
         break;
-    case mp::VSOCK_NONE:
+    case mp::VSOCKTAG_NONE:
     default:
         vsock_host = std::monostate{};
     }

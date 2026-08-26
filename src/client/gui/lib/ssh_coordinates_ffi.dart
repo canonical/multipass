@@ -4,10 +4,10 @@ import 'package:ffi/ffi.dart';
 
 import 'generated/multipass.pb.dart';
 
-const int vsockNone = 0;
-const int vsockHvsock = 1;
-const int vsockVsock = 2;
-const int vsockUsock = 3;
+const int vsockTagNone = 0;
+const int vsockTagHvsock = 1;
+const int vsockTagVsock = 2;
+const int vsockTagUsock = 3;
 
 final class VsockUnion extends ffi.Union {
   external ffi.Pointer<Utf8> hvsockVmId;
@@ -48,19 +48,19 @@ ffi.Pointer<FfiSSHCoordinates> sshCoordinatesInfoToFfi(
 
   switch (proto.whichVsockHost()) {
     case SSHCoordinatesInfo_VsockHost.hvsockVmid:
-      native.ref.vsockTag = vsockHvsock;
+      native.ref.vsockTag = vsockTagHvsock;
       native.ref.vsockData.hvsockVmId = proto.hvsockVmid.toNativeUtf8();
       break;
     case SSHCoordinatesInfo_VsockHost.vsockCid:
-      native.ref.vsockTag = vsockVsock;
+      native.ref.vsockTag = vsockTagVsock;
       native.ref.vsockData.vsockCID = proto.vsockCid;
       break;
     case SSHCoordinatesInfo_VsockHost.usockAddr:
-      native.ref.vsockTag = vsockUsock;
+      native.ref.vsockTag = vsockTagUsock;
       native.ref.vsockData.usockAddr = proto.usockAddr.toNativeUtf8();
       break;
     case SSHCoordinatesInfo_VsockHost.notSet:
-      native.ref.vsockTag = vsockNone;
+      native.ref.vsockTag = vsockTagNone;
       break;
   }
 
@@ -73,15 +73,15 @@ void freeFfiSSHCoordinates(ffi.Pointer<FfiSSHCoordinates> p) {
   malloc.free(p.ref.tcpHost);
 
   switch (p.ref.vsockTag) {
-    case vsockHvsock:
+    case vsockTagHvsock:
       malloc.free(p.ref.vsockData.hvsockVmId);
-    case vsockUsock:
-      malloc.free(p.ref.vsockData.usockAddr);
-    case vsockVsock:
-    case vsockNone:
       break;
-    default:
-      throw StateError('Unexpected vsock tag: ${p.ref.vsockTag}');
+    case vsockTagUsock:
+      malloc.free(p.ref.vsockData.usockAddr);
+      break;
+    case vsockTagVsock:
+    case vsockTagNone:
+      break;
   }
 
   malloc.free(p);

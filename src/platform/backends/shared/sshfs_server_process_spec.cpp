@@ -58,11 +58,11 @@ QStringList serialize_vsock_host(const mp::VSOCKHost& vsock_host)
     auto vsock_data = std::visit(
         [](auto&& arg) {
             using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, mp::HVSOCK>)
+            if constexpr (std::is_same_v<T, mp::HVSOCKData>)
                 return arg.vmid;
-            else if constexpr (std::is_same_v<T, mp::VSOCK>)
+            else if constexpr (std::is_same_v<T, mp::VSOCKData>)
                 return std::to_string(arg.cid);
-            else if constexpr (std::is_same_v<T, mp::USOCK>)
+            else if constexpr (std::is_same_v<T, mp::USOCKData>)
                 return arg.socket_address;
             else if constexpr (std::is_same_v<T, std::monostate>)
                 return std::string{"NONE"};

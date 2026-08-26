@@ -30,13 +30,13 @@ SSHCoordinates proto_to_coordinates(const SSHCoordinatesInfo& proto)
     switch (proto.vsock_host_case())
     {
     case SSHCoordinatesInfo::kHvsockVmid:
-        vsock_host = HVSOCK{proto.hvsock_vmid()};
+        vsock_host = HVSOCKData{proto.hvsock_vmid()};
         break;
     case SSHCoordinatesInfo::kVsockCid:
-        vsock_host = VSOCK{proto.vsock_cid()};
+        vsock_host = VSOCKData{proto.vsock_cid()};
         break;
     case SSHCoordinatesInfo::kUsockAddr:
-        vsock_host = USOCK{proto.usock_addr()};
+        vsock_host = USOCKData{proto.usock_addr()};
         break;
     case SSHCoordinatesInfo::VSOCK_HOST_NOT_SET:
         vsock_host = std::monostate{};
@@ -57,11 +57,11 @@ SSHCoordinatesInfo coordinates_to_proto(const SSHCoordinates& ssh_coordinates)
     std::visit(
         [&coordinates_info](auto&& arg) {
             using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, HVSOCK>)
+            if constexpr (std::is_same_v<T, HVSOCKData>)
                 coordinates_info.set_hvsock_vmid(arg.vmid);
-            else if constexpr (std::is_same_v<T, VSOCK>)
+            else if constexpr (std::is_same_v<T, VSOCKData>)
                 coordinates_info.set_vsock_cid(arg.cid);
-            else if constexpr (std::is_same_v<T, USOCK>)
+            else if constexpr (std::is_same_v<T, USOCKData>)
                 coordinates_info.set_usock_addr(arg.socket_address);
             else if constexpr (std::is_same_v<T, std::monostate>)
                 coordinates_info.clear_vsock_host();

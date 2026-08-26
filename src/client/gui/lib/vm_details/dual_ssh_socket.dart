@@ -42,7 +42,7 @@ class DualSSHSocket implements SSHSocket {
   /// Asks the native side to connect; throws on an unset transport or an
   /// invalid descriptor so [connect] falls back to TCP.
   Future<SSHSocket> _connectVsock({Duration? timeout}) async {
-    if (_coordinates.ref.vsockTag == vsockNone) {
+    if (_coordinates.ref.vsockTag == vsockTagNone) {
       throw StateError('No vsock host set; falling back to TCP');
     }
 

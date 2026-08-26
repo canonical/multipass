@@ -27,32 +27,46 @@ extern "C"
 {
 enum VsockHostTag : uint32_t
 {
-    VSOCK_NONE = 0,
-    VSOCK_HVSOCK = 1,
-    VSOCK_VSOCK = 2,
-    VSOCK_USOCK = 3
+    VSOCKTAG_NONE = 0,
+    VSOCKTAG_HVSOCK = 1,
+    VSOCKTAG_VSOCK = 2,
+    VSOCKTAG_USOCK = 3,
+    VSOCKTAG_SIZE,
 };
-}
+} // extern "C"
+
 /// Hyper-V socket transport, addressing the guest by VM id.
-struct HVSOCK
+struct HVSOCKData
 {
     std::string vmid;
 };
 
 /// AF_VSOCK transport, addressing the peer by context id (CID).
-struct VSOCK
+struct VSOCKData
 {
     uint32_t cid;
 };
 
 /// Unix domain socket transport, addressing it by filesystem path.
-struct USOCK
+struct USOCKData
 {
     std::string socket_address;
 };
 
 /// Selects the SSH transport: std::monostate for plain TCP, or one of the vsock families.
-using VSOCKHost = std::variant<std::monostate, HVSOCK, VSOCK, USOCK>;
+using VSOCKHost = std::variant<std::monostate, HVSOCKData, VSOCKData, USOCKData>;
+
+// Enforce compile-time equality between C Enum values and std::variant positions
+static_assert(std::is_same_v<std::variant_alternative_t<VSOCKTAG_NONE, VSOCKHost>, std::monostate>,
+              "VSOCKTAG_NONE mismatch!");
+static_assert(std::is_same_v<std::variant_alternative_t<VSOCKTAG_HVSOCK, VSOCKHost>, HVSOCKData>,
+              "VSOCKTAG_HVSOCK mismatch!");
+static_assert(std::is_same_v<std::variant_alternative_t<VSOCKTAG_VSOCK, VSOCKHost>, VSOCKData>,
+              "VSOCKTAG_VSOCK mismatch!");
+static_assert(std::is_same_v<std::variant_alternative_t<VSOCKTAG_USOCK, VSOCKHost>, USOCKData>,
+              "VSOCKTAG_USOCK mismatch!");
+static_assert(std::variant_size_v<VSOCKHost> == VSOCKTAG_SIZE,
+              "VSOCKHost count does not match VSOCKTAG_COUNT!");
 
 /// Necessary data to reach a VM over ssh
 struct SSHCoordinates

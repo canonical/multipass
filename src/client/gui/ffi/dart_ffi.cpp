@@ -38,22 +38,23 @@ mp::SSHCoordinates to_ssh_coordinates(const SSHCoordinatesFfi& ffi_coordinates)
 
     switch (ffi_coordinates.vsock_host_tag)
     {
-    case mp::VSOCK_NONE:
+    case mp::VSOCKTAG_NONE:
         coordinates.vsock_host = std::monostate{};
         break;
-    case mp::VSOCK_HVSOCK:
-        coordinates.vsock_host = mp::HVSOCK{
+    case mp::VSOCKTAG_HVSOCK:
+        coordinates.vsock_host = mp::HVSOCKData{
             ffi_coordinates.vsock_host.hvsock_vmid
                 ? std::string(ffi_coordinates.vsock_host.hvsock_vmid)
                 : std::string()};
         break;
-    case mp::VSOCK_VSOCK:
-        coordinates.vsock_host = mp::VSOCK{ffi_coordinates.vsock_host.vsock_cid};
+    case mp::VSOCKTAG_VSOCK:
+        coordinates.vsock_host = mp::VSOCKData{ffi_coordinates.vsock_host.vsock_cid};
         break;
-    case mp::VSOCK_USOCK:
-        coordinates.vsock_host = mp::USOCK{ffi_coordinates.vsock_host.usock_addr
-                                               ? std::string(ffi_coordinates.vsock_host.usock_addr)
-                                               : std::string()};
+    case mp::VSOCKTAG_USOCK:
+        coordinates.vsock_host = mp::USOCKData{
+            ffi_coordinates.vsock_host.usock_addr
+                ? std::string(ffi_coordinates.vsock_host.usock_addr)
+                : std::string()};
         break;
     default:
         throw std::logic_error{"Unexpected VsockHostTag value in to_ssh_coordinates"};
