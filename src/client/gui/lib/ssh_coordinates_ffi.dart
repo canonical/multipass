@@ -10,37 +10,28 @@ const int vsockVsock = 2;
 const int vsockUsock = 3;
 
 final class VsockUnion extends ffi.Union {
-  // ignore: non_constant_identifier_names
-  external ffi.Pointer<Utf8> hvsock_vmid;
+  external ffi.Pointer<Utf8> hvsockVmId;
 
   @ffi.Uint32()
-  // ignore: non_constant_identifier_names
-  external int vsock_cid;
+  external int vsockCID;
 
-  // ignore: non_constant_identifier_names
-  external ffi.Pointer<Utf8> usock_addr;
+  external ffi.Pointer<Utf8> usockAddr;
 }
 
 final class FfiSSHCoordinates extends ffi.Struct {
-  // ignore: non_constant_identifier_names
   external ffi.Pointer<Utf8> username;
 
-  // ignore: non_constant_identifier_names
-  external ffi.Pointer<Utf8> private_key_as_base64;
+  external ffi.Pointer<Utf8> privKeyBlob;
 
   @ffi.Uint32()
-  // ignore: non_constant_identifier_names
   external int port;
 
-  // ignore: non_constant_identifier_names
-  external ffi.Pointer<Utf8> tcp_host;
+  external ffi.Pointer<Utf8> tcpHost;
 
   @ffi.Uint32()
-  // ignore: non_constant_identifier_names
-  external int vsock_tag;
+  external int vsockTag;
 
-  // ignore: non_constant_identifier_names
-  external VsockUnion vsock;
+  external VsockUnion vsockData;
 }
 
 ffi.Pointer<FfiSSHCoordinates> sshCoordinatesInfoToFfi(
@@ -51,22 +42,22 @@ ffi.Pointer<FfiSSHCoordinates> sshCoordinatesInfoToFfi(
   final native = malloc<FfiSSHCoordinates>();
 
   native.ref.username = proto.username.toNativeUtf8();
-  native.ref.private_key_as_base64 = proto.privKeyBase64.toNativeUtf8();
+  native.ref.privKeyBlob = proto.privKeyBase64.toNativeUtf8();
   native.ref.port = proto.port;
-  native.ref.tcp_host = proto.tcpHost.toNativeUtf8();
+  native.ref.tcpHost = proto.tcpHost.toNativeUtf8();
 
   switch (proto.whichVsockHost()) {
     case SSHCoordinatesInfo_VsockHost.hvsockVmid:
-      native.ref.vsock_tag = vsockHvsock;
-      native.ref.vsock.hvsock_vmid = proto.hvsockVmid.toNativeUtf8();
+      native.ref.vsockTag = vsockHvsock;
+      native.ref.vsockData.hvsockVmId = proto.hvsockVmid.toNativeUtf8();
     case SSHCoordinatesInfo_VsockHost.vsockCid:
-      native.ref.vsock_tag = vsockVsock;
-      native.ref.vsock.vsock_cid = proto.vsockCid;
+      native.ref.vsockTag = vsockVsock;
+      native.ref.vsockData.vsockCID = proto.vsockCid;
     case SSHCoordinatesInfo_VsockHost.usockAddr:
-      native.ref.vsock_tag = vsockUsock;
-      native.ref.vsock.usock_addr = proto.usockAddr.toNativeUtf8();
+      native.ref.vsockTag = vsockUsock;
+      native.ref.vsockData.usockAddr = proto.usockAddr.toNativeUtf8();
     case SSHCoordinatesInfo_VsockHost.notSet:
-      native.ref.vsock_tag = vsockNone;
+      native.ref.vsockTag = vsockNone;
   }
 
   return native;
@@ -74,19 +65,19 @@ ffi.Pointer<FfiSSHCoordinates> sshCoordinatesInfoToFfi(
 
 void freeFfiSSHCoordinates(ffi.Pointer<FfiSSHCoordinates> p) {
   malloc.free(p.ref.username);
-  malloc.free(p.ref.private_key_as_base64);
-  malloc.free(p.ref.tcp_host);
+  malloc.free(p.ref.privKeyBlob);
+  malloc.free(p.ref.tcpHost);
 
-  switch (p.ref.vsock_tag) {
+  switch (p.ref.vsockTag) {
     case vsockHvsock:
-      malloc.free(p.ref.vsock.hvsock_vmid);
+      malloc.free(p.ref.vsockData.hvsockVmId);
     case vsockUsock:
-      malloc.free(p.ref.vsock.usock_addr);
+      malloc.free(p.ref.vsockData.usockAddr);
     case vsockVsock:
     case vsockNone:
       break;
     default:
-      throw StateError('Unexpected vsock tag: ${p.ref.vsock_tag}');
+      throw StateError('Unexpected vsock tag: ${p.ref.vsockTag}');
   }
 
   malloc.free(p);

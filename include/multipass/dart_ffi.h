@@ -67,11 +67,10 @@ long long get_total_disk_size();
 char* default_mount_target(char* source);
 
 // Connects to the guest over the vsock-family transport in `coordinates`
-// (HVSOCK/VSOCK/USOCK) and returns a connected, blocking socket fd. Returns a
-// negative value if the transport is unset/unsupported or the connection fails.
+// (HVSOCK/VSOCK/USOCK) and returns a connected, blocking socket fd
 int open_vsock_socket(const struct SSHCoordinatesFfi* coordinates);
 
 // Shuts down both directions of an fd from open_vsock_socket so a blocked
-// read() sees EOF. The native side handles platform specifics.
+// read() sees EOF
 void shutdown_socket(int fd);
 }

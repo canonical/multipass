@@ -291,8 +291,8 @@ long long memory_in_bytes(char* value)
 
 const char* human_readable_memory(long long bytes)
 {
-    const auto string =
-        mp::MemorySize::from_bytes(bytes).human_readable(/*precision=*/2, /*trim_zeros=*/true);
+    const auto string = mp::MemorySize::from_bytes(bytes).human_readable(/*precision=*/2,
+                                                                         /*trim_zeros=*/true);
     return strdup(string.c_str());
 }
 
@@ -330,7 +330,7 @@ char* default_mount_target(char* source)
 
 int open_vsock_socket(const struct SSHCoordinatesFfi* coordinates)
 {
-    // TODO: connect natively per transport and return a connected fd.
+    // TODO@vsock: connect natively per transport and return a connected fd.
     auto ssh_coordinates{to_ssh_coordinates(*coordinates)};
     (void)ssh_coordinates;
     return -1;
@@ -338,7 +338,7 @@ int open_vsock_socket(const struct SSHCoordinatesFfi* coordinates)
 
 void shutdown_socket(int fd)
 {
-    // TODO: shut down both directions (CRT fd -> SOCKET on Windows).
+    // TODO@vsock: shut down both directions (CRT fd -> SOCKET on Windows).
     (void)fd;
 }
 }

@@ -188,14 +188,12 @@ List<int> getRootCert() {
 }
 
 /// Connects to the guest over the vsock-family transport in [coordinates].
-/// Returns a connected socket fd, or a negative value if the transport is
-/// unset/unsupported or the connection fails.
 int openVsockSocket(ffi.Pointer<FfiSSHCoordinates> coordinates) {
   return _openVsockSocket(coordinates);
 }
 
 /// Shuts down both directions of an fd from [openVsockSocket] so a blocked
-/// `read()` sees EOF. The native side handles platform specifics.
+/// `read()` sees EOF.
 void shutdownSocket(int fd) {
   _shutdownSocket(fd);
 }

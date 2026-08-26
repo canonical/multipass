@@ -532,9 +532,9 @@ Future<void> sshIsolate(SshShellInfo info) async {
   final pem = SSHPem.decode(sshCoordinates.privKeyBase64);
   final rsa = RsaKeyPair.decode(pem);
 
-  final coordinates = sshCoordinatesInfoToFfi(sshCoordinates);
-  // Socket owns the coordinates ptr
-  final socket = DualSSHSocket(coordinates);
+  final coordinatesFfi = sshCoordinatesInfoToFfi(sshCoordinates);
+  // Socket owns the ffi_coordinates memory
+  final socket = DualSSHSocket(coordinatesFfi);
 
   await socket.connect();
 

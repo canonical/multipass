@@ -10,15 +10,10 @@ import 'package:ffi/ffi.dart';
 import '../ffi.dart';
 import '../ssh_coordinates_ffi.dart';
 
-/// An [SSHSocket] that tries a native vsock-family transport
-/// (HVSOCK/VSOCK/USOCK) first and falls back to plain TCP if it is unavailable.
-///
-/// [openVsockSocket] connects natively and returns a descriptor that
-/// [RawFdSSHSocket] then drives as a regular socket. The transport tag only
-/// tells the native side how to connect — the Dart path is identical.
-///
-/// Inert until [connect]; afterwards all members delegate to whichever
-/// connection won. Owns [_coordinates] and frees it on [close]/[destroy].
+/// An [SSHSocket] that tries a native vsock-family transport (HVSOCK/VSOCK/USOCK)
+/// first and falls back to plain TCP if it is unavailable. Inert until [connect];
+/// afterwards all members delegate to whichever connection was established. Owns [_coordinates]
+/// and frees it on [close]/[destroy].
 class DualSSHSocket implements SSHSocket {
   DualSSHSocket(this._coordinates);
 
@@ -36,7 +31,7 @@ class DualSSHSocket implements SSHSocket {
       _delegate = await _connectVsock(timeout: timeout);
     } catch (_) {
       _delegate = await SSHSocket.connect(
-        _coordinates.ref.tcp_host.toDartString(),
+        _coordinates.ref.tcpHost.toDartString(),
         _coordinates.ref.port,
         timeout: timeout,
       );
@@ -46,7 +41,7 @@ class DualSSHSocket implements SSHSocket {
   /// Asks the native side to connect; throws on an unset transport or an
   /// invalid descriptor so [connect] falls back to TCP.
   Future<SSHSocket> _connectVsock({Duration? timeout}) async {
-    if (_coordinates.ref.vsock_tag == vsockNone) {
+    if (_coordinates.ref.vsockTag == vsockNone) {
       throw StateError('No vsock host set; falling back to TCP');
     }
 
@@ -141,28 +136,26 @@ bool _isEintr() => _getErrnoPtr != null && _getErrnoPtr!().value == 4;
 
 /// An [SSHSocket] over a raw, already-connected fd from the native side.
 ///
-/// [_cRead]/[_cWrite] block the calling thread, so each direction runs in its
-/// own [Isolate] to keep the main event loop free:
-///  * read isolate: reads one chunk per request (pull-based for backpressure),
+/// [_cRead]/[_cWrite] block, so each direction runs in its own [Isolate]:
+///  * read isolate: reads one chunk per request (pull-based backpressure),
 ///    forwarding it (`null` = EOF, `String` = error) over a [SendPort];
-///  * write isolate: hands back a command [SendPort], then `write()`s chunks,
-///    reports write errors, and honours flush/shutdown commands.
+///  * write isolate: hands back a command port, then `write()`s chunks and
+///    honours flush/shutdown commands.
 ///
 /// [close] flushes pending writes before tearing down; [destroy] tears down now.
 class RawFdSSHSocket implements SSHSocket {
   final int fd;
 
   // Inbound bytes, exposed via [stream]. Pull-based: the next chunk is only
-  // requested when there is unpaused demand, so a slow consumer applies
-  // backpressure to the socket.
+  // requested under unpaused demand, so a slow consumer applies backpressure.
   late final StreamController<Uint8List> _readController =
       StreamController<Uint8List>(
     onListen: _onReadDemand,
     onResume: _onReadDemand,
     onCancel: _stopReading,
   );
-  // Outbound bytes, accepted via [sink]. Typed List<int> to match the interface;
-  // normalised to Uint8List before crossing to the write isolate.
+  // Outbound bytes, accepted via [sink]; normalised to Uint8List before
+  // crossing to the write isolate.
   final StreamController<List<int>> _writeController =
       StreamController<List<int>>();
 
@@ -197,10 +190,13 @@ class RawFdSSHSocket implements SSHSocket {
   // Read isolate: stores its request port, pipes chunks into [_readController]
   // (Uint8List = data, String = error, null = EOF), and pulls the next chunk
   // while there is unpaused demand.
-  void _initReadIsolate() {    _readReceivePort.listen((message) {
+  // Runs in the main thread
+  void _initReadIsolate() {
+    _readReceivePort.listen((message) {
       if (message is SendPort) {
-        if (!_readPortCompleter.isCompleted)
+        if (!_readPortCompleter.isCompleted) {
           _readPortCompleter.complete(message);
+        }
         return;
       }
 
@@ -249,11 +245,13 @@ class RawFdSSHSocket implements SSHSocket {
   }
 
   // Write isolate: after the handshake, forwards outbound chunks to its port.
+  // Runs in the main thread
   void _initWriteIsolate() async {
     _writeHandshakePort.listen((message) {
       if (message is SendPort) {
-        if (!_writePortCompleter.isCompleted)
+        if (!_writePortCompleter.isCompleted) {
           _writePortCompleter.complete(message);
+        }
       } else if (message is String) {
         _handleWriteError(message);
       }
@@ -329,8 +327,8 @@ class RawFdSSHSocket implements SSHSocket {
     final SendPort handshakePort = args[0];
     final int fd = args[1];
 
-    // Lazy so nothing leaks if killed before any write; calloc memory is
-    // process-global and survives isolate.kill(), so free it on shutdown.
+    // Lazy so nothing leaks if killed before any write; calloc memory survives
+    // isolate.kill(), so free it on shutdown.
     Pointer<Uint8> writeBuf = nullptr;
     int bufferCap = 0;
 
