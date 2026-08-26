@@ -20,6 +20,7 @@ class DualSSHSocket implements SSHSocket {
   final Pointer<FfiSSHCoordinates> _coordinates;
 
   SSHSocket? _delegate;
+  bool _coordinatesFreed = false;
 
   SSHSocket get _socket =>
       _delegate ??
@@ -64,13 +65,19 @@ class DualSSHSocket implements SSHSocket {
 
   @override
   Future<void> close() {
-    freeFfiSSHCoordinates(_coordinates);
+    if (!_coordinatesFreed) {
+      freeFfiSSHCoordinates(_coordinates);
+      _coordinatesFreed = true;
+    }
     return _socket.close();
   }
 
   @override
   void destroy() {
-    freeFfiSSHCoordinates(_coordinates);
+    if (!_coordinatesFreed) {
+      freeFfiSSHCoordinates(_coordinates);
+      _coordinatesFreed = true;
+    }
     _socket.destroy();
   }
 }

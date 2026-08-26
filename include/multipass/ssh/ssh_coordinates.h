@@ -21,11 +21,9 @@
 #include <string>
 #include <variant>
 
-#ifndef __cplusplus
-extern "C"
-#else
 namespace multipass
-#endif
+{
+extern "C"
 {
 enum VsockHostTag : uint32_t
 {
@@ -35,9 +33,6 @@ enum VsockHostTag : uint32_t
     VSOCK_USOCK = 3
 };
 }
-
-namespace multipass
-{
 /// Hyper-V socket transport, addressing the guest by VM id.
 struct HVSOCK
 {

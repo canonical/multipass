@@ -17,6 +17,9 @@
 
 #include <multipass/utils/grpc_utils.h>
 
+#include <cassert>
+#include <type_traits>
+
 namespace multipass
 {
 namespace utils

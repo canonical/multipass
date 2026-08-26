@@ -50,14 +50,18 @@ ffi.Pointer<FfiSSHCoordinates> sshCoordinatesInfoToFfi(
     case SSHCoordinatesInfo_VsockHost.hvsockVmid:
       native.ref.vsockTag = vsockHvsock;
       native.ref.vsockData.hvsockVmId = proto.hvsockVmid.toNativeUtf8();
+      break;
     case SSHCoordinatesInfo_VsockHost.vsockCid:
       native.ref.vsockTag = vsockVsock;
       native.ref.vsockData.vsockCID = proto.vsockCid;
+      break;
     case SSHCoordinatesInfo_VsockHost.usockAddr:
       native.ref.vsockTag = vsockUsock;
       native.ref.vsockData.usockAddr = proto.usockAddr.toNativeUtf8();
+      break;
     case SSHCoordinatesInfo_VsockHost.notSet:
       native.ref.vsockTag = vsockNone;
+      break;
   }
 
   return native;
