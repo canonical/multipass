@@ -317,6 +317,23 @@ TEST_F(TestPlainSftpSession, renewClientPropagatesCleanUpFailure)
                          mpt::match_what(StrEq(error)));
 }
 
+TEST_F(TestPlainSftpSession, renewClientPropagatesRespawnFailure)
+{
+    expect_client_spawns<1>(); // the second spawn attempt will fail
+    EXPECT_CALL(client_steward, clean_up_after_client).Times(2); // once here, once at destruction
+
+    auto sftp_session = make_sftp_session();
+    ASSERT_THAT(sftp_session, NotNull());
+
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq(client_cmd))).Times(1);
+    EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel)).WillOnce(Return(nullptr));
+    EXPECT_CALL(mock_libssh, ssh_channel_free(fake_channel)).Times(2); // the 2nd one is still freed
+
+    MP_EXPECT_THROW_THAT(sftp_session->renew_client(),
+                         mp::SSHException,
+                         mpt::match_what(HasSubstr("could not create a new sftp_server")));
+}
+
 TEST_F(TestPlainSftpSession, nextMessageReturnsMessageWhenPollSucceeds)
 {
     expect_client_spawns<1>();
