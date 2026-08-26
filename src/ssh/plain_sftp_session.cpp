@@ -118,17 +118,19 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
     }
 
     /* handles setting the sftp->client_version */
-    // TODO@sftp no leak plz - use SftpMessage
     sftp_client_message msg{MP_LIBSSH.sftp_get_client_message(raw_sftp_session.get())};
     if (msg == nullptr)
         throw SftpInitException{"Null client message"};
 
-    if (msg->type != SSH_FXP_INIT)
+    PlainSftpMessage wrapped{*msg};
+    if (wrapped.type() != mp::SftpMessageType::init)
         throw SftpInitException{
             fmt::format("FATAL: Packet read of type {} instead of SSH_FXP_INIT", msg->type)};
 
     // Optional: Log the SSH_FXP_INIT reception like libssh does with SSH_LOG but with mp::log
 
+    // sftp_reply_version isn't part of SftpMessage's interface: it's a one-off, non-public-API
+    // libssh call used only for this handshake reply, so it stays on the raw message.
     if (MP_LIBSSH.sftp_reply_version(msg) != SSH_OK)
     {
         throw SftpInitException{"FATAL: Failed to process the SSH_FXP_INIT message"};

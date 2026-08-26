@@ -87,6 +87,8 @@ struct TestPlainSftpSession : public Test
         ON_CALL(mock_libssh, ssh_remove_channel_callbacks).WillByDefault(Return(SSH_OK));
         ON_CALL(mock_libssh, ssh_event_new()).WillByDefault(Return(fake_event));
         ON_CALL(mock_libssh, ssh_event_add_session).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, sftp_client_message_get_type)
+            .WillByDefault([](sftp_client_message msg) { return msg->type; });
 
         // Remember what is running, to serve the result registered for it (see `exec_results`)
         ON_CALL(mock_libssh, ssh_channel_request_exec)
