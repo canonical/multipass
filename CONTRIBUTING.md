@@ -11,7 +11,7 @@ Our [Coding Guidelines](GUIDELINES.md) cover various aspects around Git usage, c
 
 Especially with recent developments in AI-supported code generation, we must be careful when accepting external contributions for capacity and legal reasons. While we use AI tools in our development processes, too, we remain very careful about their outputs and expect our contributors to do the same.
 
-In particular, we expect code and review changes to be verified and understood by a human, PR descriptions and comments in discussions to be written in the author's own words.
+In particular, we expect code changes and review feedback to be verified and understood by a human, and PR descriptions and comments in discussions to be written in the author's own words.
 
 # General directions
 
@@ -22,12 +22,12 @@ At Canonical, we define and update roadmaps twice a year - in April and October.
 ### What is likely to grab our attention?
 
 - Small, focused, high-quality contributions like bug fixes or small features are highly welcome.
-- Contributions that are aligned with our focus areas.
+- Contributions that are understood and verified by a human and that are aligned with our focus areas.
 - Contributions that adhere to our [Coding Guidelines](GUIDELINES.md).
 
 ### What is unlikely to get accepted?
 
-- Big chunks of obviously AI-generated code that has never been double checked by a skilled human developer will be ignored.
+- Big chunks of obviously AI-generated code that has never been double checked by a skilled human developer will be declined.
 - Contributions that ignore our [Coding Guidelines](GUIDELINES.md).
 
 ### How can I increase the likelihood to have my contribution accepted?
