@@ -195,7 +195,7 @@ void mp::PlainSftpSession::request_stop() noexcept
 std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
 {
     sftp_client_message raw_msg = nullptr;
-    while (!stop_requested.load() || !client_process)
+    while (!stop_requested.load() && client_process)
     {
         int poll_result = poll_stdout(raw_sftp_session->channel, poll_interval.count());
         if (poll_result > 0) // bounded by session timeout
