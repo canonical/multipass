@@ -64,7 +64,7 @@ std::string find_sshfs(mp::SSHSession& session)
     // Fallback to default
     try
     {
-        return MP_UTILS.run_in_ssh_session(session, "sudo which sshfs");
+        return MP_UTILS.run_in_ssh_session(session, "sudo -n which sshfs");
     }
     catch (const std::exception& e)
     {
@@ -76,7 +76,7 @@ std::string find_sshfs(mp::SSHSession& session)
 std::string fuse_options_for(mp::SSHSession& session, const std::string& sshfs)
 {
     const auto version_info = MP_UTILS.run_in_ssh_session(session,
-                                                          fmt::format("sudo {} -V", sshfs));
+                                                          fmt::format("sudo -n {} -V", sshfs));
     const auto fuse_version_line = mp::utils::match_line_for(version_info, fuse_version_string);
 
     if (fuse_version_line.empty())
@@ -131,5 +131,5 @@ void mp::SshfsClientSteward::clean_up_after_client(SSHSession& session,
     }();
 
     if (!mount_path.empty())
-        MP_UTILS.run_in_ssh_session(session, fmt::format("sudo umount {}", mount_path));
+        MP_UTILS.run_in_ssh_session(session, fmt::format("sudo -n umount {}", mount_path));
 }
