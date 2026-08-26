@@ -47,37 +47,37 @@ detect_commit_type() {
   local subject="$1"
   local body="$2"
   local combined="$subject"$'\n'"$body"
-  
+
   # Check for breaking changes
   if echo "$combined" | grep -iqE 'BREAKING|breaking change|remove|deprecat'; then
     echo "breaking"
     return
   fi
-  
+
   # Check for feature/new
   if echo "$combined" | grep -iqE '\[feature\]|add|implement|new'; then
     echo "feature"
     return
   fi
-  
+
   # Check for fixes
   if echo "$combined" | grep -iqE '\[fix\]|\[bug\]|fix|resolve|resolves'; then
     echo "fix"
     return
   fi
-  
+
   # Check for docs
   if echo "$combined" | grep -iqE '\[doc\]|\[docs\]|documentation'; then
     echo "docs"
     return
   fi
-  
+
   # Check for performance
   if echo "$combined" | grep -iqE 'performance|optimize|perf'; then
     echo "performance"
     return
   fi
-  
+
   echo "other"
 }
 
@@ -302,12 +302,12 @@ cd "$REPO_ROOT" || exit 1
 if [[ -z $CUSTOM_TAG ]]; then
   # Look for release tags matching v<digit>.<digit>.<digit> (excluding -dev, -rc, etc.)
   LATEST_TAG=$(git tag -l 'v[0-9]*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
-  
+
   if [[ -z $LATEST_TAG ]]; then
     # Fallback: get any v-prefixed tag
     LATEST_TAG=$(git tag -l 'v[0-9]*' --sort=-version:refname | head -1)
   fi
-  
+
   if [[ -z $LATEST_TAG ]]; then
     echo -e "${RED}Error: No release tags found${NC}"
     exit 1
