@@ -19,7 +19,7 @@ import '../platform/platform.dart';
 import '../providers.dart';
 import '../ssh_coordinates_ffi.dart';
 import '../vm_action.dart';
-import 'vsock_ssh_socket.dart';
+import 'dual_ssh_socket.dart';
 
 class RunningShellsNotifier extends Notifier<int> {
   RunningShellsNotifier(this.arg);

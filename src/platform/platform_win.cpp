@@ -1383,6 +1383,7 @@ QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) 
 
 void mp::platform::Platform::shutdown_socket(mp::Socket socket) const
 {
+    // This is for SOCKET handles, not CRT fds!
     if (::shutdown(socket, SD_BOTH) == SOCKET_ERROR)
         if (auto err = WSAGetLastError(); err != WSAENOTCONN)
             throw std::system_error(err, std::system_category(), "Failed to shutdown socket");

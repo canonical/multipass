@@ -328,17 +328,18 @@ char* default_mount_target(char* source)
     }
 }
 
-int open_vsock_socket(const struct SSHCoordinatesFfi* coordinates)
+intptr_t open_vsock_socket(const struct SSHCoordinatesFfi* coordinates)
 {
-    // TODO@vsock: connect natively per transport and return a connected fd.
+    // TODO@vsock: connect natively per transport and return a connected socket
+    // (an int fd on POSIX, a SOCKET handle on Windows).
     auto ssh_coordinates{to_ssh_coordinates(*coordinates)};
     (void)ssh_coordinates;
     return -1;
 }
 
-void shutdown_socket(int fd)
+void shutdown_socket(intptr_t socket)
 {
-    // TODO@vsock: shut down both directions (CRT fd -> SOCKET on Windows).
-    (void)fd;
+    // TODO@vsock: shut down both directions via MP_PLATFORM.shutdown_socket.
+    (void)socket;
 }
 }

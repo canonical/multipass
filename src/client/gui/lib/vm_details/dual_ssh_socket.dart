@@ -85,58 +85,11 @@ class _ShutdownCommand {
   _ShutdownCommand(this.ackPort);
 }
 
-// Blocking C read/write/close bindings: dart:io can't adopt a pre-existing fd.
-typedef NativeRead = Long Function(Int32 fd, Pointer<Uint8> buf, Size count);
-typedef DartRead = int Function(int fd, Pointer<Uint8> buf, int count);
-
-typedef NativeWrite = Long Function(Int32 fd, Pointer<Uint8> buf, Size count);
-typedef DartWrite = int Function(int fd, Pointer<Uint8> buf, int count);
-
-typedef NativeClose = Int32 Function(Int32 fd);
-typedef DartClose = int Function(int fd);
-
-// On Windows the native side returns a CRT fd (via _open_osfhandle), so the
-// underscore-prefixed ucrtbase symbols are used; on POSIX it's a real socket fd.
-final DynamicLibrary _libc = Platform.isWindows
-    ? DynamicLibrary.open('ucrtbase.dll')
-    : DynamicLibrary.process();
-
-final DartRead _cRead = _libc.lookupFunction<NativeRead, DartRead>(
-  Platform.isWindows ? '_read' : 'read',
-);
-final DartWrite _cWrite = _libc.lookupFunction<NativeWrite, DartWrite>(
-  Platform.isWindows ? '_write' : 'write',
-);
-final DartClose _cClose = _libc.lookupFunction<NativeClose, DartClose>(
-  Platform.isWindows ? '_close' : 'close',
-);
-
-// Resolves the C `errno` address; the symbol differs per platform, null if not
-// found.
-final Pointer<Int32> Function()? _getErrnoPtr = () {
-  try {
-    if (Platform.isWindows) {
-      return _libc.lookupFunction<Pointer<Int32> Function(),
-          Pointer<Int32> Function()>('_errno');
-    } else if (Platform.isMacOS || Platform.isIOS) {
-      return _libc.lookupFunction<Pointer<Int32> Function(),
-          Pointer<Int32> Function()>('__error');
-    } else {
-      return _libc.lookupFunction<Pointer<Int32> Function(),
-          Pointer<Int32> Function()>('__errno_location');
-    }
-  } catch (_) {
-    return null;
-  }
-}();
-
-// errno is thread-local: read it on the same isolate that made the syscall.
-// EINTR is 4 on all supported targets.
-bool _isEintr() => _getErrnoPtr != null && _getErrnoPtr!().value == 4;
-
-/// An [SSHSocket] over a raw, already-connected fd from the native side.
+/// An [SSHSocket] over a raw, already-connected socket descriptor from the
+/// native side (an int fd on POSIX, a SOCKET handle on Windows).
 ///
-/// [_cRead]/[_cWrite] block, so each direction runs in its own [Isolate]:
+/// [nativeSocketRead]/[nativeSocketWrite] block, so each direction runs in its
+/// own [Isolate]:
 ///  * read isolate: reads one chunk per request (pull-based backpressure),
 ///    forwarding it (`null` = EOF, `String` = error) over a [SendPort];
 ///  * write isolate: hands back a command port, then `write()`s chunks and
@@ -301,8 +254,8 @@ class RawFdSSHSocket implements SSHSocket {
       }
       // 'read': perform exactly one blocking read.
       while (true) {
-        final bytesRead = _cRead(fd, buffer, bufferSize);
-        if (bytesRead < 0 && _isEintr()) continue; // Interrupted: retry.
+        final bytesRead = nativeSocketRead(fd, buffer, bufferSize);
+        if (bytesRead < 0 && isSocketEintr()) continue; // Interrupted: retry.
         if (bytesRead == 0) {
           sendPort.send(null); // EOF.
           cleanup();
@@ -346,12 +299,12 @@ class RawFdSSHSocket implements SSHSocket {
         // write() may be partial: loop until the whole chunk is out.
         int bytesWritten = 0;
         while (bytesWritten < message.length) {
-          final result = _cWrite(
+          final result = nativeSocketWrite(
             fd,
             writeBuf + bytesWritten,
             message.length - bytesWritten,
           );
-          if (result < 0 && _isEintr()) continue; // Interrupted: retry.
+          if (result < 0 && isSocketEintr()) continue; // Interrupted: retry.
           if (result <= 0) {
             // Error/closed: report the failure and stop draining this chunk.
             handshakePort.send('Native socket write failed with code $result');
@@ -412,7 +365,7 @@ class RawFdSSHSocket implements SSHSocket {
       // Shut down first so any blocked read() returns EOF and its isolate
       // exits: isolate.kill() can't interrupt a thread parked in a syscall.
       shutdownSocket(fd);
-      _cClose(fd);
+      nativeSocketClose(fd);
 
       Future.wait([_readIsolateFuture, _writeIsolateFuture]).then((isolates) {
         for (final isolate in isolates) {
