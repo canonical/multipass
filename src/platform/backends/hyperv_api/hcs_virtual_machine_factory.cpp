@@ -22,6 +22,8 @@
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
+#include <hyperv_api/hyperv_api_string_conversion.h>
+#include <hyperv_api/net_io_api.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <multipass/constants.h>
@@ -41,11 +43,28 @@ void update_adapter_authorizations(std::vector<multipass::NetworkInterfaceInfo>&
                                    const std::vector<multipass::NetworkInterfaceInfo>& switches)
 {
     for (auto& adapter : adapters)
-        adapter.needs_authorization =
-            std::none_of(switches.cbegin(), switches.cend(), [&adapter](const auto& switch_) {
+        adapter.needs_authorization = std::none_of(
+            switches.cbegin(),
+            switches.cend(),
+            [&adapter](const auto& switch_) {
                 return std::find(switch_.links.cbegin(), switch_.links.cend(), adapter.id) !=
                        switch_.links.cend();
             });
+}
+
+NET_LUID luid_for_hcn_network(const std::string& network_name)
+{
+    using namespace multipass::hyperv;
+    const auto alias = fmt::format(L"vEthernet ({})", to_wstring(network_name));
+
+    NET_LUID luid{};
+    if (const auto ret = MP_NETIOAPI.ConvertInterfaceAliasToLuid(alias.c_str(), &luid);
+        ret != NO_ERROR)
+    {
+        throw CreateNetworkException{"Could not get LUID for network {}", network_name};
+    }
+
+    return luid;
 }
 
 } // namespace
@@ -350,17 +369,32 @@ std::unordered_map<std::string, std::string> HCSVirtualMachineFactory::create_az
     for (const auto& i : zones)
     {
         const auto& zone = i.get();
+        auto name = fmt::format("Multipass vNetwork ({})", zone.get_name());
         hcn::CreateNetworkParameters network_params{
-            .name = fmt::format("Multipass vNetwork ({})", zone.get_name()),
+            .name = name,
             .type = hcn::HcnNetworkType::Ics(),
             .flags = hcn::HcnNetworkFlags::enable_dhcp_server,
             .guid = utils::make_uuid(network_params.name),
             .ipams = {{.type = hcn::HcnIpamType::Static(),
                        .subnets = {{.ip_address_prefix = {zone.get_subnet().to_cidr()}}}}}};
 
-        const auto create_network_result = HCN().create_network(network_params);
-        if (!create_network_result &&
-            static_cast<HRESULT>(create_network_result.code) != HCN_E_NETWORK_ALREADY_EXISTS)
+        if (const auto create_network_result = HCN().create_network(network_params))
+        {
+            // Enable forwarding for this network so that instances in different zones can
+            // communicate with each other.
+            MIB_IPINTERFACE_ROW row;
+            MP_NETIOAPI.InitializeIpInterfaceEntry(&row);
+            row.Family = AF_INET;
+            row.InterfaceLuid = luid_for_hcn_network(name);
+            row.ForwardingEnabled = true;
+
+            if (const auto set_iface_result = MP_NETIOAPI.SetIpInterfaceEntry(&row);
+                set_iface_result != NO_ERROR)
+            {
+                mpl::error(log_category, "Could not set IP forwarding for {}", name);
+            }
+        }
+        else if (static_cast<HRESULT>(create_network_result.code) != HCN_E_NETWORK_ALREADY_EXISTS)
         {
             throw CreateNetworkException{"Could not create network for {}, status: {}",
                                          zone.get_name(),
