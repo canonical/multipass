@@ -11,24 +11,25 @@ Only the most recent release of Multipass is actively supported. Users are encou
 
 | Release date   |  Release notes  |
 |----|----|
+| August 26, 2026 | [Multipass 1.17.0](./1.17.0) |
 | May 29, 2026 | [Multipass 1.16.3](./1.16.3) |
 | May 2, 2026 | [Multipass 1.16.2](./1.16.2) |
 | August 27, 2025 | [Multipass 1.16.1](./1.16.1) |
 | July 10, 2025 | [Multipass 1.16.0](./1.16.0) |
 
 
-### What's new in 1.16.x?
+### What's new in 1.17.x?
 
-Along with bug fixes and general improvements, Multipass 1.16.x includes:
+Along with bug fixes and general improvements, Multipass 1.17.0 includes:
 
-* Enhanced networking capabilities
-* Improved instance management
-* Performance optimizations
-* Updated cloud-init support
-* Bug fixes and stability improvements
-* Added LXD 6 API support
-* Patched vulnerabilities
-* Added core26 images
+* Availability Zones for resilient, zone-aware instance placement, on QEMU, Apple Virtualization.framework, and Hyper-V
+* Official Debian and Fedora images alongside Ubuntu
+* Support for Linux on ppc64el and s390x architectures
+* A new Apple Virtualization.framework backend on Apple silicon Macs, with ASIF disk support on macOS 26
+* A rebuilt Hyper-V driver based on the Windows Host Compute System APIs
+* Removal of the deprecated LXD and libvirt drivers, blueprints, and appliances
+* QEMU upgraded to version 10
+* A redesigned image catalogue and per-image resource minima in the GUI
 
 
 ## Release and support policy
@@ -49,9 +50,9 @@ To ensure that you receive the latest security updates and bug fixes, you should
 |  Release date  |  Release notes  |
 |----|----|
 | February 26, 2025 | [Multipass 1.15.1](https://github.com/canonical/multipass/releases/tag/v1.15.1) |
-| December 11, 2024 | [Multipass 1.15.0](https://github.com/canonical/multipass/releases/tag/v1.15.0) |
+| December 11, 2024 | [Multipass 1.15.0](./1.15.0) |
 | October 17, 2024 | [Multipass 1.14.1](https://github.com/canonical/multipass/releases/tag/v1.14.1) |
-| July 24, 2024 | [Multipass 1.14.0](https://github.com/canonical/multipass/releases/tag/v1.14.0) |
+| July 24, 2024 | [Multipass 1.14.0](./1.14.0) |
 | February 12, 2024 | [Multipass 1.13.1](https://github.com/canonical/multipass/releases/tag/v1.13.1) |
 | April 2, 2025 | [Multipass 1.13.0](https://github.com/canonical/multipass/releases/tag/v1.13.0) |
 | October 1, 2024 | [Multipass 1.12.2](https://github.com/canonical/multipass/releases/tag/v1.12.2) |
