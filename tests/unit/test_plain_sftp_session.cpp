@@ -170,6 +170,10 @@ struct TestPlainSftpSession : public Test
         EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, StrEq(client_cmd)))
             .Times(times);
 
+        // hands off messages other than the handshake's own: let tests succeed without having to
+        // expect frees for each next_message()
+        EXPECT_CALL(mock_libssh, sftp_client_message_free).Times(AnyNumber());
+
         auto& server_new = EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel));
         for (std::size_t i = 0; i < times; ++i)
         {
@@ -177,6 +181,7 @@ struct TestPlainSftpSession : public Test
             EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_sessions[i]))
                 .WillOnce(Return(&fake_client_msgs[i]));
             EXPECT_CALL(mock_libssh, sftp_server_free(&fake_sftp_sessions[i])).Times(1);
+            EXPECT_CALL(mock_libssh, sftp_client_message_free(&fake_client_msgs[i])).Times(1);
         }
 
         EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0))
