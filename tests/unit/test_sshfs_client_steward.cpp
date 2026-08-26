@@ -118,7 +118,8 @@ struct TestSshfsClientSteward : public Test
 
     constexpr static auto source = "/host/source";
     constexpr static auto target = "/guest/target";
-    static inline const auto findmnt_cmd = fmt::format("findmnt --source :{} -o TARGET -n", source);
+    static inline const auto findmnt_cmd = fmt::format("findmnt --source :{:?} -o TARGET -n",
+                                                       source);
     constexpr static auto snap_env_cmd = "snap run multipass-sshfs.env";
     constexpr static auto which_cmd = "sudo -n which sshfs";
     constexpr static auto distro_sshfs = "/usr/bin/sshfs";
@@ -210,7 +211,7 @@ TEST_F(TestSshfsClientSteward, leavesFuseOptionsOutWhenTheVersionIsAbsent)
 
 TEST_F(TestSshfsClientSteward, cleanUpUnmountsStaleMount)
 {
-    const auto umount_cmd = fmt::format("sudo -n umount {}", target);
+    const auto umount_cmd = fmt::format("sudo -n umount {:?}", target);
     exec_results[findmnt_cmd] = {.std_out = fmt::format("{}\n", target)};
 
     EXPECT_CALL(session, exec).Times(AnyNumber());
@@ -233,8 +234,8 @@ TEST_F(TestSshfsClientSteward, cleanUpSkipsUnmountWhenNothingMounted)
 TEST_F(TestSshfsClientSteward, cleanUpThrowsWhenUnmountFails)
 {
     exec_results[findmnt_cmd] = {.std_out = fmt::format("{}\n", target)};
-    exec_results[fmt::format("sudo -n umount {}", target)] = {.exit_code = 1,
-                                                              .std_err = "not mounted"};
+    exec_results[fmt::format("sudo -n umount {:?}", target)] = {.exit_code = 1,
+                                                                .std_err = "not mounted"};
 
     MP_EXPECT_THROW_THAT(steward.clean_up_after_client(session, source),
                          std::runtime_error,
