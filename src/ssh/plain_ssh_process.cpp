@@ -73,9 +73,9 @@ private:
 
 } // namespace
 
-void mp::PlainSSHProcess::ChannelDeleter::operator()(ssh_channel_struct* channel) const noexcept
+void mp::PlainSSHProcess::ChannelDeleter::operator()(ssh_channel_struct* chan) const noexcept
 {
-    MP_LIBSSH.ssh_channel_free(channel);
+    MP_LIBSSH.ssh_channel_free(chan);
 }
 
 mp::PlainSSHProcess::ChannelUPtr mp::PlainSSHProcess::make_channel(ssh_session raw_session,
