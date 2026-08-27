@@ -368,6 +368,9 @@ if(CMAKE_BUILD_TYPE_LOWER  MATCHES "coverage")
           '*/lib/generated/*'
           '*/lib/l10n/*'
           --output-file ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
+        # Flutter emits package-relative paths (SF:lib/...). Rewrite them to full
+        # source-tree paths so the Dart entries line up with the repo layout.
+        COMMAND sed -i "s|^SF:lib/|SF:${CMAKE_SOURCE_DIR}/src/client/gui/lib/|" ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
         COMMAND ${LCOV}
           --add-tracefile coverage.cleaned
           --add-tracefile lcov.info
