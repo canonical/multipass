@@ -49,6 +49,28 @@ QByteArray gen_hash(const std::string& path)
         .toHex()
         .left(8);
 }
+
+// Emits the vsock host as two separate arguments (tag then data) so that sshfs_server
+// parses them positionally. Keeping them distinct also preserves data containing spaces
+// (e.g. a USOCK path), which a single space-joined argument would corrupt.
+QStringList serialize_vsock_host(const mp::VSOCKHost& vsock_host)
+{
+    auto vsock_data = std::visit(
+        [](auto&& arg) {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, mp::HVSOCKData>)
+                return arg.vmid;
+            else if constexpr (std::is_same_v<T, mp::VSOCKData>)
+                return std::to_string(arg.cid);
+            else if constexpr (std::is_same_v<T, mp::USOCKData>)
+                return arg.socket_address;
+            else if constexpr (std::is_same_v<T, std::monostate>)
+                return std::string{"NONE"};
+        },
+        vsock_host);
+    return QStringList() << QString::number(vsock_host.index())
+                         << QString::fromStdString(vsock_data);
+}
 } // namespace
 
 mp::SSHFSServerProcessSpec::SSHFSServerProcessSpec(const SSHFSServerConfig& config)
@@ -66,6 +88,7 @@ QStringList mp::SSHFSServerProcessSpec::arguments() const
     return QStringList() << QString::fromStdString(config.ssh_coordinates.tcp_host)
                          << QString::number(config.ssh_coordinates.port)
                          << QString::fromStdString(config.ssh_coordinates.username)
+                         << serialize_vsock_host(config.ssh_coordinates.vsock_host)
                          << QString::fromStdString(config.source_path)
                          << QString::fromStdString(config.target_path)
                          << serialise_id_mappings(config.uid_mappings)

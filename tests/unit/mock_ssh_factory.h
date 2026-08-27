@@ -29,7 +29,7 @@ class MockSSHFactory : public SSHFactory
 public:
     using SSHFactory::SSHFactory;
 
-    MOCK_METHOD(KeyUPtr, make_key, (const std::string&), (const, override));
+    MOCK_METHOD(SSHKeyUPtr, make_key, (const std::string&), (const, override));
     MOCK_METHOD(SSHSessionUPtr, make_session, (const SSHCoordinates&), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockSSHFactory, SSHFactory);

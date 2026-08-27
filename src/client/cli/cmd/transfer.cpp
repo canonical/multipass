@@ -22,6 +22,7 @@
 #include <multipass/cli/client_platform.h>
 #include <multipass/file_ops.h>
 #include <multipass/ssh/sftp_utils.h>
+#include <multipass/utils/grpc_utils.h>
 
 #include <fmt/std.h>
 
@@ -48,10 +49,8 @@ mp::ReturnCodeVariant cmd::Transfer::run(mp::ArgParser* parser)
         auto success = true;
         for (const auto& [instance_name, ssh_coordinates_rpc] : reply.ssh_coordinates())
         {
-            mp::SSHCoordinates ssh_coordinates{ssh_coordinates_rpc.username(),
-                                               ssh_coordinates_rpc.priv_key_base64(),
-                                               ssh_coordinates_rpc.port(),
-                                               ssh_coordinates_rpc.tcp_host()};
+            mp::SSHCoordinates ssh_coordinates{
+                mp::utils::proto_to_coordinates(ssh_coordinates_rpc)};
             try
             {
                 auto sftp_client = MP_SFTPUTILS.make_SFTPClient(ssh_coordinates);

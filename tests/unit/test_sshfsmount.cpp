@@ -52,7 +52,8 @@ struct SshfsMount : public mp::test::SftpServerTest
         mp::SSHCoordinates coord{"ubuntu",
                                  key_provider.private_key_as_base64(),
                                  42,
-                                 "theanswertoeverything"};
+                                 "theanswertoeverything",
+                                 {}};
         return {MP_SSH_FACTORY.make_session(coord),
                 default_source,
                 target.value_or(default_target),

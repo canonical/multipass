@@ -1,5 +1,6 @@
 #pragma once
-
+#include <multipass/ssh/ssh_coordinates.h>
+#include <stdint.h>
 // clang-format off
 extern "C"
 {
@@ -9,6 +10,23 @@ const char* multipass_version();
 char* generate_petname();
 
 char* get_server_address();
+
+union VsockHostUnion
+{
+    const char* hvsock_vmid;
+    uint32_t vsock_cid;
+    const char* usock_addr;
+};
+
+struct SSHCoordinatesFfi
+{
+    char* username;
+    char* private_key_as_base64;
+    uint32_t port;
+    char* tcp_host;
+    multipass::VsockHostTag vsock_host_tag;
+    union VsockHostUnion vsock_host;
+};
 
 struct KeyCertificatePair
 {
@@ -47,4 +65,14 @@ const char* human_readable_memory(long long bytes);
 long long get_total_disk_size();
 
 char* default_mount_target(char* source);
+
+// Connects to the guest over the vsock-family transport in `coordinates`
+// (HVSOCK/VSOCK/USOCK) and returns a connected, blocking socket descriptor.
+// The value is an `int` file descriptor on POSIX and a `SOCKET` handle on
+// Windows; both fit in `intptr_t`. Returns -1 (== INVALID_SOCKET) on failure.
+intptr_t open_vsock_socket(const struct SSHCoordinatesFfi* coordinates);
+
+// Shuts down both directions of a descriptor from open_vsock_socket so a
+// blocked read()/recv() sees EOF.
+void shutdown_socket(intptr_t socket);
 }

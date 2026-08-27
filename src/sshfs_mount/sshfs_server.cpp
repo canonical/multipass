@@ -73,10 +73,11 @@ mp::id_mappings convert_id_mappings(const char* in)
 
 int main(int argc, char* argv[])
 {
+    constexpr auto expected_args{10};
     // TODO: Remove static once we do not use exit() anymore
     static multipass::LibsshScopeGuard libssh_guard;
 
-    if (argc != 9)
+    if (argc != expected_args)
     {
         cerr << "Incorrect arguments" << endl;
         exit(2);
@@ -88,17 +89,36 @@ int main(int argc, char* argv[])
         cerr << "KEY not set" << endl;
         exit(2);
     }
+    int arg{1};
     const auto priv_key_blob = string(key);
-    const auto host = string(argv[1]);
-    const uint32_t port = std::stoul(argv[2]);
-    const auto username = string(argv[3]);
-    const auto source_path = string(argv[4]);
-    const auto target_path = string(argv[5]);
-    const mp::id_mappings uid_mappings = convert_id_mappings(argv[6]);
-    const mp::id_mappings gid_mappings = convert_id_mappings(argv[7]);
-    const mpl::Level log_level = static_cast<mpl::Level>(atoi(argv[8]));
+    const auto host = string(argv[arg++]);                                        // 1
+    const uint32_t port = std::stoul(argv[arg++]);                                // 2
+    const auto username = string(argv[arg++]);                                    // 3
+    const uint32_t vsock_tag = std::stoul(argv[arg++]);                           // 4
+    const auto vsock_data = string(argv[arg++]);                                  // 5
+    const auto source_path = string(argv[arg++]);                                 // 6
+    const auto target_path = string(argv[arg++]);                                 // 7
+    const mp::id_mappings uid_mappings = convert_id_mappings(argv[arg++]);        // 8
+    const mp::id_mappings gid_mappings = convert_id_mappings(argv[arg++]);        // 9
+    const mpl::Level log_level = static_cast<mpl::Level>(std::stoi(argv[arg++])); // 10
 
-    mp::SSHCoordinates coordinates{username, priv_key_blob, port, host};
+    mp::VSOCKHost vsock_host;
+    switch (vsock_tag)
+    {
+    case mp::VSOCKTAG_HVSOCK:
+        vsock_host = mp::HVSOCKData{vsock_data};
+        break;
+    case mp::VSOCKTAG_VSOCK:
+        vsock_host = mp::VSOCKData{static_cast<uint32_t>(std::stoul(vsock_data))};
+        break;
+    case mp::VSOCKTAG_USOCK:
+        vsock_host = mp::USOCKData{vsock_data};
+        break;
+    case mp::VSOCKTAG_NONE:
+    default:
+        vsock_host = std::monostate{};
+    }
+    mp::SSHCoordinates coordinates{username, priv_key_blob, port, host, vsock_host};
 
     auto logger = mpp::make_logger(log_level);
     if (!logger)

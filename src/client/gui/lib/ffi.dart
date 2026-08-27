@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 
 import 'platform/platform.dart';
+import 'ssh_coordinates_ffi.dart';
 
 extension on ffi.Pointer<Utf8> {
   String get string {
@@ -119,6 +120,14 @@ final _defaultMountTarget = _lib.lookupFunction<
     ffi.Pointer<Utf8> Function(ffi.Pointer<Utf8>),
     ffi.Pointer<Utf8> Function(ffi.Pointer<Utf8>)>('default_mount_target');
 
+final _openVsockSocket = _lib.lookupFunction<
+    ffi.IntPtr Function(ffi.Pointer<FfiSSHCoordinates>),
+    int Function(ffi.Pointer<FfiSSHCoordinates>)>('open_vsock_socket');
+
+final _shutdownSocket =
+    _lib.lookupFunction<ffi.Void Function(ffi.IntPtr), void Function(int)>(
+        'shutdown_socket');
+
 final class _NativeKeyCertificatePair extends ffi.Struct {
   // ignore: non_constant_identifier_names
   external ffi.Pointer<Utf8> pem_cert;
@@ -176,6 +185,113 @@ KeyCertificatePair getCertPair() {
 
 List<int> getRootCert() {
   return utf8.encode(_getRootCert().string);
+}
+
+/// Connects to the guest over the vsock-family transport in [coordinates] and
+/// returns a connected, blocking socket descriptor (an int fd on POSIX, a
+/// SOCKET handle on Windows). Returns a negative value on failure.
+int openVsockSocket(ffi.Pointer<FfiSSHCoordinates> coordinates) {
+  return _openVsockSocket(coordinates);
+}
+
+/// Shuts down both directions of a descriptor from [openVsockSocket] so a
+/// blocked `read()`/`recv()` sees EOF.
+void shutdownSocket(int socket) {
+  _shutdownSocket(socket);
+}
+
+// --- Blocking socket I/O bindings for a descriptor from [openVsockSocket] ---
+// dart:io can't adopt a pre-existing descriptor, so the read/write isolates in
+// RawFdSSHSocket call these platform primitives directly. The native side
+// returns an int fd on POSIX and a SOCKET handle on Windows; a SOCKET is
+// pointer-sized (UINT_PTR), so it is marshalled as an [ffi.IntPtr] to avoid
+// truncation on 64-bit Windows. A single Dart signature is exposed per
+// operation; the Winsock recv/send entry points take an extra flags argument
+// that is wrapped away.
+typedef ReadWriteFn = int Function(
+    int socket, ffi.Pointer<ffi.Uint8> buf, int count);
+typedef CloseFn = int Function(int socket);
+
+// POSIX: ssize_t read/write(int fd, void* buf, size_t count); int close(int fd).
+typedef _PosixReadWriteNative = ffi.Long Function(
+    ffi.Int32 fd, ffi.Pointer<ffi.Uint8> buf, ffi.Size count);
+typedef _PosixCloseNative = ffi.Int32 Function(ffi.Int32 fd);
+
+// Winsock (ws2_32.dll): int recv/send(SOCKET s, char* buf, int len, int flags);
+// int closesocket(SOCKET s). SOCKET is pointer-sized, len/return are 32-bit.
+typedef _WinsockRecvSendNative = ffi.Int32 Function(ffi.IntPtr socket,
+    ffi.Pointer<ffi.Uint8> buf, ffi.Int32 len, ffi.Int32 flags);
+typedef _WinsockRecvSendDart = int Function(
+    int socket, ffi.Pointer<ffi.Uint8> buf, int len, int flags);
+typedef _WinsockCloseNative = ffi.Int32 Function(ffi.IntPtr socket);
+
+// On Windows the descriptor is a raw SOCKET, so I/O goes through Winsock; on
+// POSIX it is a real fd handled by libc.
+final ffi.DynamicLibrary _socketIoLib = Platform.isWindows
+    ? ffi.DynamicLibrary.open('ws2_32.dll')
+    : ffi.DynamicLibrary.process();
+
+// Adapts a Winsock recv/send to the flag-less [_ReadWriteFn] signature.
+ReadWriteFn _wrapWinsockRecvSend(String symbol) {
+  final fn = _socketIoLib
+      .lookupFunction<_WinsockRecvSendNative, _WinsockRecvSendDart>(symbol);
+  return (int socket, ffi.Pointer<ffi.Uint8> buf, int count) =>
+      fn(socket, buf, count, 0);
+}
+
+/// Blocking read from a socket descriptor returned by [openVsockSocket]
+/// (`recv` on Windows, `read` on POSIX).
+final ReadWriteFn nativeSocketRead = Platform.isWindows
+    ? _wrapWinsockRecvSend('recv')
+    : _socketIoLib.lookupFunction<_PosixReadWriteNative, ReadWriteFn>('read');
+
+/// Blocking write to a socket descriptor returned by [openVsockSocket]
+/// (`send` on Windows, `write` on POSIX).
+final ReadWriteFn nativeSocketWrite = Platform.isWindows
+    ? _wrapWinsockRecvSend('send')
+    : _socketIoLib.lookupFunction<_PosixReadWriteNative, ReadWriteFn>('write');
+
+/// Closes a socket descriptor returned by [openVsockSocket]
+/// (`closesocket` on Windows, `close` on POSIX).
+final CloseFn nativeSocketClose = Platform.isWindows
+    ? _socketIoLib.lookupFunction<_WinsockCloseNative, CloseFn>('closesocket')
+    : _socketIoLib.lookupFunction<_PosixCloseNative, CloseFn>('close');
+
+// Windows surfaces the last socket error via WSAGetLastError (thread-local like
+// errno). Null on non-Windows targets.
+final int Function()? _wsaGetLastError = Platform.isWindows
+    ? _socketIoLib
+        .lookupFunction<ffi.Int32 Function(), int Function()>('WSAGetLastError')
+    : null;
+
+// Resolves the C `errno` address on POSIX; the symbol differs per platform, null
+// if not found or on Windows.
+final ffi.Pointer<ffi.Int32> Function()? _getErrnoPtr = Platform.isWindows
+    ? null
+    : () {
+        try {
+          if (Platform.isMacOS || Platform.isIOS) {
+            return _socketIoLib.lookupFunction<
+                ffi.Pointer<ffi.Int32> Function(),
+                ffi.Pointer<ffi.Int32> Function()>('__error');
+          } else {
+            return _socketIoLib.lookupFunction<
+                ffi.Pointer<ffi.Int32> Function(),
+                ffi.Pointer<ffi.Int32> Function()>('__errno_location');
+          }
+        } catch (_) {
+          return null;
+        }
+      }();
+
+/// Whether the last socket syscall failed with EINTR (POSIX, 4) / WSAEINTR
+/// (Windows, 10004). Both are thread-local, so query on the same isolate that
+/// made the syscall.
+bool isSocketEintr() {
+  if (Platform.isWindows) {
+    return _wsaGetLastError != null && _wsaGetLastError!() == 10004;
+  }
+  return _getErrnoPtr != null && _getErrnoPtr!().value == 4;
 }
 
 String settingsFile() => _settingsFile().string;

@@ -5,11 +5,14 @@
 #include "multipass/name_generator.h"
 #include "multipass/platform.h"
 #include "multipass/settings/settings.h"
+#include "multipass/ssh/ssh_coordinates.h"
 #include "multipass/standard_paths.h"
 #include "multipass/utils.h"
 #include "multipass/version.h"
 
 #include <QStorageInfo>
+
+#include <stdexcept>
 
 namespace mp = multipass;
 namespace mpc = multipass::client;
@@ -18,6 +21,48 @@ namespace mcp = multipass::cli::platform;
 
 constexpr auto category = "dart-ffi";
 
+namespace
+{
+mp::SSHCoordinates to_ssh_coordinates(const SSHCoordinatesFfi& ffi_coordinates)
+{
+    mp::SSHCoordinates coordinates;
+
+    coordinates.username = ffi_coordinates.username ? std::string(ffi_coordinates.username)
+                                                    : std::string();
+    coordinates.private_key_as_base64 = ffi_coordinates.private_key_as_base64
+                                          ? std::string(ffi_coordinates.private_key_as_base64)
+                                          : std::string();
+    coordinates.port = ffi_coordinates.port;
+    coordinates.tcp_host = ffi_coordinates.tcp_host ? std::string(ffi_coordinates.tcp_host)
+                                                    : std::string();
+
+    switch (ffi_coordinates.vsock_host_tag)
+    {
+    case mp::VSOCKTAG_NONE:
+        coordinates.vsock_host = std::monostate{};
+        break;
+    case mp::VSOCKTAG_HVSOCK:
+        coordinates.vsock_host = mp::HVSOCKData{
+            ffi_coordinates.vsock_host.hvsock_vmid
+                ? std::string(ffi_coordinates.vsock_host.hvsock_vmid)
+                : std::string()};
+        break;
+    case mp::VSOCKTAG_VSOCK:
+        coordinates.vsock_host = mp::VSOCKData{ffi_coordinates.vsock_host.vsock_cid};
+        break;
+    case mp::VSOCKTAG_USOCK:
+        coordinates.vsock_host = mp::USOCKData{
+            ffi_coordinates.vsock_host.usock_addr
+                ? std::string(ffi_coordinates.vsock_host.usock_addr)
+                : std::string()};
+        break;
+    default:
+        throw std::logic_error{"Unexpected VsockHostTag value in to_ssh_coordinates"};
+    }
+
+    return coordinates;
+}
+} // namespace
 // clang-format off
 extern "C"
 {
@@ -247,8 +292,8 @@ long long memory_in_bytes(char* value)
 
 const char* human_readable_memory(long long bytes)
 {
-    const auto string =
-        mp::MemorySize::from_bytes(bytes).human_readable(/*precision=*/2, /*trim_zeros=*/true);
+    const auto string = mp::MemorySize::from_bytes(bytes).human_readable(/*precision=*/2,
+                                                                         /*trim_zeros=*/true);
     return strdup(string.c_str());
 }
 
@@ -282,5 +327,20 @@ char* default_mount_target(char* source)
         mpl::log_message(mpl::Level::warning, category, error);
         return nullptr;
     }
+}
+
+intptr_t open_vsock_socket(const struct SSHCoordinatesFfi* coordinates)
+{
+    // TODO@vsock: connect natively per transport and return a connected socket
+    // (an int fd on POSIX, a SOCKET handle on Windows).
+    auto ssh_coordinates{to_ssh_coordinates(*coordinates)};
+    (void)ssh_coordinates;
+    return -1;
+}
+
+void shutdown_socket(intptr_t socket)
+{
+    // TODO@vsock: shut down both directions via MP_PLATFORM.shutdown_socket.
+    (void)socket;
 }
 }

@@ -59,7 +59,7 @@ struct TestPlainSSHSessionMockedLibssh : public Test
 
     mp::PlainSSHSession make_ssh_session() const
     {
-        mp::SSHCoordinates coord{"ubuntu", key_provider.private_key_as_base64(), 42, "host"};
+        mp::SSHCoordinates coord{"ubuntu", key_provider.private_key_as_base64(), 42, "host", {}};
         return mp::PlainSSHSession{coord};
     }
 

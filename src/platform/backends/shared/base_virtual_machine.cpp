@@ -242,7 +242,14 @@ std::string mp::BaseVirtualMachine::ssh_username() const
 
 mp::SSHCoordinates mp::BaseVirtualMachine::ssh_coordinates()
 {
-    return {ssh_username(), key_provider.private_key_as_base64(), ssh_port(), ssh_hostname()};
+    // TODO@vsock: When this function is called the derived classes should perform the necessary
+    // steps to enable vsock (HyperV needs to register the SSH service if it is not registered,
+    // AppleVZ needs to have the thread orchestration running for proxy connections, etc.)
+    return {ssh_username(),
+            key_provider.private_key_as_base64(),
+            ssh_port(),
+            ssh_hostname(),
+            ssh_vsock_host()};
 }
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)

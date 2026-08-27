@@ -90,6 +90,8 @@ mp::PlainSSHSession::PlainSSHSession(const mp::SSHCoordinates& ssh_coordinates)
     set_option(SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
     set_option(SSH_OPTIONS_SSH_DIR, ssh_dir.c_str());
 
+    // TODO@vsock: Add MP_PLATFORM function and attempt vsock connection
+
     // TCP setup
     set_option(SSH_OPTIONS_HOST, ssh_coordinates.tcp_host.c_str());
     set_option(SSH_OPTIONS_PORT, &ssh_coordinates.port);

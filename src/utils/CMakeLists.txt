@@ -24,6 +24,7 @@ function(add_target TARGET_NAME)
     standard_paths.cpp
     timer.cpp
     utils.cpp
+    grpc_utils.cpp
     vm_image_info.cpp
     vm_image_vault_utils.cpp
     vm_mount.cpp

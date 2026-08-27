@@ -67,7 +67,7 @@ struct MockVirtualMachineT : public T
         ON_CALL(*this, get_name).WillByDefault(ReturnRefOfCopy(std::string{"mock-vm"}));
         ON_CALL(*this, current_state).WillByDefault(Return(multipass::VirtualMachine::State::off));
         ON_CALL(*this, ssh_port).WillByDefault(Return(42));
-        ON_CALL(*this, ssh_hostname()).WillByDefault(Return("localhost"));
+        ON_CALL(*this, ssh_hostname).WillByDefault(Return("localhost"));
         ON_CALL(*this, ssh_username).WillByDefault(Return("ubuntu"));
         ON_CALL(*this, management_ipv4).WillByDefault(Return(IPAddress{"0.0.0.0"}));
         ON_CALL(*this, get_all_ipv4).WillByDefault(Return(std::vector{IPAddress{"192.168.2.123"}}));
@@ -79,7 +79,7 @@ struct MockVirtualMachineT : public T
             return std::make_unique<NiceMock<MockSSHSession>>();
         });
         ON_CALL(*this, ssh_coordinates).WillByDefault([this] {
-            return SSHCoordinates{ssh_username(), {}, ssh_port(), ssh_hostname()};
+            return SSHCoordinates{ssh_username(), {}, ssh_port(), ssh_hostname(), {}};
         });
     }
 
