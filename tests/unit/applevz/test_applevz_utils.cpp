@@ -49,6 +49,7 @@ QByteArray asif_info_plist(qint64 total_bytes)
 {
     return QStringLiteral(
                R"plist(<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>Size Info</key>
@@ -227,6 +228,11 @@ TEST_F(AppleVZUtils_UnitTests, asifImageResizesViaDiskutil)
                     EXPECT_EQ(args.at(3), QString::number(target_size.in_bytes()));
                     EXPECT_EQ(args.at(4), image.name());
                 }
+                else if (args.contains("info"))
+                {
+                    EXPECT_CALL(*process, read_all_standard_output)
+                        .WillOnce(Return(asif_info_plist(target_size.in_bytes() - 1)));
+                }
             }
         });
 
@@ -311,16 +317,19 @@ TEST_F(AppleVZUtils_UnitTests, resizeAsifImageThrowsOnDiskutilFailure)
 {
     MP_UTILS.make_file_with_content(test_image.path(), asif_image_content(), true);
 
-    process_factory_scope->register_callback([](mpt::MockProcess* process) {
+    const auto target_size = mp::MemorySize::from_bytes(512LL * 1024 * 1024);
+    process_factory_scope->register_callback([&target_size](mpt::MockProcess* process) {
         if (process->program() == "diskutil")
         {
             const auto args = process->arguments();
             if (args.contains("image") && args.contains("resize"))
                 EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{1, std::nullopt}));
+            else if (args.contains("info"))
+                EXPECT_CALL(*process, read_all_standard_output)
+                    .WillOnce(Return(asif_info_plist(target_size.in_bytes() - 1)));
         }
     });
 
-    const auto target_size = mp::MemorySize::from_bytes(512LL * 1024 * 1024);
     EXPECT_THROW(mock_applevz_utils.AppleVZUtils::resize_image(target_size, test_image.path()),
                  std::runtime_error);
 }

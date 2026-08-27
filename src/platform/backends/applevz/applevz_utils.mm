@@ -33,8 +33,6 @@
 
 #include <Foundation/Foundation.h>
 
-#include <QRegularExpression>
-
 #include <scope_guard.hpp>
 
 #include <algorithm>
@@ -82,20 +80,25 @@ bool is_asif_image(const std::filesystem::path& image_path)
 
 std::int64_t asif_image_capacity(const std::filesystem::path& image_path)
 {
-    const auto plist = QString::fromStdString(run_process(
-        QStringLiteral("diskutil"),
-        QStringList() << "image" << "info" << "--plist" << MP_PLATFORM.path_to_qstr(image_path),
-        fmt::format("query capacity of ASIF image: {}", image_path)));
+    const auto output = run_process(QStringLiteral("diskutil"),
+                                    QStringList() << "image" << "info" << "--plist"
+                                                  << MP_PLATFORM.path_to_qstr(image_path),
+                                    fmt::format("query capacity of ASIF image: {}", image_path));
 
-    // "Total Bytes" lives under "Size Info" as a <key>/<integer> pair.
-    static const QRegularExpression re{
-        QStringLiteral("<key>Total Bytes</key>\\s*<integer>\\s*(\\d+)\\s*</integer>")};
-    const auto match = re.match(plist);
-    if (!match.hasMatch())
+    const auto data = [NSData dataWithBytes:output.data() length:output.size()];
+    NSError* error = nil;
+    NSDictionary* plist = [NSPropertyListSerialization propertyListWithData:data
+                                                                    options:0
+                                                                     format:nullptr
+                                                                      error:&error];
+
+    // The capacity lives at "Size Info" -> "Total Bytes".
+    NSNumber* total_bytes = plist[@"Size Info"][@"Total Bytes"];
+    if (![total_bytes isKindOfClass:NSNumber.class])
         throw std::runtime_error(
             fmt::format("Could not determine capacity of ASIF image: {}", image_path));
 
-    return match.captured(1).toLongLong();
+    return total_bytes.longLongValue;
 }
 
 void resize_asif_image(const std::filesystem::path& image_path, const mp::MemorySize& disk_space)
