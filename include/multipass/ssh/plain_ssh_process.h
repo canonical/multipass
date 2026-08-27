@@ -68,7 +68,7 @@ public: // but restricted
 private:
     struct ChannelDeleter
     {
-        void operator()(ssh_channel_struct* channel) const noexcept;
+        void operator()(ssh_channel_struct* chan) const noexcept;
     };
     using ChannelUPtr = std::unique_ptr<ssh_channel_struct, ChannelDeleter>;
 
