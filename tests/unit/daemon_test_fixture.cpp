@@ -359,6 +359,8 @@ mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
 
     ON_CALL(*mock_factory_ptr, prepare_source_image(_)).WillByDefault(ReturnArg<0>());
 
+    ON_CALL(*mock_factory_ptr, virtual_size_for(_)).WillByDefault(Return(mp::MemorySize{}));
+
     ON_CALL(*mock_factory_ptr, get_backend_version_string()).WillByDefault(Return("mock-1234"));
 
     ON_CALL(*mock_factory_ptr, networks())
