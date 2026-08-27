@@ -17,7 +17,6 @@
 #include "hyperv_migrator.h"
 
 #include "hyperv_disk_layout.h"
-#include "hyperv_migration_state.h"
 
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_factory.h>
@@ -52,6 +51,7 @@ namespace mpl = multipass::logging;
 using multipass::hyperv::virtdisk::VirtDisk;
 
 constexpr auto log_category = "Hyper-V migration";
+constexpr auto holding_suffix = ".multipass-migration-hold";
 
 class TrialMonitor final : public multipass::VMStatusMonitor
 {
@@ -144,12 +144,12 @@ void verify_trial(TrialVirtualMachine& trial,
                   const multipass::VirtualMachineDescription& description,
                   const multipass::Path& instance_dir)
 {
-    const auto cloud_init_path =
-        fs::path{instance_dir.toStdString()} / multipass::cloud_init_file_name;
-    const auto expected_instance_id =
-        MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_path);
-    const auto actual_instance_id =
-        multipass::utils::trim(trial.ssh_exec("cat /var/lib/cloud/data/instance-id"));
+    const auto cloud_init_path = fs::path{instance_dir.toStdString()} /
+                                 multipass::cloud_init_file_name;
+    const auto expected_instance_id = MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(
+        cloud_init_path);
+    const auto actual_instance_id = multipass::utils::trim(
+        trial.ssh_exec("cat /var/lib/cloud/data/instance-id"));
     if (actual_instance_id != expected_instance_id)
         throw std::runtime_error{
             fmt::format("Migration trial booted an unexpected cloud-init instance: expected '{}', "
@@ -157,9 +157,9 @@ void verify_trial(TrialVirtualMachine& trial,
                         expected_instance_id,
                         actual_instance_id)};
 
-    const auto actual_mac = multipass::utils::trim(trial.ssh_exec(
-        "iface=$(ip route show default | awk 'NR==1 {print $5}'); "
-        "cat /sys/class/net/$iface/address"));
+    const auto actual_mac = multipass::utils::trim(
+        trial.ssh_exec("iface=$(ip route show default | awk 'NR==1 {print $5}'); "
+                       "cat /sys/class/net/$iface/address"));
     if (normalized_mac(actual_mac) != normalized_mac(description.default_mac_address))
         throw std::runtime_error{
             fmt::format("Migration trial primary MAC mismatch: expected '{}', received '{}'",
@@ -167,14 +167,13 @@ void verify_trial(TrialVirtualMachine& trial,
                         actual_mac)};
 }
 
-void run_trial(const mhv::LegacyHyperVDiskLayout& layout,
+void run_trial(const mhv::LegacyDiskLayout& layout,
                const multipass::VirtualMachineDescription& description,
                const multipass::SSHKeyProvider& key_provider,
                multipass::AvailabilityZone& zone,
                const multipass::Path& instance_dir)
 {
-    const auto suffix =
-        QUuid::createUuid().toString(QUuid::WithoutBraces).left(8).toStdString();
+    const auto suffix = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8).toStdString();
     const auto trial_name = fmt::format("{}-migration-{}", description.vm_name, suffix);
     auto trial_disk = layout.active_disk;
     trial_disk += fmt::format(".{}.trial.avhdx", suffix);
@@ -192,9 +191,8 @@ void run_trial(const mhv::LegacyHyperVDiskLayout& layout,
     auto cleanup = sg::make_scope_guard([&]() noexcept {
         multipass::top_catch_all(log_category, [&] { mhv::remove_hcs_resources(trial_name); });
         trial_vm.reset();
-        multipass::top_catch_all(
-            log_category,
-            [&] { remove_trial_files(trial_disk, state_file_stem); });
+        multipass::top_catch_all(log_category,
+                                 [&] { remove_trial_files(trial_disk, state_file_stem); });
     });
 
     auto trial_description = description;
@@ -220,81 +218,66 @@ void run_trial(const mhv::LegacyHyperVDiskLayout& layout,
     cleanup.dismiss();
 }
 
-std::optional<std::string>
-remove_legacy_registration(const std::string& name,
-                           const mhv::LegacyHyperVDiskLayout& layout)
+bool path_exists(const fs::path& path)
 {
-    struct HeldDisk
-    {
-        fs::path original;
-        fs::path holding;
-        bool held{false};
-    };
+    std::error_code error;
+    const auto result = MP_FILEOPS.exists(path, error);
+    if (error)
+        throw std::runtime_error{
+            fmt::format("Could not inspect migration path '{}': {}", path, error.message())};
+    return result;
+}
 
-    std::vector<HeldDisk> disks;
-    disks.reserve(layout.all_disks.size());
-    for (const auto& disk : layout.all_disks)
+struct HeldDisk
+{
+    fs::path original;
+    fs::path holding;
+    bool held{false};
+};
+
+void restore_disks(std::vector<HeldDisk>& disks)
+{
+    for (auto it = disks.rbegin(); it != disks.rend(); ++it)
     {
-        auto holding = disk;
-        holding += ".multipass-migration-hold";
-        if (MP_FILEOPS.exists(holding))
-            throw std::runtime_error{
-                fmt::format("Migration holding path already exists: '{}'", holding)};
-        disks.push_back({.original = disk, .holding = std::move(holding)});
+        if (!it->held)
+            continue;
+
+        MP_FILEOPS.rename(it->holding, it->original);
+        it->held = false;
     }
+}
 
-    auto restore = sg::make_scope_guard([&]() noexcept {
-        for (auto it = disks.rbegin(); it != disks.rend(); ++it)
-            if (it->held)
-                multipass::top_catch_all(
-                    log_category,
-                    [&disk = *it] { MP_FILEOPS.rename(disk.holding, disk.original); });
-    });
-
-    for (auto& disk : disks)
+void restore_disks_noexcept(std::vector<HeldDisk>& disks) noexcept
+{
+    for (auto it = disks.rbegin(); it != disks.rend(); ++it)
     {
-        MP_FILEOPS.rename(disk.original, disk.holding);
-        disk.held = true;
-    }
+        if (!it->held)
+            continue;
 
+        multipass::top_catch_all(log_category, [&disk = *it] {
+            MP_FILEOPS.rename(disk.holding, disk.original);
+            disk.held = false;
+        });
+    }
+}
+
+void remove_legacy_registration(const std::string& name)
+{
     QString output_error;
-    if (!multipass::PowerShell::exec({"-NoProfile",
-                                      "-NonInteractive",
-                                      "-Command",
-                                      "Remove-VM",
-                                      "-Name",
-                                      QString::fromStdString(name),
-                                      "-Force"},
-                                     name,
-                                     nullptr,
-                                     &output_error))
-    {
-        if (!mhv::HyperVDiskLayoutResolver::vm_exists(name))
-            return fmt::format(
-                "Legacy registration disappeared while Remove-VM reported failure: {}",
-                output_error.toStdString());
-
+    const auto removed = multipass::PowerShell::exec({"-NoProfile",
+                                                      "-NonInteractive",
+                                                      "-Command",
+                                                      "Remove-VM",
+                                                      "-Name",
+                                                      QString::fromStdString(name),
+                                                      "-Force"},
+                                                     name,
+                                                     nullptr,
+                                                     &output_error);
+    if (mhv::legacy_vm_exists(name))
         throw std::runtime_error{
             fmt::format("Could not remove legacy Hyper-V registration: {}",
-                        output_error.toStdString())};
-    }
-
-    try
-    {
-        for (auto it = disks.rbegin(); it != disks.rend(); ++it)
-        {
-            MP_FILEOPS.rename(it->holding, it->original);
-            it->held = false;
-        }
-    }
-    catch (const std::exception& e)
-    {
-        return fmt::format("Legacy registration was removed but disk restoration failed: {}",
-                           e.what());
-    }
-
-    restore.dismiss();
-    return std::nullopt;
+                        removed ? "registration still exists" : output_error.toStdString())};
 }
 } // namespace
 
@@ -312,78 +295,89 @@ multipass::hyperv::DefaultHyperVMigrator::DefaultHyperVMigrator(
 {
 }
 
-multipass::VirtualMachine::UPtr
-multipass::hyperv::DefaultHyperVMigrator::make_target()
+multipass::VirtualMachine::UPtr multipass::hyperv::DefaultHyperVMigrator::make_target()
 {
-    if (!committed_state)
+    if (!committed_ownership)
         throw std::runtime_error{"Hyper-V migration has not been committed"};
 
     auto hcs_description = description;
-    hcs_description.image.image_path = committed_state->active_disk;
+    hcs_description.image.image_path = committed_ownership->active_disk;
     auto target = std::make_unique<HCSVirtualMachine>(default_hyperv_switch_guid,
                                                       hcs_description,
                                                       monitor,
                                                       key_provider,
                                                       zone,
                                                       instance_dir,
-                                                      committed_state->hcs_state_file_stem);
+                                                      committed_ownership->state_file_stem);
     target->load_snapshots();
     return target;
 }
 
-void multipass::hyperv::DefaultHyperVMigrator::commit_migration(
-    const LegacyHyperVDiskLayout& layout,
-    HyperVMigrationState state)
+void multipass::hyperv::DefaultHyperVMigrator::commit_migration(const LegacyDiskLayout& layout,
+                                                                HCSOwnership ownership)
 {
-    state.backend = HyperVBackend::hcs;
-    state.persist(instance_dir.toStdString());
-    committed_state = state;
+    std::vector<HeldDisk> disks;
+    disks.reserve(layout.all_disks.size());
+    for (const auto& disk : layout.all_disks)
+    {
+        auto holding = disk;
+        holding += holding_suffix;
+        if (path_exists(holding))
+            throw std::runtime_error{
+                fmt::format("Migration holding path already exists: '{}'", holding)};
+        disks.push_back({.original = disk, .holding = std::move(holding)});
+    }
 
-    try
+    auto restore = sg::make_scope_guard([&]() noexcept { restore_disks_noexcept(disks); });
+    for (auto& disk : disks)
     {
-        if (const auto error = remove_legacy_registration(description.vm_name, layout))
-            mpl::error(
-                description.vm_name,
-                "Hyper-V migration crossed the commit boundary but did not finish cleanly: {}",
-                *error);
+        MP_FILEOPS.rename(disk.original, disk.holding);
+        disk.held = true;
     }
-    catch (...)
-    {
-        committed_state.reset();
-        state.backend = HyperVBackend::legacy;
-        state.persist(instance_dir.toStdString());
-        throw;
-    }
+
+    remove_legacy_registration(description.vm_name);
+    restore_disks(disks);
+    restore.dismiss();
+
+    if (!path_exists(ownership.active_disk))
+        throw std::runtime_error{
+            fmt::format("Migrated active disk '{}' does not exist", ownership.active_disk)};
+
+    ownership.persist(instance_dir.toStdString());
+    committed_ownership = std::move(ownership);
 }
 
-bool
-multipass::hyperv::DefaultHyperVMigrator::try_migrate(VirtualMachine& legacy_vm)
+bool multipass::hyperv::DefaultHyperVMigrator::try_migrate(VirtualMachine& legacy_vm)
 {
-    if (committed_state)
+    if (committed_ownership)
         return true;
 
     try
     {
-        const auto layout = HyperVDiskLayoutResolver::resolve(description.vm_name, legacy_vm);
-        HyperVMigrationState state{
-            .backend = HyperVBackend::legacy,
-            .active_disk = layout.active_disk,
-            .hcs_state_file_stem =
-                fs::path{instance_dir.toStdString()} / "hcs-migrated-state",
-            .snapshots = layout.snapshots,
-        };
-        state.persist_snapshot_paths(legacy_vm);
-        state.persist(instance_dir.toStdString());
+        const auto layout = resolve_legacy_disk_layout(description.vm_name, legacy_vm);
+        layout.persist_snapshot_paths(legacy_vm);
         run_trial(layout, description, key_provider, zone, instance_dir);
-        commit_migration(layout, std::move(state));
+        commit_migration(layout,
+                         HCSOwnership{
+                             .active_disk = layout.active_disk,
+                             .state_file_stem = std::filesystem::path{instance_dir.toStdString()} /
+                                                "hcs-migrated-state",
+                         });
+        return true;
     }
-    catch (const std::exception& e)
+    catch (const std::exception& error)
     {
-        mpl::warn(description.vm_name,
-                  "Hyper-V migration was not committed; continuing with the legacy backend: {}",
-                  e.what());
-        return false;
-    }
+        if (legacy_vm_exists(description.vm_name))
+        {
+            mpl::warn(description.vm_name,
+                      "Hyper-V migration was not committed; continuing with the legacy backend: {}",
+                      error.what());
+            return false;
+        }
 
-    return true;
+        throw std::runtime_error{fmt::format(
+            "Hyper-V migration removed the legacy registration but did not finish; manual "
+            "recovery is required: {}",
+            error.what())};
+    }
 }

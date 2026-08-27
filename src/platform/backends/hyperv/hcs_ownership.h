@@ -18,40 +18,16 @@
 
 #include <filesystem>
 #include <optional>
-#include <string>
-#include <vector>
-
-namespace multipass
-{
-class VirtualMachine;
-}
 
 namespace multipass::hyperv
 {
-enum class HyperVBackend
+struct HCSOwnership
 {
-    legacy,
-    hcs,
-};
-
-struct LegacySnapshotDisk
-{
-    int index;
-    std::string checkpoint_name;
-    std::string checkpoint_id;
-    std::filesystem::path disk_path;
-};
-
-struct HyperVMigrationState
-{
-    HyperVBackend backend{HyperVBackend::legacy};
     std::filesystem::path active_disk;
-    std::filesystem::path hcs_state_file_stem;
-    std::vector<LegacySnapshotDisk> snapshots;
+    std::filesystem::path state_file_stem;
 
-    static std::optional<HyperVMigrationState> load(const std::filesystem::path& instance_dir);
+    static std::optional<HCSOwnership> load(const std::filesystem::path& instance_dir);
 
     void persist(const std::filesystem::path& instance_dir) const;
-    void persist_snapshot_paths(const VirtualMachine& vm) const;
 };
 } // namespace multipass::hyperv

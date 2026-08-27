@@ -86,31 +86,30 @@ DiscoveredVM query_hyperv(const std::string& name)
 {
     multipass::PowerShell powershell{name};
     const auto vm_name = quoted_name(name);
-    const auto script = QStringLiteral(
-                            "$vmName=%1; "
-                            "$primary=@(Get-VMHardDiskDrive -VMName $vmName -ErrorAction Stop | "
-                            "Where-Object {$_.ControllerType -eq 'SCSI' -and "
-                            "$_.ControllerNumber -eq 0 -and $_.ControllerLocation -eq 0}); "
-                            "if ($primary.Count -ne 1) { throw 'Expected one primary disk' }; "
-                            "$checkpoints=@(Get-VMCheckpoint -VMName $vmName -ErrorAction Stop | "
-                            "ForEach-Object { "
-                            "$disk=@(Get-VMHardDiskDrive -VMSnapshot $_ | "
-                            "Where-Object {$_.ControllerType -eq 'SCSI' -and "
-                            "$_.ControllerNumber -eq 0 -and $_.ControllerLocation -eq 0}); "
-                            "if ($disk.Count -ne 1) { throw 'Expected one checkpoint disk' }; "
-                            "[PSCustomObject]@{Name=$_.Name;Id=$_.Id.ToString();Path=$disk[0].Path} "
-                            "}); "
-                            "[PSCustomObject]@{ActiveDisk=$primary[0].Path;"
-                            "Snapshots=$checkpoints} | ConvertTo-Json -Compress -Depth 4")
-                            .arg(vm_name);
+    const auto script =
+        QStringLiteral("$vmName=%1; "
+                       "$primary=@(Get-VMHardDiskDrive -VMName $vmName -ErrorAction Stop | "
+                       "Where-Object {$_.ControllerType -eq 'SCSI' -and "
+                       "$_.ControllerNumber -eq 0 -and $_.ControllerLocation -eq 0}); "
+                       "if ($primary.Count -ne 1) { throw 'Expected one primary disk' }; "
+                       "$checkpoints=@(Get-VMCheckpoint -VMName $vmName -ErrorAction Stop | "
+                       "ForEach-Object { "
+                       "$disk=@(Get-VMHardDiskDrive -VMSnapshot $_ | "
+                       "Where-Object {$_.ControllerType -eq 'SCSI' -and "
+                       "$_.ControllerNumber -eq 0 -and $_.ControllerLocation -eq 0}); "
+                       "if ($disk.Count -ne 1) { throw 'Expected one checkpoint disk' }; "
+                       "[PSCustomObject]@{Name=$_.Name;Id=$_.Id.ToString();Path=$disk[0].Path} "
+                       "}); "
+                       "[PSCustomObject]@{ActiveDisk=$primary[0].Path;"
+                       "Snapshots=$checkpoints} | ConvertTo-Json -Compress -Depth 4")
+            .arg(vm_name);
 
     QString output;
     QString output_error;
     if (!powershell.run({script}, &output, &output_error))
-        throw std::runtime_error{
-            fmt::format("Could not inspect Hyper-V disk layout for '{}': {}",
-                        name,
-                        output_error.toStdString())};
+        throw std::runtime_error{fmt::format("Could not inspect Hyper-V disk layout for '{}': {}",
+                                             name,
+                                             output_error.toStdString())};
 
     const auto json = boost::json::parse(output.toStdString());
     const auto& object = json.as_object();
@@ -127,8 +126,8 @@ DiscoveredVM query_hyperv(const std::string& name)
             .disk_path = boost::json::value_to<std::string>(snapshot.at("Path")),
         };
 
-        const auto [_, inserted] =
-            discovered.snapshots.emplace(disk.checkpoint_name, std::move(disk));
+        const auto [_, inserted] = discovered.snapshots.emplace(disk.checkpoint_name,
+                                                                std::move(disk));
         if (!inserted)
             throw std::runtime_error{"Hyper-V contains duplicate checkpoint names"};
     }
@@ -137,41 +136,38 @@ DiscoveredVM query_hyperv(const std::string& name)
 }
 } // namespace
 
-bool multipass::hyperv::HyperVDiskLayoutResolver::vm_exists(const std::string& name)
+bool multipass::hyperv::legacy_vm_exists(const std::string& name)
 {
     PowerShell powershell{name};
     QString output;
-    return powershell.run(
-               {QStringLiteral("if (Get-VM -Name %1 -ErrorAction SilentlyContinue) "
-                               "{ 'true' } else { 'false' }")
-                    .arg(quoted_name(name))},
-               &output,
-               nullptr,
-               true) &&
+    return powershell.run({QStringLiteral("if (Get-VM -Name %1 -ErrorAction SilentlyContinue) "
+                                          "{ 'true' } else { 'false' }")
+                               .arg(quoted_name(name))},
+                          &output,
+                          nullptr,
+                          true) &&
            output == "true";
 }
 
-std::filesystem::path
-multipass::hyperv::HyperVDiskLayoutResolver::active_disk(const std::string& name)
+std::filesystem::path multipass::hyperv::legacy_active_disk(const std::string& name)
 {
     return query_hyperv(name).active_disk;
 }
 
-multipass::hyperv::LegacyHyperVDiskLayout
-multipass::hyperv::HyperVDiskLayoutResolver::resolve(const std::string& name,
-                                                     const VirtualMachine& vm)
+multipass::hyperv::LegacyDiskLayout
+multipass::hyperv::resolve_legacy_disk_layout(const std::string& name, const VirtualMachine& vm)
 {
     auto discovered = query_hyperv(name);
     if (discovered.active_disk.empty())
         throw std::runtime_error{"Hyper-V returned an empty active disk path"};
 
-    LegacyHyperVDiskLayout layout{.active_disk = std::move(discovered.active_disk)};
+    LegacyDiskLayout layout{.active_disk = std::move(discovered.active_disk)};
     const auto multipass_snapshots = vm.view_snapshots();
     if (multipass_snapshots.size() != discovered.snapshots.size())
-        throw std::runtime_error{
-            fmt::format("Hyper-V checkpoint count ({}) does not match Multipass snapshot count ({})",
-                        discovered.snapshots.size(),
-                        multipass_snapshots.size())};
+        throw std::runtime_error{fmt::format(
+            "Hyper-V checkpoint count ({}) does not match Multipass snapshot count ({})",
+            discovered.snapshots.size(),
+            multipass_snapshots.size())};
 
     std::map<int, fs::path> snapshot_paths;
     std::vector<fs::path> unique_snapshot_paths;
@@ -184,13 +180,11 @@ multipass::hyperv::HyperVDiskLayoutResolver::resolve(const std::string& name,
                 fmt::format("Could not find Hyper-V checkpoint '{}'", expected_name)};
 
         checkpoint->second.index = snapshot->get_index();
-        if (std::ranges::any_of(unique_snapshot_paths,
-                                [&checkpoint](const auto& path) {
-                                    return same_path(path, checkpoint->second.disk_path);
-                                }))
-            throw std::runtime_error{
-                fmt::format("Multiple Hyper-V checkpoints reference disk '{}'",
-                            checkpoint->second.disk_path)};
+        if (std::ranges::any_of(unique_snapshot_paths, [&checkpoint](const auto& path) {
+                return same_path(path, checkpoint->second.disk_path);
+            }))
+            throw std::runtime_error{fmt::format("Multiple Hyper-V checkpoints reference disk '{}'",
+                                                 checkpoint->second.disk_path)};
 
         unique_snapshot_paths.push_back(checkpoint->second.disk_path);
         snapshot_paths.emplace(snapshot->get_index(), checkpoint->second.disk_path);
@@ -251,4 +245,29 @@ multipass::hyperv::HyperVDiskLayoutResolver::resolve(const std::string& name,
 
     std::ranges::sort(layout.snapshots, {}, &LegacySnapshotDisk::index);
     return layout;
+}
+
+void multipass::hyperv::LegacyDiskLayout::persist_snapshot_paths(const VirtualMachine& vm) const
+{
+    const auto instance_dir = std::filesystem::path{
+        vm.instance_directory().absolutePath().toStdString()};
+
+    for (const auto& snapshot : snapshots)
+    {
+        const auto snapshot_path = instance_dir /
+                                   fmt::format("{:04}.snapshot.json", snapshot.index);
+        const auto contents = MP_FILEOPS.try_read_file(snapshot_path);
+        if (!contents)
+            throw std::runtime_error{
+                fmt::format("Could not read snapshot metadata '{}'", snapshot_path)};
+
+        auto json = boost::json::parse(*contents);
+        auto& snapshot_object = json.at("snapshot").as_object();
+        if (boost::json::value_to<int>(snapshot_object.at("index")) != snapshot.index)
+            throw std::runtime_error{
+                fmt::format("Snapshot metadata index does not match '{}'", snapshot_path)};
+
+        snapshot_object["disk_path"] = snapshot.disk_path.string();
+        MP_FILEOPS.write_transactionally(snapshot_path, multipass::pretty_print(json));
+    }
 }

@@ -17,8 +17,8 @@
 #include "migrating_hyperv_virtual_machine_factory.h"
 
 #include "blocked_virtual_machine.h"
+#include "hcs_ownership.h"
 #include "hyperv_disk_layout.h"
-#include "hyperv_migration_state.h"
 #include "hyperv_migrator.h"
 #include "hyperv_virtual_machine.h"
 #include "migrating_hyperv_virtual_machine.h"
@@ -33,8 +33,8 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
-#include <shared/windows/windows_feature_status.h>
 #include <shared/windows/powershell.h>
+#include <shared/windows/windows_feature_status.h>
 
 #include <fmt/format.h>
 
@@ -49,50 +49,50 @@ fs::path instance_path(const multipass::Path& path)
     return MP_PLATFORM.qstr_to_path(path);
 }
 
-mhv::HyperVMigrationState persist_hcs_state(const fs::path& disk,
-                                            const multipass::Path& instance_dir)
+fs::path with_extension(fs::path path, const char* extension)
 {
-    const mhv::HyperVMigrationState state{
-        .backend = mhv::HyperVBackend::hcs,
-        .active_disk = disk,
-        .hcs_state_file_stem = disk,
-    };
-    state.persist(instance_path(instance_dir));
-    return state;
+    return path.replace_extension(extension);
 }
 
-bool has_native_hcs_state_files(const multipass::VirtualMachineDescription& description)
+bool has_hcs_state_files(const fs::path& stem)
 {
-    auto guest_state = fs::path{description.image.image_path};
-    guest_state.replace_extension(".vmgs");
-    auto runtime_state = fs::path{description.image.image_path};
-    runtime_state.replace_extension(".vmrs");
-    return MP_FILEOPS.exists(guest_state) && MP_FILEOPS.exists(runtime_state);
+    return MP_FILEOPS.exists(with_extension(stem, ".vmgs")) &&
+           MP_FILEOPS.exists(with_extension(stem, ".vmrs"));
+}
+
+mhv::HCSOwnership persist_hcs_ownership(const fs::path& disk,
+                                        const fs::path& state_file_stem,
+                                        const multipass::Path& instance_dir)
+{
+    const mhv::HCSOwnership ownership{
+        .active_disk = disk,
+        .state_file_stem = state_file_stem,
+    };
+    ownership.persist(instance_path(instance_dir));
+    return ownership;
 }
 
 fs::path source_disk_for(const std::string& name, const mp::Path& instance_dir)
 {
-    if (const auto state = mhv::HyperVMigrationState::load(instance_path(instance_dir));
-        state && state->backend == mhv::HyperVBackend::hcs)
-        return state->active_disk;
-
-    if (mhv::HyperVDiskLayoutResolver::vm_exists(name))
-        return mhv::HyperVDiskLayoutResolver::active_disk(name);
-
-    for (const auto& entry : fs::directory_iterator{instance_path(instance_dir)})
+    if (const auto ownership = mhv::HCSOwnership::load(instance_path(instance_dir)))
     {
-        const auto extension = entry.path().extension();
-        if (extension == ".vhdx" || extension == ".avhdx")
-            return entry.path();
+        if (mhv::legacy_vm_exists(name))
+            throw std::runtime_error{
+                "HCS ownership marker and legacy Hyper-V registration both exist"};
+        return ownership->active_disk;
     }
 
-    throw std::runtime_error{"Could not locate the source VM disk"};
+    if (mhv::legacy_vm_exists(name))
+        return mhv::legacy_active_disk(name);
+
+    throw std::runtime_error{"Could not determine source VM disk ownership"};
 }
+
 } // namespace
 
-multipass::hyperv::MigratingHyperVVirtualMachineFactory::
-    MigratingHyperVVirtualMachineFactory(const Path& data_dir,
-                                         AvailabilityZoneManager& az_manager)
+multipass::hyperv::MigratingHyperVVirtualMachineFactory::MigratingHyperVVirtualMachineFactory(
+    const Path& data_dir,
+    AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(
           MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
           az_manager),
@@ -116,47 +116,18 @@ multipass::hyperv::MigratingHyperVVirtualMachineFactory::create_virtual_machine(
                                                        instance_dir,
                                                        std::move(reason));
     };
-    const auto make_hcs = [&](const HyperVMigrationState& state) -> VirtualMachine::UPtr {
+    const auto make_hcs = [&](const HCSOwnership& ownership) -> VirtualMachine::UPtr {
         auto hcs_description = desc;
-        hcs_description.image.image_path = state.active_disk;
+        hcs_description.image.image_path = ownership.active_disk;
         return std::make_unique<HCSVirtualMachine>(default_hyperv_switch_guid,
                                                    hcs_description,
                                                    monitor,
                                                    key_provider,
                                                    zone,
                                                    instance_dir,
-                                                   state.hcs_state_file_stem);
+                                                   ownership.state_file_stem);
     };
-
-    std::optional<HyperVMigrationState> migration_state;
-    try
-    {
-        migration_state = HyperVMigrationState::load(instance_path(instance_dir));
-    }
-    catch (const std::exception& error)
-    {
-        return make_blocked(fmt::format("could not read migration metadata: {}", error.what()));
-    }
-
-    if (migration_state && migration_state->backend == HyperVBackend::hcs)
-        return make_hcs(*migration_state);
-
-    bool legacy_exists;
-    try
-    {
-        legacy_exists = HyperVDiskLayoutResolver::vm_exists(desc.vm_name);
-    }
-    catch (const std::exception& error)
-    {
-        return make_blocked(fmt::format("could not determine legacy Hyper-V ownership: {}",
-                                        error.what()));
-    }
-
-    if (migration_state && !legacy_exists)
-        return make_blocked("legacy migration metadata exists but the registered VM is missing");
-
-    if (legacy_exists)
-    {
+    const auto make_migrating = [&]() -> VirtualMachine::UPtr {
         auto legacy = std::make_unique<HyperVVirtualMachine>(desc,
                                                              monitor,
                                                              key_provider,
@@ -169,14 +140,35 @@ multipass::hyperv::MigratingHyperVVirtualMachineFactory::create_virtual_machine(
                                                                 instance_dir);
         return std::make_unique<MigratingHyperVVirtualMachine>(std::move(legacy),
                                                                std::move(migrator));
+    };
+
+    try
+    {
+        if (const auto ownership = HCSOwnership::load(instance_path(instance_dir)))
+        {
+            if (legacy_vm_exists(desc.vm_name))
+                throw std::runtime_error{
+                    "HCS ownership marker and legacy Hyper-V registration both exist"};
+            if (!MP_FILEOPS.exists(ownership->active_disk))
+                throw std::runtime_error{
+                    fmt::format("HCS active disk '{}' does not exist", ownership->active_disk)};
+            return make_hcs(*ownership);
+        }
+
+        if (legacy_vm_exists(desc.vm_name))
+            return make_migrating();
+
+        if (has_hcs_state_files(desc.image.image_path))
+            return make_hcs(
+                persist_hcs_ownership(desc.image.image_path, desc.image.image_path, instance_dir));
+
+        return make_blocked("backend ownership is ambiguous: no HCS marker, legacy registration, "
+                            "or native HCS state files were found");
     }
-
-    if (!has_native_hcs_state_files(desc))
-        return make_blocked(
-            "backend ownership is ambiguous: no migration marker, legacy registration, "
-            "or native HCS state files were found");
-
-    return make_hcs(persist_hcs_state(desc.image.image_path, instance_dir));
+    catch (const std::exception& error)
+    {
+        return make_blocked(fmt::format("could not determine Hyper-V ownership: {}", error.what()));
+    }
 }
 
 void multipass::hyperv::MigratingHyperVVirtualMachineFactory::prepare_networking(
@@ -185,8 +177,7 @@ void multipass::hyperv::MigratingHyperVVirtualMachineFactory::prepare_networking
     hcs_factory.prepare_networking(extra_interfaces);
 }
 
-multipass::VMImage
-multipass::hyperv::MigratingHyperVVirtualMachineFactory::prepare_source_image(
+multipass::VMImage multipass::hyperv::MigratingHyperVVirtualMachineFactory::prepare_source_image(
     const VMImage& source_image)
 {
     return hcs_factory.prepare_source_image(source_image);
@@ -197,7 +188,9 @@ void multipass::hyperv::MigratingHyperVVirtualMachineFactory::prepare_instance_i
     const VirtualMachineDescription& desc)
 {
     hcs_factory.prepare_instance_image(instance_image, desc);
-    persist_hcs_state(instance_image.image_path, get_instance_directory(desc.vm_name));
+    persist_hcs_ownership(instance_image.image_path,
+                          instance_image.image_path,
+                          get_instance_directory(desc.vm_name));
 }
 
 void multipass::hyperv::MigratingHyperVVirtualMachineFactory::hypervisor_health_check()
@@ -224,15 +217,19 @@ std::string multipass::hyperv::MigratingHyperVVirtualMachineFactory::create_brid
 void multipass::hyperv::MigratingHyperVVirtualMachineFactory::remove_resources_for_impl(
     const std::string& name)
 {
-    const auto state = HyperVMigrationState::load(instance_path(get_instance_directory(name)));
-    if ((state && state->backend == HyperVBackend::hcs) ||
-        !HyperVDiskLayoutResolver::vm_exists(name))
+    if (HCSOwnership::load(instance_path(get_instance_directory(name))))
     {
         remove_hcs_resources(name);
         return;
     }
 
-    PowerShell::exec({"Remove-VM", "-Name", QString::fromStdString(name), "-Force"}, name);
+    if (legacy_vm_exists(name))
+    {
+        PowerShell::exec({"Remove-VM", "-Name", QString::fromStdString(name), "-Force"}, name);
+        return;
+    }
+
+    remove_hcs_resources(name);
 }
 
 multipass::VirtualMachine::UPtr
@@ -250,6 +247,8 @@ multipass::hyperv::MigratingHyperVVirtualMachineFactory::clone_vm_impl(
     if (!virtdisk::VirtDisk().create_virtual_disk(params))
         throw std::runtime_error{"VHDX clone failed"};
 
-    persist_hcs_state(desc.image.image_path, get_instance_directory(desc.vm_name));
+    persist_hcs_ownership(desc.image.image_path,
+                          desc.image.image_path,
+                          get_instance_directory(desc.vm_name));
     return create_virtual_machine(desc, key_provider, monitor);
 }

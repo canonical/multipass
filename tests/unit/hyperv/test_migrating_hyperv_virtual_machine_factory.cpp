@@ -16,14 +16,14 @@
 
 #include "tests/unit/common.h"
 #include "tests/unit/file_operations.h"
+#include "tests/unit/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
 #include "tests/unit/stub_availability_zone_manager.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
 #include "tests/unit/temp_dir.h"
-#include "tests/unit/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
 #include "tests/unit/windows/powershell_test_helper.h"
 
-#include <src/platform/backends/hyperv/hyperv_migration_state.h>
+#include <src/platform/backends/hyperv/hcs_ownership.h>
 #include <src/platform/backends/hyperv/migrating_hyperv_virtual_machine_factory.h>
 
 #include <multipass/constants.h>
@@ -71,27 +71,24 @@ struct MigratingHyperVFactoryTest : Test
 TEST_F(MigratingHyperVFactoryTest, persistsHcsOwnershipWhenPreparingANewInstance)
 {
     auto desc = description();
-    EXPECT_CALL(virtdisk,
-                resize_virtual_disk(desc.image.image_path, desc.disk_space.in_bytes()))
+    EXPECT_CALL(virtdisk, resize_virtual_disk(desc.image.image_path, desc.disk_space.in_bytes()))
         .WillOnce(Return(mhv::OperationResult{0, L""}));
 
     factory.prepare_instance_image(desc.image, desc);
 
     const QDir instance_dir{factory.get_instance_directory(desc.vm_name)};
-    const auto state = mhv::HyperVMigrationState::load(
+    const auto state = mhv::HCSOwnership::load(
         std::filesystem::path{instance_dir.path().toStdString()});
     ASSERT_TRUE(state);
-    EXPECT_EQ(state->backend, mhv::HyperVBackend::hcs);
     EXPECT_EQ(state->active_disk, desc.image.image_path);
-    EXPECT_EQ(state->hcs_state_file_stem, desc.image.image_path);
+    EXPECT_EQ(state->state_file_stem, desc.image.image_path);
 }
 
 TEST_F(MigratingHyperVFactoryTest, blocksMalformedMigrationMetadata)
 {
     auto desc = description();
     const QDir instance_dir{factory.get_instance_directory(desc.vm_name)};
-    mpt::make_file_with_content(instance_dir.filePath("migration.json"),
-                                "{not-json");
+    mpt::make_file_with_content(instance_dir.filePath("hcs-ownership.json"), "{not-json");
 
     auto vm = factory.create_virtual_machine(desc, key_provider, monitor);
 

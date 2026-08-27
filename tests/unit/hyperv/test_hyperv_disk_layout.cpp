@@ -38,11 +38,10 @@ std::string discovery_json(
 {
     boost::json::array snapshot_array;
     for (const auto& [name, path] : snapshots)
-        snapshot_array.push_back(
-            {{"Name", name}, {"Id", name + "-id"}, {"Path", path.string()}});
+        snapshot_array.push_back({{"Name", name}, {"Id", name + "-id"}, {"Path", path.string()}});
 
-    const boost::json::object result{
-        {"ActiveDisk", active_disk.string()}, {"Snapshots", std::move(snapshot_array)}};
+    const boost::json::object result{{"ActiveDisk", active_disk.string()},
+                                     {"Snapshots", std::move(snapshot_array)}};
     return boost::json::serialize(result);
 }
 
@@ -56,12 +55,12 @@ std::shared_ptr<NiceMock<mpt::MockSnapshot>> snapshot(int index)
 }
 } // namespace
 
-TEST(HyperVDiskLayoutResolver, rejectsDuplicateCheckpointDiskPaths)
+TEST(LegacyDiskLayout, rejectsDuplicateCheckpointDiskPaths)
 {
     NiceMock<mpt::MockVirtualMachine> vm;
     const auto active = std::filesystem::path{vm.tmp_dir->filePath("active.avhdx").toStdString()};
-    const auto duplicate =
-        std::filesystem::path{vm.tmp_dir->filePath("duplicate.avhdx").toStdString()};
+    const auto duplicate = std::filesystem::path{
+        vm.tmp_dir->filePath("duplicate.avhdx").toStdString()};
     mpt::make_file_with_content(QString::fromStdString(active.string()), "active");
     mpt::make_file_with_content(QString::fromStdString(duplicate.string()), "snapshot");
 
@@ -75,20 +74,19 @@ TEST(HyperVDiskLayoutResolver, rejectsDuplicateCheckpointDiskPaths)
         {{"Get-VMHardDiskDrive",
           discovery_json(active, {{"@s1", duplicate}, {"@s2", duplicate}})}});
 
-    EXPECT_THROW((void)mhv::HyperVDiskLayoutResolver::resolve("migration-test", vm),
-                 std::runtime_error);
+    EXPECT_THROW((void)mhv::resolve_legacy_disk_layout("migration-test", vm), std::runtime_error);
 }
 
-TEST(HyperVDiskLayoutResolver, rejectsSnapshotsOnDifferentBaseImages)
+TEST(LegacyDiskLayout, rejectsSnapshotsOnDifferentBaseImages)
 {
     NiceMock<mpt::MockVirtualMachine> vm;
     const auto active = std::filesystem::path{vm.tmp_dir->filePath("active.avhdx").toStdString()};
-    const auto first_disk =
-        std::filesystem::path{vm.tmp_dir->filePath("base-a.vhdx").toStdString()};
-    const auto second_disk =
-        std::filesystem::path{vm.tmp_dir->filePath("snapshot-b.avhdx").toStdString()};
-    const auto second_base =
-        std::filesystem::path{vm.tmp_dir->filePath("base-b.vhdx").toStdString()};
+    const auto first_disk = std::filesystem::path{
+        vm.tmp_dir->filePath("base-a.vhdx").toStdString()};
+    const auto second_disk = std::filesystem::path{
+        vm.tmp_dir->filePath("snapshot-b.avhdx").toStdString()};
+    const auto second_base = std::filesystem::path{
+        vm.tmp_dir->filePath("base-b.vhdx").toStdString()};
     for (const auto& path : {active, first_disk, second_disk, second_base})
         mpt::make_file_with_content(QString::fromStdString(path.string()), "disk");
     mpt::make_file_with_content(vm.tmp_dir->filePath("snapshot-head"), "1\n");
@@ -114,6 +112,5 @@ TEST(HyperVDiskLayoutResolver, rejectsSnapshotsOnDifferentBaseImages)
         .WillByDefault(DoAll(SetArgReferee<1>(std::vector{second_disk, second_base}),
                              Return(mhv::OperationResult::success())));
 
-    EXPECT_THROW((void)mhv::HyperVDiskLayoutResolver::resolve("migration-test", vm),
-                 std::runtime_error);
+    EXPECT_THROW((void)mhv::resolve_legacy_disk_layout("migration-test", vm), std::runtime_error);
 }
