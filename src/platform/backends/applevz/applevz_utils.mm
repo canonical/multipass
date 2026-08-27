@@ -114,6 +114,7 @@ void resize_asif_image(const std::filesystem::path& image_path, const mp::Memory
         return;
     }
 
+    // diskutil will also grow the partition table making cloud-init's growpart redundant
     run_process(
         QStringLiteral("diskutil"),
         QStringList() << "image" << "resize" << "--size" << QString::number(disk_space.in_bytes())
