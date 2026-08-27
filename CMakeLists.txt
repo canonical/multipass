@@ -362,15 +362,19 @@ if(CMAKE_BUILD_TYPE_LOWER  MATCHES "coverage")
       set(FLUTTER_COVERAGE_COMMANDS
         COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}/src/client/gui
                 ${FLUTTER_EXECUTABLE} test --coverage
+        # Flutter emits package-relative paths (SF:lib/...). Rewrite them to full
+        # source-tree paths so the Dart entries line up with the repo layout (and
+        # so the exclude patterns below actually match).
+        COMMAND ${CMAKE_COMMAND}
+          -DLCOV_FILE=${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
+          -DSOURCE_PREFIX=${CMAKE_SOURCE_DIR}/src/client/gui
+          -P ${CMAKE_SOURCE_DIR}/src/cmake/rewrite-flutter-coverage-paths.cmake
         COMMAND ${LCOV}
           --remove ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
           --ignore-errors unused
           '*/lib/generated/*'
           '*/lib/l10n/*'
           --output-file ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
-        # Flutter emits package-relative paths (SF:lib/...). Rewrite them to full
-        # source-tree paths so the Dart entries line up with the repo layout.
-        COMMAND sed -i "s|^SF:lib/|SF:${CMAKE_SOURCE_DIR}/src/client/gui/lib/|" ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
         COMMAND ${LCOV}
           --add-tracefile coverage.cleaned
           --add-tracefile lcov.info
