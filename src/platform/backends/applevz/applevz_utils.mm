@@ -87,13 +87,19 @@ std::int64_t asif_image_capacity(const std::filesystem::path& image_path)
 
     const auto data = [NSData dataWithBytes:output.data() length:output.size()];
     NSError* error = nil;
-    NSDictionary* plist = [NSPropertyListSerialization propertyListWithData:data
-                                                                    options:0
-                                                                     format:nullptr
-                                                                      error:&error];
+    id plist = [NSPropertyListSerialization propertyListWithData:data
+                                                         options:0
+                                                          format:nullptr
+                                                           error:&error];
+
+    if (error || ![plist isKindOfClass:NSDictionary.class])
+        throw std::runtime_error(
+            fmt::format("Could not parse diskutil info for ASIF image {}: {}",
+                        image_path,
+                        error ? error.localizedDescription.UTF8String : "not a dictionary"));
 
     // The capacity lives at "Size Info" -> "Total Bytes".
-    NSNumber* total_bytes = plist[@"Size Info"][@"Total Bytes"];
+    NSNumber* total_bytes = static_cast<NSDictionary*>(plist)[@"Size Info"][@"Total Bytes"];
     if (![total_bytes isKindOfClass:NSNumber.class])
         throw std::runtime_error(
             fmt::format("Could not determine capacity of ASIF image: {}", image_path));

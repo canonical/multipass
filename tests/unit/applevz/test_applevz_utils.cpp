@@ -302,6 +302,40 @@ TEST_F(AppleVZUtils_UnitTests, imageCapacityReadsTotalBytesFromAsif)
     EXPECT_EQ(capacity.in_bytes(), 5368709120LL);
 }
 
+TEST_F(AppleVZUtils_UnitTests, imageCapacityFallsBackToQemuImgForNonAsif)
+{
+    MP_UTILS.make_file_with_content(test_image.path(), "not-asif", true);
+
+    process_factory_scope->register_callback([](mpt::MockProcess* process) {
+        if (process->program() == expected_qemu_img_path() && process->arguments().contains("info"))
+            EXPECT_CALL(*process, read_all_standard_output)
+                .WillOnce(Return(QByteArray(R"({"virtual-size": 2097152})")));
+    });
+
+    const auto capacity = mock_applevz_utils.AppleVZUtils::image_capacity(test_image.path());
+
+    EXPECT_EQ(capacity.in_bytes(), 2097152LL);
+}
+
+TEST_F(AppleVZUtils_UnitTests, imageCapacityThrowsOnNonDictionaryPlist)
+{
+    MP_UTILS.make_file_with_content(test_image.path(), asif_image_content(), true);
+
+    process_factory_scope->register_callback([](mpt::MockProcess* process) {
+        if (process->program() == "diskutil" && process->arguments().contains("info"))
+            EXPECT_CALL(*process, read_all_standard_output)
+                .WillOnce(Return(QByteArray(R"plist(<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array><string>unexpected</string></array>
+</plist>
+)plist")));
+    });
+
+    EXPECT_THROW(mock_applevz_utils.AppleVZUtils::image_capacity(test_image.path()),
+                 std::runtime_error);
+}
+
 TEST_F(AppleVZUtils_UnitTests, nonAsifImageResizesToExactSize)
 {
     MP_UTILS.make_file_with_content(test_image.path(), "test", true);
