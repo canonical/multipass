@@ -19,6 +19,7 @@
 
 #include <multipass/sshfs_mount/sftp_protocol.h>
 
+#include <cstddef> // for size_t
 #include <cstdint>
 #include <optional>
 #include <string>
