@@ -62,7 +62,6 @@ public:
     bool has_record_for(const std::string& name) override;
     void prune_expired_images() override;
     void update_images(const PrepareAction& prepare, const ProgressMonitor& monitor) override;
-    MemorySize minimum_image_size_for(const std::string& id) override;
     void clone(const std::string& source_instance_name,
                const std::string& destination_instance_name) override;
 

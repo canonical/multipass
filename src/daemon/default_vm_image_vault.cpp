@@ -84,11 +84,6 @@ void delete_image_dir(const mp::Path& image_path)
     }
 }
 
-mp::MemorySize get_image_size(const std::filesystem::path& image_path)
-{
-    return mp::MemorySize(mp::backend::get_image_info(image_path, "virtual-size").toStdString());
-}
-
 void persist_records(const std::unordered_map<std::string, mp::VaultRecord>& records,
                      const QString& path)
 {
@@ -486,28 +481,6 @@ void mp::DefaultVMImageVault::update_images(const PrepareAction& prepare,
     }
 }
 
-mp::MemorySize mp::DefaultVMImageVault::minimum_image_size_for(const std::string& id)
-{
-    auto prepared_image_entry = prepared_image_records.find(id);
-    if (prepared_image_entry != prepared_image_records.end())
-    {
-        const auto& record = prepared_image_entry->second;
-
-        return get_image_size(record.image.image_path);
-    }
-
-    for (const auto& instance_image_entry : instance_image_records)
-    {
-        const auto& record = instance_image_entry.second;
-
-        if (record.image.id == id)
-        {
-            return get_image_size(record.image.image_path);
-        }
-    }
-
-    throw std::runtime_error(fmt::format("Cannot determine minimum image size for id \'{}\'", id));
-}
 void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
                                     const std::string& destination_instance_name)
 {
