@@ -36,6 +36,8 @@ public:
     [[nodiscard]] VMImage prepare_source_image(const VMImage& source_image) override;
     void prepare_instance_image(const VMImage& instance_image,
                                 const VirtualMachineDescription& desc) override;
+    [[nodiscard]] MemorySize virtual_size_for(
+        const std::filesystem::path& image_path) const override;
     void hypervisor_health_check() override;
 
     [[nodiscard]] QString get_backend_version_string() const override

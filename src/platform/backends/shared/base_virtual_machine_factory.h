@@ -58,6 +58,8 @@ public:
 
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
 
+    MemorySize virtual_size_for(const std::filesystem::path& image_path) const override;
+
     VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
                                           URLDownloader* downloader,
                                           const Path& cache_dir_path,

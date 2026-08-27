@@ -36,6 +36,7 @@ class URLDownloader;
 class VirtualMachineDescription;
 class VMImageHost;
 class VMStatusMonitor;
+class MemorySize;
 struct NetworkInterface;
 struct NetworkInterfaceInfo;
 
@@ -66,6 +67,8 @@ public:
     virtual VMImage prepare_source_image(const VMImage& source_image) = 0;
     virtual void prepare_instance_image(const VMImage& instance_image,
                                         const VirtualMachineDescription& desc) = 0;
+    virtual MemorySize virtual_size_for(const std::filesystem::path& image_path) const = 0;
+
     virtual void hypervisor_health_check() = 0;
     virtual QString get_backend_directory_name() const = 0;
     virtual Path get_instance_directory(const std::string& name) const = 0;
