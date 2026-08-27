@@ -61,11 +61,17 @@ void expect_ssh_coordinates_eq(const mp::SSHCoordinates& actual, const mp::SSHCo
 
             const auto& actual_vsock_host = std::get<VSOCKHostData>(actual.vsock_host);
             if constexpr (std::is_same_v<VSOCKHostData, mp::HVSOCKData>)
+            {
                 EXPECT_EQ(actual_vsock_host.vmid, expected_vsock_host.vmid);
+            }
             else if constexpr (std::is_same_v<VSOCKHostData, mp::VSOCKData>)
+            {
                 EXPECT_EQ(actual_vsock_host.cid, expected_vsock_host.cid);
+            }
             else if constexpr (std::is_same_v<VSOCKHostData, mp::USOCKData>)
+            {
                 EXPECT_EQ(actual_vsock_host.socket_address, expected_vsock_host.socket_address);
+            }
         },
         expected.vsock_host);
 }
