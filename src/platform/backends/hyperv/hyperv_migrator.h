@@ -16,12 +16,13 @@
 
 #pragma once
 
-#include "hyperv_migration_state.h"
+#include "hcs_ownership.h"
 
 #include <multipass/path.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <filesystem>
 #include <memory>
 #include <optional>
 
@@ -30,11 +31,11 @@ namespace multipass
 class AvailabilityZone;
 class SSHKeyProvider;
 class VMStatusMonitor;
-}
+} // namespace multipass
 
 namespace multipass::hyperv
 {
-struct LegacyHyperVDiskLayout;
+struct LegacyDiskLayout;
 
 class HyperVMigrator
 {
@@ -59,13 +60,12 @@ public:
     [[nodiscard]] VirtualMachine::UPtr make_target() override;
 
 private:
-    void commit_migration(const LegacyHyperVDiskLayout& layout, HyperVMigrationState state);
-
+    void commit_migration(const LegacyDiskLayout& layout, HCSOwnership ownership);
     VirtualMachineDescription description;
     VMStatusMonitor& monitor;
     const SSHKeyProvider& key_provider;
     AvailabilityZone& zone;
     Path instance_dir;
-    std::optional<HyperVMigrationState> committed_state;
+    std::optional<HCSOwnership> committed_ownership;
 };
 } // namespace multipass::hyperv
