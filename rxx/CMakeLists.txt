@@ -33,6 +33,11 @@ set(RUST_BUILD_DIR "${CMAKE_BINARY_DIR}/rxx")
 set(RUST_BIN_DIR "${RUST_BUILD_DIR}/${RUST_BUILD}")
 
 set(CARGO_ENV "CARGO_TARGET_DIR=${RUST_BUILD_DIR}")
+# Clear MAKEFLAGS so cargo doesn't try to connect to make's jobserver. Under a
+# parallel Make build (-jN), make exports MAKEFLAGS with --jobserver-auth=<fds>,
+# but those pipe file descriptors are not inherited by this custom command, so
+# cargo warns: "failed to connect to jobserver ... Bad file descriptor".
+list(APPEND CARGO_ENV "MAKEFLAGS=")
 if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
   list(APPEND CARGO_ENV "MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif()
