@@ -295,6 +295,9 @@ CFError resume_with_completion_handler(const VMHandle& vm_handle)
 
 AppleVMState get_state(const VMHandle& vm_handle)
 {
+    if (!vm_handle)
+        return AppleVMState::stopped;
+
     VZVirtualMachine* vm = (__bridge VZVirtualMachine*)vm_handle->vm.get();
     return AppleVMState(query_on_vm_queue(vm_handle, [&]() { return [vm state]; }));
 }

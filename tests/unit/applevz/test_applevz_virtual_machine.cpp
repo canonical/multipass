@@ -256,7 +256,9 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownForcedStopError)
 {
     auto uut = construct_vm(applevz::AppleVMState::running);
 
-    EXPECT_CALL(mock_applevz, get_state(_)).WillOnce(Return(applevz::AppleVMState::running));
+    EXPECT_CALL(mock_applevz, get_state(_))
+        .WillOnce(Return(applevz::AppleVMState::running))
+        .WillRepeatedly(Return(applevz::AppleVMState::stopped));
 
     EXPECT_CALL(mock_applevz, can_stop(_)).WillOnce(Return(true));
     EXPECT_CALL(mock_applevz, stop_vm(_, true))
