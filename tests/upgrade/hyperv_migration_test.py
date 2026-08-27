@@ -118,8 +118,8 @@ def sha256(path):
     return digest.hexdigest()
 
 
-def migration_state_path(name):
-    return Path(cfg.data_dir) / "vault" / "instances" / name / "migration.json"
+def ownership_path(name):
+    return Path(cfg.data_dir) / "vault" / "instances" / name / "hcs-ownership.json"
 
 
 def sentinel(name, label):
@@ -200,12 +200,18 @@ def test_stopped_snapshot_verify(scenario):
     assert_identity(STOPPED_VM, record["identity"])
     assert not legacy_id_exists(record["legacy_id"])
 
-    migration = json.loads(migration_state_path(STOPPED_VM).read_text(encoding="utf-8"))
+    migration = json.loads(ownership_path(STOPPED_VM).read_text(encoding="utf-8"))
     assert migration["backend"] == "hcs"
     assert os.path.normcase(migration["active_disk"]) == os.path.normcase(record["active_disk"])
-    migrated = {item["checkpoint_name"]: item["disk_path"] for item in migration["snapshots"]}
+    assert Path(migration["state_file_stem"]).name == "hcs-migrated-state"
     for checkpoint, disk in record["snapshot_disks"].items():
-        assert os.path.normcase(migrated[checkpoint]) == os.path.normcase(disk["path"])
+        index = int(checkpoint.removeprefix("@s"))
+        metadata_path = ownership_path(STOPPED_VM).with_name(
+            f"{index:04}.snapshot.json"
+        )
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        migrated_path = metadata["snapshot"]["disk_path"]
+        assert os.path.normcase(migrated_path) == os.path.normcase(disk["path"])
         assert sha256(disk["path"]) == disk["sha256"]
 
     assert multipass("stop", STOPPED_VM)
