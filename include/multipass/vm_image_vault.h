@@ -18,7 +18,6 @@
 #pragma once
 
 #include "disabled_copy_move.h"
-#include "memory_size.h"
 #include "path.h"
 #include "progress_monitor.h"
 #include "vm_image_info.h"

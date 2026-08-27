@@ -120,6 +120,17 @@ TEST_F(AppleVZVirtualMachineFactory_UnitTests, prepareInstanceImageResizeFails)
     EXPECT_THROW(uut->prepare_instance_image(instance_image, desc), std::runtime_error);
 }
 
+TEST_F(AppleVZVirtualMachineFactory_UnitTests, virtualSizeForDelegatesToImageCapacity)
+{
+    const std::filesystem::path image_path = "/some/image.asif";
+    const auto capacity = mp::MemorySize::from_bytes(5368709120LL);
+
+    EXPECT_CALL(mock_applevz_utils, image_capacity(image_path)).WillOnce(Return(capacity));
+
+    auto uut = construct_factory();
+    EXPECT_EQ(uut->virtual_size_for(image_path), capacity);
+}
+
 TEST_F(AppleVZVirtualMachineFactory_UnitTests, hypervisorHealthCheckSupported)
 {
     EXPECT_CALL(mock_applevz, is_supported()).WillOnce(Return(true));

@@ -1129,6 +1129,20 @@ TEST_P(LaunchStorageCheckSuite, launchFailsWhenSpaceLessThanImage)
                 HasSubstr("Available disk (0 bytes) below minimum for this image (1 bytes)"));
 }
 
+TEST_F(Daemon, launchFailsWhenRequestedDiskBelowImageVirtualSize)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, virtual_size_for(_))
+        .WillByDefault(Return(mp::MemorySize::from_bytes(5LL * 1024 * 1024 * 1024)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0);
+    send_command({"launch", "--disk", "1G"}, trash_stream, stream);
+    EXPECT_THAT(stream.str(), HasSubstr("below minimum for this image"));
+}
+
 TEST_P(LaunchStorageCheckSuite, launchFailsWithInvalidDataDirectory)
 {
     auto mock_factory = use_a_mock_vm_factory();
