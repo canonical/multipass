@@ -39,7 +39,7 @@ class PlainSSHSession final : public SSHSession // final to prevent chopping on 
 public:
     PlainSSHSession(const std::string& host,
                     int port,
-                    const std::string& ssh_username,
+                    const std::string& username,
                     const SSHKeyProvider& key_provider);
 
     // just being explicit (unique_ptr member already caused these to be deleted)
@@ -93,7 +93,7 @@ public: // but restricted
 private:
     struct RawSSHSessionDeleter
     {
-        void operator()(ssh_session_struct* message) const noexcept;
+        void operator()(ssh_session_struct* session) const noexcept;
     };
     using RawSSHSessionUptr = std::unique_ptr<ssh_session_struct, RawSSHSessionDeleter>;
 
