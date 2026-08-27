@@ -92,9 +92,9 @@ jobs:
 
     - name: Process Dart coverage
       run: |
-        sed 's|lib/|'"$GITHUB_WORKSPACE"'/src/client/gui/lib/|g' \
-            src/client/gui/coverage/lcov.info \
-            > ${{ env.COVERAGE_DIR }}/dart.info
+        # The covreport target already rewrites the Dart paths to full
+        # source-tree paths, so just hand the file to TICS as-is.
+        cp src/client/gui/coverage/lcov.info ${{ env.COVERAGE_DIR }}/dart.info
 
     - name: Detach TICS QServer to prevent "project already connected" issue
       env:
