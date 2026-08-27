@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include "hyperv_migration_state.h"
-
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -29,19 +27,25 @@ class VirtualMachine;
 
 namespace multipass::hyperv
 {
-struct LegacyHyperVDiskLayout
+struct LegacySnapshotDisk
+{
+    int index;
+    std::string checkpoint_name;
+    std::string checkpoint_id;
+    std::filesystem::path disk_path;
+};
+
+struct LegacyDiskLayout
 {
     std::filesystem::path active_disk;
     std::vector<LegacySnapshotDisk> snapshots;
     std::vector<std::filesystem::path> all_disks;
+
+    void persist_snapshot_paths(const VirtualMachine& vm) const;
 };
 
-class HyperVDiskLayoutResolver
-{
-public:
-    [[nodiscard]] static bool vm_exists(const std::string& name);
-    [[nodiscard]] static std::filesystem::path active_disk(const std::string& name);
-    [[nodiscard]] static LegacyHyperVDiskLayout resolve(const std::string& name,
-                                                        const VirtualMachine& vm);
-};
+[[nodiscard]] bool legacy_vm_exists(const std::string& name);
+[[nodiscard]] std::filesystem::path legacy_active_disk(const std::string& name);
+[[nodiscard]] LegacyDiskLayout resolve_legacy_disk_layout(const std::string& name,
+                                                          const VirtualMachine& vm);
 } // namespace multipass::hyperv
