@@ -24,6 +24,7 @@
 
 #include <mutex>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 namespace multipass::hyperv
@@ -305,4 +306,5 @@ private:
     QDir instance_dir;
     const AvailabilityZone* zone{};
 };
+static_assert(!std::is_abstract_v<DelegatingVirtualMachine>);
 } // namespace multipass::hyperv

@@ -52,8 +52,7 @@ void multipass::hyperv::MigratingHyperVVirtualMachine::start()
     else if (!migration_committed)
     {
         const auto current = vm->current_state();
-        if ((current == State::off || current == State::stopped) &&
-            migrator->try_migrate(*vm))
+        if ((current == State::off || current == State::stopped) && migrator->try_migrate(*vm))
         {
             migration_committed = true;
             switch_to_target();
