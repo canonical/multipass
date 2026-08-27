@@ -113,6 +113,7 @@ struct TestPlainSftpSession : public Test
                 auto& read_so_far = bytes_read[{running_cmd, is_stderr != 0}];
 
                 // num_bytes will be zero once the stream is exhausted
+                EXPECT_LE(read_so_far, stream.size());
                 const auto num_bytes = std::min<std::size_t>(count, stream.size() - read_so_far);
 
                 std::memcpy(dest, stream.data() + read_so_far, num_bytes);
