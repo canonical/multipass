@@ -40,6 +40,29 @@ auto expected_qemu_img_path()
     return QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img");
 }
 
+std::string asif_image_content()
+{
+    return "shdw";
+}
+
+QByteArray asif_info_plist(qint64 total_bytes)
+{
+    return QStringLiteral(
+               R"plist(<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+    <key>Size Info</key>
+    <dict>
+        <key>Total Bytes</key>
+        <integer>%1</integer>
+    </dict>
+</dict>
+</plist>
+)plist")
+        .arg(total_bytes)
+        .toUtf8();
+}
+
 struct AppleVZUtils_UnitTests : public testing::Test
 {
     AppleVZUtils_UnitTests()
@@ -188,7 +211,7 @@ TEST_F(AppleVZUtils_UnitTests, conversionRemovesAsifOnFailure)
 
 TEST_F(AppleVZUtils_UnitTests, asifImageResizesViaDiskutil)
 {
-    MP_UTILS.make_file_with_content(test_image.path(), "shdw", true);
+    MP_UTILS.make_file_with_content(test_image.path(), asif_image_content(), true);
 
     const auto target_size = mp::MemorySize::from_bytes(512LL * 1024 * 1024);
     bool diskutil_resize_called = false;
@@ -214,19 +237,63 @@ TEST_F(AppleVZUtils_UnitTests, asifImageResizesViaDiskutil)
 
 TEST_F(AppleVZUtils_UnitTests, resizeAsifImageIsNoOpWhenRequestedSizeWithinCurrentCapacity)
 {
-    std::string content(4096, '\0');
-    content.replace(0, 4, "shdw");
-    MP_UTILS.make_file_with_content(test_image.path(), content, true);
+    MP_UTILS.make_file_with_content(test_image.path(), asif_image_content(), true);
 
-    bool diskutil_called = false;
-    process_factory_scope->register_callback(
-        [&diskutil_called](mpt::MockProcess* process) { diskutil_called = true; });
+    bool diskutil_resize_called = false;
+    process_factory_scope->register_callback([&diskutil_resize_called](mpt::MockProcess* process) {
+        if (process->program() == "diskutil")
+        {
+            const auto args = process->arguments();
+            if (args.contains("info"))
+                EXPECT_CALL(*process, read_all_standard_output)
+                    .WillOnce(Return(asif_info_plist(5368709120LL)));
+            else if (args.contains("resize"))
+                diskutil_resize_called = true;
+        }
+    });
 
-    mock_applevz_utils.AppleVZUtils::resize_image(mp::MemorySize::from_bytes(2048),
+    mock_applevz_utils.AppleVZUtils::resize_image(mp::MemorySize::from_bytes(5368709120LL),
                                                   test_image.path());
 
-    EXPECT_FALSE(diskutil_called);
-    EXPECT_EQ(std::filesystem::file_size(test_image.path()), 4096);
+    EXPECT_FALSE(diskutil_resize_called);
+}
+
+TEST_F(AppleVZUtils_UnitTests, resizeAsifImageThrowsWhenCapacityQueryFails)
+{
+    MP_UTILS.make_file_with_content(test_image.path(), asif_image_content(), true);
+
+    bool diskutil_resize_called = false;
+    process_factory_scope->register_callback([&diskutil_resize_called](mpt::MockProcess* process) {
+        if (process->program() == "diskutil")
+        {
+            const auto args = process->arguments();
+            if (args.contains("info"))
+                EXPECT_CALL(*process, read_all_standard_output)
+                    .WillOnce(Return(QByteArray("<plist><dict/></plist>")));
+            else if (args.contains("resize"))
+                diskutil_resize_called = true;
+        }
+    });
+
+    const auto target_size = mp::MemorySize::from_bytes(512LL * 1024 * 1024);
+    EXPECT_THROW(mock_applevz_utils.AppleVZUtils::resize_image(target_size, test_image.path()),
+                 std::runtime_error);
+    EXPECT_FALSE(diskutil_resize_called);
+}
+
+TEST_F(AppleVZUtils_UnitTests, imageCapacityReadsTotalBytesFromAsif)
+{
+    MP_UTILS.make_file_with_content(test_image.path(), asif_image_content(), true);
+
+    process_factory_scope->register_callback([](mpt::MockProcess* process) {
+        if (process->program() == "diskutil" && process->arguments().contains("info"))
+            EXPECT_CALL(*process, read_all_standard_output)
+                .WillOnce(Return(asif_info_plist(5368709120LL)));
+    });
+
+    const auto capacity = mock_applevz_utils.AppleVZUtils::image_capacity(test_image.path());
+
+    EXPECT_EQ(capacity.in_bytes(), 5368709120LL);
 }
 
 TEST_F(AppleVZUtils_UnitTests, nonAsifImageResizesToExactSize)
@@ -242,7 +309,7 @@ TEST_F(AppleVZUtils_UnitTests, nonAsifImageResizesToExactSize)
 
 TEST_F(AppleVZUtils_UnitTests, resizeAsifImageThrowsOnDiskutilFailure)
 {
-    MP_UTILS.make_file_with_content(test_image.path(), "shdw", true);
+    MP_UTILS.make_file_with_content(test_image.path(), asif_image_content(), true);
 
     process_factory_scope->register_callback([](mpt::MockProcess* process) {
         if (process->program() == "diskutil")
