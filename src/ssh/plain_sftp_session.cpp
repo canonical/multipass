@@ -45,7 +45,7 @@ constexpr auto client_exit_timeout = 250ms; // how long we wait on the client's 
 class SftpInitException : public mp::SSHException
 {
 public:
-    SftpInitException(const std::string& detail)
+    explicit SftpInitException(const std::string& detail)
         : SSHException{fmt::format("{}: {}", init_error_prefix, detail)}
     {
     }
@@ -73,12 +73,12 @@ auto create_client_process(mp::PlainSSHSession& session, const std::string& clie
 
 int poll_stdout(ssh_channel channel, int timeout)
 {
-    int poll_result = MP_LIBSSH.ssh_channel_poll_timeout(channel, timeout, /* is_stderr = */ 0);
-    if (poll_result < 0)
-        assert((poll_result == SSH_ERROR || poll_result == SSH_EOF) &&
+    const int poll_res = MP_LIBSSH.ssh_channel_poll_timeout(channel, timeout, /* is_stderr = */ 0);
+    if (poll_res < 0)
+        assert((poll_res == SSH_ERROR || poll_res == SSH_EOF) &&
                "contract includes no other negative numbers");
 
-    return poll_result;
+    return poll_res;
 }
 } // namespace
 
@@ -118,11 +118,11 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
     }
 
     /* handles setting the sftp->client_version */
-    sftp_client_message msg{MP_LIBSSH.sftp_get_client_message(raw_sftp_session.get())};
+    const sftp_client_message msg{MP_LIBSSH.sftp_get_client_message(raw_sftp_session.get())};
     if (msg == nullptr)
         throw SftpInitException{"Null client message"};
 
-    PlainSftpMessage wrapped{*msg};
+    PlainSftpMessage wrapped{*msg}; // keep the msg around until the end of the scope, then free
     if (wrapped.type() != mp::SftpMessageType::init)
         throw SftpInitException{
             fmt::format("FATAL: Packet read of type {} instead of SSH_FXP_INIT", msg->type)};
@@ -156,8 +156,8 @@ mp::PlainSftpSession::~PlainSftpSession()
     raw_sftp_session.reset(); // mind the order: this borrows the process's channel
     client_process.reset();
 
-    mp::top_catch_all(category,
-                      [this] { client_steward.clean_up_after_client(plain_ssh_session, source); });
+    top_catch_all(category,
+                  [this] { client_steward.clean_up_after_client(plain_ssh_session, source); });
 }
 
 void mp::PlainSftpSession::spawn_client()

@@ -31,7 +31,7 @@ namespace
 {
 struct TestPlainSSHSession : public Test
 {
-    mp::PlainSSHSession make_ssh_session()
+    mp::PlainSSHSession make_ssh_session() const
     {
         return mp::PlainSSHSession("theanswertoeverything", 42, "ubuntu", key_provider);
     }
