@@ -32,7 +32,7 @@ namespace multipass
  *
  * Provides access to the client request along with methods to reply.
  */
-class SftpMessage // TODO@sftp check if there is anything unused at the end
+class SftpMessage // TODO@sftp confirm nothing is unused at the end
 {
 public:
     virtual ~SftpMessage() = default;
