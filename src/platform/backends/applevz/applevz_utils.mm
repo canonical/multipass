@@ -33,6 +33,8 @@
 
 #include <Foundation/Foundation.h>
 
+#include <QRegularExpression>
+
 #include <scope_guard.hpp>
 
 #include <algorithm>
@@ -78,24 +80,34 @@ bool is_asif_image(const std::filesystem::path& image_path)
     return file->gcount() == 4 && std::equal(magic.begin(), magic.end(), "shdw");
 }
 
+std::int64_t asif_image_capacity(const std::filesystem::path& image_path)
+{
+    const auto plist = QString::fromStdString(run_process(
+        QStringLiteral("diskutil"),
+        QStringList() << "image" << "info" << "--plist" << MP_PLATFORM.path_to_qstr(image_path),
+        fmt::format("query capacity of ASIF image: {}", image_path)));
+
+    // "Total Bytes" lives under "Size Info" as a <key>/<integer> pair.
+    static const QRegularExpression re{
+        QStringLiteral("<key>Total Bytes</key>\\s*<integer>\\s*(\\d+)\\s*</integer>")};
+    const auto match = re.match(plist);
+    if (!match.hasMatch())
+        throw std::runtime_error(
+            fmt::format("Could not determine capacity of ASIF image: {}", image_path));
+
+    return match.captured(1).toLongLong();
+}
+
 void resize_asif_image(const std::filesystem::path& image_path, const mp::MemorySize& disk_space)
 {
-    // ASIF images carry metadata overhead, so their capacity ends up slightly larger than the
-    // raw image they were created from.
-    std::error_code ec;
-    const auto current_size = std::filesystem::file_size(image_path, ec);
-    if (ec)
-        throw std::runtime_error(
-            fmt::format("Failed to determine size of image {}: {}", image_path, ec.message()));
-
-    const auto current_bytes = static_cast<long long>(current_size);
-    if (disk_space.in_bytes() <= current_bytes)
+    const auto current_capacity = asif_image_capacity(image_path);
+    if (disk_space.in_bytes() <= current_capacity)
     {
         mpl::debug(category,
                    "Skipping resize of {}: requested size {} does not exceed current capacity {}",
                    image_path,
                    disk_space.human_readable(),
-                   mp::MemorySize::from_bytes(current_bytes).human_readable());
+                   mp::MemorySize::from_bytes(current_capacity).human_readable());
         return;
     }
 
@@ -172,6 +184,14 @@ void AppleVZUtils::resize_image(const MemorySize& disk_space,
                               : make_sparse(image_path, disk_space);
 
     mpl::trace(category, "Successfully resized image: {}", image_path);
+}
+
+mp::MemorySize AppleVZUtils::image_capacity(const std::filesystem::path& image_path) const
+{
+    return is_asif_image(image_path)
+             ? mp::MemorySize::from_bytes(asif_image_capacity(image_path))
+             : mp::MemorySize(
+                   mp::backend::get_image_info(image_path, "virtual-size").toStdString());
 }
 
 bool AppleVZUtils::macos_at_least(int major, int minor, int patch) const
