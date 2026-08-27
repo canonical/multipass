@@ -30,6 +30,7 @@
 #include <cstring>
 #include <mutex>
 #include <string>
+#include <type_traits>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
