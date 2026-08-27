@@ -127,7 +127,7 @@ void mp::SshfsClientSteward::clean_up_after_client(SSHSession& session,
 {
     const auto mount_path = [&session, &source] {
         auto proc = session.exec(fmt::format("findmnt --source :{:?} -o TARGET -n", source));
-        return mp::utils::trim(proc->read_std_output());
+        return utils::trim(proc->read_std_output());
     }();
 
     if (!mount_path.empty())

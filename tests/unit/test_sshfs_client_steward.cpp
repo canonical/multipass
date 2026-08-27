@@ -50,12 +50,12 @@ struct TestSshfsClientSteward : public Test
 
         ON_CALL(session, exec)
             .WillByDefault([this](const std::string& cmd, bool) -> std::unique_ptr<mp::SSHProcess> {
-                const auto& result = result_for(cmd);
+                const auto& [exit_code, std_out, std_err] = result_for(cmd);
                 auto proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
 
-                ON_CALL(*proc, exit_code).WillByDefault(Return(result.exit_code));
-                ON_CALL(*proc, read_std_output).WillByDefault(Return(result.std_out));
-                ON_CALL(*proc, read_std_error).WillByDefault(Return(result.std_err));
+                ON_CALL(*proc, exit_code).WillByDefault(Return(exit_code));
+                ON_CALL(*proc, read_std_output).WillByDefault(Return(std_out));
+                ON_CALL(*proc, read_std_error).WillByDefault(Return(std_err));
                 ON_CALL(*proc, get_cmd).WillByDefault(ReturnRefOfCopy(cmd));
 
                 return proc;
@@ -106,7 +106,7 @@ struct TestSshfsClientSteward : public Test
      * The command expected to mount with the sshfs on PATH, given the @p extra_options that its
      * fuse version calls for.
      */
-    std::string expected_distro_command(const std::string& extra_options = {}) const
+    static std::string expected_distro_command(const std::string& extra_options = {})
     {
         return fmt::format("sudo -n {} {}{} :\"{}\" \"{}\"",
                            distro_sshfs,
