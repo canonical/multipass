@@ -50,56 +50,39 @@ pub fn log_message_with_location(
 }
 
 #[macro_export]
-macro_rules! error {
-    ($category:expr, $($arg:tt)+) => {
-        $crate::log::log_message(
-            $crate::ffi::Level::error,
-            $category.to_string(),
-            format!($($arg)+),
-        )
+macro_rules! __log {
+    ($level:expr, $category:expr, $($arg:tt)+) => {
+        $crate::log::log_message($level, $category.to_string(), format!($($arg)+))
     };
+}
+
+#[macro_export]
+macro_rules! error {
+    ($($t:tt)+) => { $crate::__log!($crate::ffi::Level::error, $($t)+) };
 }
 
 #[macro_export]
 macro_rules! warning {
-    ($category:expr, $($arg:tt)+) => {
-        $crate::log::log_message(
-            $crate::ffi::Level::warning,
-            $category.to_string(),
-            format!($($arg)+),
-        )
-    };
+    ($($t:tt)+) => { $crate::__log!($crate::ffi::Level::warning, $($t)+) };
 }
 
 #[macro_export]
 macro_rules! debug {
-    ($category:expr, $($arg:tt)+) => {
-        $crate::log::log_message(
-            $crate::ffi::Level::debug,
-            $category.to_string(),
-            format!($($arg)+),
-        )
-    };
+    ($($t:tt)+) => { $crate::__log!($crate::ffi::Level::debug, $($t)+) };
 }
 
 #[macro_export]
 macro_rules! trace {
-    ($category:expr, $($arg:tt)+) => {
-        $crate::log::log_message(
-            $crate::ffi::Level::trace,
-            $category.to_string(),
-            format!($($arg)+),
-        )
-    };
+    ($($t:tt)+) => { $crate::__log!($crate::ffi::Level::trace, $($t)+) };
 }
 
 // --- Location-Aware Macros ---
 
 #[macro_export]
-macro_rules! debug_location {
-    ($category:expr, $($arg:tt)+) => {
+macro_rules! __log_location {
+    ($level:expr, $category:expr, $($arg:tt)+) => {
         $crate::log::log_message_with_location(
-            $crate::ffi::Level::debug,
+            $level,
             $category.to_string(),
             file!(),
             line!(),
@@ -110,15 +93,11 @@ macro_rules! debug_location {
 }
 
 #[macro_export]
+macro_rules! debug_location {
+    ($($t:tt)+) => { $crate::__log_location!($crate::ffi::Level::debug, $($t)+) };
+}
+
+#[macro_export]
 macro_rules! trace_location {
-    ($category:expr, $($arg:tt)+) => {
-        $crate::log::log_message_with_location(
-            $crate::ffi::Level::trace,
-            $category.to_string(),
-            file!(),
-            line!(),
-            module_path!(),
-            format!($($arg)+),
-        )
-    };
+    ($($t:tt)+) => { $crate::__log_location!($crate::ffi::Level::trace, $($t)+) };
 }
