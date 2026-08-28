@@ -363,6 +363,7 @@ Query the load balancer again. With two zones down, every request can only come 
 
 ```bash
 curl http://$LB_IP
+curl http://$LB_IP
 ```
 
 ````
