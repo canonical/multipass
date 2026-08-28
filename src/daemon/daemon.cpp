@@ -3442,8 +3442,10 @@ bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
                                mp::VirtualMachine* vm)
 {
     auto& mount_specs = vm_specs.mounts;
-    return prune_obsolete_mounts(mount_specs, vm_mounts) ||
-           !create_missing_mounts(mount_specs, vm_mounts, vm);
+    const auto mounts_pruned = prune_obsolete_mounts(mount_specs, vm_mounts);
+    const auto all_mount_handlers_created = create_missing_mounts(mount_specs, vm_mounts, vm);
+
+    return mounts_pruned || !all_mount_handlers_created;
 }
 
 bool mp::Daemon::create_missing_mounts(
