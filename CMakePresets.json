@@ -45,6 +45,18 @@
             }
         },
         {
+            "name": "local-multi-config",
+            "description": "Preset for locally generating any type of build.",
+            "generator": "Ninja Multi-Config",
+            "inherits": "common", 
+            "cacheVariables": {
+                "MULTIPASS_ENABLE_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
             "name": "snap",
             "description": "Preset for snap builds.",
             "inherits": "common",
@@ -168,9 +180,18 @@
     "buildPresets": [
         {
             "name": "configured-at-present",
-            "description":
-                "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
+            "description": "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
             "configurePreset": "common"
+        },
+        {
+            "name": "local-debug",
+            "configurePreset": "local-multi-config",
+            "configuration": "Debug"
+        },
+        {
+            "name": "local-release",
+            "configurePreset": "local-multi-config",
+            "configuration": "Release"
         }
     ]
 }

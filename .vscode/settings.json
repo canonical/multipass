@@ -1,0 +1,8 @@
+{
+    "C_Cpp.files.exclude": {
+        "${workspaceFolder}/build": true,
+        "${workspaceFolder}/.git": true
+    },
+    "cmake.configureOnOpen": false,
+    "cmake.buildBeforeRun": false
+}

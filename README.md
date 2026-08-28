@@ -195,6 +195,11 @@ the default linker of the toolchain. To override, set
 [CMAKE_LINKER_TYPE](https://cmake.org/cmake/help/latest/variable/CMAKE_LINKER_TYPE.html#cmake-linker-type) at CMake
 configure step.
 
+## Developer environment setup
+
+You are free to use the tools of your choice to contribute to this project.  
+However, to ease on-boarding, one [guide specific to VSCode](./DEVELOP.vscode.md) is provided.
+
 ## Code of Conduct
 
 When contributing, you must adhere to the [Code of Conduct](https://ubuntu.com/community/ethos/code-of-conduct).
