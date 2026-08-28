@@ -701,6 +701,13 @@ template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
+    void (mp::Daemon::*)(const mp::DeleteRequest*,
+                         grpc::ServerReaderWriterInterface<mp::DeleteReply, mp::DeleteRequest>*,
+                         mp::DaemonRpcContext*),
+    const mp::DeleteRequest&,
+    StrictMock<mpt::MockServerReaderWriter<mp::DeleteReply, mp::DeleteRequest>>&);
+template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
+    mp::Daemon&,
     void (mp::Daemon::*)(mp::LaunchRequest const*,
                          grpc::ServerReaderWriterInterface<mp::LaunchReply, mp::LaunchRequest>*,
                          mp::DaemonRpcContext*),
