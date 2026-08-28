@@ -13,19 +13,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 [package]
-name = "rust"
+name = "cxx-buildgen"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
 [lib]
-crate-type = [ "staticlib", "rlib" ]
-
-[features]
-default = []
 
 [dependencies]
-cxx.workspace = true
-
-[build-dependencies]
-cxx-buildgen.workspace = true
+cxx-build.workspace = true
+named-lock.workspace = true

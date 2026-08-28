@@ -24,5 +24,4 @@ crate-type = [ "staticlib","rlib" ]
 cxx.workspace = true
 
 [build-dependencies]
-cxx-build.workspace = true
-named-lock.workspace = true
+cxx-buildgen.workspace = true

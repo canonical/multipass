@@ -124,6 +124,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cxx-buildgen"
+version = "0.1.0"
+dependencies = [
+ "cxx-build",
+ "named-lock",
+]
+
+[[package]]
 name = "cxxbridge-cmd"
 version = "1.0.198"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -307,9 +315,8 @@ name = "namegen"
 version = "0.1.0"
 dependencies = [
  "cxx",
- "cxx-build",
+ "cxx-buildgen",
  "macros",
- "named-lock",
  "rand",
  "static_assertions",
 ]
@@ -408,8 +415,7 @@ name = "rslogger"
 version = "0.1.0"
 dependencies = [
  "cxx",
- "cxx-build",
- "named-lock",
+ "cxx-buildgen",
 ]
 
 [[package]]
@@ -417,8 +423,7 @@ name = "rust"
 version = "0.1.0"
 dependencies = [
  "cxx",
- "cxx-build",
- "named-lock",
+ "cxx-buildgen",
 ]
 
 [[package]]

@@ -31,5 +31,4 @@ static_assertions.workspace = true
 rand.workspace = true
 
 [build-dependencies]
-cxx-build.workspace = true
-named-lock.workspace = true
+cxx-buildgen.workspace = true
