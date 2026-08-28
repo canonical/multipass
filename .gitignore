@@ -1,6 +1,5 @@
 .idea
 .vs
-.vscode
 .clangd
 .cache
 cmake-build-*

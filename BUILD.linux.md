@@ -53,8 +53,13 @@ It should point to the root vcpkg location, where the top bootstrap scripts are 
 Finally, to build the project, run:
 
 ```
-cmake --build . --parallel
+cmake --build . [--parallel <N>]
 ```
+
+Tips:
+- You may use `--parallel <N>` to speed up the build.
+- However, make sure you have enough physical memory and swap space available before doing so (the build step has a very high memory footprint).
+- You may install and use `earlyoom` to prevent your computer to freeze if you're reaching the limits.
 
 Please note that if you're working on a forked repository that you created using the "Copy the main branch only" option,
 the repository will not include the necessary git tags to determine the Multipass version during CMake configuration. In
