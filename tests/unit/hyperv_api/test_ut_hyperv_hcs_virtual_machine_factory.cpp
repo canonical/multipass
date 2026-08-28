@@ -26,6 +26,7 @@
 #include "tests/unit/hyperv_api/mock_hyperv_hcn_wrapper.h"
 #include "tests/unit/hyperv_api/mock_hyperv_hcs_wrapper.h"
 #include "tests/unit/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
+#include "tests/unit/hyperv_api/mock_net_io_api.h"
 #include "tests/unit/mock_platform.h"
 #include "tests/unit/stub_availability_zone_manager.h"
 #include "tests/unit/stub_ssh_key_provider.h"
@@ -61,6 +62,10 @@ struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
     mpt::MockVirtDiskWrapper::GuardedMock mock_virtdisk_wrapper_injection =
         mpt::MockVirtDiskWrapper::inject<StrictMock>();
     mpt::MockVirtDiskWrapper& mock_virtdisk = *mock_virtdisk_wrapper_injection.first;
+
+    mpt::MockNetIOAPI::GuardedMock mock_net_io_api_injection =
+        mpt::MockNetIOAPI::inject<NiceMock>();
+    mpt::MockNetIOAPI& mock_net_io_api = *mock_net_io_api_injection.first;
 
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = attr.first;
