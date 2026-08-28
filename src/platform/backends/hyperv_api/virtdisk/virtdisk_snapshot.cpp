@@ -24,6 +24,7 @@
 
 #include <multipass/file_ops.h>
 #include <multipass/logging/log.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -47,17 +48,18 @@ VirtDiskSnapshot::VirtDiskSnapshot(const std::string& name,
                                    std::shared_ptr<Snapshot> parent,
                                    const VMSpecs& specs,
                                    const VirtualMachine& vm,
-                                   const VirtualMachineDescription& desc)
+                                   VirtualMachineDescription& desc)
     : BaseSnapshot(name, comment, instance_id, std::move(parent), specs, vm),
       live_disk_path{desc.image.image_path},
-      vm{vm}
+      vm{vm},
+      desc{desc}
 {
 }
 
 VirtDiskSnapshot::VirtDiskSnapshot(const std::filesystem::path& filename,
                                    VirtualMachine& vm,
-                                   const VirtualMachineDescription& desc)
-    : BaseSnapshot(filename, vm, desc), live_disk_path{desc.image.image_path}, vm{vm}
+                                   VirtualMachineDescription& desc)
+    : BaseSnapshot(filename, vm, desc), live_disk_path{desc.image.image_path}, vm{vm}, desc{desc}
 {
 }
 
@@ -228,7 +230,7 @@ void VirtDiskSnapshot::apply_impl()
     create_new_child_disk(snapshot_path, new_live_disk_path);
 
     bool live_disk_moved = false;
-    auto rollback = sg::make_scope_guard([&]() noexcept {
+    auto rollback = sg::make_scope_guard([&, old_desc = desc]() noexcept {
         std::error_code ec{};
         MP_FILEOPS.remove(new_live_disk_path, ec);
         if (live_disk_moved)
@@ -236,11 +238,18 @@ void VirtDiskSnapshot::apply_impl()
             MP_FILEOPS.remove(live_disk_path, ec);
             try_rename(old_live_disk_path, live_disk_path);
         }
+        top_catch_all(get_name(), [this, &old_desc]() { desc = old_desc; });
     });
 
     MP_FILEOPS.rename(live_disk_path, old_live_disk_path);
     live_disk_moved = true;
     MP_FILEOPS.rename(new_live_disk_path, live_disk_path);
+
+    desc.num_cores = get_num_cores();
+    desc.mem_size = get_mem_size();
+    desc.disk_space = get_disk_space();
+    desc.extra_interfaces = get_extra_interfaces();
+
     rollback.dismiss();
 
     std::error_code ec{};

@@ -40,10 +40,10 @@ public:
                      std::shared_ptr<Snapshot> parent,
                      const VMSpecs& specs,
                      const VirtualMachine& vm,
-                     const VirtualMachineDescription& desc);
+                     VirtualMachineDescription& desc);
     VirtDiskSnapshot(const std::filesystem::path& filename,
                      VirtualMachine& vm,
-                     const VirtualMachineDescription& desc);
+                     VirtualMachineDescription& desc);
 
 protected:
     void capture_impl() override;
@@ -84,6 +84,11 @@ private:
      * Owning VM.
      */
     const VirtualMachine& vm;
+
+    /**
+     * Owning VM description.
+     */
+    VirtualMachineDescription& desc;
 };
 
 } // namespace multipass::hyperv::virtdisk
