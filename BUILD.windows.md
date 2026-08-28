@@ -141,7 +141,27 @@ cmake --build . --parallel
 ```
 
 This builds `multipass`, `multipassd`, and `multipass_cpp_tests`.
-To create an installer, run `cmake --build . --target package`.
+
+### Building the installer
+
+Building the Windows installer requires the Wix toolset SDK and the [Windows
+ADK](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install). You can install
+the Windows ADK by running:
+
+```[batch]
+choco install windows-adk-deploy -y
+```
+
+To install the Wix toolset, first ensure that you have both the .NET SDK and NuGet Package
+Installer, and then install Wix:
+
+```[batch]
+winget install Microsoft.DotNet.SDK.8 Microsoft.NuGet
+dotnet nuget add source --name nuget.org https://api.nuget.org/v3/index.json
+dotnet tool install --global wix --version 5.0.2
+```
+
+Finally, to create the installer, run `cmake --build . --target package`.
 
 ## Running `multipass`
 
