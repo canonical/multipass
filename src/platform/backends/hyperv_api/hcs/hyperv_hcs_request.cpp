@@ -62,6 +62,16 @@ struct HcsRequestSettingsFormatters
     {
         return to_string(params.size_in_mb);
     }
+
+    auto operator()(const HcsAddPlan9ShareParameters& params) const
+    {
+        return to_string(params);
+    }
+
+    auto operator()(const HcsRemovePlan9ShareParameters& params) const
+    {
+        return to_string(params);
+    }
 };
 
 template <typename Char>

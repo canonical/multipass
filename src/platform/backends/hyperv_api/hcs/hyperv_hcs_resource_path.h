@@ -43,6 +43,11 @@ struct HcsResourcePath : FormatAsMixin<HcsResourcePath>
         return {"VirtualMachine/ComputeTopology/Memory/SizeInMB"};
     }
 
+    [[nodiscard]] static HcsResourcePath Plan9Shares()
+    {
+        return {"VirtualMachine/Devices/Plan9/Shares"};
+    }
+
     [[nodiscard]] bool operator==(const HcsResourcePath& rhs) const
     {
         return value == rhs.value;
