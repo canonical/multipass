@@ -73,7 +73,7 @@ mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
 
     auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
         // grpc::StatusCode::FAILED_PRECONDITION matches mp::VMStateInvalidException
-        return status.error_code() == grpc::StatusCode::FAILED_PRECONDITION
+        return status.error_code() == grpc::StatusCode::FAILED_PRECONDITION && !request.purge()
                    ? standard_failure_handler_for(name(),
                                                   cerr,
                                                   status,
