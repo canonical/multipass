@@ -63,8 +63,10 @@ Options:
                                         launched instance, in 'Home'.
                                         Valid names must consist of letters,
                                         numbers, or hyphens, must start with a
-                                        letter, and must end with an
-                                        alphanumeric character.
+                                        letter, must end with an alphanumeric
+                                        character, and must not exceed the
+                                        maximum file name length of the
+                                        filesystem.
   --cloud-init <file> | <url>           Path or URL to a user-data cloud-init
                                         configuration, or '-' for stdin
   --network <spec>                      Add a network interface to the
