@@ -52,9 +52,12 @@ class ImageCard extends ConsumerWidget {
   }
 
   String _getVersionLabel(ImageInfo version) {
-    return version.release.toLowerCase() == version.codename.toLowerCase()
-        ? version.release
-        : '${version.release} (${version.codename})';
+    final codename = version.codename;
+    if (codename.isEmpty ||
+        version.release.toLowerCase() == codename.toLowerCase()) {
+      return version.release;
+    }
+    return '${version.release} ($codename)';
   }
 
   @override
