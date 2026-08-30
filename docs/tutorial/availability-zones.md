@@ -385,6 +385,10 @@ curl.exe "http://$LB_IP"
 <h1>Welcome to web-c in zone3</h1>
 ```
 
+## Conclusion
+
+You have built a highly available web service that spans all three availability zones. Even when an entire zone goes offline, your users can still access the application through the healthy zones, demonstrating the power of infrastructure redundancy with Multipass.
+
 ## Tear down the environment
 
 ### Restore the zones
@@ -422,7 +426,3 @@ Remove-Item haproxy.cfg
 ````
 
 `````
-
-## Summary
-
-You have built a highly available web service that spans all three availability zones. Even when an entire zone goes offline, your users can still access the application through the healthy zones, demonstrating the power of infrastructure redundancy with Multipass.
