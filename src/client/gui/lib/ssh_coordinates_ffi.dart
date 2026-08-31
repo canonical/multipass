@@ -9,7 +9,7 @@ const int vsockTagHvsock = 1;
 const int vsockTagVsock = 2;
 const int vsockTagUsock = 3;
 
-final class VsockUnion extends ffi.Union {
+final class VsockDataUnion extends ffi.Union {
   external ffi.Pointer<Utf8> hvsockVmId;
 
   @ffi.Uint32()
@@ -31,7 +31,7 @@ final class FfiSSHCoordinates extends ffi.Struct {
   @ffi.Uint32()
   external int vsockTag;
 
-  external VsockUnion vsockData;
+  external VsockDataUnion vsockData;
 }
 
 ffi.Pointer<FfiSSHCoordinates> sshCoordinatesInfoToFfi(

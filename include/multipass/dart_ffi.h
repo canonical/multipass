@@ -11,7 +11,7 @@ char* generate_petname();
 
 char* get_server_address();
 
-union VsockHostUnion
+union VsockDataUnion
 {
     const char* hvsock_vmid;
     uint32_t vsock_cid;
@@ -24,8 +24,8 @@ struct SSHCoordinatesFfi
     char* private_key_as_base64;
     uint32_t port;
     char* tcp_host;
-    multipass::VsockHostTag vsock_host_tag;
-    union VsockHostUnion vsock_host;
+    multipass::VsockTag vsock_tag;
+    union VsockDataUnion vsock_data;
 };
 
 struct KeyCertificatePair

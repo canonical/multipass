@@ -25,7 +25,7 @@ namespace multipass
 {
 extern "C"
 {
-enum VsockHostTag : uint32_t
+enum VsockTag : uint32_t
 {
     VSOCKTAG_NONE = 0,
     VSOCKTAG_HVSOCK = 1,
@@ -66,7 +66,7 @@ static_assert(std::is_same_v<std::variant_alternative_t<VSOCKTAG_VSOCK, VSOCKHos
 static_assert(std::is_same_v<std::variant_alternative_t<VSOCKTAG_USOCK, VSOCKHost>, USOCKData>,
               "VSOCKTAG_USOCK mismatch!");
 static_assert(std::variant_size_v<VSOCKHost> == VSOCKTAG_SIZE,
-              "VSOCKHost count does not match VSOCKTAG_COUNT!");
+              "VSOCKHost count does not match VSOCKTAG_SIZE!");
 
 /// Necessary data to reach a VM over ssh
 struct SSHCoordinates

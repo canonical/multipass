@@ -36,24 +36,24 @@ mp::SSHCoordinates to_ssh_coordinates(const SSHCoordinatesFfi& ffi_coordinates)
     coordinates.tcp_host = ffi_coordinates.tcp_host ? std::string(ffi_coordinates.tcp_host)
                                                     : std::string();
 
-    switch (ffi_coordinates.vsock_host_tag)
+    switch (ffi_coordinates.vsock_tag)
     {
     case mp::VSOCKTAG_NONE:
         coordinates.vsock_host = std::monostate{};
         break;
     case mp::VSOCKTAG_HVSOCK:
         coordinates.vsock_host = mp::HVSOCKData{
-            ffi_coordinates.vsock_host.hvsock_vmid
-                ? std::string(ffi_coordinates.vsock_host.hvsock_vmid)
+            ffi_coordinates.vsock_data.hvsock_vmid
+                ? std::string(ffi_coordinates.vsock_data.hvsock_vmid)
                 : std::string()};
         break;
     case mp::VSOCKTAG_VSOCK:
-        coordinates.vsock_host = mp::VSOCKData{ffi_coordinates.vsock_host.vsock_cid};
+        coordinates.vsock_host = mp::VSOCKData{ffi_coordinates.vsock_data.vsock_cid};
         break;
     case mp::VSOCKTAG_USOCK:
         coordinates.vsock_host = mp::USOCKData{
-            ffi_coordinates.vsock_host.usock_addr
-                ? std::string(ffi_coordinates.vsock_host.usock_addr)
+            ffi_coordinates.vsock_data.usock_addr
+                ? std::string(ffi_coordinates.vsock_data.usock_addr)
                 : std::string()};
         break;
     default:
