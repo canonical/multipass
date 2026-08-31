@@ -69,7 +69,7 @@ class DualSSHSocket implements SSHSocket {
       freeFfiSSHCoordinates(_coordinates);
       _coordinatesFreed = true;
     }
-    return _socket.close();
+    return _delegate?.close() ?? Future.value();
   }
 
   @override
@@ -78,7 +78,7 @@ class DualSSHSocket implements SSHSocket {
       freeFfiSSHCoordinates(_coordinates);
       _coordinatesFreed = true;
     }
-    _socket.destroy();
+    _delegate?.destroy();
   }
 }
 
