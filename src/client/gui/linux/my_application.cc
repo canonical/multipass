@@ -6,7 +6,6 @@
 #endif
 
 #include "flutter/generated_plugin_registrant.h"
-#include "multipass_icon.xpm"
 
 struct _MyApplication {
   GtkApplication parent_instance;
@@ -49,8 +48,20 @@ static void my_application_activate(GApplication* application) {
   }
 
   gtk_window_set_default_size(window, 1280, 720);
+
+  g_autoptr(GError) icon_error = nullptr;
+  g_autoptr(GdkPixbuf) icon = gdk_pixbuf_new_from_resource(
+    "/com/canonical/multipass/assets/icon.png",
+    &icon_error
+  );
+
+  if (icon) {
+    gtk_window_set_icon(window, icon);
+  } else {
+    g_warning("Failed to load icon resource: %s", icon_error->message);
+  }
+
   gtk_widget_show(GTK_WIDGET(window));
-  gtk_window_set_icon(window, gdk_pixbuf_new_from_xpm_data(multipass_icon));
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(project, self->dart_entrypoint_arguments);
