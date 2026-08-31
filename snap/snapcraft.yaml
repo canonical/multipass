@@ -113,7 +113,6 @@ parts:
     build-snaps:
     - cmake
     build-environment:
-    - PATH: /snap/bin:$PATH
     - PYTHON: /usr/bin/python3
     - PYTHONPATH: ""
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
@@ -121,6 +120,9 @@ parts:
     - CLANG_VERSION: "19"
     - CXX: clang++-${CLANG_VERSION}
     - CC: clang-${CLANG_VERSION}
+    - RUSTUP_HOME: "${SNAPCRAFT_PART_BUILD_WORK}/pull/rustup"
+    - CARGO_HOME: "${SNAPCRAFT_PART_BUILD_WORK}/pull/cargo"
+    - PATH: "/snap/bin:${SNAPCRAFT_PART_BUILD_WORK}/pull/cargo/bin:$PATH"
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
@@ -151,8 +153,6 @@ parts:
     - python3-venv
     - bison # qtbase[dbus] -> glib2 -> gettext[tools] -> bison
     - gettext # provides msgfmt/msgmerge with matching libgettextsrc on the system loader path
-    - rustc
-    - cargo
 
     stage-packages:
     - apparmor
@@ -226,6 +226,11 @@ parts:
     override-pull: |
       set -e
 
+      # Manually retrieve rustup, instead of using the snap, to
+      # avoid incompatibilities between LD_LIBRARY_PATH, blablab
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
+          sh -s -- -y --profile minimal --default-toolchain stable
+
       # https://github.com/microsoft/vcpkg/issues/37279
       # vcpkg-systemd: required for meson.build
       python3 -m pip install --break-system-packages jinja2
@@ -237,16 +242,17 @@ parts:
       # Do the CMake configure at the pull step so we can generate the compile_commands.json
       # for the tool consumption.
       craftctl default
-      cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
+      cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}/build
+
     override-build: |
       # Build the project.
-      cmake --build . -- -j"${SNAPCRAFT_PARALLEL_BUILD_COUNT}"
-      DESTDIR="${SNAPCRAFT_PART_INSTALL}" cmake --build . --target install
+      cmake --build ./build -- -j"${SNAPCRAFT_PARALLEL_BUILD_COUNT}"
+      DESTDIR="${SNAPCRAFT_PART_INSTALL}" cmake --build ./build --target install
 
       mkdir -p ${CRAFT_PART_INSTALL}/etc/bash_completion.d/
       echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
       cat ../src/completions/bash/multipass >> ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
-      VERSION=$( awk -F\" '/version_string/ { print $2 }' gen/multipass/version.h )
+      VERSION=$( awk -F\" '/version_string/ { print $2 }' ./build/gen/multipass/version.h )
       craftctl set version=${VERSION}
       craftctl set grade=$( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+\($\|-rc\)' && echo stable || echo devel )
       [ -f ${CRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop ] && \
