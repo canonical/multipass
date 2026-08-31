@@ -73,7 +73,7 @@ auto make_channel(ssh_session session, const std::string& cmd, ssh_channel_callb
 mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
                                      const std::string& cmd,
                                      std::unique_lock<std::mutex> session_lock)
-    : session_lock{std::move(session_lock)}, // this is held until release_channel() or dtor
+    : session_lock{std::move(session_lock)}, // this is held until dtor
       session{&session},
       cmd{cmd},
       cb{make_channel_callbacks()},
@@ -273,9 +273,11 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
 
 ssh_channel mp::PlainSSHProcess::release_channel()
 {
-    // released at the end; callers are on their own to ensure thread safety
+    // TODO@vsock: Remove function
+    //  released at the end; callers are on their own to ensure thread safety
     auto local_lock = std::move(session_lock);
-    return channel.release();
+    // return channel.release();
+    return channel.get(); // Temporary fix
 }
 
 mp::PlainSSHProcess::EventUPtr mp::PlainSSHProcess::get_event_in_session()
