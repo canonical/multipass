@@ -227,7 +227,8 @@ linkcheck_ignore = [
     "https://unix.stackexchange.com",  # it seems stackexchange is now blocking bots
     "https://developer.hashicorp.com/packer",
     "https://www.freedesktop.org/*",
-    "https://asciinema.org/*"
+    "https://asciinema.org/*",
+    r"https://askubuntu\.com/.*",
 ]
 
 linkcheck_retries = 3
