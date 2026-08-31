@@ -25,6 +25,7 @@
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
 #include "multipass/exceptions/snapshot_exceptions.h"
+#include "stub_mount_handler.h"
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 
@@ -46,8 +47,8 @@ struct TestDaemonSnapshotRestoreBase : public mpt::DaemonTestFixture
 
     auto build_daemon_with_mock_instance()
     {
-        const auto [temp_dir, filename] =
-            plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+        const auto [temp_dir,
+                    filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
         auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
         auto* ret_instance = instance_ptr.get();
@@ -312,6 +313,50 @@ TEST_F(TestDaemonRestore, restoresSnapshotDirectlyIfDestructive)
     StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>> server{};
     EXPECT_CALL(server, Write).Times(2);
     auto status = call_daemon_slot(*daemon, &mp::Daemon::restore, request, server);
+
+    EXPECT_EQ(status.error_code(), grpc::OK);
+}
+
+TEST_F(TestDaemonRestore, replacesMountHandlersWhenRestoringSnapshot)
+{
+    static constexpr auto* snapshot_name = "dodo";
+    const std::string current_target{"/home/ubuntu/tmp2"};
+    const std::string restored_target{"/home/ubuntu/tmp"};
+    const mp::VMMount current_mount{"tmp2", {}, {}, mp::VMMount::MountType::Native};
+    const mp::VMMount restored_mount{"tmp", {}, {}, mp::VMMount::MountType::Native};
+    const std::unordered_map<std::string, mp::VMMount> current_mounts{
+        {current_target, current_mount}};
+
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, current_mounts));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.server_address = "127.0.0.1:0";
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    auto* instance = instance_ptr.get();
+    EXPECT_CALL(*instance, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
+    EXPECT_CALL(*instance, current_state)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, make_native_mount_handler(current_target, Eq(current_mount)))
+        .WillOnce(Return(std::make_unique<mpt::StubMountHandler>()));
+    EXPECT_CALL(*instance, make_native_mount_handler(restored_target, Eq(restored_mount)))
+        .WillOnce(Return(std::make_unique<mpt::StubMountHandler>()));
+    EXPECT_CALL(*instance, restore_snapshot(Eq(snapshot_name), _))
+        .WillOnce([&](const std::string&, mp::VMSpecs& specs) {
+            specs.mounts = {{restored_target, restored_mount}};
+        });
+    EXPECT_CALL(mock_factory, create_virtual_machine).WillOnce(Return(std::move(instance_ptr)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::RestoreRequest request{};
+    request.set_instance(mock_instance_name);
+    request.set_snapshot(snapshot_name);
+    request.set_destructive(true);
+
+    StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>> server{};
+    EXPECT_CALL(server, Write).Times(2);
+    auto status = call_daemon_slot(daemon, &mp::Daemon::restore, request, server);
 
     EXPECT_EQ(status.error_code(), grpc::OK);
 }
