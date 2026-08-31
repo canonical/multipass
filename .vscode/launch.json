@@ -41,7 +41,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${input:cli}",
-            "cwd": "${workspaceFolder}/build",
+            "cwd": "${command:cmake.buildDirectory}",
             "args": [
                 "${input:cli_args}"
             ],
@@ -69,7 +69,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${input:gui}",
-            "cwd": "${workspaceFolder}/build",
+            "cwd": "${command:cmake.buildDirectory}",
             "MIMode": "gdb",
             "setupCommands": [
                 {
