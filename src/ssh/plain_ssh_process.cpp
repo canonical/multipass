@@ -73,7 +73,8 @@ auto make_channel(ssh_session session, const std::string& cmd, ssh_channel_callb
 mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
                                      const std::string& cmd,
                                      std::unique_lock<std::mutex> session_lock)
-    : session_lock{std::move(session_lock)}, // this is held until dtor
+    : session_lock{std::move(session_lock)}, // this is held until dtor, exit_code or
+                                             // release_channel
       session{&session},
       cmd{cmd},
       cb{make_channel_callbacks()},
