@@ -112,7 +112,6 @@ parts:
     plugin: cmake
     build-snaps:
     - cmake
-    - rustup
     build-environment:
     - PATH: /snap/bin:$PATH
     - PYTHON: /usr/bin/python3
@@ -152,6 +151,8 @@ parts:
     - python3-venv
     - bison # qtbase[dbus] -> glib2 -> gettext[tools] -> bison
     - gettext # provides msgfmt/msgmerge with matching libgettextsrc on the system loader path
+    - rustc
+    - cargo
 
     stage-packages:
     - apparmor
@@ -224,8 +225,6 @@ parts:
     source-type: git
     override-pull: |
       set -e
-
-      rustup default stable
 
       # https://github.com/microsoft/vcpkg/issues/37279
       # vcpkg-systemd: required for meson.build
