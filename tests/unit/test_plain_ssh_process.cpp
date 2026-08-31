@@ -201,6 +201,23 @@ TEST_F(TestPlainSSHProcess, exitRecognizedReturnsTrueWhenStatusDelivered)
     EXPECT_EQ(proc.exit_code(), 0); // cached without another poll
 }
 
+TEST_F(TestPlainSSHProcess, exitRecognizedReturnsTrueFromCacheWithoutPolling)
+{
+    auto proc = make_ssh_process();
+
+    // The first call drives the event loop exactly once to deliver the status.
+    EXPECT_CALL(mock_libssh, ssh_event_dopoll(fake_event, _)).WillOnce(InvokeWithoutArgs([this] {
+        deliver_exit_status(3);
+        return SSH_OK;
+    }));
+
+    EXPECT_TRUE(proc.exit_recognized());
+
+    // A second call must short-circuit on the cached status and never touch the event loop again.
+    EXPECT_TRUE(proc.exit_recognized());
+    EXPECT_EQ(proc.exit_code(), 3); // still cached
+}
+
 TEST_F(TestPlainSSHProcess, exitRecognizedReturnsFalseOnTimeout)
 {
     auto proc = make_ssh_process();
