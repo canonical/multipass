@@ -45,11 +45,25 @@
             }
         },
         {
-            "name": "local-multi-config",
-            "description": "Preset for locally generating any type of build.",
-            "generator": "Ninja Multi-Config",
-            "inherits": "common", 
+            "name": "local-debug",
+            "description": "Preset for locally generating a debug build.",
+            "inherits": "common",
+            "binaryDir": "${sourceDir}/build/debug",
             "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "MULTIPASS_ENABLE_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "local-release",
+            "description": "Preset for locally generating a release build.",
+            "inherits": "common",
+            "binaryDir": "${sourceDir}/build/release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
                 "MULTIPASS_ENABLE_TESTS": {
                     "type": "BOOL",
                     "value": "ON"
@@ -185,12 +199,12 @@
         },
         {
             "name": "local-debug",
-            "configurePreset": "local-multi-config",
+            "configurePreset": "local-debug",
             "configuration": "Debug"
         },
         {
             "name": "local-release",
-            "configurePreset": "local-multi-config",
+            "configurePreset": "local-release",
             "configuration": "Release"
         }
     ]
