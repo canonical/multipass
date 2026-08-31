@@ -27,7 +27,7 @@
 
 namespace multipass::test
 {
-struct CallbackChState
+struct CallbackChannelState
 {
     int ssh_rc{SSH_OK};
     bool eof{true};
@@ -37,10 +37,10 @@ struct CallbackChState
     std::chrono::milliseconds wait{std::chrono::milliseconds(0)};
 };
 
-class CallbackChEngineMock // TODO@rewiressh remove (and can we can rid of premock entirely?)
+class CallbackEngineMock // TODO@rewiressh remove (and can we can rid of premock entirely?)
 {
 public:
-    CallbackChEngineMock(MockLibssh& mock_libssh, CallbackChState initial_state)
+    CallbackEngineMock(MockLibssh& mock_libssh, CallbackChannelState initial_state)
     {
         cb_state.push(initial_state);
         ON_CALL(mock_libssh, ssh_add_channel_callbacks)
@@ -51,7 +51,7 @@ public:
 
         ON_CALL(mock_libssh, ssh_event_dopoll).WillByDefault([this](auto...) {
             // Explicit copy
-            CallbackChState cb_s{cb_state.front()};
+            CallbackChannelState cb_s{cb_state.front()};
 
             this->pop_state();
             std::this_thread::sleep_for(cb_s.wait);
@@ -92,11 +92,11 @@ public:
             });
     }
 
-    ~CallbackChEngineMock()
+    ~CallbackEngineMock()
     {
     }
 
-    void push_state(CallbackChState cb_s)
+    void push_state(CallbackChannelState cb_s)
     {
         cb_state.push(cb_s);
     }
@@ -110,46 +110,46 @@ public:
     static constexpr int success_code = 0;
     static constexpr int failure_code = 42;
 
-    static constexpr CallbackChState channel_exit_success{SSH_OK,
-                                                          true,
-                                                          true,
-                                                          success_code,
+    static constexpr CallbackChannelState channel_exit_success{SSH_OK,
+                                                               true,
+                                                               true,
+                                                               success_code,
+                                                               std::nullopt,
+                                                               std::chrono::milliseconds(0)};
+    static constexpr CallbackChannelState channel_exit_failure{SSH_OK,
+                                                               true,
+                                                               true,
+                                                               failure_code,
+                                                               std::nullopt,
+                                                               std::chrono::milliseconds(0)};
+    static constexpr CallbackChannelState channel_sigterm_exit{SSH_OK,
+                                                               true,
+                                                               true,
+                                                               failure_code,
+                                                               "TERM",
+                                                               std::chrono::milliseconds(0)};
+    static constexpr CallbackChannelState channel_noexit{SSH_ERROR,
+                                                         true,
+                                                         true,
+                                                         std::nullopt,
+                                                         std::nullopt,
+                                                         std::chrono::milliseconds(0)};
+    static constexpr CallbackChannelState channel_running{SSH_AGAIN,
+                                                          false,
+                                                          false,
                                                           std::nullopt,
-                                                          std::chrono::milliseconds(0)};
-    static constexpr CallbackChState channel_exit_failure{SSH_OK,
-                                                          true,
-                                                          true,
-                                                          failure_code,
                                                           std::nullopt,
-                                                          std::chrono::milliseconds(0)};
-    static constexpr CallbackChState channel_sigterm_exit{SSH_OK,
-                                                          true,
-                                                          true,
-                                                          failure_code,
-                                                          "TERM",
-                                                          std::chrono::milliseconds(0)};
-    static constexpr CallbackChState channel_noexit{SSH_ERROR,
-                                                    true,
-                                                    true,
-                                                    std::nullopt,
-                                                    std::nullopt,
-                                                    std::chrono::milliseconds(0)};
-    static constexpr CallbackChState channel_running{SSH_AGAIN,
-                                                     false,
-                                                     false,
-                                                     std::nullopt,
-                                                     std::nullopt,
-                                                     std::chrono::milliseconds(50)};
-    static constexpr CallbackChState channel_timeout{SSH_AGAIN,
-                                                     false,
-                                                     false,
-                                                     std::nullopt,
-                                                     std::nullopt,
-                                                     std::chrono::milliseconds(250)};
+                                                          std::chrono::milliseconds(50)};
+    static constexpr CallbackChannelState channel_timeout{SSH_AGAIN,
+                                                          false,
+                                                          false,
+                                                          std::nullopt,
+                                                          std::nullopt,
+                                                          std::chrono::milliseconds(250)};
 
 private:
     ssh_channel_callbacks channel_cbs{nullptr};
     // By default it behaves like the previous implementation
-    std::queue<CallbackChState> cb_state{};
+    std::queue<CallbackChannelState> cb_state{};
 };
 } // namespace multipass::test
