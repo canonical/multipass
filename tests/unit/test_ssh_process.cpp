@@ -20,6 +20,7 @@
 #include "mock_ssh_test_fixture.h"
 #include "stub_ssh_key_provider.h"
 
+#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_signal.h>
 
