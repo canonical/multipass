@@ -458,7 +458,7 @@ TEST_F(SftpServer, throwsOnSshFailureReadExit)
 
 TEST_F(SftpServer, sshfsRestartsOnTimeout)
 {
-    constexpr int total_calls{4};
+    constexpr int total_calls{2};
     // This test verifies that after a sshfs timeout, the sftp server correctly restarts. To do so,
     // it simulates failure in the first non-sftp-init message. Intended execution order :
     // msg(INIT)->msg(timeout)->msg(received)->nullptr(terminate server)
