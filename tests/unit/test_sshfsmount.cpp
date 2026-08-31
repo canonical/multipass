@@ -116,7 +116,7 @@ struct SshfsMount : public mp::test::SftpServerTest
             invoked = false;
 
             std::string cmd{raw_cmd};
-            mpt::CallbackChState cb{};
+            mpt::CallbackChannelState cb{};
             cb.closed = false;
             cb.ssh_rc = SSH_AGAIN;
 
@@ -239,8 +239,8 @@ struct SshfsMount : public mp::test::SftpServerTest
 
     mpt::MockLibssh::GuardedMock libssh_guard{mpt::MockLibssh::inject()};
     mpt::MockLibssh& mock_libssh = *libssh_guard.first;
-    mpt::CallbackChEngineMock callback_mock_engine{mock_libssh,
-                                                   mpt::CallbackChEngineMock::channel_exit_success};
+    mpt::CallbackEngineMock callback_mock_engine{mock_libssh,
+                                                 mpt::CallbackEngineMock::channel_exit_success};
 
     std::string default_source{"source"};
     std::string default_target{"target"};
