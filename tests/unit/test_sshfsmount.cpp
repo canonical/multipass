@@ -61,6 +61,13 @@ struct SshfsMount : public mp::test::SftpServerTest
             return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef);
         });
         ON_CALL(mock_libssh, ssh_event_add_session).WillByDefault([](auto...) { return SSH_OK; });
+        ON_CALL(mock_libssh, ssh_channel_poll_timeout).WillByDefault(Return(1));
+        ON_CALL(mock_libssh, ssh_send_keepalive).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, sftp_server_new).WillByDefault([this](auto, ssh_channel channel) {
+            fake_sftp_session.channel = channel;
+            return &fake_sftp_session;
+        });
+        ON_CALL(mock_libssh, sftp_server_free).WillByDefault([](auto...) {});
     }
     mp::SshfsMount make_sshfsmount(std::optional<std::string> target = std::nullopt)
     {
@@ -266,6 +273,7 @@ struct SshfsMount : public mp::test::SftpServerTest
     constexpr static auto bad_addr = 0xdeadbeefdeadbeefull; // should reliably segfault on 32/64-bit
     ssh_session fake_session = reinterpret_cast<ssh_session>(bad_addr);
     ssh_channel fake_channel = reinterpret_cast<ssh_channel>(bad_addr);
+    sftp_session_struct fake_sftp_session{};
 };
 
 // Mocks an incorrect return from a given command.
