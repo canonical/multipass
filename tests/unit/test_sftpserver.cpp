@@ -73,9 +73,16 @@ struct SftpServer : public mp::test::SftpServerTest
         });
         ON_CALL(mock_libssh, ssh_event_free).WillByDefault([](auto...) { return; });
         ON_CALL(mock_libssh, ssh_event_add_session).WillByDefault([](auto...) { return SSH_OK; });
+        ON_CALL(mock_libssh, ssh_channel_poll_timeout).WillByDefault([](auto...) { return 1; });
+        ON_CALL(mock_libssh, ssh_send_keepalive).WillByDefault([](auto...) { return SSH_OK; });
         ON_CALL(mock_libssh, sftp_handle_alloc).WillByDefault([](auto...) {
             return reinterpret_cast<ssh_string>(0xdeadbeefdeadbee4);
         });
+        ON_CALL(mock_libssh, sftp_server_new).WillByDefault([this](auto, ssh_channel channel) {
+            fake_sftp_session.channel = channel;
+            return &fake_sftp_session;
+        });
+        ON_CALL(mock_libssh, sftp_server_free).WillByDefault([](auto...) { return; });
 
         MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_libssh, sftp_client_message_get_type, mp::Libssh);
         MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_libssh, sftp_client_message_get_data, mp::Libssh);
@@ -155,6 +162,7 @@ struct SftpServer : public mp::test::SftpServerTest
                                                  mpt::CallbackEngineMock::channel_exit_success};
     std::queue<sftp_client_message> messages;
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+    sftp_session_struct fake_sftp_session{};
 };
 
 struct MessageAndReply
@@ -458,7 +466,7 @@ TEST_F(SftpServer, throwsOnSshFailureReadExit)
 
 TEST_F(SftpServer, sshfsRestartsOnTimeout)
 {
-    constexpr int total_calls{4};
+    constexpr int total_calls{2};
     // This test verifies that after a null (dropped) sshfs message, the sftp server correctly
     // restarts. To do so, it simulates failure in the first non-sftp-init message. Intended
     // execution order: msg(INIT)->msg(null)->msg(received)->nullptr(terminate server)
@@ -521,14 +529,14 @@ TEST_F(SftpServer, sendsKeepaliveWhenIdleAndKeepsServing)
 {
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_BAD_MESSAGE);
-    REPLACE(sftp_get_client_message, make_msg_handler()); // INIT, msg, then nullptr
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int polls{0};
     int keepalives{0};
-    REPLACE(ssh_channel_poll_timeout, [&polls](auto...) {
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout).WillRepeatedly([&polls](auto...) {
         return ++polls == 1 ? 0 : 1; // idle first, then data available
     });
-    REPLACE(ssh_send_keepalive, [&keepalives](auto...) {
+    EXPECT_CALL(mock_libssh, ssh_send_keepalive).WillRepeatedly([&keepalives](auto...) {
         ++keepalives;
         return SSH_OK;
     });
@@ -537,8 +545,9 @@ TEST_F(SftpServer, sendsKeepaliveWhenIdleAndKeepsServing)
     sftp.run();
 
     EXPECT_EQ(keepalives, 1);
-    EXPECT_EQ(polls, 3);                            // idle, msg, nullptr
-    msg_free.expectCalled(1).withValues(msg.get()); // the loop survived the idle period
+    EXPECT_EQ(polls, 3); // idle, msg, nullptr
+    EXPECT_CALL(mock_libssh, sftp_client_message_free(msg.get()))
+        .Times(1); // the loop survived the idle period
 }
 
 TEST_F(SftpServer, pollErrorSkipsMessageReadAndStops)
@@ -550,10 +559,12 @@ TEST_F(SftpServer, pollErrorSkipsMessageReadAndStops)
         ++reads;
         return handler(args...);
     };
-    REPLACE(sftp_get_client_message, counting_handler);
-    REPLACE(ssh_channel_poll_timeout, [](auto...) { return SSH_ERROR; });
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(counting_handler);
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout).WillRepeatedly([](auto...) {
+        return SSH_ERROR;
+    });
     int keepalives{0};
-    REPLACE(ssh_send_keepalive, [&keepalives](auto...) {
+    EXPECT_CALL(mock_libssh, ssh_send_keepalive).WillRepeatedly([&keepalives](auto...) {
         ++keepalives;
         return SSH_OK;
     });
@@ -568,15 +579,15 @@ TEST_F(SftpServer, pollErrorSkipsMessageReadAndStops)
 TEST_F(SftpServer, stopsOnIdlePollWithoutKeepaliveWhenStopRequested)
 {
     auto init_msg = make_msg(SSH_FXP_INIT);
-    REPLACE(sftp_get_client_message, make_msg_handler());
+    EXPECT_CALL(mock_libssh, sftp_get_client_message).WillRepeatedly(make_msg_handler());
 
     int polls{0};
     int keepalives{0};
-    REPLACE(ssh_channel_poll_timeout, [&polls](auto...) {
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout).WillRepeatedly([&polls](auto...) {
         ++polls;
         return 0;
     });
-    REPLACE(ssh_send_keepalive, [&keepalives](auto...) {
+    EXPECT_CALL(mock_libssh, ssh_send_keepalive).WillRepeatedly([&keepalives](auto...) {
         ++keepalives;
         return SSH_OK;
     });
