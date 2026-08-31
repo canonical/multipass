@@ -21,7 +21,7 @@
 #include <multipass/logging/log_location.h>
 #include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_ssh_process.h>
-#include <multipass/ssh/ssh_utils.h>
+#include <multipass/ssh/ssh_signal.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/top_catch_all.h>
 
@@ -73,8 +73,7 @@ auto make_channel(ssh_session session, const std::string& cmd, ssh_channel_callb
 mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& session,
                                      const std::string& cmd,
                                      std::unique_lock<std::mutex> session_lock)
-    : session_lock{std::move(
-          session_lock)}, // this is held until the exit code is requested or this is destroyed
+    : session_lock{std::move(session_lock)}, // this is held until release_channel() or dtor
       session{&session},
       cmd{cmd},
       cb{make_channel_callbacks()},
@@ -276,8 +275,6 @@ ssh_channel mp::PlainSSHProcess::release_channel()
 {
     // released at the end; callers are on their own to ensure thread safety
     auto local_lock = std::move(session_lock);
-    if (channel)
-        MP_LIBSSH.ssh_remove_channel_callbacks(channel.get(), &cb);
     return channel.release();
 }
 
