@@ -224,7 +224,7 @@ linkcheck_ignore = [
     "https://sourceforge.net/projects/vcxsrv/",
     "https://sourceforge.net/projects/xming/",
     "http://www.straightrunning.com/XmingNotes/",
-    "https://unix.stackexchange.com",  # it seems stackexchange is now blocking bots
+    r"https://unix\.stackexchange\.com",  # it seems stackexchange is now blocking bots
     "https://developer.hashicorp.com/packer",
     r"https://www\.freedesktop\.org/.*",
     r"https://asciinema\.org/.*",
