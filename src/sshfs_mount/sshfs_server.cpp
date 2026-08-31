@@ -73,7 +73,7 @@ mp::id_mappings convert_id_mappings(const char* in)
 
 int main(int argc, char* argv[])
 {
-    constexpr auto expected_args{10};
+    constexpr auto expected_args{11};
     // TODO: Remove static once we do not use exit() anymore
     static multipass::LibsshScopeGuard libssh_guard;
 
