@@ -3,7 +3,7 @@ import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/generated/multipass.pb.dart';
-import 'package:multipass_gui/ssh_coordinates_ffi.dart';
+import 'package:multipass_gui/ffi_ssh_coordinates.dart';
 
 void main() {
   group('sshCoordinatesInfoToFfi', () {

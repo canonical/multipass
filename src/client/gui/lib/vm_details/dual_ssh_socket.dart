@@ -8,7 +8,7 @@ import 'package:dartssh2/dartssh2.dart';
 import 'package:ffi/ffi.dart';
 
 import '../ffi.dart';
-import '../ssh_coordinates_ffi.dart';
+import '../ffi_ssh_coordinates.dart';
 
 /// An [SSHSocket] that tries a native vsock-family transport (HVSOCK/VSOCK/USOCK)
 /// first and falls back to plain TCP if it is unavailable. Inert until [connect];

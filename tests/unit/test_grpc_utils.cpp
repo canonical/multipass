@@ -58,9 +58,6 @@ void expect_common_fields(const mp::SSHCoordinates& coordinates)
     EXPECT_THAT(coordinates.tcp_host, Eq(tcp_host));
 }
 
-// -------------------------------------------------------------------------------------------------
-// HVSOCK transport (addresses the guest by VM id)
-// -------------------------------------------------------------------------------------------------
 TEST(GrpcUtils, protoToCoordinatesCopiesHvsockFields)
 {
     constexpr auto vmid = "hvsock-vm-id";
@@ -101,9 +98,6 @@ TEST(GrpcUtils, coordinatesToProtoCopiesHvsockFields)
     EXPECT_THAT(std::get<mp::HVSOCKData>(round_tripped.vsock_host).vmid, Eq(vmid));
 }
 
-// -------------------------------------------------------------------------------------------------
-// VSOCK transport (addresses the peer by context id / CID)
-// -------------------------------------------------------------------------------------------------
 TEST(GrpcUtils, protoToCoordinatesCopiesVsockFields)
 {
     constexpr uint32_t cid = 424242;
@@ -140,9 +134,6 @@ TEST(GrpcUtils, coordinatesToProtoCopiesVsockFields)
     EXPECT_THAT(std::get<mp::VSOCKData>(round_tripped.vsock_host).cid, Eq(cid));
 }
 
-// -------------------------------------------------------------------------------------------------
-// USOCK transport (addresses it by unix-socket filesystem path)
-// -------------------------------------------------------------------------------------------------
 TEST(GrpcUtils, protoToCoordinatesCopiesUsockFields)
 {
     constexpr auto socket_address = "/run/multipass/test.socket";
@@ -184,9 +175,6 @@ TEST(GrpcUtils, coordinatesToProtoCopiesUsockFields)
                 Eq(socket_address));
 }
 
-// -------------------------------------------------------------------------------------------------
-// No vsock host (plain TCP): the oneof is unset <-> std::monostate
-// -------------------------------------------------------------------------------------------------
 TEST(GrpcUtils, protoToCoordinatesCopiesNoHostFields)
 {
     mp::SSHCoordinatesInfo proto;
@@ -216,9 +204,6 @@ TEST(GrpcUtils, coordinatesToProtoClearsNoHostFields)
     EXPECT_TRUE(std::holds_alternative<std::monostate>(round_tripped.vsock_host));
 }
 
-// -------------------------------------------------------------------------------------------------
-// Boundary values: ensure integer fields survive the round-trip unchanged
-// -------------------------------------------------------------------------------------------------
 TEST(GrpcUtils, portBoundaryValuesSurviveRoundTripWithoutVsockHost)
 {
     for (const uint32_t boundary_port : {uint32_t{0}, std::numeric_limits<uint32_t>::max()})

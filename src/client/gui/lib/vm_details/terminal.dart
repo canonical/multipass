@@ -17,7 +17,7 @@ import '../l10n/app_localizations.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
-import '../ssh_coordinates_ffi.dart';
+import '../ffi_ssh_coordinates.dart';
 import '../vm_action.dart';
 import 'dual_ssh_socket.dart';
 

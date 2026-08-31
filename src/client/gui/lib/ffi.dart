@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 
 import 'platform/platform.dart';
-import 'ssh_coordinates_ffi.dart';
+import 'ffi_ssh_coordinates.dart';
 
 extension on ffi.Pointer<Utf8> {
   String get string {
