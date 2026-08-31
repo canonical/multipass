@@ -167,8 +167,12 @@ class RawFdSSHSocket implements SSHSocket {
       } else if (message is String) {
         _readController.addError(SocketException(message));
         if (!_readController.isClosed) _readController.close();
+        // Cannot recover from read failure, call dtor to avoid fd leak.
+        destroy();
       } else if (message == null) {
         if (!_readController.isClosed) _readController.close();
+        //EOF, drain write isolate and release resources via close().
+        unawaited(close());
       }
     });
 
