@@ -151,8 +151,8 @@ struct SftpServer : public mp::test::SftpServerTest
     const mpt::StubSSHKeyProvider key_provider;
     mpt::MockLibssh::GuardedMock libssh_guard{mpt::MockLibssh::inject()};
     mpt::MockLibssh& mock_libssh = *libssh_guard.first;
-    mpt::CallbackChEngineMock callback_mock_engine{mock_libssh,
-                                                   mpt::CallbackChEngineMock::channel_exit_success};
+    mpt::CallbackEngineMock callback_mock_engine{mock_libssh,
+                                                 mpt::CallbackEngineMock::channel_exit_success};
     std::queue<sftp_client_message> messages;
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 };
@@ -415,7 +415,7 @@ TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
 
     EXPECT_CALL(mock_libssh, ssh_channel_request_exec).WillRepeatedly(request_exec);
 
-    mpt::CallbackChState cb{};
+    mpt::CallbackChannelState cb{};
     cb.exit_code = callback_mock_engine.failure_code;
     callback_mock_engine.push_state(cb);
     callback_mock_engine.pop_state(); // Remove default state

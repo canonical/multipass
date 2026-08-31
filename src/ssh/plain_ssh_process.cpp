@@ -105,7 +105,7 @@ ssh_channel_callbacks_struct mp::PlainSSHProcess::make_channel_callbacks()
 void mp::PlainSSHProcess::channel_exit_status_cb(ssh_session,
                                                  ssh_channel,
                                                  int exit_status,
-                                                 void* userdata)
+                                                 void* userdata) noexcept
 {
     auto* process = static_cast<mp::PlainSSHProcess*>(userdata);
     process->exit_result = exit_status;
@@ -117,7 +117,7 @@ void mp::PlainSSHProcess::channel_exit_signal_cb(ssh_session,
                                                  int,
                                                  const char*,
                                                  const char*,
-                                                 void* userdata)
+                                                 void* userdata) noexcept
 {
     auto* process = static_cast<mp::PlainSSHProcess*>(userdata);
 
@@ -139,13 +139,13 @@ void mp::PlainSSHProcess::channel_exit_signal_cb(ssh_session,
     process->exit_result = sig_code;
 }
 
-void mp::PlainSSHProcess::channel_eof_cb(ssh_session, ssh_channel, void* userdata)
+void mp::PlainSSHProcess::channel_eof_cb(ssh_session, ssh_channel, void* userdata) noexcept
 {
     auto* process = static_cast<mp::PlainSSHProcess*>(userdata);
     process->channel_eof = true;
 }
 
-void mp::PlainSSHProcess::channel_close_cb(ssh_session, ssh_channel, void* userdata)
+void mp::PlainSSHProcess::channel_close_cb(ssh_session, ssh_channel, void* userdata) noexcept
 {
     auto* process = static_cast<mp::PlainSSHProcess*>(userdata);
     process->channel_closed = true;

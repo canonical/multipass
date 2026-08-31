@@ -51,15 +51,15 @@ struct SSHProcess : public Test
     mp::PlainSSHSession session{"theanswertoeverything", 42, "ubuntu", key_provider};
     mpt::MockLibssh::GuardedMock libssh_guard{mpt::MockLibssh::inject()};
     mpt::MockLibssh& mock_libssh = *libssh_guard.first;
-    mpt::CallbackChEngineMock callback_mock_engine{mock_libssh,
-                                                   mpt::CallbackChEngineMock::channel_exit_success};
+    mpt::CallbackEngineMock callback_mock_engine{mock_libssh,
+                                                 mpt::CallbackEngineMock::channel_exit_success};
 };
 } // namespace
 
 TEST_F(SSHProcess, canRetrieveExitStatus)
 {
     static constexpr int expected_status{42};
-    mpt::CallbackChState cb_state{};
+    mpt::CallbackChannelState cb_state{};
     cb_state.exit_code = expected_status;
     callback_mock_engine.push_state(cb_state);
     callback_mock_engine.pop_state();
@@ -158,6 +158,43 @@ TEST_F(SSHProcess, getCmdReturnsCommandName)
     EXPECT_EQ(proc->get_cmd(), cmd);
 }
 
+TEST_F(SSHProcess, exitCodeThrowsWhenEventAllocationFails)
+{
+    EXPECT_CALL(mock_libssh, ssh_event_new).WillOnce([](auto...) { return nullptr; });
+
+    auto proc = session.exec("something");
+    MP_EXPECT_THROW_THAT(proc->exit_code(),
+                         mp::SSHProcessExitError,
+                         mpt::match_what(HasSubstr("could not allocate a libssh event context")));
+}
+
+TEST_F(SSHProcess, exitCodeThrowsWhenAddSessionFails)
+{
+    static constexpr auto* raw_error = "boom";
+    EXPECT_CALL(mock_libssh, ssh_event_add_session).WillOnce([](auto...) { return SSH_ERROR; });
+    EXPECT_CALL(mock_libssh, ssh_get_error).WillOnce([](auto...) { return raw_error; });
+
+    auto proc = session.exec("something");
+    MP_EXPECT_THROW_THAT(
+        proc->exit_code(),
+        mp::SSHProcessExitError,
+        mpt::match_what(AllOf(HasSubstr("could not add a libssh event context to the SSH session"),
+                              HasSubstr(raw_error))));
+}
+
+TEST_F(SSHProcess, exitCodeThrowsWhenAddSessionFailsWithoutErrorDetail)
+{
+    EXPECT_CALL(mock_libssh, ssh_event_add_session).WillOnce([](auto...) { return SSH_ERROR; });
+    EXPECT_CALL(mock_libssh, ssh_get_error).WillOnce([](auto...) { return nullptr; });
+
+    auto proc = session.exec("something");
+    MP_EXPECT_THROW_THAT(
+        proc->exit_code(),
+        mp::SSHProcessExitError,
+        mpt::match_what(AllOf(HasSubstr("could not add a libssh event context to the SSH session"),
+                              HasSubstr("no detail"))));
+}
+
 struct SSHProcessSignals : public SSHProcess, public ::testing::WithParamInterface<const char*>
 {
 };
@@ -166,15 +203,18 @@ TEST_P(SSHProcessSignals, exitSignalIsProcessedAccordingly)
 {
     constexpr auto base_signal_exit_code{128};
     const auto signal = GetParam();
-    const auto signal_pos = std::find_if(
-        mp::SSH::signal_map.begin(),
-        mp::SSH::signal_map.end(),
-        [signal](const auto& sigmap) { return sigmap.name.find(signal) != std::string::npos; });
+    const auto signal_pos = signal && *signal ? std::find_if(mp::SSH::signal_map.begin(),
+                                                             mp::SSH::signal_map.end(),
+                                                             [signal](const auto& sigmap) {
+                                                                 return sigmap.name.find(signal) !=
+                                                                        std::string::npos;
+                                                             })
+                                              : mp::SSH::signal_map.end();
     const auto signal_code = (signal_pos == mp::SSH::signal_map.end()
                                   ? base_signal_exit_code
                                   : signal_pos->offset + base_signal_exit_code);
-    mpt::CallbackChState cb_state{};
-    cb_state.signal = signal;
+    mpt::CallbackChannelState cb_state{};
+    cb_state.signal = signal ? signal : "";
     callback_mock_engine.push_state(cb_state);
     callback_mock_engine.pop_state();
 
@@ -182,7 +222,15 @@ TEST_P(SSHProcessSignals, exitSignalIsProcessedAccordingly)
     EXPECT_THAT(proc->exit_code(), Eq(signal_code));
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    SSHProcess,
-    SSHProcessSignals,
-    ::testing::Values("HUP", "INT", "QUIT", "USR1", "SEGV", "USR2", "TERM", "UNKNOWN"));
+INSTANTIATE_TEST_SUITE_P(SSHProcess,
+                         SSHProcessSignals,
+                         ::testing::Values("HUP",
+                                           "INT",
+                                           "QUIT",
+                                           "USR1",
+                                           "SEGV",
+                                           "USR2",
+                                           "TERM",
+                                           "UNKNOWN",
+                                           "",
+                                           nullptr));

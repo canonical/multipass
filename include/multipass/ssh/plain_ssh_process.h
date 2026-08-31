@@ -73,16 +73,16 @@ private:
     static void channel_exit_status_cb(ssh_session session,
                                        ssh_channel channel,
                                        int exit_status,
-                                       void* userdata);
+                                       void* userdata) noexcept;
     static void channel_exit_signal_cb(ssh_session session,
                                        ssh_channel channel,
                                        const char* signal,
                                        int core,
                                        const char* errmsg,
                                        const char* lang,
-                                       void* userdata);
-    static void channel_eof_cb(ssh_session session, ssh_channel channel, void* userdata);
-    static void channel_close_cb(ssh_session session, ssh_channel channel, void* userdata);
+                                       void* userdata) noexcept;
+    static void channel_eof_cb(ssh_session session, ssh_channel channel, void* userdata) noexcept;
+    static void channel_close_cb(ssh_session session, ssh_channel channel, void* userdata) noexcept;
     ssh_channel_callbacks_struct make_channel_callbacks();
 
     std::unique_lock<std::mutex> session_lock; // do not attempt to re-lock, as this is moved from
