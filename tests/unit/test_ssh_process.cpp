@@ -21,7 +21,7 @@
 #include "stub_ssh_key_provider.h"
 
 #include <multipass/ssh/plain_ssh_session.h>
-#include <multipass/ssh/ssh_utils.h>
+#include <multipass/ssh/ssh_signal.h>
 
 #include <algorithm>
 #include <thread>
