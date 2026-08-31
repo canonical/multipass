@@ -109,18 +109,20 @@ TEST_F(SSHProcess, readingOutputDrainsBufferedDataEvenIfChannelClosed)
     std::string expected_output{"buffered content"};
     auto remaining = expected_output.size();
     auto channel_read = [&expected_output,
-                         &remaining](ssh_channel, void* dest, uint32_t count, int, int) {
+                         &remaining](ssh_channel, void* dest, uint32_t count, int, int) -> int {
+        if (remaining == 0)
+        {
+            // Everything was drained: libssh now reports the closure and fails further reads
+            MP_LIBSSH.ssh_event_dopoll(nullptr, 0);
+            return -1;
+        }
         const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
         const auto begin = expected_output.begin() + expected_output.size() - remaining;
         std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));
         remaining -= num_to_copy;
         return num_to_copy;
     };
-    REPLACE(ssh_channel_new,
-            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
-    REPLACE(ssh_channel_free, [](auto...) { return; });
-    REPLACE(ssh_channel_read_timeout, channel_read);
-    REPLACE(ssh_channel_is_closed, [](auto...) { return 1; });
+    EXPECT_CALL(mock_libssh, ssh_channel_read_timeout).WillRepeatedly(channel_read);
 
     auto proc = session.exec("something");
     auto output = proc->read_std_output();
