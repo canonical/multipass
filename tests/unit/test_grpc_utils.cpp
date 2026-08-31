@@ -58,26 +58,34 @@ void expect_common_fields(const mp::SSHCoordinates& coordinates)
     EXPECT_THAT(coordinates.tcp_host, Eq(tcp_host));
 }
 
-TEST(GrpcUtils, protoToCoordinatesCopiesHvsockFields)
+TEST(GrpcUtils, protoToCoordinatesCopiesCommonFields)
+{
+    mp::SSHCoordinatesInfo proto;
+    set_common_fields(proto);
+
+    expect_common_fields(mp::utils::proto_to_coordinates(proto));
+}
+
+TEST(GrpcUtils, coordinatesToProtoCopiesCommonFields)
+{
+    const mp::SSHCoordinates coordinates{username, private_key, port, tcp_host, std::monostate{}};
+
+    expect_common_fields(mp::utils::coordinates_to_proto(coordinates));
+}
+
+TEST(GrpcUtils, protoToCoordinatesCopiesHvsockField)
 {
     constexpr auto vmid = "hvsock-vm-id";
     mp::SSHCoordinatesInfo proto;
-    set_common_fields(proto);
     proto.set_hvsock_vmid(vmid);
 
     const auto coordinates = mp::utils::proto_to_coordinates(proto);
 
-    expect_common_fields(coordinates);
     ASSERT_TRUE(std::holds_alternative<mp::HVSOCKData>(coordinates.vsock_host));
     EXPECT_THAT(std::get<mp::HVSOCKData>(coordinates.vsock_host).vmid, Eq(vmid));
-
-    const auto round_tripped = mp::utils::coordinates_to_proto(coordinates);
-    expect_common_fields(round_tripped);
-    EXPECT_THAT(round_tripped.vsock_host_case(), Eq(mp::SSHCoordinatesInfo::kHvsockVmid));
-    EXPECT_THAT(round_tripped.hvsock_vmid(), Eq(vmid));
 }
 
-TEST(GrpcUtils, coordinatesToProtoCopiesHvsockFields)
+TEST(GrpcUtils, coordinatesToProtoCopiesHvsockField)
 {
     constexpr auto vmid = "hvsock-vm-id";
     const mp::SSHCoordinates coordinates{username,
@@ -88,72 +96,46 @@ TEST(GrpcUtils, coordinatesToProtoCopiesHvsockFields)
 
     const auto proto = mp::utils::coordinates_to_proto(coordinates);
 
-    expect_common_fields(proto);
     EXPECT_THAT(proto.vsock_host_case(), Eq(mp::SSHCoordinatesInfo::kHvsockVmid));
     EXPECT_THAT(proto.hvsock_vmid(), Eq(vmid));
-
-    const auto round_tripped = mp::utils::proto_to_coordinates(proto);
-    expect_common_fields(round_tripped);
-    ASSERT_TRUE(std::holds_alternative<mp::HVSOCKData>(round_tripped.vsock_host));
-    EXPECT_THAT(std::get<mp::HVSOCKData>(round_tripped.vsock_host).vmid, Eq(vmid));
 }
 
-TEST(GrpcUtils, protoToCoordinatesCopiesVsockFields)
+TEST(GrpcUtils, protoToCoordinatesCopiesVsockField)
 {
     constexpr uint32_t cid = 424242;
     mp::SSHCoordinatesInfo proto;
-    set_common_fields(proto);
     proto.set_vsock_cid(cid);
 
     const auto coordinates = mp::utils::proto_to_coordinates(proto);
 
-    expect_common_fields(coordinates);
     ASSERT_TRUE(std::holds_alternative<mp::VSOCKData>(coordinates.vsock_host));
     EXPECT_THAT(std::get<mp::VSOCKData>(coordinates.vsock_host).cid, Eq(cid));
-
-    const auto round_tripped = mp::utils::coordinates_to_proto(coordinates);
-    expect_common_fields(round_tripped);
-    EXPECT_THAT(round_tripped.vsock_host_case(), Eq(mp::SSHCoordinatesInfo::kVsockCid));
-    EXPECT_THAT(round_tripped.vsock_cid(), Eq(cid));
 }
 
-TEST(GrpcUtils, coordinatesToProtoCopiesVsockFields)
+TEST(GrpcUtils, coordinatesToProtoCopiesVsockField)
 {
     constexpr uint32_t cid = 424242;
     const mp::SSHCoordinates coordinates{username, private_key, port, tcp_host, mp::VSOCKData{cid}};
 
     const auto proto = mp::utils::coordinates_to_proto(coordinates);
 
-    expect_common_fields(proto);
     EXPECT_THAT(proto.vsock_host_case(), Eq(mp::SSHCoordinatesInfo::kVsockCid));
     EXPECT_THAT(proto.vsock_cid(), Eq(cid));
-
-    const auto round_tripped = mp::utils::proto_to_coordinates(proto);
-    expect_common_fields(round_tripped);
-    ASSERT_TRUE(std::holds_alternative<mp::VSOCKData>(round_tripped.vsock_host));
-    EXPECT_THAT(std::get<mp::VSOCKData>(round_tripped.vsock_host).cid, Eq(cid));
 }
 
-TEST(GrpcUtils, protoToCoordinatesCopiesUsockFields)
+TEST(GrpcUtils, protoToCoordinatesCopiesUsockField)
 {
     constexpr auto socket_address = "/run/multipass/test.socket";
     mp::SSHCoordinatesInfo proto;
-    set_common_fields(proto);
     proto.set_usock_addr(socket_address);
 
     const auto coordinates = mp::utils::proto_to_coordinates(proto);
 
-    expect_common_fields(coordinates);
     ASSERT_TRUE(std::holds_alternative<mp::USOCKData>(coordinates.vsock_host));
     EXPECT_THAT(std::get<mp::USOCKData>(coordinates.vsock_host).socket_address, Eq(socket_address));
-
-    const auto round_tripped = mp::utils::coordinates_to_proto(coordinates);
-    expect_common_fields(round_tripped);
-    EXPECT_THAT(round_tripped.vsock_host_case(), Eq(mp::SSHCoordinatesInfo::kUsockAddr));
-    EXPECT_THAT(round_tripped.usock_addr(), Eq(socket_address));
 }
 
-TEST(GrpcUtils, coordinatesToProtoCopiesUsockFields)
+TEST(GrpcUtils, coordinatesToProtoCopiesUsockField)
 {
     constexpr auto socket_address = "/run/multipass/test.socket";
     const mp::SSHCoordinates coordinates{username,
@@ -164,44 +146,26 @@ TEST(GrpcUtils, coordinatesToProtoCopiesUsockFields)
 
     const auto proto = mp::utils::coordinates_to_proto(coordinates);
 
-    expect_common_fields(proto);
     EXPECT_THAT(proto.vsock_host_case(), Eq(mp::SSHCoordinatesInfo::kUsockAddr));
     EXPECT_THAT(proto.usock_addr(), Eq(socket_address));
-
-    const auto round_tripped = mp::utils::proto_to_coordinates(proto);
-    expect_common_fields(round_tripped);
-    ASSERT_TRUE(std::holds_alternative<mp::USOCKData>(round_tripped.vsock_host));
-    EXPECT_THAT(std::get<mp::USOCKData>(round_tripped.vsock_host).socket_address,
-                Eq(socket_address));
 }
 
-TEST(GrpcUtils, protoToCoordinatesCopiesNoHostFields)
+TEST(GrpcUtils, protoToCoordinatesCopiesNoHostField)
 {
     mp::SSHCoordinatesInfo proto;
-    set_common_fields(proto);
 
     const auto coordinates = mp::utils::proto_to_coordinates(proto);
 
-    expect_common_fields(coordinates);
     EXPECT_TRUE(std::holds_alternative<std::monostate>(coordinates.vsock_host));
-
-    const auto round_tripped = mp::utils::coordinates_to_proto(coordinates);
-    expect_common_fields(round_tripped);
-    EXPECT_THAT(round_tripped.vsock_host_case(), Eq(mp::SSHCoordinatesInfo::VSOCK_HOST_NOT_SET));
 }
 
-TEST(GrpcUtils, coordinatesToProtoClearsNoHostFields)
+TEST(GrpcUtils, coordinatesToProtoClearsNoHostField)
 {
     const mp::SSHCoordinates coordinates{username, private_key, port, tcp_host, std::monostate{}};
 
     const auto proto = mp::utils::coordinates_to_proto(coordinates);
 
-    expect_common_fields(proto);
     EXPECT_THAT(proto.vsock_host_case(), Eq(mp::SSHCoordinatesInfo::VSOCK_HOST_NOT_SET));
-
-    const auto round_tripped = mp::utils::proto_to_coordinates(proto);
-    expect_common_fields(round_tripped);
-    EXPECT_TRUE(std::holds_alternative<std::monostate>(round_tripped.vsock_host));
 }
 
 TEST(GrpcUtils, portBoundaryValuesSurviveRoundTripWithoutVsockHost)
