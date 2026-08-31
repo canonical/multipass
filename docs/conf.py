@@ -220,14 +220,14 @@ linkcheck_ignore = [
     "http://127.0.0.1:8001",
     "https://localhost:8080",
     "https://localhost:8081",
-    "https://github.com/canonical/*",
+    r"https://github\.com/canonical/.*",
     "https://sourceforge.net/projects/vcxsrv/",
     "https://sourceforge.net/projects/xming/",
     "http://www.straightrunning.com/XmingNotes/",
     "https://unix.stackexchange.com",  # it seems stackexchange is now blocking bots
     "https://developer.hashicorp.com/packer",
-    "https://www.freedesktop.org/*",
-    "https://asciinema.org/*",
+    r"https://www\.freedesktop\.org/.*",
+    r"https://asciinema\.org/.*",
     r"https://askubuntu\.com/.*",
 ]
 
