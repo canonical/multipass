@@ -249,8 +249,6 @@ void AppleVZVirtualMachine::suspend()
 VirtualMachine::State AppleVZVirtualMachine::current_state()
 {
     // Get state from AppleVZ, translate it to our state enum, and notify the monitor
-    if (!vm_handle)
-        return State::stopped;
     set_state(MP_APPLEVZ.get_state(vm_handle));
     return state;
 }
@@ -306,6 +304,12 @@ void AppleVZVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 void AppleVZVirtualMachine::set_state(applevz::AppleVMState vm_state)
 {
     mpl::debug(log_category, "set_state() -> VM `{}` VZ state `{}`", vm_name, vm_state);
+
+    if (state == State::unavailable)
+    {
+        mpl::debug(log_category, "set_state() -> Zone for VM `{}` is unavailable", vm_name);
+        return;
+    }
 
     const auto prev_state = state;
     switch (vm_state)
