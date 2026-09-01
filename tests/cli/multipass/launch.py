@@ -41,6 +41,7 @@ def launch(cfg_override=None):
         "disk": cfg.vm.disk,
         "retry": getattr(cfg.retries, "launch", 0),
         "image": cfg.vm.image,
+        "extra_args": [],
         "autopurge": True,
         "assert": {"purge": True},
     }
@@ -57,7 +58,7 @@ def launch(cfg_override=None):
 
     assert not vm_exists(vm_cfg["name"])
 
-    with multipass(
+    launch_args = [
         "launch",
         "--cpus",
         vm_cfg["cpus"],
@@ -69,9 +70,13 @@ def launch(cfg_override=None):
         vm_cfg["name"],
         "--timeout",
         getattr(cfg.timeouts, "launch", 300),
-        vm_cfg["image"],
-        retry=vm_cfg["retry"],
-    ) as launch_r:
+    ]
+    # Arbitrary extra launch flags (e.g. --cloud-init, --network) go before the
+    # image positional.
+    launch_args.extend(str(arg) for arg in vm_cfg["extra_args"])
+    launch_args.append(vm_cfg["image"])
+
+    with multipass(*launch_args, retry=vm_cfg["retry"]) as launch_r:
         # The launch does not have a dedicated exit code for the "already exists".
         already_exists_str = f"instance \"{vm_cfg['name']}\" already exists"
         already_exists = already_exists_str in str(launch_r)

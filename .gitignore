@@ -38,3 +38,6 @@ network-cache/
 
 # clangd code index cache
 .cache
+
+# Multipass version upgrade tests seed manifest file
+upgrade-manifest.json
