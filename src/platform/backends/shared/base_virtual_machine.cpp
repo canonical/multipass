@@ -99,13 +99,13 @@ mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
-    : vm_name{vm_name},
-      desc{vm_desc},
-      key_provider{key_provider},
-      zone{zone},
-      instance_dir{instance_dir}
+    : BaseVirtualMachine(zone.is_available() ? State::off : State::unavailable,
+                         vm_name,
+                         vm_desc,
+                         key_provider,
+                         zone,
+                         instance_dir)
 {
-    zone.add_vm(*this);
 }
 
 mp::BaseVirtualMachine::BaseVirtualMachine(State state,
