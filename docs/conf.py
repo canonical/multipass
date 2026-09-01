@@ -216,9 +216,6 @@ redirects = {}
 
 linkcheck_ignore = [
     r"https://app\.element\.io/.*",
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1:8001",
-    "https://localhost:8080",
     "https://localhost:8081",
     r"https://github\.com/canonical/.*",
     r"https://sourceforge\.net/projects/.*",
