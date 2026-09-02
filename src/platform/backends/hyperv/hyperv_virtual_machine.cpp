@@ -155,8 +155,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 {
     if (!power_shell->run({"Get-VM", "-Name", name}))
     {
-        auto mem_size =
-            QString::number(desc.mem_size.in_bytes()); /* format documented in `Help(New-VM)`, under
+        auto mem_size = QString::number(
+            desc.mem_size.in_bytes()); /* format documented in `Help(New-VM)`, under
 `-MemoryStartupBytes` option; */
 
         power_shell->easy_run({QString("$switch = Get-VMSwitch -Id %1").arg(default_switch_guid)},
@@ -220,8 +220,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
     // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\vm1\Virtual
     // Machines\7735327A-A22F-4926-95A1-51757D650BB7.vmcx' -Copy -GenerateNewId -VhdDestinationPath
     // "C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\"
-    const fs::path exported_vm_path =
-        fs::path{dest_instance_dir.toStdString()} / fs::path{source_vm_name};
+    const fs::path exported_vm_path = fs::path{dest_instance_dir.toStdString()} /
+                                      fs::path{source_vm_name};
     const fs::path vmcx_file_path = locate_vmcx_file(exported_vm_path);
     // The next step needs to rename the instance, so we need to store the instance variable
     // $imported_vm from the Import-VM step. Because we can not use vm name to uniquely identify the
@@ -249,8 +249,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
         "Could not remove the cloud-init-config.iso file from the virtual machine");
     // 5. Add-VMDvdDrive -VMName vm1-clone1 -Path
     // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\cloud-init-config.iso'
-    const fs::path dest_cloud_init_path =
-        fs::path{dest_instance_dir.toStdString()} / cloud_init_file_name;
+    const fs::path dest_cloud_init_path = fs::path{dest_instance_dir.toStdString()} /
+                                          cloud_init_file_name;
     power_shell->easy_run({"Add-VMDvdDrive",
                            "-VMName",
                            name,
@@ -351,7 +351,7 @@ void mp::HyperVVirtualMachine::start()
     {
         state = instance_state_for(power_shell.get(), name);
         handle_state_update();
-        throw StartException{vm_name, output_err.toStdString()};
+        throw StartException{vm_name, output_err.toStdString(), false};
     }
 }
 
