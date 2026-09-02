@@ -81,6 +81,7 @@ public:
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;
 
     // Whether this backend implements Availability Zones.
+    // TODO@backends: remove once deprecated backends are removed
     virtual bool supports_availability_zones() const = 0;
 
 protected:

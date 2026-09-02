@@ -43,6 +43,7 @@ public:
         return "hyperv";
     };
     std::vector<NetworkInterfaceInfo> networks() const override;
+    // TODO@backends: remove once deprecated backends are removed
     bool supports_availability_zones() const override
     {
         return false;

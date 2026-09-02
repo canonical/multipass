@@ -181,6 +181,7 @@ final zonesProvider = Provider<BuiltList<Zone>>((ref) {
 
 // Whether the active backend implements Availability Zones. Backends that don't
 // (VirtualBox, old Hyper-V) return no zones, so an empty list means unsupported.
+// TODO@backends: remove once deprecated backends are removed
 final azSupportedProvider = Provider<bool>((ref) {
   return ref.watch(zonesProvider).isNotEmpty;
 });
