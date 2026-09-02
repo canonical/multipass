@@ -559,7 +559,10 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             }
         }
 
-        cout << "Launched: " << reply.vm_instance_name() << " in " << reply.zone() << "\n";
+        if (reply.zone().empty())
+            cout << "Launched: " << reply.vm_instance_name() << "\n";
+        else
+            cout << "Launched: " << reply.vm_instance_name() << " in " << reply.zone() << "\n";
 
         if (term->is_live() && update_available(reply.update_info()))
         {

@@ -147,7 +147,11 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
     fmt::format_to(dest,
                    "{:<16}{}\n",
                    "Zone:",
-                   fmt::format("{}{}", item.zone().name(), item.zone().available() ? "" : "(n/a)"));
+                   item.zone().supported()
+                       ? fmt::format("{}{}",
+                                     item.zone().name(),
+                                     item.zone().available() ? "" : "(n/a)")
+                       : std::string{"n/a"});
 
     if (instance_details.has_num_snapshots())
         fmt::format_to(dest, "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
@@ -294,9 +298,11 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                 ? "Not Available"
                 : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release())),
             image_column_width,
-            fmt::format("{}{}",
-                        instance.zone().name(),
-                        instance.zone().available() ? "" : "(n/a)"));
+            instance.zone().supported()
+                ? fmt::format("{}{}",
+                              instance.zone().name(),
+                              instance.zone().available() ? "" : "(n/a)")
+                : std::string{"n/a"});
 
         for (int i = 1; i < ipv4_size; ++i)
         {
