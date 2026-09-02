@@ -14,5 +14,5 @@
 
 include(src/cmake/feature-flag.cmake)
 
-# The new Windows backend based on Hyper-V Host Compute System / Host Compute Networking APIs
-feature_flag(HYPERV_HCS_ENABLED "Hyper-V HCS backend" WIN32)
+# Phase 1 ships both Hyper-V backends on Windows so users can migrate and switch back.
+cmake_dependent_option(HYPERV_HCS_ENABLED "Hyper-V HCS backend" ON "WIN32" OFF)

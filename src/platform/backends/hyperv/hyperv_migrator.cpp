@@ -17,6 +17,7 @@
 #include "hyperv_migrator.h"
 
 #include "hyperv_disk_layout.h"
+#include "hyperv_target_transaction.h"
 
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_factory.h>
@@ -31,7 +32,6 @@
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/vm_status_monitor.h>
-#include <shared/windows/powershell.h>
 
 #include <QUuid>
 
@@ -39,19 +39,15 @@
 #include <fmt/std.h>
 #include <scope_guard.hpp>
 
-#include <algorithm>
-#include <cctype>
 #include <system_error>
 
 namespace
 {
 namespace fs = std::filesystem;
 namespace mhv = multipass::hyperv;
-namespace mpl = multipass::logging;
 using multipass::hyperv::virtdisk::VirtDisk;
 
 constexpr auto log_category = "Hyper-V migration";
-constexpr auto holding_suffix = ".multipass-migration-hold";
 
 class TrialMonitor final : public multipass::VMStatusMonitor
 {
@@ -89,8 +85,9 @@ public:
                         multipass::AvailabilityZone& zone,
                         const multipass::Path& instance_dir,
                         const fs::path& state_file_stem,
+                        const std::string& primary_network_guid,
                         std::string hostname)
-        : HCSVirtualMachine{mhv::default_hyperv_switch_guid,
+        : HCSVirtualMachine{primary_network_guid,
                             description,
                             monitor,
                             key_provider,
@@ -109,15 +106,6 @@ public:
 private:
     const std::string hostname;
 };
-
-std::string normalized_mac(std::string mac)
-{
-    std::erase_if(mac, [](char c) { return c == ':' || c == '-'; });
-    std::ranges::transform(mac, mac.begin(), [](unsigned char c) {
-        return static_cast<char>(std::tolower(c));
-    });
-    return mac;
-}
 
 fs::path with_extension(fs::path path, const char* extension)
 {
@@ -140,12 +128,20 @@ void remove_trial_files(const fs::path& trial_disk, const fs::path& state_file_s
     remove_trial_file(with_extension(state_file_stem, ".SavedState.vmrs"));
 }
 
+std::vector<std::string> observed_trial_macs(TrialVirtualMachine& trial)
+{
+    const auto output = trial.ssh_exec(
+        "for f in /sys/class/net/*/address; do "
+        "iface=$(basename $(dirname $f)); "
+        "[ \"$iface\" = lo ] && continue; "
+        "cat $f; done");
+    return multipass::utils::split(output, "\n");
+}
+
 void verify_trial(TrialVirtualMachine& trial,
                   const multipass::VirtualMachineDescription& description,
-                  const multipass::Path& instance_dir)
+                  const fs::path& cloud_init_path)
 {
-    const auto cloud_init_path = fs::path{instance_dir.toStdString()} /
-                                 multipass::cloud_init_file_name;
     const auto expected_instance_id = MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(
         cloud_init_path);
     const auto actual_instance_id = multipass::utils::trim(
@@ -157,32 +153,28 @@ void verify_trial(TrialVirtualMachine& trial,
                         expected_instance_id,
                         actual_instance_id)};
 
-    const auto actual_mac = multipass::utils::trim(
-        trial.ssh_exec("iface=$(ip route show default | awk 'NR==1 {print $5}'); "
-                       "cat /sys/class/net/$iface/address"));
-    if (normalized_mac(actual_mac) != normalized_mac(description.default_mac_address))
-        throw std::runtime_error{
-            fmt::format("Migration trial primary MAC mismatch: expected '{}', received '{}'",
-                        description.default_mac_address,
-                        actual_mac)};
+    mhv::verify_trial_macs(description, observed_trial_macs(trial));
 }
 
-void run_trial(const mhv::LegacyDiskLayout& layout,
+// Trial-boots only the active target head through a disposable, target-local differencing
+// disk. The target copies are never mutated by the trial.
+void run_trial(const fs::path& target_head,
+               const fs::path& staging_dir,
                const multipass::VirtualMachineDescription& description,
                const multipass::SSHKeyProvider& key_provider,
                multipass::AvailabilityZone& zone,
-               const multipass::Path& instance_dir)
+               const std::string& primary_network_guid,
+               const fs::path& cloud_init_path)
 {
     const auto suffix = QUuid::createUuid().toString(QUuid::WithoutBraces).left(8).toStdString();
     const auto trial_name = fmt::format("{}-migration-{}", description.vm_name, suffix);
-    auto trial_disk = layout.active_disk;
-    trial_disk += fmt::format(".{}.trial.avhdx", suffix);
+    auto trial_disk = staging_dir / fmt::format("{}.trial.avhdx", suffix);
     auto state_file_stem = trial_disk;
     state_file_stem += ".state";
 
     const mhv::virtdisk::CreateVirtualDiskParameters trial_disk_params{
         .path = trial_disk,
-        .predecessor = mhv::virtdisk::ParentPathParameters{layout.active_disk}};
+        .predecessor = mhv::virtdisk::ParentPathParameters{target_head}};
     if (const auto result = VirtDisk().create_virtual_disk(trial_disk_params); !result)
         throw std::runtime_error{
             fmt::format("Could not create HCS migration trial disk '{}': {}", trial_disk, result)};
@@ -198,19 +190,22 @@ void run_trial(const mhv::LegacyDiskLayout& layout,
     auto trial_description = description;
     trial_description.vm_name = trial_name;
     trial_description.image.image_path = trial_disk;
+    trial_description.cloud_init_iso = QString::fromStdWString(cloud_init_path.wstring());
 
     TrialMonitor monitor;
+    const auto staging_path = QString::fromStdWString(staging_dir.wstring());
     trial_vm = std::make_unique<TrialVirtualMachine>(
         trial_description,
         monitor,
         key_provider,
         zone,
-        instance_dir,
+        staging_path,
         state_file_stem,
+        primary_network_guid,
         fmt::format("{}.mshome.net", description.vm_name));
     trial_vm->start();
     trial_vm->wait_until_ssh_up(multipass::default_timeout);
-    verify_trial(*trial_vm, description, instance_dir);
+    verify_trial(*trial_vm, description, cloud_init_path);
 
     mhv::remove_hcs_resources(trial_name);
     trial_vm.reset();
@@ -218,166 +213,48 @@ void run_trial(const mhv::LegacyDiskLayout& layout,
     cleanup.dismiss();
 }
 
-bool path_exists(const fs::path& path)
+void report_phase(const multipass::hyperv::MigrationPhaseCallback& on_phase,
+                  std::string_view phase)
 {
-    std::error_code error;
-    const auto result = MP_FILEOPS.exists(path, error);
-    if (error)
-        throw std::runtime_error{
-            fmt::format("Could not inspect migration path '{}': {}", path, error.message())};
-    return result;
-}
-
-struct HeldDisk
-{
-    fs::path original;
-    fs::path holding;
-    bool held{false};
-};
-
-void restore_disks(std::vector<HeldDisk>& disks)
-{
-    for (auto it = disks.rbegin(); it != disks.rend(); ++it)
-    {
-        if (!it->held)
-            continue;
-
-        MP_FILEOPS.rename(it->holding, it->original);
-        it->held = false;
-    }
-}
-
-void restore_disks_noexcept(std::vector<HeldDisk>& disks) noexcept
-{
-    for (auto it = disks.rbegin(); it != disks.rend(); ++it)
-    {
-        if (!it->held)
-            continue;
-
-        multipass::top_catch_all(log_category, [&disk = *it] {
-            MP_FILEOPS.rename(disk.holding, disk.original);
-            disk.held = false;
-        });
-    }
-}
-
-void remove_legacy_registration(const std::string& name)
-{
-    QString output_error;
-    const auto removed = multipass::PowerShell::exec({"-NoProfile",
-                                                      "-NonInteractive",
-                                                      "-Command",
-                                                      "Remove-VM",
-                                                      "-Name",
-                                                      QString::fromStdString(name),
-                                                      "-Force"},
-                                                     name,
-                                                     nullptr,
-                                                     &output_error);
-    if (mhv::legacy_vm_exists(name))
-        throw std::runtime_error{
-            fmt::format("Could not remove legacy Hyper-V registration: {}",
-                        removed ? "registration still exists" : output_error.toStdString())};
+    if (on_phase)
+        on_phase(phase);
 }
 } // namespace
 
-multipass::hyperv::DefaultHyperVMigrator::DefaultHyperVMigrator(
-    VirtualMachineDescription description,
-    VMStatusMonitor& monitor,
+multipass::hyperv::HCSOwnership multipass::hyperv::migrate_retained_copy(
+    VirtualMachine& legacy_vm,
+    const VirtualMachineDescription& description,
+    const fs::path& target_instance_dir,
     const SSHKeyProvider& key_provider,
     AvailabilityZone& zone,
-    Path instance_dir)
-    : description{std::move(description)},
-      monitor{monitor},
-      key_provider{key_provider},
-      zone{zone},
-      instance_dir{std::move(instance_dir)}
+    const std::string& primary_network_guid,
+    const MigrationPhaseCallback& on_phase)
 {
-}
+    const auto source_instance_dir =
+        fs::path{legacy_vm.instance_directory().absolutePath().toStdString()};
 
-multipass::VirtualMachine::UPtr multipass::hyperv::DefaultHyperVMigrator::make_target()
-{
-    if (!committed_ownership)
-        throw std::runtime_error{"Hyper-V migration has not been committed"};
+    // Discovery is strictly read-only: the source registration, records, disk graph,
+    // snapshot metadata, cloud-init ISO, and state are never modified.
+    report_phase(on_phase, "inspecting source disk layout");
+    const auto layout = resolve_legacy_disk_layout(description.vm_name, legacy_vm);
 
-    auto hcs_description = description;
-    hcs_description.image.image_path = committed_ownership->active_disk;
-    auto target = std::make_unique<HCSVirtualMachine>(default_hyperv_switch_guid,
-                                                      hcs_description,
-                                                      monitor,
-                                                      key_provider,
-                                                      zone,
-                                                      instance_dir,
-                                                      committed_ownership->state_file_stem);
-    target->load_snapshots();
-    return target;
-}
+    TargetMigrationTransaction transaction{description.vm_name, target_instance_dir};
 
-void multipass::hyperv::DefaultHyperVMigrator::commit_migration(const LegacyDiskLayout& layout,
-                                                                HCSOwnership ownership)
-{
-    std::vector<HeldDisk> disks;
-    disks.reserve(layout.all_disks.size());
-    for (const auto& disk : layout.all_disks)
-    {
-        auto holding = disk;
-        holding += holding_suffix;
-        if (path_exists(holding))
-            throw std::runtime_error{
-                fmt::format("Migration holding path already exists: '{}'", holding)};
-        disks.push_back({.original = disk, .holding = std::move(holding)});
-    }
+    report_phase(on_phase, "copying disks to the target instance");
+    const auto mapping = transaction.stage(layout, source_instance_dir);
 
-    auto restore = sg::make_scope_guard([&]() noexcept { restore_disks_noexcept(disks); });
-    for (auto& disk : disks)
-    {
-        MP_FILEOPS.rename(disk.original, disk.holding);
-        disk.held = true;
-    }
+    report_phase(on_phase, "verifying the copied disks");
+    transaction.verify(mapping, layout);
 
-    remove_legacy_registration(description.vm_name);
-    restore_disks(disks);
-    restore.dismiss();
+    report_phase(on_phase, "trial-booting the migrated instance");
+    run_trial(mapping.active_disk,
+              transaction.staging_dir(),
+              description,
+              key_provider,
+              zone,
+              primary_network_guid,
+              transaction.staging_dir() / multipass::cloud_init_file_name);
 
-    if (!path_exists(ownership.active_disk))
-        throw std::runtime_error{
-            fmt::format("Migrated active disk '{}' does not exist", ownership.active_disk)};
-
-    ownership.persist(instance_dir.toStdString());
-    committed_ownership = std::move(ownership);
-}
-
-bool multipass::hyperv::DefaultHyperVMigrator::try_migrate(VirtualMachine& legacy_vm)
-{
-    if (committed_ownership)
-        return true;
-
-    try
-    {
-        const auto layout = resolve_legacy_disk_layout(description.vm_name, legacy_vm);
-        layout.persist_snapshot_paths(legacy_vm);
-        run_trial(layout, description, key_provider, zone, instance_dir);
-        commit_migration(layout,
-                         HCSOwnership{
-                             .active_disk = layout.active_disk,
-                             .state_file_stem = std::filesystem::path{instance_dir.toStdString()} /
-                                                "hcs-migrated-state",
-                         });
-        return true;
-    }
-    catch (const std::exception& error)
-    {
-        if (legacy_vm_exists(description.vm_name))
-        {
-            mpl::warn(description.vm_name,
-                      "Hyper-V migration was not committed; continuing with the legacy backend: {}",
-                      error.what());
-            return false;
-        }
-
-        throw std::runtime_error{fmt::format(
-            "Hyper-V migration removed the legacy registration but did not finish; manual "
-            "recovery is required: {}",
-            error.what())};
-    }
+    report_phase(on_phase, "committing the migrated instance");
+    return transaction.commit(mapping, layout, source_instance_dir);
 }

@@ -29,9 +29,12 @@
 #include <multipass/vm_status_monitor.h>
 
 #include <chrono>
+#include <atomic>
 #include <future>
 #include <memory>
 #include <mutex>
+#include <optional>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -183,6 +186,12 @@ public slots:
         DaemonRpcContext* context);
 
 private:
+    // Rejects @p rpc_name by setting a FAILED_PRECONDITION status on @p context when a bulk
+    // migration is in progress. Returns true iff rejected, so a mutating RPC slot can early
+    // `return`. Never rejects read-only RPCs (they simply don't call it).
+    [[nodiscard]] bool reject_if_migrating(std::string_view rpc_name,
+                                           DaemonRpcContext* context) const;
+
     void release_resources(const std::string& instance);
     void create_vm(const CreateRequest* request,
                    grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
@@ -262,6 +271,19 @@ private:
 protected:
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     InstanceTable operative_instances;
+
+    // Set only while a bulk Hyper-V -> HCS migration runs inside Daemon::set. It guards
+    // conflicting mutating RPCs without taking a lock, so it cannot deadlock against the
+    // long-running migration. Atomic because RPC slots and the migration run on different
+    // threads.
+    std::atomic<bool> migration_in_progress{false};
+
+    // Pure guard decision: a rejection status when @p migrating is set, otherwise nullopt.
+    // Side-effect free and static so it is trivially unit-testable in isolation. Reads must
+    // never consult this.
+    [[nodiscard]] static std::optional<grpc::Status> migration_conflict_status(
+        bool migrating,
+        std::string_view rpc_name);
 
     bool is_bridged(const std::string& instance_name) const;
     void add_bridged_interface(const std::string& instance_name);

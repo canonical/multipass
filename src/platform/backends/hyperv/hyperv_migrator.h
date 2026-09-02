@@ -16,56 +16,49 @@
 
 #pragma once
 
-#include "hcs_ownership.h"
+#include <hyperv_api/hcs_ownership.h>
 
 #include <multipass/path.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <filesystem>
-#include <memory>
-#include <optional>
+#include <functional>
+#include <string>
+#include <string_view>
 
 namespace multipass
 {
 class AvailabilityZone;
 class SSHKeyProvider;
-class VMStatusMonitor;
 } // namespace multipass
 
 namespace multipass::hyperv
 {
 struct LegacyDiskLayout;
 
-class HyperVMigrator
-{
-public:
-    virtual ~HyperVMigrator() = default;
+/**
+ * Human-readable phase notification emitted as the retained-copy migration progresses.
+ * The daemon maps these to transient `SetReply.reply_message` updates; the engine itself
+ * has no opinion on how they are surfaced.
+ */
+using MigrationPhaseCallback = std::function<void(std::string_view phase)>;
 
-    // Returns true only after the migration crosses the commit boundary.
-    [[nodiscard]] virtual bool try_migrate(VirtualMachine& legacy_vm) = 0;
-    [[nodiscard]] virtual VirtualMachine::UPtr make_target() = 0;
-};
-
-class DefaultHyperVMigrator final : public HyperVMigrator
-{
-public:
-    DefaultHyperVMigrator(VirtualMachineDescription description,
-                          VMStatusMonitor& monitor,
-                          const SSHKeyProvider& key_provider,
-                          AvailabilityZone& zone,
-                          Path instance_dir);
-
-    [[nodiscard]] bool try_migrate(VirtualMachine& legacy_vm) override;
-    [[nodiscard]] VirtualMachine::UPtr make_target() override;
-
-private:
-    void commit_migration(const LegacyDiskLayout& layout, HCSOwnership ownership);
-    VirtualMachineDescription description;
-    VMStatusMonitor& monitor;
-    const SSHKeyProvider& key_provider;
-    AvailabilityZone& zone;
-    Path instance_dir;
-    std::optional<HCSOwnership> committed_ownership;
-};
+/**
+ * Reusable retained-copy migration primitive. Migrates the legacy Hyper-V @p legacy_vm
+ * into @p target_instance_dir using the supplied (already adapted) @p description, SSH
+ * key, and zone. The source is never mutated: the disk graph is copied into a private,
+ * target-local set, verified, trial-booted through a disposable differencing disk, and
+ * only then committed. Returns the committed HCS ownership on success; throws on any
+ * failure (leaving the source intact and recoverable).
+ *
+ * @p on_phase, when set, receives coarse progress notifications at each phase boundary.
+ */
+[[nodiscard]] HCSOwnership migrate_retained_copy(VirtualMachine& legacy_vm,
+                                                 const VirtualMachineDescription& description,
+                                                 const std::filesystem::path& target_instance_dir,
+                                                 const SSHKeyProvider& key_provider,
+                                                 AvailabilityZone& zone,
+                                                 const std::string& primary_network_guid,
+                                                 const MigrationPhaseCallback& on_phase = {});
 } // namespace multipass::hyperv

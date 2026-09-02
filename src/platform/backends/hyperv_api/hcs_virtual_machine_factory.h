@@ -25,6 +25,8 @@ namespace multipass::hyperv
 {
 inline constexpr auto default_hyperv_switch_guid = "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444";
 
+void check_hyperv_api_support();
+
 /**
  * Native Windows virtual machine implementation using HCS, HCN & virtdisk API's.
  */
@@ -47,11 +49,21 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
         return "hyperv_api";
     };
 
+    [[nodiscard]] QString get_backend_directory_name() const override
+    {
+        return "hyperv_api";
+    }
+
     [[nodiscard]] std::vector<NetworkInterfaceInfo> networks() const override;
 
     [[nodiscard]] std::string create_bridge_for(const NetworkInterfaceInfo& interface)
     {
         return create_bridge_with(interface);
+    }
+
+    [[nodiscard]] const std::string& network_guid_for(const std::string& zone) const
+    {
+        return az_network_guids.at(zone);
     }
 
 protected:

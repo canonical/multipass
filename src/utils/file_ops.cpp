@@ -476,6 +476,16 @@ fs::path mp::FileOps::relative(const fs::path& path,
     return fs::relative(path, base, ec);
 }
 
+std::uintmax_t mp::FileOps::file_size(const fs::path& path, std::error_code& err) const
+{
+    return fs::file_size(path, err);
+}
+
+fs::space_info mp::FileOps::space(const fs::path& path, std::error_code& err) const
+{
+    return fs::space(path, err);
+}
+
 fs::path mp::FileOps::remove_extension(const fs::path& path) const
 {
     return path.parent_path() / path.stem();

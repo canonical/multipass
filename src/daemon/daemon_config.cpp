@@ -138,6 +138,10 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
     if (az_manager == nullptr)
         az_manager = std::make_unique<BaseAvailabilityZoneManager>(data_directory.toStdString());
+    // Upgrade visibility guard: before selecting a backend, preserve visibility of pre-existing
+    // legacy Hyper-V instances when no driver has been explicitly configured (Windows-only; a no-op
+    // elsewhere and whenever there is nothing to preserve).
+    MP_PLATFORM.ensure_legacy_driver_visibility(data_directory);
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory, *az_manager);
     if (update_prompt == nullptr)
