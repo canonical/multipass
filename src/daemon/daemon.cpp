@@ -1802,6 +1802,7 @@ try
         const auto zone = entry->mutable_zone();
         zone->set_name(vm.get_zone().get_name());
         zone->set_available(vm.get_zone().is_available());
+        zone->set_supported(config->factory->supports_availability_zones());
         if (deleted)
             entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
         else
