@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: Reference for Multipass, covering the CLI, GUI client, settings and logging levels.
+---
+
 (reference-index)=
 # Reference
 

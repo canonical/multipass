@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Explanation of the key Multipass concepts: its reference architecture, service and driver, instances, images, snapshots, mounts and security."
+---
+
 (explanation-index)=
 # Explanation
 
