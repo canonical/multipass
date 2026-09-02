@@ -16,6 +16,7 @@
  */
 
 #include "remote_settings_handler.h"
+#include "animated_spinner.h"
 #include "common_callbacks.h"
 #include "common_cli.h"
 
@@ -127,14 +128,69 @@ public:
         set_request.set_val(val.toStdString());
         set_request.set_authorized(user_authorized);
 
-        auto streaming_confirmation_callback =
-            mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(*term, key);
+        std::unique_ptr<mp::AnimatedSpinner> spinner;
+        auto stop_spinner = [&spinner] {
+            if (spinner)
+                spinner->stop();
+        };
+        auto on_success = [&stop_spinner](mp::SetReply&) -> mp::ReturnCodeVariant {
+            stop_spinner();
+            return mp::ReturnCode::Ok;
+        };
+        auto on_failure = [&stop_spinner](grpc::Status& status) -> mp::ReturnCodeVariant {
+            stop_spinner();
+            return RemoteSettingsCmd::on_failure(status);
+        };
+        auto streaming_callback =
+            [&spinner, &stop_spinner, &term = *term, key](
+                mp::SetReply& reply,
+                grpc::ClientReaderWriterInterface<mp::SetRequest, mp::SetReply>* client) {
+                if (!reply.log_line().empty())
+                {
+                    if (spinner)
+                        spinner->print(term.cerr(), reply.log_line());
+                    else
+                        term.cerr() << reply.log_line();
+                }
+
+                if (key.startsWith(mp::daemon_settings_root) &&
+                    key.endsWith(mp::bridged_network_name) && reply.needs_authorization())
+                {
+                    stop_spinner();
+                    mp::BridgePrompter prompter{&term};
+                    const std::vector<std::string> networks{reply.reply_message()};
+                    mp::SetRequest request;
+                    request.set_authorized(prompter.bridge_prompt(networks));
+                    client->Write(request);
+                }
+                else if (!reply.summary().empty())
+                {
+                    stop_spinner();
+                    term.cout() << reply.summary();
+                    if (reply.summary().back() != '\n')
+                        term.cout() << '\n';
+                }
+                else if (!reply.migration_phase().empty())
+                {
+                    stop_spinner();
+                    if (!spinner)
+                        spinner = std::make_unique<mp::AnimatedSpinner>(term.cerr());
+                    spinner->start(reply.migration_phase());
+                }
+                else if (!reply.reply_message().empty())
+                {
+                    stop_spinner();
+                    term.cout() << reply.reply_message();
+                    if (reply.reply_message().back() != '\n')
+                        term.cout() << '\n';
+                }
+            };
 
         [[maybe_unused]] auto ret = dispatch(&RpcMethod::set,
                                              set_request,
-                                             on_success<mp::SetReply>,
+                                             on_success,
                                              on_failure,
-                                             streaming_confirmation_callback);
+                                             streaming_callback);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 };
