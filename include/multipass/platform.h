@@ -77,6 +77,11 @@ public:
     virtual SettingSpec::Set extra_daemon_settings() const;
     virtual SettingSpec::Set extra_client_settings() const;
     virtual QString default_driver() const;
+    // Windows upgrade visibility guard. When no driver has been explicitly configured yet, but
+    // legacy full-Hyper-V ('hyperv') instance data or registration is present, persist 'hyperv' so
+    // that pre-existing instances remain visible after the default became 'hyperv_api'. This is a
+    // no-op on platforms other than Windows (and whenever there is nothing to preserve).
+    virtual void ensure_legacy_driver_visibility(const Path& data_dir) const;
     virtual QString default_privileged_mounts() const;
     [[nodiscard]] virtual std::string bridge_nomenclature() const;
     [[nodiscard]] virtual bool subnet_used_locally(Subnet subnet) const;

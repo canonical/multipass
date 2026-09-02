@@ -265,6 +265,11 @@ QString mp::platform::Platform::default_driver() const
     return QStringLiteral("qemu");
 }
 
+void mp::platform::Platform::ensure_legacy_driver_visibility(const mp::Path& /* data_dir */) const
+{
+    // Windows-only guard; nothing to do on macOS.
+}
+
 QString mp::platform::Platform::default_privileged_mounts() const
 {
     return QStringLiteral("true");
