@@ -36,12 +36,26 @@ def strip_lxd_deprecation_notice(text: str) -> str:
     )
 
 
+def strip_hyperv_deprecation_notice(text: str) -> str:
+    """Strip the legacy Hyper-V driver deprecation warning from text."""
+
+    return re.sub(
+        r"\*\*\* Warning! The legacy Hyper-V driver is deprecated.*?"
+        r"multipass set local\.driver=hyperv_api\)\.(?:\r\n|\r|\n){2}",
+        "",
+        text,
+        flags=re.S,
+    )
+
+
 class Output:
     """A type to store text command output."""
 
     def __init__(self, content, exitstatus):
         if cfg.driver == "lxd":
             content = strip_lxd_deprecation_notice(content)
+        elif cfg.driver == "hyperv":
+            content = strip_hyperv_deprecation_notice(content)
         # Strip ansi escape codes.
         self.content = strip_ansi_escape(content.strip())
         self.exitstatus = exitstatus
