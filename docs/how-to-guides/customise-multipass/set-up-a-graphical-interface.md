@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: How to set up a graphical interface for a Multipass instance, using either RDP with a desktop environment and xrdp, or X11 forwarding over SSH.
+---
+
 (how-to-guides-customise-multipass-set-up-a-graphical-interface)=
 # Set up a graphical interface
 

@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: How to install Multipass on Linux, macOS and Windows, and how to upgrade or uninstall the Multipass on each platform.
+---
+
 (how-to-guides-install-multipass)=
 # Install Multipass
 
