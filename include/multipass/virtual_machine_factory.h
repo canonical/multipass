@@ -80,6 +80,9 @@ public:
     // List all the network interfaces seen by the backend.
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;
 
+    // Whether this backend implements Availability Zones.
+    virtual bool supports_availability_zones() const = 0;
+
 protected:
     VirtualMachineFactory() = default;
 

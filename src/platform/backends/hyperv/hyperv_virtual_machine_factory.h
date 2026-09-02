@@ -43,6 +43,10 @@ public:
         return "hyperv";
     };
     std::vector<NetworkInterfaceInfo> networks() const override;
+    bool supports_availability_zones() const override
+    {
+        return false;
+    }
 
 protected:
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;

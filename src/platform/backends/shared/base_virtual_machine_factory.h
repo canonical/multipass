@@ -78,6 +78,11 @@ public:
         throw NotImplementedOnThisBackendException("networks");
     };
 
+    bool supports_availability_zones() const override
+    {
+        return true;
+    }
+
 protected:
     static const Path instances_subdir;
     AvailabilityZoneManager& az_manager;

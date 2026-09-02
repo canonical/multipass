@@ -45,6 +45,10 @@ public:
         return "virtualbox";
     };
     std::vector<NetworkInterfaceInfo> networks() const override;
+    bool supports_availability_zones() const override
+    {
+        return false;
+    }
 
 protected:
     void remove_resources_for_impl(const std::string& name) override;

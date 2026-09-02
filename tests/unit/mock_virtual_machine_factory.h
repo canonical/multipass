@@ -62,6 +62,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
                 (override));
     MOCK_METHOD(void, configure, (VirtualMachineDescription&), (override));
     MOCK_METHOD(std::vector<NetworkInterfaceInfo>, networks, (), (const, override));
+    MOCK_METHOD(bool, supports_availability_zones, (), (const, override));
 
     // originally protected:
     MOCK_METHOD(std::string, create_bridge_with, (const NetworkInterfaceInfo&), (override));
