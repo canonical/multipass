@@ -13,6 +13,8 @@ class ZonesDropdownButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final zones = ref.watch(zonesProvider);
+    // Hide the zones control entirely when the backend doesn't support AZs.
+    if (zones.isEmpty) return const SizedBox.shrink();
     final unavailableZones = zones.where((z) => !z.available).length;
 
     return Row(

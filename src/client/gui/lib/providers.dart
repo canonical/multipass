@@ -179,6 +179,12 @@ final zonesProvider = Provider<BuiltList<Zone>>((ref) {
       );
 });
 
+// Whether the active backend implements Availability Zones. Backends that don't
+// (VirtualBox, old Hyper-V) return no zones, so an empty list means unsupported.
+final azSupportedProvider = Provider<bool>((ref) {
+  return ref.watch(zonesProvider).isNotEmpty;
+});
+
 class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
   @override
   BuiltList<DetailedInfoItem> build() {
@@ -195,7 +201,7 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
         cpuCount: request.numCores.toString(),
         diskTotal: request.diskSpace,
         memoryTotal: request.memSize,
-        zone: Zone(name: request.zone),
+        zone: Zone(name: request.zone, supported: ref.read(azSupportedProvider)),
         instanceInfo: InstanceDetails(
           currentRelease: request.image,
         ),

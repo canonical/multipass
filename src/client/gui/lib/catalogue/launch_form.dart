@@ -70,6 +70,14 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
 
   void updateZoneAvailability() {
     final zones = ref.read(zonesProvider);
+    // Backend doesn't support availability zones (or zones not loaded yet):
+    // don't let the empty zone list disable launching.
+    if (zones.isEmpty) {
+      if (!selectedZoneAvailable) {
+        setState(() => selectedZoneAvailable = true);
+      }
+      return;
+    }
     final hasAvailableZones = zones.any((z) => z.available);
 
     // Check if the currently selected zone is available
@@ -125,6 +133,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     // Update availability whenever zones change
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (zones.isEmpty) return;
       final hasAvailableZones = zones.any((z) => z.available);
       if (hasAvailableZones != selectedZoneAvailable ||
           (hasAvailableZones &&
@@ -315,8 +324,9 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             nameInput,
-            const SizedBox(width: 32),
-            Column(
+            if (zones.isNotEmpty) ...[
+              const SizedBox(width: 32),
+              Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -393,6 +403,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
                 ),
               ],
             ),
+            ],
             const Spacer(),
           ],
         ),
