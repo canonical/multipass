@@ -183,7 +183,10 @@ final zonesProvider = Provider<BuiltList<Zone>>((ref) {
 // (VirtualBox, old Hyper-V) return no zones, so an empty list means unsupported.
 // TODO@backends: remove once deprecated backends are removed
 final azSupportedProvider = Provider<bool>((ref) {
-  return ref.watch(zonesProvider).isNotEmpty;
+  return ref.watch(pollingProvider).maybeWhen(
+        data: (data) => data.zones.isNotEmpty,
+        orElse: () => true,
+      );
 });
 
 class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
@@ -202,7 +205,8 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
         cpuCount: request.numCores.toString(),
         diskTotal: request.diskSpace,
         memoryTotal: request.memSize,
-        zone: Zone(name: request.zone, supported: ref.read(azSupportedProvider)),
+        zone:
+            Zone(name: request.zone, supported: ref.read(azSupportedProvider)),
         instanceInfo: InstanceDetails(
           currentRelease: request.image,
         ),
