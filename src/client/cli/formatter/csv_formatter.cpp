@@ -97,27 +97,26 @@ std::string generate_instance_details(const mp::InfoReply reply)
     {
         const auto& instance_details = info.instance_info();
 
-        fmt::format_to(std::back_inserter(buf),
-                       "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}{}\n",
-                       info.name(),
-                       mp::format::status_string_for(info.instance_status()),
-                       info.zone().supported() ? info.zone().name() : std::string{"n/a"},
-                       info.zone().supported() ? fmt::to_string(info.zone().available())
-                                               : std::string{},
-                       instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
-                       instance_details.current_release(),
-                       instance_details.id(),
-                       instance_details.image_release(),
-                       instance_details.load(),
-                       instance_details.disk_usage(),
-                       info.disk_total(),
-                       instance_details.memory_usage(),
-                       info.memory_total(),
-                       info.mount_info(),
-                       fmt::join(instance_details.ipv4(), ";"),
-                       info.cpu_count(),
-                       have_num_snapshots ? fmt::format(",{}", instance_details.num_snapshots())
-                                          : "");
+        fmt::format_to(
+            std::back_inserter(buf),
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}{}\n",
+            info.name(),
+            mp::format::status_string_for(info.instance_status()),
+            info.zone().supported() ? info.zone().name() : std::string{"n/a"},
+            info.zone().supported() ? fmt::to_string(info.zone().available()) : std::string{},
+            instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
+            instance_details.current_release(),
+            instance_details.id(),
+            instance_details.image_release(),
+            instance_details.load(),
+            instance_details.disk_usage(),
+            info.disk_total(),
+            instance_details.memory_usage(),
+            info.memory_total(),
+            info.mount_info(),
+            fmt::join(instance_details.ipv4(), ";"),
+            info.cpu_count(),
+            have_num_snapshots ? fmt::format(",{}", instance_details.num_snapshots()) : "");
     }
 
     return fmt::to_string(buf);
@@ -259,8 +258,8 @@ std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
     for (const auto& [context_name, context_contents] : sorted_map_view(aliases))
     {
         std::string shown_context = context_name.get() == aliases.active_context_name()
-                                        ? context_name.get() + "*"
-                                        : context_name.get();
+                                      ? context_name.get() + "*"
+                                      : context_name.get();
 
         for (const auto& [name, def] : sorted_map_view(context_contents.get()))
         {
