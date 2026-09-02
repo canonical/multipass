@@ -58,9 +58,9 @@ final headers = <TableHeader<VmInfo>>[
     name: 'ZONE',
     width: 100,
     minWidth: 70,
-    sortKey: (info) => info.zone.name,
+    sortKey: (info) => info.zone.supported ? info.zone.name : 'n/a',
     cellBuilder: (info) => Text(
-      info.zone.name.nonBreaking,
+      (info.zone.supported ? info.zone.name : 'n/a').nonBreaking,
       overflow: TextOverflow.ellipsis,
     ),
   ),
