@@ -21,6 +21,9 @@
 
 #include <multipass/logging/log.h>
 
+#include <fmt/format.h>
+
+#include <algorithm>
 #include <vector>
 
 namespace
@@ -29,13 +32,29 @@ constexpr auto log_category = "HyperV-Virtual-Machine-Resources";
 namespace mpl = multipass::logging;
 }
 
-void multipass::hyperv::remove_hcs_resources(const std::string& name)
+std::string multipass::hyperv::endpoint_guid_for_mac(std::string mac_address)
+{
+    std::erase(mac_address, ':');
+    std::erase(mac_address, '-');
+    return fmt::format("db4bdbf0-dc14-407f-9780-{}", mac_address);
+}
+
+bool multipass::hyperv::release_hcs_resources(const std::string& name)
 {
     hcs::HcsSystemHandle handle{nullptr};
-    if (!hcs::HCS().open_compute_system(name, handle))
+    if (const auto open_result = hcs::HCS().open_compute_system(name, handle); !open_result)
     {
-        mpl::info(log_category, "Host compute system '{}' is already terminated", name);
-        return;
+        if (static_cast<HRESULT>(open_result.code) == HCS_E_SYSTEM_NOT_FOUND)
+        {
+            mpl::info(log_category, "Host compute system '{}' is already terminated", name);
+            return true;
+        }
+
+        mpl::warn(log_category,
+                  "Could not open host compute system '{}': {}",
+                  name,
+                  open_result);
+        return false;
     }
 
     std::string vm_guid;
@@ -54,11 +73,11 @@ void multipass::hyperv::remove_hcs_resources(const std::string& name)
                   "Could not terminate host compute system '{}': {}",
                   name,
                   terminate_result);
-        return;
+        return false;
     }
 
     if (vm_guid.empty())
-        return;
+        return false;
 
     std::vector<std::string> attached_endpoints;
     if (const auto enumerate_result =
@@ -69,16 +88,45 @@ void multipass::hyperv::remove_hcs_resources(const std::string& name)
                   "Could not enumerate endpoints for '{}': {}",
                   name,
                   enumerate_result);
-        return;
+        return false;
     }
 
+    auto success = true;
     for (const auto& endpoint : attached_endpoints)
     {
         const auto result = hcn::HCN().delete_endpoint(endpoint);
+        success = result && success;
         mpl::log(result ? mpl::Level::trace : mpl::Level::warning,
                  log_category,
                  "Remove attached endpoint {}: {}",
                  endpoint,
                  result.code);
     }
+    return success;
+}
+
+bool multipass::hyperv::release_hcs_resources(
+    const std::string& name,
+    const std::vector<std::string>& mac_addresses)
+{
+    auto success = release_hcs_resources(name);
+    for (const auto& mac_address : mac_addresses)
+    {
+        const auto endpoint = endpoint_guid_for_mac(mac_address);
+        const auto result = hcn::HCN().delete_endpoint(endpoint);
+        const auto absent =
+            static_cast<HRESULT>(result.code) == HCN_E_ENDPOINT_NOT_FOUND;
+        success = (result || absent) && success;
+        mpl::log(result || absent ? mpl::Level::trace : mpl::Level::warning,
+                 log_category,
+                 "Remove deterministic endpoint {}: {}",
+                 endpoint,
+                 result.code);
+    }
+    return success;
+}
+
+void multipass::hyperv::remove_hcs_resources(const std::string& name)
+{
+    (void)release_hcs_resources(name);
 }

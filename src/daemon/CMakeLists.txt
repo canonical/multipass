@@ -25,7 +25,13 @@ add_library(daemon STATIC
   runtime_instance_info_helper.cpp
   snapshot_settings_handler.cpp)
 
+if(HYPERV_HCS_ENABLED)
+  target_sources(daemon PRIVATE hyperv_migration.cpp)
+  target_link_libraries(daemon hyperv_backend hyperv_api_backend)
+endif()
+
 include_directories(daemon
+  ${CMAKE_SOURCE_DIR}/src
   ${CMAKE_SOURCE_DIR}/src/platform/backends)
 
 target_link_libraries(daemon

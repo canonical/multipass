@@ -21,6 +21,7 @@
 
 namespace multipass::hyperv
 {
+// Target-local disk and HCS state ownership persisted in an instance directory.
 struct HCSOwnership
 {
     std::filesystem::path active_disk;
