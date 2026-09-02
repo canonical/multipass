@@ -14,7 +14,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "hcs_ownership.h"
+#include <hyperv_api/hcs_ownership.h>
 
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>

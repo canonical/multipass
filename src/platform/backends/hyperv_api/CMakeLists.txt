@@ -66,6 +66,7 @@ if(WIN32)
     virtdisk/virtdisk_guid.cpp
     virtdisk/virtdisk_child_rebuild.cpp
     virtdisk/virtdisk_utils.cpp
+    hcs_ownership.cpp
     hcs_virtual_machine.cpp
     hcs_virtual_machine_factory.cpp
     hcs_virtual_machine_resources.cpp

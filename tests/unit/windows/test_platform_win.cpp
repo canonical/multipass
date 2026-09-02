@@ -19,6 +19,7 @@
 #include "tests/unit/mock_environment_helpers.h"
 #include "tests/unit/mock_file_ops.h"
 #include "tests/unit/mock_logger.h"
+#include "tests/unit/mock_recursive_dir_iterator.h"
 #include "tests/unit/mock_settings.h"
 #include "tests/unit/mock_standard_paths.h"
 #include "tests/unit/mock_utils.h"
@@ -147,6 +148,87 @@ TEST(PlatformWin, noExtraDaemonSettings)
 TEST(PlatformWin, testDefaultDriver)
 {
     EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("hyperv", "hyperv_api", "virtualbox"));
+}
+
+struct TestLegacyDriverVisibility : public Test
+{
+    mpt::MockFileOps::GuardedMock mock_file_ops_injection = mpt::MockFileOps::inject<NiceMock>();
+    mpt::MockFileOps& mock_file_ops = *mock_file_ops_injection.first;
+
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<NiceMock>();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+
+    const mp::Path data_dir{"C:/multipass/data"};
+};
+
+TEST_F(TestLegacyDriverVisibility, respectsExplicitlyConfiguredDriver)
+{
+    // The daemon configuration already carries a driver, so the guard must not touch settings,
+    // regardless of any legacy data present.
+    EXPECT_CALL(mock_file_ops, try_read_file(_))
+        .WillOnce(Return(std::optional<std::string>{"[General]\nlocal.driver=hyperv_api\n"}));
+
+    EXPECT_CALL(mock_settings, set(_, _, _)).Times(0);
+
+    MP_PLATFORM.ensure_legacy_driver_visibility(data_dir);
+}
+
+TEST_F(TestLegacyDriverVisibility, pinsHypervWhenLegacyDatabasePresent)
+{
+    // No driver configured, but the legacy instance database holds records: pin 'hyperv'.
+    EXPECT_CALL(mock_file_ops, try_read_file(_))
+        .WillOnce(Return(std::nullopt)) // daemon configuration: no driver set
+        .WillOnce(Return(std::optional<std::string>{R"({"primary":{"num_cores":1}})"}));
+
+    EXPECT_CALL(mock_settings,
+                set(Eq(QString::fromLatin1(mp::driver_key)), Eq(QStringLiteral("hyperv")), _))
+        .Times(1);
+
+    MP_PLATFORM.ensure_legacy_driver_visibility(data_dir);
+}
+
+TEST_F(TestLegacyDriverVisibility, pinsHypervWhenLegacyInstancesOnDisk)
+{
+    // No driver configured and no database, but a legacy instance registration exists on disk.
+    EXPECT_CALL(mock_file_ops, try_read_file(_))
+        .WillOnce(Return(std::nullopt))  // daemon configuration
+        .WillOnce(Return(std::nullopt)); // legacy database
+    EXPECT_CALL(mock_file_ops, exists(A<const std::filesystem::path&>(), _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, is_directory(_, _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, dir_iterator(_, _)).WillOnce([](auto&&, auto&&) {
+        auto it = std::make_unique<NiceMock<mpt::MockDirIterator>>();
+        static NiceMock<mpt::MockDirectoryEntry> entry;
+        static const std::filesystem::path instance{"C:/multipass/data/vault/instances/primary"};
+        ON_CALL(entry, path()).WillByDefault(ReturnRef(instance));
+        EXPECT_CALL(*it, hasNext()).WillOnce(Return(true));
+        EXPECT_CALL(*it, next()).WillOnce(ReturnRef(entry));
+        return it;
+    });
+    EXPECT_CALL(mock_file_ops, is_directory(
+                                   Eq(std::filesystem::path{
+                                       "C:/multipass/data/vault/instances/primary"}),
+                                   _))
+        .WillOnce(Return(true));
+
+    EXPECT_CALL(mock_settings,
+                set(Eq(QString::fromLatin1(mp::driver_key)), Eq(QStringLiteral("hyperv")), _))
+        .Times(1);
+
+    MP_PLATFORM.ensure_legacy_driver_visibility(data_dir);
+}
+
+TEST_F(TestLegacyDriverVisibility, leavesDefaultForEmptyInstall)
+{
+    // No driver configured and no legacy data at all: keep the new default (do not touch settings).
+    EXPECT_CALL(mock_file_ops, try_read_file(_))
+        .WillOnce(Return(std::nullopt))  // daemon configuration
+        .WillOnce(Return(std::nullopt)); // legacy database
+    EXPECT_CALL(mock_file_ops, exists(A<const std::filesystem::path&>(), _))
+        .WillRepeatedly(Return(false));
+
+    EXPECT_CALL(mock_settings, set(_, _, _)).Times(0);
+
+    MP_PLATFORM.ensure_legacy_driver_visibility(data_dir);
 }
 
 TEST(PlatformWin, testDefaultPrivilegedMounts)

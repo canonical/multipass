@@ -40,8 +40,6 @@ struct LegacyDiskLayout
     std::filesystem::path active_disk;
     std::vector<LegacySnapshotDisk> snapshots;
     std::vector<std::filesystem::path> all_disks;
-
-    void persist_snapshot_paths(const VirtualMachine& vm) const;
 };
 
 [[nodiscard]] bool legacy_vm_exists(const std::string& name);

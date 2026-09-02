@@ -33,9 +33,9 @@ target_link_libraries(hyperv_backend
 if(HYPERV_HCS_ENABLED)
   target_sources(hyperv_backend PRIVATE
     hyperv_disk_layout.cpp
+    hyperv_migration_service.cpp
     hyperv_migrator.cpp
-    hcs_ownership.cpp
-    migrating_hyperv_virtual_machine.cpp
-    migrating_hyperv_virtual_machine_factory.cpp)
+    hyperv_target_store.cpp
+    hyperv_target_transaction.cpp)
   target_link_libraries(hyperv_backend hyperv_api_backend scope_guard)
 endif()

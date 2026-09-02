@@ -20,6 +20,7 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
+#include <hyperv_api/hcs_ownership.h>
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
 #include <hyperv_api/hcs_virtual_machine_resources.h>
@@ -40,6 +41,20 @@
 
 namespace
 {
+bool path_is_within(const std::filesystem::path& path, const std::filesystem::path& root)
+{
+    const auto canonical_path = MP_FILEOPS.weakly_canonical(path);
+    const auto canonical_root = MP_FILEOPS.weakly_canonical(root);
+    auto path_it = canonical_path.begin();
+    for (auto root_it = canonical_root.begin(); root_it != canonical_root.end();
+         ++root_it, ++path_it)
+    {
+        if (path_it == canonical_path.end() || *path_it != *root_it)
+            return false;
+    }
+    return true;
+}
+
 void update_adapter_authorizations(std::vector<multipass::NetworkInterfaceInfo>& adapters,
                                    const std::vector<multipass::NetworkInterfaceInfo>& switches)
 {
@@ -101,12 +116,32 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
+    const auto instance_dir = get_instance_directory(desc.vm_name);
+    const auto ownership = HCSOwnership::load(MP_PLATFORM.qstr_to_path(instance_dir));
+    auto hcs_description = desc;
+    if (ownership)
+    {
+        const auto instance_path = MP_PLATFORM.qstr_to_path(instance_dir);
+        if (!path_is_within(ownership->active_disk, instance_path) ||
+            !path_is_within(ownership->state_file_stem, instance_path))
+            throw std::runtime_error{
+                "HCS ownership contains a path outside the instance directory"};
+        if (!MP_FILEOPS.exists(ownership->active_disk))
+            throw std::runtime_error{
+                fmt::format("HCS ownership active disk '{}' does not exist",
+                            ownership->active_disk)};
+        hcs_description.image.image_path = ownership->active_disk;
+    }
+
     return std::make_unique<HCSVirtualMachine>(az_network_guids.at(desc.zone),
-                                               desc,
+                                               hcs_description,
                                                monitor,
                                                key_provider,
                                                az_manager.get_zone(desc.zone),
-                                               get_instance_directory(desc.vm_name));
+                                               instance_dir,
+                                               ownership
+                                                   ? std::optional{ownership->state_file_stem}
+                                                   : std::nullopt);
 }
 
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -177,6 +212,12 @@ void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_im
                                    instance_image.image_path,
                                    resize_result};
     }
+
+    const HCSOwnership ownership{
+        .active_disk = instance_image.image_path,
+        .state_file_stem = instance_image.image_path,
+    };
+    ownership.persist(MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)));
 }
 
 std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& intf)
@@ -241,6 +282,12 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
     {
         throw std::runtime_error{"VHDX clone failed."};
     }
+
+    const HCSOwnership ownership{
+        .active_disk = desc.image.image_path,
+        .state_file_stem = desc.image.image_path,
+    };
+    ownership.persist(MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)));
 
     return create_virtual_machine(desc, key_provider, monitor);
 }
@@ -310,6 +357,11 @@ std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::networks() const
 }
 
 void HCSVirtualMachineFactory::hypervisor_health_check()
+{
+    check_hyperv_api_support();
+}
+
+void check_hyperv_api_support()
 {
     if (auto state = get_windows_feature_state(L"VirtualMachinePlatform"))
     {
