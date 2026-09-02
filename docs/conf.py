@@ -231,7 +231,7 @@ linkcheck_retries = 3
 
 # A regex list of URLs where anchors are ignored by 'make linkcheck'
 
-linkcheck_anchors_ignore_for_url = [r"https://github\.com/.*",r"https://matrix\.to/.*"]
+linkcheck_anchors_ignore_for_url = [r"https://github\.com/", r"https://matrix\.to/"]
 
 
 ########################
