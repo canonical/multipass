@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Switch;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers.dart';
+import 'no_vms.dart';
 import 'vms.dart';
 
 class VmTableScreen extends ConsumerWidget {
@@ -11,6 +12,9 @@ class VmTableScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return const Scaffold(body: Vms());
+    final polling = ref.watch(pollingProvider);
+    final vmInfos = ref.watch(vmInfosProvider);
+    final showNoVms = polling is AsyncData && vmInfos.isEmpty;
+    return Scaffold(body: showNoVms ? const NoVms() : const Vms());
   }
 }
