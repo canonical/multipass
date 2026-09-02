@@ -87,6 +87,9 @@ final pollingProvider = StreamProvider<({List<VmInfo> info, List<Zone> zones})>(
 );
 
 final daemonAvailableProvider = Provider((ref) {
+  if (!ref.watch(ffiAvailableProvider)) {
+    return false;
+  }
   final error = ref.watch(pollingProvider).error;
   if (error == null) return true;
   if (error case GrpcError grpcError) {
