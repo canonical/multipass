@@ -4,7 +4,12 @@
             <Dialog Id="ChooseHypervisorDlg" Width="370" Height="270"
                 Title="!(loc.WelcomeDlg_Title)">
                 <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17"
-                    Default="yes" Text="!(loc.WixUINext)" />
+                    Default="yes" Text="!(loc.WixUINext)">
+                    <Publish Property="DRIVER" Value="[DRIVER_FULL]"
+                        Condition="LEGACY_HYPERV_AVAILABLE" />
+                    <Publish Property="DRIVER" Value="[DRIVER_LIMITED]"
+                        Condition="NOT LEGACY_HYPERV_AVAILABLE" />
+                </Control>
                 <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17"
                     Cancel="yes" Text="!(loc.WixUICancel)">
                     <Publish Event="SpawnDialog" Value="CancelDlg" />
@@ -20,11 +25,25 @@
                 <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15"
                     Transparent="yes" NoPrefix="yes" Text="!(loc.ChooseHypervisorDlgTitle)" />
 
-                <Control Id="HypervisorGroup" Type="RadioButtonGroup" X="20" Y="55" Width="330"
-                    Height="120" Property="DRIVER">
-                    <RadioButtonGroup Property="DRIVER">
-                        <RadioButton Value="hyperv" X="0" Y="0" Width="295" Height="16"
+                <Control Id="HypervisorGroupFull" Type="RadioButtonGroup" X="20" Y="55" Width="330"
+                    Height="120" Property="DRIVER_FULL" ShowCondition="LEGACY_HYPERV_AVAILABLE"
+                    HideCondition="NOT LEGACY_HYPERV_AVAILABLE">
+                    <RadioButtonGroup Property="DRIVER_FULL">
+                        <RadioButton Value="hyperv_api" X="0" Y="0" Width="295" Height="16"
+                            Text="!(loc.WixHyperVApi)" />
+                        <RadioButton Value="hyperv" X="0" Y="20" Width="295" Height="16"
                             Text="!(loc.WixHyperV)" />
+                        <RadioButton Value="virtualbox" X="0" Y="40" Width="295" Height="16"
+                            Text="!(loc.WixVirtualBox)" />
+                    </RadioButtonGroup>
+                </Control>
+
+                <Control Id="HypervisorGroupLimited" Type="RadioButtonGroup" X="20" Y="55" Width="330"
+                    Height="120" Property="DRIVER_LIMITED" ShowCondition="NOT LEGACY_HYPERV_AVAILABLE"
+                    HideCondition="LEGACY_HYPERV_AVAILABLE">
+                    <RadioButtonGroup Property="DRIVER_LIMITED">
+                        <RadioButton Value="hyperv_api" X="0" Y="0" Width="295" Height="16"
+                            Text="!(loc.WixHyperVApi)" />
                         <RadioButton Value="virtualbox" X="0" Y="20" Width="295" Height="16"
                             Text="!(loc.WixVirtualBox)" />
                     </RadioButtonGroup>
