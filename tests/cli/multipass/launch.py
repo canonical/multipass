@@ -57,7 +57,7 @@ def launch(cfg_override=None):
 
     assert not vm_exists(vm_cfg["name"])
 
-    with multipass(
+    launch_args = [
         "launch",
         "--cpus",
         vm_cfg["cpus"],
@@ -69,7 +69,13 @@ def launch(cfg_override=None):
         vm_cfg["name"],
         "--timeout",
         getattr(cfg.timeouts, "launch", 300),
-        vm_cfg["image"],
+    ]
+    if "zone" in vm_cfg:
+        launch_args.extend(["--zone", vm_cfg["zone"]])
+    launch_args.append(vm_cfg["image"])
+
+    with multipass(
+        *launch_args,
         retry=vm_cfg["retry"],
     ) as launch_r:
         # The launch does not have a dedicated exit code for the "already exists".
