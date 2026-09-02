@@ -215,16 +215,16 @@ redirects = {}
 # TODO: Remove or adjust the ACME entry after you update the contributing guide
 
 linkcheck_ignore = [
-    r"https://app\.element\.io/.*",
+    r"https://app\.element\.io/",
     "https://localhost:8081",
-    r"https://github\.com/canonical/.*",
-    r"https://sourceforge\.net/projects/.*",
-    r"http://www\.straightrunning\.com/.*",
-    r"https://unix\.stackexchange\.com",  # it seems stackexchange is now blocking bots
-    r"https://developer\.hashicorp\.com/.*",
-    r"https://www\.freedesktop\.org/.*",
-    r"https://asciinema\.org/.*",
-    r"https://askubuntu\.com/.*",
+    r"https://github\.com/canonical/",
+    r"https://sourceforge\.net/projects/",
+    r"http://www\.straightrunning\.com/",
+    r"https://unix\.stackexchange\.com/",  # it seems stackexchange is now blocking bots
+    r"https://developer\.hashicorp\.com/",
+    r"https://www\.freedesktop\.org/",
+    r"https://asciinema\.org/",
+    r"https://askubuntu\.com/",
 ]
 
 linkcheck_retries = 3
