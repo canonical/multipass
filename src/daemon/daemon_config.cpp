@@ -144,6 +144,10 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                                  data_directory.toStdString()))
                        : std::unique_ptr<AvailabilityZoneManager>(
                              std::make_unique<StubAvailabilityZoneManager>());
+    // Upgrade visibility guard: before selecting a backend, preserve visibility of pre-existing
+    // legacy Hyper-V instances when no driver has been explicitly configured (Windows-only; a no-op
+    // elsewhere and whenever there is nothing to preserve).
+    MP_PLATFORM.ensure_legacy_driver_visibility(data_directory);
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory, *az_manager);
     if (update_prompt == nullptr)

@@ -246,28 +246,3 @@ multipass::hyperv::resolve_legacy_disk_layout(const std::string& name, const Vir
     std::ranges::sort(layout.snapshots, {}, &LegacySnapshotDisk::index);
     return layout;
 }
-
-void multipass::hyperv::LegacyDiskLayout::persist_snapshot_paths(const VirtualMachine& vm) const
-{
-    const auto instance_dir = std::filesystem::path{
-        vm.instance_directory().absolutePath().toStdString()};
-
-    for (const auto& snapshot : snapshots)
-    {
-        const auto snapshot_path = instance_dir /
-                                   fmt::format("{:04}.snapshot.json", snapshot.index);
-        const auto contents = MP_FILEOPS.try_read_file(snapshot_path);
-        if (!contents)
-            throw std::runtime_error{
-                fmt::format("Could not read snapshot metadata '{}'", snapshot_path)};
-
-        auto json = boost::json::parse(*contents);
-        auto& snapshot_object = json.at("snapshot").as_object();
-        if (boost::json::value_to<int>(snapshot_object.at("index")) != snapshot.index)
-            throw std::runtime_error{
-                fmt::format("Snapshot metadata index does not match '{}'", snapshot_path)};
-
-        snapshot_object["disk_path"] = snapshot.disk_path.string();
-        MP_FILEOPS.write_transactionally(snapshot_path, multipass::pretty_print(json));
-    }
-}
