@@ -15,6 +15,5 @@
  *
  */
 
-fn main() {
-    cxx_buildgen::generate_bridge("src/lib.rs");
-}
+#[cxx::bridge(namespace = "multipass")]
+pub mod ffi {}

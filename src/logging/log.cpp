@@ -86,3 +86,8 @@ auto mpl::get_logger() -> Logger* // for tests, don't rely on it lasting
 {
     return global_logger.get();
 }
+
+void mpl::rust::log_message(Level level, ::rust::String category, ::rust::String message)
+{
+    mpl::log_message(level, category.c_str(), message.c_str());
+}
