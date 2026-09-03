@@ -198,9 +198,9 @@ private:
     void init_mounts(const std::string& name);
     void stop_mounts(const std::string& name);
 
-    // This returns whether any specs were updated (and need persisting). When given,
-    // `warnings` receives messages describing pruned mounts.
-    bool update_mounts(VMSpecs& vm_specs,
+    // Reconciles the VM's mount handlers with its specs, persisting if any spec changed. When
+    // given, `warnings` receives messages describing pruned mounts.
+    void update_mounts(VMSpecs& vm_specs,
                        std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
                        VirtualMachine* vm,
                        fmt::memory_buffer* warnings = nullptr);

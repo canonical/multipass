@@ -2162,11 +2162,10 @@ try
                 mpl::error(category, "Mounts have been disabled on this instance of Multipass");
             }
 
-            if (update_mounts(vm_instance_specs[name],
-                              mounts[name],
-                              vm_it->second.get(),
-                              &start_warnings))
-                persist_instances();
+            update_mounts(vm_instance_specs[name],
+                          mounts[name],
+                          vm_it->second.get(),
+                          &start_warnings);
 
             vm.start();
         }
@@ -2758,7 +2757,8 @@ try
         auto mounts_it = mounts.find(instance_name);
         assert(mounts_it != mounts.end() && "uninitialized mounts");
 
-        if (update_mounts(vm_specs, mounts_it->second, vm_ptr) || vm_specs != old_specs)
+        update_mounts(vm_specs, mounts_it->second, vm_ptr);
+        if (vm_specs != old_specs)
             persist_instances();
 
         server->Write(reply);
@@ -3436,8 +3436,7 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
 
 void mp::Daemon::init_mounts(const std::string& name)
 {
-    if (update_mounts(vm_instance_specs[name], mounts[name], operative_instances[name].get()))
-        persist_instances();
+    update_mounts(vm_instance_specs[name], mounts[name], operative_instances[name].get());
 }
 
 void mp::Daemon::stop_mounts(const std::string& name)
@@ -3448,14 +3447,14 @@ void mp::Daemon::stop_mounts(const std::string& name)
     }
 }
 
-bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
+void mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
                                std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
                                mp::VirtualMachine* vm,
                                fmt::memory_buffer* warnings)
 {
     auto& mount_specs = vm_specs.mounts;
     if (mount_specs.empty() && vm_mounts.empty())
-        return false;
+        return;
 
     const auto mounts_pruned = prune_obsolete_mounts(vm->get_name(),
                                                      mount_specs,
@@ -3463,7 +3462,8 @@ bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
                                                      warnings);
     const auto specs_pruned = create_missing_mounts(mount_specs, vm_mounts, vm);
 
-    return mounts_pruned || specs_pruned;
+    if (mounts_pruned || specs_pruned)
+        persist_instances();
 }
 
 bool mp::Daemon::create_missing_mounts(
