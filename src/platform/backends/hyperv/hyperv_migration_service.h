@@ -81,8 +81,8 @@ using MigrationCancellation = std::function<bool()>;
 
 /**
  * Migrates one instance at a time. The concrete implementation owns eligibility
- * classification, the retained-copy transaction, network translation, trial boot, and the
- * target-store commit.
+ * classification, the retained-copy transaction, network translation, and the target-store
+ * commit.
  */
 class InstanceMigrator
 {
