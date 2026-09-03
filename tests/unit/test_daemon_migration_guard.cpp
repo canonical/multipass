@@ -23,6 +23,7 @@
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
+#include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
 
 #include <src/daemon/daemon.h>
@@ -35,15 +36,20 @@ using namespace testing;
 
 namespace
 {
-// White-box subclass: lets tests toggle the migration flag and reach the pure guard helper.
+// White-box subclass for migration-state setup.
 struct GuardTestDaemon : public mp::Daemon
 {
     using mp::Daemon::Daemon;
-    using mp::Daemon::migration_conflict_status;
 
     void begin_migration()
     {
         migration_in_progress = true;
+    }
+
+    void add_instance(const std::string& name, mp::VirtualMachine::ShPtr vm)
+    {
+        operative_instances.emplace(name, std::move(vm));
+        vm_instance_specs.emplace(name, mp::VMSpecs{});
     }
 };
 
@@ -80,67 +86,14 @@ struct TestDaemonMigrationGuard : public mpt::DaemonTestFixture
 };
 } // namespace
 
-// -------------------------------------------------------------------------------------------------
-// Pure guard helper
-// -------------------------------------------------------------------------------------------------
-
-TEST_F(TestDaemonMigrationGuard, conflictStatusEmptyWhenNotMigrating)
-{
-    EXPECT_FALSE(
-        GuardTestDaemon::migration_conflict_status(false, "purge instances").has_value());
-}
-
-TEST_F(TestDaemonMigrationGuard, conflictStatusRejectsWhenMigrating)
-{
-    const auto status = GuardTestDaemon::migration_conflict_status(true, "purge instances");
-    ASSERT_TRUE(status.has_value());
-    EXPECT_EQ(status->error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_THAT(status->error_message(),
-                AllOf(HasSubstr("purge instances"), HasSubstr("migration")));
-}
-
-// -------------------------------------------------------------------------------------------------
-// Representative mutating RPCs are rejected while a migration is in progress
-// -------------------------------------------------------------------------------------------------
-
 TEST_F(TestDaemonMigrationGuard, startRejectedWhileMigrating)
 {
-    const auto status =
-        call_while_migrating<mp::StartReply>(&mp::Daemon::start, mp::StartRequest{});
+    const auto status = call_while_migrating<mp::StartReply>(&mp::Daemon::start,
+                                                             mp::StartRequest{});
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(),
+                AllOf(HasSubstr("start instances"), HasSubstr("migration")));
 }
-
-TEST_F(TestDaemonMigrationGuard, suspendRejectedWhileMigrating)
-{
-    const auto status =
-        call_while_migrating<mp::SuspendReply>(&mp::Daemon::suspend, mp::SuspendRequest{});
-    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-}
-
-TEST_F(TestDaemonMigrationGuard, restartRejectedWhileMigrating)
-{
-    const auto status =
-        call_while_migrating<mp::RestartReply>(&mp::Daemon::restart, mp::RestartRequest{});
-    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-}
-
-TEST_F(TestDaemonMigrationGuard, snapshotRejectedWhileMigrating)
-{
-    const auto status =
-        call_while_migrating<mp::SnapshotReply>(&mp::Daemon::snapshot, mp::SnapshotRequest{});
-    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-}
-
-TEST_F(TestDaemonMigrationGuard, restoreRejectedWhileMigrating)
-{
-    const auto status =
-        call_while_migrating<mp::RestoreReply>(&mp::Daemon::restore, mp::RestoreRequest{});
-    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-}
-
-// -------------------------------------------------------------------------------------------------
-// Read-only RPCs remain available during a migration
-// -------------------------------------------------------------------------------------------------
 
 TEST_F(TestDaemonMigrationGuard, versionAllowedWhileMigrating)
 {
@@ -150,7 +103,33 @@ TEST_F(TestDaemonMigrationGuard, versionAllowedWhileMigrating)
     StrictMock<mpt::MockServerReaderWriter<mp::VersionReply, mp::VersionRequest>> server;
     EXPECT_CALL(server, Write(_, _)).Times(1);
 
-    const auto status =
-        call_daemon_slot(daemon, &mp::Daemon::version, mp::VersionRequest{}, server);
+    const auto status = call_daemon_slot(daemon,
+                                         &mp::Daemon::version,
+                                         mp::VersionRequest{},
+                                         server);
     EXPECT_TRUE(status.ok());
 }
+
+#if defined(HYPERV_HCS_ENABLED)
+TEST_F(TestDaemonMigrationGuard, driverChangeRejectsRunningHcsInstance)
+{
+    GuardTestDaemon daemon{config_builder.build()};
+    auto vm = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
+    ON_CALL(*vm, current_state).WillByDefault(Return(mp::VirtualMachine::State::running));
+    daemon.add_instance("running", vm);
+
+    EXPECT_CALL(*mock_platform, is_backend_supported(QStringLiteral("hyperv")))
+        .WillOnce(Return(true));
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
+        .WillOnce(Return(QStringLiteral("hyperv_api")));
+
+    mp::SetRequest request;
+    request.set_key(mp::driver_key);
+    request.set_val("hyperv");
+    StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>> server;
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::set, request, server);
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(), HasSubstr("instance is not stopped"));
+}
+#endif

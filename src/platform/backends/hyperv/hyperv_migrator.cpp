@@ -131,10 +131,9 @@ void remove_trial_files(const fs::path& trial_disk, const fs::path& state_file_s
 std::vector<std::string> observed_trial_macs(TrialVirtualMachine& trial)
 {
     const auto output = trial.ssh_exec(
-        "for f in /sys/class/net/*/address; do "
-        "iface=$(basename $(dirname $f)); "
-        "[ \"$iface\" = lo ] && continue; "
-        "cat $f; done");
+        "for iface in /sys/class/net/*; do "
+        "[ \"$(basename \"$(readlink -f \"$iface/device/driver\")\")\" = hv_netvsc ] || continue; "
+        "cat \"$iface/address\"; done");
     return multipass::utils::split(output, "\n");
 }
 
@@ -180,12 +179,13 @@ void run_trial(const fs::path& target_head,
             fmt::format("Could not create HCS migration trial disk '{}': {}", trial_disk, result)};
 
     std::unique_ptr<TrialVirtualMachine> trial_vm;
-    auto cleanup = sg::make_scope_guard([&]() noexcept {
-        multipass::top_catch_all(log_category, [&] { mhv::remove_hcs_resources(trial_name); });
+    const auto cleanup_trial = [&] {
+        (void)mhv::release_hcs_resources(trial_name);
         trial_vm.reset();
-        multipass::top_catch_all(log_category,
-                                 [&] { remove_trial_files(trial_disk, state_file_stem); });
-    });
+        remove_trial_files(trial_disk, state_file_stem);
+    };
+    auto cleanup = sg::make_scope_guard(
+        [&]() noexcept { multipass::top_catch_all(log_category, cleanup_trial); });
 
     auto trial_description = description;
     trial_description.vm_name = trial_name;
@@ -207,14 +207,11 @@ void run_trial(const fs::path& target_head,
     trial_vm->wait_until_ssh_up(multipass::default_timeout);
     verify_trial(*trial_vm, description, cloud_init_path);
 
-    mhv::remove_hcs_resources(trial_name);
-    trial_vm.reset();
-    remove_trial_files(trial_disk, state_file_stem);
+    cleanup_trial();
     cleanup.dismiss();
 }
 
-void report_phase(const multipass::hyperv::MigrationPhaseCallback& on_phase,
-                  std::string_view phase)
+void report_phase(const multipass::hyperv::MigrationPhaseCallback& on_phase, std::string_view phase)
 {
     if (on_phase)
         on_phase(phase);
@@ -222,7 +219,8 @@ void report_phase(const multipass::hyperv::MigrationPhaseCallback& on_phase,
 } // namespace
 
 multipass::hyperv::HCSOwnership multipass::hyperv::migrate_retained_copy(
-    VirtualMachine& legacy_vm,
+    const LegacyDiskLayout& layout,
+    const fs::path& source_instance_dir,
     const VirtualMachineDescription& description,
     const fs::path& target_instance_dir,
     const SSHKeyProvider& key_provider,
@@ -230,14 +228,6 @@ multipass::hyperv::HCSOwnership multipass::hyperv::migrate_retained_copy(
     const std::string& primary_network_guid,
     const MigrationPhaseCallback& on_phase)
 {
-    const auto source_instance_dir =
-        fs::path{legacy_vm.instance_directory().absolutePath().toStdString()};
-
-    // Discovery is strictly read-only: the source registration, records, disk graph,
-    // snapshot metadata, cloud-init ISO, and state are never modified.
-    report_phase(on_phase, "inspecting source disk layout");
-    const auto layout = resolve_legacy_disk_layout(description.vm_name, legacy_vm);
-
     TargetMigrationTransaction transaction{description.vm_name, target_instance_dir};
 
     report_phase(on_phase, "copying disks to the target instance");

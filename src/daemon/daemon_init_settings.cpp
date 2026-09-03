@@ -55,21 +55,6 @@ QString persistent_settings_filename()
     return path;
 }
 
-QString driver_interpreter(QString val)
-{
-    val = val.toLower();
-
-    if (val == QStringLiteral("hyper-v"))
-        val = QStringLiteral("hyperv");
-    else if (val == QStringLiteral("vbox"))
-        val = QStringLiteral("virtualbox");
-
-    if (!MP_PLATFORM.is_backend_supported(val))
-        throw mp::InvalidSettingException(mp::driver_key, val, "Invalid driver");
-
-    return val;
-}
-
 QString image_mirror_interpreter(QString val)
 {
     if (val.size() == 0)
@@ -94,6 +79,21 @@ QString image_mirror_interpreter(QString val)
 
 } // namespace
 
+QString mp::daemon::interpret_driver(QString val)
+{
+    val = val.toLower();
+
+    if (val == QStringLiteral("hyper-v"))
+        val = QStringLiteral("hyperv");
+    else if (val == QStringLiteral("vbox"))
+        val = QStringLiteral("virtualbox");
+
+    if (!MP_PLATFORM.is_backend_supported(val))
+        throw mp::InvalidSettingException(mp::driver_key, val, "Invalid driver");
+
+    return val;
+}
+
 void mp::daemon::monitor_and_quit_on_settings_change() // temporary
 {
     static const auto filename = persistent_settings_filename();
@@ -107,15 +107,14 @@ void mp::daemon::monitor_and_quit_on_settings_change() // temporary
 
 void mp::daemon::register_global_settings_handlers()
 {
-    auto settings =
-        MP_PLATFORM
-            .extra_daemon_settings(); // platform settings override inserts with the same key below
+    auto settings = MP_PLATFORM.extra_daemon_settings(); // platform settings override inserts with
+                                                         // the same key below
     settings.insert(std::make_unique<BasicSettingSpec>(bridged_interface_key, ""));
     settings.insert(
         std::make_unique<BoolSettingSpec>(mounts_key, MP_PLATFORM.default_privileged_mounts()));
     settings.insert(std::make_unique<CustomSettingSpec>(driver_key,
                                                         MP_PLATFORM.default_driver(),
-                                                        driver_interpreter));
+                                                        interpret_driver));
     settings.insert(std::make_unique<CustomSettingSpec>(mp::passphrase_key, "", [](QString val) {
         return val.isEmpty()
                    ? val

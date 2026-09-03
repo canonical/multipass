@@ -55,18 +55,6 @@ struct RecordingProgress : public mhv::MigrationProgress
     bool finished_called{false};
 };
 
-struct FakeCancellation : public mhv::MigrationCancellation
-{
-    explicit FakeCancellation(std::function<bool()> predicate) : predicate{std::move(predicate)}
-    {
-    }
-    [[nodiscard]] bool cancelled() const override
-    {
-        return predicate();
-    }
-    std::function<bool()> predicate;
-};
-
 // Drives per-instance behavior from a scripted map keyed by instance name. Records the
 // exact order in which instances were processed so lexicographic ordering can be asserted.
 struct FakeMigrator : public mhv::InstanceMigrator
@@ -92,29 +80,14 @@ struct FakeMigrator : public mhv::InstanceMigrator
 
 mhv::InstanceMigrationResult migrated_action(mhv::MigrationProgress&)
 {
-    return {mhv::InstanceMigrationOutcome::migrated, {}};
+    return std::nullopt;
 }
 
-FakeCancellation never_cancel()
+mhv::MigrationCancellation never_cancel()
 {
-    return FakeCancellation{[] { return false; }};
+    return [] { return false; };
 }
 } // namespace
-
-TEST(HyperVMigrationTransition, onlyHypervToHypervApiMigrates)
-{
-    EXPECT_TRUE(mhv::is_hyperv_to_hyperv_api_transition("hyperv", "hyperv_api"));
-}
-
-TEST(HyperVMigrationTransition, otherTransitionsDoNotMigrate)
-{
-    EXPECT_FALSE(mhv::is_hyperv_to_hyperv_api_transition("hyperv_api", "hyperv"));
-    EXPECT_FALSE(mhv::is_hyperv_to_hyperv_api_transition("virtualbox", "hyperv_api"));
-    EXPECT_FALSE(mhv::is_hyperv_to_hyperv_api_transition("hyperv", "hyperv"));
-    EXPECT_FALSE(mhv::is_hyperv_to_hyperv_api_transition("hyperv_api", "hyperv_api"));
-    EXPECT_FALSE(mhv::is_hyperv_to_hyperv_api_transition("hyperv", "virtualbox"));
-    EXPECT_FALSE(mhv::is_hyperv_to_hyperv_api_transition("", "hyperv_api"));
-}
 
 TEST(HyperVBulkMigration, processesNamesLexicographically)
 {
@@ -129,7 +102,7 @@ TEST(HyperVBulkMigration, processesNamesLexicographically)
 
     EXPECT_EQ(migrator.processed, (std::vector<std::string>{"alpha", "bravo", "mike", "zeta"}));
     EXPECT_TRUE(result.success);
-    EXPECT_EQ(result.migrated, (std::vector<std::string>{"alpha", "bravo", "mike", "zeta"}));
+    EXPECT_EQ(progress.finished_with, (std::vector<std::string>{"alpha", "bravo", "mike", "zeta"}));
 }
 
 TEST(HyperVBulkMigration, skipsAloneAreSuccess)
@@ -137,10 +110,10 @@ TEST(HyperVBulkMigration, skipsAloneAreSuccess)
     FakeMigrator migrator;
     migrator.names = {"a", "b"};
     migrator.actions["a"] = [](mhv::MigrationProgress&) {
-        return mhv::InstanceMigrationResult{mhv::InstanceMigrationOutcome::skipped, "running"};
+        return mhv::InstanceMigrationResult{"running"};
     };
     migrator.actions["b"] = [](mhv::MigrationProgress&) {
-        return mhv::InstanceMigrationResult{mhv::InstanceMigrationOutcome::skipped, "deleted"};
+        return mhv::InstanceMigrationResult{"deleted"};
     };
 
     RecordingProgress progress;
@@ -148,8 +121,6 @@ TEST(HyperVBulkMigration, skipsAloneAreSuccess)
     const auto result = mhv::run_bulk_migration(migrator, progress, cancel);
 
     EXPECT_TRUE(result.success);
-    EXPECT_TRUE(result.migrated.empty());
-    EXPECT_EQ(result.skipped, (std::vector<std::string>{"a", "b"}));
     ASSERT_EQ(progress.skips.size(), 2u);
     EXPECT_EQ(progress.skips[0].second, "running");
     EXPECT_EQ(progress.skips[1].second, "deleted");
@@ -175,8 +146,6 @@ TEST(HyperVBulkMigration, recoverableFailureIsNonzeroButProcessingContinues)
     EXPECT_EQ(migrator.processed, (std::vector<std::string>{"a", "b", "c"}));
     EXPECT_FALSE(result.success);
     EXPECT_FALSE(result.aborted);
-    EXPECT_EQ(result.migrated, (std::vector<std::string>{"a", "c"}));
-    EXPECT_EQ(result.failed, (std::vector<std::string>{"b"}));
     ASSERT_EQ(progress.failures.size(), 1u);
     EXPECT_EQ(progress.failures[0].first, "b");
     EXPECT_EQ(progress.finished_with, (std::vector<std::string>{"a", "c"}));
@@ -200,8 +169,8 @@ TEST(HyperVBulkMigration, unsafeTargetStoreFailureAbortsRemaining)
     EXPECT_EQ(migrator.processed, (std::vector<std::string>{"a", "b"}));
     EXPECT_FALSE(result.success);
     EXPECT_TRUE(result.aborted);
-    EXPECT_EQ(result.migrated, (std::vector<std::string>{"a"}));
-    EXPECT_EQ(result.failed, (std::vector<std::string>{"b"}));
+    ASSERT_EQ(progress.failures.size(), 1u);
+    EXPECT_EQ(progress.failures.front().first, "b");
     // Earlier commit is still reported.
     EXPECT_EQ(progress.finished_with, (std::vector<std::string>{"a"}));
 }
@@ -214,7 +183,7 @@ TEST(HyperVBulkMigration, cancellationStopsAtInstanceBoundaryRetainingEarlierCom
         migrator.actions[name] = migrated_action;
 
     // Cancel only takes effect once "a" has been committed.
-    FakeCancellation cancel{[&migrator] { return !migrator.processed.empty(); }};
+    mhv::MigrationCancellation cancel = [&migrator] { return !migrator.processed.empty(); };
 
     RecordingProgress progress;
     const auto result = mhv::run_bulk_migration(migrator, progress, cancel);
@@ -222,7 +191,6 @@ TEST(HyperVBulkMigration, cancellationStopsAtInstanceBoundaryRetainingEarlierCom
     EXPECT_EQ(migrator.processed, (std::vector<std::string>{"a"}));
     EXPECT_TRUE(result.cancelled);
     EXPECT_TRUE(result.success); // no failures occurred
-    EXPECT_EQ(result.migrated, (std::vector<std::string>{"a"}));
     EXPECT_EQ(progress.finished_with, (std::vector<std::string>{"a"}));
 }
 
@@ -233,15 +201,15 @@ TEST(HyperVBulkMigration, cancellationBeforeAnyInstanceMigratesNothing)
     for (const auto& name : migrator.names)
         migrator.actions[name] = migrated_action;
 
-    FakeCancellation cancel{[] { return true; }};
+    mhv::MigrationCancellation cancel = [] { return true; };
 
     RecordingProgress progress;
     const auto result = mhv::run_bulk_migration(migrator, progress, cancel);
 
     EXPECT_TRUE(migrator.processed.empty());
     EXPECT_TRUE(result.cancelled);
-    EXPECT_TRUE(result.migrated.empty());
     EXPECT_TRUE(progress.finished_called);
+    EXPECT_TRUE(progress.finished_with.empty());
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -274,8 +242,14 @@ TEST(HyperVNetworkTranslation, resolvesSwitchToItsSinglePhysicalAdapterPreservin
 
     ASSERT_EQ(translated.size(), 2u);
     // Order preserved (source order, not networks order).
-    EXPECT_EQ(translated[0], (mhv::TranslatedInterface{"Ethernet 2", "52:54:00:00:00:0b", true}));
-    EXPECT_EQ(translated[1], (mhv::TranslatedInterface{"Ethernet 1", "52:54:00:00:00:0a", false}));
+    EXPECT_EQ(translated[0],
+              (multipass::NetworkInterface{.id = "Ethernet 2",
+                                           .mac_address = "52:54:00:00:00:0b",
+                                           .auto_mode = true}));
+    EXPECT_EQ(translated[1],
+              (multipass::NetworkInterface{.id = "Ethernet 1",
+                                           .mac_address = "52:54:00:00:00:0a",
+                                           .auto_mode = false}));
 }
 
 TEST(HyperVNetworkTranslation, emptySourceYieldsEmptyResult)

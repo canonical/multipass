@@ -31,6 +31,20 @@ std::filesystem::path ownership_path(const std::filesystem::path& instance_dir)
 {
     return instance_dir / ownership_filename;
 }
+
+bool path_is_within(const std::filesystem::path& path, const std::filesystem::path& root)
+{
+    const auto canonical_path = MP_FILEOPS.weakly_canonical(path);
+    const auto canonical_root = MP_FILEOPS.weakly_canonical(root);
+    auto path_it = canonical_path.begin();
+    for (auto root_it = canonical_root.begin(); root_it != canonical_root.end();
+         ++root_it, ++path_it)
+    {
+        if (path_it == canonical_path.end() || *path_it != *root_it)
+            return false;
+    }
+    return true;
+}
 } // namespace
 
 std::optional<multipass::hyperv::HCSOwnership> multipass::hyperv::HCSOwnership::load(
@@ -51,10 +65,15 @@ std::optional<multipass::hyperv::HCSOwnership> multipass::hyperv::HCSOwnership::
     if (backend != hcs_backend)
         throw std::runtime_error{fmt::format("Unknown Hyper-V backend '{}'", backend)};
 
-    return HCSOwnership{
+    HCSOwnership ownership{
         .active_disk = boost::json::value_to<std::string>(object.at("active_disk")),
         .state_file_stem = boost::json::value_to<std::string>(object.at("state_file_stem")),
     };
+    if (!path_is_within(ownership.active_disk, instance_dir) ||
+        !path_is_within(ownership.state_file_stem, instance_dir))
+        throw std::runtime_error{"HCS ownership contains a path outside the instance directory"};
+
+    return ownership;
 }
 
 void multipass::hyperv::HCSOwnership::persist(const std::filesystem::path& instance_dir) const

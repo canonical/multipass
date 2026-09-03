@@ -3,7 +3,7 @@
     <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="$(Version)"
         UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
         <MajorUpgrade AllowDowngrades="yes" />
-        <Launch Condition="Installed OR WIN_VERSION >= 17134" Message="!(loc.FeatureUpdateReqd)" />
+        <Launch Condition="Installed OR WIN_VERSION >= 17763" Message="!(loc.FeatureUpdateReqd)" />
 
         <MediaTemplate EmbedCab="yes" />
         <Icon Id="mp.exe" SourceFile="icon.ico" />
@@ -172,9 +172,9 @@
             <Custom Action="InstallClientCertsAction" Before="StartServices" />
 
             <Custom Action="DaemonConfigFileAction.SetCmdLine" Before="DaemonConfigFileAction"
-                Condition="NOT (Installed AND WIX_UPGRADE_DETECTED)" />
+                Condition="NOT Installed AND NOT WIX_UPGRADE_DETECTED" />
             <Custom Action="DaemonConfigFileAction" Before="StartServices"
-                Condition="NOT (Installed AND WIX_UPGRADE_DETECTED)" />
+                Condition="NOT Installed AND NOT WIX_UPGRADE_DETECTED" />
 
             <Custom Action="override Wix4CloseApplications_$(sys.BUILDARCHSHORT)"
                 Before="StopServices" />

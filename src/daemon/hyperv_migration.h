@@ -58,24 +58,14 @@ public:
 
     void commit(const std::string& name, const VMSpecs& spec, VaultRecord image_record);
 
-    [[nodiscard]] bool has_vm_record(const std::string& name) const;
-    [[nodiscard]] bool has_image_record(const std::string& name) const;
-
-    [[nodiscard]] const std::filesystem::path& target_data_root() const
-    {
-        return target_root;
-    }
-
-    [[nodiscard]] const std::filesystem::path& target_instances_root() const
-    {
-        return instances_root;
-    }
-
 private:
     static boost::json::object load_records(const std::filesystem::path& path);
     static void persist_records(const boost::json::object& records,
                                 const std::filesystem::path& path);
     static void require_writable_location(const std::filesystem::path& path);
+    void recover();
+    [[nodiscard]] bool has_vm_record(const std::string& name) const;
+    [[nodiscard]] bool has_image_record(const std::string& name) const;
 
     std::filesystem::path source_image_db;
     std::filesystem::path target_root;
