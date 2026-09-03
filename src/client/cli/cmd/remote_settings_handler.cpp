@@ -102,8 +102,10 @@ public:
             return mp::ReturnCode::Ok;
         };
 
-        [[maybe_unused]] auto ret =
-            dispatch(&RpcMethod::get, get_request, custom_on_success, on_failure);
+        [[maybe_unused]] auto ret = dispatch(&RpcMethod::get,
+                                             get_request,
+                                             custom_on_success,
+                                             on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 
@@ -128,35 +130,18 @@ public:
         set_request.set_val(val.toStdString());
         set_request.set_authorized(user_authorized);
 
-        std::unique_ptr<mp::AnimatedSpinner> spinner;
-        auto stop_spinner = [&spinner] {
-            if (spinner)
-                spinner->stop();
-        };
-        auto on_success = [&stop_spinner](mp::SetReply&) -> mp::ReturnCodeVariant {
-            stop_spinner();
-            return mp::ReturnCode::Ok;
-        };
-        auto on_failure = [&stop_spinner](grpc::Status& status) -> mp::ReturnCodeVariant {
-            stop_spinner();
-            return RemoteSettingsCmd::on_failure(status);
-        };
+        mp::AnimatedSpinner spinner{term->cerr()};
         auto streaming_callback =
-            [&spinner, &stop_spinner, &term = *term, key](
+            [&spinner, &term = *term, key](
                 mp::SetReply& reply,
                 grpc::ClientReaderWriterInterface<mp::SetRequest, mp::SetReply>* client) {
                 if (!reply.log_line().empty())
-                {
-                    if (spinner)
-                        spinner->print(term.cerr(), reply.log_line());
-                    else
-                        term.cerr() << reply.log_line();
-                }
+                    spinner.print(term.cerr(), reply.log_line());
 
                 if (key.startsWith(mp::daemon_settings_root) &&
                     key.endsWith(mp::bridged_network_name) && reply.needs_authorization())
                 {
-                    stop_spinner();
+                    spinner.stop();
                     mp::BridgePrompter prompter{&term};
                     const std::vector<std::string> networks{reply.reply_message()};
                     mp::SetRequest request;
@@ -165,21 +150,19 @@ public:
                 }
                 else if (!reply.summary().empty())
                 {
-                    stop_spinner();
+                    spinner.stop();
                     term.cout() << reply.summary();
                     if (reply.summary().back() != '\n')
                         term.cout() << '\n';
                 }
                 else if (!reply.migration_phase().empty())
                 {
-                    stop_spinner();
-                    if (!spinner)
-                        spinner = std::make_unique<mp::AnimatedSpinner>(term.cerr());
-                    spinner->start(reply.migration_phase());
+                    spinner.stop();
+                    spinner.start(reply.migration_phase());
                 }
                 else if (!reply.reply_message().empty())
                 {
-                    stop_spinner();
+                    spinner.stop();
                     term.cout() << reply.reply_message();
                     if (reply.reply_message().back() != '\n')
                         term.cout() << '\n';
@@ -188,7 +171,7 @@ public:
 
         [[maybe_unused]] auto ret = dispatch(&RpcMethod::set,
                                              set_request,
-                                             on_success,
+                                             on_success<mp::SetReply>,
                                              on_failure,
                                              streaming_callback);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
@@ -222,8 +205,10 @@ public:
             return on_failure(status);
         };
 
-        [[maybe_unused]] auto ret =
-            dispatch(&RpcMethod::keys, keys_request, custom_on_success, custom_on_failure);
+        [[maybe_unused]] auto ret = dispatch(&RpcMethod::keys,
+                                             keys_request,
+                                             custom_on_success,
+                                             custom_on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 

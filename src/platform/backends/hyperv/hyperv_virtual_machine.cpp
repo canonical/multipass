@@ -358,8 +358,8 @@ void mp::HyperVVirtualMachine::start()
 
 void mp::HyperVVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
-    const std::lock_guard power_shell_lock{power_shell_mutex};
     std::unique_lock<std::mutex> lock{state_mutex};
+    const std::lock_guard power_shell_lock{power_shell_mutex};
     const auto present_state = current_state();
 
     try

@@ -16,8 +16,8 @@
 
 #include "hyperv_migration.h"
 
+#include <hyperv/hyperv_disk_layout.h>
 #include <hyperv/hyperv_migrator.h>
-#include <hyperv/hyperv_target_store.h>
 #include <hyperv/hyperv_target_transaction.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <hyperv_api/hcs_ownership.h>
@@ -58,6 +58,50 @@ fs::path as_path(const multipass::Path& path)
     return MP_PLATFORM.qstr_to_path(path);
 }
 
+bool has_ownership(const fs::path& dir)
+{
+    try
+    {
+        return mhv::HCSOwnership::load(dir).has_value();
+    }
+    catch (const std::exception& error)
+    {
+        mpl::warn(log_category,
+                  "Ignoring malformed HCS ownership marker under '{}': {}",
+                  dir,
+                  error.what());
+        return false;
+    }
+}
+
+bool remove_tree(const fs::path& dir)
+{
+    std::error_code error;
+    fs::remove_all(dir, error);
+    if (error)
+        mpl::warn(log_category,
+                  "Could not remove migration target directory '{}': {}",
+                  dir,
+                  error.message());
+    return !error;
+}
+
+std::optional<mhv::MigrationTransactionManifest> try_load_manifest(const fs::path& dir)
+{
+    try
+    {
+        return mhv::MigrationTransactionManifest::load(dir);
+    }
+    catch (const std::exception& error)
+    {
+        mpl::warn(log_category,
+                  "Ignoring malformed migration manifest under '{}': {}",
+                  dir,
+                  error.what());
+        return std::nullopt;
+    }
+}
+
 std::string state_name(multipass::VirtualMachine::State state)
 {
     using State = multipass::VirtualMachine::State;
@@ -85,8 +129,7 @@ std::string state_name(multipass::VirtualMachine::State state)
 }
 } // namespace
 
-multipass::hyperv::HyperVMigrationTargetRecords::HyperVMigrationTargetRecords(
-    const Path& data_dir)
+multipass::hyperv::HyperVMigrationTargetRecords::HyperVMigrationTargetRecords(const Path& data_dir)
     : source_image_db{as_path(data_dir) / "vault" / image_db_filename},
       target_root{as_path(data_dir) / target_backend},
       target_vm_db{target_root / vm_db_filename},
@@ -162,25 +205,99 @@ void multipass::hyperv::HyperVMigrationTargetRecords::prepare()
                         instances_root,
                         error.message())};
 
-    const auto recovery = HyperVTargetStore::recover(
-        instances_root,
-        [this](const auto& name) { return has_vm_record(name); },
-        [this](const auto& name) { return has_image_record(name); });
-
-    auto records_changed = false;
-    for (const auto& name : recovery.removed_precommit)
-        records_changed = target_image_records.erase(name) > 0 || records_changed;
-
-    if (records_changed)
-        persist_records(target_image_records, target_image_db);
+    recover();
 }
 
-bool multipass::hyperv::HyperVMigrationTargetRecords::target_exists(
-    const std::string& name) const
+void multipass::hyperv::HyperVMigrationTargetRecords::recover()
 {
-    return HyperVTargetStore::target_exists(instances_root, name, [this](const auto& candidate) {
-        return has_vm_record(candidate) || has_image_record(candidate);
-    });
+    std::error_code error;
+    auto iterator = MP_FILEOPS.dir_iterator(instances_root, error);
+    if (error || !iterator)
+        return;
+
+    std::vector<fs::path> directories;
+    while (iterator->hasNext())
+    {
+        const auto path = iterator->next().path();
+        const auto name = path.filename().string();
+        if (name == "." || name == "..")
+            continue;
+
+        std::error_code dir_error;
+        if (MP_FILEOPS.is_directory(path, dir_error) && !dir_error)
+            directories.push_back(path);
+    }
+
+    for (const auto& path : directories)
+    {
+        const auto name = path.filename().string();
+        const auto manifest = try_load_manifest(path);
+
+        if (name.starts_with(mhv::migration_staging_prefix))
+        {
+            if (manifest && manifest->phase == MigrationTransactionManifest::staged_phase_name)
+            {
+                mpl::info(log_category, "Removing leftover migration staging directory '{}'", name);
+                remove_tree(path);
+            }
+            continue;
+        }
+
+        if (!manifest || manifest->vm_name != name)
+            continue;
+
+        if (has_vm_record(name))
+        {
+            if (manifest->phase != MigrationTransactionManifest::prepared_phase_name ||
+                !has_image_record(name) || !has_ownership(path))
+            {
+                mpl::warn(log_category,
+                          "Committed target '{}' has incomplete image or ownership state; leaving "
+                          "its migration manifest in place for inspection",
+                          name);
+                continue;
+            }
+
+            std::error_code remove_error;
+            if (MP_FILEOPS.remove(path / MigrationTransactionManifest::filename, remove_error) &&
+                !remove_error)
+                mpl::info(log_category, "Finalized committed migration target '{}'", name);
+            else
+                mpl::warn(log_category, "Could not remove stale migration manifest for '{}'", name);
+        }
+        else
+        {
+            if (target_image_records.erase(name) > 0)
+                persist_records(target_image_records, target_image_db);
+
+            if (remove_tree(path))
+                mpl::info(log_category, "Removed pre-commit migration orphan '{}'", name);
+        }
+    }
+
+    std::vector<std::string> record_only_orphans;
+    for (const auto& [name, _] : target_image_records)
+    {
+        std::error_code exists_error;
+        if (!has_vm_record(name) && !MP_FILEOPS.exists(instance_dir(name), exists_error) &&
+            !exists_error)
+            record_only_orphans.push_back(name);
+    }
+
+    for (const auto& name : record_only_orphans)
+    {
+        target_image_records.erase(name);
+        persist_records(target_image_records, target_image_db);
+        mpl::info(log_category, "Removed orphan migration image record '{}'", name);
+    }
+}
+
+bool multipass::hyperv::HyperVMigrationTargetRecords::target_exists(const std::string& name) const
+{
+    const auto target_dir = instance_dir(name);
+    std::error_code error;
+    return (MP_FILEOPS.exists(target_dir, error) && !error) || has_vm_record(name) ||
+           has_image_record(name);
 }
 
 multipass::VaultRecord multipass::hyperv::HyperVMigrationTargetRecords::source_image_record(
@@ -188,8 +305,7 @@ multipass::VaultRecord multipass::hyperv::HyperVMigrationTargetRecords::source_i
 {
     const auto* record = source_image_records.if_contains(name);
     if (!record)
-        throw InstanceMigrationError{
-            fmt::format("source image record for '{}' is missing", name)};
+        throw InstanceMigrationError{fmt::format("source image record for '{}' is missing", name)};
 
     try
     {
@@ -208,28 +324,34 @@ std::filesystem::path multipass::hyperv::HyperVMigrationTargetRecords::instance_
     return instances_root / name;
 }
 
-void multipass::hyperv::HyperVMigrationTargetRecords::commit(
-    const std::string& name,
-    const VMSpecs& spec,
-    VaultRecord image_record)
+void multipass::hyperv::HyperVMigrationTargetRecords::commit(const std::string& name,
+                                                             const VMSpecs& spec,
+                                                             VaultRecord image_record)
 {
     if (has_vm_record(name) || has_image_record(name))
         throw MigrationAbortError{
             fmt::format("target records for '{}' appeared during migration", name)};
 
     const auto target_dir = instance_dir(name);
-    const auto manifest = MigrationTransactionManifest::load(target_dir);
-    const auto ownership = HCSOwnership::load(target_dir);
+    std::optional<MigrationTransactionManifest> manifest;
+    std::optional<HCSOwnership> ownership;
+    try
+    {
+        manifest = MigrationTransactionManifest::load(target_dir);
+        ownership = HCSOwnership::load(target_dir);
+    }
+    catch (const std::exception& error)
+    {
+        throw MigrationAbortError{
+            fmt::format("prepared target '{}' has invalid transaction metadata: {}",
+                        name,
+                        error.what())};
+    }
+
     if (!manifest || manifest->phase != MigrationTransactionManifest::prepared_phase_name ||
         manifest->vm_name != name || !ownership)
         throw MigrationAbortError{
             fmt::format("prepared target '{}' has incomplete transaction metadata", name)};
-    if (MP_FILEOPS.weakly_canonical(manifest->active_disk) !=
-            MP_FILEOPS.weakly_canonical(ownership->active_disk) ||
-        MP_FILEOPS.weakly_canonical(manifest->state_file_stem) !=
-            MP_FILEOPS.weakly_canonical(ownership->state_file_stem))
-        throw MigrationAbortError{
-            fmt::format("prepared target '{}' has inconsistent ownership metadata", name)};
 
     image_record.image.image_path = ownership->active_disk;
 
@@ -264,8 +386,7 @@ void multipass::hyperv::HyperVMigrationTargetRecords::commit(
                   remove_error.message());
 }
 
-bool multipass::hyperv::HyperVMigrationTargetRecords::has_vm_record(
-    const std::string& name) const
+bool multipass::hyperv::HyperVMigrationTargetRecords::has_vm_record(const std::string& name) const
 {
     return target_vm_records.contains(name);
 }
@@ -318,28 +439,20 @@ multipass::hyperv::DaemonHyperVInstanceMigrator::translated_interfaces(
     if (!source_networks)
         source_networks = source_factory.networks();
 
-    const auto translated = translate_extra_interfaces(source_interfaces, *source_networks);
-    std::vector<NetworkInterface> target_interfaces;
-    target_interfaces.reserve(translated.size());
-    for (const auto& interface : translated)
+    auto target_interfaces = translate_extra_interfaces(source_interfaces, *source_networks);
+    for (auto& target_interface : target_interfaces)
     {
-        auto target_interface = NetworkInterface{.id = interface.adapter_id,
-                                                 .mac_address = interface.mac_address,
-                                                 .auto_mode = interface.auto_mode};
-        auto existing_networks = target_factory().networks();
+        auto& factory = target_factory();
+        const auto existing_networks = factory.networks();
         std::vector<NetworkInterface> one_interface{target_interface};
-        target_factory().prepare_networking(one_interface);
+        factory.prepare_networking(one_interface);
         target_interface = std::move(one_interface.front());
 
         const auto already_existed = std::ranges::any_of(
             existing_networks,
-            [&target_interface](const auto& network) {
-                return network.id == target_interface.id;
-            });
+            [&target_interface](const auto& network) { return network.id == target_interface.id; });
         if (!already_existed)
             created_network_guids.push_back(utils::make_uuid(target_interface.id));
-
-        target_interfaces.push_back(std::move(target_interface));
     }
 
     return target_interfaces;
@@ -366,9 +479,9 @@ multipass::hyperv::DaemonHyperVInstanceMigrator::target_factory()
     return *hcs_factory;
 }
 
-multipass::hyperv::InstanceMigrationResult
-multipass::hyperv::DaemonHyperVInstanceMigrator::migrate(const std::string& name,
-                                                         MigrationProgress& progress)
+multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstanceMigrator::migrate(
+    const std::string& name,
+    MigrationProgress& progress)
 {
     const auto spec_it = specs.find(name);
     if (spec_it == specs.end())
@@ -376,33 +489,30 @@ multipass::hyperv::DaemonHyperVInstanceMigrator::migrate(const std::string& name
 
     const auto& source_spec = spec_it->second;
     if (source_spec.deleted || deleted_instances.contains(name))
-        return {InstanceMigrationOutcome::skipped, "instance is deleted"};
+        return "instance is deleted";
 
     const auto vm_it = operative_instances.find(name);
     if (vm_it == operative_instances.end() || !vm_it->second)
-        return {InstanceMigrationOutcome::skipped, "instance is unavailable"};
+        return "instance is unavailable";
 
     const auto state = vm_it->second->current_state();
     if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
-        return {InstanceMigrationOutcome::skipped,
-                fmt::format("instance is {} and needs to be stopped", state_name(state))};
+        return fmt::format("instance is {} and needs to be stopped", state_name(state));
 
     if (target_records.target_exists(name))
-        return {InstanceMigrationOutcome::skipped,
-                "name already taken by a hyperv_api instance"};
+        return "name already taken by a hyperv_api instance";
 
     try
     {
         std::vector<std::string> created_network_guids;
-        auto cleanup_networks = sg::make_scope_guard(
-            [&created_network_guids]() noexcept {
-                cleanup_created_networks(created_network_guids);
-            });
+        auto cleanup_networks = sg::make_scope_guard([&created_network_guids]() noexcept {
+            cleanup_created_networks(created_network_guids);
+        });
 
         progress.phase(name, "Preparing networking");
         auto target_spec = source_spec;
-        target_spec.extra_interfaces =
-            translated_interfaces(source_spec.extra_interfaces, created_network_guids);
+        target_spec.extra_interfaces = translated_interfaces(source_spec.extra_interfaces,
+                                                             created_network_guids);
         auto image_record = target_records.source_image_record(name);
 
         const auto source_instance_dir = vm_it->second->instance_directory();
@@ -421,8 +531,15 @@ multipass::hyperv::DaemonHyperVInstanceMigrator::migrate(const std::string& name
                                               {},
                                               {}};
 
+        progress.phase(name, "inspecting source disk layout");
+        auto layout = resolve_legacy_disk_layout(name, *vm_it->second);
+        for (auto& snapshot : layout.snapshots)
+            snapshot.extra_interfaces = translated_interfaces(snapshot.extra_interfaces,
+                                                              created_network_guids);
+
         const auto ownership = migrate_retained_copy(
-            *vm_it->second,
+            layout,
+            MP_PLATFORM.qstr_to_path(source_instance_dir.absolutePath()),
             description,
             target_records.instance_dir(name),
             key_provider,
@@ -436,13 +553,9 @@ multipass::hyperv::DaemonHyperVInstanceMigrator::migrate(const std::string& name
         progress.phase(name, "Committing target records");
         target_records.commit(name, target_spec, std::move(image_record));
         cleanup_networks.dismiss();
-        return {InstanceMigrationOutcome::migrated, {}};
+        return std::nullopt;
     }
     catch (const MigrationAbortError&)
-    {
-        throw;
-    }
-    catch (const InstanceMigrationError&)
     {
         throw;
     }

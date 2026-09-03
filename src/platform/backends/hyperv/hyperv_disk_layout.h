@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <multipass/network_interface.h>
+
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -33,6 +35,7 @@ struct LegacySnapshotDisk
     std::string checkpoint_name;
     std::string checkpoint_id;
     std::filesystem::path disk_path;
+    std::vector<NetworkInterface> extra_interfaces;
 };
 
 struct LegacyDiskLayout
@@ -42,8 +45,6 @@ struct LegacyDiskLayout
     std::vector<std::filesystem::path> all_disks;
 };
 
-[[nodiscard]] bool legacy_vm_exists(const std::string& name);
-[[nodiscard]] std::filesystem::path legacy_active_disk(const std::string& name);
 [[nodiscard]] LegacyDiskLayout resolve_legacy_disk_layout(const std::string& name,
                                                           const VirtualMachine& vm);
 } // namespace multipass::hyperv

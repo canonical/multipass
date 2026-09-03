@@ -41,20 +41,6 @@
 
 namespace
 {
-bool path_is_within(const std::filesystem::path& path, const std::filesystem::path& root)
-{
-    const auto canonical_path = MP_FILEOPS.weakly_canonical(path);
-    const auto canonical_root = MP_FILEOPS.weakly_canonical(root);
-    auto path_it = canonical_path.begin();
-    for (auto root_it = canonical_root.begin(); root_it != canonical_root.end();
-         ++root_it, ++path_it)
-    {
-        if (path_it == canonical_path.end() || *path_it != *root_it)
-            return false;
-    }
-    return true;
-}
-
 void update_adapter_authorizations(std::vector<multipass::NetworkInterfaceInfo>& adapters,
                                    const std::vector<multipass::NetworkInterfaceInfo>& switches)
 {
@@ -121,15 +107,9 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
     auto hcs_description = desc;
     if (ownership)
     {
-        const auto instance_path = MP_PLATFORM.qstr_to_path(instance_dir);
-        if (!path_is_within(ownership->active_disk, instance_path) ||
-            !path_is_within(ownership->state_file_stem, instance_path))
-            throw std::runtime_error{
-                "HCS ownership contains a path outside the instance directory"};
         if (!MP_FILEOPS.exists(ownership->active_disk))
-            throw std::runtime_error{
-                fmt::format("HCS ownership active disk '{}' does not exist",
-                            ownership->active_disk)};
+            throw std::runtime_error{fmt::format("HCS ownership active disk '{}' does not exist",
+                                                 ownership->active_disk)};
         hcs_description.image.image_path = ownership->active_disk;
     }
 
@@ -139,15 +119,14 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
                                                key_provider,
                                                az_manager.get_zone(desc.zone),
                                                instance_dir,
-                                               ownership
-                                                   ? std::optional{ownership->state_file_stem}
-                                                   : std::nullopt);
+                                               ownership ? std::optional{ownership->state_file_stem}
+                                                         : std::nullopt);
 }
 
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     mpl::debug(log_category, "remove_resources_for_impl() -> VM: {}", name);
-    remove_hcs_resources(name);
+    (void)release_hcs_resources(name);
 }
 
 VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_image)

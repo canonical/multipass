@@ -43,3 +43,17 @@ TEST(HCSOwnership, roundTrips)
     EXPECT_EQ(actual->active_disk, expected.active_disk);
     EXPECT_EQ(actual->state_file_stem, expected.state_file_stem);
 }
+
+TEST(HCSOwnership, rejectsPathsOutsideInstanceDirectory)
+{
+    mpt::TempDir instance_dir;
+    mpt::TempDir other_dir;
+    const mhv::HCSOwnership ownership{
+        .active_disk = other_dir.filePath("active.avhdx").toStdString(),
+        .state_file_stem = instance_dir.filePath("hcs-state").toStdString(),
+    };
+    ownership.persist(instance_dir.path().toStdString());
+
+    EXPECT_THROW((void)mhv::HCSOwnership::load(instance_dir.path().toStdString()),
+                 std::runtime_error);
+}

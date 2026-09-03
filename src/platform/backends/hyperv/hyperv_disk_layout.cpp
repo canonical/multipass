@@ -136,24 +136,6 @@ DiscoveredVM query_hyperv(const std::string& name)
 }
 } // namespace
 
-bool multipass::hyperv::legacy_vm_exists(const std::string& name)
-{
-    PowerShell powershell{name};
-    QString output;
-    return powershell.run({QStringLiteral("if (Get-VM -Name %1 -ErrorAction SilentlyContinue) "
-                                          "{ 'true' } else { 'false' }")
-                               .arg(quoted_name(name))},
-                          &output,
-                          nullptr,
-                          true) &&
-           output == "true";
-}
-
-std::filesystem::path multipass::hyperv::legacy_active_disk(const std::string& name)
-{
-    return query_hyperv(name).active_disk;
-}
-
 multipass::hyperv::LegacyDiskLayout
 multipass::hyperv::resolve_legacy_disk_layout(const std::string& name, const VirtualMachine& vm)
 {
@@ -180,6 +162,7 @@ multipass::hyperv::resolve_legacy_disk_layout(const std::string& name, const Vir
                 fmt::format("Could not find Hyper-V checkpoint '{}'", expected_name)};
 
         checkpoint->second.index = snapshot->get_index();
+        checkpoint->second.extra_interfaces = snapshot->get_extra_interfaces();
         if (std::ranges::any_of(unique_snapshot_paths, [&checkpoint](const auto& path) {
                 return same_path(path, checkpoint->second.disk_path);
             }))

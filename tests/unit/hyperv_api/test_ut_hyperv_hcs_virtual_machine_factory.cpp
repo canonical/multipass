@@ -108,8 +108,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, usesDedicatedBackendDirectory)
 
     EXPECT_EQ(factory->get_backend_directory_name(), "hyperv_api");
     EXPECT_EQ(QDir::cleanPath(factory->get_instance_directory("test-vm")),
-              QDir::cleanPath(dummy_data_dir.filePath(
-                  "hyperv_api/vault/instances/test-vm")));
+              QDir::cleanPath(dummy_data_dir.filePath("hyperv_api/vault/instances/test-vm")));
 }
 
 // ---------------------------------------------------------
@@ -173,21 +172,34 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
     EXPECT_TRUE(mhv::release_hcs_resources(vm_name, {mac}));
 }
 
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
+       release_resources_keeps_endpoint_when_compute_system_cleanup_fails)
+{
+    const std::string vm_name{"test-vm"};
+    const std::string mac{"52:54:00:12:34:56"};
+    EXPECT_CALL(mock_hcs, open_compute_system(vm_name, _))
+        .WillOnce(Return(hcs_op_result_t{E_FAIL, L""}));
+    EXPECT_CALL(mock_hcn, delete_endpoint).Times(0);
+
+    EXPECT_FALSE(mhv::release_hcs_resources(vm_name, {mac}));
+}
+
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepare_instance_image)
 {
     std::shared_ptr<uut_t> uut{nullptr};
 
-    multipass::VMImage img;
-    img.image_path = "abcdef";
     multipass::VirtualMachineDescription desc;
     desc.vm_name = "test-vm";
     desc.disk_space = multipass::MemorySize::from_bytes(123456);
 
+    ASSERT_NO_THROW(uut = construct_factory());
+
+    multipass::VMImage img;
+    img.image_path = MP_PLATFORM.qstr_to_path(uut->get_instance_directory(desc.vm_name)) / "abcdef";
     EXPECT_CALL(mock_virtdisk,
                 resize_virtual_disk(Eq(img.image_path), Eq(desc.disk_space.in_bytes())))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
 
-    ASSERT_NO_THROW(uut = construct_factory());
     uut->prepare_instance_image(img, desc);
 
     const auto ownership = mhv::HCSOwnership::load(
@@ -299,8 +311,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine_uses_hcs
     // the disk path carried by the incoming description.
     const auto uut = construct_factory();
 
-    const std::filesystem::path instance_dir{
-        uut->get_instance_directory("test-vm").toStdString()};
+    const std::filesystem::path instance_dir{uut->get_instance_directory("test-vm").toStdString()};
     std::filesystem::create_directories(instance_dir);
 
     const auto migrated_disk = instance_dir / "migrated.vhdx";
@@ -336,11 +347,10 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine_uses_hcs
 
     // The chain must be resolved for the ownership disk, never the description disk.
     EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(Eq(migrated_disk), _, _))
-        .WillRepeatedly(DoAll(
-            [&](const std::filesystem::path& disk,
-                std::vector<std::filesystem::path>& chain,
-                std::optional<std::size_t>) { chain.push_back(disk); },
-            Return(hcs_op_result_t{0, L""})));
+        .WillRepeatedly(DoAll([&](const std::filesystem::path& disk,
+                                  std::vector<std::filesystem::path>& chain,
+                                  std::optional<std::size_t>) { chain.push_back(disk); },
+                              Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, grant_vm_access(Eq("test-vm"), Eq(migrated_disk)))
         .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
@@ -360,8 +370,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine_uses_hcs
             },
             SetArgReferee<1>(mock_handle),
             Return(hcs_op_result_t{0, L""})));
-    EXPECT_CALL(mock_hcs, start_compute_system(_))
-        .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcs, start_compute_system(_)).WillRepeatedly(Return(hcs_op_result_t{0, L""}));
 
     auto vm = uut->create_virtual_machine(desc, stub_key_provider, stub_monitor);
     ASSERT_NE(vm, nullptr);

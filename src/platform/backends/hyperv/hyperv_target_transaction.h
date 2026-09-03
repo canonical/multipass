@@ -32,6 +32,8 @@ class VirtualMachineDescription;
 
 namespace multipass::hyperv
 {
+inline constexpr auto migration_staging_prefix = ".migrating-";
+
 /**
  * Small versioned record persisted inside the staging (and later committed) target
  * directory. It proves that the enclosing directory is owned by an in-flight - or
@@ -50,9 +52,6 @@ struct MigrationTransactionManifest
     std::string transaction_id;
     std::string phase{staged_phase_name};
     std::string vm_name;
-    std::filesystem::path active_disk;
-    std::filesystem::path state_file_stem;
-    std::vector<std::filesystem::path> owned_disks;
 
     void persist(const std::filesystem::path& dir) const;
     [[nodiscard]] static std::optional<MigrationTransactionManifest> load(
@@ -84,7 +83,8 @@ struct TargetDiskMapping
     std::vector<ParentLink> parent_links;
     std::vector<LegacySnapshotDisk> snapshots;
 
-    [[nodiscard]] const std::filesystem::path& target_for(const std::filesystem::path& source) const;
+    [[nodiscard]] const std::filesystem::path& target_for(
+        const std::filesystem::path& source) const;
 };
 
 /**
@@ -154,12 +154,7 @@ private:
     void copy_instance_bookkeeping(const std::filesystem::path& source_instance_dir) const;
     void write_snapshot_bookkeeping(const TargetDiskMapping& mapping,
                                     const std::filesystem::path& source_instance_dir) const;
-    [[nodiscard]] MigrationTransactionManifest make_manifest(
-        const TargetDiskMapping& mapping,
-        std::string phase) const;
-    void promote_by_rename();
-    [[nodiscard]] static bool same_path_is_within(const std::filesystem::path& path,
-                                                  const std::filesystem::path& root);
+    [[nodiscard]] MigrationTransactionManifest make_manifest(std::string phase) const;
 
     std::string vm_name;
     std::string transaction_id;
