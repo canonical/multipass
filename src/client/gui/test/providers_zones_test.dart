@@ -166,7 +166,8 @@ void main() {
   });
 
   group('GrpcClient.zones', () {
-    test('returns an empty list for FAILED_PRECONDITION not supported', () async {
+    test('returns an empty list for FAILED_PRECONDITION not supported',
+        () async {
       final client = GrpcClient(
         _FakeRpcClient(
           buildZonesResponse(

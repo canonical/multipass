@@ -61,11 +61,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final l10n = AppLocalizations.of(tester.element(find.byType(ZoneDropdown)))!;
+      final l10n =
+          AppLocalizations.of(tester.element(find.byType(ZoneDropdown)))!;
       expect(selectedZone, 'zone-b');
       expect(find.text(l10n.zoneDropdownTitle), findsOneWidget);
       expect(
-        tester.widget<DropdownButton<String>>(find.byType(DropdownButton<String>))
+        tester
+            .widget<DropdownButton<String>>(find.byType(DropdownButton<String>))
             .value,
         'zone-b',
       );
@@ -89,7 +91,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final l10n = AppLocalizations.of(tester.element(find.byType(ZoneDropdown)))!;
+      final l10n =
+          AppLocalizations.of(tester.element(find.byType(ZoneDropdown)))!;
       expect(
         find.text(l10n.zoneDropdownUnavailableZone('zone-a')),
         findsWidgets,
@@ -99,7 +102,8 @@ void main() {
         findsOneWidget,
       );
       expect(
-        tester.widget<DropdownButton<String>>(find.byType(DropdownButton<String>))
+        tester
+            .widget<DropdownButton<String>>(find.byType(DropdownButton<String>))
             .value,
         'zone-a',
       );
@@ -126,14 +130,14 @@ void main() {
 
       expect(find.text('Zone'), findsOneWidget);
       expect(
-        tester.widget<DropdownButton<String>>(find.byType(DropdownButton<String>))
+        tester
+            .widget<DropdownButton<String>>(find.byType(DropdownButton<String>))
             .value,
         'zone-b',
       );
     });
 
-    testWidgets('fires onChanged when enabled',
-        (WidgetTester tester) async {
+    testWidgets('fires onChanged when enabled', (WidgetTester tester) async {
       var selected = 'zone-a';
       String? changedValue;
 
@@ -166,7 +170,8 @@ void main() {
 
       expect(changedValue, 'zone-b');
       expect(
-        tester.widget<DropdownButton<String>>(find.byType(DropdownButton<String>))
+        tester
+            .widget<DropdownButton<String>>(find.byType(DropdownButton<String>))
             .value,
         'zone-b',
       );
@@ -192,8 +197,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final dropdown =
-          tester.widget<DropdownButton<String>>(find.byType(DropdownButton<String>));
+      final dropdown = tester
+          .widget<DropdownButton<String>>(find.byType(DropdownButton<String>));
       expect(dropdown.onChanged, isNull);
       await tester.tap(find.byType(DropdownButton<String>));
       await tester.pumpAndSettle();
