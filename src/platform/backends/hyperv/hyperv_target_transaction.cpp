@@ -23,17 +23,12 @@
 #include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/top_catch_all.h>
-#include <multipass/virtual_machine_description.h>
-
 #include <QUuid>
 
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 #include <fmt/std.h>
 
 #include <algorithm>
-#include <cctype>
-#include <set>
 #include <system_error>
 #include <unordered_set>
 
@@ -47,8 +42,8 @@ using multipass::hyperv::virtdisk::VirtDisk;
 constexpr auto log_category = "Hyper-V migration transaction";
 constexpr auto snapshot_head_filename = "snapshot-head";
 constexpr auto snapshot_count_filename = "snapshot-count";
-// Bounded overhead reserved on the target volume for staging churn and HCS state files.
-constexpr std::uintmax_t staging_overhead_bytes = 512ull * 1024 * 1024;
+// Bounded overhead reserved on the target volume for copy churn and HCS state files.
+constexpr std::uintmax_t migration_overhead_bytes = 512ull * 1024 * 1024;
 
 bool same_path(const fs::path& lhs, const fs::path& rhs)
 {
@@ -175,7 +170,7 @@ multipass::hyperv::TargetMigrationTransaction::TargetMigrationTransaction(
 
 multipass::hyperv::TargetMigrationTransaction::~TargetMigrationTransaction()
 {
-    if (!committed && !staging.empty())
+    if (!committed && staged)
         rollback();
 }
 
@@ -188,9 +183,23 @@ multipass::hyperv::TargetDiskMapping multipass::hyperv::TargetMigrationTransacti
 
     TargetDiskMapping mapping{.root = root};
     std::unordered_set<std::string> taken_names;
+    for (const auto& snapshot : layout.snapshots)
+    {
+        const auto target_name = fmt::format("{}.avhdx", snapshot.index);
+        if (!taken_names.insert(target_name).second)
+            throw std::runtime_error{
+                fmt::format("Multiple snapshots have index {}", snapshot.index)};
+    }
+
     for (const auto& disk : layout.all_disks)
     {
-        const auto target = root / unique_target_name(disk, taken_names);
+        const auto snapshot = std::ranges::find_if(
+            layout.snapshots,
+            [&disk](const auto& candidate) { return same_path(candidate.disk_path, disk); });
+        const auto target_name = snapshot == layout.snapshots.end()
+                                   ? unique_target_name(disk, taken_names)
+                                   : fmt::format("{}.avhdx", snapshot->index);
+        const auto target = root / target_name;
         mapping.disks.push_back({.source = disk, .target = target});
     }
 
@@ -229,7 +238,7 @@ multipass::hyperv::TargetDiskMapping multipass::hyperv::TargetMigrationTransacti
 void multipass::hyperv::TargetMigrationTransaction::check_space(
     const LegacyDiskLayout& layout) const
 {
-    std::uintmax_t required = staging_overhead_bytes;
+    std::uintmax_t required = migration_overhead_bytes;
     for (const auto& disk : layout.all_disks)
         required += logical_file_length(disk);
 
@@ -252,27 +261,27 @@ multipass::hyperv::TargetDiskMapping multipass::hyperv::TargetMigrationTransacti
     const LegacyDiskLayout& layout,
     const fs::path& source_instance_dir)
 {
-    if (!staging.empty())
+    if (staged)
         throw std::runtime_error{"Migration transaction has already been staged"};
 
     check_space(layout);
 
-    staging = target_instance_dir.parent_path() /
-              fmt::format("{}{}-{}", migration_staging_prefix, vm_name, transaction_id);
-    const auto mapping = plan(layout, staging);
+    const auto mapping = plan(layout, target_instance_dir);
 
     std::error_code error;
-    if (MP_FILEOPS.exists(staging, error))
-        throw std::runtime_error{
-            fmt::format("Migration staging directory already exists: '{}'", staging)};
-    if (!MP_FILEOPS.create_directories(staging, error) || error)
-        throw std::runtime_error{
-            fmt::format("Could not create migration staging directory '{}': {}",
-                        staging,
-                        error.message())};
+    if (!MP_FILEOPS.create_directories(target_instance_dir, error))
+    {
+        if (!error)
+            throw std::runtime_error{fmt::format("Migration target directory already exists: '{}'",
+                                                 target_instance_dir)};
+        throw std::runtime_error{fmt::format("Could not create migration target directory '{}': {}",
+                                             target_instance_dir,
+                                             error.message())};
+    }
+    staged = true;
 
     const auto manifest = make_manifest(MigrationTransactionManifest::staged_phase_name);
-    manifest.persist(staging);
+    manifest.persist(target_instance_dir);
 
     for (const auto& entry : mapping.disks)
     {
@@ -337,94 +346,58 @@ void multipass::hyperv::TargetMigrationTransaction::verify(const TargetDiskMappi
         throw std::runtime_error{"Migrated snapshot topology does not match the source"};
 }
 
-multipass::hyperv::HCSOwnership multipass::hyperv::TargetMigrationTransaction::commit(
-    const TargetDiskMapping& staging_mapping,
-    const LegacyDiskLayout& layout,
-    const fs::path& source_instance_dir)
+void multipass::hyperv::TargetMigrationTransaction::commit(const TargetDiskMapping& mapping)
 {
-    if (staging.empty())
+    if (!staged)
         throw std::runtime_error{"Migration transaction has nothing to commit"};
     if (committed)
         throw std::runtime_error{"Migration transaction has already been committed"};
 
-    if (!same_path(staging_mapping.root, staging))
+    if (!same_path(mapping.root, target_instance_dir))
         throw std::runtime_error{"Migration mapping does not belong to this transaction"};
-
-    std::error_code error;
-    if (MP_FILEOPS.exists(target_instance_dir, error))
-        throw std::runtime_error{fmt::format("Refusing to overwrite existing target directory '{}'",
-                                             target_instance_dir)};
-    if (error)
-        throw std::runtime_error{fmt::format("Could not inspect target directory '{}': {}",
-                                             target_instance_dir,
-                                             error.message())};
-
-    MP_FILEOPS.rename(staging, target_instance_dir);
-    staging = target_instance_dir;
-
-    const auto final_mapping = plan(layout, target_instance_dir);
-
-    for (const auto& link : final_mapping.parent_links)
-        if (const auto result = VirtDisk().reparent_virtual_disk(link.child, link.parent); !result)
-            throw std::runtime_error{fmt::format("Could not re-anchor '{}' onto '{}': {}",
-                                                 link.child,
-                                                 link.parent,
-                                                 result)};
-
-    write_snapshot_bookkeeping(final_mapping, source_instance_dir);
-    verify(final_mapping, layout);
-
-    HCSOwnership ownership{
-        .active_disk = final_mapping.active_disk,
-        .state_file_stem = target_instance_dir / "hcs-migrated-state",
-    };
 
     const auto manifest = make_manifest(MigrationTransactionManifest::prepared_phase_name);
     manifest.persist(target_instance_dir);
-    ownership.persist(target_instance_dir);
 
     committed = true;
-    return ownership;
 }
 
 void multipass::hyperv::TargetMigrationTransaction::rollback() noexcept
 {
-    if (committed || staging.empty())
+    if (committed || !staged)
         return;
 
     multipass::top_catch_all(log_category, [this] {
         std::error_code error;
-        if (!MP_FILEOPS.exists(staging, error))
+        if (!MP_FILEOPS.exists(target_instance_dir, error))
             return;
 
-        const auto manifest = MigrationTransactionManifest::load(staging);
+        const auto manifest = MigrationTransactionManifest::load(target_instance_dir);
         if (manifest &&
             (manifest->transaction_id != transaction_id || manifest->vm_name != vm_name))
         {
             mpl::warn(log_category,
                       "Refusing to roll back unowned migration path '{}'",
-                      staging.string());
+                      target_instance_dir.string());
             return;
         }
 
-        // Preserve prepared targets that happen to still carry a stale manifest.
-        if ((manifest && manifest->phase == MigrationTransactionManifest::prepared_phase_name) ||
-            HCSOwnership::load(staging))
+        if (manifest && manifest->phase == MigrationTransactionManifest::prepared_phase_name)
         {
             mpl::warn(log_category,
                       "Refusing to roll back '{}' because it is already prepared",
-                      staging.string());
+                      target_instance_dir.string());
             return;
         }
 
-        std::filesystem::remove_all(staging, error);
+        std::filesystem::remove_all(target_instance_dir, error);
         if (error)
             mpl::warn(log_category,
-                      "Could not remove migration staging directory '{}': {}",
-                      staging.string(),
+                      "Could not remove migration target directory '{}': {}",
+                      target_instance_dir.string(),
                       error.message());
     });
-    staging.clear();
+    staged = false;
 }
 
 void multipass::hyperv::TargetMigrationTransaction::copy_instance_bookkeeping(
@@ -441,12 +414,15 @@ void multipass::hyperv::TargetMigrationTransaction::copy_instance_bookkeeping(
         }
 
         std::error_code error;
-        MP_FILEOPS.copy(source, staging / filename, fs::copy_options::overwrite_existing, error);
+        MP_FILEOPS.copy(source,
+                        target_instance_dir / filename,
+                        fs::copy_options::overwrite_existing,
+                        error);
         if (error)
             throw std::runtime_error{
                 fmt::format("Could not copy migration source file '{}' to '{}': {}",
                             source,
-                            staging / filename,
+                            target_instance_dir / filename,
                             error.message())};
     };
 
@@ -472,7 +448,6 @@ void multipass::hyperv::TargetMigrationTransaction::write_snapshot_bookkeeping(
             throw std::runtime_error{
                 fmt::format("Snapshot metadata index does not match '{}'", filename)};
 
-        snapshot_object["disk_path"] = snapshot.disk_path.string();
         snapshot_object["extra_interfaces"] = boost::json::value_from(snapshot.extra_interfaces);
         MP_FILEOPS.write_transactionally(mapping.root / filename, multipass::pretty_print(json));
     }
@@ -489,44 +464,4 @@ multipass::hyperv::TargetMigrationTransaction::make_manifest(std::string phase) 
         .phase = std::move(phase),
         .vm_name = vm_name,
     };
-}
-
-std::string multipass::hyperv::normalized_mac(std::string mac)
-{
-    std::erase_if(mac, [](unsigned char c) { return c == ':' || c == '-' || std::isspace(c); });
-    std::ranges::transform(mac, mac.begin(), [](unsigned char c) {
-        return static_cast<char>(std::tolower(c));
-    });
-    return mac;
-}
-
-void multipass::hyperv::verify_trial_macs(const VirtualMachineDescription& description,
-                                          const std::vector<std::string>& observed_macs)
-{
-    const auto primary = normalized_mac(description.default_mac_address);
-
-    std::multiset<std::string> observed;
-    for (const auto& mac : observed_macs)
-    {
-        auto normalized = normalized_mac(mac);
-        if (!normalized.empty())
-            observed.insert(std::move(normalized));
-    }
-
-    const auto primary_it = observed.find(primary);
-    if (primary_it == observed.end())
-        throw std::runtime_error{
-            fmt::format("Migration trial did not expose the expected primary MAC '{}'",
-                        description.default_mac_address)};
-    observed.erase(primary_it);
-
-    std::multiset<std::string> expected_extra;
-    for (const auto& interface : description.extra_interfaces)
-        expected_extra.insert(normalized_mac(interface.mac_address));
-
-    if (observed != expected_extra)
-        throw std::runtime_error{fmt::format(
-            "Migration trial extra-interface MACs ({}) do not match the expected set ({})",
-            fmt::join(observed, ", "),
-            fmt::join(expected_extra, ", "))};
 }

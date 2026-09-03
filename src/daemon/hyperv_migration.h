@@ -36,7 +36,6 @@
 namespace multipass
 {
 class AvailabilityZoneManager;
-class SSHKeyProvider;
 class VirtualMachineFactory;
 } // namespace multipass
 
@@ -86,7 +85,6 @@ public:
                                  const InstanceTable& operative_instances,
                                  const InstanceTable& deleted_instances,
                                  VirtualMachineFactory& source_factory,
-                                 const SSHKeyProvider& key_provider,
                                  AvailabilityZoneManager& az_manager,
                                  const Path& data_dir,
                                  HyperVMigrationTargetRecords& target_records);
@@ -98,16 +96,13 @@ public:
 
 private:
     [[nodiscard]] std::vector<NetworkInterface> translated_interfaces(
-        const std::vector<NetworkInterface>& source_interfaces,
-        std::vector<std::string>& created_network_guids);
-    static void cleanup_created_networks(const std::vector<std::string>& network_guids) noexcept;
+        const std::vector<NetworkInterface>& source_interfaces);
     HCSVirtualMachineFactory& target_factory();
 
     const std::unordered_map<std::string, VMSpecs>& specs;
     const InstanceTable& operative_instances;
     const InstanceTable& deleted_instances;
     VirtualMachineFactory& source_factory;
-    const SSHKeyProvider& key_provider;
     AvailabilityZoneManager& az_manager;
     Path data_dir;
     HyperVMigrationTargetRecords& target_records;

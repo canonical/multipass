@@ -18,24 +18,15 @@
 
 #include "hyperv_disk_layout.h"
 
-#include <hyperv_api/hcs_ownership.h>
-
 #include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
 
-namespace multipass
-{
-class VirtualMachineDescription;
-} // namespace multipass
-
 namespace multipass::hyperv
 {
-inline constexpr auto migration_staging_prefix = ".migrating-";
-
 /**
- * Small versioned record persisted inside the staging (and later committed) target
+ * Small versioned record persisted inside the uncommitted (and later committed) target
  * directory. It proves that the enclosing directory is owned by an in-flight - or
  * completed - migration transaction and records the phase that produced it. The next
  * phase (daemon/target DB orchestration) consumes it to reason about ownership without
@@ -112,43 +103,34 @@ public:
 
     /**
      * Preflight per-instance target space using the source logical file lengths plus a
-     * bounded staging/state overhead. Throws when the target volume cannot hold the copy.
+     * bounded migration/state overhead. Throws when the target volume cannot hold the copy.
      */
     void check_space(const LegacyDiskLayout& layout) const;
 
     /**
-     * Create the staging directory (a unique sibling of the final directory, on the same
-     * volume), copy every unique disk preserving sparseness, reparent the target copies
-     * to their target-local parents, copy and rewrite the snapshot bookkeeping to point
-     * at the target copies, and persist the transaction manifest.
+     * Create the uncommitted target directory, copy every unique disk preserving sparseness,
+     * reparent the target copies to their target-local parents, copy and rewrite the snapshot
+     * bookkeeping to point at the target copies, and persist the transaction manifest.
      */
     [[nodiscard]] TargetDiskMapping stage(const LegacyDiskLayout& layout,
                                           const std::filesystem::path& source_instance_dir);
 
     /**
-     * Verify the staged copy: target file lengths match the source, every VirtDisk parent
+     * Verify the copied graph: target file lengths match the source, every VirtDisk parent
      * link reopens against a target-local parent, and every target path is target-local.
      */
     void verify(const TargetDiskMapping& mapping, const LegacyDiskLayout& layout) const;
 
     /**
-     * Promote the staging directory into the final instance directory, re-anchor the
-     * target-local paths, and persist HCS ownership. Returns the committed ownership.
+     * Mark the verified target as prepared and persist HCS ownership.
      */
-    [[nodiscard]] HCSOwnership commit(const TargetDiskMapping& staging_mapping,
-                                      const LegacyDiskLayout& layout,
-                                      const std::filesystem::path& source_instance_dir);
+    void commit(const TargetDiskMapping& mapping);
 
     /**
-     * Remove the manifest-owned, pre-commit staging directory. Committed targets are
+     * Remove the manifest-owned, pre-commit target directory. Committed targets are
      * preserved. Safe to call from noexcept cleanup paths.
      */
     void rollback() noexcept;
-
-    [[nodiscard]] const std::filesystem::path& staging_dir() const
-    {
-        return staging;
-    }
 
 private:
     void copy_instance_bookkeeping(const std::filesystem::path& source_instance_dir) const;
@@ -159,20 +141,8 @@ private:
     std::string vm_name;
     std::string transaction_id;
     std::filesystem::path target_instance_dir;
-    std::filesystem::path staging;
+    bool staged{false};
     bool committed{false};
 };
 
-/**
- * Normalize a MAC address for comparison (strip separators, lowercase).
- */
-[[nodiscard]] std::string normalized_mac(std::string mac);
-
-/**
- * Verify the MACs observed inside a trial-booted target head. The primary MAC must
- * match and the set (and count) of the remaining MACs must match the extra-interface
- * MACs declared by @p description. Throws on any mismatch.
- */
-void verify_trial_macs(const VirtualMachineDescription& description,
-                       const std::vector<std::string>& observed_macs);
 } // namespace multipass::hyperv

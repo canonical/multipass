@@ -25,10 +25,11 @@
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_event_type.h>
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
-#include <hyperv_api/hcs_virtual_machine_resources.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
+#include <hyperv_api/hcs_virtual_machine_resources.h>
 #include <hyperv_api/virtdisk/virtdisk_snapshot.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
+
 
 #include <shared/windows/smb_mount_handler.h>
 
@@ -107,11 +108,9 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
                                      class VMStatusMonitor& monitor,
                                      const SSHKeyProvider& key_provider,
                                      AvailabilityZone& zone,
-                                     const Path& instance_dir,
-                                     std::optional<std::filesystem::path> state_file_stem)
+                                     const Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir},
       description(desc),
-      state_file_stem{state_file_stem.value_or(desc.image.image_path)},
       primary_network_guid(network_guid),
       monitor(monitor)
 {
@@ -157,19 +156,17 @@ void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* co
 
 std::filesystem::path HCSVirtualMachine::get_guest_state_file_path() const
 {
-    auto path = state_file_stem;
-    return path.replace_extension(".vmgs");
+    return std::filesystem::path{description.image.image_path}.replace_extension(".vmgs");
 }
 std::filesystem::path HCSVirtualMachine::get_runtime_state_file_path() const
 {
-    auto path = state_file_stem;
-    return path.replace_extension(".vmrs");
+    return std::filesystem::path{description.image.image_path}.replace_extension(".vmrs");
 }
 
 std::filesystem::path HCSVirtualMachine::get_saved_state_file_path() const
 {
-    auto path = state_file_stem;
-    return path.replace_extension(".SavedState.vmrs");
+    return std::filesystem::path{description.image.image_path}.replace_extension(
+        ".SavedState.vmrs");
 }
 
 bool HCSVirtualMachine::has_saved_state_file() const
@@ -187,12 +184,10 @@ void HCSVirtualMachine::grant_access_to_scsi_device(const hcs::HcsScsiDevice& de
     if (device.type == hcs::HcsScsiDeviceType::VirtualDisk())
     {
         std::vector<std::filesystem::path> lineage{};
-        if (const auto result = VirtDisk().list_virtual_disk_chain(device.path.get(), lineage);
-            !result)
-            throw GrantVMAccessException{
-                "Could not inspect virtual disk chain for '{}': {}", device.path.get(), result};
-
-        grant_access_to_paths({lineage.begin(), lineage.end()});
+        if (VirtDisk().list_virtual_disk_chain(device.path.get(), lineage))
+        {
+            grant_access_to_paths({lineage.begin(), lineage.end()});
+        }
     }
     else
     {
@@ -218,8 +213,12 @@ void HCSVirtualMachine::grant_access_to_paths(std::list<std::filesystem::path> p
         }
 
         if (const auto r = HCS().grant_vm_access(get_name(), path); !r)
-            throw GrantVMAccessException{
-                "Could not grant access for path '{}': {}", path, r};
+        {
+            mpl::error(get_name(),
+                       "Could not grant access for the path `{}`, error code: {}",
+                       path,
+                       r);
+        }
     }
 }
 
@@ -537,7 +536,7 @@ std::string HCSVirtualMachine::ssh_username()
 
 std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
 {
-    const auto endpoint_guid = mac2uuid(description.default_mac_address);
+    const auto endpoint_guid = endpoint_guid_for_mac(description.default_mac_address);
     hcn::HcnEndpointInfo endpoint_info;
     if (const auto query_result = HCN().query_endpoint(endpoint_guid, endpoint_info); !query_result)
     {

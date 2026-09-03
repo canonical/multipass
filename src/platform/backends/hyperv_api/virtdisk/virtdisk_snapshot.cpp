@@ -70,10 +70,6 @@ std::string VirtDiskSnapshot::make_snapshot_filename(const Snapshot& ss)
 
 std::filesystem::path VirtDiskSnapshot::make_snapshot_path(const Snapshot& ss) const
 {
-    if (const auto* snapshot = dynamic_cast<const VirtDiskSnapshot*>(&ss))
-        if (const auto& explicit_path = snapshot->get_explicit_disk_path())
-            return *explicit_path;
-
     return live_disk_path.parent_path() / make_snapshot_filename(ss);
 }
 
