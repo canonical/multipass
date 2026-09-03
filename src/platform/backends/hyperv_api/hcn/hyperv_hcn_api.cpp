@@ -79,6 +79,13 @@ HRESULT HCNAPI::HcnQueryNetworkProperties(HCN_NETWORK Network,
 {
     return ::HcnQueryNetworkProperties(Network, Query, Properties, ErrorRecord);
 }
+HRESULT HCNAPI::HcnQueryEndpointProperties(HCN_ENDPOINT Endpoint,
+                                           PCWSTR Query,
+                                           PWSTR* Properties,
+                                           PWSTR* ErrorRecord) const
+{
+    return ::HcnQueryEndpointProperties(Endpoint, Query, Properties, ErrorRecord);
+}
 void HCNAPI::CoTaskMemFree(LPVOID pv) const
 {
     ::CoTaskMemFree(pv);

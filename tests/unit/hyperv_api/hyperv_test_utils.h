@@ -17,9 +17,14 @@
 
 #pragma once
 
+#include <algorithm>
 #include <filesystem>
+#include <fstream>
 #include <io.h>
 #include <random>
+#include <span>
+#include <string>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -84,6 +89,38 @@ inline auto make_tempfile_path(std::string extension)
     }
 
     return auto_remove_path{temp_path};
+}
+
+/**
+ * Return the parts of a split file in @p dir whose filename begins with @p prefix,
+ * sorted so that the lexicographic order matches the original split order
+ * (e.g. `alpine.vhdx.part-aa` < `...-ab` < `...-ac`).
+ */
+inline std::vector<std::filesystem::path> find_split_parts(const std::filesystem::path& dir,
+                                                           const std::string& prefix)
+{
+    std::vector<std::filesystem::path> parts;
+    for (const auto& entry : std::filesystem::directory_iterator(dir))
+    {
+        if (entry.path().filename().string().starts_with(prefix))
+            parts.push_back(entry.path());
+    }
+    std::ranges::sort(parts); // aa < ab < ac lexicographically
+    return parts;
+}
+
+/**
+ * Concatenate @p parts, in order, into a single binary file at @p output.
+ */
+inline void merge_files(std::span<const std::filesystem::path> parts,
+                        const std::filesystem::path& output)
+{
+    std::ofstream out(output, std::ios::binary);
+    for (const auto& part : parts)
+    {
+        std::ifstream in(part, std::ios::binary);
+        out << in.rdbuf();
+    }
 }
 
 } // namespace multipass::test

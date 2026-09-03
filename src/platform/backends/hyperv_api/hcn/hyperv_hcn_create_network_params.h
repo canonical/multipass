@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <hyperv_api/hcn/hyperv_hcn_dns.h>
 #include <hyperv_api/hcn/hyperv_hcn_ipam.h>
 #include <hyperv_api/hcn/hyperv_hcn_network_flags.h>
 #include <hyperv_api/hcn/hyperv_hcn_network_policy.h>
@@ -24,6 +25,7 @@
 
 #include <fmt/format.h>
 
+#include <optional>
 #include <vector>
 
 namespace multipass::hyperv::hcn
@@ -63,6 +65,14 @@ struct CreateNetworkParameters
      * Network policies
      */
     std::vector<HcnNetworkPolicy> policies;
+
+    /**
+     * DNS settings for the network (optional).
+     *
+     * When set, allows specifying the DNS suffix (domain), suffix search
+     * list and DNS servers for the network.
+     */
+    std::optional<HcnDns> dns{};
 };
 
 } // namespace multipass::hyperv::hcn
