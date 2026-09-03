@@ -25,5 +25,4 @@ namespace multipass::hyperv
 [[nodiscard]] bool release_hcs_resources(const std::string& name);
 [[nodiscard]] bool release_hcs_resources(const std::string& name,
                                          const std::vector<std::string>& mac_addresses);
-void remove_hcs_resources(const std::string& name);
-}
+} // namespace multipass::hyperv

@@ -153,12 +153,12 @@ TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerForClientSett
 
 TEST_F(TestGlobalSettingsHandlers, clientsRegisterPersistentHandlerWithOverridingPlatformSettings)
 {
-    const auto platform_defaults =
-        std::map<QString, QString>{{"client.a.setting", "a reasonably long value for this"},
-                                   {mp::petenv_key, "secondary"},
-                                   {"client.empty.setting", ""},
-                                   {"client.an.int", "-12345"},
-                                   {"client.a.float.with.a.long_key", "3.14"}};
+    const auto platform_defaults = std::map<QString, QString>{
+        {"client.a.setting", "a reasonably long value for this"},
+        {mp::petenv_key, "secondary"},
+        {"client.empty.setting", ""},
+        {"client.an.int", "-12345"},
+        {"client.a.float.with.a.long_key", "3.14"}};
 
     EXPECT_CALL(mock_platform, extra_client_settings)
         .WillOnce(Return(ByMove(to_setting_set(platform_defaults))));
@@ -248,14 +248,14 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonSett
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonPlatformSettings)
 {
-    const auto platform_defaults =
-        std::map<QString, QString>{{"local.blah", "blargh"},
-                                   {mp::driver_key, "platform-hypervisor"},
-                                   {"local.a.bool", "false"},
-                                   {mp::bridged_interface_key, "platform-bridge"},
-                                   {"local.foo", "barrrr"},
-                                   {mp::mounts_key, "false"},
-                                   {"local.a.long.number", "1234567890"}};
+    const auto platform_defaults = std::map<QString, QString>{
+        {"local.blah", "blargh"},
+        {mp::driver_key, "platform-hypervisor"},
+        {"local.a.bool", "false"},
+        {mp::bridged_interface_key, "platform-bridge"},
+        {"local.foo", "barrrr"},
+        {mp::mounts_key, "false"},
+        {"local.a.long.number", "1234567890"}};
 
     EXPECT_CALL(mock_platform, default_driver).WillOnce(Return("unused"));
     EXPECT_CALL(mock_platform, default_privileged_mounts).WillOnce(Return("true"));
@@ -318,6 +318,18 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatTransformsVBoxDrive
 
     [[maybe_unused]] mp::UserMessages messages{};
     ASSERT_NO_THROW(handler->set(key, val, messages));
+}
+
+TEST_F(TestGlobalSettingsHandlers, driverInterpreterNormalizesCase)
+{
+    mp::daemon::register_global_settings_handlers();
+
+    EXPECT_CALL(mock_platform, is_backend_supported(Eq("hyperv_api"))).WillOnce(Return(true));
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::driver_key), Eq("hyperv_api")));
+    inject_mock_qsettings();
+
+    [[maybe_unused]] mp::UserMessages messages{};
+    ASSERT_NO_THROW(handler->set(mp::driver_key, "HYPERV_API", messages));
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatRejectsInvalidBackend)

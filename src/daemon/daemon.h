@@ -28,8 +28,8 @@
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
 
-#include <chrono>
 #include <atomic>
+#include <chrono>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -191,6 +191,10 @@ private:
     // `return`. Never rejects read-only RPCs (they simply don't call it).
     [[nodiscard]] bool reject_if_migrating(std::string_view rpc_name,
                                            DaemonRpcContext* context) const;
+    [[nodiscard]] bool begin_instance_preparation(const std::string& name,
+                                                  std::string_view rpc_name,
+                                                  DaemonRpcContext* context);
+    void end_instance_preparation(const std::string& name);
 
     void release_resources(const std::string& instance);
     void create_vm(const CreateRequest* request,
@@ -278,13 +282,6 @@ protected:
     // threads.
     std::atomic<bool> migration_in_progress{false};
 
-    // Pure guard decision: a rejection status when @p migrating is set, otherwise nullopt.
-    // Side-effect free and static so it is trivially unit-testable in isolation. Reads must
-    // never consult this.
-    [[nodiscard]] static std::optional<grpc::Status> migration_conflict_status(
-        bool migrating,
-        std::string_view rpc_name);
-
     bool is_bridged(const std::string& instance_name) const;
     void add_bridged_interface(const std::string& instance_name);
 
@@ -307,6 +304,7 @@ private:
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;
     std::unordered_set<std::string> preparing_instances;
+    std::atomic_size_t preparations_in_progress{0};
     QFuture<void> image_update_future;
     SettingsHandler* instance_mod_handler;
     SettingsHandler* snapshot_mod_handler;

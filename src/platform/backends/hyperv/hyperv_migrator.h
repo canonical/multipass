@@ -18,8 +18,6 @@
 
 #include <hyperv_api/hcs_ownership.h>
 
-#include <multipass/path.h>
-#include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <filesystem>
@@ -45,16 +43,14 @@ struct LegacyDiskLayout;
 using MigrationPhaseCallback = std::function<void(std::string_view phase)>;
 
 /**
- * Reusable retained-copy migration primitive. Migrates the legacy Hyper-V @p legacy_vm
- * into @p target_instance_dir using the supplied (already adapted) @p description, SSH
- * key, and zone. The source is never mutated: the disk graph is copied into a private,
- * target-local set, verified, trial-booted through a disposable differencing disk, and
- * only then committed. Returns the committed HCS ownership on success; throws on any
- * failure (leaving the source intact and recoverable).
+ * Reusable retained-copy migration primitive. The source is never mutated: the disk graph
+ * is copied into a private, target-local set, verified, trial-booted through a disposable
+ * differencing disk, and only then committed.
  *
  * @p on_phase, when set, receives coarse progress notifications at each phase boundary.
  */
-[[nodiscard]] HCSOwnership migrate_retained_copy(VirtualMachine& legacy_vm,
+[[nodiscard]] HCSOwnership migrate_retained_copy(const LegacyDiskLayout& layout,
+                                                 const std::filesystem::path& source_instance_dir,
                                                  const VirtualMachineDescription& description,
                                                  const std::filesystem::path& target_instance_dir,
                                                  const SSHKeyProvider& key_provider,

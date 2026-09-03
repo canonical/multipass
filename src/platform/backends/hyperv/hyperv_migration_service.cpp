@@ -28,13 +28,7 @@ namespace mpl = multipass::logging;
 constexpr auto log_category = "Hyper-V migration";
 } // namespace
 
-bool multipass::hyperv::is_hyperv_to_hyperv_api_transition(std::string_view from,
-                                                           std::string_view to)
-{
-    return from == "hyperv" && to == "hyperv_api";
-}
-
-std::vector<multipass::hyperv::TranslatedInterface> multipass::hyperv::translate_extra_interfaces(
+std::vector<multipass::NetworkInterface> multipass::hyperv::translate_extra_interfaces(
     const std::vector<NetworkInterface>& source_interfaces,
     const std::vector<NetworkInterfaceInfo>& available_networks)
 {
@@ -44,7 +38,7 @@ std::vector<multipass::hyperv::TranslatedInterface> multipass::hyperv::translate
         return it == available_networks.cend() ? nullptr : &*it;
     };
 
-    std::vector<TranslatedInterface> translated;
+    std::vector<NetworkInterface> translated;
     translated.reserve(source_interfaces.size());
 
     // Order is significant: the migrated instance must expose its NICs in the same order as
@@ -72,9 +66,8 @@ std::vector<multipass::hyperv::TranslatedInterface> multipass::hyperv::translate
                             "physical adapter link",
                             iface.id)};
 
-        translated.push_back({.adapter_id = adapter_id,
-                              .mac_address = iface.mac_address,
-                              .auto_mode = iface.auto_mode});
+        translated.push_back(
+            {.id = adapter_id, .mac_address = iface.mac_address, .auto_mode = iface.auto_mode});
     }
 
     return translated;
@@ -86,6 +79,7 @@ multipass::hyperv::BulkMigrationResult multipass::hyperv::run_bulk_migration(
     const MigrationCancellation& cancel)
 {
     BulkMigrationResult result;
+    std::vector<std::string> migrated;
 
     auto names = migrator.source_names();
     std::sort(names.begin(), names.end());
@@ -94,7 +88,7 @@ multipass::hyperv::BulkMigrationResult multipass::hyperv::run_bulk_migration(
     {
         // The per-instance boundary is the only point at which cancellation takes effect,
         // so earlier committed targets are always retained.
-        if (cancel.cancelled())
+        if (cancel())
         {
             result.cancelled = true;
             mpl::info(log_category, "Migration cancelled before processing '{}'", name);
@@ -103,21 +97,14 @@ multipass::hyperv::BulkMigrationResult multipass::hyperv::run_bulk_migration(
 
         try
         {
-            const auto attempt = migrator.migrate(name, progress);
-            if (attempt.outcome == InstanceMigrationOutcome::migrated)
-            {
-                result.migrated.push_back(name);
-            }
+            if (const auto reason = migrator.migrate(name, progress))
+                progress.skipped(name, *reason);
             else
-            {
-                progress.skipped(name, attempt.reason);
-                result.skipped.push_back(name);
-            }
+                migrated.push_back(name);
         }
         catch (const MigrationAbortError& error)
         {
             progress.failed(name, error.what());
-            result.failed.push_back(name);
             result.success = false;
             result.aborted = true;
             mpl::error(log_category,
@@ -130,12 +117,11 @@ multipass::hyperv::BulkMigrationResult multipass::hyperv::run_bulk_migration(
         {
             // Recoverable: keep going so a single bad instance does not block the rest.
             progress.failed(name, error.what());
-            result.failed.push_back(name);
             result.success = false;
             mpl::warn(log_category, "Migration of '{}' failed: {}", name, error.what());
         }
     }
 
-    progress.finished(result.migrated);
+    progress.finished(migrated);
     return result;
 }

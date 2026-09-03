@@ -56,11 +56,6 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
 
     [[nodiscard]] std::vector<NetworkInterfaceInfo> networks() const override;
 
-    [[nodiscard]] std::string create_bridge_for(const NetworkInterfaceInfo& interface)
-    {
-        return create_bridge_with(interface);
-    }
-
     [[nodiscard]] const std::string& network_guid_for(const std::string& zone) const
     {
         return az_network_guids.at(zone);
