@@ -198,12 +198,12 @@ private:
     void init_mounts(const std::string& name);
     void stop_mounts(const std::string& name);
 
-    // This returns whether any specs were updated (and need persisting)
+    // This returns whether any specs were updated (and need persisting).
     bool update_mounts(VMSpecs& vm_specs,
                        std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
                        VirtualMachine* vm);
 
-    // This returns whether all required mount handlers were successfully created
+    // This returns whether any mount specs were pruned (and need persisting)
     bool create_missing_mounts(std::unordered_map<std::string, VMMount>& mount_specs,
                                std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
                                VirtualMachine* vm);

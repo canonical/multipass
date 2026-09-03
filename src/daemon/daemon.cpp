@@ -1175,20 +1175,33 @@ mp::SettingsHandler* register_snapshot_mod(
     return nullptr;
 }
 
-// Erase any outdated mount handlers for a given VM
-bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& mount_specs,
+// Erase any outdated mount handlers for a given VM, along with any mount specs that can no
+// longer be satisfied
+bool prune_obsolete_mounts(const std::string& vm_name,
+                           std::unordered_map<std::string, mp::VMMount>& mount_specs,
                            std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts)
 {
     auto removed = false;
     std::erase_if(vm_mounts, [&](auto&& i) {
         const auto& [target, handler] = i;
-        if (auto specs_it = mount_specs.find(target);
-            specs_it == mount_specs.end() || handler->get_mount_spec() != specs_it->second)
+        const auto specs_it = mount_specs.find(target);
+        const auto& source = handler->get_mount_spec().get_source_path();
+
+        if (specs_it != mount_specs.end() && handler->get_mount_spec() == specs_it->second)
         {
-            removed = true;
-            return true;
+            if (MP_FILEOPS.exists(QDir{QString::fromStdString(source)}))
+                return false;
+
+            mpl::warn(category,
+                      R"(Removing mount "{}" => "{}" from '{}': host path no longer exists)",
+                      source,
+                      target,
+                      vm_name);
+            mount_specs.erase(specs_it);
         }
-        return false;
+
+        removed = true;
+        return true;
     });
     return removed;
 }
@@ -2143,6 +2156,9 @@ try
                 complain_disabled_mounts = false; // I shall say zis only once
                 mpl::error(category, "Mounts have been disabled on this instance of Multipass");
             }
+
+            if (update_mounts(vm_instance_specs[name], mounts[name], vm_it->second.get()))
+                persist_instances();
 
             vm.start();
         }
@@ -3412,10 +3428,7 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
 
 void mp::Daemon::init_mounts(const std::string& name)
 {
-    auto& vm_mounts = mounts[name];
-    auto& vm_spec_mounts = vm_instance_specs[name].mounts;
-
-    if (!create_missing_mounts(vm_spec_mounts, vm_mounts, operative_instances[name].get()))
+    if (update_mounts(vm_instance_specs[name], mounts[name], operative_instances[name].get()))
         persist_instances();
 }
 
@@ -3432,10 +3445,13 @@ bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
                                mp::VirtualMachine* vm)
 {
     auto& mount_specs = vm_specs.mounts;
-    const auto mounts_pruned = prune_obsolete_mounts(mount_specs, vm_mounts);
-    const auto all_mount_handlers_created = create_missing_mounts(mount_specs, vm_mounts, vm);
+    if (mount_specs.empty() && vm_mounts.empty())
+        return false;
 
-    return mounts_pruned || !all_mount_handlers_created;
+    const auto mounts_pruned = prune_obsolete_mounts(vm->get_name(), mount_specs, vm_mounts);
+    const auto specs_pruned = create_missing_mounts(mount_specs, vm_mounts, vm);
+
+    return mounts_pruned || specs_pruned;
 }
 
 bool mp::Daemon::create_missing_mounts(

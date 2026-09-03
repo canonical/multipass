@@ -26,6 +26,7 @@
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
+#include "stub_availability_zone.h"
 
 #include <src/daemon/daemon.h>
 
@@ -48,6 +49,8 @@ struct TestDaemonStart : public mpt::DaemonTestFixture
     const std::string mock_instance_name{"real-zebraphant"};
     const std::string mac_addr{"52:54:00:73:76:28"};
     std::vector<mp::NetworkInterface> extra_interfaces;
+
+    mpt::StubAvailabilityZone zone{};
 
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
     mpt::MockPlatform* mock_platform = attr.first;
@@ -295,4 +298,58 @@ TEST_F(TestDaemonStart, removingMountOnFailedStart)
 
     auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(server));
     EXPECT_TRUE(status.ok());
+}
+
+TEST_F(TestDaemonStart, mountWithDeletedSourceIsDroppedOnStart)
+{
+    const std::string fake_target_path{"/home/luke/skywalker"};
+    auto source_dir = std::make_unique<mpt::TempDir>();
+    // Use the canonical path so the warning message matches what the daemon logs
+    const std::string source_path{QFileInfo{source_dir->path()}.canonicalFilePath().toStdString()};
+    const mp::VMMount mount{source_path, {}, {}, mp::VMMount::MountType::Native};
+    std::unordered_map<std::string, mp::VMMount> mounts{{fake_target_path, mount}};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
+
+    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>(mount, fake_target_path);
+    EXPECT_CALL(*mock_mount_handler, activate_impl).Times(0);
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*mock_vm, get_zone).WillRepeatedly(ReturnRef(zone));
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, make_native_mount_handler)
+        .WillOnce(Return(std::move(mock_mount_handler)));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    // The host directory goes away while the instance is stopped
+    source_dir.reset();
+
+    mp::StartRequest request;
+    request.mutable_instance_names()->add_instance_name(mock_instance_name);
+
+    StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> mock_server;
+    EXPECT_CALL(mock_server, Write(_, _)).Times(1);
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(mock_server));
+    EXPECT_TRUE(status.ok());
+
+    // The stale mount was dropped instead of breaking the start
+    mp::InfoReply info_reply;
+    StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> info_server;
+    EXPECT_CALL(info_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&info_reply), Return(true)));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, info_server).ok());
+    ASSERT_EQ(info_reply.details_size(), 1);
+    EXPECT_EQ(info_reply.details(0).mount_info().mount_paths_size(), 0);
 }
