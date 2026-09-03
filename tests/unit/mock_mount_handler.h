@@ -24,6 +24,13 @@ namespace multipass::test
 class MockMountHandler : public MountHandler
 {
 public:
+    MockMountHandler() = default;
+
+    MockMountHandler(const VMMount& mount, const std::string& target)
+        : MountHandler(nullptr, nullptr, mount, target)
+    {
+    }
+
     MOCK_METHOD(void, activate_impl, (ServerVariant, std::chrono::milliseconds), (override));
     MOCK_METHOD(void, deactivate_impl, (bool), (override));
     MOCK_METHOD(bool, is_active, (), (override));

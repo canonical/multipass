@@ -205,9 +205,10 @@ TEST_F(TestDaemonStart, suspendingStateDoesNotStartHasError)
 
 TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
 {
-    const std::string fake_target_path{"/home/luke/skywalker"}, fake_source_path{"/home/han/solo"};
+    const std::string fake_target_path{"/home/luke/skywalker"};
+    const mpt::TempDir source_dir;
     const mp::id_mappings uid_mappings{{1000, 1001}}, gid_mappings{{1002, 1003}};
-    const mp::VMMount mount{fake_source_path,
+    const mp::VMMount mount{source_dir.path().toStdString(),
                             gid_mappings,
                             uid_mappings,
                             mp::VMMount::MountType::Native};
@@ -217,7 +218,7 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
     const auto [temp_dir, filename] =
         plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
 
-    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
+    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>(mount, fake_target_path);
     EXPECT_CALL(*mock_mount_handler, activate_impl).Times(1);
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
@@ -248,9 +249,10 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
 
 TEST_F(TestDaemonStart, removingMountOnFailedStart)
 {
-    const std::string fake_target_path{"/home/luke/skywalker"}, fake_source_path{"/home/han/solo"};
+    const std::string fake_target_path{"/home/luke/skywalker"};
+    const mpt::TempDir source_dir;
     const mp::id_mappings uid_mappings{{1000, 1001}}, gid_mappings{{1002, 1003}};
-    const mp::VMMount mount{fake_source_path,
+    const mp::VMMount mount{source_dir.path().toStdString(),
                             gid_mappings,
                             uid_mappings,
                             mp::VMMount::MountType::Native};
@@ -261,7 +263,7 @@ TEST_F(TestDaemonStart, removingMountOnFailedStart)
         plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
 
     auto error = "failed to start mount";
-    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
+    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>(mount, fake_target_path);
     EXPECT_CALL(*mock_mount_handler, activate_impl).WillOnce(Throw(std::runtime_error{error}));
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
