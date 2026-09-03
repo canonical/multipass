@@ -26,7 +26,7 @@ class ZonesDropdownButton extends ConsumerWidget {
           ),
           itemBuilder: (context) => [
             PopupMenuItem(
-              enabled: false,
+              enabled: true,
               child: Container(
                 width: double.infinity, // Take full width of the popup
                 padding: const EdgeInsets.only(
