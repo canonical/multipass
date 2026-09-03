@@ -21,8 +21,6 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_mount.h>
 
-#include <filesystem>
-#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -55,7 +53,6 @@ struct SnapshotDescription
                         VirtualMachine::State state,
                         std::unordered_map<std::string, VMMount> mounts,
                         boost::json::object metadata,
-                        std::optional<std::filesystem::path> disk_path = std::nullopt,
                         bool upgraded = false);
 
     std::string name;
@@ -74,7 +71,6 @@ struct SnapshotDescription
     const VirtualMachine::State state;
     const std::unordered_map<std::string, VMMount> mounts;
     const boost::json::object metadata;
-    const std::optional<std::filesystem::path> disk_path;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     // True if this was deserialized from a legacy snapshot file.

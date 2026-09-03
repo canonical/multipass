@@ -20,8 +20,6 @@
 #include <daemon/hyperv_migration.h>
 
 #include <hyperv/hyperv_target_transaction.h>
-#include <hyperv_api/hcs_ownership.h>
-
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
 
@@ -89,19 +87,9 @@ void write_manifest(const fs::path& dir, const std::string& name, const char* ph
     manifest.persist(dir);
 }
 
-void write_ownership(const fs::path& dir)
-{
-    const mhv::HCSOwnership ownership{
-        .active_disk = dir / "active.avhdx",
-        .state_file_stem = dir / "hcs-state",
-    };
-    ownership.persist(dir);
-}
-
 void write_prepared_target(const fs::path& dir, const std::string& name)
 {
     write_manifest(dir, name, mhv::MigrationTransactionManifest::prepared_phase_name);
-    write_ownership(dir);
 }
 
 boost::json::object read_records(const fs::path& path)
@@ -181,7 +169,6 @@ TEST(HyperVMigrationTargetRecords, recoveryFinalizesCommittedTarget)
     mhv::HyperVMigrationTargetRecords store{data.path()};
     store.prepare();
 
-    EXPECT_TRUE(MP_FILEOPS.exists(target_dir / "hcs-ownership.json"));
     EXPECT_FALSE(MP_FILEOPS.exists(target_dir / mhv::MigrationTransactionManifest::filename));
 }
 
@@ -196,25 +183,19 @@ TEST(HyperVMigrationTargetRecords, recoveryLeavesIncompleteCommittedTarget)
     MP_FILEOPS.write_transactionally(
         target_root / "multipassd-vm-instances.json",
         mp::pretty_print(boost::json::object{{"vm", boost::json::value_from(vm_spec())}}));
-    MP_FILEOPS.write_transactionally(
-        target_root / "vault" / "multipassd-instance-image-records.json",
-        mp::pretty_print(boost::json::object{
-            {"vm", boost::json::value_from(image_record(target_dir / "active.avhdx"))}}));
-
     mhv::HyperVMigrationTargetRecords store{data.path()};
     store.prepare();
 
     EXPECT_TRUE(MP_FILEOPS.exists(target_dir / mhv::MigrationTransactionManifest::filename));
 }
 
-TEST(HyperVMigrationTargetRecords, recoveryOnlyRemovesOwnedStagingDirectories)
+TEST(HyperVMigrationTargetRecords, recoveryOnlyRemovesManifestOwnedDirectories)
 {
     mpt::TempDir data;
     const auto data_dir = fs::path{data.path().toStdString()};
     const auto instances_root = data_dir / "hyperv_api" / "vault" / "instances";
-    const auto owned = instances_root / (std::string{mhv::migration_staging_prefix} + "vm-tx");
-    const auto unowned = instances_root /
-                         (std::string{mhv::migration_staging_prefix} + "user-data");
+    const auto owned = instances_root / "vm";
+    const auto unowned = instances_root / "user-data";
     write_manifest(owned, "vm", mhv::MigrationTransactionManifest::staged_phase_name);
     fs::create_directories(unowned);
     MP_FILEOPS.write_transactionally(unowned / "keep", "keep");

@@ -175,10 +175,6 @@ def target_instance_dir(name):
     return Path(cfg.data_dir) / "hyperv_api" / "vault" / "instances" / name
 
 
-def ownership_path(name):
-    return target_instance_dir(name) / "hcs-ownership.json"
-
-
 def database(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
@@ -288,18 +284,13 @@ def source_record(name, layout, guest_identity=None, record_files=True):
 
 def assert_target_local(name, source):
     instance_dir = target_instance_dir(name)
-    ownership = database(ownership_path(name))
-    assert ownership["backend"] == "hcs"
-
-    active_disk = Path(ownership["active_disk"])
-    state_file_stem = Path(ownership["state_file_stem"])
-    for path in (active_disk, state_file_stem):
-        assert path_is_within(path, instance_dir)
+    active_disk = Path(target_image_records()[name]["image"]["path"])
+    assert path_is_within(active_disk, instance_dir)
 
     snapshot_disks = []
     for metadata_path in instance_dir.glob("*.snapshot.json"):
         metadata = database(metadata_path)
-        snapshot_disks.append(Path(metadata["snapshot"]["disk_path"]))
+        snapshot_disks.append(instance_dir / f"{metadata['snapshot']['index']}.avhdx")
 
     target_disks = []
     seen = set()

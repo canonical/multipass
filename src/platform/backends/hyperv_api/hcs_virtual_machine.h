@@ -53,8 +53,7 @@ struct HCSVirtualMachine : public BaseVirtualMachine
                       VMStatusMonitor& monitor,
                       const SSHKeyProvider& key_provider,
                       AvailabilityZone& zone,
-                      const Path& instance_dir,
-                      std::optional<std::filesystem::path> state_file_stem = std::nullopt);
+                      const Path& instance_dir);
 
     HCSVirtualMachine(const std::string& source_vm_name,
                       const multipass::VMSpecs& src_vm_specs,
@@ -95,7 +94,6 @@ protected:
 
 private:
     VirtualMachineDescription description{};
-    const std::filesystem::path state_file_stem;
     const std::string primary_network_guid{};
     VMStatusMonitor& monitor;
 

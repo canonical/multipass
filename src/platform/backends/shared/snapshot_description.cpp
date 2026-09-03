@@ -59,7 +59,6 @@ mp::SnapshotDescription::SnapshotDescription(std::string name,
                                              VirtualMachine::State state,
                                              std::unordered_map<std::string, VMMount> mounts,
                                              boost::json::object metadata,
-                                             std::optional<std::filesystem::path> disk_path,
                                              bool upgraded)
     : name(std::move(name)),
       comment(std::move(comment)),
@@ -74,7 +73,6 @@ mp::SnapshotDescription::SnapshotDescription(std::string name,
       state(state),
       mounts(std::move(mounts)),
       metadata(std::move(metadata)),
-      disk_path(std::move(disk_path)),
       upgraded(upgraded)
 {
     using St = VirtualMachine::State;
@@ -101,7 +99,7 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
                     boost::json::value& json,
                     const mp::SnapshotDescription& desc)
 {
-    boost::json::object snapshot_json = {
+    json = {
         {"name", desc.name},
         {"comment", desc.comment},
         {"parent", desc.parent_index},
@@ -115,11 +113,6 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
         {"state", static_cast<int>(desc.state)},
         {"mounts", boost::json::value_from(desc.mounts, MapAsJsonArray{"target_path"})},
         {"metadata", desc.metadata}};
-
-    if (desc.disk_path)
-        snapshot_json["disk_path"] = desc.disk_path->string();
-
-    json = std::move(snapshot_json);
 }
 
 mp::SnapshotDescription mp::tag_invoke(const boost::json::value_to_tag<mp::SnapshotDescription>&,
@@ -129,12 +122,6 @@ mp::SnapshotDescription mp::tag_invoke(const boost::json::value_to_tag<mp::Snaps
     const auto& json_obj = json.as_object();
     bool upgraded =
         !(json_obj.contains("extra_interfaces") && json_obj.contains("cloud_init_instance_id"));
-    const auto disk_path = [&json_obj]() -> std::optional<std::filesystem::path> {
-        if (const auto* value = json_obj.if_contains("disk_path"))
-            return value_to<std::string>(*value);
-
-        return std::nullopt;
-    }();
 
     return {
         value_to<std::string>(json.at("name")),
@@ -153,6 +140,5 @@ mp::SnapshotDescription mp::tag_invoke(const boost::json::value_to_tag<mp::Snaps
         value_to<std::unordered_map<std::string, mp::VMMount>>(json.at("mounts"),
                                                                MapAsJsonArray{"target_path"}),
         json.at("metadata").as_object(),
-        disk_path,
         upgraded};
 }
