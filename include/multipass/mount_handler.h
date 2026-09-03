@@ -78,11 +78,6 @@ public:
         return active;
     }
 
-    virtual bool is_mount_managed_by_backend()
-    {
-        return false;
-    }
-
 protected:
     MountHandler() = default;
     MountHandler(VirtualMachine* vm,
