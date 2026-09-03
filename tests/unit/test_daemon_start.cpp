@@ -338,8 +338,13 @@ TEST_F(TestDaemonStart, mountWithDeletedSourceIsDroppedOnStart)
     mp::StartRequest request;
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
 
+    const auto warning = fmt::format(
+        R"(Removed mount "{}" => "{}" from '{}': host path no longer exists)",
+        source_path,
+        fake_target_path,
+        mock_instance_name);
     StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> mock_server;
-    EXPECT_CALL(mock_server, Write(_, _)).Times(1);
+    EXPECT_CALL(mock_server, Write(Property(&mp::StartReply::log_line, HasSubstr(warning)), _));
 
     auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(mock_server));
     EXPECT_TRUE(status.ok());

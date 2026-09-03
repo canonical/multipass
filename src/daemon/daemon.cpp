@@ -1179,7 +1179,8 @@ mp::SettingsHandler* register_snapshot_mod(
 // longer be satisfied
 bool prune_obsolete_mounts(const std::string& vm_name,
                            std::unordered_map<std::string, mp::VMMount>& mount_specs,
-                           std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts)
+                           std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
+                           fmt::memory_buffer* warnings)
 {
     auto removed = false;
     std::erase_if(vm_mounts, [&](auto&& i) {
@@ -1192,11 +1193,15 @@ bool prune_obsolete_mounts(const std::string& vm_name,
             if (MP_FILEOPS.exists(QDir{QString::fromStdString(source)}))
                 return false;
 
-            mpl::warn(category,
-                      R"(Removing mount "{}" => "{}" from '{}': host path no longer exists)",
-                      source,
-                      target,
-                      vm_name);
+            const auto msg = fmt::format(
+                "Removed mount \"{}\" => \"{}\" from '{}': host path no longer exists\n",
+                source,
+                target,
+                vm_name);
+            mpl::log_message(mpl::Level::warning, category, msg);
+            if (warnings)
+                warnings->append(msg);
+
             mount_specs.erase(specs_it);
         }
 
@@ -2157,7 +2162,10 @@ try
                 mpl::error(category, "Mounts have been disabled on this instance of Multipass");
             }
 
-            if (update_mounts(vm_instance_specs[name], mounts[name], vm_it->second.get()))
+            if (update_mounts(vm_instance_specs[name],
+                              mounts[name],
+                              vm_it->second.get(),
+                              &start_warnings))
                 persist_instances();
 
             vm.start();
@@ -3442,13 +3450,17 @@ void mp::Daemon::stop_mounts(const std::string& name)
 
 bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
                                std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
-                               mp::VirtualMachine* vm)
+                               mp::VirtualMachine* vm,
+                               fmt::memory_buffer* warnings)
 {
     auto& mount_specs = vm_specs.mounts;
     if (mount_specs.empty() && vm_mounts.empty())
         return false;
 
-    const auto mounts_pruned = prune_obsolete_mounts(vm->get_name(), mount_specs, vm_mounts);
+    const auto mounts_pruned = prune_obsolete_mounts(vm->get_name(),
+                                                     mount_specs,
+                                                     vm_mounts,
+                                                     warnings);
     const auto specs_pruned = create_missing_mounts(mount_specs, vm_mounts, vm);
 
     return mounts_pruned || specs_pruned;
