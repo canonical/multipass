@@ -65,6 +65,13 @@ inline auto replace_colon_with_dash(const std::string& addr)
     return result;
 }
 
+/**
+ * Perform a DNS resolve of @p hostname to obtain IPv4/IPv6
+ * address(es) associated with it.
+ *
+ * @param [in] hostname Hostname to resolve
+ * @return Vector of IPv4/IPv6 addresses
+ */
 auto resolve_ip_addresses(const std::string& hostname)
 {
     const static mp::wsa_init_wrapper wsa_context{};
@@ -74,14 +81,19 @@ auto resolve_ip_addresses(const std::string& hostname)
                "resolve_ip_addresses() -> resolve being called for hostname `{}`",
                hostname);
 
+    // Wrap the raw addrinfo pointer so it's always destroyed properly.
     const auto& [result, addr_info] = [&]() {
         struct addrinfo* result = {nullptr};
+        // clang-format off
+        // (xmkg): different behavior between clang-format versions.
         struct addrinfo hints
         {
+
         };
-        const auto status = getaddrinfo(hostname.c_str(), nullptr, &hints, &result);
+        // clang-format on
+        const auto r = getaddrinfo(hostname.c_str(), nullptr, nullptr, &result);
         return std::make_pair(
-            status,
+            r,
             std::unique_ptr<addrinfo, decltype(&freeaddrinfo)>{result, freeaddrinfo});
     }();
 
@@ -101,9 +113,16 @@ auto resolve_ip_addresses(const std::string& hostname)
                     char addr[INET_ADDRSTRLEN] = {};
                     inet_ntop(AF_INET, &(sockaddr_ipv4->sin_addr), addr, sizeof(addr));
                     ipv4.push_back(addr);
+                    break;
                 }
-                break;
+
+                mpl::error("resolve-ip-addr",
+                           "resolve_ip_addresses() -> anomaly: received {} bytes of IPv4 address "
+                           "data while expecting {}!",
+                           ptr->ai_addrlen,
+                           sockaddr_in_size);
             }
+            break;
             case AF_INET6:
             {
                 constexpr auto sockaddr_in6_size = sizeof(std::remove_pointer_t<LPSOCKADDR_IN6>);
@@ -113,11 +132,17 @@ auto resolve_ip_addresses(const std::string& hostname)
                     char addr[INET6_ADDRSTRLEN] = {};
                     inet_ntop(AF_INET6, &(sockaddr_ipv6->sin6_addr), addr, sizeof(addr));
                     ipv6.push_back(addr);
+                    break;
                 }
-                break;
+                mpl::error("resolve-ip-addr",
+                           "resolve_ip_addresses() -> anomaly: received {} bytes of IPv6 address "
+                           "data while expecting {}!",
+                           ptr->ai_addrlen,
+                           sockaddr_in6_size);
             }
+            break;
             default:
-                break;
+                continue;
             }
         }
     }
@@ -173,11 +198,9 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
                                      class VMStatusMonitor& monitor,
                                      const SSHKeyProvider& key_provider,
                                      AvailabilityZone& zone,
-                                     const Path& instance_dir,
-                                     std::optional<std::filesystem::path> state_file_stem)
+                                     const Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir},
       description(desc),
-      state_file_stem{state_file_stem.value_or(desc.image.image_path)},
       primary_network_guid(network_guid),
       monitor(monitor)
 {
@@ -223,19 +246,17 @@ void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* co
 
 std::filesystem::path HCSVirtualMachine::get_guest_state_file_path() const
 {
-    auto path = state_file_stem;
-    return path.replace_extension(".vmgs");
+    return std::filesystem::path{description.image.image_path}.replace_extension(".vmgs");
 }
 std::filesystem::path HCSVirtualMachine::get_runtime_state_file_path() const
 {
-    auto path = state_file_stem;
-    return path.replace_extension(".vmrs");
+    return std::filesystem::path{description.image.image_path}.replace_extension(".vmrs");
 }
 
 std::filesystem::path HCSVirtualMachine::get_saved_state_file_path() const
 {
-    auto path = state_file_stem;
-    return path.replace_extension(".SavedState.vmrs");
+    return std::filesystem::path{description.image.image_path}.replace_extension(
+        ".SavedState.vmrs");
 }
 
 bool HCSVirtualMachine::has_saved_state_file() const
@@ -253,12 +274,10 @@ void HCSVirtualMachine::grant_access_to_scsi_device(const hcs::HcsScsiDevice& de
     if (device.type == hcs::HcsScsiDeviceType::VirtualDisk())
     {
         std::vector<std::filesystem::path> lineage{};
-        if (const auto result = VirtDisk().list_virtual_disk_chain(device.path.get(), lineage);
-            !result)
-            throw GrantVMAccessException{
-                "Could not inspect virtual disk chain for '{}': {}", device.path.get(), result};
-
-        grant_access_to_paths({lineage.begin(), lineage.end()});
+        if (VirtDisk().list_virtual_disk_chain(device.path.get(), lineage))
+        {
+            grant_access_to_paths({lineage.begin(), lineage.end()});
+        }
     }
     else
     {
@@ -284,8 +303,12 @@ void HCSVirtualMachine::grant_access_to_paths(std::list<std::filesystem::path> p
         }
 
         if (const auto r = HCS().grant_vm_access(get_name(), path); !r)
-            throw GrantVMAccessException{
-                "Could not grant access for path '{}': {}", path, r};
+        {
+            mpl::error(get_name(),
+                       "Could not grant access for the path `{}`, error code: {}",
+                       path,
+                       r);
+        }
     }
 }
 
@@ -596,15 +619,19 @@ std::string HCSVirtualMachine::ssh_username()
 
 std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
 {
-    const auto& [ipv4, _] = resolve_ip_addresses(ssh_hostname());
+    const auto& [ipv4, _] = resolve_ip_addresses(ssh_hostname().c_str());
     if (ipv4.empty())
     {
         mpl::error(get_name(), "management_ipv4() > failed to resolve `{}`", ssh_hostname());
         return std::nullopt;
     }
 
-    mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", ipv4.front());
-    return IPAddress{ipv4.front()};
+    const auto result = *ipv4.begin();
+
+    mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", result);
+
+    // Prefer the first one
+    return std::make_optional<IPAddress>(result);
 }
 
 void HCSVirtualMachine::handle_state_update()

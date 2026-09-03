@@ -26,7 +26,6 @@
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
 #include <multipass/virtual_machine.h>
-#include <multipass/virtual_machine_description.h>
 
 #include <fstream>
 #include <limits>
@@ -57,7 +56,7 @@ auto chain_by_filename(std::map<std::string, std::string> parents)
     };
 }
 
-void write_snapshot_json(const fs::path& path, int index, const fs::path& disk_path)
+void write_snapshot_json(const fs::path& path, int index)
 {
     const boost::json::object snapshot{
         {"name", fmt::format("snapshot{}", index)},
@@ -65,7 +64,6 @@ void write_snapshot_json(const fs::path& path, int index, const fs::path& disk_p
         {"parent", 0},
         {"cloud_init_instance_id", "instance-id"},
         {"index", index},
-        {"disk_path", disk_path.string()},
         {"creation_timestamp", "2026-08-19T00:00:00.000Z"},
         {"num_cores", 1},
         {"mem_size", "1073741824"},
@@ -96,7 +94,7 @@ struct HyperVTargetTransaction : public Test
         mpt::make_file_with_content(QString::fromStdString(snap1.string()), "snapshot-one");
 
         snapshot_json = source_dir / "0001.snapshot.json";
-        write_snapshot_json(snapshot_json, 1, snap1);
+        write_snapshot_json(snapshot_json, 1);
         mpt::make_file_with_content(QString::fromStdString((source_dir / "snapshot-head").string()),
                                     "0\n");
         mpt::make_file_with_content(
@@ -117,8 +115,9 @@ struct HyperVTargetTransaction : public Test
                  {.id = "target-switch", .mac_address = "52:54:00:12:34:56", .auto_mode = true}}}};
 
         ON_CALL(*virtdisk.first, list_virtual_disk_chain(_, _, _))
-            .WillByDefault(Invoke(
-                chain_by_filename({{"active.avhdx", "base.vhdx"}, {"snap1.avhdx", "base.vhdx"}})));
+            .WillByDefault(Invoke(chain_by_filename({{"active.avhdx", "base.vhdx"},
+                                                     {"snap1.avhdx", "base.vhdx"},
+                                                     {"1.avhdx", "base.vhdx"}})));
         ON_CALL(*virtdisk.first, reparent_virtual_disk(_, _))
             .WillByDefault(Return(mhv::OperationResult::success()));
     }
@@ -145,7 +144,7 @@ TEST_F(HyperVTargetTransaction, planMapsEveryUniqueDiskTargetLocal)
         EXPECT_EQ(entry.target.parent_path(), target_instance_dir);
     EXPECT_EQ(mapping.active_disk, target_instance_dir / "active.avhdx");
     ASSERT_EQ(mapping.snapshots.size(), 1u);
-    EXPECT_EQ(mapping.snapshots.front().disk_path, target_instance_dir / "snap1.avhdx");
+    EXPECT_EQ(mapping.snapshots.front().disk_path, target_instance_dir / "1.avhdx");
 
     ASSERT_EQ(mapping.parent_links.size(), 2u);
     for (const auto& link : mapping.parent_links)
@@ -177,7 +176,6 @@ TEST_F(HyperVTargetTransaction, stageCopiesReparentsAndRewritesSnapshotsWithoutT
 
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
     const auto mapping = transaction.stage(layout, source_dir);
-    const auto staging = transaction.staging_dir();
 
     // Target-local copies exist and match the source lengths.
     for (const auto& entry : mapping.disks)
@@ -188,17 +186,16 @@ TEST_F(HyperVTargetTransaction, stageCopiesReparentsAndRewritesSnapshotsWithoutT
     }
 
     // Snapshot bookkeeping is copied and rewritten to point at the target copy.
-    const auto copied = MP_FILEOPS.try_read_file(staging / "0001.snapshot.json");
+    const auto copied = MP_FILEOPS.try_read_file(target_instance_dir / "0001.snapshot.json");
     ASSERT_TRUE(copied);
     const auto json = boost::json::parse(*copied);
-    EXPECT_EQ(boost::json::value_to<std::string>(json.at("snapshot").at("disk_path")),
-              (staging / "snap1.avhdx").string());
     EXPECT_EQ(boost::json::value_to<std::vector<mp::NetworkInterface>>(
                   json.at("snapshot").at("extra_interfaces")),
               layout.snapshots.front().extra_interfaces);
-    EXPECT_TRUE(MP_FILEOPS.exists(staging / "snapshot-head"));
-    const auto snapshot_count = MP_FILEOPS.try_read_file(staging / "snapshot-count");
-    const auto cloud_init = MP_FILEOPS.try_read_file(staging / mp::cloud_init_file_name);
+    EXPECT_TRUE(MP_FILEOPS.exists(target_instance_dir / "snapshot-head"));
+    const auto snapshot_count = MP_FILEOPS.try_read_file(target_instance_dir / "snapshot-count");
+    const auto cloud_init = MP_FILEOPS.try_read_file(target_instance_dir /
+                                                     mp::cloud_init_file_name);
     ASSERT_TRUE(snapshot_count);
     ASSERT_TRUE(cloud_init);
     EXPECT_EQ(*snapshot_count, "1\n");
@@ -217,7 +214,7 @@ TEST_F(HyperVTargetTransaction, stagePersistsVersionedManifest)
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
     (void)transaction.stage(layout, source_dir);
 
-    const auto manifest = mhv::MigrationTransactionManifest::load(transaction.staging_dir());
+    const auto manifest = mhv::MigrationTransactionManifest::load(target_instance_dir);
     ASSERT_TRUE(manifest);
     EXPECT_EQ(manifest->version, mhv::MigrationTransactionManifest::current_version);
     EXPECT_FALSE(manifest->transaction_id.empty());
@@ -251,7 +248,7 @@ TEST_F(HyperVTargetTransaction, verifyRejectsNonTargetLocalParent)
                 chain = {disk};
                 if (disk.filename() == "active.avhdx")
                     chain.push_back(source_dir / "base.vhdx");
-                else if (disk.filename() == "snap1.avhdx")
+                else if (disk.filename() == "1.avhdx")
                     chain.push_back(disk.parent_path() / "base.vhdx");
                 return mhv::OperationResult::success();
             }));
@@ -259,66 +256,57 @@ TEST_F(HyperVTargetTransaction, verifyRejectsNonTargetLocalParent)
     EXPECT_THROW(transaction.verify(mapping, layout), std::runtime_error);
 }
 
-TEST_F(HyperVTargetTransaction, commitPromotesAndPersistsOwnership)
+TEST_F(HyperVTargetTransaction, commitMarksTargetPrepared)
 {
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
     const auto mapping = transaction.stage(layout, source_dir);
     transaction.verify(mapping, layout);
 
-    const auto ownership = transaction.commit(mapping, layout, source_dir);
+    transaction.commit(mapping);
 
-    EXPECT_EQ(ownership.active_disk, target_instance_dir / "active.avhdx");
     EXPECT_TRUE(MP_FILEOPS.exists(target_instance_dir / "active.avhdx"));
-    EXPECT_TRUE(MP_FILEOPS.exists(target_instance_dir / "hcs-ownership.json"));
     const auto manifest = mhv::MigrationTransactionManifest::load(target_instance_dir);
     ASSERT_TRUE(manifest);
     EXPECT_EQ(manifest->phase, mhv::MigrationTransactionManifest::prepared_phase_name);
     const auto committed_snapshot = MP_FILEOPS.try_read_file(target_instance_dir /
                                                              "0001.snapshot.json");
     ASSERT_TRUE(committed_snapshot);
-    const auto json = boost::json::parse(*committed_snapshot);
-    EXPECT_EQ(boost::json::value_to<std::string>(json.at("snapshot").at("disk_path")),
-              (target_instance_dir / "snap1.avhdx").string());
-
+    EXPECT_NO_THROW(boost::json::parse(*committed_snapshot));
     // Source remains intact after a successful commit.
     EXPECT_TRUE(MP_FILEOPS.exists(active));
-    EXPECT_FALSE(MP_FILEOPS.exists(source_dir / "hcs-ownership.json"));
+    EXPECT_TRUE(MP_FILEOPS.exists(active));
 }
 
-TEST_F(HyperVTargetTransaction, commitRefusesExistingTargetDirectory)
+TEST_F(HyperVTargetTransaction, stageRefusesExistingTargetDirectory)
 {
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
-    const auto mapping = transaction.stage(layout, source_dir);
     fs::create_directories(target_instance_dir);
 
-    EXPECT_THROW((void)transaction.commit(mapping, layout, source_dir), std::runtime_error);
+    EXPECT_THROW((void)transaction.stage(layout, source_dir), std::runtime_error);
     EXPECT_TRUE(MP_FILEOPS.exists(active));
     EXPECT_FALSE(MP_FILEOPS.exists(target_instance_dir / "active.avhdx"));
 }
 
-TEST_F(HyperVTargetTransaction, rollbackRemovesStagingOrphan)
+TEST_F(HyperVTargetTransaction, rollbackRemovesUncommittedTarget)
 {
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
     (void)transaction.stage(layout, source_dir);
-    const auto staging = transaction.staging_dir();
-    ASSERT_TRUE(MP_FILEOPS.exists(staging));
+    ASSERT_TRUE(MP_FILEOPS.exists(target_instance_dir));
 
     transaction.rollback();
-    EXPECT_FALSE(MP_FILEOPS.exists(staging));
+    EXPECT_FALSE(MP_FILEOPS.exists(target_instance_dir));
     // Source is untouched by rollback.
     EXPECT_TRUE(MP_FILEOPS.exists(active));
 }
 
-TEST_F(HyperVTargetTransaction, destructorRollsBackUncommittedStaging)
+TEST_F(HyperVTargetTransaction, destructorRollsBackUncommittedTarget)
 {
-    fs::path staging;
     {
         mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
         (void)transaction.stage(layout, source_dir);
-        staging = transaction.staging_dir();
-        ASSERT_TRUE(MP_FILEOPS.exists(staging));
+        ASSERT_TRUE(MP_FILEOPS.exists(target_instance_dir));
     }
-    EXPECT_FALSE(MP_FILEOPS.exists(staging));
+    EXPECT_FALSE(MP_FILEOPS.exists(target_instance_dir));
 }
 
 TEST(HyperVTargetTransactionSpace, preflightThrowsWhenTargetVolumeIsFull)
@@ -348,42 +336,4 @@ TEST(HyperVTargetTransactionSpace, preflightPassesWithAmpleSpace)
 
     mhv::TargetMigrationTransaction transaction{"vm", "C:/instances/vm"};
     EXPECT_NO_THROW(transaction.check_space(layout));
-}
-
-TEST(HyperVTrialMacVerification, acceptsMatchingPrimaryAndExtraMacs)
-{
-    mp::VirtualMachineDescription description;
-    description.default_mac_address = "52:54:00:AA:BB:CC";
-    description.extra_interfaces = {
-        {.id = "eth1", .mac_address = "52:54:00:11:22:33", .auto_mode = true},
-        {.id = "eth2", .mac_address = "52:54:00:44:55:66", .auto_mode = true}};
-
-    // Order-independent, case/separator-insensitive.
-    EXPECT_NO_THROW(
-        mhv::verify_trial_macs(description,
-                               {"52-54-00-44-55-66", "52:54:00:aa:bb:cc", "525400112233"}));
-}
-
-TEST(HyperVTrialMacVerification, rejectsMissingPrimary)
-{
-    mp::VirtualMachineDescription description;
-    description.default_mac_address = "52:54:00:AA:BB:CC";
-    EXPECT_THROW(mhv::verify_trial_macs(description, {"52:54:00:11:22:33"}), std::runtime_error);
-}
-
-TEST(HyperVTrialMacVerification, rejectsExtraMacSetMismatch)
-{
-    mp::VirtualMachineDescription description;
-    description.default_mac_address = "52:54:00:AA:BB:CC";
-    description.extra_interfaces = {
-        {.id = "eth1", .mac_address = "52:54:00:11:22:33", .auto_mode = true}};
-
-    // Wrong extra MAC.
-    EXPECT_THROW(mhv::verify_trial_macs(description, {"52:54:00:AA:BB:CC", "52:54:00:99:99:99"}),
-                 std::runtime_error);
-    // Extra count mismatch (unexpected additional MAC).
-    EXPECT_THROW(
-        mhv::verify_trial_macs(description,
-                               {"52:54:00:AA:BB:CC", "52:54:00:11:22:33", "52:54:00:77:77:77"}),
-        std::runtime_error);
 }

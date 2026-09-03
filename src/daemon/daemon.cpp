@@ -2780,7 +2780,6 @@ try
                                                           operative_instances,
                                                           deleted_instances,
                                                           *config->factory,
-                                                          *config->ssh_key_provider,
                                                           *config->az_manager,
                                                           config->data_directory,
                                                           *migration_records};

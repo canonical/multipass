@@ -20,7 +20,6 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
-#include <hyperv_api/hcs_ownership.h>
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
 #include <hyperv_api/hcs_virtual_machine_resources.h>
@@ -102,25 +101,12 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    const auto instance_dir = get_instance_directory(desc.vm_name);
-    const auto ownership = HCSOwnership::load(MP_PLATFORM.qstr_to_path(instance_dir));
-    auto hcs_description = desc;
-    if (ownership)
-    {
-        if (!MP_FILEOPS.exists(ownership->active_disk))
-            throw std::runtime_error{fmt::format("HCS ownership active disk '{}' does not exist",
-                                                 ownership->active_disk)};
-        hcs_description.image.image_path = ownership->active_disk;
-    }
-
     return std::make_unique<HCSVirtualMachine>(az_network_guids.at(desc.zone),
-                                               hcs_description,
+                                               desc,
                                                monitor,
                                                key_provider,
                                                az_manager.get_zone(desc.zone),
-                                               instance_dir,
-                                               ownership ? std::optional{ownership->state_file_stem}
-                                                         : std::nullopt);
+                                               get_instance_directory(desc.vm_name));
 }
 
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -191,12 +177,6 @@ void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_im
                                    instance_image.image_path,
                                    resize_result};
     }
-
-    const HCSOwnership ownership{
-        .active_disk = instance_image.image_path,
-        .state_file_stem = instance_image.image_path,
-    };
-    ownership.persist(MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)));
 }
 
 std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& intf)
@@ -261,12 +241,6 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
     {
         throw std::runtime_error{"VHDX clone failed."};
     }
-
-    const HCSOwnership ownership{
-        .active_disk = desc.image.image_path,
-        .state_file_stem = desc.image.image_path,
-    };
-    ownership.persist(MP_PLATFORM.qstr_to_path(get_instance_directory(desc.vm_name)));
 
     return create_virtual_machine(desc, key_provider, monitor);
 }

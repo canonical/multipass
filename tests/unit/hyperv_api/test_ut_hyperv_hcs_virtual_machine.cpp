@@ -268,29 +268,6 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, create_failure_removes_created_endpoin
     EXPECT_THROW(construct_vm(), mhv::CreateComputeSystemException);
 }
 
-TEST_F(HyperVHCSVirtualMachine_UnitTests, grant_failure_rolls_back_system_and_endpoint)
-{
-    EXPECT_CALL(mock_hcs, open_compute_system(_, _))
-        .WillOnce(Return(hcs_op_result_t{HCS_E_SYSTEM_NOT_FOUND, L""}));
-    EXPECT_CALL(mock_hcn, delete_endpoint(EndsWith("aabbccddeeff")))
-        .WillOnce(Return(hcs_op_result_t{E_FAIL, L"not found"}))
-        .WillOnce(Return(hcs_op_result_t{0, L""}));
-    EXPECT_CALL(mock_hcn, create_endpoint(_)).WillOnce(Return(hcs_op_result_t{0, L""}));
-    EXPECT_CALL(mock_hcs, create_compute_system(_, _))
-        .WillOnce(DoAll(SetArgReferee<1>(mock_handle), Return(hcs_op_result_t{0, L""})));
-    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(Eq(desc.image.image_path), _, _))
-        .WillOnce(DoAll(SetArgReferee<1>(std::vector<std::filesystem::path>{desc.image.image_path}),
-                        Return(hcs_op_result_t{0, L""})));
-    EXPECT_CALL(mock_hcs, grant_vm_access(Eq(dummy_vm_name), Eq(desc.image.image_path)))
-        .WillOnce(Return(hcs_op_result_t{E_FAIL, L"grant failed"}));
-    EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
-        .WillOnce(Return(hcs_op_result_t{0, L""}));
-    EXPECT_CALL(mock_hcs, set_compute_system_callback(Eq(mock_handle), _, _))
-        .WillOnce(Return(hcs_op_result_t{0, L""}));
-
-    EXPECT_THROW(construct_vm(), mhv::GrantVMAccessException);
-}
-
 // ---------------------------------------------------------
 
 TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_start_success)

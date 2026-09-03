@@ -78,7 +78,6 @@ public:
 
 protected:
     const std::string& get_id() const noexcept;
-    const std::optional<std::filesystem::path>& get_explicit_disk_path() const noexcept;
 
     virtual void capture_impl() = 0;
     virtual void erase_impl() = 0;
@@ -254,10 +253,4 @@ inline void multipass::BaseSnapshot::apply()
 inline const std::string& multipass::BaseSnapshot::get_id() const noexcept
 {
     return id;
-}
-
-inline const std::optional<std::filesystem::path>&
-multipass::BaseSnapshot::get_explicit_disk_path() const noexcept
-{
-    return desc.disk_path;
 }
