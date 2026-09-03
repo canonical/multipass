@@ -13,13 +13,13 @@ import 'package:multipass_gui/vm_table/bulk_actions.dart';
 import 'package:multipass_gui/vm_table/zones_dropdown_button.dart';
 
 class RecordingGrpcClient extends GrpcClient {
-  RecordingGrpcClient()
-      : super(RpcClient(ClientChannel('localhost', port: 1)));
+  RecordingGrpcClient() : super(RpcClient(ClientChannel('localhost', port: 1)));
 
   final calls = <({List<String> zones, bool available})>[];
 
   @override
-  Future<ZonesStateReply?> zonesState(List<String> zones, bool available) async {
+  Future<ZonesStateReply?> zonesState(
+      List<String> zones, bool available) async {
     calls.add((zones: List<String>.from(zones), available: available));
     return null;
   }
@@ -77,7 +77,8 @@ void main() {
 
       expect(
         find.byWidgetPredicate(
-          (widget) => widget is SizedBox && widget.width == 0 && widget.height == 0,
+          (widget) =>
+              widget is SizedBox && widget.width == 0 && widget.height == 0,
         ),
         findsOneWidget,
       );
@@ -185,7 +186,10 @@ void main() {
         vm(name: 'vm-a-stopped', zoneName: 'zone-a', status: Status.STOPPED),
         vm(name: 'vm-b-running-1', zoneName: 'zone-b', status: Status.RUNNING),
         vm(name: 'vm-b-running-2', zoneName: 'zone-b', status: Status.RUNNING),
-        vm(name: 'vm-b-suspended', zoneName: 'zone-b', status: Status.SUSPENDED),
+        vm(
+            name: 'vm-b-suspended',
+            zoneName: 'zone-b',
+            status: Status.SUSPENDED),
         vm(name: 'vm-c-stopped', zoneName: 'zone-c', status: Status.STOPPED),
       ];
 
@@ -211,13 +215,18 @@ void main() {
       expect(find.text('zone-a'), findsOneWidget);
       expect(find.text('zone-b'), findsOneWidget);
       expect(find.text('zone-c'), findsOneWidget);
-      expect(find.text(l10n.vmTableZonesRunningInstanceCount(1)), findsOneWidget);
-      expect(find.text(l10n.vmTableZonesRunningInstanceCount(2)), findsOneWidget);
-      expect(find.text(l10n.vmTableZonesRunningInstanceCount(0)), findsOneWidget);
+      expect(
+          find.text(l10n.vmTableZonesRunningInstanceCount(1)), findsOneWidget);
+      expect(
+          find.text(l10n.vmTableZonesRunningInstanceCount(2)), findsOneWidget);
+      expect(
+          find.text(l10n.vmTableZonesRunningInstanceCount(0)), findsOneWidget);
 
-      final switches = tester.widgetList<CupertinoSwitch>(
-        find.byType(CupertinoSwitch),
-      ).toList();
+      final switches = tester
+          .widgetList<CupertinoSwitch>(
+            find.byType(CupertinoSwitch),
+          )
+          .toList();
       expect(switches, hasLength(3));
       expect(switches.map((s) => s.value).toList(), [true, false, true]);
       expect(switches.first.onChanged, isNotNull);
