@@ -1287,6 +1287,13 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) //
         "When you are ready to have your instances migrated, please stop them "
         "(multipass stop --all) and switch to the new {0} driver "
         "(multipass set local.driver={0}).";
+    static constexpr auto* recommended_driver =
+#ifdef MULTIPASS_PLATFORM_APPLE
+        "applevz"
+#else
+        "hyperv_api"
+#endif
+        ;
 
     auto compose_warning = [](const auto& current, const auto& recommended, bool migrationful) {
         const auto deprecation_header = fmt::format(deprecation_warning_template, current);
@@ -1300,7 +1307,7 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) //
         current_driver == "virtualbox" || current_driver == "hyperv")
     {
         const auto deprecation_warning = compose_warning(current_driver,
-                                                         MP_PLATFORM.default_driver(),
+                                                         recommended_driver,
                                                          current_driver == "hyperv");
         W reply{};
         reply.set_log_line(deprecation_warning);
