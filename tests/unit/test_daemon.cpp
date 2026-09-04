@@ -1752,6 +1752,32 @@ TEST_F(Daemon, releasesMacsOfPurgedInstancesButKeepsTheRest)
                   fmt::format("name=eth0,mac={}", mac3)}); // mac is free after purge, so accepted
 }
 
+TEST_F(Daemon, deletePurgesFoundInstancesEvenWhenOthersAreMissing)
+{
+    use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"launch", "--name", "vm1"});
+
+    mp::DeleteRequest request;
+    request.set_purge(true);
+    request.add_instance_snapshot_pairs()->set_instance_name("vm1");
+    request.add_instance_snapshot_pairs()->set_instance_name("missing-vm");
+
+    mp::DeleteReply reply;
+    StrictMock<mpt::MockServerReaderWriter<mp::DeleteReply, mp::DeleteRequest>> server;
+    EXPECT_CALL(server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&reply), Return(true)));
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::delet, request, server);
+
+    // the whole request is still reported as failed, since one of the named instances is missing
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::NOT_FOUND);
+    EXPECT_THAT(status.error_message(), HasSubstr("instance \"missing-vm\" does not exist"));
+
+    // but the instance that does exist is not held hostage by the one that doesn't
+    EXPECT_THAT(reply.purged_instances(), Contains(Eq("vm1")));
+}
+
 TEST_F(Daemon, deleteRemovesUnavailableInstances)
 {
     auto mock_factory = use_a_mock_vm_factory();
