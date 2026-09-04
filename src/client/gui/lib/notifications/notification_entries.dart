@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart' hide State;
 import 'package:grpc/grpc.dart' hide ConnectionState;
 
+import '../colors.dart';
 import '../extensions.dart';
 import '../grpc_client.dart';
 import '../l10n/app_localizations.dart';
@@ -151,8 +152,8 @@ class WarningNotification extends SimpleNotification {
   WarningNotification({super.key, required String text})
       : super(
           child: Text(text),
-          barColor: const Color(0xffCC7900), // TODO@ricab extract
-          icon: const Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
+          barColor: warningAmber,
+          icon: const Icon(Icons.warning_rounded, color: warningAmber),
         );
 }
 
