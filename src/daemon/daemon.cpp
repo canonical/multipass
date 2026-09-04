@@ -1276,18 +1276,31 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 template <typename W, typename R>
 void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) // TODO remove
 {
-    static constexpr auto deprecation_warning_template =
-        "*** Warning! The {0} driver is deprecated and will be removed in an upcoming "
-        "release. ***\n\n"
-        "No automatic migration path is planned. We encourage switching to the new {1} "
-        "driver as soon as possible (multipass set local.driver={1})\n\n";
+    static constexpr auto* deprecation_warning_template =
+        "*** Warning! The {} driver is deprecated and will be removed in an upcoming "
+        "release. ***\n\n";
+    static constexpr auto* migrationless_template =
+        "No automatic migration path is planned. We encourage switching to the new {0} "
+        "driver as soon as possible (multipass set local.driver={0})\n\n";
+    static constexpr auto* migrationful_template =
+        "When you are ready to have your instances migrated, please stop them "
+        "(multipass stop --all) and switch to the {0} driver "
+        "(multipass set local.driver={0}).\n\n";
+
+    auto compose_warning = [](const auto& current, const auto& recommended, bool migrationful) {
+        const auto deprecation_header = fmt::format(deprecation_warning_template, current);
+        const auto* advice_template = migrationful ? migrationful_template : migrationless_template;
+        const auto deprecation_advice = fmt::format(fmt::runtime(advice_template), recommended);
+
+        return fmt::format("{}{}", deprecation_header, deprecation_advice);
+    };
 
     if (const auto current_driver = MP_SETTINGS.get(mp::driver_key);
         current_driver == "virtualbox" || current_driver == "hyperv")
     {
-        const auto deprecation_warning = fmt::format(deprecation_warning_template,
-                                                     current_driver,
-                                                     MP_PLATFORM.default_driver());
+        const auto deprecation_warning = compose_warning(current_driver,
+                                                         MP_PLATFORM.default_driver(),
+                                                         current_driver == "hyperv");
         W reply{};
         reply.set_log_line(deprecation_warning);
         server.Write(reply);
