@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: Documentation for Multipass, a tool to create cloud-style Ubuntu VMs on Linux, macOS and Windows.
+    description: Documentation for Multipass, a tool to create cloud-style virtual machines running Ubuntu on Linux, macOS and Windows.
 ---
 
 (index)=

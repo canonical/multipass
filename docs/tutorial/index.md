@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Learn how to use Multipass: install it, create and manage an Ubuntu VM instance, mount a host folder, and share data between the host and the instance."
+    description: "Learn how to use Multipass: installation, creation and management of virtual machines, mounting a host folder, and sharing data between the host and the instance."
 ---
 
 (tutorial-index)=

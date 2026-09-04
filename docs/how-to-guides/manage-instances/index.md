@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "How-to guides for managing VMs in Multipass including creating, modifying, using, sharing data and configuring its networking."
+    description: "How-to guides for managing virtual machines in Multipass including creating, modifying, using, sharing data and configuring its networking."
 ---
 
 (how-to-guides-manage-instances-index)=
