@@ -1313,7 +1313,7 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) //
                                                          recommended_driver,
                                                          current_driver == "hyperv");
         W reply{};
-        reply.set_log_line(deprecation_warning);
+        reply.set_log_line(std::move(deprecation_warning));
         server.Write(reply);
     }
 }
