@@ -746,6 +746,13 @@ mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const s
     return std::make_unique<QemuMountHandler>(this, &key_provider, target, mount);
 }
 
+void mp::QemuVirtualMachine::persist_mount_metdata()
+{
+    auto metadata = monitor->retrieve_metadata_for(vm_name);
+    metadata[mount_data_key] = mount_args_to_json(mount_args);
+    monitor->update_metadata_for(vm_name, metadata);
+}
+
 void mp::QemuVirtualMachine::remove_snapshots_from_backend() const
 {
     const QStringList snapshot_tag_list =
