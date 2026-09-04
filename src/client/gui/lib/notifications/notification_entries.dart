@@ -147,6 +147,15 @@ class ErrorNotification extends SimpleNotification {
         );
 }
 
+class WarningNotification extends SimpleNotification {
+  WarningNotification({super.key, required String text})
+      : super(
+          child: Text(text),
+          barColor: const Color(0xffCC7900), // TODO@ricab extract
+          icon: const Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
+        );
+}
+
 class SuccessNotification extends TimeoutNotification {
   const SuccessNotification({super.key, required super.child})
       : super(
