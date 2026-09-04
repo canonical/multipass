@@ -2411,6 +2411,7 @@ try
             try
             {
                 mount->deactivate();
+                mount->remove_mount();
                 vm_spec_mounts.erase(target);
                 vm_mounts.erase(expiring_it);
             }
