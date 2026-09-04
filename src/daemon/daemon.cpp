@@ -1281,8 +1281,9 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) //
         "release. ***";
     static constexpr auto* migrationless_template =
         "We recommend switching to the new {0} driver as soon as possible "
-        "(multipass set local.driver={0}). You will need to manually recreate any instances you "
-        "want to keep.";
+        "(multipass set local.driver={0}). Your instances will not be destroyed but they will be "
+        "unreachable from the new driver. You can switch back to the old driver for now, but you "
+        "will need to manually recreate any instances you want to keep in the next release.";
     static constexpr auto* migrationful_template =
         "When you are ready to have your instances migrated, please stop them "
         "(multipass stop --all) and switch to the new {0} driver "
