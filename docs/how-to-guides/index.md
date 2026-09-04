@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "How-to guides for Multipass: install it, create and manage virtual machine instances, customize drivers and networking, and troubleshoot launch and start issues."
+---
+
 (how-to-guides-index)=
 # How-to guides
 
