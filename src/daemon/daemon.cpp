@@ -1273,8 +1273,9 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
     populate_snapshot_fundamentals(snapshot, fundamentals);
 }
 
+// TODO@deprecations remove
 template <typename W, typename R>
-void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) // TODO remove
+void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
 {
     static constexpr auto* deprecation_warning_template =
         "*** Warning! The {} driver is deprecated and will be removed in an upcoming "
@@ -1587,7 +1588,7 @@ void mp::Daemon::launch(const LaunchRequest* request,
                         DaemonRpcContext* context)
 try
 {
-    warn_driver_deprecation(*server); // TODO remove
+    warn_driver_deprecation(*server); // TODO@deprecations remove
 
     return create_vm(request, server, context, /*start=*/true);
 }
@@ -1637,7 +1638,7 @@ void mp::Daemon::find(const FindRequest* request,
                       DaemonRpcContext* context)
 try
 {
-    warn_driver_deprecation(*server); // TODO remove
+    warn_driver_deprecation(*server); // TODO@deprecations remove
 
     FindReply response;
 
@@ -1738,7 +1739,7 @@ void mp::Daemon::info(const InfoRequest* request,
                       DaemonRpcContext* context)
 try
 {
-    warn_driver_deprecation(*server); // TODO remove
+    warn_driver_deprecation(*server); // TODO@deprecations remove
 
     InfoReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
@@ -1833,7 +1834,7 @@ void mp::Daemon::list(const ListRequest* request,
                       DaemonRpcContext* context)
 try
 {
-    warn_driver_deprecation(*server); // TODO remove
+    warn_driver_deprecation(*server); // TODO@deprecations remove
 
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
@@ -2069,7 +2070,7 @@ void mp::Daemon::recover(const RecoverRequest* request,
                          DaemonRpcContext* context)
 try
 {
-    warn_driver_deprecation(*server); // TODO remove
+    warn_driver_deprecation(*server); // TODO@deprecations remove
 
     auto recover_reaction = require_existing_instances_reaction;
     recover_reaction.operative_reaction.message_template =
@@ -2109,7 +2110,7 @@ void mp::Daemon::ssh_info(const SSHInfoRequest* request,
                           DaemonRpcContext* context)
 try
 {
-    warn_driver_deprecation(*server); // TODO remove
+    warn_driver_deprecation(*server); // TODO@deprecations remove
 
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
@@ -2141,7 +2142,7 @@ void mp::Daemon::start(const StartRequest* request,
                        DaemonRpcContext* context)
 try
 {
-    warn_driver_deprecation(*server); // TODO remove
+    warn_driver_deprecation(*server); // TODO@deprecations remove
 
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
@@ -2278,7 +2279,7 @@ void mp::Daemon::suspend(const SuspendRequest* request,
                          DaemonRpcContext* context)
 try
 {
-    warn_driver_deprecation(*server); // TODO remove
+    warn_driver_deprecation(*server); // TODO@deprecations remove
 
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
@@ -2825,7 +2826,7 @@ void mp::Daemon::clone(const CloneRequest* request,
                        DaemonRpcContext* context)
 try
 {
-    warn_driver_deprecation(*server); // TODO remove
+    warn_driver_deprecation(*server); // TODO@deprecations remove
 
     const auto& source_name = request->source_name();
     const auto [src_instance_trail, src_vm_status] =
