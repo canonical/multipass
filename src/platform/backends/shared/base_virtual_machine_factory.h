@@ -78,6 +78,12 @@ public:
         throw NotImplementedOnThisBackendException("networks");
     };
 
+    // TODO@backends: remove once deprecated backends are removed
+    bool supports_availability_zones() const override
+    {
+        return true;
+    }
+
 protected:
     static const Path instances_subdir;
     AvailabilityZoneManager& az_manager;

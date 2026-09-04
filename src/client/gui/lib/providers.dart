@@ -87,6 +87,9 @@ final pollingProvider = StreamProvider<({List<VmInfo> info, List<Zone> zones})>(
 );
 
 final daemonAvailableProvider = Provider((ref) {
+  if (!ref.watch(ffiAvailableProvider)) {
+    return false;
+  }
   final error = ref.watch(pollingProvider).error;
   if (error == null) return true;
   if (error case GrpcError grpcError) {
@@ -179,6 +182,16 @@ final zonesProvider = Provider<BuiltList<Zone>>((ref) {
       );
 });
 
+// Whether the active backend implements Availability Zones. Backends that don't
+// (VirtualBox, old Hyper-V) return no zones, so an empty list means unsupported.
+// TODO@backends: remove once deprecated backends are removed
+final azSupportedProvider = Provider<bool>((ref) {
+  return ref.watch(pollingProvider).maybeWhen(
+        data: (data) => data.zones.isNotEmpty,
+        orElse: () => true,
+      );
+});
+
 class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
   @override
   BuiltList<DetailedInfoItem> build() {
@@ -195,7 +208,8 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
         cpuCount: request.numCores.toString(),
         diskTotal: request.diskSpace,
         memoryTotal: request.memSize,
-        zone: Zone(name: request.zone),
+        zone:
+            Zone(name: request.zone, supported: ref.read(azSupportedProvider)),
         instanceInfo: InstanceDetails(
           currentRelease: request.image,
         ),
