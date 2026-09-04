@@ -80,6 +80,19 @@ class _AppState extends ConsumerState<App> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(daemonSettingProvider(driverKey), (_, driver) {
+      // TODO@deprecations remove
+      if (!driver.isLoading &&
+          ref.read(daemonAvailableProvider) &&
+          (driver.value == 'virtualbox' || driver.value == 'hyperv')) {
+        ref.read(notificationsProvider.notifier).add(
+              WarningNotification(
+                text: 'Your current driver is deprecated. Learn more.',
+              ),
+            );
+      }
+    });
+
     final currentKey = ref.watch(sidebarKeyProvider);
     final sidebarExpanded = ref.watch(sidebarExpandedProvider);
     final sidebarPushContent = ref.watch(sidebarPushContentProvider);

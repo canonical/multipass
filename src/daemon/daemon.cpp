@@ -1272,6 +1272,53 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 
     populate_snapshot_fundamentals(snapshot, fundamentals);
 }
+
+// TODO@deprecations remove
+template <typename W, typename R>
+void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
+{
+    static constexpr auto* deprecation_warning_template =
+        "*** Warning! The {} driver is deprecated and will be removed in an upcoming "
+        "release. ***";
+    static constexpr auto* migrationless_template =
+        "We recommend switching to the new {0} driver as soon as possible "
+        "(multipass set local.driver={0}). Your instances will not be destroyed but they will be "
+        "unreachable from the new driver. You can switch back to the old driver for now, but you "
+        "will need to manually recreate any instances you want to keep in the next release.";
+    static constexpr auto* migrationful_template =
+        "When you are ready to have your instances migrated, please stop them "
+        "(multipass stop --all) and switch to the new {0} driver "
+        "(multipass set local.driver={0}).";
+    static constexpr auto* recommended_driver =
+#ifdef MULTIPASS_PLATFORM_APPLE
+        "applevz"
+#else
+        "hyperv_api"
+#endif
+        ;
+
+    // We know the driver doesn't change throughout a daemon run, so cache it and avoid the whole
+    // settings call tree (which would run on every GUI poll)
+    static const auto current_driver = MP_SETTINGS.get(mp::driver_key);
+    auto compose_warning = [](const auto& current, const auto& recommended, bool migrationful) {
+        const auto deprecation_header = fmt::format(deprecation_warning_template, current);
+        const auto* advice_template = migrationful ? migrationful_template : migrationless_template;
+        const auto deprecation_advice = fmt::format(fmt::runtime(advice_template), recommended);
+
+        return fmt::format("{}\n\n{}\n\n", deprecation_header, deprecation_advice);
+    };
+
+    if (current_driver == "virtualbox" || current_driver == "hyperv")
+    {
+        const auto deprecation_warning = compose_warning(current_driver,
+                                                         recommended_driver,
+                                                         current_driver == "hyperv");
+        W reply{};
+        reply.set_log_line(std::move(deprecation_warning));
+        server.Write(reply);
+    }
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1541,6 +1588,8 @@ void mp::Daemon::launch(const LaunchRequest* request,
                         DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO@deprecations remove
+
     return create_vm(request, server, context, /*start=*/true);
 }
 catch (const mp::StartException& e)
@@ -1589,6 +1638,8 @@ void mp::Daemon::find(const FindRequest* request,
                       DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO@deprecations remove
+
     FindReply response;
 
     if (!request->search_string().empty())
@@ -1688,6 +1739,8 @@ void mp::Daemon::info(const InfoRequest* request,
                       DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO@deprecations remove
+
     InfoReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
     InstanceSnapshotsMap instance_snapshots_map;
@@ -1781,6 +1834,8 @@ void mp::Daemon::list(const ListRequest* request,
                       DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO@deprecations remove
+
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
@@ -2011,10 +2066,12 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::recover(const RecoverRequest* request,
-                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>*,
+                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>* server,
                          DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO@deprecations remove
+
     auto recover_reaction = require_existing_instances_reaction;
     recover_reaction.operative_reaction.message_template =
         "instance \"{}\" does not need to be recovered";
@@ -2053,6 +2110,8 @@ void mp::Daemon::ssh_info(const SSHInfoRequest* request,
                           DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO@deprecations remove
+
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
@@ -2083,6 +2142,8 @@ void mp::Daemon::start(const StartRequest* request,
                        DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO@deprecations remove
+
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
@@ -2214,10 +2275,12 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::suspend(const SuspendRequest* request,
-                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>*,
+                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>* server,
                          DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO@deprecations remove
+
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
@@ -2763,6 +2826,8 @@ void mp::Daemon::clone(const CloneRequest* request,
                        DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO@deprecations remove
+
     const auto& source_name = request->source_name();
     const auto [src_instance_trail, src_vm_status] =
         find_instance_and_react(operative_instances,
