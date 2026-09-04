@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: Reference for Multipass, covering the CLI, GUI client, settings and logging levels.
+    description: Reference for Multipass, covering the clients for the Command Line Interface (CLI), the Graphical User Interface (GUI), along with settings and logging levels.
 ---
 
 (reference-index)=
