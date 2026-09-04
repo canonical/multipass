@@ -34,6 +34,7 @@ public:
 
     void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
     void deactivate_impl(bool force) override;
+    void remove_mount() override;
     bool is_active() override;
 
     static std::string make_tag(const std::string& seed);

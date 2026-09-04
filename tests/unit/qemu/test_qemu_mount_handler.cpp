@@ -50,6 +50,7 @@ struct MockQemuVirtualMachine : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
     }
 
     MOCK_METHOD(mp::QemuVirtualMachine::MountArgs&, modifiable_mount_args, (), (override));
+    MOCK_METHOD(void, persist_mount_metadata, (), (override));
 };
 
 struct CommandOutput

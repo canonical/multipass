@@ -156,7 +156,12 @@ catch (const std::exception& e)
 QemuMountHandler::~QemuMountHandler()
 {
     deactivate(/*force=*/true);
+}
+
+void QemuMountHandler::remove_mount()
+{
     vm_mount_args.erase(tag);
+    static_cast<QemuVirtualMachine*>(vm)->persist_mount_metadata();
 }
 
 std::string QemuMountHandler::make_tag(const std::string& seed)

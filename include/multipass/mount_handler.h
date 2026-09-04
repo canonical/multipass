@@ -68,6 +68,10 @@ public:
         active = false;
     }
 
+    virtual void remove_mount()
+    {
+    }
+
     const VMMount& get_mount_spec() const noexcept
     {
         return mount_spec;
