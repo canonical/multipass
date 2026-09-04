@@ -188,26 +188,31 @@ TEST_F(QemuMountHandlerTest, mountFailsOnMultipleIdMappings)
 
 TEST_F(QemuMountHandlerTest, mountHandlesMountArgs)
 {
-    {
-        mp::MountHandler::UPtr mount_handler;
-        EXPECT_NO_THROW(
-            mount_handler =
-                std::make_unique<mp::QemuMountHandler>(&vm, &key_provider, default_target, mount));
-        EXPECT_EQ(mount_args.size(), 1);
-        const auto uid_arg = QString("uid_map=%1:%2,")
-                                 .arg(uid_mappings.front().first)
-                                 .arg(uid_mappings.front().second);
-        const auto gid_arg = QString{"gid_map=%1:%2,"}
-                                 .arg(gid_mappings.front().first)
-                                 .arg(gid_mappings.front().second);
-        EXPECT_EQ(mount_args.begin()->second.second.join(' ').toStdString(),
-                  fmt::format("-virtfs local,security_model=passthrough,{}{}path={},mount_tag={}",
-                              uid_arg,
-                              gid_arg,
-                              mount.get_source_path(),
-                              tag_from_target(default_target)));
-    }
+    mp::MountHandler::UPtr mount_handler;
+    EXPECT_NO_THROW(mount_handler = std::make_unique<mp::QemuMountHandler>(&vm,
+                                                                           &key_provider,
+                                                                           default_target,
+                                                                           mount));
+    EXPECT_EQ(mount_args.size(), 1);
+    const auto uid_arg =
+        QString("uid_map=%1:%2,").arg(uid_mappings.front().first).arg(uid_mappings.front().second);
+    const auto gid_arg =
+        QString{"gid_map=%1:%2,"}.arg(gid_mappings.front().first).arg(gid_mappings.front().second);
+    EXPECT_EQ(mount_args.begin()->second.second.join(' ').toStdString(),
+              fmt::format("-virtfs local,security_model=passthrough,{}{}path={},mount_tag={}",
+                          uid_arg,
+                          gid_arg,
+                          mount.get_source_path(),
+                          tag_from_target(default_target)));
+}
 
+TEST_F(QemuMountHandlerTest, removeMountErasesTagAndPersistsMetadata)
+{
+    mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
+    ASSERT_EQ(mount_args.size(), 1);
+
+    EXPECT_CALL(vm, persist_mount_metdata());
+    handler.remove_mount();
     EXPECT_EQ(mount_args.size(), 0);
 }
 
