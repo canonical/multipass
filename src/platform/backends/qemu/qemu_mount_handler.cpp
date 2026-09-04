@@ -113,6 +113,10 @@ catch (const std::exception& e)
 
 void QemuMountHandler::activate_impl(ServerVariant, std::chrono::milliseconds)
 {
+    if (!MP_FILEOPS.exists(source))
+        throw std::runtime_error(
+            fmt::format("Mount source path \"{}\" no longer exists on the host", source));
+
     auto session = vm->new_ssh_session();
 
     // Split the path in existing and missing parts
