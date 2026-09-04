@@ -64,12 +64,12 @@ namespace
 {
 constexpr auto logical_block_size = 2048u;
 
-constexpr std::uint16_t operator"" _u16(unsigned long long v)
+constexpr std::uint16_t operator""_u16(unsigned long long v)
 {
     return static_cast<std::uint16_t>(v);
 }
 
-constexpr std::uint8_t operator"" _u8(unsigned long long v)
+constexpr std::uint8_t operator""_u8(unsigned long long v)
 {
     return static_cast<std::uint8_t>(v);
 }

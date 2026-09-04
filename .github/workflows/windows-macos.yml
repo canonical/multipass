@@ -37,8 +37,8 @@ jobs:
 
           // Windows targets
           matrix.include.push({
-              "name": "Windows Server 2025",
-              "runs-on": "windows-2025"
+              "name": "Windows Server 2022",
+              "runs-on": "windows-2022"
           });
 
           // macOS targets
@@ -72,7 +72,7 @@ jobs:
       mac-arm-package-artifact-name: ${{ steps.publish-data.outputs.macos-latest-package-artifact-name }}
       mac-x86-package-file-name: ${{ steps.publish-data.outputs.macos-15-intel-package-file-name }}
       mac-arm-package-file-name: ${{ steps.publish-data.outputs.macos-latest-package-file-name }}
-      windows-pkg-url: ${{ steps.publish-data.outputs.windows-2025-s3-url }}
+      windows-pkg-url: ${{ steps.publish-data.outputs.windows-2022-s3-url }}
 
     name: Build and Test (${{ matrix.name }})
     runs-on: ${{ matrix.runs-on }}
@@ -87,15 +87,6 @@ jobs:
       with:
         fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
-
-    # Use specific xcode version in macos-15. The reason is that protobuf 29 is not
-    # happy with the AppleClang-17, which is shipped with Xcode >= 16.3.
-    #
-    # https://github.com/protocolbuffers/protobuf/issues/21447
-    - uses: maxim-lobanov/setup-xcode@v1
-      if: ${{ contains(matrix.runs-on, 'macos-latest') }}
-      with:
-        xcode-version: '16.2'
 
     - name: Enable symlinks
       if: ${{ runner.os == 'Windows' }}
