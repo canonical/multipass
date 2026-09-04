@@ -100,6 +100,8 @@ TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
     EXPECT_CALL(*mock_mount_handler2, is_active).WillOnce(Return(true));
     EXPECT_CALL(*mock_mount_handler, deactivate_impl(false));
     EXPECT_CALL(*mock_mount_handler2, deactivate_impl(false));
+    EXPECT_CALL(*mock_mount_handler, remove_mount());
+    EXPECT_CALL(*mock_mount_handler2, remove_mount());
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
@@ -145,6 +147,9 @@ TEST_F(TestDaemonUmount, umountWithTargetOnlyStopsItsHandlers)
     EXPECT_CALL(*mock_mount_handler, deactivate_impl(false));
     EXPECT_CALL(*mock_mount_handler2, deactivate_impl(false)).Times(0);
     EXPECT_CALL(*mock_mount_handler3, deactivate_impl(false));
+    EXPECT_CALL(*mock_mount_handler, remove_mount());
+    EXPECT_CALL(*mock_mount_handler2, remove_mount()).Times(0);
+    EXPECT_CALL(*mock_mount_handler3, remove_mount());
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
@@ -220,6 +225,7 @@ TEST_F(TestDaemonUmount, stoppingMountFails)
     EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));
     EXPECT_CALL(*mock_mount_handler, deactivate_impl(false))
         .WillOnce(Throw(std::runtime_error{error}));
+    EXPECT_CALL(*mock_mount_handler, remove_mount()).Times(0);
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
