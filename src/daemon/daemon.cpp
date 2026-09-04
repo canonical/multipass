@@ -1296,6 +1296,9 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) //
 #endif
         ;
 
+    // We know the driver doesn't change throughout a daemon run, so cache it and avoid the whole
+    // settings call tree (which would run on every GUI poll)
+    static const auto current_driver = MP_SETTINGS.get(mp::driver_key);
     auto compose_warning = [](const auto& current, const auto& recommended, bool migrationful) {
         const auto deprecation_header = fmt::format(deprecation_warning_template, current);
         const auto* advice_template = migrationful ? migrationful_template : migrationless_template;
@@ -1304,8 +1307,7 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) //
         return fmt::format("{}\n\n{}\n\n", deprecation_header, deprecation_advice);
     };
 
-    if (const auto current_driver = MP_SETTINGS.get(mp::driver_key);
-        current_driver == "virtualbox" || current_driver == "hyperv")
+    if (current_driver == "virtualbox" || current_driver == "hyperv")
     {
         const auto deprecation_warning = compose_warning(current_driver,
                                                          recommended_driver,
