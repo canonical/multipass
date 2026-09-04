@@ -1272,6 +1272,28 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 
     populate_snapshot_fundamentals(snapshot, fundamentals);
 }
+
+template <typename W, typename R>
+void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) // TODO remove
+{
+    static constexpr auto deprecation_warning_template =
+        "*** Warning! The {0} driver is deprecated and will be removed in an upcoming "
+        "release. ***\n\n"
+        "No automatic migration path is planned. We encourage switching to the new {1} "
+        "driver as soon as possible (multipass set local.driver={1})\n\n";
+
+    if (const auto current_driver = MP_SETTINGS.get(mp::driver_key);
+        current_driver == "virtualbox" || current_driver == "hyperv")
+    {
+        const auto deprecation_warning = fmt::format(deprecation_warning_template,
+                                                     current_driver,
+                                                     MP_PLATFORM.default_driver());
+        W reply{};
+        reply.set_log_line(deprecation_warning);
+        server.Write(reply);
+    }
+}
+
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1541,6 +1563,8 @@ void mp::Daemon::launch(const LaunchRequest* request,
                         DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO remove
+
     return create_vm(request, server, context, /*start=*/true);
 }
 catch (const mp::StartException& e)
@@ -1589,6 +1613,8 @@ void mp::Daemon::find(const FindRequest* request,
                       DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO remove
+
     FindReply response;
 
     if (!request->search_string().empty())
@@ -1688,6 +1714,8 @@ void mp::Daemon::info(const InfoRequest* request,
                       DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO remove
+
     InfoReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
     InstanceSnapshotsMap instance_snapshots_map;
@@ -1781,6 +1809,8 @@ void mp::Daemon::list(const ListRequest* request,
                       DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO remove
+
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
@@ -2011,10 +2041,12 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::recover(const RecoverRequest* request,
-                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>*,
+                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>* server,
                          DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO remove
+
     auto recover_reaction = require_existing_instances_reaction;
     recover_reaction.operative_reaction.message_template =
         "instance \"{}\" does not need to be recovered";
@@ -2053,6 +2085,8 @@ void mp::Daemon::ssh_info(const SSHInfoRequest* request,
                           DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO remove
+
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
@@ -2083,6 +2117,8 @@ void mp::Daemon::start(const StartRequest* request,
                        DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO remove
+
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
@@ -2214,10 +2250,12 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::suspend(const SuspendRequest* request,
-                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>*,
+                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>* server,
                          DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO remove
+
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
