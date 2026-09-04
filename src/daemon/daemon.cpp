@@ -2822,6 +2822,8 @@ void mp::Daemon::clone(const CloneRequest* request,
                        DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO remove
+
     const auto& source_name = request->source_name();
     const auto [src_instance_trail, src_vm_status] =
         find_instance_and_react(operative_instances,
