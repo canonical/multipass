@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: How to create a VM in Multipass, customize its resources and apply a cloud-init configuration.
+    description: How to create a virtual machine (VM) in Multipass, customize its resources and apply a cloud-init configuration.
 ---
 
 (how-to-guides-manage-instances-create-an-instance)=
