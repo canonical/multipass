@@ -1278,22 +1278,22 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) //
 {
     static constexpr auto* deprecation_warning_template =
         "*** Warning! The {} driver is deprecated and will be removed in an upcoming "
-        "release. ***\n\n";
+        "release. ***";
     static constexpr auto* migrationless_template =
         "We recommend switching to the new {0} driver as soon as possible "
         "(multipass set local.driver={0}). You will need to manually recreate any instances you "
-        "want to keep.\n\n";
+        "want to keep.";
     static constexpr auto* migrationful_template =
         "When you are ready to have your instances migrated, please stop them "
         "(multipass stop --all) and switch to the new {0} driver "
-        "(multipass set local.driver={0}).\n\n";
+        "(multipass set local.driver={0}).";
 
     auto compose_warning = [](const auto& current, const auto& recommended, bool migrationful) {
         const auto deprecation_header = fmt::format(deprecation_warning_template, current);
         const auto* advice_template = migrationful ? migrationful_template : migrationless_template;
         const auto deprecation_advice = fmt::format(fmt::runtime(advice_template), recommended);
 
-        return fmt::format("{}{}", deprecation_header, deprecation_advice);
+        return fmt::format("{}\n\n{}\n\n", deprecation_header, deprecation_advice);
     };
 
     if (const auto current_driver = MP_SETTINGS.get(mp::driver_key);
