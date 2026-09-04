@@ -18,6 +18,7 @@
 #include "common.h"
 #include "mock_platform.h"
 #include "mock_ssh.h"
+#include "mock_ssh_callback_engine.h"
 #include "stub_ssh_key_provider.h"
 
 #include <multipass/socket.h>
@@ -110,13 +111,21 @@ TEST_F(TestPlainSSHSession, execThrowsWhenUnableToRequestChannelExec)
 
 TEST_F(TestPlainSSHSession, execSucceeds)
 {
-    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    auto [mock_libssh, libssh_guard] = mpt::MockLibssh::inject();
+    mpt::CallbackEngineMock cb_engine{*mock_libssh, mpt::CallbackEngineMock::channel_exit_success};
+
+    EXPECT_CALL(*mock_libssh, ssh_new).WillOnce([]() {
+        return reinterpret_cast<ssh_session>(0xdeadbeefdeadbeef);
+    });
+    EXPECT_CALL(*mock_libssh, ssh_connect).WillOnce([](auto...) { return SSH_OK; });
+    EXPECT_CALL(*mock_libssh, ssh_userauth_publickey).WillOnce([](auto...) {
+        return SSH_AUTH_SUCCESS;
+    });
     mp::PlainSSHSession session = make_ssh_session();
 
-    REPLACE(ssh_is_connected, [](auto...) { return true; });
-    REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_OK; });
+    EXPECT_CALL(*mock_libssh, ssh_is_connected).WillOnce([](auto...) { return true; });
+    EXPECT_CALL(*mock_libssh, ssh_channel_open_session).WillOnce([](auto...) { return SSH_OK; });
+    EXPECT_CALL(*mock_libssh, ssh_channel_request_exec).WillOnce([](auto...) { return SSH_OK; });
 
     EXPECT_NO_THROW(static_cast<void>(session.exec("dummy")));
 }
