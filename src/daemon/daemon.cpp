@@ -1280,11 +1280,12 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server) //
         "*** Warning! The {} driver is deprecated and will be removed in an upcoming "
         "release. ***\n\n";
     static constexpr auto* migrationless_template =
-        "No automatic migration path is planned. We encourage switching to the new {0} "
-        "driver as soon as possible (multipass set local.driver={0})\n\n";
+        "We recommend switching to the new {0} driver as soon as possible "
+        "(multipass set local.driver={0}). You will need to manually recreate any instances you "
+        "want to keep.\n\n";
     static constexpr auto* migrationful_template =
         "When you are ready to have your instances migrated, please stop them "
-        "(multipass stop --all) and switch to the {0} driver "
+        "(multipass stop --all) and switch to the new {0} driver "
         "(multipass set local.driver={0}).\n\n";
 
     auto compose_warning = [](const auto& current, const auto& recommended, bool migrationful) {
