@@ -104,13 +104,13 @@ TEST(SubnetTest, givesCorrectRange)
     subnet = mp::Subnet{"121.212.1.152/11"};
     EXPECT_EQ(subnet.masked_address(), mp::IPAddress{"121.192.0.0"});
     EXPECT_EQ(subnet.min_address(), mp::IPAddress{"121.192.0.1"});
-    EXPECT_EQ(subnet.max_address(), mp::IPAddress{"121,223.255.254"});
+    EXPECT_EQ(subnet.max_address(), mp::IPAddress{"121.223.255.254"});
     EXPECT_EQ(subnet.usable_address_count(), 2097150);
 
     subnet = mp::Subnet{"0.0.0.0/0"};
     EXPECT_EQ(subnet.masked_address(), mp::IPAddress{"0.0.0.0"});
     EXPECT_EQ(subnet.min_address(), mp::IPAddress{"0.0.0.1"});
-    EXPECT_EQ(subnet.max_address(), mp::IPAddress{"255,255.255.254"});
+    EXPECT_EQ(subnet.max_address(), mp::IPAddress{"255.255.255.254"});
     EXPECT_EQ(subnet.usable_address_count(), 4294967294);
 }
 

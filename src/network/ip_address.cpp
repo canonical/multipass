@@ -17,6 +17,7 @@
 
 #include <multipass/ip_address.h>
 
+#include <ranges>
 #include <sstream>
 #include <stdexcept>
 
@@ -38,18 +39,15 @@ bool is_valid_octet(int value)
 
 std::array<uint8_t, 4> parse(const std::string& ip)
 {
-    char ch;
-    int a = -1;
-    int b = -1;
-    int c = -1;
-    int d = -1;
-    std::stringstream s(ip);
-    s >> a >> ch >> b >> ch >> c >> ch >> d;
+    // FIXME: Use Boost.ASIO?
+    std::array octets = {(int)-1, -1, -1, -1};
 
-    if (!is_valid_octet(a) || !is_valid_octet(b) || !is_valid_octet(c) || !is_valid_octet(d))
+    if (std::sscanf(ip.c_str(), "%d.%d.%d.%d", &octets[0], &octets[1], &octets[2], &octets[3]) !=
+            4 ||
+        !std::ranges::all_of(octets, is_valid_octet))
         throw std::invalid_argument(fmt::format("invalid IP address {}", ip));
 
-    return {{as_octet(a), as_octet(b), as_octet(c), as_octet(d)}};
+    return {{as_octet(octets[0]), as_octet(octets[1]), as_octet(octets[2]), as_octet(octets[3])}};
 }
 
 std::array<uint8_t, 4> to_octets(uint32_t value)
