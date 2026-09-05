@@ -40,14 +40,11 @@ bool is_valid_octet(int value)
 std::array<uint8_t, 4> parse(const std::string& ip)
 {
     // FIXME: Use Boost.ASIO?
-    std::array sep = {'\0', '\0', '\0'};
     std::array octets = {(int)-1, -1, -1, -1};
 
-    std::stringstream s(ip);
-    s >> octets[0] >> sep[0] >> octets[1] >> sep[1] >> octets[2] >> sep[2] >> octets[3];
-
-    if (!std::ranges::all_of(octets, is_valid_octet) ||
-        !std::ranges::all_of(sep, [](char c) { return c == '.'; }))
+    if (std::sscanf(ip.c_str(), "%d.%d.%d.%d", &octets[0], &octets[1], &octets[2], &octets[3]) !=
+            4 ||
+        !std::ranges::all_of(octets, is_valid_octet))
         throw std::invalid_argument(fmt::format("invalid IP address {}", ip));
 
     return {{as_octet(octets[0]), as_octet(octets[1]), as_octet(octets[2]), as_octet(octets[3])}};
