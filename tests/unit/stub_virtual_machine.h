@@ -59,8 +59,9 @@ struct StubVirtualMachine final : public VirtualMachine
     {
     }
 
-    void set_available(bool) override
+    bool set_available(bool) override
     {
+        return false;
     }
 
     State current_state() override
