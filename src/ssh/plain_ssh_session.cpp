@@ -155,7 +155,7 @@ std::unique_ptr<mp::PlainSSHProcess> mp::PlainSSHSession::exec_plain(const std::
     auto lvl = whisper ? mpl::Level::trace : mpl::Level::debug;
     mpl::log(lvl, category, "Executing '{}'", cmd);
 
-    return std::make_unique<PlainSSHProcess>(*raw_session.get(), cmd, std::move(lock));
+    return std::make_unique<PlainSSHProcess>(raw_session.get(), cmd, std::move(lock));
 }
 
 std::unique_ptr<mp::SftpSession> mp::PlainSSHSession::make_sftp_session(
