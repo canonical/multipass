@@ -22,6 +22,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
+#include <hyperv_api/hcs_virtual_machine_resources.h>
 #include <hyperv_api/hyperv_api_string_conversion.h>
 #include <hyperv_api/net_io_api.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
@@ -111,47 +112,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     mpl::debug(log_category, "remove_resources_for_impl() -> VM: {}", name);
-    hcs::HcsSystemHandle handle{nullptr};
-    if (HCS().open_compute_system(name, handle))
-    {
-        // Grab compute system GUID before terminating it so we can use it later on for endpoint
-        // cleanup.
-        std::string vm_guid{};
-        if (!HCS().get_compute_system_guid(handle, vm_guid) || vm_guid.empty())
-        {
-            mpl::warn(log_category,
-                      "Could not retrieve VM guid for `{}`, skipping endpoint cleanup.",
-                      name);
-            return;
-        }
-
-        if (HCS().terminate_compute_system(handle))
-        {
-            mpl::warn(log_category,
-                      "remove_resources_for_impl() -> Host compute system {} was still alive.",
-                      name);
-        }
-
-        std::vector<std::string> attached_endpoints{};
-        const auto& enumerate_result =
-            HCN().enumerate_attached_endpoints(vm_guid, attached_endpoints);
-        for (const auto& elem : attached_endpoints)
-        {
-            const auto remove_result = HCN().delete_endpoint(elem);
-
-            mpl::log(remove_result ? mpl::Level::trace : mpl::Level::warning,
-                     log_category,
-                     "remove_resources_for_impl() -> Remove attached endpoint {}: {}",
-                     elem,
-                     remove_result.code);
-        }
-    }
-    else
-    {
-        mpl::info(log_category,
-                  "remove_resources_for_impl() -> Host compute system `{}` already terminated.",
-                  name);
-    }
+    (void)release_hcs_resources(name);
 }
 
 VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
@@ -208,8 +169,8 @@ void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_im
                                                       const VirtualMachineDescription& desc)
 {
     // Resize the instance image to the desired size
-    const auto resize_result =
-        VirtDisk().resize_virtual_disk(instance_image.image_path, desc.disk_space.in_bytes());
+    const auto resize_result = VirtDisk().resize_virtual_disk(instance_image.image_path,
+                                                              desc.disk_space.in_bytes());
     if (!resize_result)
     {
         throw ImageResizeException{"Failed to resize VHDX file `{}`, virtdisk API error code `{}`",
@@ -349,6 +310,11 @@ std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::networks() const
 }
 
 void HCSVirtualMachineFactory::hypervisor_health_check()
+{
+    check_hyperv_api_support();
+}
+
+void check_hyperv_api_support()
 {
     if (auto state = get_windows_feature_state(L"VirtualMachinePlatform"))
     {

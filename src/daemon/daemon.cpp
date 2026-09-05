@@ -17,9 +17,15 @@
 
 #include "daemon.h"
 #include "base_cloud_init_config.h"
+#include "daemon_init_settings.h"
 #include "instance_settings_handler.h"
 #include "runtime_instance_info_helper.h"
 #include "snapshot_settings_handler.h"
+#if defined(HYPERV_HCS_ENABLED)
+#include "hyperv_migration.h"
+#include <hyperv_api/hcs_virtual_machine_factory.h>
+#include <hyperv_api/hcs_virtual_machine_resources.h>
+#endif
 
 #include <multipass/alias_definition.h>
 #include <multipass/cloud_init_iso.h>
@@ -63,6 +69,7 @@
 
 #include <scope_guard.hpp>
 
+#include <fmt/ranges.h>
 #include <yaml-cpp/yaml.h>
 
 #include <QDir>
@@ -104,6 +111,24 @@ constexpr auto sshfs_error_template =
 constexpr auto invalid_network_template =
     "Invalid network '{}' set as bridged interface, use `multipass set "
     "{}=<name>` to correct. See `multipass networks` for valid names.";
+constexpr auto hyperv_deprecation_warning =
+    "*** Warning! The legacy Hyper-V driver is deprecated and will be removed in an upcoming "
+    "release. ***\n\n"
+    "When you are ready to migrate your instances, stop them (multipass stop --all) and switch "
+    "to the hyperv_api driver (multipass set local.driver=hyperv_api).\n\n";
+
+template <typename Reply, typename Request>
+void warn_legacy_hyperv(
+    const mp::VirtualMachineFactory& factory,
+    grpc::ServerReaderWriterInterface<Reply, Request>* server)
+{
+    if (factory.get_backend_version_string() == "hyperv")
+    {
+        Reply reply;
+        reply.set_log_line(hyperv_deprecation_warning);
+        server->Write(reply);
+    }
+}
 
 // Images which cannot be bridged with --network.
 const std::unordered_set<std::string> no_bridging_release =
@@ -1272,6 +1297,87 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 
     populate_snapshot_fundamentals(snapshot, fundamentals);
 }
+
+grpc::Status migration_conflict_status(std::string_view rpc_name)
+{
+    return {grpc::StatusCode::FAILED_PRECONDITION,
+            fmt::format("Cannot {} while a Hyper-V instance migration is in progress. Please wait "
+                        "for the migration to finish and try again.",
+                        rpc_name)};
+}
+
+#if defined(HYPERV_HCS_ENABLED)
+class SetMigrationProgress final : public mp::hyperv::MigrationProgress
+{
+public:
+    explicit SetMigrationProgress(
+        grpc::ServerReaderWriterInterface<mp::SetReply, mp::SetRequest>* server)
+        : server{server}
+    {
+    }
+
+    void phase(const std::string& instance, const std::string& message) override
+    {
+        mp::SetReply reply;
+        reply.set_migration_phase(fmt::format("{}: {}", message, instance));
+        write(reply);
+    }
+
+    void skipped(const std::string& instance, const std::string& reason) override
+    {
+        mp::SetReply reply;
+        reply.set_log_line(fmt::format("Cannot migrate {}: {}\n", instance, reason));
+        write(reply);
+    }
+
+    void failed(const std::string& instance, const std::string& reason) override
+    {
+        mp::SetReply reply;
+        reply.set_log_line(fmt::format("Failed to migrate {}: {}\n", instance, reason));
+        write(reply);
+    }
+
+    void finished(const std::vector<std::string>& migrated_names) override
+    {
+        mp::SetReply reply;
+        if (migrated_names.empty())
+        {
+            reply.set_summary("No instances were migrated.\n");
+        }
+        else
+        {
+            constexpr auto separator = "\n  ";
+            reply.set_summary(fmt::format(
+                "The following instances were successfully migrated:{}{}\n\n"
+                "The original hyperv instances were retained. Do not run an original and its "
+                "hyperv_api copy at the same time because they share guest identity and MAC "
+                "addresses.\n\n"
+                "After validating the migrated instances, remove the originals with:\n"
+                "  multipass set local.driver=hyperv\n"
+                "  multipass delete --purge <instance-name>\n"
+                "  multipass set local.driver=hyperv_api\n",
+                separator,
+                fmt::join(migrated_names, separator)));
+        }
+        write(reply);
+    }
+
+    [[nodiscard]] bool disconnected() const
+    {
+        return connection_lost;
+    }
+
+private:
+    void write(const mp::SetReply& reply)
+    {
+        if (!server->Write(reply))
+            connection_lost = true;
+    }
+
+    grpc::ServerReaderWriterInterface<mp::SetReply, mp::SetRequest>* server;
+    std::atomic_bool connection_lost{false};
+};
+#endif
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1524,11 +1630,45 @@ void mp::Daemon::shutdown_grpc_server()
     daemon_rpc.shutdown_and_wait();
 }
 
+bool mp::Daemon::reject_if_migrating(std::string_view rpc_name, DaemonRpcContext* context) const
+{
+    if (!migration_in_progress.load())
+        return false;
+
+    mpl::info(category, "Rejecting '{}' while a migration is in progress", rpc_name);
+    context->set_value(migration_conflict_status(rpc_name));
+    return true;
+}
+
+bool mp::Daemon::begin_instance_preparation(const std::string& name,
+                                            std::string_view rpc_name,
+                                            DaemonRpcContext* context)
+{
+    ++preparations_in_progress;
+    if (reject_if_migrating(rpc_name, context))
+    {
+        --preparations_in_progress;
+        return false;
+    }
+
+    preparing_instances.insert(name);
+    return true;
+}
+
+void mp::Daemon::end_instance_preparation(const std::string& name)
+{
+    if (preparing_instances.erase(name) > 0)
+        --preparations_in_progress;
+}
+
 void mp::Daemon::create(const CreateRequest* request,
                         grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                         DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("create an instance", context))
+        return;
+
     return create_vm(request, server, context, /*start=*/false);
 }
 catch (const std::exception& e)
@@ -1541,6 +1681,10 @@ void mp::Daemon::launch(const LaunchRequest* request,
                         DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("launch an instance", context))
+        return;
+
+    warn_legacy_hyperv(*config->factory, server);
     return create_vm(request, server, context, /*start=*/true);
 }
 catch (const mp::StartException& e)
@@ -1563,6 +1707,9 @@ void mp::Daemon::purge(const PurgeRequest*,
                        DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("purge instances", context))
+        return;
+
     PurgeReply response;
 
     for (const auto& del : deleted_instances)
@@ -1688,6 +1835,7 @@ void mp::Daemon::info(const InfoRequest* request,
                       DaemonRpcContext* context)
 try
 {
+    warn_legacy_hyperv(*config->factory, server);
     InfoReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
     InstanceSnapshotsMap instance_snapshots_map;
@@ -1781,6 +1929,7 @@ void mp::Daemon::list(const ListRequest* request,
                       DaemonRpcContext* context)
 try
 {
+    warn_legacy_hyperv(*config->factory, server);
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
@@ -1916,6 +2065,10 @@ void mp::Daemon::mount(const MountRequest* request,
                        DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("mount into an instance", context))
+        return;
+
+    warn_legacy_hyperv(*config->factory, server);
     if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
         return context->set_value(grpc::Status(
             grpc::StatusCode::FAILED_PRECONDITION,
@@ -2011,10 +2164,14 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::recover(const RecoverRequest* request,
-                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>*,
+                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>* server,
                          DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("recover instances", context))
+        return;
+
+    warn_legacy_hyperv(*config->factory, server);
     auto recover_reaction = require_existing_instances_reaction;
     recover_reaction.operative_reaction.message_template =
         "instance \"{}\" does not need to be recovered";
@@ -2053,6 +2210,7 @@ void mp::Daemon::ssh_info(const SSHInfoRequest* request,
                           DaemonRpcContext* context)
 try
 {
+    warn_legacy_hyperv(*config->factory, server);
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
@@ -2083,6 +2241,10 @@ void mp::Daemon::start(const StartRequest* request,
                        DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("start instances", context))
+        return;
+
+    warn_legacy_hyperv(*config->factory, server);
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
@@ -2178,6 +2340,9 @@ void mp::Daemon::stop(const StopRequest* request,
                       DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("stop instances", context))
+        return;
+
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
@@ -2214,10 +2379,14 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::suspend(const SuspendRequest* request,
-                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>*,
+                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>* server,
                          DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("suspend instances", context))
+        return;
+
+    warn_legacy_hyperv(*config->factory, server);
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
@@ -2255,6 +2424,10 @@ void mp::Daemon::restart(const RestartRequest* request,
                          DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("restart instances", context))
+        return;
+
+    warn_legacy_hyperv(*config->factory, server);
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
@@ -2303,6 +2476,9 @@ void mp::Daemon::delet(const DeleteRequest* request,
                        DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("delete instances", context))
+        return;
+
     DeleteReply response;
 
     auto [instance_selection, status] =
@@ -2380,10 +2556,14 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::umount(const UmountRequest* request,
-                        grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>*,
+                        grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>* server,
                         DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("unmount from an instance", context))
+        return;
+
+    warn_legacy_hyperv(*config->factory, server);
     fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
     {
@@ -2488,9 +2668,91 @@ void mp::Daemon::set(const SetRequest* request,
                      DaemonRpcContext* context)
 try
 {
+    // A migration is itself driven by a `set` (local.driver), so the call performing the
+    // migration must not reject itself: the in-progress flag is only raised later, once the
+    // migration actually starts. Any *other* concurrent `set` is rejected here.
+    if (reject_if_migrating("change settings", context))
+        return;
+
     auto key = request->key();
     auto val = request->val();
+    if (key == mp::driver_key)
+        val = mp::daemon::interpret_driver(QString::fromStdString(val)).toStdString();
     std::string bridge_name;
+
+#if defined(HYPERV_HCS_ENABLED)
+    const auto current_driver =
+        key == mp::driver_key ? MP_SETTINGS.get(mp::driver_key).toStdString() : std::string{};
+    const auto migrate_hyperv = key == mp::driver_key && current_driver == "hyperv" &&
+                                val == "hyperv_api";
+    const auto leave_hyperv_api =
+        key == mp::driver_key && current_driver == "hyperv_api" && val != "hyperv_api";
+    std::unique_ptr<mp::hyperv::HyperVMigrationTargetRecords> migration_records;
+    auto migration_flag_acquired = false;
+    auto migration_guard = sg::make_scope_guard([this, &migration_flag_acquired]() noexcept {
+        if (migration_flag_acquired)
+            migration_in_progress = false;
+    });
+
+    if (migrate_hyperv)
+    {
+        mp::hyperv::check_hyperv_api_support();
+        migration_records =
+            std::make_unique<mp::hyperv::HyperVMigrationTargetRecords>(config->data_directory);
+        migration_records->preflight();
+    }
+
+    if (migrate_hyperv || leave_hyperv_api)
+    {
+        if (migration_in_progress.exchange(true))
+        {
+            context->set_value(migration_conflict_status("change settings"));
+            return;
+        }
+        migration_flag_acquired = true;
+
+        if (preparations_in_progress.load() != 0)
+        {
+            context->set_value(
+                grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                             "Cannot change driver while an instance is being prepared"});
+            return;
+        }
+    }
+
+    if (migrate_hyperv)
+    {
+        migration_records->prepare();
+    }
+    else if (leave_hyperv_api)
+    {
+        for (const auto* instances : {&operative_instances, &deleted_instances})
+        {
+            for (const auto& [name, vm] : *instances)
+            {
+                if (!vm)
+                    continue;
+
+                const auto state = vm->current_state();
+                if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
+                    throw mp::InstanceStateSettingsException{"Cannot change driver",
+                                                             name,
+                                                             "instance is not stopped"};
+            }
+        }
+
+        for (const auto& [name, spec] : vm_instance_specs)
+        {
+            std::vector<std::string> mac_addresses{spec.default_mac_address};
+            std::ranges::transform(spec.extra_interfaces,
+                                   std::back_inserter(mac_addresses),
+                                   &NetworkInterface::mac_address);
+            if (!mp::hyperv::release_hcs_resources(name, mac_addresses))
+                throw std::runtime_error{
+                    fmt::format("Could not release hyperv_api resources for '{}'", name)};
+        }
+    }
+#endif
 
     if (request->authorized() &&
         !(bridge_name = MP_SETTINGS.get(mp::bridged_interface_key).toStdString()).empty())
@@ -2510,6 +2772,35 @@ try
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val), messages);
     mpu::send_messages(server, messages);
     mpl::debug(category, "Succeeded setting {}={}", key, val);
+
+#if defined(HYPERV_HCS_ENABLED)
+    if (migrate_hyperv)
+    {
+        mp::hyperv::DaemonHyperVInstanceMigrator migrator{vm_instance_specs,
+                                                          operative_instances,
+                                                          deleted_instances,
+                                                          *config->factory,
+                                                          *config->az_manager,
+                                                          config->data_directory,
+                                                          *migration_records};
+        SetMigrationProgress progress{server};
+        const auto result = mp::hyperv::run_bulk_migration(migrator, progress, [&progress] {
+            return progress.disconnected();
+        });
+
+        if (result.cancelled)
+            context->set_value(
+                grpc::Status{grpc::StatusCode::CANCELLED, "Hyper-V migration was cancelled"});
+        else if (!result.success)
+            context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                                            result.aborted
+                                                ? "Hyper-V migration aborted"
+                                                : "One or more instances failed to migrate"});
+        else
+            context->set_value(grpc::Status::OK);
+        return;
+    }
+#endif
 
     context->set_value(grpc::Status::OK);
 }
@@ -2627,6 +2918,10 @@ void mp::Daemon::snapshot(const mp::SnapshotRequest* request,
                           DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("take a snapshot", context))
+        return;
+
+    warn_legacy_hyperv(*config->factory, server);
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
@@ -2677,6 +2972,10 @@ void mp::Daemon::restore(const mp::RestoreRequest* request,
                          DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("restore a snapshot", context))
+        return;
+
+    warn_legacy_hyperv(*config->factory, server);
     RestoreReply reply;
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
@@ -2763,6 +3062,10 @@ void mp::Daemon::clone(const CloneRequest* request,
                        DaemonRpcContext* context)
 try
 {
+    if (reject_if_migrating("clone an instance", context))
+        return;
+
+    warn_legacy_hyperv(*config->factory, server);
     const auto& source_name = request->source_name();
     const auto [src_instance_trail, src_vm_status] =
         find_instance_and_react(operative_instances,
@@ -2786,15 +3089,16 @@ try
         if (auto dest_vm_status = validate_dest_name(destination_name); !dest_vm_status.ok())
             return context->set_value(std::move(dest_vm_status));
 
+        if (!begin_instance_preparation(destination_name, "clone an instance", context))
+            return;
+
         auto rollback_resources = sg::make_scope_guard([this, destination_name]() noexcept -> void {
             top_catch_all(category, [this, destination_name]() {
                 release_resources(destination_name);
-                preparing_instances.erase(destination_name);
+                end_instance_preparation(destination_name);
             });
         });
 
-        // signal that the new instance is being cooked up
-        preparing_instances.insert(destination_name);
         auto& src_spec = vm_instance_specs[source_name];
         auto dest_spec = clone_spec(src_spec, source_name, destination_name);
 
@@ -2815,8 +3119,7 @@ try
                                            *config->ssh_key_provider,
                                            *this);
         ++src_spec.clone_count;
-        // preparing instance is done
-        preparing_instances.erase(destination_name);
+        end_instance_preparation(destination_name);
         persist_instances();
         init_mounts(destination_name);
 
@@ -2915,6 +3218,9 @@ void mp::Daemon::zones_state(const ZonesStateRequest* request,
                              DaemonRpcContext* context) // clang-format off
 try // clang-format on
 {
+    if (reject_if_migrating("change availability-zone state", context))
+        return;
+
     auto& az_manager = *config->az_manager;
     if (request->zones().empty())
     {
@@ -3080,7 +3386,10 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     auto timeout = timeout_for(request->timeout());
 
-    preparing_instances.insert(name);
+    if (!begin_instance_preparation(name,
+                                    start ? "launch an instance" : "create an instance",
+                                    context))
+        return;
 
     auto prepare_future_watcher = new QFutureWatcher<mp::VirtualMachineDescription>();
 
@@ -3111,7 +3420,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                  config->factory->create_virtual_machine(vm_desc,
                                                                          *config->ssh_key_provider,
                                                                          *this);
-                             preparing_instances.erase(name);
+                             end_instance_preparation(name);
 
                              persist_instances();
 
@@ -3151,7 +3460,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                          catch (const std::exception& e)
                          {
                              mp::top_catch_all(category, [this, &name]() {
-                                 preparing_instances.erase(name);
+                                 end_instance_preparation(name);
                                  release_resources(name);
                                  operative_instances.erase(name);
                                  persist_instances();

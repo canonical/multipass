@@ -254,6 +254,20 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, construct_vm_class_exists_create)
     EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
 }
 
+TEST_F(HyperVHCSVirtualMachine_UnitTests, create_failure_removes_created_endpoint)
+{
+    EXPECT_CALL(mock_hcs, open_compute_system(_, _))
+        .WillOnce(Return(hcs_op_result_t{HCS_E_SYSTEM_NOT_FOUND, L""}));
+    EXPECT_CALL(mock_hcn, delete_endpoint(EndsWith("aabbccddeeff")))
+        .WillOnce(Return(hcs_op_result_t{E_FAIL, L"not found"}))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcn, create_endpoint(_)).WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcs, create_compute_system(_, _))
+        .WillOnce(Return(hcs_op_result_t{E_FAIL, L"create failed"}));
+
+    EXPECT_THROW(construct_vm(), mhv::CreateComputeSystemException);
+}
+
 // ---------------------------------------------------------
 
 TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_start_success)

@@ -18,6 +18,7 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
 #include <hyperv_api/hcs_virtual_machine_factory.h>
+#include <hyperv_api/hcs_virtual_machine_resources.h>
 #include <multipass/network_interface.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_image.h>
@@ -96,6 +97,15 @@ struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
     }
 };
 
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, usesDedicatedBackendDirectory)
+{
+    const auto factory = construct_factory();
+
+    EXPECT_EQ(factory->get_backend_directory_name(), "hyperv_api");
+    EXPECT_EQ(QDir::cleanPath(factory->get_instance_directory("test-vm")),
+              QDir::cleanPath(dummy_data_dir.filePath("hyperv_api/vault/instances/test-vm")));
+}
+
 // ---------------------------------------------------------
 
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_vm_exists)
@@ -142,6 +152,31 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_does_
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_factory());
     uut->remove_resources_for(vm_name);
+}
+
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
+       release_resources_removes_deterministic_endpoint_without_compute_system)
+{
+    const std::string vm_name{"test-vm"};
+    const std::string mac{"52:54:00:12:34:56"};
+    EXPECT_CALL(mock_hcs, open_compute_system(vm_name, _))
+        .WillOnce(Return(hcs_op_result_t{HCS_E_SYSTEM_NOT_FOUND, L""}));
+    EXPECT_CALL(mock_hcn, delete_endpoint(mhv::endpoint_guid_for_mac(mac)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+
+    EXPECT_TRUE(mhv::release_hcs_resources(vm_name, {mac}));
+}
+
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
+       release_resources_keeps_endpoint_when_compute_system_cleanup_fails)
+{
+    const std::string vm_name{"test-vm"};
+    const std::string mac{"52:54:00:12:34:56"};
+    EXPECT_CALL(mock_hcs, open_compute_system(vm_name, _))
+        .WillOnce(Return(hcs_op_result_t{E_FAIL, L""}));
+    EXPECT_CALL(mock_hcn, delete_endpoint).Times(0);
+
+    EXPECT_FALSE(mhv::release_hcs_resources(vm_name, {mac}));
 }
 
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepare_instance_image)

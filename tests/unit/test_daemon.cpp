@@ -1951,6 +1951,42 @@ TEST_F(Daemon, setSetsSetting)
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
 }
 
+TEST_F(Daemon, listWarnsWhenLegacyHypervIsActive)
+{
+    auto* factory = use_a_mock_vm_factory();
+    ON_CALL(*factory, get_backend_version_string()).WillByDefault(Return("hyperv"));
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ListRequest request;
+    StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> server;
+    {
+        InSequence sequence;
+        EXPECT_CALL(server, Write(Property(&mp::ListReply::log_line,
+                                           HasSubstr("legacy Hyper-V driver is deprecated")),
+                                  _))
+            .WillOnce(Return(true));
+        EXPECT_CALL(server, Write(Property(&mp::ListReply::log_line, IsEmpty()), _))
+            .WillOnce(Return(true));
+    }
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, request, server).ok());
+}
+
+TEST_F(Daemon, setDoesNotWarnWhenLegacyHypervIsActive)
+{
+    auto* factory = use_a_mock_vm_factory();
+    ON_CALL(*factory, get_backend_version_string()).WillByDefault(Return("hyperv"));
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::SetRequest request;
+    request.set_key("foo");
+    request.set_val("bar");
+    EXPECT_CALL(mock_settings, set(Eq("foo"), Eq("bar"), _));
+    StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>> server;
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, server).ok());
+}
+
 using SetException = std::
     variant<mp::UnrecognizedSettingException, mp::InvalidSettingException, std::runtime_error>; /*
 We need to throw an exception of the ultimate type whose handling we're trying to test (to avoid

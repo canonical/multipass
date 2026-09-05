@@ -382,7 +382,7 @@ auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInt
 std::string mp::HyperVVirtualMachineFactory::create_bridge_with(
     const NetworkInterfaceInfo& interface)
 {
-    assert(interface.type == "ethernet");
+    assert(interface.type == "Ethernet");
 
     const auto switch_name = QStringLiteral("ExtSwitch (%1)").arg(interface.id.c_str());
     auto quote = [](const auto& str) { return QStringLiteral("'%1'").arg(str); };
@@ -460,7 +460,7 @@ auto mp::HyperVVirtualMachineFactory::get_adapters() -> std::vector<NetworkInter
     for (auto& item : MP_PLATFORM.get_network_interfaces_info())
     {
         auto& net = item.second;
-        if (const auto& type = net.type; type == "ethernet")
+        if (const auto& type = net.type; type == "Ethernet")
         {
             net.needs_authorization = true;
             ret.emplace_back(std::move(net));

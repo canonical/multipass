@@ -23,6 +23,7 @@
 
 namespace multipass::hyperv
 {
+void check_hyperv_api_support();
 
 /**
  * Native Windows virtual machine implementation using HCS, HCN & virtdisk API's.
@@ -45,6 +46,11 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
     {
         return "hyperv_api";
     };
+
+    [[nodiscard]] QString get_backend_directory_name() const override
+    {
+        return "hyperv_api";
+    }
 
     [[nodiscard]] std::vector<NetworkInterfaceInfo> networks() const override;
 

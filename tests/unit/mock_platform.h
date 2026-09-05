@@ -64,6 +64,7 @@ public:
     MOCK_METHOD(SettingSpec::Set, extra_client_settings, (), (const, override));
     MOCK_METHOD(QString, daemon_config_home, (), (const, override));
     MOCK_METHOD(QString, default_driver, (), (const, override));
+    MOCK_METHOD(void, ensure_legacy_driver_visibility, (const Path&), (const, override));
     MOCK_METHOD(QString, default_privileged_mounts, (), (const, override));
     MOCK_METHOD(QString, get_username, (), (const, override));
     MOCK_METHOD(std::string, bridge_nomenclature, (), (const, override));

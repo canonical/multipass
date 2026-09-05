@@ -18,6 +18,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -26,6 +27,7 @@
 #include <multipass/socket.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
+#include <multipass/user_messages.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
@@ -52,6 +54,8 @@
 #include <QtGlobal>
 
 #include <scope_guard.hpp>
+
+#include <boost/json.hpp>
 
 #include <json/json.h>
 
@@ -876,6 +880,92 @@ QString mp::platform::Platform::default_driver() const
 #else
     return QStringLiteral("hyperv");
 #endif
+}
+
+namespace
+{
+bool driver_is_configured(const std::filesystem::path& conf_path)
+{
+    const auto content = MP_FILEOPS.try_read_file(conf_path);
+    if (!content)
+        return false;
+
+    const auto lines = QString::fromStdString(*content).split(QRegularExpression{"[\r\n]"},
+                                                              Qt::SkipEmptyParts);
+    return std::ranges::any_of(lines, [](const auto& line) {
+        const auto separator = line.indexOf('=');
+        return separator >= 0 &&
+               line.left(separator).trimmed() == QString::fromLatin1(mp::driver_key);
+    });
+}
+
+bool has_legacy_hyperv_data(const std::filesystem::path& data_root)
+{
+    // The legacy full-Hyper-V ('hyperv') backend keeps its instance database and disks directly
+    // under the data directory, whereas the new HCS ('hyperv_api') backend nests them under a
+    // 'hyperv_api' subdirectory. Only the legacy location is inspected here, so prior dev HCS data
+    // is deliberately ignored.
+    const auto legacy_db = data_root / "multipassd-vm-instances.json";
+    if (const auto content = MP_FILEOPS.try_read_file(legacy_db))
+    {
+        try
+        {
+            const auto records = boost::json::parse(*content);
+            if (records.is_object() && !records.as_object().empty())
+                return true;
+        }
+        catch (const std::exception&)
+        {
+            // A corrupt or unparsable database does not count as valid legacy data on its own.
+        }
+    }
+
+    // A legacy Hyper-V registration also manifests as instance disks under the legacy vault, even
+    // when the database is missing or unreadable.
+    std::error_code ec;
+    const auto legacy_instances = data_root / "vault" / "instances";
+    if (MP_FILEOPS.exists(legacy_instances, ec) && MP_FILEOPS.is_directory(legacy_instances, ec))
+    {
+        if (auto it = MP_FILEOPS.dir_iterator(legacy_instances, ec); it)
+        {
+            while (it->hasNext())
+            {
+                const auto path = it->next().path();
+                const auto name = path.filename();
+                if (name == "." || name == "..")
+                    continue;
+
+                std::error_code entry_error;
+                if (MP_FILEOPS.is_directory(path, entry_error) && !entry_error)
+                    return true;
+            }
+        }
+    }
+
+    return false;
+}
+} // namespace
+
+void mp::platform::Platform::ensure_legacy_driver_visibility(const mp::Path& data_dir) const
+{
+    // Honour any explicitly configured driver (user choice or a previous installer run); only step
+    // in when 'local.driver' is genuinely absent from the persisted configuration.
+    const auto filename =
+        QString::fromLatin1(mp::daemon_name) + QString::fromLatin1(mp::settings_extension);
+    const auto conf_path = qstr_to_path(QDir{daemon_config_home()}.absoluteFilePath(filename));
+    if (driver_is_configured(conf_path))
+        return;
+
+    if (!has_legacy_hyperv_data(qstr_to_path(data_dir)))
+        return;
+
+    mpl::log(mpl::Level::info,
+             "platform",
+             "Detected legacy Hyper-V instances without a configured driver; pinning 'hyperv' to "
+             "keep them visible after upgrade");
+
+    UserMessages messages{};
+    MP_SETTINGS.set(QString::fromLatin1(mp::driver_key), QStringLiteral("hyperv"), messages);
 }
 
 QString mp::platform::Platform::default_privileged_mounts() const
