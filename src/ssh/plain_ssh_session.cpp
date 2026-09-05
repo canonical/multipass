@@ -15,13 +15,16 @@
  *
  */
 
+#include <multipass/ssh/plain_ssh_session.h>
+
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/socket.h>
 #include <multipass/ssh/libssh_wrapper.h>
-#include <multipass/ssh/plain_ssh_session.h>
+#include <multipass/ssh/plain_sftp_session.h>
+#include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/standard_paths.h>
@@ -44,9 +47,9 @@ mp::PlainSSHSession::PlainSSHSession(const std::string& host,
                                      int port,
                                      const std::string& username,
                                      const SSHKeyProvider& key_provider)
-    : session{MP_LIBSSH.ssh_new(), [](ssh_session s) { MP_LIBSSH.ssh_free(s); }}, mut{}
+    : raw_session{MP_LIBSSH.ssh_new(), [](ssh_session s) { MP_LIBSSH.ssh_free(s); }}, mut{}
 {
-    if (session == nullptr)
+    if (raw_session == nullptr)
         throw mp::SSHException("could not allocate ssh session");
 
     /**
@@ -75,49 +78,47 @@ mp::PlainSSHSession::PlainSSHSession(const std::string& host,
     set_option(SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
     set_option(SSH_OPTIONS_SSH_DIR, ssh_dir.c_str());
 
-    SSH::throw_on_error(session,
+    SSH::throw_on_error(raw_session,
                         "ssh connection failed",
                         std::bind_front(&Libssh::ssh_connect, &Libssh::instance()));
     set_option(SSH_OPTIONS_TIMEOUT, &established_timeout_secs);
-    SSH::throw_on_error(session,
+    SSH::throw_on_error(raw_session,
                         "ssh failed to authenticate",
                         std::bind_front(&Libssh::ssh_userauth_publickey, &Libssh::instance()),
                         nullptr,
                         key_provider.private_key());
 }
 
-multipass::PlainSSHSession::PlainSSHSession(multipass::PlainSSHSession&& other)
+mp::PlainSSHSession::PlainSSHSession(PlainSSHSession&& other)
     : PlainSSHSession(std::move(other), std::unique_lock{other.mut})
 {
 }
 
-multipass::PlainSSHSession::PlainSSHSession(multipass::PlainSSHSession&& other,
-                                            std::unique_lock<std::mutex>)
-    : session{std::move(other.session)}, mut{}
+mp::PlainSSHSession::PlainSSHSession(PlainSSHSession&& other, std::unique_lock<std::mutex>)
+    : raw_session{std::move(other.raw_session)}, mut{}
 {
 }
 
-multipass::PlainSSHSession& multipass::PlainSSHSession::operator=(
-    multipass::PlainSSHSession&& other)
+mp::PlainSSHSession& mp::PlainSSHSession::operator=(PlainSSHSession&& other)
 {
     if (this != &other)
     {
         std::scoped_lock lock{mut, other.mut};
-        session = std::move(other.session);
+        raw_session = std::move(other.raw_session);
     }
 
     return *this;
 }
 
-multipass::PlainSSHSession::~PlainSSHSession()
+mp::PlainSSHSession::~PlainSSHSession()
 {
     top_catch_all(category, [this] {
         std::unique_lock lock{mut};
-        if (session)
+        if (raw_session)
         {
             mpl::trace(category, "disconnecting SSH session");
 
-            MP_LIBSSH.ssh_disconnect(session.get());
+            MP_LIBSSH.ssh_disconnect(raw_session.get());
             PlainSSHSession::force_shutdown(); // Shutdown I/O on manually open sockets.
                                                // The socket is still closed by libssh in ssh_free.
         }
@@ -126,13 +127,25 @@ multipass::PlainSSHSession::~PlainSSHSession()
 
 std::unique_ptr<mp::SSHProcess> mp::PlainSSHSession::exec(const std::string& cmd, bool whisper)
 {
+    return exec_plain(cmd, whisper);
+}
+
+std::unique_ptr<mp::PlainSSHProcess> mp::PlainSSHSession::exec_plain(const std::string& cmd,
+                                                                     bool whisper)
+{
     std::unique_lock lock{mut};
     assert(!is_moved() && "precondition - cannot call exec on a moved session");
 
     auto lvl = whisper ? mpl::Level::trace : mpl::Level::debug;
     mpl::log(lvl, category, "Executing '{}'", cmd);
 
-    return std::make_unique<PlainSSHProcess>(*session.get(), cmd, std::move(lock));
+    return std::make_unique<PlainSSHProcess>(*raw_session.get(), cmd, std::move(lock));
+}
+
+std::unique_ptr<mp::SftpSession> mp::PlainSSHSession::make_sftp_session(
+    const std::string& sshfs_cmd) &&
+{
+    return std::make_unique<PlainSftpSession>(std::move(*this), sshfs_cmd);
 }
 
 void mp::PlainSSHSession::force_shutdown()
@@ -140,16 +153,23 @@ void mp::PlainSSHSession::force_shutdown()
     // TODO@sftp This is public but doesn't lock (it can't, because it is also called internally
     // with a lock acquired). Make it private instead. Provide public way to close the session
     // (probably just the dtor - let outside callers delete and deal with null session)
-    if (!session)
+    if (!raw_session)
         return;
 
-    if (auto socket = MP_LIBSSH.ssh_get_fd(session.get()); socket != -1)
+    if (auto socket = MP_LIBSSH.ssh_get_fd(raw_session.get()); socket != -1)
         MP_PLATFORM.shutdown_socket(socket);
+}
+
+ssh_session multipass::PlainSSHSession::borrow_session(
+    const PrivatePassProvider<PlainSftpSession>::PrivatePass&) const
+{
+    assert(!is_moved() && "precondition - cannot borrow a moved session");
+    return raw_session.get();
 }
 
 mp::PlainSSHSession::operator ssh_session()
 {
-    return session.get();
+    return raw_session.get();
 }
 
 namespace
@@ -206,25 +226,25 @@ std::string as_string(ssh_options_e type, const void* value)
 void mp::PlainSSHSession::set_option(ssh_options_e type, const void* data)
 {
     std::unique_lock lock{mut};
-    assert(session && "should not set option on null session");
+    assert(raw_session && "should not set option on null session");
 
-    const auto ret = MP_LIBSSH.ssh_options_set(session.get(), type, data);
+    const auto ret = MP_LIBSSH.ssh_options_set(raw_session.get(), type, data);
     if (ret != SSH_OK)
     {
         throw mp::SSHException(fmt::format("libssh failed to set {} option to '{}': '{}'",
                                            name_for(type),
                                            as_string(type, data),
-                                           MP_LIBSSH.ssh_get_error(session.get())));
+                                           MP_LIBSSH.ssh_get_error(raw_session.get())));
     }
 }
 
 bool mp::PlainSSHSession::is_connected() const
 {
     std::unique_lock lock{mut};
-    return session && static_cast<bool>(MP_LIBSSH.ssh_is_connected(session.get()));
+    return raw_session && static_cast<bool>(MP_LIBSSH.ssh_is_connected(raw_session.get()));
 }
 
 bool mp::PlainSSHSession::is_moved() const
 {
-    return !session;
+    return !raw_session;
 }
