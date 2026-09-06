@@ -90,12 +90,23 @@ final daemonAvailableProvider = Provider((ref) {
   final error = ref.watch(pollingProvider).error;
   if (error == null) return true;
   if (error case GrpcError grpcError) {
+    if (grpcError.code != StatusCode.unavailable) return true;
     final message = grpcError.message ?? '';
-    if (message.contains('failed to obtain exit status for remote process')) {
-      return true;
-    }
+    return message.contains('failed to obtain exit status for remote process');
   }
   return false;
+});
+
+final daemonBackendErrorProvider = Provider<String?>((ref) {
+  if (!ref.watch(daemonAvailableProvider)) return null;
+
+  final error = ref.watch(pollingProvider).error;
+  if (error case GrpcError grpcError) {
+    if (grpcError.code == StatusCode.unavailable) return null;
+    final message = grpcError.message;
+    return message == null || message.isEmpty ? '$grpcError' : message;
+  }
+  return null;
 });
 
 final daemonInfoProvider = FutureProvider((ref) {
