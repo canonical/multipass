@@ -31,8 +31,8 @@
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/vm_specs.h>
-#include <shared/windows/windows_feature_status.h>
 #include <shared/windows/net_io_api.h>
+#include <shared/windows/windows_feature_status.h>
 
 #include <computenetwork.h>
 

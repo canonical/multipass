@@ -234,13 +234,11 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
             row.Address.Ipv4.sin_addr.S_un.S_un_b = {10, 123, 45, 67};
             row.State = NlnsPermanent;
             row.PhysicalAddressLength = 6;
-            const std::array<unsigned char, 6> physical_address{
-                0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+            const std::array<unsigned char, 6> physical_address{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
             std::ranges::copy(physical_address, row.PhysicalAddress);
         }
 
-        auto table =
-            mhv::IpNetTable{raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
+        auto table = mhv::IpNetTable{raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
         EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
             .WillOnce(Return(ByMove(mhv::IpNetTableResult{NO_ERROR, std::move(table)})));
     }

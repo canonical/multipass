@@ -148,13 +148,12 @@ struct HyperV_ComponentIntegrationTests : public ::testing::Test
         const hyperv::hcn::CreateNetworkParameters& network_parameters,
         const hyperv::hcn::CreateEndpointParameters& endpoint_parameters)
     {
-        const auto& [network_status, network_status_msg] =
-            HCN().create_network(network_parameters);
+        const auto& [network_status, network_status_msg] = HCN().create_network(network_parameters);
         ASSERT_TRUE(network_status.success());
         ASSERT_TRUE(network_status_msg.empty());
 
-        const auto& [endpoint_status, endpoint_status_msg] =
-            HCN().create_endpoint(endpoint_parameters);
+        const auto& [endpoint_status,
+                     endpoint_status_msg] = HCN().create_endpoint(endpoint_parameters);
         ASSERT_TRUE(endpoint_status.success());
         ASSERT_TRUE(endpoint_status_msg.empty());
     }
@@ -173,10 +172,10 @@ private:
 TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ics_dhcp_network)
 {
     // 10.0. 0.0 to 10.255. 255.255.
-    const auto network_parameters =
-        make_network_parameters(hyperv::hcn::HcnNetworkFlags::enable_dhcp_server);
-    const auto endpoint_parameters =
-        make_endpoint_parameters(network_parameters, "52-54-00-E9-36-7E");
+    const auto network_parameters = make_network_parameters(
+        hyperv::hcn::HcnNetworkFlags::enable_dhcp_server);
+    const auto endpoint_parameters = make_endpoint_parameters(network_parameters,
+                                                              "52-54-00-E9-36-7E");
     prepare_resources("multipass-hyperv-cit-vm", endpoint_parameters, network_parameters);
 
     const auto temp_path = make_tempfile_path(".vhdx");
@@ -197,8 +196,8 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
         }
     }
 
-    const auto network_adapter =
-        make_network_adapter(endpoint_parameters, *endpoint_parameters.mac_address);
+    const auto network_adapter = make_network_adapter(endpoint_parameters,
+                                                      *endpoint_parameters.mac_address);
     const auto create_vm_parameters = make_vm_parameters(
         {{.type = hyperv::hcs::HcsScsiDeviceType::VirtualDisk(),
           .name = "Primary disk",
@@ -243,7 +242,6 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
             std::this_thread::sleep_for(500ms);
     }
     ASSERT_TRUE(neighbor_address);
-
 }
 
 TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn)
@@ -266,10 +264,9 @@ TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn
     ASSERT_NO_FATAL_FAILURE(create_network_and_endpoint(network_parameters, endpoint_parameters));
 
     {
-        const hyperv::hcs::CreateComputeSystemParameters parameters{
-            .name = vm_name,
-            .memory_size_mb = 512,
-            .processor_count = 1};
+        const hyperv::hcs::CreateComputeSystemParameters parameters{.name = vm_name,
+                                                                    .memory_size_mb = 512,
+                                                                    .processor_count = 1};
 
         const auto& [status, status_msg] = HCS().create_compute_system(parameters, handle);
         ASSERT_TRUE(status.success());
@@ -313,8 +310,9 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
     // 10.0. 0.0 to 10.255. 255.255.
     const auto network_parameters = make_network_parameters();
     const auto endpoint_parameters = make_endpoint_parameters(network_parameters);
-    const auto create_vm_parameters =
-        make_vm_parameters({}, {make_network_adapter(endpoint_parameters)});
+    const auto create_vm_parameters = make_vm_parameters(
+        {},
+        {make_network_adapter(endpoint_parameters)});
     prepare_resources(create_vm_parameters.name, endpoint_parameters, network_parameters);
 
     const auto temp_path = make_tempfile_path(".vhdx");
@@ -345,7 +343,6 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
         const auto& [status, status_msg] = HCS().start_compute_system(handle);
         ASSERT_TRUE(status.success());
     }
-
 }
 
 TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_boot)

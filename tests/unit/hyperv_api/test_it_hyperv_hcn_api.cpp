@@ -49,8 +49,7 @@ struct HyperVHCNAPI_IntegrationTests : public ::testing::Test
     {
         return {.name = name,
                 .guid = use_braced_guid ? braced_network_guid : network_guid,
-                .ipams = {{.type = HcnIpamType::Static(),
-                           .subnets = {HcnSubnet{subnet}}}}};
+                .ipams = {{.type = HcnIpamType::Static(), .subnets = {HcnSubnet{subnet}}}}};
     }
 
     static CreateEndpointParameters make_endpoint_parameters(
@@ -65,8 +64,8 @@ struct HyperVHCNAPI_IntegrationTests : public ::testing::Test
 
 TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_network)
 {
-    const auto params =
-        make_network_parameters("multipass-hyperv-api-hcn-create-delete-test", true);
+    const auto params = make_network_parameters("multipass-hyperv-api-hcn-create-delete-test",
+                                                true);
 
     (void)HCN().delete_network(params.guid);
 
@@ -98,8 +97,7 @@ TEST_F(HyperVHCNAPI_IntegrationTests, enumerate_networks)
         std::vector<std::string> guids;
         const auto result = HCN().enumerate_networks(guids);
         ASSERT_TRUE(result);
-        EXPECT_NE(std::find(guids.cbegin(), guids.cend(), network_guid),
-                  guids.cend());
+        EXPECT_NE(std::find(guids.cbegin(), guids.cend(), network_guid), guids.cend());
     }
 
     {
@@ -111,8 +109,7 @@ TEST_F(HyperVHCNAPI_IntegrationTests, enumerate_networks)
         std::vector<std::string> guids;
         const auto result = HCN().enumerate_networks(guids);
         ASSERT_TRUE(result);
-        EXPECT_EQ(std::find(guids.cbegin(), guids.cend(), network_guid),
-                  guids.cend());
+        EXPECT_EQ(std::find(guids.cbegin(), guids.cend(), network_guid), guids.cend());
     }
 }
 
@@ -151,8 +148,8 @@ TEST_F(HyperVHCNAPI_IntegrationTests, query_nonexistent_network)
 
 TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
 {
-    const auto network_params =
-        make_network_parameters("multipass-hyperv-api-hcn-create-delete-test");
+    const auto network_params = make_network_parameters(
+        "multipass-hyperv-api-hcn-create-delete-test");
     const auto endpoint_params = make_endpoint_parameters(network_params);
 
     (void)HCN().delete_network(network_params.guid);
@@ -185,8 +182,8 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
 
 TEST_F(HyperVHCNAPI_IntegrationTests, query_endpoint_returns_host_assigned_ipv4)
 {
-    const auto network_params =
-        make_network_parameters("multipass-hyperv-api-hcn-query-endpoint-test");
+    const auto network_params = make_network_parameters(
+        "multipass-hyperv-api-hcn-query-endpoint-test");
     const auto endpoint_params = make_endpoint_parameters(network_params);
 
     auto cleanup = sg::make_scope_guard([&]() noexcept {
@@ -219,10 +216,9 @@ TEST_F(HyperVHCNAPI_IntegrationTests, query_endpoint_returns_host_assigned_ipv4)
 
 TEST_F(HyperVHCNAPI_IntegrationTests, create_endpoint_explicit_mac)
 {
-    const auto network_params =
-        make_network_parameters("multipass-hyperv-api-hcn-create-delete-test");
-    const auto endpoint_params =
-        make_endpoint_parameters(network_params, "00-11-22-33-44-55");
+    const auto network_params = make_network_parameters(
+        "multipass-hyperv-api-hcn-create-delete-test");
+    const auto endpoint_params = make_endpoint_parameters(network_params, "00-11-22-33-44-55");
 
     (void)HCN().delete_network(network_params.guid);
 

@@ -175,24 +175,21 @@ TEST_F(PermanentIpv4Neighbor, findsEntryByPhysicalAddress)
     const std::array<unsigned char, 6> physical_address{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
     std::ranges::copy(physical_address, row.PhysicalAddress);
 
-    auto table = mp::hyperv::IpNetTable{
-        raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
+    auto table = mp::hyperv::IpNetTable{raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
         .WillOnce(Return(ByMove(mp::hyperv::IpNetTableResult{NO_ERROR, std::move(table)})));
 
-    EXPECT_EQ(mp::permanent_ipv4_neighbor("AA-BB-CC-DD-EE-FF"),
-              "10.123.45.67");
+    EXPECT_EQ(mp::permanent_ipv4_neighbor("AA-BB-CC-DD-EE-FF"), "10.123.45.67");
 }
 
 TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenGetIpNetTableFails)
 {
-    auto logger_scope =
-        expect_only_log(mpl::Level::error, "GetIpNetTable2 failed with error code 5");
-    auto table =
-        mp::hyperv::IpNetTable{nullptr, [](MIB_IPNET_TABLE2*) {}};
+    auto logger_scope = expect_only_log(mpl::Level::error,
+                                        "GetIpNetTable2 failed with error code 5");
+    auto table = mp::hyperv::IpNetTable{nullptr, [](MIB_IPNET_TABLE2*) {}};
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-        .WillOnce(Return(ByMove(mp::hyperv::IpNetTableResult{ERROR_ACCESS_DENIED,
-                                                             std::move(table)})));
+        .WillOnce(
+            Return(ByMove(mp::hyperv::IpNetTableResult{ERROR_ACCESS_DENIED, std::move(table)})));
 
     EXPECT_FALSE(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff"));
 }
