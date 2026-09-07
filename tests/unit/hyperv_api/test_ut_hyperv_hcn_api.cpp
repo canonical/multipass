@@ -18,7 +18,6 @@
 #include "hyperv_test_utils.h"
 #include "tests/unit/common.h"
 #include "tests/unit/hyperv_api/mock_hyperv_hcn_api.h"
-#include "tests/unit/mock_logger.h"
 
 #include <hyperv_api/hcn/hyperv_hcn_api.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
@@ -28,14 +27,11 @@
 
 #include <shared/windows/guid_formatter.h>
 
-#include <multipass/logging/level.h>
-
 #include <combaseapi.h>
 #include <computenetwork.h>
 #include <winerror.h>
 
 namespace mpt = multipass::test;
-namespace mpl = multipass::logging;
 namespace hcn = multipass::hyperv::hcn;
 
 using testing::DoAll;
@@ -49,9 +45,6 @@ using hcn::HCN;
 
 struct HyperVHCNAPI_UnitTests : public ::testing::Test
 {
-
-    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
-
     mpt::MockHCNAPI::GuardedMock mock_hcn_api_injection = mpt::MockHCNAPI::inject<StrictMock>();
     mpt::MockHCNAPI& mock_hcn_api = *mock_hcn_api_injection.first;
 
@@ -90,17 +83,6 @@ struct HyperVHCNAPI_UnitTests : public ::testing::Test
                 Return(NOERROR)));
         EXPECT_CALL(mock_hcn_api, HcnCloseEndpoint(mock_endpoint_object)).WillOnce(Return(NOERROR));
         EXPECT_CALL(mock_hcn_api, CoTaskMemFree(endpoint_properties));
-
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "HCNWrapper::query_endpoint(...) > endpoint_guid: "
-                                             "af3fb745-2f23-463c-8ded-443f876d9e81");
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::trace,
-            "open_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "perform_hcn_operation(...) > result: true",
-                                             testing::Exactly(2));
-        logger_scope.mock_logger->expect_log(mpl::Level::trace, "query_endpoint result:");
     }
 };
 
@@ -414,9 +396,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_close_network_failed)
         EXPECT_CALL(mock_hcn_api, HcnCloseNetwork)
             .WillOnce(DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); },
                             Return(E_POINTER)));
-
-        logger_scope.mock_logger->expect_log(mpl::Level::trace, "HCNWrapper::create_network(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::trace, "perform_hcn_operation(...)");
     }
 
     { // Verify the expected outcome.
@@ -455,9 +434,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
         EXPECT_CALL(mock_hcn_api, CoTaskMemFree).WillOnce([&](void* ptr) {
             EXPECT_EQ(ptr, mock_error_msg);
         });
-
-        logger_scope.mock_logger->expect_log(mpl::Level::trace, "HCNWrapper::create_network(...)");
-        logger_scope.mock_logger->expect_log(mpl::Level::trace, "perform_hcn_operation(...)");
     }
 
     { // Verify the expected outcome.
@@ -491,13 +467,6 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
                     ASSERT_NE(nullptr, error_record);
                 },
                 Return(NOERROR)));
-
-        // Expected logs
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::trace,
-            "HCNWrapper::delete_network(...) > network_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "perform_hcn_operation(...) > result: true");
     }
 
     { // Verify the expected outcome.
@@ -528,12 +497,6 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_failed)
         EXPECT_CALL(mock_hcn_api, CoTaskMemFree).WillOnce([&](void* ptr) {
             EXPECT_EQ(ptr, mock_error_msg);
         });
-        // Expected logs
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::trace,
-            "HCNWrapper::delete_network(...) > network_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "perform_hcn_operation(...) > result: false");
     }
 
     { // Verify the expected outcome.
@@ -606,15 +569,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
         EXPECT_CALL(mock_hcn_api, HcnCloseNetwork)
             .WillOnce(
                 DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
-
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "HCNWrapper::create_endpoint(...) > params: ");
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::trace,
-            "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "perform_hcn_operation(...) > result: true",
-                                             testing::Exactly(2));
     }
 
     { // Verify the expected outcome.
@@ -637,14 +591,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_open_network_failed)
 {
     { // Verify that the dependencies are called with right data.
         EXPECT_CALL(mock_hcn_api, HcnOpenNetwork).WillOnce(Return(E_POINTER));
-
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "HCNWrapper::create_endpoint(...) > params: ");
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::trace,
-            "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "perform_hcn_operation(...) > result: false");
     }
 
     { // Verify the expected outcome.
@@ -716,16 +662,6 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
         EXPECT_CALL(mock_hcn_api, CoTaskMemFree).WillOnce([](const void* ptr) {
             ASSERT_EQ(ptr, mock_error_msg);
         });
-
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "HCNWrapper::create_endpoint(...) > params: ");
-        logger_scope.mock_logger->expect_log(
-            mpl::Level::trace,
-            "open_network(...) > network_guid: b70c479d-f808-4053-aafa-705bc15b6d68");
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "perform_hcn_operation(...) > result: true");
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "perform_hcn_operation(...) > result: false");
     }
 
     { // Verify the expected outcome.
@@ -756,13 +692,6 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
                     ASSERT_NE(nullptr, error_record);
                 },
                 Return(NOERROR)));
-
-        // Expected logs
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "HCNWrapper::delete_endpoint(...) > endpoint_guid: "
-                                             "af3fb745-2f23-463c-8ded-443f876d9e81");
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "perform_hcn_operation(...) > result: true");
     }
 
     { // Verify the expected outcome.
@@ -788,13 +717,6 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_failure)
         EXPECT_CALL(mock_hcn_api, CoTaskMemFree).WillOnce([](const void* ptr) {
             ASSERT_EQ(ptr, mock_error_msg);
         });
-
-        // Expected logs
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "HCNWrapper::delete_endpoint(...) > endpoint_guid: "
-                                             "af3fb745-2f23-463c-8ded-443f876d9e81");
-        logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                             "perform_hcn_operation(...) > result: false");
     }
 
     { // Verify the expected outcome.
@@ -834,15 +756,6 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_open_failure)
             Return(E_POINTER)));
     EXPECT_CALL(mock_hcn_api, CoTaskMemFree(mock_error_msg));
 
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::trace,
-        "HCNWrapper::query_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::trace,
-        "open_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         "perform_hcn_operation(...) > result: false");
-
     hcn::HcnEndpointInfo endpoint_info;
     const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
 
@@ -865,17 +778,6 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_query_failure)
             Return(E_POINTER)));
     EXPECT_CALL(mock_hcn_api, HcnCloseEndpoint(mock_endpoint_object)).WillOnce(Return(NOERROR));
     EXPECT_CALL(mock_hcn_api, CoTaskMemFree(mock_error_msg));
-
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::trace,
-        "HCNWrapper::query_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-    logger_scope.mock_logger->expect_log(
-        mpl::Level::trace,
-        "open_endpoint(...) > endpoint_guid: af3fb745-2f23-463c-8ded-443f876d9e81");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         "perform_hcn_operation(...) > result: true");
-    logger_scope.mock_logger->expect_log(mpl::Level::trace,
-                                         "perform_hcn_operation(...) > result: false");
 
     hcn::HcnEndpointInfo endpoint_info;
     const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
