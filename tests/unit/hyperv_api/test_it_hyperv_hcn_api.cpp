@@ -173,14 +173,15 @@ TEST_F(HyperVHCNAPI_IntegrationTests, create_delete_endpoint)
 
 TEST_F(HyperVHCNAPI_IntegrationTests, query_endpoint_returns_host_assigned_ipv4)
 {
-    CreateNetworkParameters network_params{};
-    network_params.name = "multipass-hyperv-api-hcn-query-endpoint-test";
-    network_params.guid = "b70c479d-f808-4053-aafa-705bc15b6d68";
-    network_params.ipams = {HcnIpam{HcnIpamType::Static(), {HcnSubnet{"172.50.224.0/20"}}}};
+    const CreateNetworkParameters network_params{
+        .name = "multipass-hyperv-api-hcn-query-endpoint-test",
+        .guid = "b70c479d-f808-4053-aafa-705bc15b6d68",
+        .ipams = {{.type = HcnIpamType::Static(),
+                   .subnets = {HcnSubnet{"172.50.224.0/20"}}}}};
 
-    CreateEndpointParameters endpoint_params{};
-    endpoint_params.network_guid = network_params.guid;
-    endpoint_params.endpoint_guid = "b70c479d-f808-4053-aafa-705bc15b6d70";
+    const CreateEndpointParameters endpoint_params{
+        .network_guid = network_params.guid,
+        .endpoint_guid = "b70c479d-f808-4053-aafa-705bc15b6d70"};
 
     auto cleanup = sg::make_scope_guard([&]() noexcept {
         (void)HCN().delete_endpoint(endpoint_params.endpoint_guid);
