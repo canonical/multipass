@@ -143,6 +143,7 @@ add_executable(multipass_cpp_tests
   test_ubuntu_image_host.cpp
   test_url_downloader.cpp
   test_utils.cpp
+  test_vm_image_info.cpp
   test_vm_mount.cpp
   test_with_mocked_bin_path.cpp
   test_xz_image_decoder.cpp
