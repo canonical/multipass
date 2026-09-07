@@ -39,10 +39,12 @@ compiler and related tooling or fix a broken `visualstudio2022buildtools` instal
 You need to enable symlinks in Windows Git, have a look at
 [the git-for-windows docs](https://github.com/git-for-windows/git/wiki/Symbolic-Links).
 
+### System requirements
+
 For Windows 11:
 
-1. Go to "Developer Settings"
-2. Enable "Developer mode"
+1. Enable "Developer mode" from "Settings > System > Advanced (or For developers)".
+2. Disable "Smart App Control" from "Settings > Privacy & security > Windows Security > App & browser control".
 
 ### Path setup
 
@@ -53,6 +55,8 @@ Search for "Edit environment variables for your account" then edit your Path var
 - `C:\Program Files\CMake\bin`
 
 ### Console setup
+
+You can select one of the following method below. 
 
 #### Cmder
 
@@ -137,8 +141,12 @@ cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-pa
 Finally, to build the project, run:
 
 ```[batch]
-cmake --build . --parallel
+cmake --build . [--parallel <N>]
 ```
+
+Tips:
+- You may use `--parallel <N>` to speed up the build.
+- However, make sure you have enough physical memory and swap space available before doing so (the build step has a very high memory footprint).
 
 This builds `multipass`, `multipassd`, and `multipass_cpp_tests`.
 

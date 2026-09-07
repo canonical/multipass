@@ -3,6 +3,12 @@
         "${workspaceFolder}/build": true,
         "${workspaceFolder}/.git": true
     },
+
+    // Configuration and build can be slow, so disabling these
+    // by default.
     "cmake.configureOnOpen": false,
-    "cmake.buildBeforeRun": false
+    "cmake.buildBeforeRun": false,
+
+    // Required on Windows to find the compiler.
+    "cmake.useVsDeveloperEnvironment": "always"
 }

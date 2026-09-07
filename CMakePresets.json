@@ -48,6 +48,7 @@
             "name": "local-debug",
             "description": "Preset for locally generating a debug build.",
             "inherits": "common",
+            "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/debug",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
@@ -61,6 +62,7 @@
             "name": "local-release",
             "description": "Preset for locally generating a release build.",
             "inherits": "common",
+            "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/release",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",

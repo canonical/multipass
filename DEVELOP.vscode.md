@@ -1,6 +1,7 @@
 # Development setup for VSCode
 
-This document describes how to setup VSCode if you wish to contribute to Multipass using this IDE.
+This document describes how to setup VSCode if you wish to contribute to Multipass using this IDE.  
+Make sure you have gone through `BUILD.<os>.md` first.
 
 ## Requirements
 
@@ -21,9 +22,8 @@ This document describes how to setup VSCode if you wish to contribute to Multipa
 
 ## Building
 
-Once `CMake Tools` is installed, a CMake tab should be available from the toolbar.
-In it, you can select under `Configure` the following preset: `local-multi-config`.
-This preset uses a multi-configuration generator, which will allow to switch from `Release` to `Debug` easily.
+Once `CMake Tools` is installed, a CMake tab should be available from the primary side bar.
+In it, you can select under `Configure` one of the following preset: `local-debug` or `local-release`, depending on the build type you want to generate.
 
 To parallelize the build accross several jobs, you may configure the `cmake.parallelJobs` settings:
 - Open the user settings (`Ctrl+Shift+P` to open the command prompt, then `Preferences: Open User Settings`).
