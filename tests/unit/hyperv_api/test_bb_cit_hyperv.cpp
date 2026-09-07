@@ -45,6 +45,7 @@
 #include <chrono>
 #include <fstream>
 #include <thread>
+#include <utility>
 
 namespace multipass::test
 {
@@ -58,23 +59,53 @@ using namespace std::chrono_literals;
 // These tests ensure that the API's working together as expected.
 struct HyperV_ComponentIntegrationTests : public ::testing::Test
 {
+    static hyperv::hcn::CreateNetworkParameters make_network_parameters(
+        hyperv::hcn::HcnNetworkFlags flags = hyperv::hcn::HcnNetworkFlags::none)
+    {
+        return {.name = "multipass-hyperv-cit",
+                .flags = flags,
+                .guid = "b4d77a0e-2507-45f0-99aa-c638f3e47486",
+                .ipams = {{.type = hyperv::hcn::HcnIpamType::Static(),
+                           .subnets = {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}}};
+    }
+
+    static hyperv::hcn::CreateEndpointParameters make_endpoint_parameters(
+        const hyperv::hcn::CreateNetworkParameters& network_parameters,
+        std::optional<std::string> mac_address = std::nullopt)
+    {
+        return {.network_guid = network_parameters.guid,
+                .endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029f",
+                .mac_address = std::move(mac_address)};
+    }
+
+    static hyperv::hcs::HcsNetworkAdapter make_network_adapter(
+        const hyperv::hcn::CreateEndpointParameters& endpoint_parameters,
+        std::string mac_address = "00-15-5D-9D-CF-69")
+    {
+        return {.endpoint_guid = endpoint_parameters.endpoint_guid,
+                .mac_address = std::move(mac_address)};
+    }
+
+    static hyperv::hcs::CreateComputeSystemParameters make_vm_parameters(
+        std::vector<hyperv::hcs::HcsScsiDevice> scsi_devices = {},
+        std::vector<hyperv::hcs::HcsNetworkAdapter> network_adapters = {})
+    {
+        return {.name = "multipass-hyperv-cit-vm",
+                .memory_size_mb = 512,
+                .processor_count = 1,
+                .scsi_devices = std::move(scsi_devices),
+                .network_adapters = std::move(network_adapters)};
+    }
 };
 
 TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ics_dhcp_network)
 {
     hyperv::hcs::HcsSystemHandle handle{nullptr};
     // 10.0. 0.0 to 10.255. 255.255.
-    const hyperv::hcn::CreateNetworkParameters network_parameters{
-        .name = "multipass-hyperv-cit",
-        .flags = hyperv::hcn::HcnNetworkFlags::enable_dhcp_server,
-        .guid = "b4d77a0e-2507-45f0-99aa-c638f3e47486",
-        .ipams = {{.type = hyperv::hcn::HcnIpamType::Static(),
-                   .subnets = {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}}};
-
-    const hyperv::hcn::CreateEndpointParameters endpoint_parameters{
-        .network_guid = network_parameters.guid,
-        .endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029f",
-        .mac_address = "52-54-00-E9-36-7E"};
+    const auto network_parameters =
+        make_network_parameters(hyperv::hcn::HcnNetworkFlags::enable_dhcp_server);
+    const auto endpoint_parameters =
+        make_endpoint_parameters(network_parameters, "52-54-00-E9-36-7E");
 
     auto cleanup = sg::make_scope_guard([&]() noexcept {
         if (handle)
@@ -103,23 +134,17 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
         }
     }
 
-    const hyperv::hcs::HcsNetworkAdapter network_adapter{
-        .endpoint_guid = endpoint_parameters.endpoint_guid,
-        .mac_address = *endpoint_parameters.mac_address};
-
-    const hyperv::hcs::CreateComputeSystemParameters create_vm_parameters{
-        .name = "multipass-hyperv-cit-vm",
-        .memory_size_mb = 512,
-        .processor_count = 1,
-        .scsi_devices = {
-            {.type = hyperv::hcs::HcsScsiDeviceType::VirtualDisk(),
-             .name = "Primary disk",
-             .path = temp_path},
-            {.type = hyperv::hcs::HcsScsiDeviceType::Iso(),
-             .name = "Cloud-init ISO",
-             .path = cloud_init_iso_path,
-             .read_only = true}},
-        .network_adapters = {network_adapter}};
+    const auto network_adapter =
+        make_network_adapter(endpoint_parameters, *endpoint_parameters.mac_address);
+    const auto create_vm_parameters = make_vm_parameters(
+        {{.type = hyperv::hcs::HcsScsiDeviceType::VirtualDisk(),
+          .name = "Primary disk",
+          .path = temp_path},
+         {.type = hyperv::hcs::HcsScsiDeviceType::Iso(),
+          .name = "Cloud-init ISO",
+          .path = cloud_init_iso_path,
+          .read_only = true}},
+        {network_adapter});
 
     if (HCS().open_compute_system(create_vm_parameters.name, handle))
     {
@@ -275,22 +300,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
 {
     hyperv::hcs::HcsSystemHandle handle{nullptr};
     // 10.0. 0.0 to 10.255. 255.255.
-    const auto network_parameters = []() {
-        hyperv::hcn::CreateNetworkParameters network_parameters{};
-        network_parameters.name = "multipass-hyperv-cit";
-        network_parameters.guid = "b4d77a0e-2507-45f0-99aa-c638f3e47486";
-        network_parameters.ipams = {
-            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
-                                 {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}};
-        return network_parameters;
-    }();
-
-    const auto endpoint_parameters = [&network_parameters]() {
-        hyperv::hcn::CreateEndpointParameters endpoint_parameters{};
-        endpoint_parameters.network_guid = network_parameters.guid;
-        endpoint_parameters.endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029f";
-        return endpoint_parameters;
-    }();
+    const auto network_parameters = make_network_parameters();
+    const auto endpoint_parameters = make_endpoint_parameters(network_parameters);
 
     const auto temp_path = make_tempfile_path(".vhdx");
 
@@ -299,21 +310,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
         .path = temp_path,
         .predecessor = {}};
 
-    const auto network_adapter = [&endpoint_parameters]() {
-        hyperv::hcs::HcsNetworkAdapter network_adapter{};
-        network_adapter.endpoint_guid = endpoint_parameters.endpoint_guid;
-        network_adapter.mac_address = "00-15-5D-9D-CF-69";
-        return network_adapter;
-    }();
-
-    const auto create_vm_parameters = [&network_adapter]() {
-        hyperv::hcs::CreateComputeSystemParameters vm_parameters{};
-        vm_parameters.name = "multipass-hyperv-cit-vm";
-        vm_parameters.processor_count = 1;
-        vm_parameters.memory_size_mb = 512;
-        vm_parameters.network_adapters.push_back(network_adapter);
-        return vm_parameters;
-    }();
+    const auto network_adapter = make_network_adapter(endpoint_parameters);
+    const auto create_vm_parameters = make_vm_parameters({}, {network_adapter});
 
     if (HCS().open_compute_system(create_vm_parameters.name, handle))
     {
@@ -362,22 +360,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
 {
     hyperv::hcs::HcsSystemHandle handle{nullptr};
     // 10.0. 0.0 to 10.255. 255.255.
-    const auto network_parameters = []() {
-        hyperv::hcn::CreateNetworkParameters network_parameters{};
-        network_parameters.name = "multipass-hyperv-cit";
-        network_parameters.guid = "b4d77a0e-2507-45f0-99aa-c638f3e47486";
-        network_parameters.ipams = {
-            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
-                                 {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}};
-        return network_parameters;
-    }();
-
-    const auto endpoint_parameters = [&network_parameters]() {
-        hyperv::hcn::CreateEndpointParameters endpoint_parameters{};
-        endpoint_parameters.network_guid = network_parameters.guid;
-        endpoint_parameters.endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029f";
-        return endpoint_parameters;
-    }();
+    const auto network_parameters = make_network_parameters();
+    const auto endpoint_parameters = make_endpoint_parameters(network_parameters);
 
     // Remove remnants from previous tests, if any.
     (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
@@ -390,20 +374,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
         .path = temp_path,
         .predecessor = {}};
 
-    const auto create_vm_parameters = []() {
-        hyperv::hcs::CreateComputeSystemParameters vm_parameters{};
-        vm_parameters.name = "multipass-hyperv-cit-vm";
-        vm_parameters.processor_count = 1;
-        vm_parameters.memory_size_mb = 512;
-        return vm_parameters;
-    }();
-
-    const auto network_adapter = [&endpoint_parameters]() {
-        hyperv::hcs::HcsNetworkAdapter network_adapter{};
-        network_adapter.endpoint_guid = endpoint_parameters.endpoint_guid;
-        network_adapter.mac_address = "00-15-5D-9D-CF-69";
-        return network_adapter;
-    }();
+    const auto create_vm_parameters = make_vm_parameters();
+    const auto network_adapter = make_network_adapter(endpoint_parameters);
 
     // Remove remnants from previous tests, if any.
     {
