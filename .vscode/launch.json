@@ -23,9 +23,17 @@
         {
             "id": "gui",
             "type": "command",
-            "command": "cmake.launchTargetPath",
+            "command": "cmake.cacheVariable",
             "args": {
-                "targetName": "multipass_gui"
+                "name": "MULTIPASS_GUI_EXECUTABLE_FULL_PATH"
+            }
+        },
+        {
+            "id": "gui_folder",
+            "type": "command",
+            "command": "cmake.cacheVariable",
+            "args": {
+                "name": "MULTIPASS_GUI_EXECUTABLE_FOLDER_PATH"
             }
         },
         {
@@ -37,7 +45,7 @@
     ],
     "configurations": [
         {
-            "name": "Debug CLI",
+            "name": "Debug CLI (Linux/macOS)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${input:cli}",
@@ -62,10 +70,15 @@
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
                 }
-            ]
+            ],
+            "windows": {
+                "presentation": {
+                    "hidden": true
+                }
+            }
         },
         {
-            "name": "Debug GUI",
+            "name": "Debug GUI (Linux/macOS)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${input:gui}",
@@ -87,10 +100,15 @@
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
                 }
-            ]
+            ],
+            "windows": {
+                "presentation": {
+                    "hidden": true
+                }
+            }
         },
         {
-            "name": "Attach to daemon",
+            "name": "Attach to daemon (Linux/macOS)",
             "type": "cppdbg",
             "request": "attach",
             "program": "${input:daemon}",
@@ -106,7 +124,65 @@
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
                 }
-            ]
+            ],
+            "windows": {
+                "presentation": {
+                    "hidden": true
+                }
+            }
+        },
+        {
+            "name": "Debug CLI (Windows)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${input:cli}",
+            "cwd": "${command:cmake.buildDirectory}",
+            "args": [
+                "${input:cli_args}"
+            ],
+            "presentation": {
+                "hidden": true
+            },
+            "windows": {
+                "presentation": {
+                    "hidden": false
+                }
+            }
+        },
+        {
+            "name": "Debug GUI (Windows)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${input:gui}",
+            "cwd": "${command:cmake.buildDirectory}",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${env:PATH};${command:cmake.buildDirectory}/bin;${input:gui_folder}"
+                }
+            ],
+            "presentation": {
+                "hidden": true
+            },
+            "windows": {
+                "presentation": {
+                    "hidden": false
+                }
+            }
+        },
+        {
+            "name": "Attach to daemon (Windows)",
+            "type": "cppvsdbg",
+            "request": "attach",
+            "program": "${input:daemon}",
+            "presentation": {
+                "hidden": true
+            },
+            "windows": {
+                "presentation": {
+                    "hidden": false
+                }
+            }
         }
     ]
 }

@@ -173,7 +173,7 @@ Finally, to create the installer, run `cmake --build . --target package`.
 
 ## Running `multipass`
 
-### Enable Hyper-V
+### Enable Hyper-V and Virtual Machine Platform
 
 Before starting `multipassd`, you'll have to enable the Hyper-V functionality in Windows 10/11 Pro.
 See: [Install Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v)
@@ -182,6 +182,7 @@ Press Windows Key + X, Select Windows PowerShell (Admin) or Terminal(Admin) and 
 
 ```[pwsh]
 Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All
+Enable-WindowsOptionalFeature -Online -FeatureName:VirtualMachinePlatform -All
 ```
 
 ### Start the daemon (`multipassd`)
