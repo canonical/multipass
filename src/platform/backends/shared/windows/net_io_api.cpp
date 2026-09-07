@@ -15,10 +15,17 @@
  *
  */
 
-#include <hyperv_api/net_io_api.h>
+#include "net_io_api.h"
 
 namespace multipass::hyperv
 {
+namespace
+{
+void free_mib_table(MIB_IPNET_TABLE2* table)
+{
+    ::FreeMibTable(table);
+}
+} // namespace
 
 NetIOAPI::NetIOAPI(const Singleton<NetIOAPI>::PrivatePass& pass) noexcept
     : Singleton<NetIOAPI>::Singleton{pass}
@@ -41,4 +48,10 @@ DWORD NetIOAPI::ConvertInterfaceAliasToLuid(const WCHAR* InterfaceName,
     return ::ConvertInterfaceAliasToLuid(InterfaceName, InterfaceLuid);
 }
 
+IpNetTableResult NetIOAPI::GetIpNetTable2(ADDRESS_FAMILY Family) const
+{
+    PMIB_IPNET_TABLE2 table{};
+    const auto error = ::GetIpNetTable2(Family, &table);
+    return {error, IpNetTable{table, &free_mib_table}};
+}
 } // namespace multipass::hyperv

@@ -21,6 +21,7 @@ add_library(shared_win STATIC
   wsa_init_wrapper.cpp
   windows_version.cpp
   guid_formatter.cpp
+  net_io_api.cpp
   network_utils.cpp
   windows_feature_status.cpp)
 

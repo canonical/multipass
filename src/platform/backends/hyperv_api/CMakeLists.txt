@@ -69,7 +69,6 @@ if(WIN32)
     virtdisk/virtdisk_utils.cpp
     hcs_virtual_machine.cpp
     hcs_virtual_machine_factory.cpp
-    net_io_api.cpp
   )
 
   target_link_libraries(hyperv_api_backend PRIVATE

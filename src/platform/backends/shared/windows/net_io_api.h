@@ -23,10 +23,19 @@
 
 #include <iphlpapi.h>
 
+#include <memory>
+
 #define MP_NETIOAPI multipass::hyperv::NetIOAPI::instance()
 
 namespace multipass::hyperv
 {
+using IpNetTable = std::unique_ptr<MIB_IPNET_TABLE2, void (*)(MIB_IPNET_TABLE2*)>;
+
+struct IpNetTableResult
+{
+    DWORD error;
+    IpNetTable table;
+};
 
 struct NetIOAPI : public Singleton<NetIOAPI>
 {
@@ -36,6 +45,6 @@ struct NetIOAPI : public Singleton<NetIOAPI>
     [[nodiscard]] virtual DWORD SetIpInterfaceEntry(PMIB_IPINTERFACE_ROW Row) const;
     [[nodiscard]] virtual DWORD ConvertInterfaceAliasToLuid(const WCHAR* InterfaceName,
                                                             NET_LUID* InterfaceLuid) const;
+    [[nodiscard]] virtual IpNetTableResult GetIpNetTable2(ADDRESS_FAMILY Family) const;
 };
-
 } // namespace multipass::hyperv

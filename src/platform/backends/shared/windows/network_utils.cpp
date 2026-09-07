@@ -17,6 +17,8 @@
 
 #include "network_utils.h"
 
+#include "net_io_api.h"
+
 #include <multipass/logging/log.h>
 #include <multipass/utils.h>
 
@@ -30,8 +32,9 @@
 #include <winternl.h>
 
 #include <algorithm>
-#include <cctype>
-#include <memory>
+#include <array>
+#include <charconv>
+#include <cstring>
 
 namespace multipass
 {
@@ -40,15 +43,26 @@ namespace
 constexpr auto log_category = "windows-network";
 constexpr std::size_t ethernet_address_length = 6;
 
-std::string canonical_mac_address(const unsigned char* address)
+std::optional<std::array<unsigned char, ethernet_address_length>> physical_address(
+    std::string mac_address)
 {
-    return fmt::format("{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
-                       address[0],
-                       address[1],
-                       address[2],
-                       address[3],
-                       address[4],
-                       address[5]);
+    std::ranges::replace(mac_address, '-', ':');
+    if (!utils::valid_mac_address(mac_address))
+        return std::nullopt;
+
+    std::array<unsigned char, ethernet_address_length> address;
+    for (std::size_t index = 0; index < address.size(); ++index)
+    {
+        unsigned int octet;
+        const auto* begin = mac_address.data() + index * 3;
+        const auto [end, error] = std::from_chars(begin, begin + 2, octet, 16);
+        if (error != std::errc{} || end != begin + 2)
+            return std::nullopt;
+
+        address[index] = static_cast<unsigned char>(octet);
+    }
+
+    return address;
 }
 
 std::string ipv4_to_string(const IN_ADDR& address)
@@ -70,40 +84,28 @@ WindowsNetworkUtils::WindowsNetworkUtils(
 std::optional<std::string> WindowsNetworkUtils::permanent_ipv4_neighbor(
     const std::string& mac_address) const
 {
-    auto canonical_mac = mac_address;
-    std::ranges::replace(canonical_mac, '-', ':');
-    if (!utils::valid_mac_address(canonical_mac))
+    const auto mac = physical_address(mac_address);
+    if (!mac)
     {
         logging::error(log_category, "Invalid MAC address `{}`", mac_address);
         return std::nullopt;
     }
-    std::ranges::transform(canonical_mac, canonical_mac.begin(), [](unsigned char character) {
-        return static_cast<char>(std::tolower(character));
-    });
 
-    PMIB_IPNET_TABLE2 raw_table{};
-    if (const auto result = GetIpNetTable2(AF_INET, &raw_table); result != NO_ERROR)
+    auto result = MP_NETIOAPI.GetIpNetTable2(AF_INET);
+    if (result.error != NO_ERROR)
     {
-        logging::error(log_category, "GetIpNetTable2 failed with error code {}", result);
+        logging::error(log_category, "GetIpNetTable2 failed with error code {}", result.error);
         return std::nullopt;
     }
 
-    const std::unique_ptr<MIB_IPNET_TABLE2, decltype(&FreeMibTable)> table{raw_table,
-                                                                           &FreeMibTable};
-    if (!table)
-    {
-        logging::error(log_category, "GetIpNetTable2 returned no neighbor table");
-        return std::nullopt;
-    }
-
-    const auto matches = [&canonical_mac](const MIB_IPNET_ROW2& row) {
+    const auto matches = [&mac](const MIB_IPNET_ROW2& row) {
         return row.Address.si_family == AF_INET && row.State == NlnsPermanent &&
                row.PhysicalAddressLength == ethernet_address_length &&
-               canonical_mac_address(row.PhysicalAddress) == canonical_mac;
+               std::memcmp(row.PhysicalAddress, mac->data(), mac->size()) == 0;
     };
 
-    const auto* begin = table->Table;
-    const auto* end = begin + table->NumEntries;
+    const auto* begin = result.table->Table;
+    const auto* end = begin + result.table->NumEntries;
     if (const auto row = std::find_if(begin, end, matches); row != end)
         return ipv4_to_string(row->Address.Ipv4.sin_addr);
 

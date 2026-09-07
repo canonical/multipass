@@ -24,7 +24,6 @@
 #include <hyperv_api/hcs_virtual_machine.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
 #include <hyperv_api/hyperv_api_string_conversion.h>
-#include <hyperv_api/net_io_api.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <multipass/constants.h>
@@ -33,6 +32,7 @@
 #include <multipass/utils.h>
 #include <multipass/vm_specs.h>
 #include <shared/windows/windows_feature_status.h>
+#include <shared/windows/net_io_api.h>
 
 #include <computenetwork.h>
 
