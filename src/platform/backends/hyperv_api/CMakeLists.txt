@@ -43,6 +43,7 @@ if(WIN32)
   add_library(hyperv_api_backend STATIC
     hcn/hyperv_hcn_wrapper.cpp
     hcn/hyperv_hcn_api.cpp
+    hcn/hyperv_hcn_endpoint_info.cpp
     hcn/hyperv_hcn_route.cpp
     hcn/hyperv_hcn_subnet.cpp
     hcn/hyperv_hcn_ipam.cpp

@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <boost/json.hpp>
+
 #include <optional>
 #include <string>
 #include <vector>
@@ -28,4 +30,7 @@ struct HcnEndpointInfo
     std::optional<std::string> mac_address;
     std::vector<std::string> ip_addresses;
 };
+
+HcnEndpointInfo tag_invoke(const boost::json::value_to_tag<HcnEndpointInfo>&,
+                           const boost::json::value& json);
 } // namespace multipass::hyperv::hcn

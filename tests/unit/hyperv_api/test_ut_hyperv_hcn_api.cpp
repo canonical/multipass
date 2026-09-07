@@ -914,32 +914,18 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_merges_flattened_ip_configuration)
     EXPECT_EQ(endpoint_info.ip_addresses[1], "172.20.1.2");
 }
 
-TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_rejects_malformed_properties)
+TEST(HcnEndpointInfo, rejects_malformed_ip_configurations)
 {
-    static wchar_t endpoint_properties[] = LR"({"IpConfigurations":"invalid"})";
+    const auto endpoint_properties = boost::json::parse(R"({"IpConfigurations":"invalid"})");
 
-    expect_endpoint_query(endpoint_properties);
-
-    hcn::HcnEndpointInfo endpoint_info;
-    const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
-
-    EXPECT_FALSE(result);
-    EXPECT_EQ(static_cast<HRESULT>(result.code), E_UNEXPECTED);
-    EXPECT_TRUE(endpoint_info.ip_addresses.empty());
+    EXPECT_ANY_THROW(boost::json::value_to<hcn::HcnEndpointInfo>(endpoint_properties));
 }
 
-TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_rejects_malformed_mac_address)
+TEST(HcnEndpointInfo, rejects_malformed_mac_address)
 {
-    static wchar_t endpoint_properties[] = LR"({"MacAddress":42})";
+    const auto endpoint_properties = boost::json::parse(R"({"MacAddress":42})");
 
-    expect_endpoint_query(endpoint_properties);
-
-    hcn::HcnEndpointInfo endpoint_info;
-    const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
-
-    EXPECT_FALSE(result);
-    EXPECT_EQ(static_cast<HRESULT>(result.code), E_UNEXPECTED);
-    EXPECT_FALSE(endpoint_info.mac_address);
+    EXPECT_ANY_THROW(boost::json::value_to<hcn::HcnEndpointInfo>(endpoint_properties));
 }
 
 } // namespace multipass::test

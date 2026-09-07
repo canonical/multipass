@@ -39,6 +39,7 @@
 #include <ztd/out_ptr.hpp>
 
 #include <cassert>
+#include <exception>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -199,40 +200,6 @@ std::pair<OperationResult, UniqueHcnEndpoint> open_endpoint(const std::string& e
     return std::make_pair(result, std::move(endpoint));
 }
 
-std::optional<std::vector<std::string>> endpoint_ip_addresses(const boost::json::object& endpoint)
-{
-    std::vector<std::string> addresses;
-    const auto append_address = [&addresses](const boost::json::value& address) {
-        if (!address.is_string())
-            return false;
-
-        addresses.emplace_back(address.as_string());
-        return true;
-    };
-
-    if (const auto* configurations = endpoint.if_contains("IpConfigurations"))
-    {
-        if (!configurations->is_array())
-            return std::nullopt;
-
-        for (const auto& configuration : configurations->as_array())
-        {
-            if (!configuration.is_object())
-                return std::nullopt;
-
-            if (const auto* address = configuration.as_object().if_contains("IpAddress");
-                address && !append_address(*address))
-                return std::nullopt;
-        }
-    }
-
-    if (const auto* address = endpoint.if_contains("IPAddress");
-        address && !append_address(*address))
-        return std::nullopt;
-
-    return addresses;
-}
-
 } // namespace
 
 // ---------------------------------------------------------
@@ -337,27 +304,16 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
     const auto properties_as_str = wchar_to_utf8(properties.get());
     mpl::trace(log_category, "query_endpoint result: {}", properties_as_str);
 
-    std::error_code ec;
-    const auto parsed = boost::json::parse(properties_as_str, ec);
-    if (ec || !parsed.is_object())
-        return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
-
-    const auto& endpoint_properties = parsed.as_object();
-    auto addresses = endpoint_ip_addresses(endpoint_properties);
-    if (!addresses)
-        return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
-
-    std::optional<std::string> mac_address;
-    if (const auto* value = endpoint_properties.if_contains("MacAddress"))
+    try
     {
-        if (!value->is_string())
-            return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
-
-        mac_address = value->as_string();
+        out_info = boost::json::value_to<HcnEndpointInfo>(boost::json::parse(properties_as_str));
+    }
+    catch (const std::exception& e)
+    {
+        mpl::error(log_category, "query_endpoint(...): failed to parse JSON: {}", e.what());
+        return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
     }
 
-    out_info.mac_address = std::move(mac_address);
-    out_info.ip_addresses = std::move(*addresses);
     return result;
 }
 
