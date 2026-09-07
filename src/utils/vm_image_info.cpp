@@ -41,18 +41,18 @@ mp::VMImageInfo mp::tag_invoke(const boost::json::value_to_tag<mp::VMImageInfo>&
             aliases.push_back(std::move(alias));
     }
 
-    return {aliases,
-            value_to<std::string>(json.at("os")),
-            value_to<std::string>(json.at("release")),
-            value_to<std::string>(json.at("release_title")),
-            value_to<std::string>(json.at("release_codename")),
-            true,
-            value_to<std::string>(arch_json->at("image_location")),
-            value_to<std::string>(arch_json->at("id")),
-            "",
-            value_to<std::string>(arch_json->at("version")),
-            lookup_or<int>(*arch_json, "size", -1),
-            true};
+    return {.aliases = aliases,
+            .os = value_to<std::string>(json.at("os")),
+            .release = value_to<std::string>(json.at("release")),
+            .release_title = value_to<std::string>(json.at("release_title")),
+            .release_codename = value_to<std::string>(json.at("release_codename")),
+            .supported = true,
+            .image_location = value_to<std::string>(arch_json->at("image_location")),
+            .id = value_to<std::string>(arch_json->at("id")),
+            .stream_location = "",
+            .version = value_to<std::string>(arch_json->at("version")),
+            .size = lookup_or<int>(*arch_json, "size", -1),
+            .verify = true};
 }
 
 std::unordered_map<std::string, const mp::VMImageInfo*> mp::map_aliases_to_vm_info(
