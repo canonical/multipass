@@ -59,6 +59,8 @@ using namespace std::chrono_literals;
 // These tests ensure that the API's working together as expected.
 struct HyperV_ComponentIntegrationTests : public ::testing::Test
 {
+    hyperv::hcs::HcsSystemHandle handle{nullptr};
+
     static hyperv::hcn::CreateNetworkParameters make_network_parameters(
         hyperv::hcn::HcnNetworkFlags flags = hyperv::hcn::HcnNetworkFlags::none)
     {
@@ -96,30 +98,91 @@ struct HyperV_ComponentIntegrationTests : public ::testing::Test
                 .scsi_devices = std::move(scsi_devices),
                 .network_adapters = std::move(network_adapters)};
     }
-};
 
-TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ics_dhcp_network)
-{
-    hyperv::hcs::HcsSystemHandle handle{nullptr};
-    // 10.0. 0.0 to 10.255. 255.255.
-    const auto network_parameters =
-        make_network_parameters(hyperv::hcn::HcnNetworkFlags::enable_dhcp_server);
-    const auto endpoint_parameters =
-        make_endpoint_parameters(network_parameters, "52-54-00-E9-36-7E");
+    void prepare_resources(const std::string& vm_name,
+                           const hyperv::hcn::CreateEndpointParameters& endpoint_parameters,
+                           const hyperv::hcn::CreateNetworkParameters& network_parameters,
+                           std::vector<std::string> additional_endpoint_guids = {})
+    {
+        this->vm_name = vm_name;
+        endpoint_guids = {endpoint_parameters.endpoint_guid};
+        endpoint_guids.insert(endpoint_guids.end(),
+                              additional_endpoint_guids.begin(),
+                              additional_endpoint_guids.end());
+        network_guid = network_parameters.guid;
+        remove_resources();
+    }
 
-    auto cleanup = sg::make_scope_guard([&]() noexcept {
+    void remove_resources() noexcept
+    {
+        if (!handle && !vm_name.empty())
+            (void)HCS().open_compute_system(vm_name, handle);
+
         if (handle)
         {
             (void)HCS().terminate_compute_system(handle);
             handle.reset();
         }
-        (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
-        (void)HCN().delete_network(network_parameters.guid);
-    });
+
+        for (const auto& endpoint_guid : endpoint_guids)
+            (void)HCN().delete_endpoint(endpoint_guid);
+
+        if (!network_guid.empty())
+            (void)HCN().delete_network(network_guid);
+    }
+
+    void cleanup_resources() noexcept
+    {
+        remove_resources();
+        vm_name.clear();
+        endpoint_guids.clear();
+        network_guid.clear();
+    }
+
+    auto cleanup_guard()
+    {
+        return sg::make_scope_guard([this]() noexcept { cleanup_resources(); });
+    }
+
+    void create_network_and_endpoint(
+        const hyperv::hcn::CreateNetworkParameters& network_parameters,
+        const hyperv::hcn::CreateEndpointParameters& endpoint_parameters)
+    {
+        const auto& [network_status, network_status_msg] =
+            HCN().create_network(network_parameters);
+        ASSERT_TRUE(network_status.success());
+        ASSERT_TRUE(network_status_msg.empty());
+
+        const auto& [endpoint_status, endpoint_status_msg] =
+            HCN().create_endpoint(endpoint_parameters);
+        ASSERT_TRUE(endpoint_status.success());
+        ASSERT_TRUE(endpoint_status_msg.empty());
+    }
+
+    void TearDown() override
+    {
+        cleanup_resources();
+    }
+
+private:
+    std::string vm_name;
+    std::vector<std::string> endpoint_guids;
+    std::string network_guid;
+};
+
+TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ics_dhcp_network)
+{
+    // 10.0. 0.0 to 10.255. 255.255.
+    const auto network_parameters =
+        make_network_parameters(hyperv::hcn::HcnNetworkFlags::enable_dhcp_server);
+    const auto endpoint_parameters =
+        make_endpoint_parameters(network_parameters, "52-54-00-E9-36-7E");
+    prepare_resources("multipass-hyperv-cit-vm", endpoint_parameters, network_parameters);
 
     const auto temp_path = make_tempfile_path(".vhdx");
     const auto cloud_init_iso_path = std::filesystem::path{test_data_path} / "cloud-init" /
                                      "cloud-init.iso";
+    auto cleanup = cleanup_guard();
     {
         std::ofstream output{static_cast<const std::filesystem::path&>(temp_path),
                              std::ios::binary};
@@ -146,25 +209,7 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
           .read_only = true}},
         {network_adapter});
 
-    if (HCS().open_compute_system(create_vm_parameters.name, handle))
-    {
-        (void)HCS().terminate_compute_system(handle);
-        handle.reset();
-    }
-    (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
-    (void)HCN().delete_network(network_parameters.guid);
-
-    // Create the test network
-    {
-        const auto& [status, status_msg] = HCN().create_network(network_parameters);
-        ASSERT_TRUE(status.success());
-    }
-
-    // Create the test endpoint
-    {
-        const auto& [status, status_msg] = HCN().create_endpoint(endpoint_parameters);
-        ASSERT_TRUE(status.success());
-    }
+    ASSERT_NO_FATAL_FAILURE(create_network_and_endpoint(network_parameters, endpoint_parameters));
 
     // Create test VM
     {
@@ -200,16 +245,10 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
     }
     ASSERT_TRUE(neighbor_address);
 
-    (void)HCS().terminate_compute_system(handle);
-    handle.reset();
-    (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
-    (void)HCN().delete_network(network_parameters.guid);
-    cleanup.dismiss();
 }
 
 TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn)
 {
-    hyperv::hcs::HcsSystemHandle handle{nullptr};
     const hyperv::hcn::CreateNetworkParameters network_parameters{
         .name = "multipass-hyperv-hcn-ip-cit",
         .guid = "b4d77a0e-2507-45f0-99aa-c638f3e47487",
@@ -223,35 +262,9 @@ TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn
         .endpoint_guid = "db4bdbf0-dc14-407f-9780-00155d9dcf69",
         .mac_address = "00-15-5D-9D-CF-69"};
 
-    auto cleanup = sg::make_scope_guard([&]() noexcept {
-        if (handle)
-        {
-            (void)HCS().terminate_compute_system(handle);
-            handle.reset();
-        }
-        (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
-        (void)HCN().delete_network(network_parameters.guid);
-    });
-
-    if (HCS().open_compute_system(vm_name, handle))
-    {
-        (void)HCS().terminate_compute_system(handle);
-        handle.reset();
-    }
-    (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
-    (void)HCN().delete_network(network_parameters.guid);
-
-    {
-        const auto& [status, status_msg] = HCN().create_network(network_parameters);
-        ASSERT_TRUE(status.success());
-        ASSERT_TRUE(status_msg.empty());
-    }
-
-    {
-        const auto& [status, status_msg] = HCN().create_endpoint(endpoint_parameters);
-        ASSERT_TRUE(status.success());
-        ASSERT_TRUE(status_msg.empty());
-    }
+    prepare_resources(vm_name, endpoint_parameters, network_parameters);
+    auto cleanup = cleanup_guard();
+    ASSERT_NO_FATAL_FAILURE(create_network_and_endpoint(network_parameters, endpoint_parameters));
 
     {
         const hyperv::hcs::CreateComputeSystemParameters parameters{
@@ -298,38 +311,22 @@ TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn
 
 TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
 {
-    hyperv::hcs::HcsSystemHandle handle{nullptr};
     // 10.0. 0.0 to 10.255. 255.255.
     const auto network_parameters = make_network_parameters();
     const auto endpoint_parameters = make_endpoint_parameters(network_parameters);
+    const auto create_vm_parameters =
+        make_vm_parameters({}, {make_network_adapter(endpoint_parameters)});
+    prepare_resources(create_vm_parameters.name, endpoint_parameters, network_parameters);
 
     const auto temp_path = make_tempfile_path(".vhdx");
+    auto cleanup = cleanup_guard();
 
     const hyperv::virtdisk::CreateVirtualDiskParameters create_disk_parameters{
         .size_in_bytes = (1024 * 1024) * 512, // 512 MiB
         .path = temp_path,
         .predecessor = {}};
 
-    const auto network_adapter = make_network_adapter(endpoint_parameters);
-    const auto create_vm_parameters = make_vm_parameters({}, {network_adapter});
-
-    if (HCS().open_compute_system(create_vm_parameters.name, handle))
-    {
-        (void)HCS().terminate_compute_system(handle);
-        handle.reset();
-    }
-
-    // Create the test network
-    {
-        const auto& [status, status_msg] = HCN().create_network(network_parameters);
-        ASSERT_TRUE(status.success());
-    }
-
-    // Create the test endpoint
-    {
-        const auto& [status, status_msg] = HCN().create_endpoint(endpoint_parameters);
-        ASSERT_TRUE(status.success());
-    }
+    ASSERT_NO_FATAL_FAILURE(create_network_and_endpoint(network_parameters, endpoint_parameters));
 
     // Create the test VHDX (empty)
     {
@@ -350,67 +347,30 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
         ASSERT_TRUE(status.success());
     }
 
-    (void)HCS().terminate_compute_system(handle);
-    handle.reset();
-    (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
-    (void)HCN().delete_network(network_parameters.guid);
 }
 
 TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_boot)
 {
-    hyperv::hcs::HcsSystemHandle handle{nullptr};
     // 10.0. 0.0 to 10.255. 255.255.
     const auto network_parameters = make_network_parameters();
     const auto endpoint_parameters = make_endpoint_parameters(network_parameters);
-
-    // Remove remnants from previous tests, if any.
-    (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
-    (void)HCN().delete_network(network_parameters.guid);
+    const auto create_vm_parameters = make_vm_parameters();
+    const auto network_adapter = make_network_adapter(endpoint_parameters);
+    constexpr auto extra_endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029b";
+    prepare_resources(create_vm_parameters.name,
+                      endpoint_parameters,
+                      network_parameters,
+                      {extra_endpoint_guid});
 
     const auto temp_path = make_tempfile_path(".vhdx");
+    auto cleanup = cleanup_guard();
 
     const hyperv::virtdisk::CreateVirtualDiskParameters create_disk_parameters{
         .size_in_bytes = (1024 * 1024) * 512, // 512 MiB
         .path = temp_path,
         .predecessor = {}};
 
-    const auto create_vm_parameters = make_vm_parameters();
-    const auto network_adapter = make_network_adapter(endpoint_parameters);
-
-    // Remove remnants from previous tests, if any.
-    {
-        if (HCN().delete_endpoint(endpoint_parameters.endpoint_guid))
-        {
-            GTEST_LOG_(WARNING) << "The test endpoint was already present, deleted it.";
-        }
-        if (HCN().delete_network(network_parameters.guid))
-        {
-            GTEST_LOG_(WARNING) << "The test network was already present, deleted it.";
-        }
-
-        if (HCS().open_compute_system(create_vm_parameters.name, handle))
-        {
-            if (HCS().terminate_compute_system(handle))
-            {
-                GTEST_LOG_(WARNING) << "The test system was already present, terminated it.";
-            }
-            handle.reset();
-        }
-    }
-
-    // Create the test network
-    {
-        const auto& [status, status_msg] = HCN().create_network(network_parameters);
-        ASSERT_TRUE(status.success());
-        ASSERT_TRUE(status_msg.empty());
-    }
-
-    // Create the test endpoint
-    {
-        const auto& [status, status_msg] = HCN().create_endpoint(endpoint_parameters);
-        ASSERT_TRUE(status.success());
-        ASSERT_TRUE(status_msg.empty());
-    }
+    ASSERT_NO_FATAL_FAILURE(create_network_and_endpoint(network_parameters, endpoint_parameters));
 
     // Create the test VHDX (empty)
     {
@@ -456,7 +416,7 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
             const auto& [status,
                          status_msg] = HCN().create_endpoint(hyperv::hcn::CreateEndpointParameters{
                 .network_guid = network_parameters.guid,
-                .endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029b",
+                .endpoint_guid = extra_endpoint_guid,
             });
 
             ASSERT_TRUE(status.success());
@@ -471,11 +431,6 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
         ASSERT_EQ(eps[0], network_adapter.endpoint_guid);
     }
 
-    EXPECT_TRUE(HCS().terminate_compute_system(handle)) << "Terminate system failed!";
-    EXPECT_TRUE(HCN().delete_endpoint(endpoint_parameters.endpoint_guid))
-        << "Delete endpoint failed!";
-    EXPECT_TRUE(HCN().delete_network(network_parameters.guid)) << "Delete network failed!";
-    handle.reset();
 }
 
 TEST_F(HyperV_ComponentIntegrationTests, endpoints_tagged_with_same_name_are_found_and_removed)
