@@ -41,7 +41,7 @@ mp::VMImageInfo mp::tag_invoke(const boost::json::value_to_tag<mp::VMImageInfo>&
             aliases.push_back(std::move(alias));
     }
 
-    return {.aliases = aliases,
+    return {.aliases = std::move(aliases),
             .os = value_to<std::string>(json.at("os")),
             .release = value_to<std::string>(json.at("release")),
             .release_title = value_to<std::string>(json.at("release_title")),
@@ -51,7 +51,7 @@ mp::VMImageInfo mp::tag_invoke(const boost::json::value_to_tag<mp::VMImageInfo>&
             .id = value_to<std::string>(arch_json->at("id")),
             .stream_location = "",
             .version = value_to<std::string>(arch_json->at("version")),
-            .size = lookup_or<int>(*arch_json, "size", -1),
+            .size = lookup_or<int64_t>(*arch_json, "size", int64_t{-1}),
             .verify = true};
 }
 
