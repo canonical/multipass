@@ -21,6 +21,7 @@
 #include <multipass/vm_image_info.h>
 
 #include <boost/json.hpp>
+#include <fmt/format.h>
 
 namespace mp = multipass;
 
@@ -28,24 +29,39 @@ using namespace testing;
 
 namespace
 {
-// A single distro entry, matching the structure of a custom image host manifest value. The
-// `release_title` and `release_codename` fields are given deliberately distinct values so that a
-// mix-up between them (e.g. from positional aggregate initialization) is detected.
-constexpr auto distro_json = R"({
+// keep fields distinct
+const std::string os = "Debian";
+const std::string release = "bookworm";
+const std::string release_codename = "Bookworm";
+const std::string release_title = "12";
+const std::string image_location = "https://example.com/debian-12-amd64.qcow2";
+const std::string id = "debian-12-hash";
+const std::string version = "20250804";
+constexpr auto size = 444896256;
+
+const auto distro_json = fmt::format(R"({{
     "aliases": "debian, bookworm",
-    "os": "Debian",
-    "release": "bookworm",
-    "release_codename": "Bookworm",
-    "release_title": "12",
-    "items": {
-        "x86_64": {
-            "image_location": "https://example.com/debian-12-amd64.qcow2",
-            "id": "debian-12-hash",
-            "version": "20250804",
-            "size": 444896256
-        }
-    }
-})";
+    "os": "{}",
+    "release": "{}",
+    "release_codename": "{}",
+    "release_title": "{}",
+    "items": {{
+        "x86_64": {{
+            "image_location": "{}",
+            "id": "{}",
+            "version": "{}",
+            "size": {}
+        }}
+    }}
+}})",
+                                     os,
+                                     release,
+                                     release_codename,
+                                     release_title,
+                                     image_location,
+                                     id,
+                                     version,
+                                     size);
 } // namespace
 
 TEST(TestVMImageInfo, parsesJsonIntoExpectedFields)
@@ -55,16 +71,16 @@ TEST(TestVMImageInfo, parsesJsonIntoExpectedFields)
     const auto info = value_to<mp::VMImageInfo>(json, mp::ArchContext{"x86_64"});
 
     EXPECT_EQ(info.aliases, (std::vector<std::string>{"debian", "bookworm"}));
-    EXPECT_EQ(info.os, "Debian");
-    EXPECT_EQ(info.release, "bookworm");
+    EXPECT_EQ(info.os, os);
+    EXPECT_EQ(info.release, release);
     // These two must not be swapped: `release_title` is "12", `release_codename` is "Bookworm".
-    EXPECT_EQ(info.release_title, "12");
-    EXPECT_EQ(info.release_codename, "Bookworm");
+    EXPECT_EQ(info.release_title, release_title);
+    EXPECT_EQ(info.release_codename, release_codename);
     EXPECT_TRUE(info.supported);
-    EXPECT_EQ(info.image_location, "https://example.com/debian-12-amd64.qcow2");
-    EXPECT_EQ(info.id, "debian-12-hash");
+    EXPECT_EQ(info.image_location, image_location);
+    EXPECT_EQ(info.id, id);
     EXPECT_EQ(info.stream_location, "");
-    EXPECT_EQ(info.version, "20250804");
-    EXPECT_EQ(info.size, 444896256);
+    EXPECT_EQ(info.version, version);
+    EXPECT_EQ(info.size, size);
     EXPECT_TRUE(info.verify);
 }
