@@ -17,23 +17,10 @@
 
 #pragma once
 
-#include <multipass/singleton.h>
-
 #include <optional>
 #include <string>
 
 namespace multipass
 {
-struct WindowsNetworkUtils : public Singleton<WindowsNetworkUtils>
-{
-    WindowsNetworkUtils(const Singleton<WindowsNetworkUtils>::PrivatePass&) noexcept;
-
-    [[nodiscard]] virtual std::optional<std::string> permanent_ipv4_neighbor(
-        const std::string& mac_address) const;
-};
-
-inline const WindowsNetworkUtils& windows_network_utils()
-{
-    return WindowsNetworkUtils::instance();
-}
+[[nodiscard]] std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_address);
 } // namespace multipass

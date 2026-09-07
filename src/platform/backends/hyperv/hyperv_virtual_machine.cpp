@@ -462,8 +462,7 @@ std::string mp::HyperVVirtualMachine::ssh_username()
 
 std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
 {
-    if (const auto ip_address = windows_network_utils().permanent_ipv4_neighbor(
-            desc.default_mac_address))
+    if (const auto ip_address = permanent_ipv4_neighbor(desc.default_mac_address))
     {
         IPAddress address{*ip_address};
         mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", address.as_string());

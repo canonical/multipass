@@ -238,8 +238,7 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
     std::optional<std::string> neighbor_address;
     for (auto attempts = 0; attempts < 120 && !neighbor_address; ++attempts)
     {
-        neighbor_address = windows_network_utils().permanent_ipv4_neighbor(
-            *endpoint_info.mac_address);
+        neighbor_address = permanent_ipv4_neighbor(*endpoint_info.mac_address);
         if (!neighbor_address)
             std::this_thread::sleep_for(500ms);
     }

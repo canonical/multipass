@@ -75,14 +75,7 @@ std::string ipv4_to_string(const IN_ADDR& address)
 }
 } // namespace
 
-WindowsNetworkUtils::WindowsNetworkUtils(
-    const Singleton<WindowsNetworkUtils>::PrivatePass& pass) noexcept
-    : Singleton<WindowsNetworkUtils>{pass}
-{
-}
-
-std::optional<std::string> WindowsNetworkUtils::permanent_ipv4_neighbor(
-    const std::string& mac_address) const
+std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_address)
 {
     const auto mac = physical_address(mac_address);
     if (!mac)

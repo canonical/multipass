@@ -565,8 +565,7 @@ std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
 
     if (endpoint_info.mac_address)
     {
-        if (const auto ip_address = windows_network_utils().permanent_ipv4_neighbor(
-                *endpoint_info.mac_address))
+        if (const auto ip_address = permanent_ipv4_neighbor(*endpoint_info.mac_address))
         {
             return make_ip_address(*ip_address);
         }
