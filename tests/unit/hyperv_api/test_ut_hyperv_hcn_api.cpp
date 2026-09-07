@@ -82,7 +82,7 @@ struct HyperVHCNAPI_UnitTests : public ::testing::Test
                                          PWSTR* properties,
                                          PWSTR* error_record) {
                     ASSERT_EQ(mock_endpoint_object, endpoint);
-                    ASSERT_STREQ(L"{}", query);
+                    ASSERT_STREQ(LR"({"SchemaVersion":{"Major":2,"Minor":0}})", query);
                     ASSERT_EQ(nullptr, *properties);
                     ASSERT_EQ(nullptr, *error_record);
                     *properties = endpoint_properties;

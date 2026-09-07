@@ -41,6 +41,8 @@ HcnEndpointInfo tag_invoke(const boost::json::value_to_tag<HcnEndpointInfo>&,
         }
     }
 
+    // HCN schema v2 uses IpConfigurations[].IpAddress. Top-level IPAddress belongs to
+    // the legacy HNS schema-v1 endpoint projection, which some Windows versions may return.
     if (const auto* address = endpoint.if_contains("IPAddress"))
         append_address(*address);
 

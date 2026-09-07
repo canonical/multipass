@@ -289,9 +289,10 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
         return open_result;
 
     UniqueCotaskmemString properties{};
+    constexpr auto query = LR"({"SchemaVersion":{"Major":2,"Minor":0}})";
     const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
         return API().HcnQueryEndpointProperties(endpoint.get(),
-                                                L"{}",
+                                                query,
                                                 out_ptr(properties),
                                                 rmsgbuf);
     });
