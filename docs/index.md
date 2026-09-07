@@ -22,43 +22,50 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ## In this documentation
 
-### Basics
+### Basic / Getting started
 
-Start here to install and launch your first Multipass instance.
+- [Install Multipass](how-to-guides-install-multipass) • [Tutorial](tutorial-index)
+- **CLI and GUI interface:** [Command-line interface](reference-command-line-interface-index) • [GUI client](reference-gui-client)
+- **Use a VM: exec and shell:** [Multipass exec and shells](explanation-multipass-exec-and-shells) • [Use an instance](how-to-guides-manage-instances-use-an-instance)
 
-- Tutorial: [Getting stated with Multipass](tutorial-index) • [Install Multipass](how-to-guides-install-multipass) •  [Setup the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Migrate from Hyperkit to QEMU](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos)
+### Core Concepts
 
-### Using Multipass
+- **Virtualization / Virtual machines:** [Host](explanation-host) • [Instance](explanation-instance) • [Platform](explanation-platform)
+- **Manage instances:** [Create an instance](how-to-guides-manage-instances-create-an-instance) • [Modify an instance](how-to-guides-manage-instances-modify-an-instance) • [Remove an instance](how-to-guides-manage-instances-remove-an-instance) • [Instance states](reference-instance-states)
+- **Images:** [Image](explanation-image) • [Build Multipass images with Packer](how-to-guides-customise-multipass-build-multipass-images-with-packer)
 
-Learn the complete lifecycle of a virtual machine.
+### Multipass and its host
 
-- **Instance management:** [Create an instance](how-to-guides-manage-instances-create-an-instance) • [Use an instance](how-to-guides-manage-instances-use-an-instance) • [Modify an instance](how-to-guides-manage-instances-modify-an-instance)  • [Use the primary instance](how-to-guides-manage-instances-use-the-primary-instance) • [Use instance command aliases](how-to-guides-manage-instances-use-instance-command-aliases) • [Remove an instance](how-to-guides-manage-instances-remove-an-instance)
+- **Native drivers:** [Driver](explanation-driver) • [Set up the driver](how-to-guides-customise-multipass-set-up-the-driver)
+- **Multipass architecture:** [Service](explanation-service) • [Reference architecture](explanation-reference-architecture) • [Authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service) • [Authentication](explanation-authentication)
+- **Share data with the host:** [Mount](explanation-mount) • [Share data with an instance](how-to-guides-manage-instances-share-data-with-an-instance) • [Transfer files](reference-command-line-interface-transfer) • [Security considerations](security-considerations-mount) • [ID mapping](explanation-id-mapping)
+- **Network:** [Add a network to an existing instance](how-to-guides-manage-instances-add-a-network-to-an-existing-instance) • [Configure static IPs](how-to-guides-manage-instances-configure-static-ips) • [Set up custom networking](how-to-guides-manage-instances-set-up-custom-networking)
 
-- **Instance customization:** [`cloud-init`](how-to-guides-manage-instances-launch-customized-instances-with-multipass-and-cloud-init) • [Build Multipass images with Packer](how-to-guides-customise-multipass-build-multipass-images-with-packer) • [Set up a graphical interface](how-to-guides-customise-multipass-set-up-a-graphical-interface)
+### Features
 
-- **Interfaces (CLI/GUI):** [Command-line interface](reference-command-line-interface-index) • [GUI client](reference-gui-client) • [Use a different terminal from the system icon](how-to-guides-customise-multipass-use-a-different-terminal-from-the-system-icon) • [How to integrate with Windows Terminal](how-to-guides-customise-multipass-integrate-with-windows-terminal)
+- **Instance customization:** [Launch customized instances with Multipass and cloud-init](how-to-guides-manage-instances-launch-customized-instances-with-multipass-and-cloud-init)
+- **Aliases:** [Alias](explanation-alias) • [Use instance command aliases](how-to-guides-manage-instances-use-instance-command-aliases)
+- **Primary instance:** [Use the primary instance](how-to-guides-manage-instances-use-the-primary-instance)
 
-- **Troubleshooting:** [Access logs](how-to-guides-troubleshoot-access-logs) • [Troubleshoot launch/start issues](how-to-guides-troubleshoot-troubleshoot-launch-start-issues)
+### Lifecycle
 
-### Understanding Multipass
+- **Manage instances:** [Create an instance](how-to-guides-manage-instances-create-an-instance) • [Use an instance](how-to-guides-manage-instances-use-an-instance) • [Modify an instance](how-to-guides-manage-instances-modify-an-instance) • [Use the primary instance](how-to-guides-manage-instances-use-the-primary-instance) • [Use instance command aliases](how-to-guides-manage-instances-use-instance-command-aliases) • [Remove an instance](how-to-guides-manage-instances-remove-an-instance)
+- **Settings:** [Settings](reference-settings-index) • [Settings keys and values](explanation-settings-keys-values) • [Instance name format](reference-instance-name-format)
+- **Instances: snapshots, cloning:** [Snapshot](explanation-snapshot) • [`snapshot`](reference-command-line-interface-snapshot) • [`clone`](reference-command-line-interface-clone)
+- [Uninstall Multipass](how-to-guides-install-multipass-uninstall)
 
-- **Core concepts:** [Instance](explanation-instance) • [Image](explanation-image) • [Snapshot](explanation-snapshot) • [Alias](explanation-alias) • [Service](explanation-service) • [Multipass exec and shells](explanation-multipass-exec-and-shells) • [ID mapping](explanation-id-mapping) • [Reference architecture](explanation-reference-architecture)
+### Quality
 
-- **Virtualization:** [Driver](explanation-driver) • [How to set up the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Migrate from Hyperkit to QEMU on macOS](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos) • [Platform](explanation-platform) • [Host](explanation-host)
-
-- **Configuration:** [Settings](reference-settings-index) • [Settings keys and values](explanation-settings-keys-values) • [Logging levels](reference-logging-levels) • [Configure Multipass's default logging level](how-to-guides-customise-multipass-configure-multipass-default-logging-level) • [Instance name format](reference-instance-name-format) • [Instance states](reference-instance-states)
-
-### Resources and networking
-
-- **Storage:** [Share data with an instance](how-to-guides-manage-instances-share-data-with-an-instance) • [Configure where Multipass stores external data](how-to-guides-customise-multipass-configure-where-multipass-stores-external-data) • [Mount](explanation-mount) • [Mount an encrypted home folder](how-to-guides-troubleshoot-mount-an-encrypted-home-folder)
-
-- **Networking:** [Add a network to an existing instance](how-to-guides-manage-instances-add-a-network-to-an-existing-instance) • [Configure static IPs](how-to-guides-manage-instances-configure-static-ips) • [Troubleshoot networking](how-to-guides-troubleshoot-troubleshoot-networking)
-
-### Security and performance
-
-- **Security:** [Authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service) • [Authentication](explanation-authentication) • [About security](explanation-about-security)
-
+- **Logs and log levels:** [Access logs](how-to-guides-troubleshoot-access-logs) • [Logging levels](reference-logging-levels) • [Configure Multipass's default logging level](how-to-guides-customise-multipass-configure-multipass-default-logging-level)
+- **Security:** [About security](explanation-about-security) • [Authentication](explanation-authentication)
 - **Performance:** [About performance](explanation-about-performance)
+
+### Special use-cases, concerns, and problems
+
+- **Use-cases:** [Set up a graphical interface](how-to-guides-customise-multipass-set-up-a-graphical-interface)
+- **Troubleshooting:** [Troubleshoot launch/start issues](how-to-guides-troubleshoot-troubleshoot-launch-start-issues) • [Mount an encrypted home folder](how-to-guides-troubleshoot-mount-an-encrypted-home-folder) • [Troubleshoot networking](how-to-guides-troubleshoot-troubleshoot-networking)
+- **Migration:** [Migrate from Hyperkit to QEMU on macOS](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos)
+- **Platform specific:** [Set up the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Integrate with Windows Terminal](how-to-guides-customise-multipass-integrate-with-windows-terminal) • [Use a different terminal from the system icon](how-to-guides-customise-multipass-use-a-different-terminal-from-the-system-icon)
 
 ---
 

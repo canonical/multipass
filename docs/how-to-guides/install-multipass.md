@@ -247,6 +247,7 @@ You will be asked to uninstall the old version, and then whether to remove all d
 
 `````
 
+(how-to-guides-install-multipass-uninstall)=
 ## Uninstall
 
 `````{tab-set}
