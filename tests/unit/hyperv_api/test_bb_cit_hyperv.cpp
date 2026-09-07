@@ -235,7 +235,7 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
     // Windows exposes no notification for IP neighbor-table changes. Poll until
     // the ICS DHCP service creates the permanent neighbor entry for the guest.
     std::optional<std::string> neighbor_address;
-    for (auto attempts = 0; attempts < 120 && !neighbor_address; ++attempts)
+    for (auto attempts = 0; attempts < 720 && !neighbor_address; ++attempts)
     {
         neighbor_address = permanent_ipv4_neighbor(*endpoint_info.mac_address);
         if (!neighbor_address)
