@@ -1306,78 +1306,6 @@ grpc::Status migration_conflict_status(std::string_view rpc_name)
                         rpc_name)};
 }
 
-#if defined(HYPERV_HCS_ENABLED)
-class SetMigrationProgress final : public mp::hyperv::MigrationProgress
-{
-public:
-    explicit SetMigrationProgress(
-        grpc::ServerReaderWriterInterface<mp::SetReply, mp::SetRequest>* server)
-        : server{server}
-    {
-    }
-
-    void phase(const std::string& instance, const std::string& message) override
-    {
-        mp::SetReply reply;
-        reply.set_migration_phase(fmt::format("{}: {}", message, instance));
-        write(reply);
-    }
-
-    void skipped(const std::string& instance, const std::string& reason) override
-    {
-        mp::SetReply reply;
-        reply.set_log_line(fmt::format("Cannot migrate {}: {}\n", instance, reason));
-        write(reply);
-    }
-
-    void failed(const std::string& instance, const std::string& reason) override
-    {
-        mp::SetReply reply;
-        reply.set_log_line(fmt::format("Failed to migrate {}: {}\n", instance, reason));
-        write(reply);
-    }
-
-    void finished(const std::vector<std::string>& migrated_names) override
-    {
-        mp::SetReply reply;
-        if (migrated_names.empty())
-        {
-            reply.set_summary("No instances were migrated.\n");
-        }
-        else
-        {
-            constexpr auto separator = "\n  ";
-            reply.set_summary(fmt::format(
-                "The following instances were successfully migrated:{}{}\n\n"
-                "The original hyperv instances were retained. Do not run an original and its "
-                "hyperv_api copy at the same time because they share guest identity and MAC "
-                "addresses.\n\n"
-                "After validating the migrated instances, remove the originals with:\n"
-                "  multipass set local.driver=hyperv\n"
-                "  multipass delete --purge <instance-name>\n"
-                "  multipass set local.driver=hyperv_api\n",
-                separator,
-                fmt::join(migrated_names, separator)));
-        }
-        write(reply);
-    }
-
-    [[nodiscard]] bool disconnected() const
-    {
-        return connection_lost;
-    }
-
-private:
-    void write(const mp::SetReply& reply)
-    {
-        if (!server->Write(reply))
-            connection_lost = true;
-    }
-
-    grpc::ServerReaderWriterInterface<mp::SetReply, mp::SetRequest>* server;
-    std::atomic_bool connection_lost{false};
-};
-#endif
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -2783,21 +2711,48 @@ try
                                                           *config->az_manager,
                                                           config->data_directory,
                                                           *migration_records};
-        SetMigrationProgress progress{server};
-        const auto result = mp::hyperv::run_bulk_migration(migrator, progress, [&progress] {
-            return progress.disconnected();
+        bool connection_lost = false;
+        const mp::hyperv::MigrationReporter report =
+            [server, &connection_lost](mp::hyperv::MigrationMessage kind, const std::string& text) {
+                SetReply reply;
+                switch (kind)
+                {
+                case mp::hyperv::MigrationMessage::phase:
+                    reply.set_migration_phase(text);
+                    break;
+                case mp::hyperv::MigrationMessage::diagnostic:
+                    reply.set_log_line(text);
+                    break;
+                case mp::hyperv::MigrationMessage::summary:
+                    reply.set_summary(text);
+                    break;
+                }
+
+                if (!server->Write(reply))
+                    connection_lost = true;
+            };
+        const auto outcome = mp::hyperv::run_bulk_migration(migrator, report, [&connection_lost] {
+            return connection_lost;
         });
 
-        if (result.cancelled)
+        switch (outcome)
+        {
+        case mp::hyperv::MigrationOutcome::completed:
+            context->set_value(grpc::Status::OK);
+            break;
+        case mp::hyperv::MigrationOutcome::completed_with_failures:
+            context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                                            "One or more instances failed to migrate"});
+            break;
+        case mp::hyperv::MigrationOutcome::cancelled:
             context->set_value(
                 grpc::Status{grpc::StatusCode::CANCELLED, "Hyper-V migration was cancelled"});
-        else if (!result.success)
-            context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                                            result.aborted
-                                                ? "Hyper-V migration aborted"
-                                                : "One or more instances failed to migrate"});
-        else
-            context->set_value(grpc::Status::OK);
+            break;
+        case mp::hyperv::MigrationOutcome::aborted:
+            context->set_value(
+                grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, "Hyper-V migration aborted"});
+            break;
+        }
         return;
     }
 #endif

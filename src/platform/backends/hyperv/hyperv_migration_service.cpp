@@ -16,17 +16,9 @@
 
 #include "hyperv_migration_service.h"
 
-#include <multipass/logging/log.h>
-
 #include <fmt/format.h>
 
 #include <algorithm>
-
-namespace
-{
-namespace mpl = multipass::logging;
-constexpr auto log_category = "Hyper-V migration";
-} // namespace
 
 std::vector<multipass::NetworkInterface> multipass::hyperv::translate_extra_interfaces(
     const std::vector<NetworkInterface>& source_interfaces,
@@ -71,57 +63,4 @@ std::vector<multipass::NetworkInterface> multipass::hyperv::translate_extra_inte
     }
 
     return translated;
-}
-
-multipass::hyperv::BulkMigrationResult multipass::hyperv::run_bulk_migration(
-    InstanceMigrator& migrator,
-    MigrationProgress& progress,
-    const MigrationCancellation& cancel)
-{
-    BulkMigrationResult result;
-    std::vector<std::string> migrated;
-
-    auto names = migrator.source_names();
-    std::sort(names.begin(), names.end());
-
-    for (const auto& name : names)
-    {
-        // The per-instance boundary is the only point at which cancellation takes effect,
-        // so earlier committed targets are always retained.
-        if (cancel())
-        {
-            result.cancelled = true;
-            mpl::info(log_category, "Migration cancelled before processing '{}'", name);
-            break;
-        }
-
-        try
-        {
-            if (const auto reason = migrator.migrate(name, progress))
-                progress.skipped(name, *reason);
-            else
-                migrated.push_back(name);
-        }
-        catch (const MigrationAbortError& error)
-        {
-            progress.failed(name, error.what());
-            result.success = false;
-            result.aborted = true;
-            mpl::error(log_category,
-                       "Aborting migration after an unsafe target-store failure on '{}': {}",
-                       name,
-                       error.what());
-            break;
-        }
-        catch (const InstanceMigrationError& error)
-        {
-            // Recoverable: keep going so a single bad instance does not block the rest.
-            progress.failed(name, error.what());
-            result.success = false;
-            mpl::warn(log_category, "Migration of '{}' failed: {}", name, error.what());
-        }
-    }
-
-    progress.finished(migrated);
-    return result;
 }
