@@ -15,7 +15,11 @@
  */
 
 #include "tests/unit/common.h"
+#include "tests/unit/mock_virtual_machine.h"
+#include "tests/unit/stub_availability_zone_manager.h"
+#include "tests/unit/stub_virtual_machine_factory.h"
 #include "tests/unit/temp_dir.h"
+#include "tests/unit/windows/powershell_test_helper.h"
 
 #include <daemon/hyperv_migration.h>
 
@@ -24,6 +28,8 @@
 #include <multipass/json_utils.h>
 
 #include <filesystem>
+#include <future>
+#include <mutex>
 
 namespace mp = multipass;
 namespace mhv = multipass::hyperv;
@@ -257,4 +263,162 @@ TEST(HyperVMigrationTargetRecords, deletedVmRecordStillCollides)
     mhv::HyperVMigrationTargetRecords store{data.path()};
 
     EXPECT_TRUE(store.target_exists("vm"));
+}
+
+namespace
+{
+struct MockMigrationProgress : mhv::MigrationProgress
+{
+    MOCK_METHOD(void, phase, (const std::string&, const std::string&), (override));
+    MOCK_METHOD(void, skipped, (const std::string&, const std::string&), (override));
+    MOCK_METHOD(void, failed, (const std::string&, const std::string&), (override));
+    MOCK_METHOD(void, finished, (const std::vector<std::string>&), (override));
+};
+
+struct HyperVMigrationEligibility : Test
+{
+    void SetUp() override
+    {
+        logger_scope.mock_logger->screen_logs(mp::logging::Level::error);
+        const auto data_dir = fs::path{data.path().toStdString()};
+        write_source_record(data_dir, "vm");
+        MP_FILEOPS.write_transactionally(
+            data_dir / "hyperv_api" / "multipassd-vm-instances.json",
+            mp::pretty_print(boost::json::object{{"vm", boost::json::value_from(vm_spec())}}));
+
+        vm->state = mp::VirtualMachine::State::stopped;
+        EXPECT_CALL(*vm, current_state()).Times(0);
+    }
+
+    mhv::InstanceMigrationResult migrate()
+    {
+        mhv::HyperVMigrationTargetRecords store{data.path()};
+        mhv::DaemonHyperVInstanceMigrator
+            migrator{specs, instances, deleted_instances, factory, az_manager, data.path(), store};
+        return migrator.migrate("vm", progress);
+    }
+
+    void mock_query(QByteArray output,
+                    QByteArray error = {},
+                    int exit_code = 0,
+                    bool finished = true)
+    {
+        ps_helper.setup(
+            [this, output, error, exit_code, finished](auto* process) {
+                EXPECT_EQ(process->program(), "powershell.exe");
+                EXPECT_THAT(process->arguments(),
+                            ElementsAre("-NoProfile",
+                                        "-NonInteractive",
+                                        "-Command",
+                                        "Get-VM -Name 'vm' -ErrorAction Stop | "
+                                        "Select-Object -ExpandProperty State"));
+                EXPECT_CALL(*process, write(_)).Times(0);
+                EXPECT_CALL(*process, start()).WillOnce([process] {
+                    emit process->ready_read_standard_output();
+                    emit process->ready_read_standard_error();
+                });
+                EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(output));
+                EXPECT_CALL(*process, read_all_standard_error()).WillOnce(Return(error));
+                EXPECT_CALL(*process, wait_for_finished(60000)).WillOnce([this, finished](int) {
+                    auto lock_available = std::async(std::launch::async, [this] {
+                        const std::unique_lock lock{vm->state_mutex, std::try_to_lock};
+                        return lock.owns_lock();
+                    });
+                    EXPECT_TRUE(lock_available.get());
+                    return finished;
+                });
+                ON_CALL(*process, process_state())
+                    .WillByDefault(Return(mp::ProcessState{exit_code, std::nullopt}));
+            },
+            /* auto_exit = */ false);
+    }
+
+    mpt::TempDir data;
+    mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
+    mpt::PowerShellTestHelper ps_helper;
+    mpt::StubAvailabilityZoneManager az_manager;
+    mpt::StubVirtualMachineFactory factory{az_manager};
+    std::shared_ptr<StrictMock<mpt::MockVirtualMachine>> vm =
+        std::make_shared<StrictMock<mpt::MockVirtualMachine>>();
+    std::unordered_map<std::string, mp::VMSpecs> specs{{"vm", vm_spec()}};
+    mhv::DaemonHyperVInstanceMigrator::InstanceTable instances{{"vm", vm}};
+    mhv::DaemonHyperVInstanceMigrator::InstanceTable deleted_instances;
+    StrictMock<MockMigrationProgress> progress;
+};
+} // namespace
+
+TEST_F(HyperVMigrationEligibility, skipsStartingWithoutQueryingPowerShell)
+{
+    vm->state = mp::VirtualMachine::State::starting;
+
+    EXPECT_EQ(migrate(), "instance is starting and needs to be stopped");
+    EXPECT_FALSE(ps_helper.was_ps_run());
+}
+
+TEST_F(HyperVMigrationEligibility, skipsRestartingWithoutQueryingPowerShell)
+{
+    vm->state = mp::VirtualMachine::State::restarting;
+
+    EXPECT_EQ(migrate(), "instance is restarting and needs to be stopped");
+    EXPECT_FALSE(ps_helper.was_ps_run());
+}
+
+TEST_F(HyperVMigrationEligibility, confirmsStoppedStateBeforeCheckingTargetCollision)
+{
+    mock_query("Off\r\n");
+
+    EXPECT_EQ(migrate(), "name already taken by a hyperv_api instance");
+    EXPECT_TRUE(ps_helper.was_ps_run());
+}
+
+TEST_F(HyperVMigrationEligibility, acceptsHostStoppedStateDespiteStaleRunningState)
+{
+    vm->state = mp::VirtualMachine::State::running;
+    mock_query("Off");
+
+    EXPECT_EQ(migrate(), "name already taken by a hyperv_api instance");
+}
+
+TEST_F(HyperVMigrationEligibility, skipsNonStoppedHostDespiteCachedStoppedState)
+{
+    for (const auto* state : {"Running", "Saved", "Starting", "Stopping", "Paused", "Unknown"})
+    {
+        SCOPED_TRACE(state);
+        mock_query(state);
+
+        EXPECT_THAT(migrate(),
+                    Optional("Hyper-V reports state '" + std::string{state} +
+                             "' and the instance needs to be stopped"));
+    }
+}
+
+TEST_F(HyperVMigrationEligibility, reportsFailedStateQuery)
+{
+    mock_query("", "VM not found", 1);
+
+    MP_EXPECT_THROW_THAT(
+        migrate(),
+        mhv::InstanceMigrationError,
+        Property(&std::exception::what,
+                 HasSubstr("Could not query Hyper-V state for 'vm': VM not found")));
+}
+
+TEST_F(HyperVMigrationEligibility, reportsStateQueryTimeoutEvenWithOffOutput)
+{
+    mock_query("Off", {}, 0, /* finished = */ false);
+
+    MP_EXPECT_THROW_THAT(
+        migrate(),
+        mhv::InstanceMigrationError,
+        Property(&std::exception::what, HasSubstr("Could not query Hyper-V state for 'vm'")));
+}
+
+TEST_F(HyperVMigrationEligibility, reportsEmptyStateQuery)
+{
+    mock_query(" \r\n");
+
+    MP_EXPECT_THROW_THAT(
+        migrate(),
+        mhv::InstanceMigrationError,
+        Property(&std::exception::what, HasSubstr("Hyper-V returned no state for 'vm'")));
 }
