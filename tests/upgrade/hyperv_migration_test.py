@@ -59,7 +59,13 @@ def seeded_vm(name):
 
 def powershell(script):
     return subprocess.run(
-        ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+        [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            script,
+        ],
         check=True,
         capture_output=True,
         text=True,
@@ -126,7 +132,10 @@ $snapshots = @(Get-VMCheckpoint -VMName $vm.Name | ForEach-Object {{
     result["disks"] = []
     if include_disks:
         seen = set()
-        roots = [result["active_disk"], *(item["path"] for item in result["snapshots"])]
+        roots = [
+            result["active_disk"],
+            *(item["path"] for item in result["snapshots"]),
+        ]
         for root in roots:
             for disk in disk_chain(root):
                 key = os.path.normcase(os.path.abspath(disk))
@@ -156,7 +165,11 @@ def sha256(path):
 
 def file_record(path):
     path = Path(path)
-    return {"path": str(path), "size": path.stat().st_size, "sha256": sha256(path)}
+    return {
+        "path": str(path),
+        "size": path.stat().st_size,
+        "sha256": sha256(path),
+    }
 
 
 def assert_file_records_unchanged(records):
@@ -242,7 +255,9 @@ def identity(name):
     return {
         "hostname": multipass("exec", name, "--", "hostname").content.strip(),
         "machine_id": read_file(name, "/etc/machine-id").strip(),
-        "ssh_host_key": read_file(name, "/etc/ssh/ssh_host_ed25519_key.pub").strip(),
+        "ssh_host_key": read_file(
+            name, "/etc/ssh/ssh_host_ed25519_key.pub"
+        ).strip(),
         "cloud_init_id": get_cloudinit_instance_id(name).strip(),
         "mac": get_mac_addr_of(name, interface).strip().lower(),
     }
@@ -290,7 +305,9 @@ def assert_target_local(name, source):
     snapshot_disks = []
     for metadata_path in instance_dir.glob("*.snapshot.json"):
         metadata = database(metadata_path)
-        snapshot_disks.append(instance_dir / f"{metadata['snapshot']['index']}.avhdx")
+        snapshot_disks.append(
+            instance_dir / f"{metadata['snapshot']['index']}.avhdx"
+        )
 
     target_disks = []
     seen = set()
@@ -328,12 +345,24 @@ def assert_target_records(name, expected_vm, expected_image):
 
 
 def assert_first_migration_output(output):
-    assert "The following instances were successfully migrated" in output.content
+    assert (
+        "The following instances were successfully migrated" in output.content
+    )
     assert f"  {STOPPED_VM}" in output.content
-    assert f"Cannot migrate {RUNNING_VM}: instance is running" in output.content
-    assert f"Cannot migrate {SUSPENDED_VM}: instance is suspended" in output.content
-    assert f"Cannot migrate {DELETED_VM}: instance is deleted" in output.content
-    assert "Do not run an original and its hyperv_api copy at the same time" in output.content
+    assert (
+        f"Cannot migrate {RUNNING_VM}: instance is running" in output.content
+    )
+    assert (
+        f"Cannot migrate {SUSPENDED_VM}: instance is suspended"
+        in output.content
+    )
+    assert (
+        f"Cannot migrate {DELETED_VM}: instance is deleted" in output.content
+    )
+    assert (
+        "Do not run an original and its hyperv_api copy at the same time"
+        in output.content
+    )
 
 
 @pytest.mark.seed
@@ -352,7 +381,10 @@ def test_hyperv_migration_seed(scenario):
         base = sentinel(STOPPED_VM, "hv-base")
         stopped_identity = identity(STOPPED_VM)
         assert multipass("mount", mount_source, f"{STOPPED_VM}:{MOUNT_TARGET}")
-        assert read_file(STOPPED_VM, f"{MOUNT_TARGET}/payload.txt").strip() == mount_content
+        assert (
+            read_file(STOPPED_VM, f"{MOUNT_TARGET}/payload.txt").strip()
+            == mount_content
+        )
         assert multipass("stop", STOPPED_VM)
         take_snapshot(STOPPED_VM, BASE)
 
@@ -395,7 +427,10 @@ def test_hyperv_migration_seed(scenario):
             },
             "running": {
                 **source_record(
-                    RUNNING_VM, running_layout, running_identity, record_files=False
+                    RUNNING_VM,
+                    running_layout,
+                    running_identity,
+                    record_files=False,
                 ),
                 "sentinel": running_sentinel,
             },
@@ -474,7 +509,9 @@ def test_hyperv_migration_verify(scenario, daemon_session):
 
     assert multipass("stop", STOPPED_VM)
     take_snapshot(STOPPED_VM, POST)
-    assert snapshot_count(STOPPED_VM) == record["stopped"]["snapshot_count"] + 1
+    assert (
+        snapshot_count(STOPPED_VM) == record["stopped"]["snapshot_count"] + 1
+    )
 
     assert multipass("restore", f"{STOPPED_VM}.{BASE}", "--destructive")
     assert multipass("start", STOPPED_VM)
@@ -518,10 +555,16 @@ def test_hyperv_migration_verify(scenario, daemon_session):
     pre_retry_image_records = legacy_image_records()
 
     retry_migration = switch_driver("hyperv_api", daemon_session)
-    assert f"Cannot migrate {STOPPED_VM}: name already taken" in retry_migration.content
+    assert (
+        f"Cannot migrate {STOPPED_VM}: name already taken"
+        in retry_migration.content
+    )
     assert RUNNING_VM in retry_migration.content
     assert SUSPENDED_VM in retry_migration.content
-    assert f"Cannot migrate {DELETED_VM}: instance is deleted" in retry_migration.content
+    assert (
+        f"Cannot migrate {DELETED_VM}: instance is deleted"
+        in retry_migration.content
+    )
 
     for records in pre_retry_disks.values():
         assert_file_records_unchanged(records)
@@ -562,7 +605,10 @@ def test_hyperv_migration_verify(scenario, daemon_session):
     )
     assert switch_driver("hyperv", daemon_session)
     assert multipass(
-        "delete", RUNNING_VM, SUSPENDED_VM, DELETED_VM,
+        "delete",
+        RUNNING_VM,
+        SUSPENDED_VM,
+        DELETED_VM,
         "--purge",
         timeout=300,
     )

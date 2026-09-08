@@ -298,23 +298,22 @@ TEST_F(RemoteSettingsTest, setDisplaysMigrationProgressDiagnosticsAndSummary)
     EXPECT_CALL(*mock_client, Write).WillOnce(Return(true));
 
     auto read_count = 0;
-    EXPECT_CALL(*mock_client, Read)
-        .WillRepeatedly([&read_count](mp::SetReply* reply) {
-            switch (read_count++)
-            {
-            case 0:
-                reply->set_migration_phase("Copying disks: vm");
-                return true;
-            case 1:
-                reply->set_log_line("Cannot migrate other: instance is running\n");
-                return true;
-            case 2:
-                reply->set_summary("The following instances were successfully migrated:\n  vm\n");
-                return true;
-            default:
-                return false;
-            }
-        });
+    EXPECT_CALL(*mock_client, Read).WillRepeatedly([&read_count](mp::SetReply* reply) {
+        switch (read_count++)
+        {
+        case 0:
+            reply->set_migration_phase("Copying disks: vm");
+            return true;
+        case 1:
+            reply->set_log_line("Cannot migrate other: instance is running\n");
+            return true;
+        case 2:
+            reply->set_summary("The following instances were successfully migrated:\n  vm\n");
+            return true;
+        default:
+            return false;
+        }
+    });
     EXPECT_CALL(mock_stub, setRaw).WillOnce(make_releaser(mock_client));
 
     mp::RemoteSettingsHandler handler{"local.", mock_stub, &mock_term, 0};

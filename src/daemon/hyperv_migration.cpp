@@ -31,10 +31,10 @@
 
 #include <QFileInfo>
 
+#include <algorithm>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <fmt/std.h>
-#include <algorithm>
 #include <mutex>
 #include <system_error>
 

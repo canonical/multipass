@@ -118,9 +118,8 @@ constexpr auto hyperv_deprecation_warning =
     "to the hyperv_api driver (multipass set local.driver=hyperv_api).\n\n";
 
 template <typename Reply, typename Request>
-void warn_legacy_hyperv(
-    const mp::VirtualMachineFactory& factory,
-    grpc::ServerReaderWriterInterface<Reply, Request>* server)
+void warn_legacy_hyperv(const mp::VirtualMachineFactory& factory,
+                        grpc::ServerReaderWriterInterface<Reply, Request>* server)
 {
     if (factory.get_backend_version_string() == "hyperv")
     {
@@ -2609,12 +2608,13 @@ try
     std::string bridge_name;
 
 #if defined(HYPERV_HCS_ENABLED)
-    const auto current_driver =
-        key == mp::driver_key ? MP_SETTINGS.get(mp::driver_key).toStdString() : std::string{};
+    const auto current_driver = key == mp::driver_key
+                                  ? MP_SETTINGS.get(mp::driver_key).toStdString()
+                                  : std::string{};
     const auto migrate_hyperv = key == mp::driver_key && current_driver == "hyperv" &&
                                 val == "hyperv_api";
-    const auto leave_hyperv_api =
-        key == mp::driver_key && current_driver == "hyperv_api" && val != "hyperv_api";
+    const auto leave_hyperv_api = key == mp::driver_key && current_driver == "hyperv_api" &&
+                                  val != "hyperv_api";
     std::unique_ptr<mp::hyperv::HyperVMigrationTargetRecords> migration_records;
     auto migration_flag_acquired = false;
     auto migration_guard = sg::make_scope_guard([this, &migration_flag_acquired]() noexcept {
@@ -2625,8 +2625,8 @@ try
     if (migrate_hyperv)
     {
         mp::hyperv::check_hyperv_api_support();
-        migration_records =
-            std::make_unique<mp::hyperv::HyperVMigrationTargetRecords>(config->data_directory);
+        migration_records = std::make_unique<mp::hyperv::HyperVMigrationTargetRecords>(
+            config->data_directory);
         migration_records->preflight();
     }
 

@@ -1970,9 +1970,10 @@ TEST_F(Daemon, listWarnsWhenLegacyHypervIsActive)
     StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> server;
     {
         InSequence sequence;
-        EXPECT_CALL(server, Write(Property(&mp::ListReply::log_line,
-                                           HasSubstr("legacy Hyper-V driver is deprecated")),
-                                  _))
+        EXPECT_CALL(server,
+                    Write(Property(&mp::ListReply::log_line,
+                                   HasSubstr("legacy Hyper-V driver is deprecated")),
+                          _))
             .WillOnce(Return(true));
         EXPECT_CALL(server, Write(Property(&mp::ListReply::log_line, IsEmpty()), _))
             .WillOnce(Return(true));
