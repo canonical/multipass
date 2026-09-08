@@ -27,12 +27,14 @@
 #include <multipass/platform.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
+#include <shared/windows/powershell.h>
 
 #include <QFileInfo>
 
 #include <fmt/format.h>
 #include <fmt/std.h>
 #include <algorithm>
+#include <mutex>
 #include <system_error>
 
 namespace
@@ -429,15 +431,39 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
     if (vm_it == operative_instances.end() || !vm_it->second)
         return "instance is unavailable";
 
-    const auto state = vm_it->second->current_state();
-    if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
-        return fmt::format("instance is {} and needs to be stopped", state_name(state));
-
-    if (target_records.target_exists(name))
-        return "name already taken by a hyperv_api instance";
-
     try
     {
+        {
+            const std::lock_guard lock{vm_it->second->state_mutex};
+            const auto state = vm_it->second->state;
+            if (state == VirtualMachine::State::starting ||
+                state == VirtualMachine::State::restarting)
+                return fmt::format("instance is {} and needs to be stopped", state_name(state));
+        }
+
+        const auto command = QStringLiteral("Get-VM -Name '%1' -ErrorAction Stop | "
+                                            "Select-Object -ExpandProperty State")
+                                 .arg(QString::fromStdString(name));
+
+        QString state_output, error_output;
+        if (!PowerShell::exec({"-NoProfile", "-NonInteractive", "-Command", command},
+                              name,
+                              &state_output,
+                              &error_output))
+            throw std::runtime_error{fmt::format("Could not query Hyper-V state for '{}': {}",
+                                                 name,
+                                                 error_output.toStdString())};
+
+        if (state_output.isEmpty())
+            throw std::runtime_error{fmt::format("Hyper-V returned no state for '{}'", name)};
+
+        if (state_output != "Off")
+            return fmt::format("Hyper-V reports state '{}' and the instance needs to be stopped",
+                               state_output.toStdString());
+
+        if (target_records.target_exists(name))
+            return "name already taken by a hyperv_api instance";
+
         progress.phase(name, "Preparing networking");
         auto target_spec = source_spec;
         target_spec.extra_interfaces = translated_interfaces(source_spec.extra_interfaces);
