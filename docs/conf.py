@@ -203,7 +203,17 @@ templates_path = [".sphinx/_templates"]
 # NOTE: If undefined, set to None, or empty,
 #       the sphinx_reredirects extension will be disabled.
 
-redirects = {}
+# NOTE: This project builds with the 'dirhtml' builder, so both the keys and
+#       the targets are directory-style paths, and the targets must be
+#       relative to the key (an absolute target would drop the RTD version
+#       prefix, e.g. '/latest/').
+
+redirects = {
+    # These are URLs inherited from the Discourse-hosted documentation at https://discourse.ubuntu.com/t/multipass-documentation/8294.
+    "mount": "../explanation/mount/",
+    "platform": "../explanation/platform/",
+    "explanation/host": "../platform/", # 'Host' was removed as a standalone explanation page
+}
 
 
 ###########################
