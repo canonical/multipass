@@ -58,6 +58,8 @@ UINT __stdcall EnableHyperV(__in MSIHANDLE hInstall)
     PMSIHANDLE hActionData;
     UINT uiLevel;
     DWORD exitCode = 0;
+    std::wstring customActionData;
+    const wchar_t* feature = nullptr;
 
     hr = WcaInitialize(hInstall, __FUNCTION__);
     ExitOnFailure(hr, "Failed to initialize");
@@ -66,11 +68,11 @@ UINT __stdcall EnableHyperV(__in MSIHANDLE hInstall)
     hr = MsiGetProperty(hInstall, TEXT("CustomActionData"), szBuf, &cchBuf);
     ExitOnFailure(hr, "Failed getting CustomActionData");
 
-    const std::wstring customActionData{szBuf};
+    customActionData = szBuf;
     uiLevel = _wtoi(customActionData.c_str());
-    const auto feature = customActionData.find(L"|hyperv_api") == std::wstring::npos
-                           ? L"Microsoft-Hyper-V"
-                           : L"VirtualMachinePlatform";
+    feature = customActionData.find(L"|hyperv_api") == std::wstring::npos
+                  ? L"Microsoft-Hyper-V"
+                  : L"VirtualMachinePlatform";
     WcaLog(LOGMSG_STANDARD, std::to_string(uiLevel).c_str());
 
     hCancel_ = CreateEvent(nullptr, TRUE, FALSE, nullptr);
