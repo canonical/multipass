@@ -480,7 +480,7 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
             layout,
             MP_PLATFORM.qstr_to_path(vm_it->second->instance_directory().absolutePath()));
         progress.phase(name, "verifying the copied disks");
-        transaction.verify(mapping, layout);
+        transaction.verify(mapping);
         progress.phase(name, "committing the migrated instance");
         transaction.commit(mapping);
         image_record.image.image_path = mapping.active_disk;

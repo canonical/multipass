@@ -98,7 +98,7 @@ DiscoveredVM query_hyperv(const std::string& name)
                        "Where-Object {$_.ControllerType -eq 'SCSI' -and "
                        "$_.ControllerNumber -eq 0 -and $_.ControllerLocation -eq 0}); "
                        "if ($disk.Count -ne 1) { throw 'Expected one checkpoint disk' }; "
-                       "[PSCustomObject]@{Name=$_.Name;Id=$_.Id.ToString();Path=$disk[0].Path} "
+                       "[PSCustomObject]@{Name=$_.Name;Path=$disk[0].Path} "
                        "}); "
                        "[PSCustomObject]@{ActiveDisk=$primary[0].Path;"
                        "Snapshots=$checkpoints} | ConvertTo-Json -Compress -Depth 4")
@@ -122,7 +122,6 @@ DiscoveredVM query_hyperv(const std::string& name)
         mhv::LegacySnapshotDisk disk{
             .index = 0,
             .checkpoint_name = boost::json::value_to<std::string>(snapshot.at("Name")),
-            .checkpoint_id = boost::json::value_to<std::string>(snapshot.at("Id")),
             .disk_path = boost::json::value_to<std::string>(snapshot.at("Path")),
         };
 
@@ -174,9 +173,6 @@ multipass::hyperv::resolve_legacy_disk_layout(const std::string& name, const Vir
         layout.snapshots.push_back(std::move(checkpoint->second));
         discovered.snapshots.erase(checkpoint);
     }
-
-    if (!discovered.snapshots.empty())
-        throw std::runtime_error{"Hyper-V contains checkpoints not managed by Multipass"};
 
     const auto active_chain = disk_chain(layout.active_disk);
     append_unique(layout.all_disks, active_chain);
