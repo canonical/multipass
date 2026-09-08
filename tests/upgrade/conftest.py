@@ -45,7 +45,9 @@ def seed_manifest():
     path = Path(cfg.upgrade.manifest)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(document, indent=2, sort_keys=True), encoding="utf-8")
+    temporary.write_text(
+        json.dumps(document, indent=2, sort_keys=True), encoding="utf-8"
+    )
     temporary.replace(path)
 
 
@@ -72,7 +74,9 @@ class Scenario:
 def scenario_name(request):
     marker = request.node.get_closest_marker("scenario")
     if marker is None or not marker.args:
-        raise pytest.UsageError(f"{request.node.nodeid} requires @pytest.mark.scenario")
+        raise pytest.UsageError(
+            f"{request.node.nodeid} requires @pytest.mark.scenario"
+        )
     return marker.args[0]
 
 
@@ -93,7 +97,9 @@ def scenario(request):
             assert multipass("delete", name, "--purge")
         return
 
-    raise pytest.UsageError(f"{request.node.nodeid} is neither seed nor verify")
+    raise pytest.UsageError(
+        f"{request.node.nodeid} is neither seed nor verify"
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -109,10 +115,15 @@ def pytest_collection_modifyitems(config, items):
 
     phases = set()
     for item in items:
-        item_phases = {mark.name for mark in item.iter_markers()} & {"seed", "verify"}
+        item_phases = {mark.name for mark in item.iter_markers()} & {
+            "seed",
+            "verify",
+        }
         if len(item_phases) > 1:
             raise pytest.UsageError(f"{item.nodeid} is both seed and verify")
         phases |= item_phases
 
     if len(phases) > 1:
-        raise pytest.UsageError("Select exactly one upgrade phase with -m seed or -m verify")
+        raise pytest.UsageError(
+            "Select exactly one upgrade phase with -m seed or -m verify"
+        )

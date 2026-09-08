@@ -18,12 +18,12 @@
 
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
+#include <QUuid>
 #include <multipass/constants.h>
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/top_catch_all.h>
-#include <QUuid>
 
 #include <fmt/format.h>
 #include <fmt/std.h>
