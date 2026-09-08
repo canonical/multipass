@@ -25,7 +25,6 @@
 
 #include <QString>
 
-#include <mutex>
 #include <string>
 
 namespace multipass
@@ -97,6 +96,5 @@ private:
     std::unique_ptr<PowerShell> power_shell;
     VMStatusMonitor* monitor;
     bool update_suspend_status{true};
-    mutable std::recursive_mutex power_shell_mutex;
 };
 } // namespace multipass
