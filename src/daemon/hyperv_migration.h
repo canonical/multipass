@@ -27,6 +27,7 @@
 #include <boost/json.hpp>
 
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -42,6 +43,27 @@ class VirtualMachineFactory;
 namespace multipass::hyperv
 {
 class HCSVirtualMachineFactory;
+
+enum class MigrationMessage
+{
+    phase,
+    diagnostic,
+    summary
+};
+
+enum class MigrationOutcome
+{
+    completed,
+    completed_with_failures,
+    cancelled,
+    aborted
+};
+
+using MigrationReporter = std::function<void(MigrationMessage, const std::string&)>;
+using MigrationCancellation = std::function<bool()>;
+
+// A value is the reason an instance was skipped; nullopt means it was migrated.
+using InstanceMigrationResult = std::optional<std::string>;
 
 class HyperVMigrationTargetRecords
 {
@@ -76,7 +98,7 @@ private:
     boost::json::object target_image_records;
 };
 
-class DaemonHyperVInstanceMigrator final : public InstanceMigrator
+class DaemonHyperVInstanceMigrator final
 {
 public:
     using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
@@ -88,11 +110,11 @@ public:
                                  AvailabilityZoneManager& az_manager,
                                  const Path& data_dir,
                                  HyperVMigrationTargetRecords& target_records);
-    ~DaemonHyperVInstanceMigrator() override;
+    ~DaemonHyperVInstanceMigrator();
 
-    [[nodiscard]] std::vector<std::string> source_names() override;
+    [[nodiscard]] std::vector<std::string> source_names() const;
     [[nodiscard]] InstanceMigrationResult migrate(const std::string& name,
-                                                  MigrationProgress& progress) override;
+                                                  const MigrationReporter& report);
 
 private:
     [[nodiscard]] std::vector<NetworkInterface> translated_interfaces(
@@ -109,4 +131,12 @@ private:
     std::optional<std::vector<NetworkInterfaceInfo>> source_networks;
     std::unique_ptr<HCSVirtualMachineFactory> hcs_factory;
 };
+
+/**
+ * Process instances in name order, continuing after recoverable failures and stopping on
+ * unsafe failures or cancellation between instances. Always report earlier successful commits.
+ */
+[[nodiscard]] MigrationOutcome run_bulk_migration(DaemonHyperVInstanceMigrator& migrator,
+                                                  const MigrationReporter& report,
+                                                  const MigrationCancellation& cancel);
 } // namespace multipass::hyperv
