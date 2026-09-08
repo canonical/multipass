@@ -32,6 +32,7 @@
 #include <QFileInfo>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <fmt/std.h>
 #include <algorithm>
 #include <mutex>
@@ -382,7 +383,7 @@ multipass::hyperv::DaemonHyperVInstanceMigrator::DaemonHyperVInstanceMigrator(
 
 multipass::hyperv::DaemonHyperVInstanceMigrator::~DaemonHyperVInstanceMigrator() = default;
 
-std::vector<std::string> multipass::hyperv::DaemonHyperVInstanceMigrator::source_names()
+std::vector<std::string> multipass::hyperv::DaemonHyperVInstanceMigrator::source_names() const
 {
     std::vector<std::string> names;
     names.reserve(specs.size());
@@ -417,7 +418,7 @@ multipass::hyperv::DaemonHyperVInstanceMigrator::target_factory()
 
 multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstanceMigrator::migrate(
     const std::string& name,
-    MigrationProgress& progress)
+    const MigrationReporter& report)
 {
     const auto spec_it = specs.find(name);
     if (spec_it == specs.end())
@@ -464,28 +465,32 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
         if (target_records.target_exists(name))
             return "name already taken by a hyperv_api instance";
 
-        progress.phase(name, "Preparing networking");
+        const auto phase = [&report, &name](const std::string& message) {
+            report(MigrationMessage::phase, fmt::format("{}: {}", message, name));
+        };
+
+        phase("Preparing networking");
         auto target_spec = source_spec;
         target_spec.extra_interfaces = translated_interfaces(source_spec.extra_interfaces);
         auto image_record = target_records.source_image_record(name);
 
-        progress.phase(name, "inspecting source disk layout");
+        phase("inspecting source disk layout");
         auto layout = resolve_legacy_disk_layout(name, *vm_it->second);
         for (auto& snapshot : layout.snapshots)
             snapshot.extra_interfaces = translated_interfaces(snapshot.extra_interfaces);
 
         TargetMigrationTransaction transaction{name, target_records.instance_dir(name)};
-        progress.phase(name, "copying disks to the target instance");
+        phase("copying disks to the target instance");
         const auto mapping = transaction.stage(
             layout,
             MP_PLATFORM.qstr_to_path(vm_it->second->instance_directory().absolutePath()));
-        progress.phase(name, "verifying the copied disks");
+        phase("verifying the copied disks");
         transaction.verify(mapping);
-        progress.phase(name, "committing the migrated instance");
+        phase("committing the migrated instance");
         transaction.commit(mapping);
         image_record.image.image_path = mapping.active_disk;
 
-        progress.phase(name, "Committing target records");
+        phase("Committing target records");
         target_records.commit(name, target_spec, std::move(image_record));
         return std::nullopt;
     }
@@ -497,4 +502,78 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
     {
         throw InstanceMigrationError{error.what()};
     }
+}
+
+multipass::hyperv::MigrationOutcome multipass::hyperv::run_bulk_migration(
+    DaemonHyperVInstanceMigrator& migrator,
+    const MigrationReporter& report,
+    const MigrationCancellation& cancel)
+{
+    constexpr auto batch_log_category = "Hyper-V migration";
+    auto outcome = MigrationOutcome::completed;
+    std::vector<std::string> migrated;
+
+    auto names = migrator.source_names();
+    std::sort(names.begin(), names.end());
+
+    for (const auto& name : names)
+    {
+        // Finish the current transaction before honouring cancellation.
+        if (cancel())
+        {
+            outcome = MigrationOutcome::cancelled;
+            mpl::info(batch_log_category, "Migration cancelled before processing '{}'", name);
+            break;
+        }
+
+        try
+        {
+            if (const auto reason = migrator.migrate(name, report))
+                report(MigrationMessage::diagnostic,
+                       fmt::format("Cannot migrate {}: {}\n", name, *reason));
+            else
+                migrated.push_back(name);
+        }
+        catch (const MigrationAbortError& error)
+        {
+            report(MigrationMessage::diagnostic,
+                   fmt::format("Failed to migrate {}: {}\n", name, error.what()));
+            outcome = MigrationOutcome::aborted;
+            mpl::error(batch_log_category,
+                       "Aborting migration after an unsafe target-store failure on '{}': {}",
+                       name,
+                       error.what());
+            break;
+        }
+        catch (const InstanceMigrationError& error)
+        {
+            report(MigrationMessage::diagnostic,
+                   fmt::format("Failed to migrate {}: {}\n", name, error.what()));
+            outcome = MigrationOutcome::completed_with_failures;
+            mpl::warn(batch_log_category, "Migration of '{}' failed: {}", name, error.what());
+        }
+    }
+
+    if (migrated.empty())
+    {
+        report(MigrationMessage::summary, "No instances were migrated.\n");
+    }
+    else
+    {
+        constexpr auto separator = "\n  ";
+        report(MigrationMessage::summary,
+               fmt::format(
+                   "The following instances were successfully migrated:{}{}\n\n"
+                   "The original hyperv instances were retained. Do not run an original and its "
+                   "hyperv_api copy at the same time because they share guest identity and MAC "
+                   "addresses.\n\n"
+                   "After validating the migrated instances, remove the originals with:\n"
+                   "  multipass set local.driver=hyperv\n"
+                   "  multipass delete --purge <instance-name>\n"
+                   "  multipass set local.driver=hyperv_api\n",
+                   separator,
+                   fmt::join(migrated, separator)));
+    }
+
+    return outcome;
 }
