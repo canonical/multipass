@@ -33,7 +33,6 @@ struct LegacySnapshotDisk
 {
     int index;
     std::string checkpoint_name;
-    std::string checkpoint_id;
     std::filesystem::path disk_path;
     std::vector<NetworkInterface> extra_interfaces;
 };
