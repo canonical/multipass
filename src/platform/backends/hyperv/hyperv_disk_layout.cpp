@@ -86,23 +86,23 @@ DiscoveredVM query_hyperv(const std::string& name)
 {
     multipass::PowerShell powershell{name};
     const auto vm_name = quoted_name(name);
-    const auto script =
-        QStringLiteral("$vmName=%1; "
-                       "$primary=@(Get-VMHardDiskDrive -VMName $vmName -ErrorAction Stop | "
-                       "Where-Object {$_.ControllerType -eq 'SCSI' -and "
-                       "$_.ControllerNumber -eq 0 -and $_.ControllerLocation -eq 0}); "
-                       "if ($primary.Count -ne 1) { throw 'Expected one primary disk' }; "
-                       "$checkpoints=@(Get-VMCheckpoint -VMName $vmName -ErrorAction Stop | "
-                       "ForEach-Object { "
-                       "$disk=@(Get-VMHardDiskDrive -VMSnapshot $_ | "
-                       "Where-Object {$_.ControllerType -eq 'SCSI' -and "
-                       "$_.ControllerNumber -eq 0 -and $_.ControllerLocation -eq 0}); "
-                       "if ($disk.Count -ne 1) { throw 'Expected one checkpoint disk' }; "
-                       "[PSCustomObject]@{Name=$_.Name;Path=$disk[0].Path} "
-                       "}); "
-                       "[PSCustomObject]@{ActiveDisk=$primary[0].Path;"
-                       "Snapshots=$checkpoints} | ConvertTo-Json -Compress -Depth 4")
-            .arg(vm_name);
+    const auto script = QStringLiteral(
+                            "$vmName=%1; "
+                            "$primary=@(Get-VMHardDiskDrive -VMName $vmName -ErrorAction Stop | "
+                            "Where-Object {$_.ControllerType -eq 'SCSI' -and "
+                            "$_.ControllerNumber -eq 0 -and $_.ControllerLocation -eq 0}); "
+                            "if ($primary.Count -ne 1) { throw 'Expected one primary disk' }; "
+                            "$checkpoints=@(Get-VMCheckpoint -VMName $vmName -ErrorAction Stop | "
+                            "ForEach-Object { "
+                            "$disk=@(Get-VMHardDiskDrive -VMSnapshot $_ | "
+                            "Where-Object {$_.ControllerType -eq 'SCSI' -and "
+                            "$_.ControllerNumber -eq 0 -and $_.ControllerLocation -eq 0}); "
+                            "if ($disk.Count -ne 1) { throw 'Expected one checkpoint disk' }; "
+                            "[PSCustomObject]@{Name=$_.Name;Path=$disk[0].Path} "
+                            "}); "
+                            "[PSCustomObject]@{ActiveDisk=$primary[0].Path;"
+                            "Snapshots=$checkpoints} | ConvertTo-Json -Compress -Depth 4")
+                            .arg(vm_name);
 
     QString output;
     QString output_error;
