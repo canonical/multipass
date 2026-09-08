@@ -416,7 +416,7 @@ def test_hyperv_migration_seed(scenario):
 @pytest.mark.verify
 @pytest.mark.snapshot
 @pytest.mark.scenario(SCENARIO)
-def test_hyperv_migration_verify(scenario, multipassd_session_scoped):
+def test_hyperv_migration_verify(scenario, daemon_session):
     record = scenario.record
     assert current_driver() == "hyperv"
     assert state(STOPPED_VM) == "Stopped"
@@ -436,7 +436,7 @@ def test_hyperv_migration_verify(scenario, multipassd_session_scoped):
     pre_first_image_records = legacy_image_records()
 
     # One explicit switch performs the primary bulk migration.
-    first_migration = switch_driver("hyperv_api", multipassd_session_scoped)
+    first_migration = switch_driver("hyperv_api", daemon_session)
     assert_first_migration_output(first_migration)
 
     assert vm_exists(STOPPED_VM)
@@ -488,7 +488,7 @@ def test_hyperv_migration_verify(scenario, multipassd_session_scoped):
     assert multipass("stop", STOPPED_VM)
 
     # Switching back reveals the untouched originals. Stop the skipped instances and retry.
-    assert switch_driver("hyperv", multipassd_session_scoped)
+    assert switch_driver("hyperv", daemon_session)
     assert state(STOPPED_VM) == "Stopped"
     assert multipass("start", STOPPED_VM)
     assert_sentinel(STOPPED_VM, record["stopped"]["base"])
@@ -517,7 +517,7 @@ def test_hyperv_migration_verify(scenario, multipassd_session_scoped):
     pre_retry_vm_records = legacy_vm_records()
     pre_retry_image_records = legacy_image_records()
 
-    retry_migration = switch_driver("hyperv_api", multipassd_session_scoped)
+    retry_migration = switch_driver("hyperv_api", daemon_session)
     assert f"Cannot migrate {STOPPED_VM}: name already taken" in retry_migration.content
     assert RUNNING_VM in retry_migration.content
     assert SUSPENDED_VM in retry_migration.content
@@ -543,24 +543,24 @@ def test_hyperv_migration_verify(scenario, multipassd_session_scoped):
     assert not vm_exists(STOPPED_VM)
     assert legacy_id_exists(record["stopped"]["legacy_id"])
 
-    assert switch_driver("hyperv", multipassd_session_scoped)
-    remigration = switch_driver("hyperv_api", multipassd_session_scoped)
+    assert switch_driver("hyperv", daemon_session)
+    remigration = switch_driver("hyperv_api", daemon_session)
     assert STOPPED_VM in remigration.content
     assert vm_exists(STOPPED_VM)
     assert legacy_id_exists(record["stopped"]["legacy_id"])
 
     # Purging the original is strictly scoped to the legacy backend.
-    assert switch_driver("hyperv", multipassd_session_scoped)
+    assert switch_driver("hyperv", daemon_session)
     assert multipass("delete", STOPPED_VM, "--purge")
     assert not legacy_id_exists(record["stopped"]["legacy_id"])
-    assert switch_driver("hyperv_api", multipassd_session_scoped)
+    assert switch_driver("hyperv_api", daemon_session)
     assert vm_exists(STOPPED_VM)
 
     # Leave the upgrade host clean and on the requested legacy test driver.
     assert multipass(
         "delete", STOPPED_VM, RUNNING_VM, SUSPENDED_VM, "--purge", timeout=300
     )
-    assert switch_driver("hyperv", multipassd_session_scoped)
+    assert switch_driver("hyperv", daemon_session)
     assert multipass(
         "delete", RUNNING_VM, SUSPENDED_VM, DELETED_VM,
         "--purge",
