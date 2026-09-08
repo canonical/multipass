@@ -109,7 +109,6 @@ struct HyperVTargetTransaction : public Test
         layout.snapshots = {
             {.index = 1,
              .checkpoint_name = "@s1",
-             .checkpoint_id = "checkpoint-id",
              .disk_path = snap1,
              .extra_interfaces = {
                  {.id = "target-switch", .mac_address = "52:54:00:12:34:56", .auto_mode = true}}}};
@@ -206,7 +205,7 @@ TEST_F(HyperVTargetTransaction, stageCopiesReparentsAndRewritesSnapshotsWithoutT
     EXPECT_EQ(*MP_FILEOPS.try_read_file(active), original_active);
     EXPECT_FALSE(MP_FILEOPS.exists(source_dir / "migration-transaction.json"));
 
-    EXPECT_NO_THROW(transaction.verify(mapping, layout));
+    EXPECT_NO_THROW(transaction.verify(mapping));
 }
 
 TEST_F(HyperVTargetTransaction, stagePersistsVersionedManifest)
@@ -233,7 +232,7 @@ TEST_F(HyperVTargetTransaction, verifyRejectsMismatchedTargetLength)
         out << "extra-bytes-that-change-the-length";
     }
 
-    EXPECT_THROW(transaction.verify(mapping, layout), std::runtime_error);
+    EXPECT_THROW(transaction.verify(mapping), std::runtime_error);
 }
 
 TEST_F(HyperVTargetTransaction, verifyRejectsNonTargetLocalParent)
@@ -253,14 +252,14 @@ TEST_F(HyperVTargetTransaction, verifyRejectsNonTargetLocalParent)
                 return mhv::OperationResult::success();
             }));
 
-    EXPECT_THROW(transaction.verify(mapping, layout), std::runtime_error);
+    EXPECT_THROW(transaction.verify(mapping), std::runtime_error);
 }
 
 TEST_F(HyperVTargetTransaction, commitMarksTargetPrepared)
 {
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
     const auto mapping = transaction.stage(layout, source_dir);
-    transaction.verify(mapping, layout);
+    transaction.verify(mapping);
 
     transaction.commit(mapping);
 

@@ -307,8 +307,7 @@ multipass::hyperv::TargetDiskMapping multipass::hyperv::TargetMigrationTransacti
     return mapping;
 }
 
-void multipass::hyperv::TargetMigrationTransaction::verify(const TargetDiskMapping& mapping,
-                                                           const LegacyDiskLayout& layout) const
+void multipass::hyperv::TargetMigrationTransaction::verify(const TargetDiskMapping& mapping) const
 {
     for (const auto& entry : mapping.disks)
     {
@@ -341,9 +340,6 @@ void multipass::hyperv::TargetMigrationTransaction::verify(const TargetDiskMappi
                             link.child,
                             parent)};
     }
-
-    if (mapping.snapshots.size() != layout.snapshots.size())
-        throw std::runtime_error{"Migrated snapshot topology does not match the source"};
 }
 
 void multipass::hyperv::TargetMigrationTransaction::commit(const TargetDiskMapping& mapping)

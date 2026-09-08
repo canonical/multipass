@@ -38,7 +38,7 @@ std::string discovery_json(
 {
     boost::json::array snapshot_array;
     for (const auto& [name, path] : snapshots)
-        snapshot_array.push_back({{"Name", name}, {"Id", name + "-id"}, {"Path", path.string()}});
+        snapshot_array.push_back({{"Name", name}, {"Path", path.string()}});
 
     const boost::json::object result{{"ActiveDisk", active_disk.string()},
                                      {"Snapshots", std::move(snapshot_array)}};

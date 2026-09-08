@@ -119,7 +119,7 @@ public:
      * Verify the copied graph: target file lengths match the source, every VirtDisk parent
      * link reopens against a target-local parent, and every target path is target-local.
      */
-    void verify(const TargetDiskMapping& mapping, const LegacyDiskLayout& layout) const;
+    void verify(const TargetDiskMapping& mapping) const;
 
     /**
      * Mark the verified target as prepared and persist HCS ownership.
