@@ -2571,12 +2571,12 @@ try
     std::string bridge_name;
 
 #if defined(HYPERV_HCS_ENABLED)
-    mp::hyperv::DriverTransition transition{*config,
+    mp::hyperv::DriverTransition transition{{*config,
                                             vm_instance_specs,
                                             operative_instances,
                                             deleted_instances,
                                             migration_in_progress,
-                                            preparations_in_progress};
+                                            preparations_in_progress}};
     if (auto status = transition.prepare(key, val); !status.ok())
     {
         context->set_value(std::move(status));
