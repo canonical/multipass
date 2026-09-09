@@ -322,7 +322,7 @@ OperationResult HCNWrapper::find_endpoints_by_name(const std::string& name,
     const auto result =
         API().HcnEnumerateEndpoints(L"{}", out_ptr(json_output), out_ptr(result_msgbuf));
 
-    if (!result || !json_output)
+    if (FAILED(result) || !json_output)
     {
         return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
     }
