@@ -20,7 +20,7 @@
 #include "tests/unit/mock_file_ops.h"
 #include "tests/unit/temp_dir.h"
 
-#include <src/platform/backends/hyperv/hyperv_target_transaction.h>
+#include <hyperv_migration/hyperv_target_transaction.h>
 
 #include <multipass/constants.h>
 #include <multipass/file_ops.h>
