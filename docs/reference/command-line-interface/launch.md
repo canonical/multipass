@@ -24,6 +24,10 @@ If you want your instance to have a name of your choice, use the `--name` option
 
 By passing a filename or an URL to `--cloud-init`, you can provide user data to [`cloud-init`](https://cloud-init.io/) to customise the instance on first boot. See [cloud-init documentation](https://cloudinit.readthedocs.io/en/latest/topics/examples.html) for examples.
 
+```{note}
+The `--cloud-init` option accepts user data only. A top-level `network` key belongs to cloud-init's separate network configuration and cannot be supplied through this option. Multipass generates that configuration for the default interface and any interfaces requested with `--network`. See [Set up custom networking](how-to-guides-manage-instances-set-up-custom-networking) for the supported options.
+```
+
 Use the `--network` option to {ref}`create-an-instance-with-multiple-network-interfaces`.
 
 Passing `--bridged` and `--network bridged` are shortcuts to `--network <name>`, where `<name>` is configured via `multipass set local.bridged-interface`.
