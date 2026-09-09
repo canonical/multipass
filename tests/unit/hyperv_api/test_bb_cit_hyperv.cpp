@@ -22,9 +22,12 @@
 
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_create_network_params.h>
+#include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_endpoint_naming.h>
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <src/platform/backends/hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <src/platform/backends/hyperv_api/virtdisk/virtdisk_wrapper.h>
+
+#include <computecore.h>
 
 namespace multipass::test
 {
@@ -109,8 +112,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
 
     // Create test VM
     {
-        const auto& [status, status_msg] =
-            HCS().create_compute_system(create_vm_parameters, handle);
+        const auto& [status, status_msg] = HCS().create_compute_system(create_vm_parameters,
+                                                                       handle);
         ASSERT_TRUE(status.success());
     }
 
@@ -217,8 +220,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
 
     // Create test VM
     {
-        const auto& [status, status_msg] =
-            HCS().create_compute_system(create_vm_parameters, handle);
+        const auto& [status, status_msg] = HCS().create_compute_system(create_vm_parameters,
+                                                                       handle);
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(status_msg.empty());
     }
@@ -239,8 +242,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
             HcsResourcePath::NetworkAdapters(network_adapter.endpoint_guid),
             HcsRequestType::Add(),
             network_adapter};
-        const auto& [status, status_msg] =
-            HCS().modify_compute_system(handle, add_network_adapter_req);
+        const auto& [status, status_msg] = HCS().modify_compute_system(handle,
+                                                                       add_network_adapter_req);
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(status_msg.empty());
     }
@@ -249,11 +252,11 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
     {
         // Create another EP so we can ensure that we're only listing the EPs belonging to the VM
         {
-            const auto& [status, status_msg] =
-                HCN().create_endpoint(hyperv::hcn::CreateEndpointParameters{
-                    .network_guid = network_parameters.guid,
-                    .endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029b",
-                });
+            const auto& [status,
+                         status_msg] = HCN().create_endpoint(hyperv::hcn::CreateEndpointParameters{
+                .network_guid = network_parameters.guid,
+                .endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db97029b",
+            });
 
             ASSERT_TRUE(status.success());
             ASSERT_TRUE(status_msg.empty());
@@ -272,6 +275,92 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
         << "Delete endpoint failed!";
     EXPECT_TRUE(HCN().delete_network(network_parameters.guid)) << "Delete network failed!";
     handle.reset();
+}
+
+TEST_F(HyperV_ComponentIntegrationTests, endpoints_tagged_with_same_name_are_found_and_removed)
+{
+    constexpr auto vm_name = "multipass-hyperv-cit-endpoint-leak-vm";
+    const auto endpoint_name = hyperv::hcn::endpoint_name_for(vm_name);
+
+    const auto network_parameters = []() {
+        hyperv::hcn::CreateNetworkParameters network_parameters{};
+        network_parameters.name = "multipass-hyperv-cit-endpoint-leak";
+        network_parameters.guid = "c6e6a6c1-9f7e-4b8a-8f0e-6a0a6b6c6d6e";
+        network_parameters.ipams = {
+            hyperv::hcn::HcnIpam{hyperv::hcn::HcnIpamType::Static(),
+                                 {hyperv::hcn::HcnSubnet{"10.99.100.0/24"}}}};
+        return network_parameters;
+    }();
+
+    const std::vector<std::string> endpoint_guids{"aee79cf9-54d1-4653-81fb-8110db970200",
+                                                  "bfe89da0-65e2-5764-92fc-9221ec081311"};
+
+    const auto make_endpoint_parameters = [&network_parameters,
+                                           &endpoint_name](const std::string& endpoint_guid) {
+        hyperv::hcn::CreateEndpointParameters endpoint_parameters{};
+        endpoint_parameters.network_guid = network_parameters.guid;
+        endpoint_parameters.endpoint_guid = endpoint_guid;
+        // Tag the endpoint with the deterministic, instance-based name -- this is what allows
+        // it to be found and removed without needing the VM's RuntimeId.
+        endpoint_parameters.name = endpoint_name;
+        return endpoint_parameters;
+    };
+
+    // Remove remnants from previous (failed) test runs, if any.
+    {
+        std::vector<std::string> stale_endpoints{};
+        (void)HCN().find_endpoints_by_name(endpoint_name, stale_endpoints);
+        for (const auto& stale : stale_endpoints)
+            (void)HCN().delete_endpoint(stale);
+
+        for (const auto& guid : endpoint_guids)
+            (void)HCN().delete_endpoint(guid);
+        (void)HCN().delete_network(network_parameters.guid);
+    }
+
+    // Create the test network
+    {
+        const auto& [status, status_msg] = HCN().create_network(network_parameters);
+        ASSERT_TRUE(status.success());
+    }
+
+    // Create both endpoints, tagged with the same instance-based name.
+    for (const auto& guid : endpoint_guids)
+    {
+        const auto& [status, status_msg] = HCN().create_endpoint(make_endpoint_parameters(guid));
+        ASSERT_TRUE(status.success());
+    }
+
+    // Querying by name discovers *all* endpoints sharing that name.
+    {
+        std::vector<std::string> found{};
+        const auto& [status, status_msg] = HCN().find_endpoints_by_name(endpoint_name, found);
+        ASSERT_TRUE(status.success());
+        EXPECT_THAT(found, testing::UnorderedElementsAreArray(endpoint_guids));
+    }
+
+    // Deleting all discovered endpoints removes them.
+    {
+        std::vector<std::string> found{};
+        const auto& [status, status_msg] = HCN().find_endpoints_by_name(endpoint_name, found);
+        ASSERT_TRUE(status.success());
+
+        for (const auto& guid : found)
+        {
+            const auto& [del_status, del_msg] = HCN().delete_endpoint(guid);
+            EXPECT_TRUE(del_status.success());
+        }
+    }
+
+    // Verify none of them remain -- no leak.
+    {
+        std::vector<std::string> found{};
+        const auto& [status, status_msg] = HCN().find_endpoints_by_name(endpoint_name, found);
+        ASSERT_TRUE(status.success());
+        EXPECT_TRUE(found.empty());
+    }
+
+    (void)HCN().delete_network(network_parameters.guid);
 }
 
 } // namespace multipass::test

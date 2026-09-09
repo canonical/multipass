@@ -461,8 +461,8 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_success)
     }
 
     { // Verify the expected outcome.
-        const auto& [status, error_msg] =
-            HCN().delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
+        const auto& [status,
+                     error_msg] = HCN().delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
@@ -497,8 +497,8 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_network_failed)
     }
 
     { // Verify the expected outcome.
-        const auto& [status, error_msg] =
-            HCN().delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
+        const auto& [status,
+                     error_msg] = HCN().delete_network("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_FALSE(status.success());
         ASSERT_FALSE(error_msg.empty());
         ASSERT_STREQ(error_msg.c_str(), mock_error_msg);
@@ -529,7 +529,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_success)
                         "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
                         "Policies": [
                         ],
-                        "MacAddress": null
+                        "MacAddress": null,
+                        "Name": null
                     })""";
 
                     ASSERT_NE(nullptr, network);
@@ -639,7 +640,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_endpoint_failure)
                         "HostComputeNetwork": "b70c479d-f808-4053-aafa-705bc15b6d68",
                         "Policies": [
                         ],
-                        "MacAddress": null
+                        "MacAddress": null,
+                        "Name": null
                     })""";
 
                     ASSERT_EQ(mock_network_object, network);
@@ -724,8 +726,8 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_success)
     }
 
     { // Verify the expected outcome.
-        const auto& [status, error_msg] =
-            HCN().delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
+        const auto& [status,
+                     error_msg] = HCN().delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_TRUE(status.success());
         ASSERT_TRUE(error_msg.empty());
     }
@@ -756,8 +758,8 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_failure)
     }
 
     { // Verify the expected outcome.
-        const auto& [status, error_msg] =
-            HCN().delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
+        const auto& [status,
+                     error_msg] = HCN().delete_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81");
         ASSERT_FALSE(status.success());
         ASSERT_FALSE(error_msg.empty());
         ASSERT_STREQ(error_msg.c_str(), mock_error_msg);

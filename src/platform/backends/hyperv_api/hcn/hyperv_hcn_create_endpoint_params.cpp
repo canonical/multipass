@@ -49,10 +49,14 @@ auto fmt::formatter<CreateEndpointParameters, Char>::format(const CreateEndpoint
         }},
         "HostComputeNetwork": "{0}",
         "Policies": [],
-        "MacAddress" : {1}
+        "MacAddress" : {1},
+        "Name": {2}
     }})json");
 
-    return json_template.format_to(ctx, params.network_guid, value_or_null(params.mac_address));
+    return json_template.format_to(ctx,
+                                   params.network_guid,
+                                   value_or_null(params.mac_address),
+                                   value_or_null(params.name));
 }
 
 template auto fmt::formatter<CreateEndpointParameters, char>::format<fmt::format_context>(

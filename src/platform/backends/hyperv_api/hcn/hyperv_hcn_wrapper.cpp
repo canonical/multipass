@@ -186,6 +186,18 @@ std::pair<OperationResult, UniqueHcnNetwork> open_network(const std::string& net
     return std::make_pair(result, std::move(network));
 }
 
+std::pair<OperationResult, UniqueHcnEndpoint> open_endpoint(const std::string& endpoint_guid)
+{
+    mpl::trace(log_category, "open_endpoint(...) > endpoint_guid: {} ", endpoint_guid);
+
+    UniqueHcnEndpoint endpoint{};
+    const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
+        return API().HcnOpenEndpoint(guid_from_string(endpoint_guid), out_ptr(endpoint), rmsgbuf);
+    });
+
+    return std::make_pair(result, std::move(endpoint));
+}
+
 } // namespace
 
 // ---------------------------------------------------------
@@ -298,6 +310,80 @@ OperationResult HCNWrapper::enumerate_attached_endpoints(
     return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
 }
 
+OperationResult HCNWrapper::find_endpoints_by_name(const std::string& name,
+                                                   std::vector<std::string>& endpoint_guids) const
+{
+    mpl::trace(log_category, "HCNWrapper::find_endpoints_by_name(...) > name: {} ", name);
+
+    UniqueCotaskmemString json_output{}, result_msgbuf{};
+
+    // No filter -- enumerate every endpoint known to HCN, then inspect each one's `Name`
+    // individually. This does not require the owning compute system to be open/alive.
+    const auto result = API().HcnEnumerateEndpoints(L"{}",
+                                                    out_ptr(json_output),
+                                                    out_ptr(result_msgbuf));
+
+    if (FAILED(result) || !json_output)
+    {
+        return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+    }
+
+    const auto endpoints_as_str = wchar_to_utf8(json_output.get());
+    std::error_code ec;
+    const auto as_json = boost::json::parse(endpoints_as_str, ec);
+    if (ec)
+    {
+        return {E_FAIL, L"Json parse error"};
+    }
+
+    for (const auto& elem : as_json.as_array())
+    {
+        const std::string endpoint_guid{elem.as_string()};
+
+        const auto& [open_result, endpoint] = open_endpoint(endpoint_guid);
+        if (!endpoint)
+        {
+            mpl::warn(log_category,
+                      "find_endpoints_by_name(...) > could not open endpoint {}: {}",
+                      endpoint_guid,
+                      open_result);
+            continue;
+        }
+
+        UniqueCotaskmemString query_result{}, query_error{};
+        const auto query_status = API().HcnQueryEndpointProperties(endpoint.get(),
+                                                                   L"{}",
+                                                                   out_ptr(query_result),
+                                                                   out_ptr(query_error));
+        if (FAILED(query_status) || !query_result)
+        {
+            mpl::warn(log_category,
+                      "find_endpoints_by_name(...) > could not query endpoint {}: {}",
+                      endpoint_guid,
+                      query_status);
+            continue;
+        }
+
+        std::error_code query_ec;
+        const auto endpoint_json_str = wchar_to_utf8(query_result.get());
+        const auto endpoint_json = boost::json::parse(endpoint_json_str, query_ec);
+        if (query_ec)
+        {
+            continue;
+        }
+
+        const auto& endpoint_obj = endpoint_json.as_object();
+        if (const auto* endpoint_name = endpoint_obj.if_contains("Name");
+            endpoint_name != nullptr && endpoint_name->is_string() &&
+            endpoint_name->as_string() == name)
+        {
+            endpoint_guids.push_back(endpoint_guid);
+        }
+    }
+
+    return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+}
+
 OperationResult HCNWrapper::query_network(const std::string& network_guid,
                                           HcnNetworkInfo& out_info) const
 {
@@ -360,8 +446,9 @@ OperationResult HCNWrapper::enumerate_networks(std::vector<std::string>& out_net
     UniqueCotaskmemString enumerate_result{}, result_msgbuf{};
 
     // List all HCN network GUIDs
-    const auto result =
-        API().HcnEnumerateNetworks(L"{}", out_ptr(enumerate_result), out_ptr(result_msgbuf));
+    const auto result = API().HcnEnumerateNetworks(L"{}",
+                                                   out_ptr(enumerate_result),
+                                                   out_ptr(result_msgbuf));
     if (enumerate_result)
     {
         // json_output would contain the network GUIDs.
