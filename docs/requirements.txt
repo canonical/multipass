@@ -16,6 +16,7 @@ sphinx-config-options>=0.1.0
 sphinx-contributor-listing>=0.1.0
 sphinx-filtered-toctree>=0.1.0
 sphinx-related-links>=0.1.1
+sphinx-structured-toc>=0.1.1
 sphinx-roles>=0.1.0
 sphinx-terminal>=1.0.2
 sphinx-ubuntu-images>=0.1.0
