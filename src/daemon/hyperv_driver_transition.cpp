@@ -25,10 +25,7 @@
 #include <multipass/constants.h>
 #include <multipass/settings/settings.h>
 
-#include <algorithm>
-#include <iterator>
 #include <stdexcept>
-#include <vector>
 
 namespace mp = multipass;
 namespace mhv = multipass::hyperv;
@@ -96,11 +93,7 @@ void mhv::DriverTransition::release_hcs_instances() const
 
     for (const auto& [name, spec] : context.specs)
     {
-        std::vector<std::string> mac_addresses{spec.default_mac_address};
-        std::ranges::transform(spec.extra_interfaces,
-                               std::back_inserter(mac_addresses),
-                               &NetworkInterface::mac_address);
-        if (!release_hcs_resources(name, mac_addresses))
+        if (!release_hcs_resources(name))
             throw std::runtime_error{
                 fmt::format("Could not release hyperv_api resources for '{}'", name)};
     }
