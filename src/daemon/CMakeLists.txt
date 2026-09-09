@@ -26,7 +26,9 @@ add_library(daemon STATIC
   snapshot_settings_handler.cpp)
 
 if(HYPERV_HCS_ENABLED)
-  target_sources(daemon PRIVATE hyperv_migration.cpp)
+  target_sources(daemon PRIVATE
+    hyperv_driver_transition.cpp
+    hyperv_migration.cpp)
   target_link_libraries(daemon hyperv_backend hyperv_api_backend)
 endif()
 
