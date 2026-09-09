@@ -145,52 +145,15 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
     hcs::HcsSystemHandle handle{nullptr};
     if (HCS().open_compute_system(name, handle))
     {
-        // Grab compute system GUID before terminating it so we can use it later on for endpoint
-        // cleanup.
-        std::string vm_guid{};
-        if (!HCS().get_compute_system_guid(handle, vm_guid) || vm_guid.empty())
-        {
-            mpl::warn(log_category,
-                      "Could not retrieve VM guid for `{}`, falling back to name-based endpoint "
-                      "cleanup.",
-                      name);
-            remove_endpoints_by_name(name);
-            return;
-        }
-
         if (HCS().terminate_compute_system(handle))
         {
             mpl::warn(log_category,
                       "remove_resources_for_impl() -> Host compute system {} was still alive.",
                       name);
         }
-
-        std::vector<std::string> attached_endpoints{};
-        const auto& enumerate_result =
-            HCN().enumerate_attached_endpoints(vm_guid, attached_endpoints);
-        for (const auto& elem : attached_endpoints)
-        {
-            const auto remove_result = HCN().delete_endpoint(elem);
-
-            mpl::log(remove_result ? mpl::Level::trace : mpl::Level::warning,
-                     log_category,
-                     "remove_resources_for_impl() -> Remove attached endpoint {}: {}",
-                     elem,
-                     remove_result.code);
-        }
     }
-    else
-    {
-        // The compute system may have already been terminated (e.g. by an earlier shutdown()
-        // call during instance deletion), in which case it can no longer be reopened to
-        // retrieve its RuntimeId for `enumerate_attached_endpoints`. Fall back to discovering
-        // and removing the instance's endpoints by their deterministic `Name` tag instead.
-        mpl::info(log_category,
-                  "remove_resources_for_impl() -> Host compute system `{}` already terminated, "
-                  "falling back to name-based endpoint cleanup.",
-                  name);
-        remove_endpoints_by_name(name);
-    }
+
+    remove_endpoints_by_name(name);
 }
 
 VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_image)

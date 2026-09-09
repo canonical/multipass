@@ -101,21 +101,17 @@ struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_vm_exists)
 {
     auto vm_name = "test-vm";
-    auto vm_guid = "this isn't a guid but this isn't a real implementation either";
     EXPECT_CALL(mock_hcs, open_compute_system(_, _))
         .WillOnce(DoAll([&](const std::string& name, hcs_handle_t&) { ASSERT_EQ(vm_name, name); },
                         SetArgReferee<1>(mock_handle),
                         Return(hcs_op_result_t{0, L""})));
 
-    EXPECT_CALL(mock_hcs, get_compute_system_guid(Eq(mock_handle), IsEmpty()))
-        .WillOnce(DoAll(SetArgReferee<1>(vm_guid), Return(hcs_op_result_t{0, L""})));
-
     EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
 
-    EXPECT_CALL(mock_hcn, enumerate_attached_endpoints(Eq(vm_guid), IsEmpty()))
+    EXPECT_CALL(mock_hcn, find_endpoints_by_name(Eq(fmt::format("multipass-{}", vm_name)), IsEmpty()))
         .WillOnce(DoAll(
-            [&](const std::string& vm_guid, std::vector<std::string>& endpoint_guids) {
+            [&](const std::string&, std::vector<std::string>& endpoint_guids) {
                 endpoint_guids.emplace_back("this isn't an endpoint guid");
                 endpoint_guids.emplace_back("this isn't either");
             },
@@ -148,7 +144,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_does_
 }
 
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
-      remove_resources_for_impl_falls_back_to_name_based_cleanup_when_already_terminated)
+      remove_resources_for_impl_cleans_up_endpoints_by_name_when_already_terminated)
 {
     auto vm_name = "test-vm";
     EXPECT_CALL(mock_hcs, open_compute_system(_, _))
