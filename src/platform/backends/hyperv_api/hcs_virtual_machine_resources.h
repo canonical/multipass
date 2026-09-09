@@ -17,12 +17,9 @@
 #pragma once
 
 #include <string>
-#include <vector>
 
 namespace multipass::hyperv
 {
 [[nodiscard]] std::string endpoint_guid_for_mac(std::string mac_address);
 [[nodiscard]] bool release_hcs_resources(const std::string& name);
-[[nodiscard]] bool release_hcs_resources(const std::string& name,
-                                         const std::vector<std::string>& mac_addresses);
 } // namespace multipass::hyperv
