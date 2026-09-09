@@ -14,7 +14,6 @@
 
 add_library(hyperv_migration STATIC
   hyperv_disk_layout.cpp
-  hyperv_migration_service.cpp
   hyperv_target_transaction.cpp)
 
 target_include_directories(hyperv_migration
