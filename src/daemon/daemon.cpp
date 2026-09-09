@@ -18,14 +18,10 @@
 #include "daemon.h"
 #include "base_cloud_init_config.h"
 #include "daemon_init_settings.h"
+#include "hyperv_driver_transition.h"
 #include "instance_settings_handler.h"
 #include "runtime_instance_info_helper.h"
 #include "snapshot_settings_handler.h"
-#if defined(HYPERV_HCS_ENABLED)
-#include "hyperv_migration.h"
-#include <hyperv_api/hcs_virtual_machine_factory.h>
-#include <hyperv_api/hcs_virtual_machine_resources.h>
-#endif
 
 #include <multipass/alias_definition.h>
 #include <multipass/cloud_init_iso.h>
@@ -1297,14 +1293,6 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
     populate_snapshot_fundamentals(snapshot, fundamentals);
 }
 
-grpc::Status migration_conflict_status(std::string_view rpc_name)
-{
-    return {grpc::StatusCode::FAILED_PRECONDITION,
-            fmt::format("Cannot {} while a Hyper-V instance migration is in progress. Please wait "
-                        "for the migration to finish and try again.",
-                        rpc_name)};
-}
-
 } // namespace
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1563,7 +1551,7 @@ bool mp::Daemon::reject_if_migrating(std::string_view rpc_name, DaemonRpcContext
         return false;
 
     mpl::info(category, "Rejecting '{}' while a migration is in progress", rpc_name);
-    context->set_value(migration_conflict_status(rpc_name));
+    context->set_value(mp::hyperv::migration_conflict_status(rpc_name));
     return true;
 }
 
@@ -2608,77 +2596,16 @@ try
     std::string bridge_name;
 
 #if defined(HYPERV_HCS_ENABLED)
-    const auto current_driver = key == mp::driver_key
-                                  ? MP_SETTINGS.get(mp::driver_key).toStdString()
-                                  : std::string{};
-    const auto migrate_hyperv = key == mp::driver_key && current_driver == "hyperv" &&
-                                val == "hyperv_api";
-    const auto leave_hyperv_api = key == mp::driver_key && current_driver == "hyperv_api" &&
-                                  val != "hyperv_api";
-    std::unique_ptr<mp::hyperv::HyperVMigrationTargetRecords> migration_records;
-    auto migration_flag_acquired = false;
-    auto migration_guard = sg::make_scope_guard([this, &migration_flag_acquired]() noexcept {
-        if (migration_flag_acquired)
-            migration_in_progress = false;
-    });
-
-    if (migrate_hyperv)
+    mp::hyperv::DriverTransition transition{*config,
+                                            vm_instance_specs,
+                                            operative_instances,
+                                            deleted_instances,
+                                            migration_in_progress,
+                                            preparations_in_progress};
+    if (auto status = transition.prepare(key, val); !status.ok())
     {
-        mp::hyperv::check_hyperv_api_support();
-        migration_records = std::make_unique<mp::hyperv::HyperVMigrationTargetRecords>(
-            config->data_directory);
-        migration_records->preflight();
-    }
-
-    if (migrate_hyperv || leave_hyperv_api)
-    {
-        if (migration_in_progress.exchange(true))
-        {
-            context->set_value(migration_conflict_status("change settings"));
-            return;
-        }
-        migration_flag_acquired = true;
-
-        if (preparations_in_progress.load() != 0)
-        {
-            context->set_value(
-                grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                             "Cannot change driver while an instance is being prepared"});
-            return;
-        }
-    }
-
-    if (migrate_hyperv)
-    {
-        migration_records->prepare();
-    }
-    else if (leave_hyperv_api)
-    {
-        for (const auto* instances : {&operative_instances, &deleted_instances})
-        {
-            for (const auto& [name, vm] : *instances)
-            {
-                if (!vm)
-                    continue;
-
-                const auto state = vm->current_state();
-                if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
-                    throw mp::InstanceStateSettingsException{"Cannot change driver",
-                                                             name,
-                                                             "instance is not stopped"};
-            }
-        }
-
-        for (const auto& [name, spec] : vm_instance_specs)
-        {
-            std::vector<std::string> mac_addresses{spec.default_mac_address};
-            std::ranges::transform(spec.extra_interfaces,
-                                   std::back_inserter(mac_addresses),
-                                   &NetworkInterface::mac_address);
-            if (!mp::hyperv::release_hcs_resources(name, mac_addresses))
-                throw std::runtime_error{
-                    fmt::format("Could not release hyperv_api resources for '{}'", name)};
-        }
+        context->set_value(std::move(status));
+        return;
     }
 #endif
 
@@ -2702,62 +2629,10 @@ try
     mpl::debug(category, "Succeeded setting {}={}", key, val);
 
 #if defined(HYPERV_HCS_ENABLED)
-    if (migrate_hyperv)
-    {
-        mp::hyperv::DaemonHyperVInstanceMigrator migrator{vm_instance_specs,
-                                                          operative_instances,
-                                                          deleted_instances,
-                                                          *config->factory,
-                                                          *config->az_manager,
-                                                          config->data_directory,
-                                                          *migration_records};
-        bool connection_lost = false;
-        const mp::hyperv::MigrationReporter report =
-            [server, &connection_lost](mp::hyperv::MigrationMessage kind, const std::string& text) {
-                SetReply reply;
-                switch (kind)
-                {
-                case mp::hyperv::MigrationMessage::phase:
-                    reply.set_migration_phase(text);
-                    break;
-                case mp::hyperv::MigrationMessage::diagnostic:
-                    reply.set_log_line(text);
-                    break;
-                case mp::hyperv::MigrationMessage::summary:
-                    reply.set_summary(text);
-                    break;
-                }
-
-                if (!server->Write(reply))
-                    connection_lost = true;
-            };
-        const auto outcome = mp::hyperv::run_bulk_migration(migrator, report, [&connection_lost] {
-            return connection_lost;
-        });
-
-        switch (outcome)
-        {
-        case mp::hyperv::MigrationOutcome::completed:
-            context->set_value(grpc::Status::OK);
-            break;
-        case mp::hyperv::MigrationOutcome::completed_with_failures:
-            context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                                            "One or more instances failed to migrate"});
-            break;
-        case mp::hyperv::MigrationOutcome::cancelled:
-            context->set_value(
-                grpc::Status{grpc::StatusCode::CANCELLED, "Hyper-V migration was cancelled"});
-            break;
-        case mp::hyperv::MigrationOutcome::aborted:
-            context->set_value(
-                grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, "Hyper-V migration aborted"});
-            break;
-        }
-        return;
-    }
-#endif
-
+    context->set_value(transition.complete(server));
+#else
     context->set_value(grpc::Status::OK);
+#endif
 }
 catch (const mp::NonAuthorizedBridgeSettingsException& e)
 {
