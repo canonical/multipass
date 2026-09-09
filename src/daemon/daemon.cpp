@@ -107,23 +107,6 @@ constexpr auto sshfs_error_template =
 constexpr auto invalid_network_template =
     "Invalid network '{}' set as bridged interface, use `multipass set "
     "{}=<name>` to correct. See `multipass networks` for valid names.";
-constexpr auto hyperv_deprecation_warning =
-    "*** Warning! The legacy Hyper-V driver is deprecated and will be removed in an upcoming "
-    "release. ***\n\n"
-    "When you are ready to migrate your instances, stop them (multipass stop --all) and switch "
-    "to the hyperv_api driver (multipass set local.driver=hyperv_api).\n\n";
-
-template <typename Reply, typename Request>
-void warn_legacy_hyperv(const mp::VirtualMachineFactory& factory,
-                        grpc::ServerReaderWriterInterface<Reply, Request>* server)
-{
-    if (factory.get_backend_version_string() == "hyperv")
-    {
-        Reply reply;
-        reply.set_log_line(hyperv_deprecation_warning);
-        server->Write(reply);
-    }
-}
 
 // Images which cannot be bridged with --network.
 const std::unordered_set<std::string> no_bridging_release =
@@ -1599,7 +1582,6 @@ try
     if (reject_if_migrating("launch an instance", context))
         return;
 
-    warn_legacy_hyperv(*config->factory, server);
     return create_vm(request, server, context, /*start=*/true);
 }
 catch (const mp::StartException& e)
@@ -1750,7 +1732,6 @@ void mp::Daemon::info(const InfoRequest* request,
                       DaemonRpcContext* context)
 try
 {
-    warn_legacy_hyperv(*config->factory, server);
     InfoReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
     InstanceSnapshotsMap instance_snapshots_map;
@@ -1844,7 +1825,6 @@ void mp::Daemon::list(const ListRequest* request,
                       DaemonRpcContext* context)
 try
 {
-    warn_legacy_hyperv(*config->factory, server);
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
@@ -1983,7 +1963,6 @@ try
     if (reject_if_migrating("mount into an instance", context))
         return;
 
-    warn_legacy_hyperv(*config->factory, server);
     if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
         return context->set_value(grpc::Status(
             grpc::StatusCode::FAILED_PRECONDITION,
@@ -2079,14 +2058,13 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::recover(const RecoverRequest* request,
-                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>* server,
+                         grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>*,
                          DaemonRpcContext* context)
 try
 {
     if (reject_if_migrating("recover instances", context))
         return;
 
-    warn_legacy_hyperv(*config->factory, server);
     auto recover_reaction = require_existing_instances_reaction;
     recover_reaction.operative_reaction.message_template =
         "instance \"{}\" does not need to be recovered";
@@ -2125,7 +2103,6 @@ void mp::Daemon::ssh_info(const SSHInfoRequest* request,
                           DaemonRpcContext* context)
 try
 {
-    warn_legacy_hyperv(*config->factory, server);
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
@@ -2159,7 +2136,6 @@ try
     if (reject_if_migrating("start instances", context))
         return;
 
-    warn_legacy_hyperv(*config->factory, server);
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
@@ -2294,14 +2270,13 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::suspend(const SuspendRequest* request,
-                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>* server,
+                         grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>*,
                          DaemonRpcContext* context)
 try
 {
     if (reject_if_migrating("suspend instances", context))
         return;
 
-    warn_legacy_hyperv(*config->factory, server);
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
@@ -2342,7 +2317,6 @@ try
     if (reject_if_migrating("restart instances", context))
         return;
 
-    warn_legacy_hyperv(*config->factory, server);
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
@@ -2471,14 +2445,13 @@ catch (const std::exception& e)
 }
 
 void mp::Daemon::umount(const UmountRequest* request,
-                        grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>* server,
+                        grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>*,
                         DaemonRpcContext* context)
 try
 {
     if (reject_if_migrating("unmount from an instance", context))
         return;
 
-    warn_legacy_hyperv(*config->factory, server);
     fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
     {
@@ -2751,7 +2724,6 @@ try
     if (reject_if_migrating("take a snapshot", context))
         return;
 
-    warn_legacy_hyperv(*config->factory, server);
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
@@ -2805,7 +2777,6 @@ try
     if (reject_if_migrating("restore a snapshot", context))
         return;
 
-    warn_legacy_hyperv(*config->factory, server);
     RestoreReply reply;
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
@@ -2895,7 +2866,6 @@ try
     if (reject_if_migrating("clone an instance", context))
         return;
 
-    warn_legacy_hyperv(*config->factory, server);
     const auto& source_name = request->source_name();
     const auto [src_instance_trail, src_vm_status] =
         find_instance_and_react(operative_instances,

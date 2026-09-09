@@ -11,7 +11,7 @@ This file contains the declaration of all the localizable strings.
     <String Id="ChooseHypervisorDlgDescription"
         Value="Select a hypervisor to use with [ProductName]." />
     <String Id="WixHyperVApi" Value="Microsoft Hyper-V Host Compute System (Recommended)" />
-    <String Id="WixHyperV" Value="Microsoft Hyper-V (legacy, deprecated)" />
+    <String Id="WixHyperV" Value="Microsoft Hyper-V (legacy)" />
     <String Id="WixVirtualBox" Value="Oracle VM VirtualBox" />
 
     <String Id="UninstallExeMPDlg_Title" Value="{\WixUI_Font_Title}[ProductName] Setup" />
