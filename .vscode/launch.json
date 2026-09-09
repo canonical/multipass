@@ -108,12 +108,23 @@
             }
         },
         {
-            "name": "Attach to daemon (Linux/macOS)",
+            "name": "Debug daemon (Linux/macOS)",
             "type": "cppdbg",
-            "request": "attach",
+            "request": "launch",
             "program": "${input:daemon}",
+            "cwd": "${command:cmake.buildDirectory}",
             "MIMode": "gdb",
+            "pipeTransport": {
+                "pipeProgram": "bash",
+                "pipeArgs": ["-c"],
+                "debuggerPath": "pkexec gdb"
+            },
             "setupCommands": [
+                {
+                    "description": "Clear debuginfod URLs",
+                    "text": "set debuginfod urls ",
+                    "ignoreFailures": true
+                },
                 {
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
@@ -171,10 +182,11 @@
             }
         },
         {
-            "name": "Attach to daemon (Windows)",
+            "name": "Debug daemon (Windows)",
             "type": "cppvsdbg",
-            "request": "attach",
+            "request": "launch",
             "program": "${input:daemon}",
+            "cwd": "${command:cmake.buildDirectory}",
             "presentation": {
                 "hidden": true
             },
