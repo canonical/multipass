@@ -270,6 +270,7 @@ extensions = [
     "sphinxcontrib.cairosvgconverter",
     "sphinx_last_updated_by_git",
     "sphinx_sitemap",
+    "sphinx_structured_toc",
 ]
 
 # Excludes files or directories from processing
