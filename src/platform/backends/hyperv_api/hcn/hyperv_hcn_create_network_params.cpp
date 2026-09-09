@@ -42,16 +42,27 @@ auto fmt::formatter<CreateNetworkParameters, Char>::format(const CreateNetworkPa
         "Flags": {3},
         "Policies": [
             {4}
-        ]
+        ]{5}
     }}
     )json");
+
+    // The "Dns" object is optional, so it is only emitted when specified. When
+    // absent the fragment is empty, leaving the rest of the document untouched.
+    std::basic_string<Char> dns_fragment{};
+    if (params.dns.has_value())
+    {
+        static constexpr auto dns_template = string_literal<Char>(R"json(,
+        "Dns": {0})json");
+        dns_fragment = dns_template.format(params.dns.value());
+    }
 
     return json_template.format_to(ctx,
                                    params.name,
                                    params.type,
                                    fmt::join(params.ipams, string_literal<Char>(",")),
                                    fmt::underlying(params.flags),
-                                   fmt::join(params.policies, string_literal<Char>(",")));
+                                   fmt::join(params.policies, string_literal<Char>(",")),
+                                   dns_fragment);
 }
 
 template auto fmt::formatter<CreateNetworkParameters, char>::format<fmt::format_context>(

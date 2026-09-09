@@ -59,6 +59,10 @@ struct HCNAPI : public Singleton<HCNAPI>
                                                             PCWSTR Query,
                                                             PWSTR* Properties,
                                                             PWSTR* ErrorRecord) const;
+    [[nodiscard]] virtual HRESULT HcnQueryEndpointProperties(HCN_ENDPOINT Endpoint,
+                                                             PCWSTR Query,
+                                                             PWSTR* Properties,
+                                                             PWSTR* ErrorRecord) const;
 
     virtual void CoTaskMemFree(LPVOID pv) const;
 };

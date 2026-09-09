@@ -61,6 +61,10 @@ public:
                 HcnQueryNetworkProperties,
                 (HCN_NETWORK Network, PCWSTR Query, PWSTR* Properties, PWSTR* ErrorRecord),
                 (const override));
+    MOCK_METHOD(HRESULT,
+                HcnQueryEndpointProperties,
+                (HCN_ENDPOINT Endpoint, PCWSTR Query, PWSTR* Properties, PWSTR* ErrorRecord),
+                (const override));
     MOCK_METHOD(void, CoTaskMemFree, (LPVOID pv), (const override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockHCNAPI, HCNAPI);

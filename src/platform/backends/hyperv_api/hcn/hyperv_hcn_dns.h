@@ -17,38 +17,53 @@
 
 #pragma once
 
-#include <hyperv_api/hcn/hyperv_hcn_dns.h>
-
+#include <fmt/format.h>
 #include <fmt/xchar.h>
 
-#include <optional>
 #include <string>
+#include <vector>
 
 namespace multipass::hyperv::hcn
 {
-struct HcnNetworkInfo
-{
-    std::string guid;
-    std::string name;
-    std::string type;
-    std::optional<std::string> network_adapter_name;
-
-    /**
-     * DNS settings (suffix, search list, servers) reported by the network.
-     */
-    std::optional<HcnDns> dns;
-};
-
-}; // namespace multipass::hyperv::hcn
 
 /**
- * Formatter type specialization for HcnNetworkInfo
+ * Domain Name System settings associated with a Host Compute Network.
+ *
+ * Maps to the `Dns` object of the HCN `HostComputeNetwork` schema.
+ */
+struct HcnDns
+{
+    /**
+     * Primary DNS suffix (domain) for the network.
+     */
+    std::string domain{};
+
+    /**
+     * DNS suffix search list.
+     */
+    std::vector<std::string> search{};
+
+    /**
+     * List of DNS server IP addresses.
+     */
+    std::vector<std::string> server_list{};
+
+    /**
+     * Additional DNS options.
+     */
+    std::vector<std::string> options{};
+};
+
+} // namespace multipass::hyperv::hcn
+
+/**
+ * Formatter type specialization for HcnDns
  */
 template <typename Char>
-struct fmt::formatter<multipass::hyperv::hcn::HcnNetworkInfo, Char>
+struct fmt::formatter<multipass::hyperv::hcn::HcnDns, Char>
     : formatter<basic_string_view<Char>, Char>
 {
     template <typename FormatContext>
-    auto format(const multipass::hyperv::hcn::HcnNetworkInfo& info, FormatContext& ctx) const
+    auto format(const multipass::hyperv::hcn::HcnDns& dns, FormatContext& ctx) const
         -> FormatContext::iterator;
 };
