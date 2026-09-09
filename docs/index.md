@@ -22,50 +22,203 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ## In this documentation
 
-### Basic / Getting started
+### Basics
 
-- [Install Multipass](how-to-guides-install-multipass) • [Tutorial](tutorial-index)
-- **CLI and GUI interface:** [Command-line interface](reference-command-line-interface-index) • [GUI client](reference-gui-client)
-- **Use a VM: exec and shell:** [Multipass exec and shells](explanation-multipass-exec-and-shells) • [Use an instance](how-to-guides-manage-instances-use-an-instance)
+````{domain}
+
+```{slice} Getting started
+
+{doc}`Install Multipass <how-to-guides/install-multipass>`
+{doc}`Tutorial <tutorial/index>`
+```
+
+```{slice} CLI and GUI interface
+
+{doc}`Command-line interface <reference/command-line-interface/index>`
+{doc}`GUI client <reference/gui-client>`
+```
+
+```{slice} Use a VM: exec and shell
+
+{doc}`Multipass exec and shells <explanation/multipass-exec-and-shells>`
+{doc}`Use an instance <how-to-guides/manage-instances/use-an-instance>` domain
+```
+
+````
 
 ### Core Concepts
 
-- **Virtualization / Virtual machines:** [Host](explanation-host) • [Instance](explanation-instance) • [Platform](explanation-platform)
-- **Manage instances:** [Create an instance](how-to-guides-manage-instances-create-an-instance) • [Modify an instance](how-to-guides-manage-instances-modify-an-instance) • [Remove an instance](how-to-guides-manage-instances-remove-an-instance) • [Instance states](reference-instance-states)
-- **Images:** [Image](explanation-image) • [Build Multipass images with Packer](how-to-guides-customise-multipass-build-multipass-images-with-packer)
+````{domain}
+
+```{slice} Virtualization / Virtual machines
+
+{doc}`Host <explanation/index>`
+{doc}`Instance <explanation/instance>`
+{doc}`Platform <explanation/platform>`
+```
+
+```{slice} Manage instances
+
+{doc}`Create an instance <how-to-guides/manage-instances/create-an-instance>` domain
+{doc}`Modify an instance <how-to-guides/manage-instances/modify-an-instance>` domain
+{doc}`Remove an instance <how-to-guides/manage-instances/remove-an-instance>` domain
+{doc}`Instance states <reference/instance-states>`
+```
+
+```{slice} Images
+
+{doc}`Image <explanation/image>`
+{doc}`Build Multipass images with Packer <how-to-guides/customise-multipass/build-multipass-images-with-packer>`
+```
+
+````
 
 ### Multipass and its host
 
-- **Native drivers:** [Driver](explanation-driver) • [Set up the driver](how-to-guides-customise-multipass-set-up-the-driver)
-- **Multipass architecture:** [Service](explanation-service) • [Reference architecture](explanation-reference-architecture) • [Authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service) • [Authentication](explanation-authentication)
-- **Share data with the host:** [Mount](explanation-mount) • [Share data with an instance](how-to-guides-manage-instances-share-data-with-an-instance) • [Transfer files](reference-command-line-interface-transfer) • [Security considerations](security-considerations-mount) • [ID mapping](explanation-id-mapping)
-- **Network:** [Add a network to an existing instance](how-to-guides-manage-instances-add-a-network-to-an-existing-instance) • [Configure static IPs](how-to-guides-manage-instances-configure-static-ips) • [Set up custom networking](how-to-guides-manage-instances-set-up-custom-networking)
+````{domain}
+
+```{slice} Native drivers
+
+{doc}`Driver <explanation/driver>`
+{doc}`Set up the driver <how-to-guides/customise-multipass/set-up-the-driver>` domain
+```
+
+```{slice} Multipass architecture
+
+{doc}`Service <explanation/service>`
+{doc}`Reference architecture <explanation/reference-architecture>`
+{doc}`Authenticate users with the Multipass service <how-to-guides/customise-multipass/authenticate-users-with-the-multipass-service>`
+{doc}`Authentication <explanation/authentication>` domain
+```
+
+```{slice} Share data with the host
+
+{doc}`Mount <explanation/mount>`
+{doc}`Share data with an instance <how-to-guides/manage-instances/share-data-with-an-instance>`
+{doc}`Transfer files <reference/command-line-interface/transfer>`
+{doc}`Security considerations <explanation/mount>`
+{doc}`ID mapping <explanation/id-mapping>`
+```
+
+```{slice} Network
+
+{doc}`Add a network to an existing instance <how-to-guides/manage-instances/add-a-network-to-an-existing-instance>`
+{doc}`Configure static IPs <how-to-guides/manage-instances/configure-static-ips>`
+{doc}`Set up custom networking <how-to-guides/manage-instances/set-up-custom-networking>`
+```
+
+````
 
 ### Features
 
-- **Instance customization:** [Launch customized instances with Multipass and cloud-init](how-to-guides-manage-instances-launch-customized-instances-with-multipass-and-cloud-init)
-- **Aliases:** [Alias](explanation-alias) • [Use instance command aliases](how-to-guides-manage-instances-use-instance-command-aliases)
-- **Primary instance:** [Use the primary instance](how-to-guides-manage-instances-use-the-primary-instance)
+````{domain}
+
+```{slice} Instance customization
+
+{doc}`Launch customized instances with Multipass and cloud-init <how-to-guides/manage-instances/launch-customized-instances-with-multipass-and-cloud-init>`
+```
+
+```{slice} Aliases
+
+{doc}`Alias <explanation/index>`
+{doc}`Use instance command aliases <how-to-guides/manage-instances/use-instance-command-aliases>` domain
+```
+
+```{slice} Primary instance
+
+{doc}`Use the primary instance <how-to-guides/manage-instances/use-the-primary-instance>` domain
+```
+
+````
 
 ### Lifecycle
 
-- **Manage instances:** [Create an instance](how-to-guides-manage-instances-create-an-instance) • [Use an instance](how-to-guides-manage-instances-use-an-instance) • [Modify an instance](how-to-guides-manage-instances-modify-an-instance) • [Use the primary instance](how-to-guides-manage-instances-use-the-primary-instance) • [Use instance command aliases](how-to-guides-manage-instances-use-instance-command-aliases) • [Remove an instance](how-to-guides-manage-instances-remove-an-instance)
-- **Settings:** [Settings](reference-settings-index) • [Settings keys and values](explanation-settings-keys-values) • [Instance name format](reference-instance-name-format)
-- **Instances: snapshots, cloning:** [Snapshot](explanation-snapshot) • [`snapshot`](reference-command-line-interface-snapshot) • [`clone`](reference-command-line-interface-clone)
-- [Uninstall Multipass](how-to-guides-install-multipass-uninstall)
+````{domain}
+
+```{slice} Manage instances
+
+{doc}`Create an instance <how-to-guides/manage-instances/create-an-instance>` domain
+{doc}`Use an instance <how-to-guides/manage-instances/use-an-instance>` domain
+{doc}`Modify an instance <how-to-guides/manage-instances/modify-an-instance>` domain
+{doc}`Use the primary instance <how-to-guides/manage-instances/use-the-primary-instance>` domain
+{doc}`Use instance command aliases <how-to-guides/manage-instances/use-instance-command-aliases>` domain
+{doc}`Remove an instance <how-to-guides/manage-instances/remove-an-instance>` domain
+```
+
+```{slice} Settings
+
+{doc}`Settings <reference/settings/index>`
+{doc}`Settings keys and values <explanation/settings-keys-values>`
+{doc}`Instance name format <reference/instance-name-format>`
+```
+
+```{slice} Instances: snapshots, cloning
+
+{doc}`Snapshot <explanation/snapshot>`
+{doc}`snapshot <reference/command-line-interface/snapshot>`
+{doc}`clone <reference/command-line-interface/clone>`
+```
+
+```{slice} Uninstallation
+
+{doc}`Uninstall Multipass <how-to-guides/install-multipass>`
+```
+
+````
 
 ### Quality
 
-- **Logs and log levels:** [Access logs](how-to-guides-troubleshoot-access-logs) • [Logging levels](reference-logging-levels) • [Configure Multipass's default logging level](how-to-guides-customise-multipass-configure-multipass-default-logging-level)
-- **Security:** [About security](explanation-about-security) • [Authentication](explanation-authentication)
-- **Performance:** [About performance](explanation-about-performance)
+````{domain}
+
+```{slice} Logs and log levels
+
+{doc}`Access logs <how-to-guides/troubleshoot/access-logs>`
+{doc}`Logging levels <reference/logging-levels>`
+{doc}`Configure Multipass's default logging level <how-to-guides/customise-multipass/configure-multipass-default-logging-level>`
+```
+
+```{slice} Security
+
+{doc}`About security <explanation/about-security>`
+{doc}`Authentication <explanation/authentication>` domain
+```
+
+```{slice} Performance
+
+{doc}`About performance <explanation/about-performance>`
+```
+
+````
 
 ### Special use-cases, concerns, and problems
 
-- **Use-cases:** [Set up a graphical interface](how-to-guides-customise-multipass-set-up-a-graphical-interface)
-- **Troubleshooting:** [Troubleshoot launch/start issues](how-to-guides-troubleshoot-troubleshoot-launch-start-issues) • [Mount an encrypted home folder](how-to-guides-troubleshoot-mount-an-encrypted-home-folder) • [Troubleshoot networking](how-to-guides-troubleshoot-troubleshoot-networking)
-- **Migration:** [Migrate from Hyperkit to QEMU on macOS](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos)
-- **Platform specific:** [Set up the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Integrate with Windows Terminal](how-to-guides-customise-multipass-integrate-with-windows-terminal) • [Use a different terminal from the system icon](how-to-guides-customise-multipass-use-a-different-terminal-from-the-system-icon)
+````{domain}
+
+```{slice} Use-cases
+
+{doc}`Set up a graphical interface <how-to-guides/customise-multipass/set-up-a-graphical-interface>`
+```
+
+```{slice} Troubleshooting
+
+{doc}`Troubleshoot launch/start issues <how-to-guides/troubleshoot/troubleshoot-launch-start-issues>`
+{doc}`Mount an encrypted home folder <how-to-guides/troubleshoot/mount-an-encrypted-home-folder>`
+{doc}`Troubleshoot networking <how-to-guides/troubleshoot/troubleshoot-networking>`
+```
+
+```{slice} Migration
+
+{doc}`Migrate from Hyperkit to QEMU on macOS <how-to-guides/customise-multipass/migrate-from-hyperkit-to-qemu-on-macos>`
+```
+
+```{slice} Platform specific
+
+{doc}`Set up the driver <how-to-guides/customise-multipass/set-up-the-driver>` domain
+{doc}`Integrate with Windows Terminal <how-to-guides/customise-multipass/integrate-with-windows-terminal>`
+{doc}`Use a different terminal from the system icon <how-to-guides/customise-multipass/use-a-different-terminal-from-the-system-icon>`
+```
+
+````
 
 ---
 
