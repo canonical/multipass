@@ -54,14 +54,7 @@ bool path_is_within(const fs::path& path, const fs::path& root)
 {
     const auto canonical_path = MP_FILEOPS.weakly_canonical(path);
     const auto canonical_root = MP_FILEOPS.weakly_canonical(root);
-    auto path_it = canonical_path.begin();
-    for (auto root_it = canonical_root.begin(); root_it != canonical_root.end();
-         ++root_it, ++path_it)
-    {
-        if (path_it == canonical_path.end() || *path_it != *root_it)
-            return false;
-    }
-    return true;
+    return std::ranges::mismatch(canonical_root, canonical_path).in1 == canonical_root.end();
 }
 
 std::uintmax_t logical_file_length(const fs::path& path)
@@ -93,12 +86,12 @@ std::string unique_target_name(const fs::path& source, std::unordered_set<std::s
     if (taken.insert(base).second)
         return base;
 
-    const fs::path base_path{base};
-    const auto stem = base_path.stem().string();
-    const auto extension = base_path.extension().string();
     for (int suffix = 1;; ++suffix)
     {
-        auto candidate = fmt::format("{}-{}{}", stem, suffix, extension);
+        auto candidate = fmt::format("{}-{}{}",
+                                     source.stem().string(),
+                                     suffix,
+                                     source.extension().string());
         if (taken.insert(candidate).second)
             return candidate;
     }
@@ -162,16 +155,15 @@ const std::filesystem::path& multipass::hyperv::TargetDiskMapping::target_for(
 multipass::hyperv::TargetMigrationTransaction::TargetMigrationTransaction(
     std::string vm_name,
     fs::path target_instance_dir)
-    : vm_name{std::move(vm_name)},
-      transaction_id{QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString()},
+    : manifest{.transaction_id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString(),
+               .vm_name = std::move(vm_name)},
       target_instance_dir{std::move(target_instance_dir)}
 {
 }
 
 multipass::hyperv::TargetMigrationTransaction::~TargetMigrationTransaction()
 {
-    if (!committed && staged)
-        rollback();
+    rollback();
 }
 
 multipass::hyperv::TargetDiskMapping multipass::hyperv::TargetMigrationTransaction::plan(
@@ -205,32 +197,15 @@ multipass::hyperv::TargetDiskMapping multipass::hyperv::TargetMigrationTransacti
 
     mapping.active_disk = mapping.target_for(layout.active_disk);
 
-    for (const auto& disk : layout.all_disks)
+    for (const auto& entry : mapping.disks)
     {
-        const auto parent = immediate_parent(disk);
-        if (parent.empty())
-            continue;
-
-        const auto known = std::ranges::any_of(layout.all_disks, [&parent](const auto& candidate) {
-            return same_path(candidate, parent);
-        });
-        if (!known)
-            throw std::runtime_error{fmt::format(
-                "Disk '{}' has a parent '{}' outside of this instance's graph; refusing to "
-                "migrate cross-instance or shared backing",
-                disk,
-                parent)};
-
-        mapping.parent_links.push_back(
-            {.child = mapping.target_for(disk), .parent = mapping.target_for(parent)});
+        if (const auto parent = immediate_parent(entry.source); !parent.empty())
+            mapping.parent_links.push_back(
+                {.child = entry.target, .parent = mapping.target_for(parent)});
     }
 
-    mapping.snapshots.reserve(layout.snapshots.size());
-    for (auto snapshot : layout.snapshots)
-    {
-        snapshot.disk_path = mapping.target_for(snapshot.disk_path);
-        mapping.snapshots.push_back(std::move(snapshot));
-    }
+    for (const auto& snapshot : layout.snapshots)
+        (void)mapping.target_for(snapshot.disk_path);
 
     return mapping;
 }
@@ -251,7 +226,7 @@ void multipass::hyperv::TargetMigrationTransaction::check_space(
     if (info.available < required)
         throw std::runtime_error{fmt::format(
             "Insufficient space to migrate '{}': need {} bytes, only {} bytes available on '{}'",
-            vm_name,
+            manifest.vm_name,
             required,
             info.available,
             target_instance_dir.parent_path())};
@@ -280,19 +255,11 @@ multipass::hyperv::TargetDiskMapping multipass::hyperv::TargetMigrationTransacti
     }
     staged = true;
 
-    const auto manifest = make_manifest(MigrationTransactionManifest::staged_phase_name);
+    manifest.phase = MigrationTransactionManifest::staged_phase_name;
     manifest.persist(target_instance_dir);
 
     for (const auto& entry : mapping.disks)
-    {
-        error.clear();
-        MP_FILEOPS.copy(entry.source, entry.target, fs::copy_options::overwrite_existing, error);
-        if (error)
-            throw std::runtime_error{fmt::format("Could not copy disk '{}' to '{}': {}",
-                                                 entry.source,
-                                                 entry.target,
-                                                 error.message())};
-    }
+        MP_FILEOPS.copy(entry.source, entry.target, fs::copy_options::overwrite_existing);
 
     for (const auto& link : mapping.parent_links)
         if (const auto result = VirtDisk().reparent_virtual_disk(link.child, link.parent); !result)
@@ -301,8 +268,14 @@ multipass::hyperv::TargetDiskMapping multipass::hyperv::TargetMigrationTransacti
                                                  link.parent,
                                                  result)};
 
-    copy_instance_bookkeeping(source_instance_dir);
-    write_snapshot_bookkeeping(mapping, source_instance_dir);
+    MP_FILEOPS.copy(source_instance_dir / multipass::cloud_init_file_name,
+                    target_instance_dir / multipass::cloud_init_file_name,
+                    fs::copy_options::overwrite_existing);
+    if (const auto count = source_instance_dir / snapshot_count_filename; MP_FILEOPS.exists(count))
+        MP_FILEOPS.copy(count,
+                        target_instance_dir / snapshot_count_filename,
+                        fs::copy_options::overwrite_existing);
+    write_snapshot_bookkeeping(layout, source_instance_dir);
 
     return mapping;
 }
@@ -352,7 +325,7 @@ void multipass::hyperv::TargetMigrationTransaction::commit(const TargetDiskMappi
     if (!same_path(mapping.root, target_instance_dir))
         throw std::runtime_error{"Migration mapping does not belong to this transaction"};
 
-    const auto manifest = make_manifest(MigrationTransactionManifest::prepared_phase_name);
+    manifest.phase = MigrationTransactionManifest::prepared_phase_name;
     manifest.persist(target_instance_dir);
 
     committed = true;
@@ -368,9 +341,9 @@ void multipass::hyperv::TargetMigrationTransaction::rollback() noexcept
         if (!MP_FILEOPS.exists(target_instance_dir, error))
             return;
 
-        const auto manifest = MigrationTransactionManifest::load(target_instance_dir);
-        if (manifest &&
-            (manifest->transaction_id != transaction_id || manifest->vm_name != vm_name))
+        const auto on_disk = MigrationTransactionManifest::load(target_instance_dir);
+        if (on_disk && (on_disk->transaction_id != manifest.transaction_id ||
+                        on_disk->vm_name != manifest.vm_name))
         {
             mpl::warn(log_category,
                       "Refusing to roll back unowned migration path '{}'",
@@ -378,7 +351,7 @@ void multipass::hyperv::TargetMigrationTransaction::rollback() noexcept
             return;
         }
 
-        if (manifest && manifest->phase == MigrationTransactionManifest::prepared_phase_name)
+        if (on_disk && on_disk->phase == MigrationTransactionManifest::prepared_phase_name)
         {
             mpl::warn(log_category,
                       "Refusing to roll back '{}' because it is already prepared",
@@ -396,41 +369,11 @@ void multipass::hyperv::TargetMigrationTransaction::rollback() noexcept
     staged = false;
 }
 
-void multipass::hyperv::TargetMigrationTransaction::copy_instance_bookkeeping(
-    const fs::path& source_instance_dir) const
-{
-    const auto copy_file = [this, &source_instance_dir](const auto& filename, bool required) {
-        const auto source = source_instance_dir / filename;
-        if (!MP_FILEOPS.exists(source))
-        {
-            if (required)
-                throw std::runtime_error{
-                    fmt::format("Required migration source file '{}' does not exist", source)};
-            return;
-        }
-
-        std::error_code error;
-        MP_FILEOPS.copy(source,
-                        target_instance_dir / filename,
-                        fs::copy_options::overwrite_existing,
-                        error);
-        if (error)
-            throw std::runtime_error{
-                fmt::format("Could not copy migration source file '{}' to '{}': {}",
-                            source,
-                            target_instance_dir / filename,
-                            error.message())};
-    };
-
-    copy_file(multipass::cloud_init_file_name, true);
-    copy_file(snapshot_count_filename, false);
-}
-
 void multipass::hyperv::TargetMigrationTransaction::write_snapshot_bookkeeping(
-    const TargetDiskMapping& mapping,
+    const LegacyDiskLayout& layout,
     const fs::path& source_instance_dir) const
 {
-    for (const auto& snapshot : mapping.snapshots)
+    for (const auto& snapshot : layout.snapshots)
     {
         const auto filename = fmt::format("{:04}.snapshot.json", snapshot.index);
         const auto contents = MP_FILEOPS.try_read_file(source_instance_dir / filename);
@@ -445,19 +388,10 @@ void multipass::hyperv::TargetMigrationTransaction::write_snapshot_bookkeeping(
                 fmt::format("Snapshot metadata index does not match '{}'", filename)};
 
         snapshot_object["extra_interfaces"] = boost::json::value_from(snapshot.extra_interfaces);
-        MP_FILEOPS.write_transactionally(mapping.root / filename, multipass::pretty_print(json));
+        MP_FILEOPS.write_transactionally(target_instance_dir / filename,
+                                         multipass::pretty_print(json));
     }
 
     if (const auto head = MP_FILEOPS.try_read_file(source_instance_dir / snapshot_head_filename))
-        MP_FILEOPS.write_transactionally(mapping.root / snapshot_head_filename, *head);
-}
-
-multipass::hyperv::MigrationTransactionManifest
-multipass::hyperv::TargetMigrationTransaction::make_manifest(std::string phase) const
-{
-    return {
-        .transaction_id = transaction_id,
-        .phase = std::move(phase),
-        .vm_name = vm_name,
-    };
+        MP_FILEOPS.write_transactionally(target_instance_dir / snapshot_head_filename, *head);
 }

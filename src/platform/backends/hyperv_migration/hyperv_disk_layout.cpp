@@ -79,7 +79,7 @@ void append_unique(std::vector<fs::path>& disks, const std::vector<fs::path>& ch
 struct DiscoveredVM
 {
     fs::path active_disk;
-    std::map<std::string, mhv::LegacySnapshotDisk> snapshots;
+    std::map<std::string, fs::path> snapshots;
 };
 
 DiscoveredVM query_hyperv(const std::string& name)
@@ -119,14 +119,9 @@ DiscoveredVM query_hyperv(const std::string& name)
     for (const auto& value : object.at("Snapshots").as_array())
     {
         const auto& snapshot = value.as_object();
-        mhv::LegacySnapshotDisk disk{
-            .index = 0,
-            .checkpoint_name = boost::json::value_to<std::string>(snapshot.at("Name")),
-            .disk_path = boost::json::value_to<std::string>(snapshot.at("Path")),
-        };
-
-        const auto [_, inserted] = discovered.snapshots.emplace(disk.checkpoint_name,
-                                                                std::move(disk));
+        const auto [_, inserted] = discovered.snapshots.emplace(
+            boost::json::value_to<std::string>(snapshot.at("Name")),
+            boost::json::value_to<std::string>(snapshot.at("Path")));
         if (!inserted)
             throw std::runtime_error{"Hyper-V contains duplicate checkpoint names"};
     }
@@ -151,7 +146,6 @@ multipass::hyperv::resolve_legacy_disk_layout(const std::string& name, const Vir
             multipass_snapshots.size())};
 
     std::map<int, fs::path> snapshot_paths;
-    std::vector<fs::path> unique_snapshot_paths;
     for (const auto& snapshot : multipass_snapshots)
     {
         const auto expected_name = fmt::format("@s{}", snapshot->get_index());
@@ -160,17 +154,17 @@ multipass::hyperv::resolve_legacy_disk_layout(const std::string& name, const Vir
             throw std::runtime_error{
                 fmt::format("Could not find Hyper-V checkpoint '{}'", expected_name)};
 
-        checkpoint->second.index = snapshot->get_index();
-        checkpoint->second.extra_interfaces = snapshot->get_extra_interfaces();
-        if (std::ranges::any_of(unique_snapshot_paths, [&checkpoint](const auto& path) {
-                return same_path(path, checkpoint->second.disk_path);
+        const auto& path = checkpoint->second;
+        if (std::ranges::any_of(snapshot_paths, [&path](const auto& entry) {
+                return same_path(entry.second, path);
             }))
-            throw std::runtime_error{fmt::format("Multiple Hyper-V checkpoints reference disk '{}'",
-                                                 checkpoint->second.disk_path)};
+            throw std::runtime_error{
+                fmt::format("Multiple Hyper-V checkpoints reference disk '{}'", path)};
 
-        unique_snapshot_paths.push_back(checkpoint->second.disk_path);
-        snapshot_paths.emplace(snapshot->get_index(), checkpoint->second.disk_path);
-        layout.snapshots.push_back(std::move(checkpoint->second));
+        snapshot_paths.emplace(snapshot->get_index(), path);
+        layout.snapshots.push_back({.index = snapshot->get_index(),
+                                    .disk_path = path,
+                                    .extra_interfaces = snapshot->get_extra_interfaces()});
         discovered.snapshots.erase(checkpoint);
     }
 

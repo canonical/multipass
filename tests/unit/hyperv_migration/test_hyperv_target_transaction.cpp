@@ -108,7 +108,6 @@ struct HyperVTargetTransaction : public Test
         layout.all_disks = {active, base, snap1};
         layout.snapshots = {
             {.index = 1,
-             .checkpoint_name = "@s1",
              .disk_path = snap1,
              .extra_interfaces = {
                  {.id = "target-switch", .mac_address = "52:54:00:12:34:56", .auto_mode = true}}}};
@@ -142,8 +141,7 @@ TEST_F(HyperVTargetTransaction, planMapsEveryUniqueDiskTargetLocal)
     for (const auto& entry : mapping.disks)
         EXPECT_EQ(entry.target.parent_path(), target_instance_dir);
     EXPECT_EQ(mapping.active_disk, target_instance_dir / "active.avhdx");
-    ASSERT_EQ(mapping.snapshots.size(), 1u);
-    EXPECT_EQ(mapping.snapshots.front().disk_path, target_instance_dir / "1.avhdx");
+    EXPECT_EQ(mapping.target_for(snap1), target_instance_dir / "1.avhdx");
 
     ASSERT_EQ(mapping.parent_links.size(), 2u);
     for (const auto& link : mapping.parent_links)
@@ -157,6 +155,31 @@ TEST_F(HyperVTargetTransaction, planRejectsSharedBackingOutsideGraph)
 
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
     EXPECT_THROW((void)transaction.plan(layout, target_instance_dir), std::runtime_error);
+}
+
+TEST_F(HyperVTargetTransaction, planRejectsSnapshotDiskOutsideGraph)
+{
+    std::erase(layout.all_disks, snap1);
+    mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
+
+    EXPECT_THROW((void)transaction.plan(layout, target_instance_dir), std::runtime_error);
+}
+
+TEST_F(HyperVTargetTransaction, planReservesSnapshotNamesAndDisambiguatesDiskNames)
+{
+    const auto collision = source_dir / "1.avhdx";
+    const auto duplicate = source_dir / "nested" / active.filename();
+    layout.all_disks.insert(layout.all_disks.end(), {collision, duplicate});
+    ON_CALL(*virtdisk.first, list_virtual_disk_chain(_, _, _))
+        .WillByDefault(Invoke(chain_by_filename({})));
+    mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
+
+    const auto mapping = transaction.plan(layout, target_instance_dir);
+
+    EXPECT_EQ(mapping.target_for(snap1), target_instance_dir / "1.avhdx");
+    EXPECT_EQ(mapping.target_for(collision), target_instance_dir / "1-1.avhdx");
+    EXPECT_EQ(mapping.target_for(active), target_instance_dir / "active.avhdx");
+    EXPECT_EQ(mapping.target_for(duplicate), target_instance_dir / "active-1.avhdx");
 }
 
 TEST_F(HyperVTargetTransaction, stageCopiesReparentsAndRewritesSnapshotsWithoutTouchingSource)
@@ -273,7 +296,6 @@ TEST_F(HyperVTargetTransaction, commitMarksTargetPrepared)
     EXPECT_NO_THROW(boost::json::parse(*committed_snapshot));
     // Source remains intact after a successful commit.
     EXPECT_TRUE(MP_FILEOPS.exists(active));
-    EXPECT_TRUE(MP_FILEOPS.exists(active));
 }
 
 TEST_F(HyperVTargetTransaction, stageRefusesExistingTargetDirectory)
@@ -306,6 +328,52 @@ TEST_F(HyperVTargetTransaction, destructorRollsBackUncommittedTarget)
         ASSERT_TRUE(MP_FILEOPS.exists(target_instance_dir));
     }
     EXPECT_FALSE(MP_FILEOPS.exists(target_instance_dir));
+}
+
+TEST_F(HyperVTargetTransaction, missingCloudInitRollsBackCopiedDisks)
+{
+    fs::remove(source_dir / mp::cloud_init_file_name);
+    {
+        mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
+        EXPECT_THROW((void)transaction.stage(layout, source_dir), std::runtime_error);
+    }
+    EXPECT_FALSE(MP_FILEOPS.exists(target_instance_dir));
+    EXPECT_TRUE(MP_FILEOPS.exists(active));
+}
+
+TEST_F(HyperVTargetTransaction, missingOptionalSnapshotCountDoesNotPreventMigration)
+{
+    fs::remove(source_dir / "snapshot-count");
+    mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
+
+    const auto mapping = transaction.stage(layout, source_dir);
+
+    EXPECT_NO_THROW(transaction.verify(mapping));
+    EXPECT_FALSE(MP_FILEOPS.exists(target_instance_dir / "snapshot-count"));
+}
+
+TEST_F(HyperVTargetTransaction, rollbackPreservesPreparedTarget)
+{
+    mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
+    const auto mapping = transaction.stage(layout, source_dir);
+    transaction.commit(mapping);
+
+    transaction.rollback();
+
+    EXPECT_TRUE(MP_FILEOPS.exists(mapping.active_disk));
+}
+
+TEST_F(HyperVTargetTransaction, rollbackPreservesTargetOwnedByAnotherTransaction)
+{
+    mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
+    const auto mapping = transaction.stage(layout, source_dir);
+    auto manifest = *mhv::MigrationTransactionManifest::load(target_instance_dir);
+    manifest.transaction_id = "another-transaction";
+    manifest.persist(target_instance_dir);
+
+    transaction.rollback();
+
+    EXPECT_TRUE(MP_FILEOPS.exists(mapping.active_disk));
 }
 
 TEST(HyperVTargetTransactionSpace, preflightThrowsWhenTargetVolumeIsFull)
