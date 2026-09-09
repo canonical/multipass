@@ -16,7 +16,7 @@
 
 #include "tests/unit/common.h"
 
-#include <src/platform/backends/hyperv/hyperv_migration_service.h>
+#include <hyperv_migration/hyperv_migration_service.h>
 
 #include <string>
 #include <utility>

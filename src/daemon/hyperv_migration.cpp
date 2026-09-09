@@ -16,9 +16,9 @@
 
 #include "hyperv_migration.h"
 
-#include <hyperv/hyperv_disk_layout.h>
-#include <hyperv/hyperv_target_transaction.h>
 #include <hyperv_api/hcs_virtual_machine_factory.h>
+#include <hyperv_migration/hyperv_disk_layout.h>
+#include <hyperv_migration/hyperv_target_transaction.h>
 
 #include <multipass/constants.h>
 #include <multipass/file_ops.h>

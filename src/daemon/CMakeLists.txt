@@ -29,7 +29,7 @@ if(HYPERV_HCS_ENABLED)
   target_sources(daemon PRIVATE
     hyperv_driver_transition.cpp
     hyperv_migration.cpp)
-  target_link_libraries(daemon hyperv_backend hyperv_api_backend)
+  target_link_libraries(daemon hyperv_migration hyperv_api_backend)
 endif()
 
 include_directories(daemon
