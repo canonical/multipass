@@ -17,11 +17,10 @@
 
 #include "common.h"
 #include "mock_logger.h"
-#include "mock_ssh_process_exit_status.h"
+#include "mock_ssh_callback_engine.h"
 #include "sftp_server_test_fixture.h"
 #include "stub_ssh_key_provider.h"
 
-#include <libssh/callbacks.h>
 #include <src/sshfs_mount/sshfs_mount.h>
 
 #include <multipass/exceptions/sshfs_missing_error.h>
@@ -46,6 +45,23 @@ namespace
 {
 struct SshfsMount : public mp::test::SftpServerTest
 {
+    SshfsMount()
+    {
+        ON_CALL(mock_libssh, ssh_new()).WillByDefault(Return(fake_session));
+        ON_CALL(mock_libssh, ssh_options_set).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_connect).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_userauth_publickey).WillByDefault(Return(SSH_AUTH_SUCCESS));
+        ON_CALL(mock_libssh, ssh_is_connected).WillByDefault(Return(1));
+        ON_CALL(mock_libssh, ssh_channel_new).WillByDefault(Return(fake_channel));
+        ON_CALL(mock_libssh, ssh_channel_open_session).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_channel_request_exec).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_get_fd).WillByDefault(Return(-1)); // no socket to shutdown
+        ON_CALL(mock_libssh, ssh_get_error).WillByDefault(Return("mocked error"));
+        ON_CALL(mock_libssh, ssh_event_new).WillByDefault([](auto...) {
+            return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef);
+        });
+        ON_CALL(mock_libssh, ssh_event_add_session).WillByDefault([](auto...) { return SSH_OK; });
+    }
     mp::SshfsMount make_sshfsmount(std::optional<std::string> target = std::nullopt)
     {
         return {std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
@@ -65,7 +81,8 @@ struct SshfsMount : public mp::test::SftpServerTest
                 if (cmd.find(expected_cmd) != std::string::npos)
                 {
                     invoked = true;
-                    exit_status_mock.set_exit_status(exit_status_mock.failure_status);
+                    callback_mock_engine.push_state(callback_mock_engine.channel_exit_failure);
+                    callback_mock_engine.pop_state();
                 }
             }
             return SSH_OK;
@@ -99,6 +116,9 @@ struct SshfsMount : public mp::test::SftpServerTest
             invoked = false;
 
             std::string cmd{raw_cmd};
+            mpt::CallbackChannelState cb{};
+            cb.closed = false;
+            cb.ssh_rc = SSH_AGAIN;
 
             if (fail_cmd && cmd.find(*fail_cmd) != std::string::npos)
             {
@@ -106,7 +126,7 @@ struct SshfsMount : public mp::test::SftpServerTest
                 {
                     *fail_invoked = true;
                 }
-                exit_status_mock.set_exit_status(exit_status_mock.failure_status);
+                cb.exit_code = callback_mock_engine.failure_code;
             }
             else if (next_expected_cmd != commands.end())
             {
@@ -114,26 +134,33 @@ struct SshfsMount : public mp::test::SftpServerTest
                 // In that case, give the correct answer. If not, check the rest of the list to see
                 // if we broke the execution order.
                 auto pred = [&cmd](auto it) { return cmd == it.first; };
-                CommandVector::const_iterator found_cmd =
-                    std::find_if(next_expected_cmd, commands.end(), pred);
+                CommandVector::const_iterator found_cmd = std::find_if(next_expected_cmd,
+                                                                       commands.end(),
+                                                                       pred);
 
                 if (found_cmd == next_expected_cmd)
                 {
                     invoked = true;
                     output = next_expected_cmd->second;
+                    cb.exit_code = callback_mock_engine.success_code;
                     remaining = output.size();
                     ++next_expected_cmd;
 
+                    callback_mock_engine.push_state(cb);
+                    callback_mock_engine.pop_state();
                     return SSH_OK;
                 }
                 else if (found_cmd != commands.end())
                 {
                     output = found_cmd->second;
+                    cb.exit_code = callback_mock_engine.success_code;
                     remaining = output.size();
                     ADD_FAILURE() << "\"" << (found_cmd->first)
                                   << "\" executed out of order; expected \""
                                   << next_expected_cmd->first << "\"";
 
+                    callback_mock_engine.push_state(cb);
+                    callback_mock_engine.pop_state();
                     return SSH_OK;
                 }
             }
@@ -147,7 +174,10 @@ struct SshfsMount : public mp::test::SftpServerTest
                 remaining = output.size();
                 invoked = true;
             }
-
+            // Process completed and channel is done
+            cb.exit_code = callback_mock_engine.success_code;
+            callback_mock_engine.push_state(cb);
+            callback_mock_engine.pop_state();
             return SSH_OK;
         };
 
@@ -182,16 +212,8 @@ struct SshfsMount : public mp::test::SftpServerTest
         auto remaining = output.size();
         CommandVector::const_iterator next_expected_cmd = commands.begin();
 
-        REPLACE(ssh_channel_new,
-                [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
-        REPLACE(ssh_channel_free, [](auto...) { return; });
-        REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
-        REPLACE(ssh_event_new,
-                [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
-        REPLACE(ssh_event_free, [](auto...) { return; });
-        REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
         auto channel_read = make_channel_read_return(output, remaining, invoked);
-        REPLACE(ssh_channel_read_timeout, channel_read);
+        EXPECT_CALL(mock_libssh, ssh_channel_read_timeout).WillRepeatedly(channel_read);
 
         auto request_exec = make_exec_to_check_commands(commands,
                                                         remaining,
@@ -200,7 +222,7 @@ struct SshfsMount : public mp::test::SftpServerTest
                                                         invoked,
                                                         fail_cmd,
                                                         fail_invoked);
-        REPLACE(ssh_channel_request_exec, request_exec);
+        EXPECT_CALL(mock_libssh, ssh_channel_request_exec).WillRepeatedly(request_exec);
 
         make_sshfsmount(target.value_or(default_target));
 
@@ -215,12 +237,10 @@ struct SshfsMount : public mp::test::SftpServerTest
         return mock_init_client_message;
     }
 
-    auto mock_sftp_get_cli_msg(sftp_client_message message)
-    {
-        return [message](sftp_session) mutable { return std::exchange(message, nullptr); };
-    }
-
-    mpt::ExitStatusMock exit_status_mock;
+    mpt::MockLibssh::GuardedMock libssh_guard{mpt::MockLibssh::inject()};
+    mpt::MockLibssh& mock_libssh = *libssh_guard.first;
+    mpt::CallbackEngineMock callback_mock_engine{mock_libssh,
+                                                 mpt::CallbackEngineMock::channel_exit_success};
 
     std::string default_source{"source"};
     std::string default_target{"target"};
@@ -243,6 +263,9 @@ struct SshfsMount : public mp::test::SftpServerTest
          "Compression=no -o dcache_timeout=3 :\"source\" "
          "\"target\"",
          "don't care\n"}};
+    constexpr static auto bad_addr = 0xdeadbeefdeadbeefull; // should reliably segfault on 32/64-bit
+    ssh_session fake_session = reinterpret_cast<ssh_session>(bad_addr);
+    ssh_channel fake_channel = reinterpret_cast<ssh_channel>(bad_addr);
 };
 
 // Mocks an incorrect return from a given command.
@@ -281,20 +304,8 @@ TEST_P(SshfsMountFail, testFailedInvocation)
     std::string output;
     std::string::size_type remaining;
 
-    REPLACE(ssh_channel_new,
-            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
-    REPLACE(ssh_channel_free, [](auto...) { return; });
-    REPLACE(ssh_add_channel_callbacks, [](ssh_channel, ssh_channel_callbacks_struct* cb) {
-        cb->channel_exit_status_function(nullptr, nullptr, 0, cb->userdata);
-        return SSH_OK;
-    });
-    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
-    REPLACE(ssh_event_free, [](auto...) { return; });
-    REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
     auto channel_read = make_channel_read_return(output, remaining, invoked_cmd);
-    REPLACE(ssh_channel_read_timeout, channel_read);
+    EXPECT_CALL(mock_libssh, ssh_channel_read_timeout).WillRepeatedly(channel_read);
 
     CommandVector empty;
     CommandVector::const_iterator it = empty.end();
@@ -307,7 +318,7 @@ TEST_P(SshfsMountFail, testFailedInvocation)
                                                     invoked_cmd,
                                                     fail_cmd,
                                                     invoked_fail);
-    REPLACE(ssh_channel_request_exec, request_exec);
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec).WillRepeatedly(request_exec);
 
     EXPECT_THROW(make_sshfsmount(), std::runtime_error);
     EXPECT_TRUE(*invoked_fail);
@@ -316,8 +327,9 @@ TEST_P(SshfsMountFail, testFailedInvocation)
 TEST_P(SshfsMountExecute, testSuccessfulInvocation)
 {
     sftp_client_message_struct message{make_init_message()};
-    auto mock_get_client_msg = mock_sftp_get_cli_msg(&message);
-    REPLACE(sftp_get_client_message, mock_get_client_msg);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message)
+        .WillOnce(Return(&message))
+        .WillRepeatedly(Return(nullptr));
 
     std::string target = GetParam().first;
     CommandVector commands = GetParam().second;
@@ -328,8 +340,9 @@ TEST_P(SshfsMountExecute, testSuccessfulInvocation)
 TEST_P(SshfsMountExecuteAndNoFail, testSuccessfulInvocationAndFail)
 {
     sftp_client_message_struct message{make_init_message()};
-    auto mock_get_client_msg = mock_sftp_get_cli_msg(&message);
-    REPLACE(sftp_get_client_message, mock_get_client_msg);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message)
+        .WillOnce(Return(&message))
+        .WillRepeatedly(Return(nullptr));
 
     std::string target = std::get<0>(GetParam());
     CommandVector commands = std::get<1>(GetParam());
@@ -452,9 +465,9 @@ INSTANTIATE_TEST_SUITE_P(SshfsMountThrowInvArg,
 TEST_F(SshfsMount, throwsWhenSshfsDoesNotExist)
 {
     bool invoked{false};
-    auto request_exec =
-        make_exec_that_fails_for({"sudo multipass-sshfs.env", "which sshfs"}, invoked);
-    REPLACE(ssh_channel_request_exec, request_exec);
+    auto request_exec = make_exec_that_fails_for({"snap run multipass-sshfs.env", "which sshfs"},
+                                                 invoked);
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec).WillRepeatedly(request_exec);
 
     EXPECT_THROW(make_sshfsmount(), mp::SSHFSMissingError);
     EXPECT_TRUE(invoked);
@@ -465,17 +478,12 @@ TEST_F(SshfsMount, unblocksWhenSftpserverExits)
     sftp_client_message_struct message{make_init_message()};
     sftp_client_message message_ptr = &message;
     mp::Signal client_message;
-    auto sftp_get_client_message_lambda =
-        [&client_message, message_ptr, calls = 0](sftp_session) mutable {
-            if (calls == 0)
-            {
-                calls++;
-                return message_ptr;
-            }
+    EXPECT_CALL(mock_libssh, sftp_get_client_message)
+        .WillOnce(Return(message_ptr))
+        .WillRepeatedly([&client_message] {
             client_message.wait();
             return static_cast<sftp_client_message>(nullptr);
-        };
-    REPLACE(sftp_get_client_message, sftp_get_client_message_lambda);
+        });
     bool stopped_ok = false;
     std::thread mount([&] {
         test_command_execution(CommandVector());
@@ -490,11 +498,14 @@ TEST_F(SshfsMount, unblocksWhenSftpserverExits)
 
 TEST_F(SshfsMount, blankFuseVersionLogsError)
 {
+    callback_mock_engine.push_state(callback_mock_engine.channel_exit_success);
+    callback_mock_engine.pop_state();
     CommandVector commands = {
         {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version:\n"}};
     sftp_client_message_struct message{make_init_message()};
-    auto mock_get_client_msg = mock_sftp_get_cli_msg(&message);
-    REPLACE(sftp_get_client_message, mock_get_client_msg);
+    EXPECT_CALL(mock_libssh, sftp_get_client_message)
+        .WillOnce(Return(&message))
+        .WillRepeatedly(Return(nullptr));
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     EXPECT_CALL(*logger_scope.mock_logger,
                 log(Eq(mpl::Level::warning),
