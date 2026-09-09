@@ -103,84 +103,77 @@ void write_manifest(const fs::path& dir, const std::string& name, const char* ph
     manifest.persist(dir);
 }
 
-void write_prepared_target(const fs::path& dir, const std::string& name)
-{
-    write_manifest(dir, name, mhv::MigrationTransactionManifest::prepared_phase_name);
-}
-
 boost::json::object read_records(const fs::path& path)
 {
     const auto contents = MP_FILEOPS.try_read_file(path);
     EXPECT_TRUE(contents);
     return boost::json::parse(*contents).as_object();
 }
-} // namespace
 
-TEST(HyperVMigrationTargetRecords, commitsImageBeforeVisibleVmAndRemovesManifest)
+struct HyperVMigrationTargetRecords : Test
 {
     mpt::TempDir data;
-    const auto data_dir = fs::path{data.path().toStdString()};
+    const fs::path data_dir{data.path().toStdWString()};
+    const fs::path target_root{data_dir / "hyperv_api"};
+    const fs::path instances_root{target_root / "vault" / "instances"};
+    const fs::path target_dir{instances_root / "vm"};
+    const fs::path vm_db{target_root / "multipassd-vm-instances.json"};
+    const fs::path image_db{target_root / "vault" / "multipassd-instance-image-records.json"};
+
+    void write_target(bool committed, bool with_image = true)
+    {
+        write_manifest(target_dir, "vm", mhv::MigrationTransactionManifest::prepared_phase_name);
+        if (committed)
+            MP_FILEOPS.write_transactionally(
+                vm_db,
+                mp::pretty_print(boost::json::object{{"vm", boost::json::value_from(vm_spec())}}));
+        if (with_image)
+            MP_FILEOPS.write_transactionally(
+                image_db,
+                mp::pretty_print(boost::json::object{
+                    {"vm", boost::json::value_from(image_record(target_dir / "active.avhdx"))}}));
+    }
+};
+} // namespace
+
+TEST_F(HyperVMigrationTargetRecords, commitsImageBeforeVisibleVmAndRemovesManifest)
+{
     write_source_record(data_dir, "vm");
 
     mhv::HyperVMigrationTargetRecords store{data.path()};
     store.preflight();
     store.prepare();
 
-    const auto target_dir = store.instance_dir("vm");
-    write_prepared_target(target_dir, "vm");
+    EXPECT_EQ(store.instance_dir("vm"), target_dir);
+    write_target(false, false);
     auto record = store.source_image_record("vm");
+    record.image.image_path = target_dir / "active.avhdx";
     store.commit("vm", vm_spec(), record);
 
     EXPECT_FALSE(MP_FILEOPS.exists(target_dir / mhv::MigrationTransactionManifest::filename));
 
-    const auto target_root = data_dir / "hyperv_api";
-    const auto vm_records = read_records(target_root / "multipassd-vm-instances.json");
-    const auto image_records = read_records(target_root / "vault" /
-                                            "multipassd-instance-image-records.json");
+    const auto vm_records = read_records(vm_db);
+    const auto image_records = read_records(image_db);
     EXPECT_TRUE(vm_records.contains("vm"));
     ASSERT_TRUE(image_records.contains("vm"));
     EXPECT_EQ(boost::json::value_to<std::string>(image_records.at("vm").at("image").at("path")),
               (target_dir / "active.avhdx").string());
 }
 
-TEST(HyperVMigrationTargetRecords, recoveryRemovesOrphanImageRecordAndDirectory)
+TEST_F(HyperVMigrationTargetRecords, recoveryRemovesOrphanImageRecordAndDirectory)
 {
-    mpt::TempDir data;
-    const auto data_dir = fs::path{data.path().toStdString()};
-    const auto target_root = data_dir / "hyperv_api";
-    const auto target_dir = target_root / "vault" / "instances" / "orphan";
-    write_prepared_target(target_dir, "orphan");
-
-    const boost::json::object image_records{
-        {"orphan", boost::json::value_from(image_record(target_dir / "active.avhdx"))}};
-    MP_FILEOPS.write_transactionally(target_root / "vault" /
-                                         "multipassd-instance-image-records.json",
-                                     mp::pretty_print(image_records));
+    write_target(false);
 
     mhv::HyperVMigrationTargetRecords store{data.path()};
     store.prepare();
 
     EXPECT_FALSE(MP_FILEOPS.exists(target_dir));
-    const auto persisted = read_records(target_root / "vault" /
-                                        "multipassd-instance-image-records.json");
-    EXPECT_FALSE(persisted.contains("orphan"));
+    EXPECT_FALSE(read_records(image_db).contains("vm"));
 }
 
-TEST(HyperVMigrationTargetRecords, recoveryFinalizesCommittedTarget)
+TEST_F(HyperVMigrationTargetRecords, recoveryFinalizesCommittedTarget)
 {
-    mpt::TempDir data;
-    const auto data_dir = fs::path{data.path().toStdString()};
-    const auto target_root = data_dir / "hyperv_api";
-    const auto target_dir = target_root / "vault" / "instances" / "vm";
-    write_prepared_target(target_dir, "vm");
-
-    MP_FILEOPS.write_transactionally(
-        target_root / "multipassd-vm-instances.json",
-        mp::pretty_print(boost::json::object{{"vm", boost::json::value_from(vm_spec())}}));
-    MP_FILEOPS.write_transactionally(
-        target_root / "vault" / "multipassd-instance-image-records.json",
-        mp::pretty_print(boost::json::object{
-            {"vm", boost::json::value_from(image_record(target_dir / "active.avhdx"))}}));
+    write_target(true);
 
     mhv::HyperVMigrationTargetRecords store{data.path()};
     store.prepare();
@@ -188,87 +181,71 @@ TEST(HyperVMigrationTargetRecords, recoveryFinalizesCommittedTarget)
     EXPECT_FALSE(MP_FILEOPS.exists(target_dir / mhv::MigrationTransactionManifest::filename));
 }
 
-TEST(HyperVMigrationTargetRecords, recoveryLeavesIncompleteCommittedTarget)
+TEST_F(HyperVMigrationTargetRecords, recoveryLeavesIncompleteCommittedTarget)
 {
-    mpt::TempDir data;
-    const auto data_dir = fs::path{data.path().toStdString()};
-    const auto target_root = data_dir / "hyperv_api";
-    const auto target_dir = target_root / "vault" / "instances" / "vm";
-    write_manifest(target_dir, "vm", mhv::MigrationTransactionManifest::prepared_phase_name);
-
-    MP_FILEOPS.write_transactionally(
-        target_root / "multipassd-vm-instances.json",
-        mp::pretty_print(boost::json::object{{"vm", boost::json::value_from(vm_spec())}}));
+    write_target(true, false);
     mhv::HyperVMigrationTargetRecords store{data.path()};
     store.prepare();
 
     EXPECT_TRUE(MP_FILEOPS.exists(target_dir / mhv::MigrationTransactionManifest::filename));
 }
 
-TEST(HyperVMigrationTargetRecords, recoveryOnlyRemovesManifestOwnedDirectories)
+TEST_F(HyperVMigrationTargetRecords, recoveryOnlyRemovesManifestOwnedDirectories)
 {
-    mpt::TempDir data;
-    const auto data_dir = fs::path{data.path().toStdString()};
-    const auto instances_root = data_dir / "hyperv_api" / "vault" / "instances";
-    const auto owned = instances_root / "vm";
     const auto unowned = instances_root / "user-data";
-    write_manifest(owned, "vm", mhv::MigrationTransactionManifest::staged_phase_name);
+    write_manifest(target_dir, "vm", mhv::MigrationTransactionManifest::staged_phase_name);
     fs::create_directories(unowned);
     MP_FILEOPS.write_transactionally(unowned / "keep", "keep");
 
     mhv::HyperVMigrationTargetRecords store{data.path()};
     store.prepare();
 
-    EXPECT_FALSE(MP_FILEOPS.exists(owned));
+    EXPECT_FALSE(MP_FILEOPS.exists(target_dir));
     EXPECT_TRUE(MP_FILEOPS.exists(unowned / "keep"));
 }
 
-TEST(HyperVMigrationTargetRecords, recoveryIgnoresMalformedManifest)
+TEST_F(HyperVMigrationTargetRecords, recoveryIgnoresMalformedManifest)
 {
-    mpt::TempDir data;
-    const auto data_dir = fs::path{data.path().toStdString()};
-    const auto instances_root = data_dir / "hyperv_api" / "vault" / "instances";
     const auto malformed = instances_root / "malformed";
     fs::create_directories(malformed);
     MP_FILEOPS.write_transactionally(malformed / mhv::MigrationTransactionManifest::filename,
                                      R"({"version":999})");
-    write_prepared_target(instances_root / "orphan", "orphan");
+    write_target(false, false);
 
     mhv::HyperVMigrationTargetRecords store{data.path()};
     EXPECT_NO_THROW(store.prepare());
 
     EXPECT_TRUE(MP_FILEOPS.exists(malformed / mhv::MigrationTransactionManifest::filename));
-    EXPECT_FALSE(MP_FILEOPS.exists(instances_root / "orphan"));
+    EXPECT_FALSE(MP_FILEOPS.exists(target_dir));
 }
 
-TEST(HyperVMigrationTargetRecords, recoveryRemovesRecordOnlyOrphan)
+TEST_F(HyperVMigrationTargetRecords, recoveryRemovesRecordOnlyOrphan)
 {
-    mpt::TempDir data;
-    const auto data_dir = fs::path{data.path().toStdString()};
-    const auto target_root = data_dir / "hyperv_api";
-    MP_FILEOPS.write_transactionally(
-        target_root / "vault" / "multipassd-instance-image-records.json",
-        mp::pretty_print(boost::json::object{
-            {"orphan", boost::json::value_from(image_record(target_root / "missing.vhdx"))}}));
+    write_target(true);
+    const auto directory_only = instances_root / "directory-only";
+    fs::create_directories(directory_only);
+    auto records = read_records(image_db);
+    for (const auto* name : {"orphan", "another-orphan", "directory-only"})
+        records[name] = boost::json::value_from(image_record(instances_root / name / "disk.vhdx"));
+    MP_FILEOPS.write_transactionally(image_db, mp::pretty_print(records));
 
     mhv::HyperVMigrationTargetRecords store{data.path()};
     store.prepare();
 
     EXPECT_FALSE(store.target_exists("orphan"));
-    EXPECT_FALSE(read_records(target_root / "vault" / "multipassd-instance-image-records.json")
-                     .contains("orphan"));
+    EXPECT_FALSE(store.target_exists("another-orphan"));
+    const auto recovered = read_records(image_db);
+    EXPECT_EQ(recovered.size(), 2u);
+    EXPECT_TRUE(recovered.contains("vm"));
+    EXPECT_TRUE(recovered.contains("directory-only"));
 }
 
-TEST(HyperVMigrationTargetRecords, deletedVmRecordStillCollides)
+TEST_F(HyperVMigrationTargetRecords, deletedVmRecordStillCollides)
 {
-    mpt::TempDir data;
-    const auto data_dir = fs::path{data.path().toStdString()};
-    const auto target_root = data_dir / "hyperv_api";
     auto deleted = vm_spec();
     deleted.deleted = true;
     const boost::json::object vm_records{{"vm", boost::json::value_from(deleted)}};
-    MP_FILEOPS.write_transactionally(target_root / "multipassd-vm-instances.json",
-                                     mp::pretty_print(vm_records));
+    MP_FILEOPS.write_transactionally(vm_db, mp::pretty_print(vm_records));
 
     mhv::HyperVMigrationTargetRecords store{data.path()};
 
@@ -590,7 +567,7 @@ struct HyperVBulkMigration : Test
         store.prepare();
         mhv::DaemonHyperVInstanceMigrator
             migrator{specs, instances, deleted_instances, factory, az_manager, data.path(), store};
-        return mhv::run_bulk_migration(migrator, report, cancel);
+        return migrator.migrate_all(report, cancel);
     }
 
     void expect_source_retained(const std::string& name)

@@ -18,8 +18,7 @@
 
 #include "default_vm_image_vault.h"
 
-#include <hyperv_migration/hyperv_migration_service.h>
-
+#include <multipass/network_interface_info.h>
 #include <multipass/path.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_specs.h>
@@ -30,6 +29,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -43,6 +43,25 @@ class VirtualMachineFactory;
 namespace multipass::hyperv
 {
 class HCSVirtualMachineFactory;
+
+// Fail this instance but continue the batch.
+class InstanceMigrationError : public std::runtime_error
+{
+public:
+    using std::runtime_error::runtime_error;
+};
+
+// Stop the batch because further target-store commits are unsafe.
+class MigrationAbortError : public std::runtime_error
+{
+public:
+    using std::runtime_error::runtime_error;
+};
+
+// Resolve vSwitches to single physical adapters, preserving NIC order, MACs and auto mode.
+[[nodiscard]] std::vector<NetworkInterface> translate_extra_interfaces(
+    const std::vector<NetworkInterface>& source_interfaces,
+    const std::vector<NetworkInterfaceInfo>& available_networks);
 
 enum class MigrationMessage
 {
@@ -85,10 +104,7 @@ private:
                                 const std::filesystem::path& path);
     static void require_writable_location(const std::filesystem::path& path);
     void recover();
-    [[nodiscard]] bool has_vm_record(const std::string& name) const;
-    [[nodiscard]] bool has_image_record(const std::string& name) const;
 
-    std::filesystem::path source_image_db;
     std::filesystem::path target_root;
     std::filesystem::path target_vm_db;
     std::filesystem::path target_image_db;
@@ -112,9 +128,11 @@ public:
                                  HyperVMigrationTargetRecords& target_records);
     ~DaemonHyperVInstanceMigrator();
 
-    [[nodiscard]] std::vector<std::string> source_names() const;
     [[nodiscard]] InstanceMigrationResult migrate(const std::string& name,
                                                   const MigrationReporter& report);
+    // Finish each transaction before cancellation; retain and report earlier commits on failure.
+    [[nodiscard]] MigrationOutcome migrate_all(const MigrationReporter& report,
+                                               const MigrationCancellation& cancel);
 
 private:
     [[nodiscard]] std::vector<NetworkInterface> translated_interfaces(
@@ -132,11 +150,4 @@ private:
     std::unique_ptr<HCSVirtualMachineFactory> hcs_factory;
 };
 
-/**
- * Process instances in name order, continuing after recoverable failures and stopping on
- * unsafe failures or cancellation between instances. Always report earlier successful commits.
- */
-[[nodiscard]] MigrationOutcome run_bulk_migration(DaemonHyperVInstanceMigrator& migrator,
-                                                  const MigrationReporter& report,
-                                                  const MigrationCancellation& cancel);
 } // namespace multipass::hyperv
