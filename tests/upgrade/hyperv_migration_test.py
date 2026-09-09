@@ -5,7 +5,6 @@ import json
 import os
 import subprocess
 import sys
-from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -30,8 +29,6 @@ STOPPED_VM = "upg-hcs-phase1-stopped"
 RUNNING_VM = "upg-hcs-phase1-running"
 SUSPENDED_VM = "upg-hcs-phase1-suspended"
 DELETED_VM = "upg-hcs-phase1-deleted"
-SCENARIO = STOPPED_VM
-VM_NAMES = (STOPPED_VM, RUNNING_VM, SUSPENDED_VM, DELETED_VM)
 RECORD_KEY = {
     STOPPED_VM: "stopped",
     RUNNING_VM: "running",
@@ -49,12 +46,10 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@contextmanager
 def seeded_vm(name):
     if vm_exists(name):
         assert multipass("delete", name, "--purge")
-    with launch(cfg_override={"name": name, "autopurge": False}) as vm:
-        yield vm
+    return launch(cfg_override={"name": name, "autopurge": False})
 
 
 def powershell(script):
@@ -76,142 +71,101 @@ def ps_quote(value):
     return "'" + str(value).replace("'", "''") + "'"
 
 
-def as_list(value):
-    if value is None:
-        return []
-    return value if isinstance(value, list) else [value]
-
-
 def disk_chain(path):
-    output = powershell(
-        f"""
+    output = powershell(f"""
 $current = {ps_quote(path)}
 $chain = @()
 while ($current) {{
     $chain += $current
     $current = (Get-VHD -Path $current -ErrorAction Stop).ParentPath
 }}
-$chain | ConvertTo-Json -Compress
-"""
-    )
-    return as_list(json.loads(output)) if output else []
+ConvertTo-Json -InputObject $chain -Compress
+""")
+    return json.loads(output)
+
+
+def disk_paths(*roots):
+    disks = {}
+    for root in roots:
+        for disk in disk_chain(root):
+            key = os.path.normcase(os.path.abspath(disk))
+            disks.setdefault(key, Path(disk))
+    return list(disks.values())
 
 
 def legacy_layout(name, include_disks=True):
-    output = powershell(
-        f"""
+    output = powershell(f"""
 $vm = Get-VM -Name {ps_quote(name)} -ErrorAction Stop
 $primary = @(Get-VMHardDiskDrive -VMName $vm.Name |
     Where-Object {{ $_.ControllerType -eq 'SCSI' -and
                     $_.ControllerNumber -eq 0 -and
                     $_.ControllerLocation -eq 0 }})
 if ($primary.Count -ne 1) {{ throw 'Expected one primary disk' }}
-$snapshots = @(Get-VMCheckpoint -VMName $vm.Name | ForEach-Object {{
+$snapshot_disks = @(Get-VMCheckpoint -VMName $vm.Name | ForEach-Object {{
     $disk = @(Get-VMHardDiskDrive -VMSnapshot $_ |
         Where-Object {{ $_.ControllerType -eq 'SCSI' -and
                         $_.ControllerNumber -eq 0 -and
                         $_.ControllerLocation -eq 0 }})
     if ($disk.Count -ne 1) {{ throw 'Expected one checkpoint disk' }}
-    [PSCustomObject]@{{
-        name = $_.Name
-        id = $_.Id.ToString()
-        path = $disk[0].Path
-    }}
+    $disk[0].Path
 }})
 [PSCustomObject]@{{
     id = $vm.Id.ToString()
-    state = $vm.State.ToString()
-    active_disk = $primary[0].Path
-    snapshots = $snapshots
+    disks = @($primary[0].Path) + $snapshot_disks
 }} | ConvertTo-Json -Compress -Depth 4
-"""
-    )
+""")
     result = json.loads(output)
-    result["snapshots"] = as_list(result.get("snapshots"))
-
-    result["disks"] = []
-    if include_disks:
-        seen = set()
-        roots = [
-            result["active_disk"],
-            *(item["path"] for item in result["snapshots"]),
-        ]
-        for root in roots:
-            for disk in disk_chain(root):
-                key = os.path.normcase(os.path.abspath(disk))
-                if key not in seen:
-                    seen.add(key)
-                    result["disks"].append(disk)
+    result["disks"] = disk_paths(*result["disks"]) if include_disks else []
     return result
 
 
 def legacy_id_exists(vm_id):
     return (
         powershell(
-            f"if (Get-VM -Id {ps_quote(vm_id)} -ErrorAction SilentlyContinue) "
-            "{ 'true' } else { 'false' }"
+            f"[bool](Get-VM -Id {ps_quote(vm_id)} -ErrorAction SilentlyContinue)"
         )
-        == "true"
+        == "True"
     )
-
-
-def sha256(path):
-    digest = hashlib.sha256()
-    with open(path, "rb") as source:
-        for chunk in iter(lambda: source.read(4 * 1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def file_record(path):
     path = Path(path)
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(4 * 1024 * 1024), b""):
+            digest.update(chunk)
     return {
         "path": str(path),
         "size": path.stat().st_size,
-        "sha256": sha256(path),
+        "sha256": digest.hexdigest(),
     }
 
 
 def assert_file_records_unchanged(records):
     for record in records:
-        path = Path(record["path"])
-        assert path.exists()
-        assert path.stat().st_size == record["size"]
-        assert sha256(path) == record["sha256"]
+        assert Path(record["path"]).exists()
+        assert file_record(record["path"]) == record
 
 
-def legacy_instance_dir(name):
-    return Path(cfg.data_dir) / "vault" / "instances" / name
+def backend_dir(target=False):
+    return Path(cfg.data_dir) / ("hyperv_api" if target else "")
 
 
-def target_instance_dir(name):
-    return Path(cfg.data_dir) / "hyperv_api" / "vault" / "instances" / name
+def instance_dir(name, target=False):
+    return backend_dir(target) / "vault" / "instances" / name
 
 
 def database(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def legacy_vm_records():
-    return database(Path(cfg.data_dir) / "multipassd-vm-instances.json")
+def vm_records(target=False):
+    return database(backend_dir(target) / "multipassd-vm-instances.json")
 
 
-def legacy_image_records():
+def image_records(target=False):
     return database(
-        Path(cfg.data_dir) / "vault" / "multipassd-instance-image-records.json"
-    )
-
-
-def target_vm_records():
-    return database(
-        Path(cfg.data_dir) / "hyperv_api" / "multipassd-vm-instances.json"
-    )
-
-
-def target_image_records():
-    return database(
-        Path(cfg.data_dir)
-        / "hyperv_api"
+        backend_dir(target)
         / "vault"
         / "multipassd-instance-image-records.json"
     )
@@ -263,111 +217,79 @@ def identity(name):
     }
 
 
-def assert_identity(name, expected):
-    assert identity(name) == expected
-
-
 def take_snapshot(name, snapshot_name):
     assert state(name) == "Stopped"
     assert multipass("snapshot", name, "--name", snapshot_name)
 
 
-def source_record(name, layout, guest_identity=None, record_files=True):
-    instance_dir = legacy_instance_dir(name)
+def source_record(name, layout, guest_identity=None):
+    directory = instance_dir(name)
     metadata_files = [
         path
         for path in (
-            instance_dir / "cloud-init-config.iso",
-            instance_dir / "snapshot-head",
-            instance_dir / "snapshot-count",
-            *sorted(instance_dir.glob("*.snapshot.json")),
+            directory / "cloud-init-config.iso",
+            directory / "snapshot-head",
+            directory / "snapshot-count",
+            *sorted(directory.glob("*.snapshot.json")),
         )
         if path.exists()
     ]
     return {
         "legacy_id": layout["id"],
-        "active_disk": layout["active_disk"],
-        "disks": [file_record(path) for path in layout["disks"]]
-        if record_files
-        else [],
-        "metadata": [file_record(path) for path in metadata_files]
-        if record_files
-        else [],
+        "disks": [file_record(path) for path in layout["disks"]],
+        "metadata": [file_record(path) for path in metadata_files],
         "identity": guest_identity,
     }
 
 
-def assert_target_local(name, source):
-    instance_dir = target_instance_dir(name)
-    active_disk = Path(target_image_records()[name]["image"]["path"])
-    assert path_is_within(active_disk, instance_dir)
-
-    snapshot_disks = []
-    for metadata_path in instance_dir.glob("*.snapshot.json"):
-        metadata = database(metadata_path)
-        snapshot_disks.append(
-            instance_dir / f"{metadata['snapshot']['index']}.avhdx"
-        )
-
-    target_disks = []
-    seen = set()
-    for root in (active_disk, *snapshot_disks):
-        for disk in disk_chain(root):
-            key = os.path.normcase(os.path.abspath(disk))
-            if key not in seen:
-                seen.add(key)
-                target_disks.append(Path(disk))
-
-    assert len(target_disks) == len(source["disks"])
+def assert_target_local(name, source_disks):
+    directory = instance_dir(name, target=True)
+    active_disk = Path(image_records(target=True)[name]["image"]["path"])
+    assert path_is_within(active_disk, directory)
+    snapshot_disks = [
+        directory / f"{database(path)['snapshot']['index']}.avhdx"
+        for path in directory.glob("*.snapshot.json")
+    ]
+    target_disks = disk_paths(active_disk, *snapshot_disks)
+    assert len(target_disks) == len(source_disks)
     assert sorted(path.stat().st_size for path in target_disks) == sorted(
-        record["size"] for record in source["disks"]
+        record["size"] for record in source_disks
     )
     for path in target_disks:
-        assert path_is_within(path, instance_dir)
+        assert path_is_within(path, directory)
 
-    assert (instance_dir / "cloud-init-config.iso").exists()
-    assert not (instance_dir / "migration-transaction.json").exists()
+    assert (directory / "cloud-init-config.iso").exists()
+    assert not (directory / "migration-transaction.json").exists()
 
 
 def assert_target_records(name, expected_vm, expected_image):
-    actual_vm = target_vm_records()[name]
-    actual_image = target_image_records()[name]
-    assert actual_vm == expected_vm
-
-    actual_image_without_path = json.loads(json.dumps(actual_image))
-    expected_image_without_path = json.loads(json.dumps(expected_image))
-    actual_image_without_path["image"].pop("path")
-    expected_image_without_path["image"].pop("path")
-    assert actual_image_without_path == expected_image_without_path
+    assert vm_records(target=True)[name] == expected_vm
+    actual_image = image_records(target=True)[name]
     assert path_is_within(
-        actual_image["image"]["path"], target_instance_dir(name)
+        actual_image["image"]["path"], instance_dir(name, target=True)
     )
+    actual_image["image"]["path"] = expected_image["image"]["path"]
+    assert actual_image == expected_image
 
 
-def assert_first_migration_output(output):
+def assert_output(output, *messages):
+    for message in messages:
+        assert message in output.content
+
+
+def assert_stopped_guest(source):
+    assert_sentinel(STOPPED_VM, source["base"])
+    assert_sentinel(STOPPED_VM, source["head"])
+    assert identity(STOPPED_VM) == source["identity"]
     assert (
-        "The following instances were successfully migrated" in output.content
-    )
-    assert f"  {STOPPED_VM}" in output.content
-    assert (
-        f"Cannot migrate {RUNNING_VM}: instance is running" in output.content
-    )
-    assert (
-        f"Cannot migrate {SUSPENDED_VM}: instance is suspended"
-        in output.content
-    )
-    assert (
-        f"Cannot migrate {DELETED_VM}: instance is deleted" in output.content
-    )
-    assert (
-        "Do not run an original and its hyperv_api copy at the same time"
-        in output.content
+        read_file(STOPPED_VM, f"{MOUNT_TARGET}/payload.txt").strip()
+        == source["mount"]["content"]
     )
 
 
 @pytest.mark.seed
 @pytest.mark.snapshot
-@pytest.mark.scenario(SCENARIO)
+@pytest.mark.scenario(STOPPED_VM)
 def test_hyperv_migration_seed(scenario):
     assert current_driver() == "hyperv"
 
@@ -393,64 +315,42 @@ def test_hyperv_migration_seed(scenario):
         assert multipass("stop", STOPPED_VM)
         take_snapshot(STOPPED_VM, HEAD)
 
-    stopped_layout = legacy_layout(STOPPED_VM)
-
-    with seeded_vm(RUNNING_VM):
-        running_sentinel = sentinel(RUNNING_VM, "hv-running")
-        running_identity = identity(RUNNING_VM)
-        assert multipass("stop", RUNNING_VM)
-    running_layout = legacy_layout(RUNNING_VM, include_disks=False)
-
-    with seeded_vm(SUSPENDED_VM):
-        suspended_sentinel = sentinel(SUSPENDED_VM, "hv-suspended")
-        suspended_identity = identity(SUSPENDED_VM)
-        assert multipass("suspend", SUSPENDED_VM)
-    suspended_layout = legacy_layout(SUSPENDED_VM, include_disks=False)
+    record = scenario.record
+    record["stopped"] = {
+        **source_record(
+            STOPPED_VM, legacy_layout(STOPPED_VM), stopped_identity
+        ),
+        "base": base,
+        "head": head,
+        "snapshot_count": snapshot_count(STOPPED_VM),
+        "mount": {
+            "source": str(mount_source),
+            "file": str(mount_file),
+            "content": mount_content,
+        },
+    }
+    for name, command in ((RUNNING_VM, "stop"), (SUSPENDED_VM, "suspend")):
+        key = RECORD_KEY[name]
+        with seeded_vm(name):
+            guest_sentinel = sentinel(name, f"hv-{key}")
+            guest_identity = identity(name)
+            assert multipass(command, name)
+        record[key] = {
+            "legacy_id": legacy_layout(name, include_disks=False)["id"],
+            "identity": guest_identity,
+            "sentinel": guest_sentinel,
+        }
 
     with seeded_vm(DELETED_VM):
         assert multipass("stop", DELETED_VM)
     deleted_layout = legacy_layout(DELETED_VM)
     assert multipass("delete", DELETED_VM)
-
-    scenario.record.update(
-        {
-            "stopped": {
-                **source_record(STOPPED_VM, stopped_layout, stopped_identity),
-                "base": base,
-                "head": head,
-                "snapshot_count": snapshot_count(STOPPED_VM),
-                "mount": {
-                    "source": str(mount_source),
-                    "file": str(mount_file),
-                    "content": mount_content,
-                },
-            },
-            "running": {
-                **source_record(
-                    RUNNING_VM,
-                    running_layout,
-                    running_identity,
-                    record_files=False,
-                ),
-                "sentinel": running_sentinel,
-            },
-            "suspended": {
-                **source_record(
-                    SUSPENDED_VM,
-                    suspended_layout,
-                    suspended_identity,
-                    record_files=False,
-                ),
-                "sentinel": suspended_sentinel,
-            },
-            "deleted": source_record(DELETED_VM, deleted_layout),
-        }
-    )
+    record["deleted"] = source_record(DELETED_VM, deleted_layout)
 
 
 @pytest.mark.verify
 @pytest.mark.snapshot
-@pytest.mark.scenario(SCENARIO)
+@pytest.mark.scenario(STOPPED_VM)
 def test_hyperv_migration_verify(scenario, daemon_session):
     record = scenario.record
     assert current_driver() == "hyperv"
@@ -458,39 +358,42 @@ def test_hyperv_migration_verify(scenario, daemon_session):
     assert state(RUNNING_VM) == "Stopped"
     assert state(SUSPENDED_VM) == "Suspended"
     assert state(DELETED_VM) == "Deleted"
-    for name in VM_NAMES:
-        assert legacy_id_exists(record[RECORD_KEY[name]]["legacy_id"])
+    for key in RECORD_KEY.values():
+        assert legacy_id_exists(record[key]["legacy_id"])
 
     # Running state is intentionally established after the upgrade. A standalone
     # daemon saves running VMs while it shuts down between seed and verify.
     assert multipass("start", RUNNING_VM)
     assert state(RUNNING_VM) == "Running"
     assert_sentinel(RUNNING_VM, record["running"]["sentinel"])
-    assert_identity(RUNNING_VM, record["running"]["identity"])
-    pre_first_vm_records = legacy_vm_records()
-    pre_first_image_records = legacy_image_records()
+    assert identity(RUNNING_VM) == record["running"]["identity"]
+    pre_first_vm_records = vm_records()
+    pre_first_image_records = image_records()
 
     # One explicit switch performs the primary bulk migration.
-    first_migration = switch_driver("hyperv_api", daemon_session)
-    assert_first_migration_output(first_migration)
+    assert_output(
+        switch_driver("hyperv_api", daemon_session),
+        "The following instances were successfully migrated",
+        f"  {STOPPED_VM}",
+        f"Cannot migrate {RUNNING_VM}: Hyper-V reports state 'Running'",
+        f"Cannot migrate {SUSPENDED_VM}: Hyper-V reports state 'Saved'",
+        f"Cannot migrate {DELETED_VM}: instance is deleted",
+        "Do not run an original and its hyperv_api copy at the same time",
+    )
 
-    assert vm_exists(STOPPED_VM)
-    assert not vm_exists(RUNNING_VM)
-    assert not vm_exists(SUSPENDED_VM)
-    assert not vm_exists(DELETED_VM)
-    for key in ("stopped", "running", "suspended", "deleted"):
+    current_vm_records = vm_records()
+    current_image_records = image_records()
+    for name, key in RECORD_KEY.items():
+        assert vm_exists(name) == (name == STOPPED_VM)
         assert legacy_id_exists(record[key]["legacy_id"])
-    current_vm_records = legacy_vm_records()
-    current_image_records = legacy_image_records()
-    for name in VM_NAMES:
         assert current_vm_records[name] == pre_first_vm_records[name]
         assert current_image_records[name] == pre_first_image_records[name]
 
-    assert_file_records_unchanged(record["stopped"]["disks"])
-    assert_file_records_unchanged(record["stopped"]["metadata"])
-    assert_file_records_unchanged(record["deleted"]["disks"])
-    assert_file_records_unchanged(record["deleted"]["metadata"])
-    assert_target_local(STOPPED_VM, record["stopped"])
+    for key in ("stopped", "deleted"):
+        assert_file_records_unchanged(
+            record[key]["disks"] + record[key]["metadata"]
+        )
+    assert_target_local(STOPPED_VM, record["stopped"]["disks"])
     assert_target_records(
         STOPPED_VM,
         pre_first_vm_records[STOPPED_VM],
@@ -499,13 +402,7 @@ def test_hyperv_migration_verify(scenario, daemon_session):
 
     # The migrated target retains guest identity and complete snapshot behavior.
     assert multipass("start", STOPPED_VM, timeout=900)
-    assert_sentinel(STOPPED_VM, record["stopped"]["base"])
-    assert_sentinel(STOPPED_VM, record["stopped"]["head"])
-    assert_identity(STOPPED_VM, record["stopped"]["identity"])
-    assert (
-        read_file(STOPPED_VM, f"{MOUNT_TARGET}/payload.txt").strip()
-        == record["stopped"]["mount"]["content"]
-    )
+    assert_stopped_guest(record["stopped"])
 
     assert multipass("stop", STOPPED_VM)
     take_snapshot(STOPPED_VM, POST)
@@ -513,32 +410,27 @@ def test_hyperv_migration_verify(scenario, daemon_session):
         snapshot_count(STOPPED_VM) == record["stopped"]["snapshot_count"] + 1
     )
 
-    assert multipass("restore", f"{STOPPED_VM}.{BASE}", "--destructive")
-    assert multipass("start", STOPPED_VM)
-    assert_sentinel(STOPPED_VM, record["stopped"]["base"])
-    assert not path_exists(STOPPED_VM, record["stopped"]["head"]["path"])
-
-    assert multipass("stop", STOPPED_VM)
-    assert multipass("restore", f"{STOPPED_VM}.{HEAD}", "--destructive")
-    assert multipass("start", STOPPED_VM)
-    assert_sentinel(STOPPED_VM, record["stopped"]["head"])
-    assert multipass("stop", STOPPED_VM)
+    for snapshot, key in ((BASE, "base"), (HEAD, "head")):
+        assert multipass(
+            "restore", f"{STOPPED_VM}.{snapshot}", "--destructive"
+        )
+        assert multipass("start", STOPPED_VM)
+        assert_sentinel(STOPPED_VM, record["stopped"][key])
+        if snapshot == BASE:
+            assert not path_exists(
+                STOPPED_VM, record["stopped"]["head"]["path"]
+            )
+        assert multipass("stop", STOPPED_VM)
 
     # Switching back reveals the untouched originals. Stop the skipped instances and retry.
-    assert switch_driver("hyperv", daemon_session)
+    switch_driver("hyperv", daemon_session)
     assert state(STOPPED_VM) == "Stopped"
     assert multipass("start", STOPPED_VM)
-    assert_sentinel(STOPPED_VM, record["stopped"]["base"])
-    assert_sentinel(STOPPED_VM, record["stopped"]["head"])
-    assert_identity(STOPPED_VM, record["stopped"]["identity"])
-    assert (
-        read_file(STOPPED_VM, f"{MOUNT_TARGET}/payload.txt").strip()
-        == record["stopped"]["mount"]["content"]
-    )
+    assert_stopped_guest(record["stopped"])
     assert multipass("stop", STOPPED_VM)
 
     assert_sentinel(RUNNING_VM, record["running"]["sentinel"])
-    assert_identity(RUNNING_VM, record["running"]["identity"])
+    assert identity(RUNNING_VM) == record["running"]["identity"]
     assert multipass("stop", RUNNING_VM)
 
     assert state(SUSPENDED_VM) == "Suspended"
@@ -551,19 +443,15 @@ def test_hyperv_migration_verify(scenario, daemon_session):
         name: [file_record(path) for path in legacy_layout(name)["disks"]]
         for name in (STOPPED_VM, RUNNING_VM, SUSPENDED_VM)
     }
-    pre_retry_vm_records = legacy_vm_records()
-    pre_retry_image_records = legacy_image_records()
+    pre_retry_vm_records = vm_records()
+    pre_retry_image_records = image_records()
 
-    retry_migration = switch_driver("hyperv_api", daemon_session)
-    assert (
-        f"Cannot migrate {STOPPED_VM}: name already taken"
-        in retry_migration.content
-    )
-    assert RUNNING_VM in retry_migration.content
-    assert SUSPENDED_VM in retry_migration.content
-    assert (
-        f"Cannot migrate {DELETED_VM}: instance is deleted"
-        in retry_migration.content
+    assert_output(
+        switch_driver("hyperv_api", daemon_session),
+        f"Cannot migrate {STOPPED_VM}: name already taken",
+        RUNNING_VM,
+        SUSPENDED_VM,
+        f"Cannot migrate {DELETED_VM}: instance is deleted",
     )
 
     for records in pre_retry_disks.values():
@@ -572,12 +460,12 @@ def test_hyperv_migration_verify(scenario, daemon_session):
         assert vm_exists(name)
         key = RECORD_KEY[name]
         assert legacy_id_exists(record[key]["legacy_id"])
-        assert_target_local(name, {"disks": pre_retry_disks[name]})
+        assert_target_local(name, pre_retry_disks[name])
         assert_target_records(
             name, pre_retry_vm_records[name], pre_retry_image_records[name]
         )
         assert multipass("start", name, timeout=900)
-        assert_identity(name, record[key]["identity"])
+        assert identity(name) == record[key]["identity"]
         assert_sentinel(name, record[key]["sentinel"])
         assert multipass("stop", name)
 
@@ -586,31 +474,26 @@ def test_hyperv_migration_verify(scenario, daemon_session):
     assert not vm_exists(STOPPED_VM)
     assert legacy_id_exists(record["stopped"]["legacy_id"])
 
-    assert switch_driver("hyperv", daemon_session)
+    switch_driver("hyperv", daemon_session)
     remigration = switch_driver("hyperv_api", daemon_session)
     assert STOPPED_VM in remigration.content
     assert vm_exists(STOPPED_VM)
     assert legacy_id_exists(record["stopped"]["legacy_id"])
 
     # Purging the original is strictly scoped to the legacy backend.
-    assert switch_driver("hyperv", daemon_session)
+    switch_driver("hyperv", daemon_session)
     assert multipass("delete", STOPPED_VM, "--purge")
     assert not legacy_id_exists(record["stopped"]["legacy_id"])
-    assert switch_driver("hyperv_api", daemon_session)
+    switch_driver("hyperv_api", daemon_session)
     assert vm_exists(STOPPED_VM)
 
     # Leave the upgrade host clean and on the requested legacy test driver.
     assert multipass(
         "delete", STOPPED_VM, RUNNING_VM, SUSPENDED_VM, "--purge", timeout=300
     )
-    assert switch_driver("hyperv", daemon_session)
+    switch_driver("hyperv", daemon_session)
     assert multipass(
-        "delete",
-        RUNNING_VM,
-        SUSPENDED_VM,
-        DELETED_VM,
-        "--purge",
-        timeout=300,
+        "delete", RUNNING_VM, SUSPENDED_VM, DELETED_VM, "--purge", timeout=300
     )
     Path(record["stopped"]["mount"]["file"]).unlink()
     Path(record["stopped"]["mount"]["source"]).rmdir()

@@ -150,9 +150,8 @@ grpc::Status mhv::DriverTransition::complete(
         if (!server->Write(reply))
             connection_lost = true;
     };
-    const auto outcome = run_bulk_migration(migrator, report, [&connection_lost] {
-        return connection_lost;
-    });
+    const auto outcome = migrator.migrate_all(report,
+                                              [&connection_lost] { return connection_lost; });
 
     switch (outcome)
     {

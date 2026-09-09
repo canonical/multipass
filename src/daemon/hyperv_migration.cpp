@@ -82,40 +82,48 @@ std::optional<mhv::MigrationTransactionManifest> try_load_manifest(const fs::pat
     }
 }
 
-std::string state_name(multipass::VirtualMachine::State state)
-{
-    using State = multipass::VirtualMachine::State;
-    switch (state)
-    {
-    case State::off:
-    case State::stopped:
-        return "stopped";
-    case State::running:
-        return "running";
-    case State::suspended:
-        return "suspended";
-    case State::starting:
-        return "starting";
-    case State::restarting:
-        return "restarting";
-    case State::delayed_shutdown:
-        return "delayed shutdown";
-    case State::unknown:
-        return "unknown";
-    case State::unavailable:
-        return "unavailable";
-    }
-    return "unsupported";
-}
 } // namespace
 
+std::vector<multipass::NetworkInterface> multipass::hyperv::translate_extra_interfaces(
+    const std::vector<NetworkInterface>& source_interfaces,
+    const std::vector<NetworkInterfaceInfo>& available_networks)
+{
+    auto translated = source_interfaces;
+    for (auto& iface : translated)
+    {
+        const auto network = std::ranges::find(available_networks,
+                                               iface.id,
+                                               &NetworkInterfaceInfo::id);
+        if (network == available_networks.end())
+            throw InstanceMigrationError{
+                fmt::format("Cannot migrate networking: source interface '{}' does not map to "
+                            "any known Hyper-V network",
+                            iface.id)};
+
+        if (network->links.size() != 1)
+            throw InstanceMigrationError{
+                fmt::format("Cannot migrate networking: Hyper-V network '{}' does not bridge "
+                            "exactly one physical adapter (it bridges {})",
+                            iface.id,
+                            network->links.size())};
+
+        if (network->links.front().empty())
+            throw InstanceMigrationError{
+                fmt::format("Cannot migrate networking: Hyper-V network '{}' has an empty "
+                            "physical adapter link",
+                            iface.id)};
+
+        iface.id = network->links.front();
+    }
+    return translated;
+}
+
 multipass::hyperv::HyperVMigrationTargetRecords::HyperVMigrationTargetRecords(const Path& data_dir)
-    : source_image_db{as_path(data_dir) / "vault" / image_db_filename},
-      target_root{as_path(data_dir) / target_backend},
+    : target_root{as_path(data_dir) / target_backend},
       target_vm_db{target_root / vm_db_filename},
       target_image_db{target_root / "vault" / image_db_filename},
       instances_root{target_root / "vault" / "instances"},
-      source_image_records{load_records(source_image_db)},
+      source_image_records{load_records(as_path(data_dir) / "vault" / image_db_filename)},
       target_vm_records{load_records(target_vm_db)},
       target_image_records{load_records(target_image_db)}
 {
@@ -216,10 +224,10 @@ void multipass::hyperv::HyperVMigrationTargetRecords::recover()
         if (!manifest || manifest->vm_name != name)
             continue;
 
-        if (has_vm_record(name))
+        if (target_vm_records.contains(name))
         {
             if (manifest->phase != MigrationTransactionManifest::prepared_phase_name ||
-                !has_image_record(name))
+                !target_image_records.contains(name))
             {
                 mpl::warn(log_category,
                           "Committed target '{}' has incomplete image or ownership state; leaving "
@@ -245,20 +253,19 @@ void multipass::hyperv::HyperVMigrationTargetRecords::recover()
         }
     }
 
-    std::vector<std::string> record_only_orphans;
-    for (const auto& [name, _] : target_image_records)
+    for (auto it = target_image_records.begin(); it != target_image_records.end();)
     {
+        const std::string name{it->key()};
         std::error_code exists_error;
-        if (!has_vm_record(name) && !MP_FILEOPS.exists(instance_dir(name), exists_error) &&
-            !exists_error)
-            record_only_orphans.push_back(name);
-    }
-
-    for (const auto& name : record_only_orphans)
-    {
-        target_image_records.erase(name);
-        persist_records(target_image_records, target_image_db);
-        mpl::info(log_category, "Removed orphan migration image record '{}'", name);
+        if (!target_vm_records.contains(name) &&
+            !MP_FILEOPS.exists(instance_dir(name), exists_error) && !exists_error)
+        {
+            it = target_image_records.erase(it);
+            persist_records(target_image_records, target_image_db);
+            mpl::info(log_category, "Removed orphan migration image record '{}'", name);
+        }
+        else
+            ++it;
     }
 }
 
@@ -266,8 +273,8 @@ bool multipass::hyperv::HyperVMigrationTargetRecords::target_exists(const std::s
 {
     const auto target_dir = instance_dir(name);
     std::error_code error;
-    return (MP_FILEOPS.exists(target_dir, error) && !error) || has_vm_record(name) ||
-           has_image_record(name);
+    return (MP_FILEOPS.exists(target_dir, error) && !error) || target_vm_records.contains(name) ||
+           target_image_records.contains(name);
 }
 
 multipass::VaultRecord multipass::hyperv::HyperVMigrationTargetRecords::source_image_record(
@@ -298,7 +305,7 @@ void multipass::hyperv::HyperVMigrationTargetRecords::commit(const std::string& 
                                                              const VMSpecs& spec,
                                                              VaultRecord image_record)
 {
-    if (has_vm_record(name) || has_image_record(name))
+    if (target_vm_records.contains(name) || target_image_records.contains(name))
         throw MigrationAbortError{
             fmt::format("target records for '{}' appeared during migration", name)};
 
@@ -321,27 +328,26 @@ void multipass::hyperv::HyperVMigrationTargetRecords::commit(const std::string& 
         throw MigrationAbortError{
             fmt::format("prepared target '{}' has incomplete transaction metadata", name)};
 
-    target_image_records[name] = boost::json::value_from(image_record);
-    try
-    {
-        persist_records(target_image_records, target_image_db);
-    }
-    catch (const std::exception& error)
-    {
-        throw MigrationAbortError{
-            fmt::format("could not persist target image record for '{}': {}", name, error.what())};
-    }
-
-    target_vm_records[name] = boost::json::value_from(spec);
-    try
-    {
-        persist_records(target_vm_records, target_vm_db);
-    }
-    catch (const std::exception& error)
-    {
-        throw MigrationAbortError{
-            fmt::format("could not persist target VM record for '{}': {}", name, error.what())};
-    }
+    const auto persist = [&name](auto& records,
+                                 const auto& path,
+                                 const auto& record,
+                                 const char* kind) {
+        records[name] = boost::json::value_from(record);
+        try
+        {
+            persist_records(records, path);
+        }
+        catch (const std::exception& error)
+        {
+            throw MigrationAbortError{fmt::format("could not persist target {} record for '{}': {}",
+                                                  kind,
+                                                  name,
+                                                  error.what())};
+        }
+    };
+    // The VM record makes the target visible, so its image record must be durable first.
+    persist(target_image_records, target_image_db, image_record, "image");
+    persist(target_vm_records, target_vm_db, spec, "VM");
 
     std::error_code remove_error;
     if (!MP_FILEOPS.remove(target_dir / MigrationTransactionManifest::filename, remove_error) ||
@@ -350,17 +356,6 @@ void multipass::hyperv::HyperVMigrationTargetRecords::commit(const std::string& 
                   "Could not remove committed migration manifest for '{}': {}",
                   name,
                   remove_error.message());
-}
-
-bool multipass::hyperv::HyperVMigrationTargetRecords::has_vm_record(const std::string& name) const
-{
-    return target_vm_records.contains(name);
-}
-
-bool multipass::hyperv::HyperVMigrationTargetRecords::has_image_record(
-    const std::string& name) const
-{
-    return target_image_records.contains(name);
 }
 
 multipass::hyperv::DaemonHyperVInstanceMigrator::DaemonHyperVInstanceMigrator(
@@ -382,15 +377,6 @@ multipass::hyperv::DaemonHyperVInstanceMigrator::DaemonHyperVInstanceMigrator(
 }
 
 multipass::hyperv::DaemonHyperVInstanceMigrator::~DaemonHyperVInstanceMigrator() = default;
-
-std::vector<std::string> multipass::hyperv::DaemonHyperVInstanceMigrator::source_names() const
-{
-    std::vector<std::string> names;
-    names.reserve(specs.size());
-    for (const auto& [name, _] : specs)
-        names.push_back(name);
-    return names;
-}
 
 std::vector<multipass::NetworkInterface>
 multipass::hyperv::DaemonHyperVInstanceMigrator::translated_interfaces(
@@ -439,7 +425,9 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
             const auto state = vm_it->second->state;
             if (state == VirtualMachine::State::starting ||
                 state == VirtualMachine::State::restarting)
-                return fmt::format("instance is {} and needs to be stopped", state_name(state));
+                return fmt::format("instance is {} and needs to be stopped",
+                                   state == VirtualMachine::State::starting ? "starting"
+                                                                            : "restarting");
         }
 
         const auto command = QStringLiteral("Get-VM -Name '%1' -ErrorAction Stop | "
@@ -504,8 +492,7 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
     }
 }
 
-multipass::hyperv::MigrationOutcome multipass::hyperv::run_bulk_migration(
-    DaemonHyperVInstanceMigrator& migrator,
+multipass::hyperv::MigrationOutcome multipass::hyperv::DaemonHyperVInstanceMigrator::migrate_all(
     const MigrationReporter& report,
     const MigrationCancellation& cancel)
 {
@@ -513,8 +500,11 @@ multipass::hyperv::MigrationOutcome multipass::hyperv::run_bulk_migration(
     auto outcome = MigrationOutcome::completed;
     std::vector<std::string> migrated;
 
-    auto names = migrator.source_names();
-    std::sort(names.begin(), names.end());
+    std::vector<std::string> names;
+    names.reserve(specs.size());
+    for (const auto& [name, _] : specs)
+        names.push_back(name);
+    std::ranges::sort(names);
 
     for (const auto& name : names)
     {
@@ -528,7 +518,7 @@ multipass::hyperv::MigrationOutcome multipass::hyperv::run_bulk_migration(
 
         try
         {
-            if (const auto reason = migrator.migrate(name, report))
+            if (const auto reason = migrate(name, report))
                 report(MigrationMessage::diagnostic,
                        fmt::format("Cannot migrate {}: {}\n", name, *reason));
             else
