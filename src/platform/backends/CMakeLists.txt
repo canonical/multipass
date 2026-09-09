@@ -17,3 +17,7 @@ add_subdirectory(shared)
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})
 endforeach()
+
+if(HYPERV_API_ENABLED)
+  add_subdirectory(hyperv_migration)
+endif()

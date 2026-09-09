@@ -18,7 +18,7 @@
 
 #include "default_vm_image_vault.h"
 
-#include <hyperv/hyperv_migration_service.h>
+#include <hyperv_migration/hyperv_migration_service.h>
 
 #include <multipass/path.h>
 #include <multipass/virtual_machine.h>
