@@ -192,8 +192,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
     EXPECT_CALL(mock_hcn, find_endpoints_by_name("multipass-test-vm", _))
         .WillOnce(DoAll(SetArgReferee<1>(std::vector<std::string>{"endpoint"}),
                         Return(hcs_op_result_t{0, L""})));
-    EXPECT_CALL(mock_hcn, delete_endpoint("endpoint"))
-        .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcn, delete_endpoint("endpoint")).WillOnce(Return(hcs_op_result_t{0, L""}));
 
     EXPECT_TRUE(mhv::release_hcs_resources(vm_name));
 }
@@ -209,8 +208,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
     EXPECT_FALSE(mhv::release_hcs_resources(vm_name));
 }
 
-TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
-       release_resources_reports_endpoint_lookup_failure)
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, release_resources_reports_endpoint_lookup_failure)
 {
     EXPECT_CALL(mock_hcs, open_compute_system("test-vm", _))
         .WillOnce(Return(hcs_op_result_t{HCS_E_SYSTEM_NOT_FOUND, L""}));
@@ -231,8 +229,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
                         Return(hcs_op_result_t{0, L""})));
     EXPECT_CALL(mock_hcn, delete_endpoint("endpoint-1"))
         .WillOnce(Return(hcs_op_result_t{E_FAIL, L""}));
-    EXPECT_CALL(mock_hcn, delete_endpoint("endpoint-2"))
-        .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcn, delete_endpoint("endpoint-2")).WillOnce(Return(hcs_op_result_t{0, L""}));
 
     EXPECT_FALSE(mhv::release_hcs_resources("test-vm"));
 }
