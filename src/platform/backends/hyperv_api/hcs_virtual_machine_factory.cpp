@@ -110,40 +110,10 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
                                                get_instance_directory(desc.vm_name));
 }
 
-namespace
-{
-void remove_endpoints_by_name(const std::string& name)
-{
-    std::vector<std::string> endpoints{};
-    const auto find_result = HCN().find_endpoints_by_name(hcn::endpoint_name_for(name), endpoints);
-
-    if (!find_result)
-    {
-        mpl::warn(log_category,
-                  "remove_endpoints_by_name() -> Could not enumerate endpoints for `{}`: {}",
-                  name,
-                  find_result);
-        return;
-    }
-
-    for (const auto& elem : endpoints)
-    {
-        const auto remove_result = HCN().delete_endpoint(elem);
-
-        mpl::log(remove_result ? mpl::Level::trace : mpl::Level::warning,
-                 log_category,
-                 "remove_endpoints_by_name() -> Remove endpoint {}: {}",
-                 elem,
-                 remove_result.code);
-    }
-}
-} // namespace
-
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     mpl::debug(log_category, "remove_resources_for_impl() -> VM: {}", name);
     (void)release_hcs_resources(name);
-    remove_endpoints_by_name(name);
 }
 
 VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_image)

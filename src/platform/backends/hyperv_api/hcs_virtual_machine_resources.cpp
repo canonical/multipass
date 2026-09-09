@@ -16,6 +16,7 @@
 
 #include "hcs_virtual_machine_resources.h"
 
+#include <hyperv_api/hcn/hyperv_hcn_endpoint_naming.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 
@@ -47,24 +48,15 @@ bool multipass::hyperv::release_hcs_resources(const std::string& name)
         if (static_cast<HRESULT>(open_result.code) == HCS_E_SYSTEM_NOT_FOUND)
         {
             mpl::info(log_category, "Host compute system '{}' is already terminated", name);
-            return true;
         }
-
-        mpl::warn(log_category, "Could not open host compute system '{}': {}", name, open_result);
-        return false;
+        else
+        {
+            mpl::warn(log_category, "Could not open host compute system '{}': {}", name, open_result);
+            return false;
+        }
     }
-
-    std::string vm_guid;
-    const auto guid_result = hcs::HCS().get_compute_system_guid(handle, vm_guid);
-    if (!guid_result || vm_guid.empty())
-    {
-        mpl::warn(log_category,
-                  "Could not retrieve VM guid for '{}', skipping endpoint cleanup",
-                  name);
-    }
-
-    if (const auto terminate_result = hcs::HCS().terminate_compute_system(handle);
-        !terminate_result)
+    else if (const auto terminate_result = hcs::HCS().terminate_compute_system(handle);
+             !terminate_result)
     {
         mpl::warn(log_category,
                   "Could not terminate host compute system '{}': {}",
@@ -73,12 +65,9 @@ bool multipass::hyperv::release_hcs_resources(const std::string& name)
         return false;
     }
 
-    if (vm_guid.empty())
-        return false;
-
-    std::vector<std::string> attached_endpoints;
-    if (const auto enumerate_result = hcn::HCN().enumerate_attached_endpoints(vm_guid,
-                                                                              attached_endpoints);
+    std::vector<std::string> endpoints;
+    if (const auto enumerate_result =
+            hcn::HCN().find_endpoints_by_name(hcn::endpoint_name_for(name), endpoints);
         !enumerate_result)
     {
         mpl::warn(log_category,
@@ -89,35 +78,13 @@ bool multipass::hyperv::release_hcs_resources(const std::string& name)
     }
 
     auto success = true;
-    for (const auto& endpoint : attached_endpoints)
+    for (const auto& endpoint : endpoints)
     {
         const auto result = hcn::HCN().delete_endpoint(endpoint);
         success = result && success;
         mpl::log(result ? mpl::Level::trace : mpl::Level::warning,
                  log_category,
-                 "Remove attached endpoint {}: {}",
-                 endpoint,
-                 result.code);
-    }
-    return success;
-}
-
-bool multipass::hyperv::release_hcs_resources(const std::string& name,
-                                              const std::vector<std::string>& mac_addresses)
-{
-    if (!release_hcs_resources(name))
-        return false;
-
-    auto success = true;
-    for (const auto& mac_address : mac_addresses)
-    {
-        const auto endpoint = endpoint_guid_for_mac(mac_address);
-        const auto result = hcn::HCN().delete_endpoint(endpoint);
-        const auto absent = static_cast<HRESULT>(result.code) == HCN_E_ENDPOINT_NOT_FOUND;
-        success = (result || absent) && success;
-        mpl::log(result || absent ? mpl::Level::trace : mpl::Level::warning,
-                 log_category,
-                 "Remove deterministic endpoint {}: {}",
+                 "Remove named endpoint {}: {}",
                  endpoint,
                  result.code);
     }
