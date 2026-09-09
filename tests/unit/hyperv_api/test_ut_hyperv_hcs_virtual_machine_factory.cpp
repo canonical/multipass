@@ -109,7 +109,8 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_vm_ex
     EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
 
-    EXPECT_CALL(mock_hcn, find_endpoints_by_name(Eq(fmt::format("multipass-{}", vm_name)), IsEmpty()))
+    EXPECT_CALL(mock_hcn,
+                find_endpoints_by_name(Eq(fmt::format("multipass-{}", vm_name)), IsEmpty()))
         .WillOnce(DoAll(
             [&](const std::string&, std::vector<std::string>& endpoint_guids) {
                 endpoint_guids.emplace_back("this isn't an endpoint guid");
@@ -135,7 +136,8 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_does_
                         SetArgReferee<1>(mock_handle),
                         Return(hcs_op_result_t{1, L""})));
 
-    EXPECT_CALL(mock_hcn, find_endpoints_by_name(Eq(fmt::format("multipass-{}", vm_name)), IsEmpty()))
+    EXPECT_CALL(mock_hcn,
+                find_endpoints_by_name(Eq(fmt::format("multipass-{}", vm_name)), IsEmpty()))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
 
     std::shared_ptr<uut_t> uut{nullptr};
@@ -144,7 +146,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_does_
 }
 
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
-      remove_resources_for_impl_cleans_up_endpoints_by_name_when_already_terminated)
+       remove_resources_for_impl_cleans_up_endpoints_by_name_when_already_terminated)
 {
     auto vm_name = "test-vm";
     EXPECT_CALL(mock_hcs, open_compute_system(_, _))
@@ -152,7 +154,8 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
                         SetArgReferee<1>(mock_handle),
                         Return(hcs_op_result_t{1, L""})));
 
-    EXPECT_CALL(mock_hcn, find_endpoints_by_name(Eq(fmt::format("multipass-{}", vm_name)), IsEmpty()))
+    EXPECT_CALL(mock_hcn,
+                find_endpoints_by_name(Eq(fmt::format("multipass-{}", vm_name)), IsEmpty()))
         .WillOnce(DoAll(
             [&](const std::string&, std::vector<std::string>& endpoint_guids) {
                 endpoint_guids.emplace_back("endpoint-1");

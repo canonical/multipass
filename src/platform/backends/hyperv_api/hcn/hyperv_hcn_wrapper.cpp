@@ -319,8 +319,9 @@ OperationResult HCNWrapper::find_endpoints_by_name(const std::string& name,
 
     // No filter -- enumerate every endpoint known to HCN, then inspect each one's `Name`
     // individually. This does not require the owning compute system to be open/alive.
-    const auto result =
-        API().HcnEnumerateEndpoints(L"{}", out_ptr(json_output), out_ptr(result_msgbuf));
+    const auto result = API().HcnEnumerateEndpoints(L"{}",
+                                                    out_ptr(json_output),
+                                                    out_ptr(result_msgbuf));
 
     if (FAILED(result) || !json_output)
     {
@@ -351,9 +352,9 @@ OperationResult HCNWrapper::find_endpoints_by_name(const std::string& name,
 
         UniqueCotaskmemString query_result{}, query_error{};
         const auto query_status = API().HcnQueryEndpointProperties(endpoint.get(),
-                                                                    L"{}",
-                                                                    out_ptr(query_result),
-                                                                    out_ptr(query_error));
+                                                                   L"{}",
+                                                                   out_ptr(query_result),
+                                                                   out_ptr(query_error));
         if (FAILED(query_status) || !query_result)
         {
             mpl::warn(log_category,
@@ -445,8 +446,9 @@ OperationResult HCNWrapper::enumerate_networks(std::vector<std::string>& out_net
     UniqueCotaskmemString enumerate_result{}, result_msgbuf{};
 
     // List all HCN network GUIDs
-    const auto result =
-        API().HcnEnumerateNetworks(L"{}", out_ptr(enumerate_result), out_ptr(result_msgbuf));
+    const auto result = API().HcnEnumerateNetworks(L"{}",
+                                                   out_ptr(enumerate_result),
+                                                   out_ptr(result_msgbuf));
     if (enumerate_result)
     {
         // json_output would contain the network GUIDs.

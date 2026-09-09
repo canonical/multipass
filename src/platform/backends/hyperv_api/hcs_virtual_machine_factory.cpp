@@ -114,15 +114,14 @@ namespace
 void remove_endpoints_by_name(const std::string& name)
 {
     std::vector<std::string> endpoints{};
-    const auto find_result =
-        HCN().find_endpoints_by_name(hcn::endpoint_name_for(name), endpoints);
+    const auto find_result = HCN().find_endpoints_by_name(hcn::endpoint_name_for(name), endpoints);
 
     if (!find_result)
     {
         mpl::warn(log_category,
-                 "remove_endpoints_by_name() -> Could not enumerate endpoints for `{}`: {}",
-                 name,
-                 find_result);
+                  "remove_endpoints_by_name() -> Could not enumerate endpoints for `{}`: {}",
+                  name,
+                  find_result);
         return;
     }
 
@@ -210,8 +209,8 @@ void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_im
                                                       const VirtualMachineDescription& desc)
 {
     // Resize the instance image to the desired size
-    const auto resize_result =
-        VirtDisk().resize_virtual_disk(instance_image.image_path, desc.disk_space.in_bytes());
+    const auto resize_result = VirtDisk().resize_virtual_disk(instance_image.image_path,
+                                                              desc.disk_space.in_bytes());
     if (!resize_result)
     {
         throw ImageResizeException{"Failed to resize VHDX file `{}`, virtdisk API error code `{}`",

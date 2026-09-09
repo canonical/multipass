@@ -52,9 +52,8 @@ struct HCNWrapper : public Singleton<HCNWrapper>
      * owning compute system to be open (or even alive). This is used as a fallback path
      * for cleaning up endpoints whose owning VM has already been terminated/removed.
      */
-    [[nodiscard]] virtual OperationResult find_endpoints_by_name(
-        const std::string& name,
-        std::vector<std::string>& endpoint_guids) const;
+    [[nodiscard]] virtual OperationResult
+    find_endpoints_by_name(const std::string& name, std::vector<std::string>& endpoint_guids) const;
     [[nodiscard]] virtual OperationResult enumerate_networks(
         std::vector<std::string>& network_guids) const;
     [[nodiscard]] virtual OperationResult query_network(const std::string& network_guid,
