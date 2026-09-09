@@ -21,7 +21,7 @@
 #include "tests/unit/mock_virtual_machine.h"
 #include "tests/unit/windows/powershell_test_helper.h"
 
-#include <src/platform/backends/hyperv/hyperv_disk_layout.h>
+#include <hyperv_migration/hyperv_disk_layout.h>
 
 #include <multipass/json_utils.h>
 

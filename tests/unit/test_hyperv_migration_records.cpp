@@ -25,7 +25,7 @@
 
 #include <daemon/hyperv_migration.h>
 
-#include <hyperv/hyperv_target_transaction.h>
+#include <hyperv_migration/hyperv_target_transaction.h>
 #include <multipass/constants.h>
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>
