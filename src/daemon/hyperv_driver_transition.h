@@ -54,17 +54,26 @@ inline grpc::Status migration_conflict_status(std::string_view rpc_name)
 
 class HyperVMigrationTargetRecords;
 
+using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
+
+// Bundles the slice of Daemon state that a driver transition needs to read or mutate, so it
+// doesn't have to depend on (or be a friend of) the whole Daemon class.
+struct DriverTransitionContext
+{
+    const DaemonConfig& config;
+    const std::unordered_map<std::string, VMSpecs>& specs;
+    const InstanceTable& operative_instances;
+    const InstanceTable& deleted_instances;
+    std::atomic<bool>& migration_in_progress;
+    const std::atomic_size_t& preparations_in_progress;
+};
+
 class DriverTransition : private DisabledCopyMove
 {
 public:
-    using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
+    using InstanceTable = multipass::hyperv::InstanceTable;
 
-    DriverTransition(const DaemonConfig& config,
-                     const std::unordered_map<std::string, VMSpecs>& specs,
-                     const InstanceTable& operative_instances,
-                     const InstanceTable& deleted_instances,
-                     std::atomic<bool>& migration_in_progress,
-                     const std::atomic_size_t& preparations_in_progress);
+    explicit DriverTransition(DriverTransitionContext context);
     ~DriverTransition();
 
     // Keep this object alive across the settings write and completion, including error exits.
@@ -75,12 +84,7 @@ public:
 private:
     void release_hcs_instances() const;
 
-    const DaemonConfig& config;
-    const std::unordered_map<std::string, VMSpecs>& specs;
-    const InstanceTable& operative_instances;
-    const InstanceTable& deleted_instances;
-    std::atomic<bool>& migration_in_progress;
-    const std::atomic_size_t& preparations_in_progress;
+    DriverTransitionContext context;
     bool migration_flag_acquired{false};
     std::unique_ptr<HyperVMigrationTargetRecords> migration_records;
 };

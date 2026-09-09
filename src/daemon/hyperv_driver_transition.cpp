@@ -33,25 +33,14 @@
 namespace mp = multipass;
 namespace mhv = multipass::hyperv;
 
-mhv::DriverTransition::DriverTransition(const DaemonConfig& config,
-                                        const std::unordered_map<std::string, VMSpecs>& specs,
-                                        const InstanceTable& operative_instances,
-                                        const InstanceTable& deleted_instances,
-                                        std::atomic<bool>& migration_in_progress,
-                                        const std::atomic_size_t& preparations_in_progress)
-    : config{config},
-      specs{specs},
-      operative_instances{operative_instances},
-      deleted_instances{deleted_instances},
-      migration_in_progress{migration_in_progress},
-      preparations_in_progress{preparations_in_progress}
+mhv::DriverTransition::DriverTransition(DriverTransitionContext context) : context{context}
 {
 }
 
 mhv::DriverTransition::~DriverTransition()
 {
     if (migration_flag_acquired)
-        migration_in_progress = false;
+        context.migration_in_progress = false;
 }
 
 grpc::Status mhv::DriverTransition::prepare(const std::string& key, const std::string& value)
@@ -61,22 +50,22 @@ grpc::Status mhv::DriverTransition::prepare(const std::string& key, const std::s
 
     const auto current_driver = MP_SETTINGS.get(mp::driver_key).toStdString();
     const auto migrate_hyperv = current_driver == "hyperv" && value == "hyperv_api";
-    const auto leave_hyperv_api = current_driver == "hyperv_api" && value != "hyperv_api";
-    if (!migrate_hyperv && !leave_hyperv_api)
+    if (!migrate_hyperv && !(current_driver == "hyperv_api" && value != "hyperv_api"))
         return grpc::Status::OK;
 
     if (migrate_hyperv)
     {
         check_hyperv_api_support();
-        migration_records = std::make_unique<HyperVMigrationTargetRecords>(config.data_directory);
+        migration_records =
+            std::make_unique<HyperVMigrationTargetRecords>(context.config.data_directory);
         migration_records->preflight();
     }
 
-    if (migration_in_progress.exchange(true))
+    if (context.migration_in_progress.exchange(true))
         return migration_conflict_status("change settings");
 
     migration_flag_acquired = true;
-    if (preparations_in_progress.load() != 0)
+    if (context.preparations_in_progress.load() != 0)
         return {grpc::StatusCode::FAILED_PRECONDITION,
                 "Cannot change driver while an instance is being prepared"};
 
@@ -90,7 +79,7 @@ grpc::Status mhv::DriverTransition::prepare(const std::string& key, const std::s
 
 void mhv::DriverTransition::release_hcs_instances() const
 {
-    for (const auto* instances : {&operative_instances, &deleted_instances})
+    for (const auto* instances : {&context.operative_instances, &context.deleted_instances})
     {
         for (const auto& [name, vm] : *instances)
         {
@@ -105,7 +94,7 @@ void mhv::DriverTransition::release_hcs_instances() const
         }
     }
 
-    for (const auto& [name, spec] : specs)
+    for (const auto& [name, spec] : context.specs)
     {
         std::vector<std::string> mac_addresses{spec.default_mac_address};
         std::ranges::transform(spec.extra_interfaces,
@@ -123,12 +112,12 @@ grpc::Status mhv::DriverTransition::complete(
     if (!migration_records)
         return grpc::Status::OK;
 
-    DaemonHyperVInstanceMigrator migrator{specs,
-                                          operative_instances,
-                                          deleted_instances,
-                                          *config.factory,
-                                          *config.az_manager,
-                                          config.data_directory,
+    DaemonHyperVInstanceMigrator migrator{context.specs,
+                                          context.operative_instances,
+                                          context.deleted_instances,
+                                          *context.config.factory,
+                                          *context.config.az_manager,
+                                          context.config.data_directory,
                                           *migration_records};
     bool connection_lost = false;
     const MigrationReporter report = [server, &connection_lost](MigrationMessage kind,
