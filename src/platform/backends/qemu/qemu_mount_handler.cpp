@@ -158,7 +158,7 @@ QemuMountHandler::~QemuMountHandler()
     deactivate(/*force=*/true);
 }
 
-void QemuMountHandler::remove_mount()
+void QemuMountHandler::remove_mount_impl()
 {
     vm_mount_args.erase(tag);
     static_cast<QemuVirtualMachine*>(vm)->persist_mount_metadata();

@@ -68,8 +68,10 @@ public:
         active = false;
     }
 
-    virtual void remove_mount()
+    void remove_mount()
     {
+        deactivate();
+        remove_mount_impl();
     }
 
     const VMMount& get_mount_spec() const noexcept
@@ -119,6 +121,9 @@ protected:
 
     virtual void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) = 0;
     virtual void deactivate_impl(bool force) = 0;
+    virtual void remove_mount_impl()
+    {
+    }
 
     template <typename Reply, typename Request>
     static Reply make_reply_from_server(grpc::ServerReaderWriterInterface<Reply, Request>*)

@@ -211,7 +211,7 @@ TEST_F(QemuMountHandlerTest, removeMountErasesTagAndPersistsMetadata)
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
     ASSERT_EQ(mount_args.size(), 1);
 
-    EXPECT_CALL(vm, persist_mount_metdata());
+    EXPECT_CALL(vm, persist_mount_metadata());
     handler.remove_mount();
     EXPECT_EQ(mount_args.size(), 0);
 }

@@ -26,7 +26,7 @@ class MockMountHandler : public MountHandler
 public:
     MOCK_METHOD(void, activate_impl, (ServerVariant, std::chrono::milliseconds), (override));
     MOCK_METHOD(void, deactivate_impl, (bool), (override));
-    MOCK_METHOD(void, remove_mount, (), (override));
+    MOCK_METHOD(void, remove_mount_impl, (), (override));
     MOCK_METHOD(bool, is_active, (), (override));
 };
 } // namespace multipass::test
