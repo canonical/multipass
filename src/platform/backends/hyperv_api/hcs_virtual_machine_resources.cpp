@@ -51,7 +51,10 @@ bool multipass::hyperv::release_hcs_resources(const std::string& name)
         }
         else
         {
-            mpl::warn(log_category, "Could not open host compute system '{}': {}", name, open_result);
+            mpl::warn(log_category,
+                      "Could not open host compute system '{}': {}",
+                      name,
+                      open_result);
             return false;
         }
     }
@@ -66,8 +69,9 @@ bool multipass::hyperv::release_hcs_resources(const std::string& name)
     }
 
     std::vector<std::string> endpoints;
-    if (const auto enumerate_result =
-            hcn::HCN().find_endpoints_by_name(hcn::endpoint_name_for(name), endpoints);
+    if (const auto enumerate_result = hcn::HCN().find_endpoints_by_name(
+            hcn::endpoint_name_for(name),
+            endpoints);
         !enumerate_result)
     {
         mpl::warn(log_category,
