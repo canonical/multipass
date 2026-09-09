@@ -139,6 +139,36 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_does_
                         SetArgReferee<1>(mock_handle),
                         Return(hcs_op_result_t{1, L""})));
 
+    EXPECT_CALL(mock_hcn, find_endpoints_by_name(Eq(fmt::format("multipass-{}", vm_name)), IsEmpty()))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+
+    std::shared_ptr<uut_t> uut{nullptr};
+    ASSERT_NO_THROW(uut = construct_factory());
+    uut->remove_resources_for(vm_name);
+}
+
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
+      remove_resources_for_impl_falls_back_to_name_based_cleanup_when_already_terminated)
+{
+    auto vm_name = "test-vm";
+    EXPECT_CALL(mock_hcs, open_compute_system(_, _))
+        .WillOnce(DoAll([&](const std::string& name, hcs_handle_t&) { ASSERT_EQ(vm_name, name); },
+                        SetArgReferee<1>(mock_handle),
+                        Return(hcs_op_result_t{1, L""})));
+
+    EXPECT_CALL(mock_hcn, find_endpoints_by_name(Eq(fmt::format("multipass-{}", vm_name)), IsEmpty()))
+        .WillOnce(DoAll(
+            [&](const std::string&, std::vector<std::string>& endpoint_guids) {
+                endpoint_guids.emplace_back("endpoint-1");
+                endpoint_guids.emplace_back("endpoint-2");
+            },
+            Return(hcs_op_result_t{0, L""})));
+
+    EXPECT_CALL(mock_hcn, delete_endpoint(Eq("endpoint-1")))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcn, delete_endpoint(Eq("endpoint-2")))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_factory());
     uut->remove_resources_for(vm_name);

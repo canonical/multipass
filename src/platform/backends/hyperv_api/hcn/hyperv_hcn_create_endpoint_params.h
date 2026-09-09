@@ -51,6 +51,15 @@ struct CreateEndpointParameters
      * not specified, where applicable.
      */
     std::optional<std::string> mac_address;
+
+    /**
+     * A deterministic, instance-based name tagged onto the endpoint (optional).
+     *
+     * This allows the endpoint to be discovered and removed later on by name,
+     * without needing to reopen (or even know the RuntimeId of) the compute
+     * system that it was originally attached to.
+     */
+    std::optional<std::string> name;
 };
 
 } // namespace multipass::hyperv::hcn

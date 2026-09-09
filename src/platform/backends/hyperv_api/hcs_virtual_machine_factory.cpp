@@ -18,6 +18,7 @@
 #include <hyperv_api/hcs_virtual_machine_factory.h>
 
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
+#include <hyperv_api/hcn/hyperv_hcn_endpoint_naming.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <hyperv_api/hcs_virtual_machine.h>
@@ -108,6 +109,36 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::create_virtual_machine(
                                                get_instance_directory(desc.vm_name));
 }
 
+namespace
+{
+void remove_endpoints_by_name(const std::string& name)
+{
+    std::vector<std::string> endpoints{};
+    const auto find_result =
+        HCN().find_endpoints_by_name(hcn::endpoint_name_for(name), endpoints);
+
+    if (!find_result)
+    {
+        mpl::warn(log_category,
+                 "remove_endpoints_by_name() -> Could not enumerate endpoints for `{}`: {}",
+                 name,
+                 find_result);
+        return;
+    }
+
+    for (const auto& elem : endpoints)
+    {
+        const auto remove_result = HCN().delete_endpoint(elem);
+
+        mpl::log(remove_result ? mpl::Level::trace : mpl::Level::warning,
+                 log_category,
+                 "remove_endpoints_by_name() -> Remove endpoint {}: {}",
+                 elem,
+                 remove_result.code);
+    }
+}
+} // namespace
+
 void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
 {
     mpl::debug(log_category, "remove_resources_for_impl() -> VM: {}", name);
@@ -120,8 +151,10 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
         if (!HCS().get_compute_system_guid(handle, vm_guid) || vm_guid.empty())
         {
             mpl::warn(log_category,
-                      "Could not retrieve VM guid for `{}`, skipping endpoint cleanup.",
+                      "Could not retrieve VM guid for `{}`, falling back to name-based endpoint "
+                      "cleanup.",
                       name);
+            remove_endpoints_by_name(name);
             return;
         }
 
@@ -148,9 +181,15 @@ void HCSVirtualMachineFactory::remove_resources_for_impl(const std::string& name
     }
     else
     {
+        // The compute system may have already been terminated (e.g. by an earlier shutdown()
+        // call during instance deletion), in which case it can no longer be reopened to
+        // retrieve its RuntimeId for `enumerate_attached_endpoints`. Fall back to discovering
+        // and removing the instance's endpoints by their deterministic `Name` tag instead.
         mpl::info(log_category,
-                  "remove_resources_for_impl() -> Host compute system `{}` already terminated.",
+                  "remove_resources_for_impl() -> Host compute system `{}` already terminated, "
+                  "falling back to name-based endpoint cleanup.",
                   name);
+        remove_endpoints_by_name(name);
     }
 }
 

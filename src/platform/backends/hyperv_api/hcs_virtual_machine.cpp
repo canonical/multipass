@@ -18,6 +18,7 @@
 #include <hyperv_api/hcs_virtual_machine.h>
 
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
+#include <hyperv_api/hcn/hyperv_hcn_endpoint_naming.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_event_type.h>
@@ -337,19 +338,26 @@ void HCSVirtualMachine::set_compute_system_callback_handler()
 
 std::vector<hcn::CreateEndpointParameters> HCSVirtualMachine::make_endpoint_parameters() const
 {
+    // Deterministic, instance-based name tagged onto every endpoint that belongs to this
+    // VM. It allows the endpoints to be discovered and removed by name later on (e.g. during
+    // instance purge), without needing to reopen the compute system to retrieve its RuntimeId.
+    const auto endpoint_name = hcn::endpoint_name_for(description.vm_name);
+
     std::vector<hcn::CreateEndpointParameters> params{
         // The primary endpoint (management)
         {.network_guid = primary_network_guid,
          .endpoint_guid = mac2uuid(description.default_mac_address),
-         .mac_address = replace_colon_with_dash(description.default_mac_address)}};
+         .mac_address = replace_colon_with_dash(description.default_mac_address),
+         .name = endpoint_name}};
 
     // Additional endpoints, a.k.a. extra interfaces.
     std::ranges::transform(description.extra_interfaces,
                            std::back_inserter(params),
-                           [](const auto& v) -> hcn::CreateEndpointParameters {
+                           [&endpoint_name](const auto& v) -> hcn::CreateEndpointParameters {
                                return {.network_guid = multipass::utils::make_uuid(v.id),
                                        .endpoint_guid = mac2uuid(v.mac_address),
-                                       .mac_address = replace_colon_with_dash(v.mac_address)};
+                                       .mac_address = replace_colon_with_dash(v.mac_address),
+                                       .name = endpoint_name};
                            });
 
     return params;
