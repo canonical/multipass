@@ -20,8 +20,10 @@
 
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
+#include <multipass/memory_size.h>
 #include <multipass/network_interface.h>
 #include <multipass/network_interface_info.h>
+#include <multipass/utils/qemu_img_utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 #include <multipass/yaml_node_utils.h>
@@ -65,6 +67,12 @@ void mp::BaseVirtualMachineFactory::prepare_networking(
         for (auto& net : extra_interfaces)
             prepare_interface(net, host_nets);
     }
+}
+
+mp::MemorySize mp::BaseVirtualMachineFactory::virtual_size_for(
+    const std::filesystem::path& image_path) const
+{
+    return mp::MemorySize(mp::backend::get_image_info(image_path, "virtual-size").toStdString());
 }
 
 void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,

@@ -60,6 +60,12 @@ void AppleVZVirtualMachineFactory::prepare_instance_image(const VMImage& instanc
     MP_APPLEVZ_UTILS.resize_image(desc.disk_space, instance_image.image_path);
 }
 
+mp::MemorySize AppleVZVirtualMachineFactory::virtual_size_for(
+    const std::filesystem::path& image_path) const
+{
+    return MP_APPLEVZ_UTILS.image_capacity(image_path);
+}
+
 void AppleVZVirtualMachineFactory::hypervisor_health_check()
 {
     if (!MP_APPLEVZ.is_supported())

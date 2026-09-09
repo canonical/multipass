@@ -3224,7 +3224,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 checksum,
                 config->factory->get_instance_directory(name));
 
-            const auto image_size = config->vault->minimum_image_size_for(vm_image.id);
+            const auto image_size = config->factory->virtual_size_for(vm_image.image_path);
             vm_desc.disk_space = compute_final_image_size(
                 image_size,
                 vm_desc.disk_space.in_bytes() > 0 ? vm_desc.disk_space : checked_args.disk_space,

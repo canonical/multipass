@@ -18,7 +18,6 @@
 #pragma once
 
 #include "disabled_copy_move.h"
-#include "memory_size.h"
 #include "path.h"
 #include "progress_monitor.h"
 #include "vm_image_info.h"
@@ -78,7 +77,6 @@ public:
     virtual bool has_record_for(const std::string& name) = 0;
     virtual void prune_expired_images() = 0;
     virtual void update_images(const PrepareAction& prepare, const ProgressMonitor& monitor) = 0;
-    virtual MemorySize minimum_image_size_for(const std::string& id) = 0;
     virtual void clone(const std::string& source_instance_name,
                        const std::string& destination_instance_name) = 0;
     virtual VMImageHost* image_host_for(const std::string& remote_name) const = 0;

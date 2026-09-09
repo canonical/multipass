@@ -1064,15 +1064,13 @@ TEST_P(LaunchImgSizeSuite, launchesWithCorrectDiskSize)
     const auto& img_size_str = std::get<2>(param);
     const auto img_size = mp::MemorySize(img_size_str);
 
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    ON_CALL(*mock_image_vault, minimum_image_size_for(_)).WillByDefault([&img_size_str](auto...) {
+    ON_CALL(*mock_factory, virtual_size_for(_)).WillByDefault([&img_size_str](auto...) {
         return mp::MemorySize{img_size_str};
     });
 
     EXPECT_CALL(mock_utils, filesystem_bytes_available(_))
         .WillRepeatedly(Return(default_total_bytes));
 
-    config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
 
     std::vector<std::string> all_parameters{first_command_line_parameter};
@@ -1116,12 +1114,9 @@ TEST_P(LaunchStorageCheckSuite, launchWarnsWhenOvercommittingDisk)
 TEST_P(LaunchStorageCheckSuite, launchFailsWhenSpaceLessThanImage)
 {
     auto mock_factory = use_a_mock_vm_factory();
-
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    ON_CALL(*mock_image_vault.get(), minimum_image_size_for(_)).WillByDefault([](auto...) {
+    ON_CALL(*mock_factory, virtual_size_for(_)).WillByDefault([](auto...) {
         return mp::MemorySize{"1"};
     });
-    config_builder.vault = std::move(mock_image_vault);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -1132,6 +1127,20 @@ TEST_P(LaunchStorageCheckSuite, launchFailsWhenSpaceLessThanImage)
     send_command({GetParam()}, trash_stream, stream);
     EXPECT_THAT(stream.str(),
                 HasSubstr("Available disk (0 bytes) below minimum for this image (1 bytes)"));
+}
+
+TEST_F(Daemon, launchFailsWhenRequestedDiskBelowImageVirtualSize)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, virtual_size_for(_))
+        .WillByDefault(Return(mp::MemorySize::from_bytes(5LL * 1024 * 1024 * 1024)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0);
+    send_command({"launch", "--disk", "1G"}, trash_stream, stream);
+    EXPECT_THAT(stream.str(), HasSubstr("below minimum for this image"));
 }
 
 TEST_P(LaunchStorageCheckSuite, launchFailsWithInvalidDataDirectory)
