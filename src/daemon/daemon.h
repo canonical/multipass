@@ -59,6 +59,8 @@ public:
 protected:
     using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
 
+    void connect_rpc(DaemonRpc& rpc);
+
     void on_resume() override;
     void on_shutdown() override;
     void on_suspend() override;
@@ -186,9 +188,7 @@ public slots:
         DaemonRpcContext* context);
 
 private:
-    // Rejects @p rpc_name by setting a FAILED_PRECONDITION status on @p context when a bulk
-    // migration is in progress. Returns true iff rejected, so a mutating RPC slot can early
-    // `return`. Never rejects read-only RPCs (they simply don't call it).
+    // Used at RPC dispatch and when registering an asynchronous instance preparation.
     [[nodiscard]] bool reject_if_migrating(std::string_view rpc_name,
                                            DaemonRpcContext* context) const;
     [[nodiscard]] bool begin_instance_preparation(const std::string& name,

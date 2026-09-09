@@ -504,38 +504,6 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
     return ret;
 }
 
-auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
-{
-    QObject::connect(&rpc, &mp::DaemonRpc::on_create, &daemon, &mp::Daemon::create);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_purge, &daemon, &mp::Daemon::purge);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_info, &daemon, &mp::Daemon::info);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_list, &daemon, &mp::Daemon::list);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_clone, &daemon, &mp::Daemon::clone);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_networks, &daemon, &mp::Daemon::networks);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_mount, &daemon, &mp::Daemon::mount);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_recover, &daemon, &mp::Daemon::recover);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_ssh_info, &daemon, &mp::Daemon::ssh_info);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_start, &daemon, &mp::Daemon::start);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_stop, &daemon, &mp::Daemon::stop);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_suspend, &daemon, &mp::Daemon::suspend);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_restart, &daemon, &mp::Daemon::restart);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_delete, &daemon, &mp::Daemon::delet);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_get, &daemon, &mp::Daemon::get);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_set, &daemon, &mp::Daemon::set);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_keys, &daemon, &mp::Daemon::keys);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_authenticate, &daemon, &mp::Daemon::authenticate);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_snapshot, &daemon, &mp::Daemon::snapshot);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_restore, &daemon, &mp::Daemon::restore);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_daemon_info, &daemon, &mp::Daemon::daemon_info);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_wait_ready, &daemon, &mp::Daemon::wait_ready);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_zones, &daemon, &mp::Daemon::zones);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_zones_state, &daemon, &mp::Daemon::zones_state);
-}
-
 enum class InstanceGroup
 {
     None,
@@ -1276,7 +1244,80 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
     populate_snapshot_fundamentals(snapshot, fundamentals);
 }
 
+template <typename T, typename... Types>
+constexpr bool is_one_of_v = (std::is_same_v<T, Types> || ...);
+
+// Request types not listed here are blocked during migration.
+template <typename Request>
+constexpr bool allowed_during_migration = is_one_of_v<Request,
+                                                      mp::FindRequest,
+                                                      mp::InfoRequest,
+                                                      mp::ListRequest,
+                                                      mp::NetworksRequest,
+                                                      mp::SSHInfoRequest,
+                                                      mp::VersionRequest,
+                                                      mp::GetRequest,
+                                                      mp::KeysRequest,
+                                                      mp::AuthenticateRequest,
+                                                      mp::DaemonInfoRequest,
+                                                      mp::WaitReadyRequest,
+                                                      mp::ZonesRequest>;
+
 } // namespace
+
+void mp::Daemon::connect_rpc(DaemonRpc& rpc)
+{
+    const auto connect =
+        [this, &rpc]<typename Reply, typename Request>(
+            void (DaemonRpc::*signal)(const Request*,
+                                      grpc::ServerReaderWriter<Reply, Request>*,
+                                      DaemonRpcContext*),
+            void (Daemon::*slot)(const Request*,
+                                 grpc::ServerReaderWriterInterface<Reply, Request>*,
+                                 DaemonRpcContext*)) {
+            QObject::connect(&rpc,
+                             signal,
+                             this,
+                             [this, slot](const Request* request,
+                                          grpc::ServerReaderWriter<Reply, Request>* server,
+                                          DaemonRpcContext* context) {
+                                 if (!allowed_during_migration<Request> &&
+                                     reject_if_migrating("perform this operation", context))
+                                     return;
+
+                                 (this->*slot)(request, server, context);
+                             });
+        };
+
+    connect(&DaemonRpc::on_create, &Daemon::create);
+    connect(&DaemonRpc::on_launch, &Daemon::launch);
+    connect(&DaemonRpc::on_purge, &Daemon::purge);
+    connect(&DaemonRpc::on_find, &Daemon::find);
+    connect(&DaemonRpc::on_info, &Daemon::info);
+    connect(&DaemonRpc::on_list, &Daemon::list);
+    connect(&DaemonRpc::on_clone, &Daemon::clone);
+    connect(&DaemonRpc::on_networks, &Daemon::networks);
+    connect(&DaemonRpc::on_mount, &Daemon::mount);
+    connect(&DaemonRpc::on_recover, &Daemon::recover);
+    connect(&DaemonRpc::on_ssh_info, &Daemon::ssh_info);
+    connect(&DaemonRpc::on_start, &Daemon::start);
+    connect(&DaemonRpc::on_stop, &Daemon::stop);
+    connect(&DaemonRpc::on_suspend, &Daemon::suspend);
+    connect(&DaemonRpc::on_restart, &Daemon::restart);
+    connect(&DaemonRpc::on_delete, &Daemon::delet);
+    connect(&DaemonRpc::on_umount, &Daemon::umount);
+    connect(&DaemonRpc::on_version, &Daemon::version);
+    connect(&DaemonRpc::on_get, &Daemon::get);
+    connect(&DaemonRpc::on_set, &Daemon::set);
+    connect(&DaemonRpc::on_keys, &Daemon::keys);
+    connect(&DaemonRpc::on_authenticate, &Daemon::authenticate);
+    connect(&DaemonRpc::on_snapshot, &Daemon::snapshot);
+    connect(&DaemonRpc::on_restore, &Daemon::restore);
+    connect(&DaemonRpc::on_daemon_info, &Daemon::daemon_info);
+    connect(&DaemonRpc::on_wait_ready, &Daemon::wait_ready);
+    connect(&DaemonRpc::on_zones, &Daemon::zones);
+    connect(&DaemonRpc::on_zones_state, &Daemon::zones_state);
+}
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
@@ -1303,7 +1344,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 {
     using e_state = VirtualMachine::State;
 
-    connect_rpc(daemon_rpc, *this);
+    connect_rpc(daemon_rpc);
     std::vector<std::string> invalid_specs;
 
     try
@@ -1564,9 +1605,6 @@ void mp::Daemon::create(const CreateRequest* request,
                         DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("create an instance", context))
-        return;
-
     return create_vm(request, server, context, /*start=*/false);
 }
 catch (const std::exception& e)
@@ -1579,9 +1617,6 @@ void mp::Daemon::launch(const LaunchRequest* request,
                         DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("launch an instance", context))
-        return;
-
     return create_vm(request, server, context, /*start=*/true);
 }
 catch (const mp::StartException& e)
@@ -1604,9 +1639,6 @@ void mp::Daemon::purge(const PurgeRequest*,
                        DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("purge instances", context))
-        return;
-
     PurgeReply response;
 
     for (const auto& del : deleted_instances)
@@ -1960,9 +1992,6 @@ void mp::Daemon::mount(const MountRequest* request,
                        DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("mount into an instance", context))
-        return;
-
     if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
         return context->set_value(grpc::Status(
             grpc::StatusCode::FAILED_PRECONDITION,
@@ -2062,9 +2091,6 @@ void mp::Daemon::recover(const RecoverRequest* request,
                          DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("recover instances", context))
-        return;
-
     auto recover_reaction = require_existing_instances_reaction;
     recover_reaction.operative_reaction.message_template =
         "instance \"{}\" does not need to be recovered";
@@ -2133,9 +2159,6 @@ void mp::Daemon::start(const StartRequest* request,
                        DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("start instances", context))
-        return;
-
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
@@ -2231,9 +2254,6 @@ void mp::Daemon::stop(const StopRequest* request,
                       DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("stop instances", context))
-        return;
-
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
@@ -2274,9 +2294,6 @@ void mp::Daemon::suspend(const SuspendRequest* request,
                          DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("suspend instances", context))
-        return;
-
     auto [instance_selection, status] =
         select_instances_and_react(operative_instances,
                                    deleted_instances,
@@ -2314,9 +2331,6 @@ void mp::Daemon::restart(const RestartRequest* request,
                          DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("restart instances", context))
-        return;
-
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
@@ -2365,9 +2379,6 @@ void mp::Daemon::delet(const DeleteRequest* request,
                        DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("delete instances", context))
-        return;
-
     DeleteReply response;
 
     auto [instance_selection, status] =
@@ -2449,9 +2460,6 @@ void mp::Daemon::umount(const UmountRequest* request,
                         DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("unmount from an instance", context))
-        return;
-
     fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
     {
@@ -2556,12 +2564,6 @@ void mp::Daemon::set(const SetRequest* request,
                      DaemonRpcContext* context)
 try
 {
-    // A migration is itself driven by a `set` (local.driver), so the call performing the
-    // migration must not reject itself: the in-progress flag is only raised later, once the
-    // migration actually starts. Any *other* concurrent `set` is rejected here.
-    if (reject_if_migrating("change settings", context))
-        return;
-
     auto key = request->key();
     auto val = request->val();
     if (key == mp::driver_key)
@@ -2721,9 +2723,6 @@ void mp::Daemon::snapshot(const mp::SnapshotRequest* request,
                           DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("take a snapshot", context))
-        return;
-
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
@@ -2774,9 +2773,6 @@ void mp::Daemon::restore(const mp::RestoreRequest* request,
                          DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("restore a snapshot", context))
-        return;
-
     RestoreReply reply;
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
@@ -2863,9 +2859,6 @@ void mp::Daemon::clone(const CloneRequest* request,
                        DaemonRpcContext* context)
 try
 {
-    if (reject_if_migrating("clone an instance", context))
-        return;
-
     const auto& source_name = request->source_name();
     const auto [src_instance_trail, src_vm_status] =
         find_instance_and_react(operative_instances,
@@ -3018,9 +3011,6 @@ void mp::Daemon::zones_state(const ZonesStateRequest* request,
                              DaemonRpcContext* context) // clang-format off
 try // clang-format on
 {
-    if (reject_if_migrating("change availability-zone state", context))
-        return;
-
     auto& az_manager = *config->az_manager;
     if (request->zones().empty())
     {
