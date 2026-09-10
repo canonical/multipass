@@ -197,8 +197,7 @@ configure step.
 
 ## Developer environment setup
 
-You are free to use the tools of your choice to contribute to this project.  
-However, to ease on-boarding, one [guide specific to VSCode](./DEVELOP.vscode.md) is provided.
+You can quickly set up a working development environment by following the [Multipass development guide](./DEVELOP.md).
 
 ## Code of Conduct
 
