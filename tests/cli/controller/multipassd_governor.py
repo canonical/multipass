@@ -208,6 +208,9 @@ class MultipassdGovernor:
                     await t
 
         async with self._lifecycle_lock:
+            # A prior stop_async leaves `graceful_exit_initiated` set; clear it
+            # so a daemon exit *during startup* isn't misread as "graceful".
+            self.graceful_exit_initiated = False
             await self._ensure_client_certs_are_created()
             await self._authenticate_client_cert()
 
