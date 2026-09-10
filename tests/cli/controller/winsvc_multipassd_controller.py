@@ -32,6 +32,7 @@ import re
 import sys
 import subprocess
 import threading
+import time
 from contextlib import suppress
 from typing import AsyncIterator, Optional
 
@@ -86,9 +87,13 @@ class WindowsServiceMultipassdController:
             "sc.exe", "start", self.service_name
         )) as start:
             await start.communicate()
+            if start.returncode != 0:
+                raise RuntimeError(
+                    f"Failed to start service `{self.service_name}`: "
+                    f"`sc.exe start` exited {start.returncode}"
+                )
 
-        while not await self.is_active():
-            await asyncio.sleep(0.5)
+        await self._wait_for_state(active=True)
 
         # Cache current PID for auto-restart detection
         self._daemon_pid = await self._get_pid()
@@ -106,7 +111,23 @@ class WindowsServiceMultipassdController:
                 )) as stop_force:
                     await stop_force.communicate()
 
-        while await self.is_active():
+        await self._wait_for_state(active=False)
+
+    async def _wait_for_state(self, active: bool, timeout: float = 60) -> None:
+        """Poll until the service is RUNNING (active) or not; fail on timeout.
+
+        Bounds the poll so a service that never reaches the desired state fails
+        fast with the real condition instead of spinning until the caller's
+        external timeout cancels us.
+        """
+        deadline = time.monotonic() + timeout
+        while await self.is_active() != active:
+            if time.monotonic() >= deadline:
+                desired = "running" if active else "stopped"
+                raise RuntimeError(
+                    f"Service `{self.service_name}` did not become {desired} "
+                    f"within {timeout}s"
+                )
             await asyncio.sleep(0.5)
 
     async def restart(self) -> None:
