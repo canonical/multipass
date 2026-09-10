@@ -12,11 +12,7 @@ This document demonstrates various ways to create an instance in Multipass with 
 
 Multipass can create instances with additional network interfaces using the `multipass launch` command with the `--network` option. This is complemented by the [`networks`](reference-command-line-interface-networks) command, that you can use to find available host networks to bridge with.
 
-This feature is only supported for images with [`cloud-init` support for v2 network config](https://cloudinit.readthedocs.io/en/latest/topics/network-config-format-v2.html), which in turn requires [netplan](https://netplan.io/) to be installed, meaning that you'll require Ubuntu 17.10 and Ubuntu Core 16 (except `snapcraft:core16`) or later. More specifically, this feature is only supported in the following scenarios:
-
-* on Linux, with QEMU (*from Multipass 1.15 onward*)
-* on Windows, with both Hyper-V and VirtualBox
-* on macOS, with the QEMU and VirtualBox drivers
+This feature is only supported for images with [`cloud-init` support for v2 network config](https://cloudinit.readthedocs.io/en/latest/topics/network-config-format-v2.html), which in turn requires [netplan](https://netplan.io/) to be installed, meaning that you'll require Ubuntu 17.10 and Ubuntu Core 16 (except `snapcraft:core16`) or later.
 
 The `--network` option can be given multiple times to request multiple network interfaces beyond the default one, which is always present. Each time you add the `--network` option you also need to provide an argument specifying the properties of the desired interface:
 

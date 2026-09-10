@@ -5,12 +5,6 @@
 
 The `multipass networks` command lists network interfaces that multipass can connect instances to. The result depends both on the platform and the driver in use.
 
-At this time, `multipass networks` can only find interfaces in the following scenarios:
-
-- on Linux, with QEMU
-- on Windows, with both Hyper-V and VirtualBox
-- on macOS, with the QEMU, AppleVZ, and VirtualBox drivers
-
 For example, on Windows with Hyper-V the `multipass networks` command returns:
 
 ```{code-block} text

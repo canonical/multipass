@@ -26,7 +26,7 @@ By default, Multipass on macOS uses the `qemu` driver.
 ````{tab-item} Windows
 :sync: Windows
 
-By default, Multipass on Windows uses the `hyperv` driver.
+By default, Multipass on Windows uses the `hyperv_api` driver.
 
 ````
 
@@ -58,6 +58,10 @@ From now on, all instances started with `multipass launch` will use the Apple Vi
 
 On Intel/x86 architectures, an additional option is to use VirtualBox.
 
+```{note}
+VirtualBox is deprecated as of Multipass 1.17 and will be removed in a future release, with no migration planned. See [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver).
+```
+
 To switch the Multipass driver to VirtualBox, run this command:
 
 ```{code-block} text
@@ -72,6 +76,10 @@ From now on, all instances started with `multipass launch` will use VirtualBox b
 :sync: Windows
 
 You can change the hypervisor that Multipass uses to VirtualBox.
+
+```{note}
+VirtualBox is deprecated as of Multipass 1.17 and will be removed in a future release, with no migration planned. See [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver).
+```
 
 First, install VirtualBox. You may find that you need to <a href="https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658">run the VirtualBox installer as administrator</a>.
 
@@ -123,7 +131,7 @@ Instances are tied to the driver they were created with; after switching, they w
 If you want to switch back to the default driver:
 
 ```{code-block} powershell
-multipass set local.driver=hyperv
+multipass set local.driver=hyperv_api
 ```
 
 Instances are tied to the driver they were created with; after switching, they won't be visible until you switch back.
@@ -133,6 +141,10 @@ Instances are tied to the driver they were created with; after switching, they w
 `````
 
 ## Use VirtualBox to view Multipass instances
+
+```{note}
+VirtualBox is deprecated as of Multipass 1.17 (see [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver)). This section, and the two below, remain useful for as long as you keep using it.
+```
 
 `````{tab-set}
 
