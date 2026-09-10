@@ -76,16 +76,18 @@ def snapshot_count(name):
 
 
 def path_exists(vm_name, *paths):
-    """Return True if all given paths exist in the instance, False otherwise."""
-    return bool(
-        multipass(
-            "exec",
-            vm_name,
-            "--",
-            "ls",
-            *(Path(p).as_posix() for p in paths),
-            timeout=180,
-        )
+    """Return the raw ``ls`` command output, truthy iff all given paths exist.
+
+    The raw `Output` is returned (not a coerced ``bool``) so callers that wrap
+    this in ``@retry`` short-circuit on ``exitstatus == 0``.
+    """
+    return multipass(
+        "exec",
+        vm_name,
+        "--",
+        "ls",
+        *(Path(p).as_posix() for p in paths),
+        timeout=180,
     )
 
 
