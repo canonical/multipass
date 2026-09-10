@@ -256,9 +256,9 @@ def wait_for_future(fut, timeout: float = 60, poll_interval: float = 0.5):
         TimeoutError: If the Future doesn't complete within timeout
         Exception: Whatever exception the Future raised, if any
     """
-    start_time = time.time()
+    start_time = time.monotonic()
 
-    while not fut.done() and (time.time() - start_time) < timeout:
+    while not fut.done() and (time.monotonic() - start_time) < timeout:
         time.sleep(poll_interval)
 
     if not fut.done():
