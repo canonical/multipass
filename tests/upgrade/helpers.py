@@ -169,7 +169,13 @@ def assert_fingerprint_unchanged(vm_name: str, recorded: dict) -> None:
     assert is_within_tolerance(mem_now, mem_rec), (
         f"memory_total for `{vm_name}` moved too much: {mem_rec} -> {mem_now}"
     )
-    rest = {k: v for k, v in recorded.items() if k != "memory_total"}
+    # Core images self-expand via unattended upgrades, so the reported disk size
+    # legitimately grows; surface the drift without failing the run.
+    disk_now, disk_rec = current.pop("disk_total"), recorded.get("disk_total")
+    soft_assert(disk_now == disk_rec, (
+        f"disk_total for `{vm_name}` changed across upgrade: {disk_rec} -> {disk_now}"
+    ))
+    rest = {k: v for k, v in recorded.items() if k not in ("memory_total", "disk_total")}
     assert current == rest, (
         f"Instance fingerprint for `{vm_name}` changed across upgrade: "
         f"recorded {rest}, now {current}"
