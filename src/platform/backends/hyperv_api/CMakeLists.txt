@@ -70,7 +70,6 @@ if(WIN32)
     hcs_virtual_machine.cpp
     hcs_virtual_machine_factory.cpp
     hcs_virtual_machine_resources.cpp
-    net_io_api.cpp
   )
 
   target_link_libraries(hyperv_api_backend PRIVATE
