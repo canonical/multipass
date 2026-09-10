@@ -47,6 +47,7 @@ std::optional<std::array<unsigned char, ethernet_address_length>> physical_addre
     std::string mac_address)
 {
     std::ranges::replace(mac_address, '-', ':');
+
     if (!utils::valid_mac_address(mac_address))
         return std::nullopt;
 
@@ -57,7 +58,7 @@ std::optional<std::array<unsigned char, ethernet_address_length>> physical_addre
         const auto* begin = mac_address.data() + index * 3;
         const auto [end, error] = std::from_chars(begin, begin + 2, octet, 16);
         if (error != std::errc{} || end != begin + 2)
-            return std::nullopt;
+            utils::UNREACHABLE("from_chars");
 
         address[index] = static_cast<unsigned char>(octet);
     }
