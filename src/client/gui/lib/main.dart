@@ -82,14 +82,26 @@ class _AppState extends ConsumerState<App> with WindowListener {
   Widget build(BuildContext context) {
     ref.listen(daemonSettingProvider(driverKey), (_, driver) {
       // TODO@deprecations remove
-      if (!driver.isLoading &&
-          ref.read(daemonAvailableProvider) &&
-          (driver.value == 'virtualbox' || driver.value == 'hyperv')) {
-        ref.read(notificationsProvider.notifier).add(
-              WarningNotification(
-                text: 'Your current driver is deprecated. Learn more.',
-              ),
-            );
+      if (!driver.isLoading && ref.read(daemonAvailableProvider)) {
+        const deprecationDocsPrefix =
+            'https://canonical.com/multipass/docs/how-to-guides/customise-multipass/';
+        final learnMoreUrl = switch (driver.value) {
+          'hyperv' => Uri.parse(
+              '${deprecationDocsPrefix}migrate-from-hyperv-to-hyperv-api-on-windows',
+            ),
+          'virtualbox' => Uri.parse(
+              '${deprecationDocsPrefix}move-from-virtualbox-to-another-driver',
+            ),
+          _ => null,
+        };
+        if (learnMoreUrl != null) {
+          ref.read(notificationsProvider.notifier).add(
+                DeprecationNotification(
+                  text: 'Your current driver is deprecated.',
+                  learnMoreUrl: learnMoreUrl,
+                ),
+              );
+        }
       }
     });
 
