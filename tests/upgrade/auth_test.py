@@ -47,8 +47,6 @@ def test_auth_seed(scenario, multipassd_session_scoped):
     # The primary client (cert authenticated at session setup) still works.
     assert multipass("list")
 
-    scenario.record.update({"passphrase_set": True})
-
 
 @pytest.mark.verify
 @pytest.mark.scenario(VM)
