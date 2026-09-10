@@ -197,7 +197,7 @@ configure step.
 
 ## Developer environment setup
 
-You can quickly set up a working development environment by following the [Multipass development guide](./DEVELOP.md).
+You can quickly set up a working development environment by following the [Multipass development guide](./dev-docs/DEVELOP.md).
 
 ## Code of Conduct
 
