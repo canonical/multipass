@@ -34,7 +34,7 @@ At Canonical, we define and update roadmaps twice a year - in April and October.
 
 - Collaborate with us. Getting in touch with us up-front will help to align better.
 - Fix an existing, reproducible, and accepted issue.
-- When considering a bigger change, e.g. a new feature, check our current focus areas or get in touch with us in the [Multipass Discourse](https://discourse.ubuntu.com/c/project/multipass/21/none) or create an issue that outlines your idea for us to comment and refine together with you.
+- When considering a bigger change, e.g. a new feature, check our current focus areas or get in touch with us in the [Multipass Discourse](https://discourse.ubuntu.com/c/project/multipass/21/none) or [create an issue](https://github.com/canonical/multipass/issues/new/choose) that outlines your idea for us to comment and refine together with you.
 
 # Requirements before contributing
 
