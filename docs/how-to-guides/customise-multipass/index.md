@@ -5,6 +5,8 @@ The following guides provide step-by-step instructions on how to customise Multi
 
 - [Set up the driver](how-to-guides-customise-multipass-set-up-the-driver)
 - [Migrate from Hyperkit to QEMU on macOS](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos)
+- [Migrate from Hyper-V to the new Hyper-V API driver on Windows](how-to-guides-customise-multipass-migrate-from-hyperv-to-hyperv-api-on-windows)
+- [Move from VirtualBox to another driver](how-to-guides-customise-multipass-move-from-virtualbox-to-another-driver)
 - [Authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service)
 - [Build Multipass images with Packer](how-to-guides-customise-multipass-build-multipass-images-with-packer)
 - [Set up a graphical interface](how-to-guides-customise-multipass-set-up-a-graphical-interface)
@@ -25,6 +27,8 @@ The following guides provide step-by-step instructions on how to customise Multi
 
 set-up-the-driver
 migrate-from-hyperkit-to-qemu-on-macos
+migrate-from-hyperv-to-hyperv-api-on-windows
+move-from-virtualbox-to-another-driver
 authenticate-users-with-the-multipass-service
 build-multipass-images-with-packer
 set-up-a-graphical-interface
