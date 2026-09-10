@@ -22,7 +22,12 @@ import pexpect
 
 
 def retry(retries=3, delay=1.0):
-    """Decorator to retry a function call based on return code"""
+    """Decorator to retry a function call until it returns a successful result.
+
+    A result is successful when it is truthy and, if it exposes an ``exitstatus``
+    attribute, that exit status is 0. A falsy result (or a nonzero exit status)
+    is retried, up to ``retries`` additional attempts.
+    """
 
     def decorator(func):
         @wraps(func)
@@ -35,7 +40,9 @@ def retry(retries=3, delay=1.0):
                 except KeyboardInterrupt:
                     # Do not retry
                     raise
-                if hasattr(result, "exitstatus") and result.exitstatus == 0:
+                if result and (
+                    not hasattr(result, "exitstatus") or result.exitstatus == 0
+                ):
                     return result
                 if attempt < retries:
                     time.sleep(delay)
