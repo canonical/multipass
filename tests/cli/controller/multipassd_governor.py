@@ -42,7 +42,7 @@ from cli.utilities import (
     BooleanLatch,
     SilentAsyncSubprocess,
     StdoutAsyncSubprocess,
-    run_in_new_interpreter,
+    run_in_new_interpreter_async,
 )
 
 from .multipassd_controller import MultipassdController
@@ -180,14 +180,19 @@ class MultipassdGovernor:
         ) as version_proc:
             await asyncio.wait_for(version_proc.wait(), timeout=10)
 
-    def _authenticate_client_cert(self):
+    async def _authenticate_client_cert(self):
         # It's important that we get the cert path here instead of under
         # run_as_privileged.
         cert_path = get_client_cert_path()
-        # Authenticate the client against the daemon
-        run_in_new_interpreter(
+        # Authenticate the client against the daemon. Offload the blocking
+        # subprocess to a worker thread so it can't stall the event loop.
+        result = await run_in_new_interpreter_async(
             authenticate_client_cert, str(cert_path), cfg.data_dir, privileged=True
         )
+        if result.returncode != 0:
+            raise TestSessionFailure(
+                f"Client certificate authentication failed (exit {result.returncode})"
+            )
 
     async def start_async(self):
         """Start the multipassd daemon"""
@@ -204,7 +209,7 @@ class MultipassdGovernor:
 
         async with self._lifecycle_lock:
             await self._ensure_client_certs_are_created()
-            self._authenticate_client_cert()
+            await self._authenticate_client_cert()
 
             await self.controller.start()
 
