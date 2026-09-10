@@ -321,7 +321,10 @@ class MultipassdGovernor:
                     "noble",
                     env=get_multipass_env(),
                 ) as find_proc:
-                    find_stdout, _ = await find_proc.communicate()
+                    find_stdout, _ = await asyncio.wait_for(
+                        find_proc.communicate(),
+                        timeout=max(0.0, deadline - time.monotonic()),
+                    )
                     find_exitcode = find_proc.returncode
 
                 if find_exitcode != 0:
@@ -340,7 +343,10 @@ class MultipassdGovernor:
                     "version",
                     env=get_multipass_env(),
                 ) as version_proc:
-                    stdout, _ = await version_proc.communicate()
+                    stdout, _ = await asyncio.wait_for(
+                        version_proc.communicate(),
+                        timeout=max(0.0, deadline - time.monotonic()),
+                    )
                     version_lines = stdout.decode().strip().splitlines()
 
                     if len(version_lines) >= 2:
