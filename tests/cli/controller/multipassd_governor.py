@@ -298,9 +298,9 @@ class MultipassdGovernor:
         """
         Wait until Multipass daemon starts responding to CLI commands.
         """
-        deadline = time.time() + timeout
+        deadline = time.monotonic() + timeout
 
-        while time.time() < deadline:
+        while time.monotonic() < deadline:
             try:
                 find_stdout = None
                 find_exitcode = 0
