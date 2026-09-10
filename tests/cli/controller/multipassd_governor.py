@@ -388,7 +388,10 @@ class MultipassdGovernor:
                     "noble",
                     env=get_multipass_env(),
                 ) as find_proc:
-                    find_stdout, _ = await find_proc.communicate()
+                    find_stdout, _ = await asyncio.wait_for(
+                        find_proc.communicate(),
+                        timeout=max(0.0, deadline - time.monotonic()),
+                    )
                     find_exitcode = find_proc.returncode
 
                 if find_exitcode != 0:
@@ -402,7 +405,10 @@ class MultipassdGovernor:
                     logging.debug(find_stdout)
 
                 # Otherwise, verify the version
-                _, stdout = await MultipassdGovernor._run_version_probe()
+                _, stdout = await asyncio.wait_for(
+                    MultipassdGovernor._run_version_probe(),
+                    timeout=max(0.0, deadline - time.monotonic()),
+                )
                 cli_ver, daemon_ver = parse_multipass_versions(stdout.decode())
 
                 if daemon_ver is not None:
