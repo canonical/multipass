@@ -1,48 +1,69 @@
-This guide helps new contributors quickly set up a Multipass development environment.  
-It currently covers command-line debugging with GDB and development with Visual Studio Code. Contributions covering other IDEs are welcome.
+# Multipass development guide
 
-# Before starting
+This guide helps new contributors set up a Multipass development environment. It currently covers command-line debugging with GDB and development with Visual Studio Code. Contributions for other IDEs are welcome.
 
-## Common requirements
+## Contents
+
+- [Before starting](#before-starting)
+    - [Common requirements](#common-requirements)
+    - [General information](#general-information)
+- [CMake and GDB](#cmake-and-gdb)
+    - [Specific requirements](#specific-requirements)
+    - [Building](#building)
+    - [Debugging](#debugging)
+- [Visual Studio Code](#visual-studio-code)
+    - [Specific requirements](#specific-requirements-1)
+    - [Building](#building-1)
+    - [Debugging](#debugging-1)
+        - [Locally](#locally)
+        - [Using development containers](#using-development-containers)
+    - [Test execution](#test-execution)
+
+## Before starting
+
+### Common requirements
 
 - At least 16GB of RAM.
 - 8GB of swap space.
 - Requirements listed under `BUILD.<os>.md`.
 
-## General information
+### General information
 
 The Multipass project generates three main executables:
-- the daemon `multipassd`, that needs to be executed with elevated priviledges,
-- the CLI `multipass`,
+
+- the daemon `multipassd`, which must be run with elevated privileges;
+- the CLI `multipass`;
 - the GUI `multipass_gui`.
 
-The vast majority of Multipass's logic is executed by the daemon. The clients are essentially interfaces that establish a connection to the daemon, relay user commands to it, and return the daemon's response to the user. To use the clients, the daemon must be started first.
+The vast majority of Multipass's logic is executed by the daemon. The clients are interfaces that establish a connection to the daemon, relay user commands to it, and return the daemon's response to the user. The daemon must be started before you can use the clients.
 
-Before attempting to debug the daemon, please keep the following in mind:
-1. A second instance will fail to start if another one is already running on the machine. Be sure to stop any active `multipassd` processes before launching a new one.
+Before debugging the daemon, keep the following points in mind:
+
+1. A second instance will fail to start if another one is already running on the machine. Stop any active `multipassd` processes before launching a new one.
 2. The daemon must run with elevated privileges.
 3. To debug an elevated process, the debugger must also run with elevated privileges.
 
-The last point can be challenging when debugging from within an IDE. Several approaches are available:
-- Launch the IDE in administrator mode as well.
+The last point can be challenging when debugging from an IDE. Several approaches are available:
+
+- Launch the IDE in administrator mode.
     - Advantage: this works in all cases.
     - Drawback: this also grants administrative privileges to extensions, which may introduce security concerns.
-- Attach the IDE debugger to a debugger instance that is launched as administrator outside the IDE.
+- Attach the IDE debugger to a debugger instance launched as administrator outside the IDE.
     - Advantage: only the debugger runs with elevated permissions.
     - Drawback: not all IDEs support this workflow.
 - Launch the IDE in administrator mode inside a container or virtual machine.
     - Advantage: this provides a more isolated environment while keeping the IDE integrated.
-    - Drawback: it requires a machine with sufficient resources to run the container or VM.
+    - Drawback: this requires a machine with sufficient resources to run the container or VM.
 
-This guide describes several of these options. You may apply them directly or explore alternative approaches.
+This guide describes several of these options. You can apply them directly or explore alternative approaches.
 
-# CMake and GDB
+## CMake and GDB
 
-## Specific requirements
+### Specific requirements
 
 - Install [GDB](https://sourceware.org/gdb/download/) for your operating system.
 
-## Building
+### Building
 
 You can build using the `local-debug` or `local-release` preset.
 ```sh
@@ -56,9 +77,9 @@ cmake --build build/release [--parallel <N>]
 ```
 
 > [!INFO]
-> `--parallel` can be used to parallelize the build. But keep in mind that building this project is memory-intensive. You may run out-of-memory if you set a value too high there.
+> `--parallel` can be used to parallelize the build. Keep in mind that building this project is memory-intensive: a value that is too high may cause the system to run out of memory.
 
-## Debugging
+### Debugging
 
 ```sh
 # Debug the daemon (requires elevated privileges)
@@ -72,63 +93,64 @@ gdb build/debug/bin/multipass.gui
 ```
 
 > [!INFO]
-> `multipassd` will shutdown when using Ctrl+C, even if configuring GDB to
-> not forward SIGINT to the debugged process.
+> `multipassd` will shut down when you press Ctrl+C, even if GDB is configured not to forward SIGINT to the debugged process.
 
-# Visual Studio Code
+## Visual Studio Code
 
-## Specific requirements
+### Specific requirements
 
 - Install [Visual Studio Code](https://code.visualstudio.com/download) for your OS.
-- Open `multipass` folder in VSCode.
+- Open the `multipass` folder in Visual Studio Code.
 - To install the extensions recommended by the workspace:
-    - Open the command prompt (`Ctrl+Shift+P` by default).
-    - Execute `Extensions: Show Recommended Extensions`.
+    - Open the Command Palette (`Ctrl+Shift+P` by default).
+    - Run `Extensions: Show Recommended Extensions`.
     - Install the extensions listed under `Workspace Recommendations`.
-    - Reload VSCode.
+    - Reload Visual Studio Code.
 
-## Building
+### Building
 
-Once `CMake Tools` is installed, a CMake tab should be available from the primary side bar.
-In it, you can select under `Configure` one of the following preset: `local-debug` or `local-release`, depending on the build type you want to generate.
+Once `CMake Tools` is installed, a CMake tab should be available in the primary sidebar. Under `Configure`, select the `local-debug` or `local-release` preset, depending on the build type you want to generate.
 
-To parallelize the build accross several jobs, you may configure the `cmake.parallelJobs` settings:
-- Open the user settings (`Ctrl+Shift+P` to open the command prompt, then `Preferences: Open User Settings`).
+To parallelize the build across several jobs, configure the `cmake.parallelJobs` setting:
+
+- Open User Settings (`Ctrl+Shift+P`, then `Preferences: Open User Settings`).
 - Search for `cmake.parallelJobs`, then specify the value of your choice.
 
 > [!WARNING]
-> Keep in mind that building this project is memory-intensive. You may run out-of-memory if you set a value too high there.
+> Keep in mind that building this project is memory-intensive: a value that is too high may cause the system to run out of memory.
 
-## Debugging
+### Debugging
 
-### Locally
+#### Locally
 
-A [launch.json](./.vscode/launch.json) providing several configurations is available.
-You can choose a configuration to launch with the command `Debug: Select and Start Debugging`. You can also launch the currently selected configuration with `F5`.  
-The choice are:
+A [launch.json](./.vscode/launch.json) file providing several configurations is available.
+Select a configuration with `Debug: Select and Start Debugging`, or launch the currently selected configuration with `F5`.
+
+The available configurations are:
 - `Debug daemon`: launch and attach to the daemon.
 - `Debug CLI`: launch and attach to the CLI. VSCode will prompt you for the arguments of the program.
 - `Debug GUI`: launch and attach to the GUI.
 
-**Troubleshoot**
+#### Troubleshooting
+
 - At most one single instance of the multipass daemon can be running at any time. So before launching one, make sure you stopped other instances, including the officially installed daemon.
 - On Windows, you need to run `multipassd /install` as administrator before using one of the clients. Otherwise, an authentication error will be raised.
-- On Windows, the `Debug daemon` configuration will not work in an IDE run without elevated privileges. We advise you to develop from an isolated environment (such as a VM) if you want to use VSCode as administator.
+- On Windows, the `Debug daemon` configuration will not work in an IDE run without elevated privileges. We recommend developing from an isolated environment, such as a VM or a container (see below), if you want to run Visual Studio Code as administrator.
 
-### Using Development Containers
+#### Using Development Containers
 
 The requirements are the following:
 - Install a container engine, such as [Podman](https://podman.io/docs/installation) or [Docker](https://docs.docker.com/get-started/get-docker/).
-- Install the following extension: `ms-vscode-remote.remote-containers`.
-- If not using `Docker`, open your user settings and adjust `dev.containers.dockerPath` and `dev.containers.dockerComposePath`.
+- Install the `ms-vscode-remote.remote-containers` extension.
+- If you are not using Docker, open User Settings and adjust `dev.containers.dockerPath` and `dev.containers.dockerComposePath`.
 
-Once you have installed the requirements, reopen your workspace in the developer container:
-- Open the command prompt (`Ctrl+Shift+P` by default).
-- Execute `Dev Containers: Reopen in Container`.
+Once you have installed the requirements, reopen your workspace in the development container:
+- Open the Command Palette (`Ctrl+Shift+P` by default).
+- Run `Dev Containers: Reopen in Container`.
 
-Once inside the container, you can use Visual Studio Code as if it was running on your local system.
+Once inside the container, you can use Visual Studio Code as if it were running on your local system.
 
-## Tests execution
+### Tests execution
 
-For now, 4 tests suites are available in the project.  
-If you properly installed the `ms-vscode.cmake-tools` extension, then they should appear in the `Testing` tab of VSCode. From there, you can either launch or debug them.
+Four test suites are currently available in the project.
+If you have installed the `ms-vscode.cmake-tools` extension, they should appear in the `Testing` tab of Visual Studio Code. From there, you can run or debug them.
