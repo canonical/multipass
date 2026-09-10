@@ -489,6 +489,8 @@ message SetReply {
     string log_line = 1;
     string reply_message = 2;
     bool needs_authorization = 3;
+    string summary = 4;
+    string migration_phase = 5;
 }
 
 message KeysRequest {

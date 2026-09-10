@@ -26,6 +26,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_event_type.h>
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
+#include <hyperv_api/hcs_virtual_machine_resources.h>
 #include <hyperv_api/virtdisk/virtdisk_snapshot.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
@@ -54,14 +55,6 @@ using mp::hyperv::hcn::HCN;
 using mp::hyperv::hcs::HCS;
 using mp::hyperv::virtdisk::VirtDisk;
 using namespace mp::hyperv;
-
-inline auto mac2uuid(std::string mac_addr)
-{
-    std::erase(mac_addr, ':');
-    std::erase(mac_addr, '-');
-    constexpr auto format_str = "db4bdbf0-dc14-407f-9780-{}";
-    return fmt::format(format_str, mac_addr);
-}
 
 inline auto replace_colon_with_dash(const std::string& addr)
 {
@@ -254,7 +247,7 @@ std::vector<hcn::CreateEndpointParameters> HCSVirtualMachine::make_endpoint_para
     std::vector<hcn::CreateEndpointParameters> params{
         // The primary endpoint (management)
         {.network_guid = primary_network_guid,
-         .endpoint_guid = mac2uuid(description.default_mac_address),
+         .endpoint_guid = endpoint_guid_for_mac(description.default_mac_address),
          .mac_address = replace_colon_with_dash(description.default_mac_address),
          .name = endpoint_name}};
 
@@ -263,7 +256,7 @@ std::vector<hcn::CreateEndpointParameters> HCSVirtualMachine::make_endpoint_para
                            std::back_inserter(params),
                            [&endpoint_name](const auto& v) -> hcn::CreateEndpointParameters {
                                return {.network_guid = multipass::utils::make_uuid(v.id),
-                                       .endpoint_guid = mac2uuid(v.mac_address),
+                                       .endpoint_guid = endpoint_guid_for_mac(v.mac_address),
                                        .mac_address = replace_colon_with_dash(v.mac_address),
                                        .name = endpoint_name};
                            });
@@ -292,6 +285,13 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     const auto endpoints = make_endpoint_parameters();
 
     try_create_endpoints(get_name(), endpoints);
+    auto rollback_creation = sg::make_scope_guard([&]() noexcept {
+        if (hcs_system)
+            (void)HCS().terminate_compute_system(hcs_system);
+
+        for (const auto& endpoint : endpoints)
+            (void)HCN().delete_endpoint(endpoint.endpoint_guid);
+    });
 
     const hcs::CreateComputeSystemParameters create_compute_system_params{
         .name = description.vm_name,
@@ -337,6 +337,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
 
     // Also grant access to the VM folder itself
     grant_access_to_paths({instance_dir.absolutePath().toStdString()});
+    rollback_creation.dismiss();
     return true;
 }
 
@@ -534,7 +535,7 @@ std::string HCSVirtualMachine::ssh_username()
 
 std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
 {
-    const auto endpoint_guid = mac2uuid(description.default_mac_address);
+    const auto endpoint_guid = endpoint_guid_for_mac(description.default_mac_address);
     hcn::HcnEndpointInfo endpoint_info;
     if (const auto query_result = HCN().query_endpoint(endpoint_guid, endpoint_info); !query_result)
     {
