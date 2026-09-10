@@ -117,8 +117,16 @@ The choice are:
 
 ### Using Development Containers
 
+The requirements are the following:
+- Install a container engine, such as [Podman](https://podman.io/docs/installation) or [Docker](https://docs.docker.com/get-started/get-docker/).
 - Install the following extension: `ms-vscode-remote.remote-containers`.
-- 
+- If not using `Docker`, open your user settings and adjust `dev.containers.dockerPath` and `dev.containers.dockerComposePath`.
+
+Once you have installed the requirements, reopen your workspace in the developer container:
+- Open the command prompt (`Ctrl+Shift+P` by default).
+- Execute `Dev Containers: Reopen in Container`.
+
+Once inside the container, you can use Visual Studio Code as if it was running on your local system.
 
 ## Tests execution
 

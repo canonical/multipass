@@ -20,6 +20,7 @@ sudo snap install rustup --classic
 ```
 rustup default stable
 ```
+
 ## Building
 
 First, go into the repository root and get all the submodules:
