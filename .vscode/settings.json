@@ -8,6 +8,7 @@
     // by default.
     "cmake.configureOnOpen": false,
     "cmake.buildBeforeRun": false,
+    "cmake.skipConfigureIfCachePresent": true,
 
     // Required on Windows to find the compiler.
     "cmake.useVsDeveloperEnvironment": "always"
