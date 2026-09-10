@@ -254,6 +254,42 @@ TEST_F(QemuBackend, machineStartShutdownSendsMonitoringEvents)
     machine->shutdown();
 }
 
+TEST_F(QemuBackend, startRemovesMountsWithMissingSource)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+    process_factory->register_callback(handle_qemu_system);
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    auto* qemu_machine = static_cast<mp::QemuVirtualMachine*>(machine.get());
+
+    mpt::TempDir existing_dir;
+    const std::string existing_source = existing_dir.path().toStdString();
+    const std::string missing_source = existing_source + "/definitely-missing";
+
+    auto& mount_args = qemu_machine->modifiable_mount_args();
+    mount_args["existing-tag"] = {existing_source, {"-virtfs", "dummy-existing-arg"}};
+    mount_args["missing-tag"] = {missing_source, {"-virtfs", "dummy-missing-arg"}};
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::warning,
+        fmt::format("Removing mount with source \"{}\" as it no longer exists on the host",
+                    missing_source));
+
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+
+    EXPECT_EQ(mount_args.size(), 1);
+    EXPECT_NE(mount_args.find("existing-tag"), mount_args.end());
+    EXPECT_EQ(mount_args.find("missing-tag"), mount_args.end());
+
+    machine->shutdown();
+}
+
 TEST_F(QemuBackend, machineStartSuspendSendsMonitoringEvent)
 {
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {

@@ -520,6 +520,22 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 
 void mp::QemuVirtualMachine::initialize_vm_process()
 {
+    for (auto it = mount_args.begin(); it != mount_args.end();)
+    {
+        const auto& source = it->second.first;
+        if (MP_FILEOPS.exists(source))
+        {
+            ++it;
+        }
+        else
+        {
+            mpl::warn(vm_name,
+                      "Removing mount with source \"{}\" as it no longer exists on the host",
+                      source);
+            it = mount_args.erase(it);
+        }
+    }
+
     vm_process = make_qemu_process(
         desc,
         ((state == State::suspended) ? std::make_optional(monitor->retrieve_metadata_for(vm_name))

@@ -111,6 +111,7 @@ struct QemuMountHandlerTest : public ::Test
             .WillOnce(
                 Return(mp::fs::file_status{mp::fs::file_type::directory, mp::fs::perms::all}));
         EXPECT_CALL(vm, modifiable_mount_args).WillOnce(ReturnRef(mount_args));
+        ON_CALL(mock_file_ops, exists(A<const mp::fs::path&>())).WillByDefault(Return(true));
     }
 
     template <bool Success>
@@ -317,6 +318,19 @@ TEST_F(QemuMountHandlerTest, targetDirectoryMissing)
 
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
     EXPECT_NO_THROW(handler.activate(&server));
+}
+
+TEST_F(QemuMountHandlerTest, activateThrowsWhenSourceNoLongerExists)
+{
+    mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
+
+    EXPECT_CALL(mock_file_ops, exists(A<const mp::fs::path&>())).WillOnce(Return(false));
+    EXPECT_CALL(vm, new_ssh_session()).Times(0);
+
+    MP_EXPECT_THROW_THAT(
+        handler.activate(&server),
+        std::runtime_error,
+        mpt::match_what(HasSubstr("no longer exists on the host")));
 }
 
 INSTANTIATE_TEST_SUITE_P(QemuMountHandlerFailCommand,
