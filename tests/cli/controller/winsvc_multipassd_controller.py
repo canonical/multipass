@@ -87,7 +87,8 @@ class WindowsServiceMultipassdController:
             "sc.exe", "start", self.service_name
         )) as start:
             await start.communicate()
-            if start.returncode != 0:
+            # 1056 = ERROR_SERVICE_ALREADY_RUNNING: benign, the service is up.
+            if start.returncode not in (0, 1056):
                 raise RuntimeError(
                     f"Failed to start service `{self.service_name}`: "
                     f"`sc.exe start` exited {start.returncode}"
