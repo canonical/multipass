@@ -207,6 +207,7 @@ parts:
       set -e
       python3 -m pip install --break-system-packages cmake
 
+      echo "Retrieving rustup"
       rustup default stable
 
       # https://github.com/microsoft/vcpkg/issues/37279
