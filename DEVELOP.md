@@ -91,6 +91,56 @@ gdb build/debug/bin/multipass.gui
 > [!INFO]
 > `multipassd` will shut down when you press Ctrl+C, even if GDB is configured not to forward `SIGINT` to the debugged process.
 
+Some useful commands:
+```sh
+# Execute current instruction
+n
+
+# Step into next function call in the current instruction
+s
+
+# Step out of the current function
+finish
+
+# Add a breakpoint in a free function
+b my_function
+b my_file.cpp:my_function
+
+# Add a breakpoint in a member function
+b MyClass::my_function
+
+# Add a breakpoint at a specific line
+b my_file.cpp:42
+
+# Add a conditional breakpoint
+b my_file.cpp:42 if x == 3 
+
+# Add a data breakpoint
+watch x
+
+# List all breakpoints with their ID
+info breakpoints
+
+# Delete a breakpoint by its ID
+delete 4
+
+# See the code around current position
+l .
+l +
+l -
+
+# See the code of a function
+l my_function
+
+# See the local variables content
+info locals
+
+# See the content of a specific variable or expression
+p x
+p obj->state
+p a + b
+```
+
 ## Visual Studio Code
 
 ### Specific requirements
@@ -142,6 +192,17 @@ The available configurations are:
 - `Debug daemon`: launch and attach to the daemon.
 - `Debug CLI`: launch and attach to the CLI. VSCode will prompt you for the program arguments.
 - `Debug GUI`: launch and attach to the GUI.
+
+Some useful shortcuts:
+- `F10`: execute the current instruction.
+- `F11`: step into the next function call in the current instruction.
+- `Shift+F11`: step out of the current function call.
+- `F5`: continue until the next pause.
+- `Ctrl+F10`: continue until the cursor position is reached.
+- `F9`: add or remove a breakpoint on the line where the cursor is.
+
+To inspect memory content, open the `Run and Debug` panel in the primary sidebar.
+From there, you can inspect local variables, add a watch to print the value of an expression, create data breakpoints, and so on.
 
 #### Troubleshooting
 
