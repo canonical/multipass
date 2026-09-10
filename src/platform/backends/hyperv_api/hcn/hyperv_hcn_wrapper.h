@@ -19,6 +19,7 @@
 
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
+#include <hyperv_api/hcn/hyperv_hcn_endpoint_info.h>
 #include <hyperv_api/hcn/hyperv_hcn_network_info.h>
 #include <hyperv_api/hyperv_api_operation_result.h>
 
@@ -44,6 +45,8 @@ struct HCNWrapper : public Singleton<HCNWrapper>
     [[nodiscard]] virtual OperationResult create_endpoint(
         const CreateEndpointParameters& params) const;
     [[nodiscard]] virtual OperationResult delete_endpoint(const std::string& endpoint_guid) const;
+    [[nodiscard]] virtual OperationResult query_endpoint(const std::string& endpoint_guid,
+                                                         HcnEndpointInfo& out_info) const;
     [[nodiscard]] virtual OperationResult enumerate_attached_endpoints(
         const std::string& vm_guid,
         std::vector<std::string>& endpoint_guids) const;

@@ -17,13 +17,11 @@
 
 #pragma once
 
-#include <hyperv_api/net_io_api.h>
-
+#include "shared/windows/net_io_api.h"
 #include "tests/unit/mock_singleton_helpers.h"
 
 namespace multipass::test
 {
-
 class MockNetIOAPI : public hyperv::NetIOAPI
 {
 public:
@@ -34,6 +32,10 @@ public:
     MOCK_METHOD(DWORD,
                 ConvertInterfaceAliasToLuid,
                 (const WCHAR* InterfaceName, NET_LUID* InterfaceLuid),
+                (const override));
+    MOCK_METHOD(hyperv::IpNetTableResult,
+                GetIpNetTable2,
+                (ADDRESS_FAMILY Family),
                 (const override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockNetIOAPI, NetIOAPI);

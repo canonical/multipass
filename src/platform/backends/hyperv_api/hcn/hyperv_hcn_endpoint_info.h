@@ -17,25 +17,20 @@
 
 #pragma once
 
-#include <multipass/singleton.h>
+#include <boost/json.hpp>
 
-#include <ws2tcpip.h>
+#include <optional>
+#include <string>
+#include <vector>
 
-#include <iphlpapi.h>
-
-#define MP_NETIOAPI multipass::hyperv::NetIOAPI::instance()
-
-namespace multipass::hyperv
+namespace multipass::hyperv::hcn
 {
-
-struct NetIOAPI : public Singleton<NetIOAPI>
+struct HcnEndpointInfo
 {
-    NetIOAPI(const Singleton<NetIOAPI>::PrivatePass&) noexcept;
-
-    virtual void InitializeIpInterfaceEntry(PMIB_IPINTERFACE_ROW Row) const;
-    [[nodiscard]] virtual DWORD SetIpInterfaceEntry(PMIB_IPINTERFACE_ROW Row) const;
-    [[nodiscard]] virtual DWORD ConvertInterfaceAliasToLuid(const WCHAR* InterfaceName,
-                                                            NET_LUID* InterfaceLuid) const;
+    std::optional<std::string> mac_address;
+    std::vector<std::string> ip_addresses;
 };
 
-} // namespace multipass::hyperv
+HcnEndpointInfo tag_invoke(const boost::json::value_to_tag<HcnEndpointInfo>&,
+                           const boost::json::value& json);
+} // namespace multipass::hyperv::hcn

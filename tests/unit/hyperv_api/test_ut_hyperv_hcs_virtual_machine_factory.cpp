@@ -26,12 +26,12 @@
 #include "tests/unit/hyperv_api/mock_hyperv_hcn_wrapper.h"
 #include "tests/unit/hyperv_api/mock_hyperv_hcs_wrapper.h"
 #include "tests/unit/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
-#include "tests/unit/hyperv_api/mock_net_io_api.h"
 #include "tests/unit/mock_platform.h"
 #include "tests/unit/stub_availability_zone_manager.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
 #include "tests/unit/temp_dir.h"
+#include "tests/unit/windows/mock_net_io_api.h"
 
 #include <memory>
 

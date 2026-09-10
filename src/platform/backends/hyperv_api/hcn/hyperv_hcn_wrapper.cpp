@@ -39,6 +39,8 @@
 #include <ztd/out_ptr.hpp>
 
 #include <cassert>
+#include <exception>
+#include <optional>
 #include <string>
 #include <type_traits>
 
@@ -271,6 +273,49 @@ OperationResult HCNWrapper::delete_endpoint(const std::string& endpoint_guid) co
     return perform_hcn_operation([&](auto&& rmsgbuf) {
         return API().HcnDeleteEndpoint(guid_from_string(endpoint_guid), rmsgbuf);
     });
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
+                                           HcnEndpointInfo& out_info) const
+{
+    mpl::trace(log_category, "HCNWrapper::query_endpoint(...) > endpoint_guid: {}", endpoint_guid);
+
+    out_info = {};
+
+    const auto& [open_result, endpoint] = open_endpoint(endpoint_guid);
+    if (!open_result)
+        return open_result;
+
+    UniqueCotaskmemString properties{};
+    constexpr auto query = LR"({"SchemaVersion":{"Major":2,"Minor":0}})";
+    const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
+        return API().HcnQueryEndpointProperties(endpoint.get(),
+                                                query,
+                                                out_ptr(properties),
+                                                rmsgbuf);
+    });
+    if (!result)
+        return result;
+
+    if (!properties)
+        return {E_UNEXPECTED, L"HCN returned no endpoint properties"};
+
+    const auto properties_as_str = wchar_to_utf8(properties.get());
+    mpl::trace(log_category, "query_endpoint result: {}", properties_as_str);
+
+    try
+    {
+        out_info = boost::json::value_to<HcnEndpointInfo>(boost::json::parse(properties_as_str));
+    }
+    catch (const std::exception& e)
+    {
+        mpl::error(log_category, "query_endpoint(...): failed to parse JSON: {}", e.what());
+        return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
+    }
+
+    return result;
 }
 
 // ---------------------------------------------------------

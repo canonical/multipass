@@ -23,6 +23,9 @@
 #include "tests/unit/mock_standard_paths.h"
 #include "tests/unit/mock_utils.h"
 #include "tests/unit/temp_dir.h"
+#include "tests/unit/windows/mock_net_io_api.h"
+
+#include "shared/windows/network_utils.h"
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
@@ -38,8 +41,11 @@
 
 #include <scope_guard.hpp>
 
+#include <algorithm>
+#include <array>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <utility>
 
@@ -142,6 +148,50 @@ TEST(PlatformWin, wintermInExtraClientSettings)
 TEST(PlatformWin, noExtraDaemonSettings)
 {
     EXPECT_THAT(MP_PLATFORM.extra_daemon_settings(), IsEmpty());
+}
+
+struct PermanentIpv4Neighbor : public Test
+{
+    mpt::MockNetIOAPI::GuardedMock mock_net_io_api_injection =
+        mpt::MockNetIOAPI::inject<StrictMock>();
+    mpt::MockNetIOAPI& mock_net_io_api = *mock_net_io_api_injection.first;
+};
+
+TEST_F(PermanentIpv4Neighbor, rejectsInvalidMac)
+{
+    EXPECT_FALSE(mp::permanent_ipv4_neighbor("not-a-mac"));
+}
+
+TEST_F(PermanentIpv4Neighbor, findsEntryByPhysicalAddress)
+{
+    auto* raw_table = new MIB_IPNET_TABLE2{};
+    raw_table->NumEntries = 1;
+
+    auto& row = raw_table->Table[0];
+    row.Address.Ipv4.sin_family = AF_INET;
+    row.Address.Ipv4.sin_addr.S_un.S_un_b = {10, 123, 45, 67};
+    row.State = NlnsPermanent;
+    row.PhysicalAddressLength = 6;
+    const std::array<unsigned char, 6> physical_address{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+    std::ranges::copy(physical_address, row.PhysicalAddress);
+
+    auto table = mp::hyperv::IpNetTable{raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(Return(ByMove(mp::hyperv::IpNetTableResult{NO_ERROR, std::move(table)})));
+
+    EXPECT_EQ(mp::permanent_ipv4_neighbor("AA-BB-CC-DD-EE-FF"), "10.123.45.67");
+}
+
+TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenGetIpNetTableFails)
+{
+    auto logger_scope = expect_only_log(mpl::Level::error,
+                                        "GetIpNetTable2 failed with error code 5");
+    auto table = mp::hyperv::IpNetTable{nullptr, [](MIB_IPNET_TABLE2*) {}};
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(
+            Return(ByMove(mp::hyperv::IpNetTableResult{ERROR_ACCESS_DENIED, std::move(table)})));
+
+    EXPECT_FALSE(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff"));
 }
 
 TEST(PlatformWin, testDefaultDriver)

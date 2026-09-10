@@ -43,6 +43,7 @@ if(WIN32)
   add_library(hyperv_api_backend STATIC
     hcn/hyperv_hcn_wrapper.cpp
     hcn/hyperv_hcn_api.cpp
+    hcn/hyperv_hcn_endpoint_info.cpp
     hcn/hyperv_hcn_route.cpp
     hcn/hyperv_hcn_subnet.cpp
     hcn/hyperv_hcn_ipam.cpp
@@ -68,7 +69,6 @@ if(WIN32)
     virtdisk/virtdisk_utils.cpp
     hcs_virtual_machine.cpp
     hcs_virtual_machine_factory.cpp
-    net_io_api.cpp
   )
 
   target_link_libraries(hyperv_api_backend PRIVATE

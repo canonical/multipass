@@ -51,15 +51,15 @@ public:
                 HcnOpenEndpoint,
                 (REFGUID Id, PHCN_ENDPOINT Endpoint, PWSTR* ErrorRecord),
                 (const override));
+    MOCK_METHOD(HRESULT,
+                HcnQueryEndpointProperties,
+                (HCN_ENDPOINT Endpoint, PCWSTR Query, PWSTR* Properties, PWSTR* ErrorRecord),
+                (const override));
     MOCK_METHOD(HRESULT, HcnDeleteEndpoint, (REFGUID Id, PWSTR* ErrorRecord), (const override));
     MOCK_METHOD(HRESULT, HcnCloseEndpoint, (HCN_ENDPOINT Endpoint), (const override));
     MOCK_METHOD(HRESULT,
                 HcnEnumerateNetworks,
                 (PCWSTR Query, PWSTR* Networks, PWSTR* ErrorRecord),
-                (const override));
-    MOCK_METHOD(HRESULT,
-                HcnQueryEndpointProperties,
-                (HCN_ENDPOINT Endpoint, PCWSTR Query, PWSTR* Properties, PWSTR* ErrorRecord),
                 (const override));
     MOCK_METHOD(HRESULT,
                 HcnQueryNetworkProperties,
