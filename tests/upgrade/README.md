@@ -2,7 +2,7 @@
 
 The version upgrade suite checks that VMs and their state created on one Multipass version survive an upgrade to another. It lives at `tests/upgrade` (a sibling of `tests/cli`) and is its own entry point, run with `pytest tests/upgrade`. Because it is not under `tests/cli`, the standard `pytest tests/cli` run never collects it.
 
-It nonetheless reuses the *entire* cli framework. Its `conftest.py` sets `pytest_plugins = ["cli.conftest"]`, which pulls in the framework's daemon controllers, the `multipassd` governor fixture, the sudo/binary session setup, and the shared `--driver` / `--daemon-controller` / `--vm-*` options. The `cli` package itself is importable because pytest puts `tests/` on `sys.path` (both `tests/cli` and `tests/upgrade` are packages; `tests` is not). The suite's own `conftest.py` adds only the upgrade-specific options and the manifest fixture, and a small `tests/upgrade/pytest.ini` registers the suite markers (`seed`, `verify`, `scenario`, and `snapshot`).
+It nonetheless reuses the *entire* cli framework. Its `conftest.py` sets `pytest_plugins = ["cli.conftest"]`, which pulls in the framework's daemon controllers, the `multipassd` governor fixture, the sudo/binary session setup, and the shared `--driver` / `--daemon-controller` / `--vm-*` options. The `cli` package itself is importable because pytest puts `tests/` on `sys.path` (both `tests/cli` and `tests/upgrade` are packages; `tests` is not). The suite's own `conftest.py` adds only the upgrade-specific options and the manifest fixture, and a small `tests/upgrade/pytest.ini` registers the suite markers (`seed`, `verify`, `scenario`, `snapshot`, and `clone`).
 
 Because `pytest_plugins` must sit in a top-level conftest, invoke the suite via its own path (`pytest tests/upgrade`) rather than as part of a combined `pytest tests` run.
 
@@ -38,7 +38,7 @@ pytest tests/upgrade -m verify \
     --upgrade-manifest=reports/upgrade-manifest.json
 ```
 
-Both runs must use the same `--upgrade-manifest` path and the same `--driver`. The phase is chosen with the `seed` / `verify` markers; the seed run writes the manifest, the verify run reads it. `--upgrade-manifest` lives in the suite's own conftest, so it is only available when you run `pytest tests/upgrade`, not on the `pytest tests/cli` run.
+Both runs must use the same `--upgrade-manifest` path, `--driver`, and `--daemon-controller`. The phase is chosen with the `seed` / `verify` markers; the seed run writes the manifest, the verify run reads it. `--upgrade-manifest` lives in the suite's own conftest, so it is only available when you run `pytest tests/upgrade`, not on the `pytest tests/cli` run.
 
 ### Options
 
@@ -67,7 +67,8 @@ Each concern is a pair of ordinary pytest tests in `tests/upgrade/<concern>_test
 
 | Test | What it asserts survives |
 | ---- | ------------------------ |
-| `lifecycle` | A stopped default-image VM's on-disk data and host-reported identity (cpu count, memory total, image release); plus a focal VM (suspended) and a debian VM (stopped) keeping their data and release across the upgrade. Suspended case skipped on `lxd`/`applevz`. |
+| `lifecycle` | A stopped default-image VM's on-disk data and host-reported identity (cpu count, memory total, image release); plus a focal VM (suspended) and debian/fedora VMs (stopped) keeping their data and release across the upgrade. debian/fedora seeds are version-gated; the suspended case is skipped on `lxd`/`applevz`. |
+| `core_image` | Ubuntu Core `core24` and `core26` (both stopped): their daemon-side record and reported identity (image release/hash, cpu/memory fingerprint, guest sentinel) survive the upgrade. The `core26` seed is gated on the version that first shipped it. |
 | `suspend_resume` | A VM **suspended** during seeding comes back `Suspended` and resumes cleanly with its data. Skipped on `lxd`/`applevz`. |
 | `snapshot` | A branched snapshot tree (BASE with two children): metadata (names, parents, comments, count), captured data, and captured cpu/memory/disk. Restoring `base` reveals base-only data, hides child-only data, and rolls resources back. Skipped on `lxd`/`applevz`. |
 | `mount` | A classic (SSHFS) and a native (9p) mount each survive a stopped upgrade, plus a classic mount across a suspended upgrade: definition still listed, host data visible in guest, guest-written data on host and re-exposed on restart. Native/suspend skipped on `lxd`/`applevz`. |
@@ -78,6 +79,7 @@ Each concern is a pair of ordinary pytest tests in `tests/upgrade/<concern>_test
 | `clone` | A stopped VM clones cleanly post-upgrade; source and clone share the seeded data. |
 | `delete_restore` | A deleted-but-not-purged VM recovers with its data. |
 | `alias` | A seeded alias is still defined and runnable. |
+| `auth` | A set client passphrase and the already-authenticated primary client persist: an unauthenticated client is challenged, the wrong passphrase is rejected, and the right one authenticates. |
 | `settings` | A custom client setting persists. |
 
 Tests deliberately park VMs in a `Stopped` (or `Suspended`) state at the end of seeding so the verify phase has a precise expectation rather than a version-dependent one (whether a *running* VM is re-attached or stopped by a refresh is daemon/version specific).
