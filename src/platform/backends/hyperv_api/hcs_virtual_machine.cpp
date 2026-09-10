@@ -30,7 +30,6 @@
 #include <hyperv_api/virtdisk/virtdisk_snapshot.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
-
 #include <shared/windows/smb_mount_handler.h>
 
 #include <multipass/constants.h>
