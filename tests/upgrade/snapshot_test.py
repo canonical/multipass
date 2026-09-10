@@ -72,6 +72,7 @@ def test_snapshot_seed(scenario):
         assert multipass("stop", VM)
         assert multipass("set", f"local.{VM}.cpus=3")
         assert multipass("set", f"local.{VM}.memory=2G")
+        assert multipass("set", f"local.{VM}.disk=10G")
         _snapshot(VM, CHILD, CHILD_COMMENT)
         assert state(VM) == "Stopped"
 
