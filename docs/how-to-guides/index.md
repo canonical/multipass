@@ -30,7 +30,7 @@ You may also want to customise Multipass to address specific needs, from managin
 
 - [Set up the driver](customise-multipass/set-up-the-driver)
 - [Migrate from Hyperkit to QEMU on macOS](customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)
-- [Migrate from Hyper-V to the new Hyper-V API driver on Windows](customise-multipass/migrate-from-hyperv-to-hyperv-api-on-windows)
+- [Migrate from Hyper-V to the HCS driver on Windows](customise-multipass/migrate-from-hyperv-to-hcs-on-windows)
 - [Move from VirtualBox to another driver](customise-multipass/move-from-virtualbox-to-another-driver)
 - [Authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service)
 - [Build Multipass images with Packer](customise-multipass/build-multipass-images-with-packer)

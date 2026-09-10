@@ -357,7 +357,7 @@ jobs:
   #   uses: ./.github/workflows/cli-tests.yml
   #   with:
   #     windows-pkg-url: ${{ needs.PublishWindowsPackage.outputs.windows-pkg-url }}
-  #     backend-driver: hyperv_api
+  #     backend-driver: hcs
 
   Report-Workflow-Failure:
     needs: [BuildAndTest, PublishWindowsPackage]

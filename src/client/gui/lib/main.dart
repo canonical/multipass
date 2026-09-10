@@ -87,7 +87,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
             'https://canonical.com/multipass/docs/how-to-guides/customise-multipass/';
         final learnMoreUrl = switch (driver.value) {
           'hyperv' => Uri.parse(
-              '${deprecationDocsPrefix}migrate-from-hyperv-to-hyperv-api-on-windows',
+              '${deprecationDocsPrefix}migrate-from-hyperv-to-hcs-on-windows',
             ),
           'virtualbox' => Uri.parse(
               '${deprecationDocsPrefix}move-from-virtualbox-to-another-driver',
