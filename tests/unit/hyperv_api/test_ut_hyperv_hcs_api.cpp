@@ -142,8 +142,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
                         "DevicePath": "Primary disk",
                         "DiskNumber": 0,
                         "DeviceType": "ScsiDrive"
-                    },
-                    "Console": "ComPort1"
+                    }
                 }
             },
             "ComputeTopology": {
@@ -156,11 +155,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
                 }
             },
             "Devices": {
-                "ComPorts": {
-                    "0": {
-                        "NamedPipe": "\\\\.\\pipe\\test_vm"
-                    }
-                },
                 "Scsi": {
                     "cloud-init": {
                         "Attachments": {
@@ -352,8 +346,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
                         "DevicePath": "Primary disk",
                         "DiskNumber": 0,
                         "DeviceType": "ScsiDrive"
-                    },
-                    "Console": "ComPort1"
+                    }
                 }
             },
             "ComputeTopology": {
@@ -366,11 +359,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
                 }
             },
             "Devices": {
-                "ComPorts": {
-                    "0": {
-                        "NamedPipe": "\\\\.\\pipe\\test_vm"
-                    }
-                },
                 "Scsi": {
                     "primary": {
                         "Attachments": {
@@ -479,8 +467,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
                         "DevicePath": "Primary disk",
                         "DiskNumber": 0,
                         "DeviceType": "ScsiDrive"
-                    },
-                    "Console": "ComPort1"
+                    }
                 }
             },
             "ComputeTopology": {
@@ -493,11 +480,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
                 }
             },
             "Devices": {
-                "ComPorts": {
-                    "0": {
-                        "NamedPipe": "\\\\.\\pipe\\test_vm"
-                    }
-                },
                 "Scsi": {
                     "cloud-init": {
                         "Attachments": {
@@ -606,8 +588,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
                         "DevicePath": "Primary disk",
                         "DiskNumber": 0,
                         "DeviceType": "ScsiDrive"
-                    },
-                    "Console": "ComPort1"
+                    }
                 }
             },
             "ComputeTopology": {
@@ -620,11 +601,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
                 }
             },
             "Devices": {
-                "ComPorts": {
-                    "0": {
-                        "NamedPipe": "\\\\.\\pipe\\test_vm"
-                    }
-                },
                 "Scsi": {},
                 "NetworkAdapters": {}
             },
@@ -757,8 +733,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
                          "DevicePath": "Primary disk",
                          "DiskNumber": 0,
                          "DeviceType": "ScsiDrive"
-                     },
-                     "Console": "ComPort1"
+                     }
                  }
              },
              "ComputeTopology": {
@@ -771,11 +746,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
                  }
              },
              "Devices": {
-                 "ComPorts": {
-                     "0": {
-                         "NamedPipe": "\\\\.\\pipe\\test_vm"
-                     }
-                 },
                  "Scsi": {
                      "cloud-init": {
                          "Attachments": {
@@ -882,8 +852,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
                          "DevicePath": "Primary disk",
                          "DiskNumber": 0,
                          "DeviceType": "ScsiDrive"
-                     },
-                     "Console": "ComPort1"
+                     }
                  }
              },
              "ComputeTopology": {
@@ -896,11 +865,6 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
                  }
              },
              "Devices": {
-                 "ComPorts": {
-                     "0": {
-                         "NamedPipe": "\\\\.\\pipe\\test_vm"
-                     }
-                 },
                  "Scsi": {
                      "cloud-init": {
                          "Attachments": {
