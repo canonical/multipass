@@ -139,11 +139,6 @@ struct HyperV_ComponentIntegrationTests : public ::testing::Test
         network_guid.clear();
     }
 
-    auto cleanup_guard()
-    {
-        return sg::make_scope_guard([this]() noexcept { cleanup_resources(); });
-    }
-
     void create_network_and_endpoint(
         const hyperv::hcn::CreateNetworkParameters& network_parameters,
         const hyperv::hcn::CreateEndpointParameters& endpoint_parameters)
@@ -181,7 +176,7 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
     const auto temp_path = make_tempfile_path(".vhdx");
     const auto cloud_init_iso_path = std::filesystem::path{test_data_path} / "cloud-init" /
                                      "cloud-init.iso";
-    auto cleanup = cleanup_guard();
+
     {
         std::ofstream output{static_cast<const std::filesystem::path&>(temp_path),
                              std::ios::binary};
@@ -260,7 +255,7 @@ TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn
         .mac_address = "00-15-5D-9D-CF-69"};
 
     prepare_resources(vm_name, endpoint_parameters, network_parameters);
-    auto cleanup = cleanup_guard();
+
     ASSERT_NO_FATAL_FAILURE(create_network_and_endpoint(network_parameters, endpoint_parameters));
 
     {
@@ -316,7 +311,6 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
     prepare_resources(create_vm_parameters.name, endpoint_parameters, network_parameters);
 
     const auto temp_path = make_tempfile_path(".vhdx");
-    auto cleanup = cleanup_guard();
 
     const hyperv::virtdisk::CreateVirtualDiskParameters create_disk_parameters{
         .size_in_bytes = (1024 * 1024) * 512, // 512 MiB
@@ -333,8 +327,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
 
     // Create test VM
     {
-        const auto& [status, status_msg] =
-            HCS().create_compute_system(create_vm_parameters, handle);
+        const auto& [status, status_msg] = HCS().create_compute_system(create_vm_parameters,
+                                                                       handle);
         ASSERT_TRUE(status.success());
     }
 
@@ -359,7 +353,6 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
                       {extra_endpoint_guid});
 
     const auto temp_path = make_tempfile_path(".vhdx");
-    auto cleanup = cleanup_guard();
 
     const hyperv::virtdisk::CreateVirtualDiskParameters create_disk_parameters{
         .size_in_bytes = (1024 * 1024) * 512, // 512 MiB
@@ -426,7 +419,6 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
         ASSERT_EQ(eps.size(), 1);
         ASSERT_EQ(eps[0], network_adapter.endpoint_guid);
     }
-
 }
 
 TEST_F(HyperV_ComponentIntegrationTests, endpoints_tagged_with_same_name_are_found_and_removed)

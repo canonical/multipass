@@ -62,10 +62,6 @@ public:
                 (PCWSTR Query, PWSTR* Networks, PWSTR* ErrorRecord),
                 (const override));
     MOCK_METHOD(HRESULT,
-                HcnQueryEndpointProperties,
-                (HCN_ENDPOINT Endpoint, PCWSTR Query, PWSTR* Properties, PWSTR* ErrorRecord),
-                (const override));
-    MOCK_METHOD(HRESULT,
                 HcnQueryNetworkProperties,
                 (HCN_NETWORK Network, PCWSTR Query, PWSTR* Properties, PWSTR* ErrorRecord),
                 (const override));
