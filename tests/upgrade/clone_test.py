@@ -29,6 +29,7 @@ CLONE = f"{VM}-clone1"
 
 
 @pytest.mark.seed
+@pytest.mark.clone
 @pytest.mark.scenario(VM)
 def test_clone_seed(scenario):
     with seeded_vm(VM):
@@ -39,6 +40,7 @@ def test_clone_seed(scenario):
 
 
 @pytest.mark.verify
+@pytest.mark.clone
 @pytest.mark.scenario(VM)
 def test_clone_verify(scenario):
     recorded = scenario.record
