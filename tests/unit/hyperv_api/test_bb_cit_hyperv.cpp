@@ -40,10 +40,9 @@
 #include <computecore.h>
 #include <multipass/ip_address.h>
 
-#include <scope_guard.hpp>
-
 #include <chrono>
 #include <fstream>
+#include <optional>
 #include <thread>
 #include <utility>
 
@@ -60,6 +59,8 @@ using namespace std::chrono_literals;
 struct HyperV_ComponentIntegrationTests : public ::testing::Test
 {
     hyperv::hcs::HcsSystemHandle handle{nullptr};
+
+    std::optional<decltype(make_tempfile_path(std::string{}))> temp_vhdx_path;
 
     static hyperv::hcn::CreateNetworkParameters make_network_parameters(
         hyperv::hcn::HcnNetworkFlags flags = hyperv::hcn::HcnNetworkFlags::none)
@@ -173,7 +174,8 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
                                                               "52-54-00-E9-36-7E");
     prepare_resources("multipass-hyperv-cit-vm", endpoint_parameters, network_parameters);
 
-    const auto temp_path = make_tempfile_path(".vhdx");
+    temp_vhdx_path.emplace(make_tempfile_path(".vhdx"));
+    const auto& temp_path = *temp_vhdx_path;
     const auto cloud_init_iso_path = std::filesystem::path{test_data_path} / "cloud-init" /
                                      "cloud-init.iso";
 
@@ -310,7 +312,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm)
         {make_network_adapter(endpoint_parameters)});
     prepare_resources(create_vm_parameters.name, endpoint_parameters, network_parameters);
 
-    const auto temp_path = make_tempfile_path(".vhdx");
+    temp_vhdx_path.emplace(make_tempfile_path(".vhdx"));
+    const auto& temp_path = *temp_vhdx_path;
 
     const hyperv::virtdisk::CreateVirtualDiskParameters create_disk_parameters{
         .size_in_bytes = (1024 * 1024) * 512, // 512 MiB
@@ -352,7 +355,8 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
                       network_parameters,
                       {extra_endpoint_guid});
 
-    const auto temp_path = make_tempfile_path(".vhdx");
+    temp_vhdx_path.emplace(make_tempfile_path(".vhdx"));
+    const auto& temp_path = *temp_vhdx_path;
 
     const hyperv::virtdisk::CreateVirtualDiskParameters create_disk_parameters{
         .size_in_bytes = (1024 * 1024) * 512, // 512 MiB
