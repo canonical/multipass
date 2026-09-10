@@ -567,6 +567,8 @@ message Zone {
     string name = 1;
     bool available = 2;
     string subnet = 3;
+    // TODO@backends: remove once deprecated backends are removed
+    bool supported = 4;
 }
 
 message ZonesRequest {

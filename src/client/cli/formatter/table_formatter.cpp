@@ -144,10 +144,13 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
                    "{:<16}{}\n",
                    "State:",
                    mp::format::status_string_for(item.instance_status()));
-    fmt::format_to(dest,
-                   "{:<16}{}\n",
-                   "Zone:",
-                   fmt::format("{}{}", item.zone().name(), item.zone().available() ? "" : "(n/a)"));
+    fmt::format_to(
+        dest,
+        "{:<16}{}\n",
+        "Zone:",
+        item.zone().supported()
+            ? fmt::format("{}{}", item.zone().name(), item.zone().available() ? "" : "(n/a)")
+            : std::string{"n/a"});
 
     if (instance_details.has_num_snapshots())
         fmt::format_to(dest, "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
@@ -294,9 +297,10 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                 ? "Not Available"
                 : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release())),
             image_column_width,
-            fmt::format("{}{}",
-                        instance.zone().name(),
-                        instance.zone().available() ? "" : "(n/a)"));
+            instance.zone().supported() ? fmt::format("{}{}",
+                                                      instance.zone().name(),
+                                                      instance.zone().available() ? "" : "(n/a)")
+                                        : std::string{"n/a"});
 
         for (int i = 1; i < ipv4_size; ++i)
         {
@@ -367,8 +371,8 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
                               fundamentals.comment().end(),
                               match,
                               newline))
-            max_comment_column_width =
-                std::min((size_t)(match.position(1)) + 1, max_comment_column_width);
+            max_comment_column_width = std::min((size_t)(match.position(1)) + 1,
+                                                max_comment_column_width);
 
         fmt::format_to(
             std::back_inserter(buf),
@@ -544,20 +548,20 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
     const std::string active_context = "*";
     const auto alias_width = width([](const auto& alias) -> int { return alias.first.length(); },
                                    alias_col_header.length());
-    const auto instance_width =
-        width([](const auto& alias) -> int { return alias.second.instance.length(); },
-              instance_col_header.length());
-    const auto command_width =
-        width([](const auto& alias) -> int { return alias.second.command.length(); },
-              command_col_header.length());
+    const auto instance_width = width(
+        [](const auto& alias) -> int { return alias.second.instance.length(); },
+        instance_col_header.length());
+    const auto command_width = width(
+        [](const auto& alias) -> int { return alias.second.command.length(); },
+        command_col_header.length());
     const auto context_width = mp::format::column_width(
         aliases.cbegin(),
         aliases.cend(),
         [&aliases, &active_context](const auto& alias) -> int {
             return alias.first == aliases.active_context_name() &&
                            !aliases.get_active_context().empty()
-                       ? alias.first.length() + active_context.length()
-                       : alias.first.length();
+                     ? alias.first.length() + active_context.length()
+                     : alias.first.length();
         },
         context_col_header.length());
 
@@ -578,8 +582,8 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
     for (const auto& [context_name, context_contents] : sorted_map_view(aliases))
     {
         std::string shown_context = context_name.get() == aliases.active_context_name()
-                                        ? context_name.get() + active_context
-                                        : context_name.get();
+                                      ? context_name.get() + active_context
+                                      : context_name.get();
 
         for (const auto& [name, def] : sorted_map_view(context_contents.get()))
         {

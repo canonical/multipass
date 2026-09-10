@@ -471,7 +471,8 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
     if (!instance_name.empty() && !mp::utils::valid_hostname(instance_name))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
-    if (!zone_name.empty() && !config->az_manager->get_zone(zone_name).is_available())
+    if (!zone_name.empty() && config->factory->supports_availability_zones() &&
+        !config->az_manager->get_zone(zone_name).is_available())
         option_errors.add_error_codes(mp::LaunchError::ZONE_UNAVAILABLE);
 
     std::vector<std::string> nets_need_bridging;
@@ -1801,6 +1802,7 @@ try
         const auto zone = entry->mutable_zone();
         zone->set_name(vm.get_zone().get_name());
         zone->set_available(vm.get_zone().is_available());
+        zone->set_supported(config->factory->supports_availability_zones());
         if (deleted)
             entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
         else
@@ -2894,12 +2896,17 @@ try // clang-format on
 {
     ZonesReply response{};
 
+    if (!config->factory->supports_availability_zones())
+        return context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                                               "Feature is not supported in this backend"});
+
     for (const auto& zone : config->az_manager->get_zones())
     {
         const auto reply_zone = response.add_zones();
         reply_zone->set_name(zone.get().get_name());
         reply_zone->set_subnet(zone.get().get_subnet().to_cidr());
         reply_zone->set_available(zone.get().is_available());
+        reply_zone->set_supported(true);
     }
 
     server->Write(response);
@@ -2916,6 +2923,10 @@ void mp::Daemon::zones_state(const ZonesStateRequest* request,
 try // clang-format on
 {
     auto& az_manager = *config->az_manager;
+    if (!config->factory->supports_availability_zones())
+        return context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                                               "Feature is not supported in this backend"});
+
     if (request->zones().empty())
     {
         for (auto&& zone : az_manager.get_zones())
@@ -3032,6 +3043,13 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 {
     auto checked_args = validate_create_arguments(request, config.get());
 
+    if (!checked_args.zone_name.empty() && !config->factory->supports_availability_zones())
+    {
+        return context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION,
+                                               "Feature is not supported in this backend",
+                                               ""));
+    }
+
     if (!checked_args.option_errors.error_codes().empty())
     {
         return context->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
@@ -3130,7 +3148,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                          config->update_prompt->populate_if_time_to_show(
                                              reply.mutable_update_info());
 
-                                         reply.set_zone(zone);
+                                         if (config->factory->supports_availability_zones())
+                                             reply.set_zone(zone);
                                          server->Write(reply);
                                      });
                                  future_watcher->setFuture(QtConcurrent::run(
@@ -3738,6 +3757,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     const auto& az = vm.get_zone();
     zone->set_name(az.get_name());
     zone->set_available(az.is_available());
+    zone->set_supported(config->factory->supports_availability_zones());
 
     if (deleted)
         info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
