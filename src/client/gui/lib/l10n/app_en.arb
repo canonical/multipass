@@ -823,6 +823,10 @@
     "@daemonWaiting": {
         "description": "Status message shown while waiting for the Multipass daemon to become available"
     },
+    "daemonBackendError": "Backend Error",
+    "@daemonBackendError": {
+        "description": "Heading shown when the daemon is running but returned an error, e.g. because the configured backend/driver is unavailable"
+    },
     "updateAvailableTitle": "Multipass {version} is available",
     "@updateAvailableTitle": {
         "description": "In-app banner and notification text announcing a new Multipass version",
