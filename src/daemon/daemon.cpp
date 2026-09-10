@@ -1293,7 +1293,7 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
 #ifdef MULTIPASS_PLATFORM_APPLE
         "applevz"
 #else
-        "hyperv_api"
+        "hcs"
 #endif
         ;
 

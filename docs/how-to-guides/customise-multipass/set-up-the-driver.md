@@ -26,7 +26,7 @@ By default, Multipass on macOS uses the `qemu` driver.
 ````{tab-item} Windows
 :sync: Windows
 
-By default, Multipass on Windows uses the `hyperv_api` driver.
+By default, Multipass on Windows uses the `hcs` driver.
 
 ````
 
@@ -131,7 +131,7 @@ Instances are tied to the driver they were created with; after switching, they w
 If you want to switch back to the default driver:
 
 ```{code-block} powershell
-multipass set local.driver=hyperv_api
+multipass set local.driver=hcs
 ```
 
 Instances are tied to the driver they were created with; after switching, they won't be visible until you switch back.

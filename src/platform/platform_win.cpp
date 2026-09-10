@@ -809,7 +809,7 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
         "hyperv",
         "virtualbox",
 #if defined(HYPERV_HCS_ENABLED)
-        "hyperv_api",
+        "hcs",
 #endif
     };
     return std::ranges::any_of(supported_backends,
@@ -872,7 +872,7 @@ std::string mp::platform::default_server_address()
 QString mp::platform::Platform::default_driver() const
 {
 #if defined(HYPERV_HCS_ENABLED)
-    return QStringLiteral("hyperv_api");
+    return QStringLiteral("hcs");
 #else
     return QStringLiteral("hyperv");
 #endif
@@ -946,7 +946,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
         return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
     }
 #if defined(HYPERV_HCS_ENABLED)
-    else if (driver == "hyperv_api")
+    else if (driver == "hcs")
     {
         return std::make_unique<hyperv::HCSVirtualMachineFactory>(data_dir, az_manager);
     }
