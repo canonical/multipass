@@ -34,7 +34,7 @@ Either way, your name will be added to the Contributors list at the bottom of th
 
 In Discourse, content is formatted using Markdown syntax. You can also use the style toolbar in the Discourse topic editing window to format elements, if you're not familiar with Markdown.
 
-> See also: [Discourse | Supported formatting in posts (markdown, BBCcode, and HTML ](https://meta.discourse.org/t/supported-formatting-in-posts-markdown-bbcode-and-html/239348) (in particular, the link to [`markdown-it` ](https://markdown-it.github.io/) and [CommonMark Spec ](https://spec.commonmark.org/))
+> See also: [Discourse | Supported formatting in posts (markdown, BBCode, and HTML ](https://meta.discourse.org/t/supported-formatting-in-posts-markdown-bbcode-and-html/239348) (in particular, the link to [`markdown-it` ](https://markdown-it.github.io/) and [CommonMark Spec ](https://spec.commonmark.org/))
 
 A useful trick to view the Markdown source of a Discourse page is replacing `/t/<page-slug>/` in the URL with `/raw/`. For example, to view the source of the Multipass Documentation home topic, instead of the default Discourse URL:
 
