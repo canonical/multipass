@@ -290,10 +290,12 @@ class MultipassdGovernor:
         self.asyncio_loop.run(self.stop_async()).result(timeout=timeout)
 
     def wait_for_shutdown(self, timeout=60):
-        self.daemon_ready_event.wait_until(False, timeout=timeout)
+        if not self.daemon_ready_event.wait_until(False, timeout=timeout):
+            raise TimeoutError(f"Daemon did not shut down within {timeout}s")
 
     def wait_for_start(self, timeout=60):
-        self.daemon_ready_event.wait_until(True, timeout=timeout)
+        if not self.daemon_ready_event.wait_until(True, timeout=timeout):
+            raise TimeoutError(f"Daemon did not become ready within {timeout}s")
 
     def wait_for_restart(self, timeout=60):
         # Restart events are opaque to us when the controller supports
@@ -304,7 +306,11 @@ class MultipassdGovernor:
             logging.debug(
                 "multipassd-governor :: daemon auto-restart detected")
             # Wait until daemon is ready
-            self.asyncio_loop.run(self.wait_for_multipassd_ready()).result()
+            if not self.asyncio_loop.run(
+                self.wait_for_multipassd_ready(timeout=timeout)).result():
+                raise TimeoutError(
+                    f"Daemon did not become ready after restart within {timeout}s"
+                )
             return
         self.wait_for_shutdown(timeout=timeout)
         self.wait_for_start(timeout=timeout)

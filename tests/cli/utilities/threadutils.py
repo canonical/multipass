@@ -43,12 +43,16 @@ class BooleanLatch:
             self._flag = False
             self._cond.notify_all()
 
-    def wait_until(self, value: bool, timeout=None):
-        with self._cond:
-            self._cond.wait_for(lambda: self._flag == value, timeout=timeout)
+    def wait_until(self, value: bool, timeout=None) -> bool:
+        """Wait until the flag equals ``value``.
 
-    def wait(self):
-        self.wait_until(True)
+        Return True when the flag reached ``value``, False if the wait timed out.
+        """
+        with self._cond:
+            return self._cond.wait_for(lambda: self._flag == value, timeout=timeout)
+
+    def wait(self) -> bool:
+        return self.wait_until(True)
 
 
 class BackgroundEventLoop:
