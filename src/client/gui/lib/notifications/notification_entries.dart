@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart' hide State;
 import 'package:grpc/grpc.dart' hide ConnectionState;
+import 'package:url_launcher/url_launcher.dart';
 
+import '../colors.dart';
 import '../extensions.dart';
 import '../grpc_client.dart';
 import '../l10n/app_localizations.dart';
@@ -144,6 +146,37 @@ class ErrorNotification extends SimpleNotification {
           child: Text(text),
           barColor: Colors.red,
           icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+        );
+}
+
+class WarningNotification extends SimpleNotification {
+  const WarningNotification({super.key, required super.child})
+      : super(
+          barColor: warningAmber,
+          icon: const Icon(Icons.warning_rounded, color: warningAmber),
+        );
+}
+
+class DeprecationNotification extends WarningNotification {
+  DeprecationNotification(
+      {super.key, required String text, required Uri learnMoreUrl})
+      : super(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(text),
+              const Divider(),
+              Row(
+                children: [
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => launchUrl(learnMoreUrl),
+                    child: const Text('Learn more'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         );
 }
 

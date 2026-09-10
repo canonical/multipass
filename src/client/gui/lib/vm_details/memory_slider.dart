@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../colors.dart';
 import '../dropdown.dart';
 import '../extensions.dart';
 import '../ffi.dart';
@@ -139,7 +140,7 @@ class _MemorySliderState extends State<MemorySlider> {
               const SizedBox(height: 25),
               Row(
                 children: [
-                  const Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
+                  const Icon(Icons.warning_rounded, color: warningAmber),
                   const SizedBox(width: 5),
                   Text(
                     l10n.memorySliderOverProvisioning(

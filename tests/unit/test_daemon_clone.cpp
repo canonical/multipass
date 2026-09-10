@@ -20,8 +20,10 @@
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
+#include "mock_settings.h" // TODO@deprecations remove
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
+#include "multipass/constants.h" // TODO@deprecations remove
 #include "stub_availability_zone.h"
 #include "stub_availability_zone_manager.h"
 
@@ -37,6 +39,9 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
     {
         config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
         config_builder.az_manager = std::make_unique<mpt::StubAvailabilityZoneManager>();
+
+        // TODO@deprecations remove
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("senna"));
     }
 
     auto build_daemon_with_mock_instance()
@@ -60,6 +65,10 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
     const std::string mac_addr{"52:54:00:73:76:28"};
     std::vector<mp::NetworkInterface> extra_interfaces;
     mpt::StubAvailabilityZone zone{};
+
+    // TODO@deprecations remove
+    mpt::MockSettings::GuardedMock mock_settings_injection = mpt::MockSettings::inject<NiceMock>();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
 
     const mpt::MockVirtualMachineFactory& mock_factory = *use_a_mock_vm_factory();
 
