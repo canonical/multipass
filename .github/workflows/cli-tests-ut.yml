@@ -1,0 +1,47 @@
+name: Unit Tests for cli-test harness
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: tests/cli
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install dependencies
+        run: |
+          cd tests/cli
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -e .
+
+      - name: Run unit tests
+        run: |
+          cd tests/cli
+          source .venv/bin/activate
+          pytest unit/ -v --tb=short --junitxml=test-results.xml
+
+      - name: Report test results
+        if: always()
+        uses: dorny/test-reporter@v3
+        with:
+          name: CLI Unit Tests
+          path: tests/cli/test-results.xml
+          reporter: java-junit
+          fail-on-error: true
