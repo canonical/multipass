@@ -139,8 +139,12 @@ class MultipassdGovernor:
             )
 
         except asyncio.CancelledError:
-            # Task was cancelled, this is expected during shutdown
-            stdout_task.cancel()
+            # Task was cancelled, this is expected during shutdown. Drain the
+            # stream reader (mirror the normal path above) so its subscription
+            # cleanup runs deterministically before we propagate the cancel.
+            if not stdout_task.done():
+                stdout_task.cancel()
+            await stdout_task
             raise
 
     async def on_monitor_exit(self, task):
