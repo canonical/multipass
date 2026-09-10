@@ -117,7 +117,7 @@
             "pipeTransport": {
                 "pipeProgram": "bash",
                 "pipeArgs": ["-c"],
-                "debuggerPath": "pkexec gdb"
+                "debuggerPath": "if sudo -n true 2>/dev/null; then exec sudo gdb; else exec pkexec gdb; fi"
             },
             "setupCommands": [
                 {

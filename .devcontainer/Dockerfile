@@ -11,6 +11,7 @@ RUN apt-get update \
        dnsmasq-base \
        dnsmasq-utils \
        equivs \
+       gdb \
        git \
        iproute2 \
        iptables \
