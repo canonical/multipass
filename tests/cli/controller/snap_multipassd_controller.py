@@ -105,7 +105,10 @@ class SnapMultipassdController:
                 yield line.decode("utf-8", "replace")
 
     async def is_active(self) -> bool:
-        return await self._get_status() == "active"
+        # "activating"/"deactivating" are transitional systemd states: the
+        # daemon hasn't fully exited yet, so wait_exit() must keep polling until
+        # it reaches "inactive"/"failed" rather than bailing mid stop/start.
+        return await self._get_status() in ("active", "activating", "deactivating")
 
     async def wait_exit(self) -> Optional[int]:
         """Return exit code if available; else None. Should return promptly if stopped."""
