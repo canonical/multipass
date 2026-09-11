@@ -50,6 +50,9 @@ public:
     virtual int ssh_userauth_publickey(ssh_session session,
                                        const char* username,
                                        const ssh_key privkey) const;
+    // Declared in libssh/server.h, but it is a plain client-side global request
+    // ("keepalive@openssh.com") that waits for the peer's reply. Always returns SSH_OK.
+    virtual int ssh_send_keepalive(ssh_session session) const;
 
     // --- channel -------------------------------------------------------------
     virtual ssh_channel ssh_channel_new(ssh_session session) const;

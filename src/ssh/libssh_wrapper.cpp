@@ -17,6 +17,8 @@
 
 #include <multipass/ssh/libssh_wrapper.h>
 
+#include <libssh/server.h>
+
 extern "C"
 {
 int sftp_reply_version(sftp_client_message msg);
@@ -88,6 +90,11 @@ int mp::Libssh::ssh_userauth_publickey(ssh_session session,
                                        const ssh_key privkey) const
 {
     return ::ssh_userauth_publickey(session, username, privkey);
+}
+
+int mp::Libssh::ssh_send_keepalive(ssh_session session) const
+{
+    return ::ssh_send_keepalive(session);
 }
 
 // --- channel ----------------------------------------------------------------
