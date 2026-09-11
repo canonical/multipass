@@ -1826,7 +1826,7 @@ try
         entry->set_current_release(current_release);
         entry->set_os(os);
 
-        if (request->request_ipv4() && MP_UTILS.is_running(present_state))
+        if (request->request_ipv4() && MP_UTILS.is_running(present_state) && vm.management_ipv4())
         {
             auto management_ip = vm.management_ipv4();
             auto all_ipv4 = vm.get_all_ipv4();
@@ -3784,7 +3784,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     timestamp->set_seconds(created_time.toSecsSinceEpoch());
     timestamp->set_nanos(created_time.time().msec() * 1'000'000);
 
-    if (!no_runtime_info && MP_UTILS.is_running(present_state))
+    if (!no_runtime_info && MP_UTILS.is_running(present_state) && vm.management_ipv4())
         RuntimeInstanceInfoHelper::populate_runtime_info(vm,
                                                          info,
                                                          instance_info,
