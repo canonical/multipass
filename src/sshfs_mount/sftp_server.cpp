@@ -42,6 +42,13 @@ constexpr auto category = "sftp server";
 using SftpHandleUPtr = std::unique_ptr<ssh_string_struct, void (*)(ssh_string)>;
 using namespace std::literals::chrono_literals;
 
+// How long the server waits for client activity before probing the peer with a keepalive. This is
+// independent of the SSH session timeout, which bounds every blocking libssh call (see the
+// PlainSSHSession constructor).
+constexpr auto keepalive_interval = 30s;
+constexpr int keepalive_interval_ms =
+    std::chrono::duration_cast<std::chrono::milliseconds>(keepalive_interval).count();
+
 enum Permissions
 {
     read_user = 0400,
@@ -566,7 +573,30 @@ void mp::SftpServer::run()
 
     while (true)
     {
-        MsgUPtr client_msg{MP_LIBSSH.sftp_get_client_message(sftp_server_session.get()),
+        // Wait for data before reading: sftp_get_client_message blocks, bounded by the session
+        // timeout, which is far shorter than the idle periods of a quiet mount.
+        const int poll_result = MP_LIBSSH.ssh_channel_poll_timeout(sftp_server_session->channel,
+                                                                   keepalive_interval_ms,
+                                                                   /* is_stderr = */ 0);
+        if (poll_result == 0) // idle: nothing arrived within the interval
+        {
+            if (stop_invoked)
+                break;
+
+            mpl::trace(category,
+                       "no client activity for {}s, sending keepalive",
+                       keepalive_interval.count());
+            // Waits for the peer's reply, bounded by the session timeout. A dead peer surfaces as
+            // an error on the next poll.
+            MP_LIBSSH.ssh_send_keepalive(*ssh_session);
+            continue;
+        }
+
+        // poll_result > 0: bytes available; < 0 (SSH_ERROR/SSH_EOF): peer gone or session broken,
+        // handled below exactly like a null message.
+        MsgUPtr client_msg{poll_result > 0
+                               ? MP_LIBSSH.sftp_get_client_message(sftp_server_session.get())
+                               : nullptr,
                            [](sftp_client_message m) { MP_LIBSSH.sftp_client_message_free(m); }};
         auto msg = client_msg.get();
         if (msg == nullptr)
