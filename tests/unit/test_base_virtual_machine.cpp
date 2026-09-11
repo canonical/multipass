@@ -884,9 +884,9 @@ TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
     const auto& snapshot = *snapshot_album[0];
 
     mp::VMSpecs new_specs = original_specs;
-    new_specs.extra_interfaces =
-        std::vector<mp::NetworkInterface>{{"id", "52:54:00:56:78:91", true},
-                                          {"id", "52:54:00:56:78:92", true}};
+    new_specs.extra_interfaces = std::vector<mp::NetworkInterface>{
+        {"id", "52:54:00:56:78:91", true},
+        {"id", "52:54:00:56:78:92", true}};
 
     // the ref return functions can not use the default mock behavior, so they need to be specified
     EXPECT_CALL(snapshot, get_mounts).WillOnce(ReturnRef(original_specs.mounts));
@@ -1008,8 +1008,9 @@ TEST_F(BaseVM, loadsSnasphots)
     static const auto index_digits_regex = n_occurrences(digit_char_class, 4);
     static const auto file_regex = fmt::format(R"(.*{}\.snapshot\.json)", index_digits_regex);
 
-    auto& expectation =
-        EXPECT_CALL(vm, make_specific_snapshot(mpt::match_qstring(MatchesRegex(file_regex))));
+    auto& expectation = EXPECT_CALL(
+        vm,
+        make_specific_snapshot(mpt::match_qstring(MatchesRegex(file_regex))));
 
     using NiceMockSnapshot = NiceMock<mpt::MockSnapshot>;
     std::array<std::shared_ptr<NiceMockSnapshot>, num_snapshots> snapshot_bag{};
@@ -1434,12 +1435,31 @@ TEST_F(BaseVM, sshExecProcessRefusesToExecuteIfVMIsNotRunning)
                          mpt::match_what(HasSubstr("not running")));
 }
 
+TEST_F(BaseVM, sshExecProcessThrowsIfVMIsStopped)
+{
+    static constexpr auto* cmd = ":";
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running)
+        .Times(2)
+        .WillOnce(Return(true))
+        .WillOnce(Return(false));
+
+    vm.simulate_ssh_exec_process();
+    vm.renew_ssh_session();
+
+    MP_EXPECT_THROW_THAT(
+        vm.ssh_exec_process(cmd),
+        mp::SSHException,
+        mpt::match_what(HasSubstr("SSH unavailable on instance mock-vm: not running")));
+}
+
 TEST_F(BaseVM, sshExecProcessRunsDirectlyIfConnected)
 {
     static constexpr auto* cmd = ":";
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, is_running).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(vm, make_ssh_process(cmd, _))
         .WillOnce(Return(std::make_unique<NiceMock<mpt::MockSSHProcess>>()));
 
@@ -1454,7 +1474,7 @@ TEST_F(BaseVM, sshExecProcessReconnectsIfDisconnected)
     static constexpr auto* cmd = ":";
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, is_running).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(vm, make_ssh_process(cmd, _))
         .WillOnce(Return(std::make_unique<NiceMock<mpt::MockSSHProcess>>()));
 
@@ -1486,7 +1506,7 @@ TEST_F(BaseVM, sshExecProcessRethrowsSSHExceptionsWhenConnected)
     static constexpr auto* cmd = ":";
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, is_running).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(vm, make_ssh_process(cmd, _)).WillOnce(Throw(mp::SSHException{"intentional"}));
 
     vm.simulate_ssh_exec_process();
@@ -1502,7 +1522,7 @@ TEST_F(BaseVM, sshExecProcessPropagatesNonSSHExceptions)
     static constexpr auto* cmd = "wrong";
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, is_running).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(vm, make_ssh_process(cmd, _)).WillOnce(Throw(std::runtime_error{"intentional"}));
 
     vm.simulate_ssh_exec_process();
