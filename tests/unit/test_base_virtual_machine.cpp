@@ -161,7 +161,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 
     void start() override
     {
-        state = St::running;
+        state = St::starting;
     }
 
     void shutdown(ShutdownPolicy = ShutdownPolicy::Powerdown) override
@@ -1576,28 +1576,36 @@ TEST_F(BaseVM, setUnavailableShutsdownRunning)
     vm.set_available(false);
 }
 
-TEST_F(BaseVM, setAvailableRestartsRunning)
+TEST_F(BaseVM, setUnavailableIsIdempotent)
 {
     StubBaseVirtualMachine base_vm(zone, St::running);
 
-    base_vm.set_available(false);
+    EXPECT_TRUE(base_vm.set_available(false));
     ASSERT_EQ(base_vm.current_state(), St::unavailable);
 
-    base_vm.set_available(false);
+    EXPECT_FALSE(base_vm.set_available(false));
+    EXPECT_EQ(base_vm.current_state(), St::unavailable);
+}
+
+TEST_F(BaseVM, setAvailableRestartsRunningAndLeavesResultingStateToStart)
+{
+    StubBaseVirtualMachine base_vm(zone, St::running);
+
+    ASSERT_TRUE(base_vm.set_available(false));
     ASSERT_EQ(base_vm.current_state(), St::unavailable);
 
-    base_vm.set_available(true);
-    EXPECT_EQ(base_vm.current_state(), St::running);
+    EXPECT_TRUE(base_vm.set_available(true));
+    EXPECT_EQ(base_vm.current_state(), St::starting);
 }
 
 TEST_F(BaseVM, setAvailableKeepsOffOff)
 {
     StubBaseVirtualMachine base_vm(zone, St::off);
 
-    base_vm.set_available(false);
+    EXPECT_TRUE(base_vm.set_available(false));
     ASSERT_EQ(base_vm.current_state(), St::unavailable);
 
-    base_vm.set_available(true);
+    EXPECT_FALSE(base_vm.set_available(true));
     EXPECT_EQ(base_vm.current_state(), St::off);
 }
 

@@ -33,7 +33,7 @@ struct MockAvailabilityZone : public mp::AvailabilityZone
     MOCK_METHOD(const std::string&, get_name, (), (const, override));
     MOCK_METHOD(const Subnet&, get_subnet, (), (const, override));
     MOCK_METHOD(bool, is_available, (), (const, override));
-    MOCK_METHOD(void, set_available, (bool), (override));
+    MOCK_METHOD(std::vector<std::string>, set_available, (bool), (override));
     MOCK_METHOD(void, add_vm, (mp::VirtualMachine&), (override));
     MOCK_METHOD(void, remove_vm, (mp::VirtualMachine&), (override));
 };

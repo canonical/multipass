@@ -57,7 +57,7 @@ public:
                                                  bool whisper = false) override;
     [[nodiscard]] std::unique_ptr<SSHSession> new_ssh_session() override;
 
-    void set_available(bool available) override;
+    bool set_available(bool available) override;
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;

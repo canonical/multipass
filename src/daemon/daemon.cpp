@@ -2916,19 +2916,37 @@ void mp::Daemon::zones_state(const ZonesStateRequest* request,
 try // clang-format on
 {
     auto& az_manager = *config->az_manager;
+
+    std::vector<std::string> restart_mounts;
+    auto apply_to = [&restart_mounts, &az_manager, available = request->available()](
+                        const std::string& zone_name) {
+        auto names = az_manager.get_zone(zone_name).set_available(available);
+        restart_mounts.insert(restart_mounts.end(),
+                              std::make_move_iterator(names.begin()),
+                              std::make_move_iterator(names.end()));
+    };
+
     if (request->zones().empty())
     {
         for (auto&& zone : az_manager.get_zones())
         {
-            az_manager.get_zone(zone.get().get_name()).set_available(request->available());
+            apply_to(zone.get().get_name());
         }
     }
     else
     {
         for (const auto& zone_name : request->zones())
         {
-            az_manager.get_zone(zone_name).set_available(request->available());
+            apply_to(zone_name);
         }
+    }
+
+    for (const auto& name : restart_mounts)
+    {
+        if (request->available())
+            start_mounts(name);
+        else
+            stop_mounts(name);
     }
 
     context->set_value(grpc::Status{});
@@ -2954,10 +2972,9 @@ void mp::Daemon::on_suspend()
 {
 }
 
-void mp::Daemon::on_restart(const std::string& name)
+void mp::Daemon::start_mounts(const std::string& name)
 {
-    stop_mounts(name);
-    auto future_watcher = create_future_watcher([this, &name]() {
+    auto future_watcher = create_future_watcher([this, name]() {
         try
         {
             auto virtual_machine = operative_instances.at(name);
@@ -2981,6 +2998,12 @@ void mp::Daemon::on_restart(const std::string& name)
                           nullptr,
                           std::string(),
                           std::string()));
+}
+
+void mp::Daemon::on_restart(const std::string& name)
+{
+    stop_mounts(name);
+    start_mounts(name);
 }
 
 void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine::State& state)
