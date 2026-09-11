@@ -28,6 +28,7 @@ Notes:
 """
 
 import asyncio
+import logging
 import re
 import sys
 import subprocess
@@ -83,17 +84,8 @@ class WindowsServiceMultipassdController:
 
     async def start(self) -> None:
         """Start the service (idempotent)."""
-        async with SilentAsyncSubprocess(*sudo(
-            "sc.exe", "start", self.service_name
-        )) as start:
-            await start.communicate()
-            # 1056 = ERROR_SERVICE_ALREADY_RUNNING: benign, the service is up.
-            if start.returncode not in (0, 1056):
-                raise RuntimeError(
-                    f"Failed to start service `{self.service_name}`: "
-                    f"`sc.exe start` exited {start.returncode}"
-                )
-
+        # 1056 = ERROR_SERVICE_ALREADY_RUNNING: benign, the service is up.
+        await self._run_sc_command("start", benign=(1056,))
         await self._wait_for_state(active=True)
 
         # Cache current PID for auto-restart detection
@@ -106,14 +98,59 @@ class WindowsServiceMultipassdController:
         failure recovery would make the SCM immediately resurrect it, so a
         stopped-but-not-yet-idle daemon is instead failed fast by
         `_wait_for_state` rather than force-killed.
+
+        1062 = ERROR_SERVICE_NOT_ACTIVE is benign: the service is already
+        stopped, which is the desired end state.
         """
-
-        async with SilentAsyncSubprocess(*sudo(
-            "sc.exe", "stop", self.service_name
-        )) as stop:
-            await stop.communicate()
-
+        await self._run_sc_command("stop", benign=(1062,))
         await self._wait_for_state(active=False)
+
+    async def _run_sc_command(
+        self,
+        command: str,
+        *,
+        timeout: float = 720,
+        delay: float = 2.0,
+        benign: tuple[int, ...] = (),
+    ) -> None:
+        """Run `sc.exe <command> <service>`, retrying the transient
+        ERROR_SERVICE_CANNOT_ACCEPT_CTRL (1061) that the SCM returns while the
+        service is mid start/stop.
+
+        `benign` are exit codes that already mean the desired end state (1056
+        "already running" for start, 1062 "not active" for stop). Retry —
+        telling the user we are waiting — so the in-flight transition can
+        settle; raise loudly for any other failure or once the deadline passes.
+        """
+        deadline = time.monotonic() + timeout
+        warned = False
+        while True:
+            async with SilentAsyncSubprocess(
+                *sudo("sc.exe", command, self.service_name)
+            ) as proc:
+                await proc.communicate()
+                if proc.returncode in (0, *benign):
+                    return
+                if proc.returncode != 1061:
+                    raise RuntimeError(
+                        f"Failed to {command} service `{self.service_name}`: "
+                        f"`sc.exe {command}` exited {proc.returncode}"
+                    )
+            if time.monotonic() + delay >= deadline:
+                break
+            if not warned:
+                logging.warning(
+                    "`sc.exe %s %s`: a service-control change is still in "
+                    "progress; waiting up to %.0fs for it to settle...",
+                    command, self.service_name, timeout,
+                )
+                warned = True
+            await asyncio.sleep(delay)
+
+        raise RuntimeError(
+            f"`sc.exe {command} {self.service_name}` still had a service-control "
+            f"change in progress after {timeout:.0f}s"
+        )
 
     async def _wait_for_state(self, active: bool, timeout: float = 60) -> None:
         """Poll until the service is RUNNING (active) or not; fail on timeout.
