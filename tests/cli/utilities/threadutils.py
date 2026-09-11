@@ -43,12 +43,16 @@ class BooleanLatch:
             self._flag = False
             self._cond.notify_all()
 
-    def wait_until(self, value: bool, timeout=None):
-        with self._cond:
-            self._cond.wait_for(lambda: self._flag == value, timeout=timeout)
+    def wait_until(self, value: bool, timeout=None) -> bool:
+        """Wait until the flag equals ``value``.
 
-    def wait(self):
-        self.wait_until(True)
+        Return True when the flag reached ``value``, False if the wait timed out.
+        """
+        with self._cond:
+            return self._cond.wait_for(lambda: self._flag == value, timeout=timeout)
+
+    def wait(self) -> bool:
+        return self.wait_until(True)
 
 
 class BackgroundEventLoop:
@@ -167,15 +171,21 @@ class AsyncSubprocess:
 
     async def __aenter__(self):
         # Shield the spawn so it completes even if we get cancelled mid-await.
-        fut = asyncio.shield(asyncio.create_subprocess_exec(*self.args, **self.kwargs))
+        inner = asyncio.create_task(
+            asyncio.create_subprocess_exec(*self.args, **self.kwargs)
+        )
+        fut = asyncio.shield(inner)
         try:
             self.proc = await fut
             return self.proc
         except asyncio.CancelledError:
             # If cancellation hit mid-spawn, the process may already exist.
             # Finish the spawn to obtain the handle, clean it up, then re-raise.
+            # Await the *inner* task, not the cancelled shield: the shield raises
+            # CancelledError again, bypassing the `except Exception` and the
+            # cleanup below.
             try:
-                self.proc = await fut
+                self.proc = await inner
             except Exception:
                 # Spawn actually failed; nothing to clean.
                 raise
@@ -250,10 +260,17 @@ def wait_for_future(fut, timeout: float = 60, poll_interval: float = 0.5):
         TimeoutError: If the Future doesn't complete within timeout
         Exception: Whatever exception the Future raised, if any
     """
-    start_time = time.time()
+    start_time = time.monotonic()
 
-    while not fut.done() and (time.time() - start_time) < timeout:
-        time.sleep(poll_interval)
+    try:
+        while not fut.done() and (time.monotonic() - start_time) < timeout:
+            time.sleep(poll_interval)
+    except KeyboardInterrupt:
+        # Ctrl-C: cancel the in-flight coroutine so a stuck daemon operation
+        # (e.g. the stop/start retry loop) doesn't keep running in the
+        # background loop after we unwind, then propagate the interrupt.
+        fut.cancel()
+        raise
 
     if not fut.done():
         fut.cancel()
