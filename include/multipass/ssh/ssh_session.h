@@ -26,10 +26,16 @@
 
 namespace multipass
 {
+class SftpSession;
+
 class SSHSession
 {
 public:
     virtual ~SSHSession() = default;
+
+    // Non-copyable (but movable by descendants, see below)
+    SSHSession(const SSHSession&) = delete;
+    SSHSession& operator=(const SSHSession&) = delete;
 
     /**
      * Execute a command in this SSH session.
@@ -49,6 +55,8 @@ public:
     [[nodiscard]] virtual std::unique_ptr<SSHProcess> exec(const std::string& cmd,
                                                            bool whisper = false) = 0;
 
+    virtual std::unique_ptr<SftpSession> make_sftp_session(const std::string& sshfs_cmd) && = 0;
+
     /**
      * @return Whether this object represents a session that is currently connected
      */
@@ -65,9 +73,6 @@ public:
 
 protected:
     SSHSession() = default;
-
-    SSHSession(const SSHSession&) = delete;
-    SSHSession& operator=(const SSHSession&) = delete;
     SSHSession(SSHSession&&) = default;
     SSHSession& operator=(SSHSession&&) = default;
 };

@@ -42,7 +42,7 @@ public:
               const std::string& username,
               const std::string& priv_key_blob,
               ConsoleCreator console_creator);
-    SSHClient(SSHSessionUPtr ssh_session, ConsoleCreator console_creator);
+    SSHClient(SSHSessionUPtr ssh_session_obj, ConsoleCreator console_creator);
 
     int exec(const std::vector<std::vector<std::string>>& args_list);
     int connect();
@@ -52,7 +52,7 @@ private:
     int exec_string(const std::string& cmd_line);
     int get_ssh_exit_code();
 
-    SSHSessionUPtr ssh_session;
+    SSHSessionUPtr ssh_session_obj;
     ChannelUPtr channel;
     Console::UPtr console;
 };

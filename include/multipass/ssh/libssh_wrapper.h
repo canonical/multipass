@@ -83,6 +83,7 @@ public:
                                            int* core_dumped) const;
 
     // --- channel callbacks ---------------------------------------------------
+    virtual void ssh_callbacks_initialize(ssh_channel_callbacks callbacks) const;
     virtual int ssh_add_channel_callbacks(ssh_channel channel, ssh_channel_callbacks cb) const;
     virtual int ssh_remove_channel_callbacks(ssh_channel channel, ssh_channel_callbacks cb) const;
 
