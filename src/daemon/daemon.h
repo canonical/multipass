@@ -52,6 +52,7 @@ public:
     ~Daemon();
 
     void persist_instances();
+    virtual void shutdown_grpc_server();
 
 protected:
     using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
@@ -65,8 +66,6 @@ protected:
     boost::json::object retrieve_metadata_for(const std::string& name) override;
 
 public slots:
-    virtual void shutdown_grpc_server();
-
     virtual void create(const CreateRequest* request,
                         grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                         DaemonRpcContext* context);
