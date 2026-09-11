@@ -262,8 +262,15 @@ def wait_for_future(fut, timeout: float = 60, poll_interval: float = 0.5):
     """
     start_time = time.monotonic()
 
-    while not fut.done() and (time.monotonic() - start_time) < timeout:
-        time.sleep(poll_interval)
+    try:
+        while not fut.done() and (time.monotonic() - start_time) < timeout:
+            time.sleep(poll_interval)
+    except KeyboardInterrupt:
+        # Ctrl-C: cancel the in-flight coroutine so a stuck daemon operation
+        # (e.g. the stop/start retry loop) doesn't keep running in the
+        # background loop after we unwind, then propagate the interrupt.
+        fut.cancel()
+        raise
 
     if not fut.done():
         fut.cancel()
