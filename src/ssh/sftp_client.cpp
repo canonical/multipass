@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include <fmt/std.h>
 #include <functional>
+#include <string_view>
 
 constexpr int file_mode = 0664;
 const std::string stream_file_name{"stream_output.dat"};
@@ -299,32 +300,44 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
 
     auto remote_iter = MP_SFTPUTILS.make_SFTPDirIterator(sftp.get(), source_path);
 
-    std::vector<std::pair<fs::path, mode_t>> subdirectory_perms{
-        {target_path, mp_sftp_stat(sftp.get(), source_path.string().c_str())->permissions}};
+    std::vector<std::pair<fs::path, mode_t>> subdirectory_perms;
 
+    const auto normalized_target = MP_FILEOPS.weakly_canonical(target_path);
     while (remote_iter->hasNext())
     {
         try
         {
             const auto entry = remote_iter->next();
-            const auto local_file_path =
-                target_path / (entry->name + source_path.string().size() + 1);
+            const auto filename_component = fs::path(entry->name).lexically_relative(source_path);
+            const auto normalized_local_file = MP_FILEOPS.weakly_canonical(target_path /
+                                                                           filename_component);
+            auto [it_base, it_path] = std::mismatch(normalized_target.begin(),
+                                                    normalized_target.end(),
+                                                    normalized_local_file.begin(),
+                                                    normalized_local_file.end());
+            if (it_base != normalized_target.end())
+                throw SFTPError{"remote entry {:?} would be written outside {}",
+                                std::string_view{entry->name},
+                                target_path};
 
             switch (entry->type)
             {
             case SSH_FILEXFER_TYPE_REGULAR:
             {
-                pull_file(entry->name, local_file_path);
+                pull_file(entry->name, normalized_local_file);
                 break;
             }
             case SSH_FILEXFER_TYPE_DIRECTORY:
             {
-                if (MP_FILEOPS.create_directory(local_file_path, err); err)
+                const auto pre_existed = MP_FILEOPS.exists(normalized_local_file, err);
+
+                if (MP_FILEOPS.create_directory(normalized_local_file, err); err)
                     throw SFTPError{"cannot create local directory {}: {}",
-                                    local_file_path,
+                                    normalized_local_file,
                                     err.message()};
 
-                subdirectory_perms.emplace_back(local_file_path, entry->permissions);
+                if (!pre_existed)
+                    subdirectory_perms.emplace_back(normalized_local_file, entry->permissions);
                 break;
             }
             case SSH_FILEXFER_TYPE_SYMLINK:
@@ -335,16 +348,17 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
                                     entry->name,
                                     MP_LIBSSH.ssh_get_error(sftp->session)};
 
-                if (MP_FILEOPS.is_directory(local_file_path, err))
+                if (MP_FILEOPS.is_directory(normalized_local_file, err))
                     throw SFTPError{"cannot overwrite local directory {} with non-directory",
-                                    local_file_path};
+                                    normalized_local_file};
 
-                if (MP_FILEOPS.remove(local_file_path, err); !err)
-                    if (MP_FILEOPS.create_symlink(link_target.get(), local_file_path, err); !err)
+                if (MP_FILEOPS.remove(normalized_local_file, err); !err)
+                    if (MP_FILEOPS.create_symlink(link_target.get(), normalized_local_file, err);
+                        !err)
                         break;
 
                 throw SFTPError{"cannot create local symlink {}: {}",
-                                local_file_path,
+                                normalized_local_file,
                                 err.message()};
             }
             default:
