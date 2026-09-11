@@ -107,22 +107,25 @@ static void my_application_startup(GApplication* application) {
 
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
 
+  const auto icon_name = "multipass.gui";
+  gtk_window_set_default_icon_name(icon_name);
   GtkIconTheme* theme = gtk_icon_theme_get_default();
-  if (gtk_icon_theme_has_icon(theme, "multipass.gui")) {
-    gtk_window_set_default_icon_name("multipass.gui");
+  if (!gtk_icon_theme_has_icon(theme, icon_name)) {
+    gtk_icon_theme_add_resource_path(theme, "/com/canonical/multipass/icons");
+  // } else {
+  //   gtk_icon_theme_    
 
-  } else {
-    g_autoptr(GError) icon_error = nullptr;
-    g_autoptr(GdkPixbuf) icon = gdk_pixbuf_new_from_resource(
-      "/com/canonical/multipass/assets/icon.png",
-      &icon_error
-    );
+  //   g_autoptr(GError) icon_error = nullptr;
+  //   g_autoptr(GdkPixbuf) icon = gdk_pixbuf_new_from_resource(
+  //     "/com/canonical/multipass/assets/icon.png",
+  //     &icon_error
+  //   );
 
-    if (icon) {
-      gtk_window_set_default_icon(icon);
-    } else {
-      g_warning("Failed to load icon resource: %s", icon_error->message);
-    }
+  //   if (icon) {
+  //     gtk_window_set_default_icon(icon);
+  //   } else {
+  //     g_warning("Failed to load icon resource: %s", icon_error->message);
+  //   }
   }
 }
 
