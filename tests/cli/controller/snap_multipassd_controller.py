@@ -55,7 +55,7 @@ class SnapMultipassdController:
             )
 
     async def _run_snap_service_command(
-        self, command: str, timeout: float = 120, delay: float = 2.0
+        self, command: str, timeout: float = 720, delay: float = 2.0
     ) -> None:
         """Run `snap <command> <snap>`, retrying the transient
         "service-control change in progress" rejection for up to `timeout`.
