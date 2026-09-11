@@ -2312,60 +2312,61 @@ try
                                    InstanceGroup::All,
                                    require_existing_instances_reaction);
 
-    if (status.ok())
+    // `status` may already carry an error at this point, if some of the requested instances
+    // don't exist. Still, go ahead and act on whichever instances were actually found below,
+    // instead of dropping the whole request - a missing instance shouldn't prevent deletion of
+    // the others that do exist.
+    const bool purge = request->purge();
+    bool purge_snapshots = request->purge_snapshots();
+    auto instances_dirty = false;
+
+    auto instance_snapshots_map = map_snapshots_to_instances(request->instance_snapshot_pairs());
+
+    // avoid deleting if any snapshot is missing or if we don't get confirmation
+    auto any_snapshot_args = verify_snapshot_picks(instance_selection,
+                                                   instance_snapshots_map,
+                                                   purge);
+    if (any_snapshot_args && !purge && !purge_snapshots)
     {
-        const bool purge = request->purge();
-        bool purge_snapshots = request->purge_snapshots();
-        auto instances_dirty = false;
+        DeleteReply confirm_action{};
+        confirm_action.set_confirm_snapshot_purging(true);
 
-        auto instance_snapshots_map =
-            map_snapshots_to_instances(request->instance_snapshot_pairs());
+        // TODO refactor with bridging and restore prompts
+        if (!server->Write(confirm_action))
+            throw std::runtime_error("Cannot request confirmation from client. Aborting...");
+        DeleteRequest client_response;
+        if (!server->Read(&client_response))
+            throw std::runtime_error("Cannot get confirmation from client. Aborting...");
 
-        // avoid deleting if any snapshot is missing or if we don't get confirmation
-        auto any_snapshot_args =
-            verify_snapshot_picks(instance_selection, instance_snapshots_map, purge);
-        if (any_snapshot_args && !purge && !purge_snapshots)
-        {
-            DeleteReply confirm_action{};
-            confirm_action.set_confirm_snapshot_purging(true);
-
-            // TODO refactor with bridging and restore prompts
-            if (!server->Write(confirm_action))
-                throw std::runtime_error("Cannot request confirmation from client. Aborting...");
-            DeleteRequest client_response;
-            if (!server->Read(&client_response))
-                throw std::runtime_error("Cannot get confirmation from client. Aborting...");
-
-            if (!(purge_snapshots = client_response.purge_snapshots()))
-                return context->set_value(grpc::Status{grpc::CANCELLED, "Cancelled."});
-        }
-
-        // start with deleted instances, to avoid iterator invalidation when moving instances there
-        for (const auto* selection :
-             {&instance_selection.deleted_selection, &instance_selection.operative_selection})
-        {
-            for (const auto& vm_it : *selection)
-            {
-                const auto& instance_name = vm_it->first;
-
-                auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
-                const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end()
-                                            ? SnapshotPick{{}, true}
-                                            : snapshot_pick_it->second;
-
-                if (!all || !purge) // if we're not purging the instance, we need to delete
-                                    // specified snapshots
-                    for (const auto& snapshot_name : pick)
-                        vm_it->second->delete_snapshot(snapshot_name);
-
-                if (all) // we're asked to delete the VM
-                    instances_dirty |= delete_vm(vm_it, purge, response);
-            }
-        }
-
-        if (instances_dirty)
-            persist_instances();
+        if (!(purge_snapshots = client_response.purge_snapshots()))
+            return context->set_value(grpc::Status{grpc::CANCELLED, "Cancelled."});
     }
+
+    // start with deleted instances, to avoid iterator invalidation when moving instances there
+    for (const auto* selection :
+         {&instance_selection.deleted_selection, &instance_selection.operative_selection})
+    {
+        for (const auto& vm_it : *selection)
+        {
+            const auto& instance_name = vm_it->first;
+
+            auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
+            const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end()
+                                        ? SnapshotPick{{}, true}
+                                        : snapshot_pick_it->second;
+
+            if (!all || !purge) // if we're not purging the instance, we need to delete
+                                // specified snapshots
+                for (const auto& snapshot_name : pick)
+                    vm_it->second->delete_snapshot(snapshot_name);
+
+            if (all) // we're asked to delete the VM
+                instances_dirty |= delete_vm(vm_it, purge, response);
+        }
+    }
+
+    if (instances_dirty)
+        persist_instances();
 
     server->Write(response);
     context->set_value(status);
