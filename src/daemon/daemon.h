@@ -52,7 +52,7 @@ public:
     ~Daemon();
 
     void persist_instances();
-    virtual void shutdown_grpc_server();
+    void shutdown_grpc_server();
 
 protected:
     using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
