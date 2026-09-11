@@ -18,6 +18,7 @@
 
 import sys
 import asyncio
+import logging
 import subprocess
 import time
 from asyncio.subprocess import Process
@@ -53,24 +54,48 @@ class SnapMultipassdController:
                 f"`{self.snap_name}` snap is not installed!"
             )
 
-    async def _run_snap_service_command(self, command: str) -> None:
-        """Run `snap <command> <snap>` and fail loudly if snapd rejects it.
+    async def _run_snap_service_command(
+        self, command: str, timeout: float = 120, delay: float = 2.0
+    ) -> None:
+        """Run `snap <command> <snap>`, retrying the transient
+        "service-control change in progress" rejection for up to `timeout`.
 
         snapd refuses a new service command while a previous change on the
         same snap is still in flight (e.g. a `stop` that is waiting on a
-        daemon that ignores SIGTERM). Swallowing that error makes the caller
-        believe the daemon was (re)started and the failure then surfaces as
-        a bogus "multipassd died with code 0" from the monitor.
+        daemon that ignores SIGTERM). Retry — telling the user we are waiting —
+        so the in-flight change can settle; raise loudly for any other failure
+        or once the deadline passes.
         """
-        async with StdoutAsyncSubprocess(
-            *sudo("snap", command, self.snap_name)
-        ) as proc:
-            stdout, _ = await proc.communicate()
-            if proc.returncode != 0:
-                raise RuntimeError(
-                    f"`snap {command} {self.snap_name}` exited "
-                    f"{proc.returncode}: {stdout.decode('utf-8', 'replace').strip()}"
+        deadline = time.monotonic() + timeout
+        warned = False
+        while True:
+            async with StdoutAsyncSubprocess(
+                *sudo("snap", command, self.snap_name)
+            ) as proc:
+                stdout, _ = await proc.communicate()
+                if proc.returncode == 0:
+                    return
+                message = stdout.decode("utf-8", "replace").strip()
+                if "change in progress" not in message:
+                    raise RuntimeError(
+                        f"`snap {command} {self.snap_name}` exited "
+                        f"{proc.returncode}: {message}"
+                    )
+            if time.monotonic() + delay >= deadline:
+                break
+            if not warned:
+                logging.warning(
+                    "`snap %s %s`: a service-control change is still in "
+                    "progress; waiting up to %.0fs for it to settle...",
+                    command, self.snap_name, timeout,
                 )
+                warned = True
+            await asyncio.sleep(delay)
+
+        raise RuntimeError(
+            f"`snap {command} {self.snap_name}` still had a service-control "
+            f"change in progress after {timeout:.0f}s"
+        )
 
     async def _wait_for_state(self, active: bool, timeout: float = 60) -> None:
         """Poll until the service is active or not; fail on timeout."""

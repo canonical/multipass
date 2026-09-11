@@ -398,7 +398,9 @@ def make_temporary_storage_dir():
 
 @pytest.fixture(autouse=True, scope="session")
 def ensure_multipass_binaries_are_present():
-    if not get_multipass_path():
+    try:
+        get_multipass_path()
+    except FileNotFoundError:
         pytest.exit(
             "ERROR: Could not locate the `multipass` binary!",
             returncode=1,
