@@ -127,3 +127,41 @@ TEST(SFTPDirIterator, failReaddir)
         mpt::match_what(
             StrEq("cannot read remote directory 'dir': SFTP server: Permission denied")));
 }
+
+TEST(SFTPDirIterator, rejectsEntryWithSlash)
+{
+    REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_dir(path); });
+    std::vector<sftp_attributes> entries{
+        get_dummy_attr("a/b", SSH_FILEXFER_TYPE_REGULAR),
+        nullptr,
+    };
+    REPLACE(sftp_readdir, ([&, i = 0](auto...) mutable {
+                return i == (int)entries.size() ? nullptr : entries[i++];
+            }));
+    REPLACE(sftp_dir_eof, [](auto...) { return true; });
+
+    sftp_session_struct sftp{};
+    MP_EXPECT_THROW_THAT(
+        (mp::SFTPDirIterator{&sftp, "dir"}),
+        mp::SFTPError,
+        mpt::match_what(StrEq("remote entry name is not a single path component: \"a/b\"")));
+}
+
+TEST(SFTPDirIterator, rejectsAbsoluteEntry)
+{
+    REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_dir(path); });
+    std::vector<sftp_attributes> entries{
+        get_dummy_attr("/abs", SSH_FILEXFER_TYPE_REGULAR),
+        nullptr,
+    };
+    REPLACE(sftp_readdir, ([&, i = 0](auto...) mutable {
+                return i == (int)entries.size() ? nullptr : entries[i++];
+            }));
+    REPLACE(sftp_dir_eof, [](auto...) { return true; });
+
+    sftp_session_struct sftp{};
+    MP_EXPECT_THROW_THAT(
+        (mp::SFTPDirIterator{&sftp, "dir"}),
+        mp::SFTPError,
+        mpt::match_what(StrEq("remote entry name is not a single path component: \"/abs\"")));
+}
