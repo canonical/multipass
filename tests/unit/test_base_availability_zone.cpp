@@ -139,6 +139,6 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
     // Setting to current state (true) shouldn't trigger VM updates
     EXPECT_THAT(zone.set_available(true), IsEmpty());
 
-    // Setting to new state should notify all VMs, reporting only those that transitioned
+    // Setting to new state should notify all VMs, reporting only those that need mounts restarted
     EXPECT_THAT(zone.set_available(false), ElementsAre(mock_vm1.get_name()));
 }
