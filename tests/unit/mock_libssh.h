@@ -49,6 +49,7 @@ public:
                 ssh_userauth_publickey,
                 (ssh_session session, const char* username, const ssh_key privkey),
                 (const, override));
+    MOCK_METHOD(int, ssh_send_keepalive, (ssh_session session), (const, override));
 
     // --- channel -------------------------------------------------------------
     MOCK_METHOD(ssh_channel, ssh_channel_new, (ssh_session session), (const, override));
@@ -65,6 +66,10 @@ public:
     MOCK_METHOD(int,
                 ssh_channel_read_nonblocking,
                 (ssh_channel channel, void* dest, uint32_t count, int is_stderr),
+                (const, override));
+    MOCK_METHOD(int,
+                ssh_channel_poll_timeout,
+                (ssh_channel channel, int timeout, int is_stderr),
                 (const, override));
     MOCK_METHOD(int,
                 ssh_channel_request_pty_size,

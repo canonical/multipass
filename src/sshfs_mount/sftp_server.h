@@ -23,6 +23,7 @@
 
 #include <libssh/sftp.h>
 
+#include <atomic>
 #include <memory>
 #include <unordered_map>
 
@@ -105,6 +106,6 @@ private:
     const int default_uid;
     const int default_gid;
     const std::string sshfs_exec_line;
-    bool stop_invoked{false};
+    std::atomic<bool> stop_invoked{false};
 };
 } // namespace multipass
