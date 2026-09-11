@@ -170,16 +170,26 @@ void SFTPClient::push_file(const fs::path& source_path, const fs::path& target_p
 
 void SFTPClient::pull_file(const fs::path& source_path, const fs::path& target_path)
 {
-    auto local_file =
-        MP_FILEOPS.open_write(target_path, std::ios_base::out | std::ios_base::binary);
+    std::error_code existed_err;
+    const auto pre_existed = MP_FILEOPS.exists(target_path, existed_err);
+    if (existed_err)
+        throw SFTPError{"Cannot determine if local file {} exists: {}",
+                        target_path,
+                        existed_err.message()};
+
+    auto local_file = MP_FILEOPS.open_write(target_path,
+                                            std::ios_base::out | std::ios_base::binary);
     if (local_file->fail())
         throw SFTPError{"cannot open local file {}: {}", target_path, strerror(errno)};
 
     do_pull_file(source_path, *local_file);
 
-    auto source_perms = mp_sftp_stat(sftp.get(), source_path.string().c_str())->permissions;
-    if (!MP_PLATFORM.set_permissions(target_path, static_cast<fs::perms>(source_perms)))
-        throw SFTPError{"cannot set permissions for local file {}", target_path};
+    if (!pre_existed)
+    {
+        auto source_perms = mp_sftp_stat(sftp.get(), source_path.string().c_str())->permissions;
+        if (!MP_PLATFORM.set_permissions(target_path, static_cast<fs::perms>(source_perms)))
+            throw SFTPError{"cannot set permissions for local file {}", target_path};
+    }
 
     if (local_file->fail())
         throw SFTPError{"cannot write to local file {}: {}", target_path, strerror(errno)};
