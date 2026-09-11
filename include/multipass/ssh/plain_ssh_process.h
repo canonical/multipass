@@ -36,7 +36,7 @@ class PlainSftpSession;
 class PlainSSHProcess : public SSHProcess
 {
 public:
-    PlainSSHProcess(ssh_session_struct& raw_session,
+    PlainSSHProcess(ssh_session_struct* raw_session, // non-null
                     const std::string& cmd,
                     std::unique_lock<std::mutex> session_lock);
 
