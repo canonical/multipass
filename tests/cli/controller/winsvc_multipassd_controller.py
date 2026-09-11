@@ -100,17 +100,18 @@ class WindowsServiceMultipassdController:
         self._daemon_pid = await self._get_pid()
 
     async def stop(self, graceful: bool = True) -> None:
-        """Stop the service. Uses a graceful stop; falls back to terminate."""
+        """Stop the service gracefully.
+
+        Only `sc stop` is used: force-killing a service that has restart-on-
+        failure recovery would make the SCM immediately resurrect it, so a
+        stopped-but-not-yet-idle daemon is instead failed fast by
+        `_wait_for_state` rather than force-killed.
+        """
 
         async with SilentAsyncSubprocess(*sudo(
             "sc.exe", "stop", self.service_name
         )) as stop:
             await stop.communicate()
-            if stop.returncode != 0:
-                async with SilentAsyncSubprocess(*sudo(
-                    "taskkill", "/FI", f"SERVICES eq {self.service_name}", "/F"
-                )) as stop_force:
-                    await stop_force.communicate()
 
         await self._wait_for_state(active=False)
 
@@ -219,7 +220,11 @@ class WindowsServiceMultipassdController:
             run_detached_thread("close-multipass-eventlog-subscription", close_eventlog_handles)
 
     async def is_active(self) -> bool:
-        return await self._get_state() == "RUNNING"
+        state = await self._get_state()
+        # START_PENDING/STOP_PENDING/etc. are transitional: the service is still
+        # present, so wait_exit()/_wait_for_state() must keep polling until it
+        # reaches "STOPPED" rather than bailing mid transition.
+        return state is not None and state != "STOPPED"
 
     async def wait_exit(self) -> Optional[int]:
         # Wait until service is not RUNNING
