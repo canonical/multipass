@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/canonical/multipass/icons">
+    <file preprocess="to-pixdata" alias="hicolor/256x">../assets/icon.png</file>
+  </gresource>
+</gresources>
