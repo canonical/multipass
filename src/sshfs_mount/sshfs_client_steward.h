@@ -13,30 +13,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
 
 #pragma once
 
-#include <multipass/disabled_copy_move.h>
-
-#include <string>
-
-struct ssh_key_struct;
+#include <multipass/sshfs_mount/sftp_client_steward.h>
 
 namespace multipass
 {
-class SSHKeyProvider : private DisabledCopyMove
+
+/**
+ * An SftpClientSteward that discovers what sshfs is available and how it should be run
+ */
+class SshfsClientSteward final : public SftpClientSteward
 {
 public:
-    using ssh_key = ssh_key_struct*;
-    virtual ~SSHKeyProvider() = default;
-    virtual std::string private_key_as_base64() const = 0;
-    virtual std::string public_key_as_base64() const = 0;
-    virtual ssh_key private_key() const = 0;
+    std::string compose_client_command(SSHSession& session,
+                                       const std::string& source,
+                                       const std::string& target) const override;
 
-protected:
-    SSHKeyProvider() = default;
+    /**
+     * @copydoc SftpClientSteward::clean_up_after_client
+     *
+     * This implementation unmounts stale mounts that may have been left over by the sshfs client.
+     */
+    void clean_up_after_client(SSHSession& session, const std::string& source) const override;
 };
 } // namespace multipass

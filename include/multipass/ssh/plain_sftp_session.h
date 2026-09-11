@@ -22,34 +22,103 @@
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/sshfs_mount/sftp_session.h>
 
-#include <libssh/sftp.h> // TODO@sftp avoid this include (need to go through MP_LIBSSH)
+#include <atomic>
+#include <chrono>
+#include <string>
+
+struct ssh_session_struct;
+struct ssh_channel_struct;
+struct sftp_session_struct;
 
 namespace multipass
 {
+class SftpClientSteward;
 
 /**
- * A concrete SftpSession backed by an SSHFS mount: it serves the SFTP protocol over an SSH
- * session to a remote sshfs client, which mounts it on the guest.
+ * A concrete SftpSession backed by a remote SFTP client. It serves the SFTP protocol over an SSH
+ * session to a client that is spawned on the guest, according to the specification provided by an
+ * SftpClientSteward.
  */
 class PlainSftpSession : public SftpSession, public PrivatePassProvider<PlainSftpSession>
 {
 public:
-    PlainSftpSession(PlainSSHSession&& ssh_session_obj, const std::string& sshfs_cmd);
+    /**
+     * Interval at which #next_message polls for new messages while waiting for one to arrive.
+     * Using int underneath: that is perfectly enough for intent and it is what libssh expects.
+     */
+    constexpr static std::chrono::duration<int, std::milli> poll_interval{250};
+
+    /**
+     * Consume an SSH session to serve SFTP to a remote client over it.
+     *
+     * @param ssh_session_obj The SSH session to serve on, which this consumes.
+     * @see SSHSession::make_sftp_session for the semantics of the remaining params.
+     */
+    PlainSftpSession(PlainSSHSession&& ssh_session_obj,
+                     const SftpClientSteward& client_steward,
+                     const std::string& source,
+                     const std::string& target);
+    ~PlainSftpSession() override;
+
     PlainSftpSession(const PlainSftpSession&) = delete;
     PlainSftpSession& operator=(const PlainSftpSession&) = delete;
 
-    // TODO@sftp Make class final before enabling these
+    // Make class final before enabling these
     PlainSftpSession(PlainSftpSession&&) = delete;
     PlainSftpSession& operator=(PlainSftpSession&&) = delete;
 
+    /**
+     * @copydoc SftpSession::request_stop
+     *
+     * This will typically take up to #poll_interval to take effect, but it can take longer if:
+     * @li reading a single SFTP message takes longer, e.g. because it arrives in chunks that are
+     * slow to complete
+     * @li the reading thread is delayed in being scheduled
+     */
+    void request_stop() noexcept override;
+
+    std::unique_ptr<SftpMessage> next_message() override;
+
+    /**
+     * @copydoc SftpSession::renew_client
+     *
+     * This runs a new client in the guest, over the SSH session that this already holds.
+     */
+    void renew_client() override;
+
+    /**
+     * @copydoc SftpSession::client_exit_code
+     *
+     * This waits briefly for the client process's exit status, reporting no exit code when that
+     * does not come through in time.
+     */
+    std::optional<int> client_exit_code() override;
+
 private:
-    // TODO@sftp avoid mentioning sftp_server_free here (need to go through MP_LIBSSH)
-    using RawSftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_server_free)*>;
+    using ssh_channel = ssh_channel_struct*;
+    using ssh_session = ssh_session_struct*;
+
+    struct RawSftpSessionDeleter
+    {
+        void operator()(sftp_session_struct* session) const noexcept;
+    };
+    using RawSftpSessionUptr = std::unique_ptr<sftp_session_struct, RawSftpSessionDeleter>;
 
     static RawSftpSessionUptr make_raw_sftp_session(ssh_session raw_session, ssh_channel channel);
 
+    /**
+     * Run a new client in the guest and serve a new SFTP session to it.
+     *
+     * @pre No client of this session is currently running.
+     */
+    void spawn_client();
+
     PlainSSHSession plain_ssh_session;
-    std::unique_ptr<PlainSSHProcess> sshfs_process;
+    const SftpClientSteward& client_steward;
+    const std::string source;
+    const std::string client_cmd;
+    std::unique_ptr<PlainSSHProcess> client_process;
     RawSftpSessionUptr raw_sftp_session;
+    std::atomic<bool> stop_requested{false};
 };
 } // namespace multipass

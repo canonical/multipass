@@ -19,18 +19,21 @@
 
 #include <multipass/ssh/ssh_process.h>
 
-#include <libssh/libssh.h>
-
 #include <memory>
 #include <string>
+
+struct ssh_session_struct; // TODO@sftp remove once operator ssh_session is gone
 
 namespace multipass
 {
 class SftpSession;
+class SftpClientSteward;
 
 class SSHSession
 {
 public:
+    using ssh_session = ssh_session_struct*; // TODO@sftp remove once operator ssh_session is gone
+
     virtual ~SSHSession() = default;
 
     // Non-copyable (but movable by descendants, see below)
@@ -46,7 +49,7 @@ public:
      * the same session. In other words, a process may execute only after any previous processes
      * have been destroyed or had exit_code called upon them.
      *
-     * TODO@sftp make it such that exit_code releases only when the process exits (not on timeout).
+     * TODO@sftp stop releasing the lock in exit_code entirely, require clients to destroy
      *
      * @param cmd The command to execute
      * @param whisper Whether to use trace rather than debug logging
@@ -55,7 +58,17 @@ public:
     [[nodiscard]] virtual std::unique_ptr<SSHProcess> exec(const std::string& cmd,
                                                            bool whisper = false) = 0;
 
-    virtual std::unique_ptr<SftpSession> make_sftp_session(const std::string& sshfs_cmd) && = 0;
+    /**
+     * Consume this SSH session to create an SFTP session, serving SFTP to a remote client.
+     *
+     * @param client_steward A reference to an SftpClientSteward, which must outlive this session.
+     * @param source The local path to serve.
+     * @param target The remote path to map the source to.
+     * @return The resulting SFTP session.
+     */
+    virtual std::unique_ptr<SftpSession> make_sftp_session(const SftpClientSteward& client_steward,
+                                                           const std::string& source,
+                                                           const std::string& target) && = 0;
 
     /**
      * @return Whether this object represents a session that is currently connected
@@ -69,7 +82,7 @@ public:
     [[nodiscard]] virtual bool is_moved() const = 0;
 
     virtual operator ssh_session() = 0; // careful, not thread safe // TODO@sftp drop this?
-    virtual void force_shutdown() = 0;  // careful, not thread safe
+    virtual void shutdown_custom_socket() = 0; // careful, not thread safe
 
 protected:
     SSHSession() = default;

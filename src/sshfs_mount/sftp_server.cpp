@@ -239,8 +239,8 @@ auto create_sshfs_process(mp::SSHSession& session,
                           const std::string& source,
                           const std::string& target)
 {
-    auto sshfs_process =
-        session.exec(fmt::format("sudo {} :{:?} {:?}", sshfs_exec_line, source, target));
+    auto sshfs_process = session.exec(
+        fmt::format("sudo -n {} :{:?} {:?}", sshfs_exec_line, source, target));
 
     check_sshfs_status(*sshfs_process);
 
@@ -630,7 +630,7 @@ void mp::SftpServer::run()
 void mp::SftpServer::stop()
 {
     stop_invoked = true;
-    ssh_session_obj->force_shutdown(); // TODO@sftp there should be a better way...
+    ssh_session_obj->shutdown_custom_socket(); // TODO@sftp there should be a better way...
 }
 
 int mp::SftpServer::handle_close(sftp_client_message msg)
