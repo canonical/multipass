@@ -1826,13 +1826,13 @@ try
         entry->set_current_release(current_release);
         entry->set_os(os);
 
-        if (request->request_ipv4() && MP_UTILS.is_running(present_state) && vm.management_ipv4())
+        auto management_ip = vm.management_ipv4();
+        // FIXME: Remove the mgmt IP gate when VSOCK lands
+        if (request->request_ipv4() && MP_UTILS.is_running(present_state) && management_ip)
         {
-            auto management_ip = vm.management_ipv4();
-            auto all_ipv4 = vm.get_all_ipv4();
-
-            if (management_ip)
-                entry->add_ipv4(management_ip->as_string());
+            // base get_all_ipv4 obtains IP addresses via SSH, which requires mgmt ip
+            const auto all_ipv4 = vm.get_all_ipv4();
+            entry->add_ipv4(management_ip->as_string());
 
             for (const auto& extra_ipv4 : all_ipv4)
                 if (extra_ipv4 != management_ip)
