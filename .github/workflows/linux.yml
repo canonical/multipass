@@ -35,11 +35,13 @@ jobs:
           });
 
           let runners = ["ubuntu-latest", "ubuntu-24.04-arm"];
-          if (context.eventName === 'schedule' &&
-              context.repo.owner === 'canonical' &&
+          if (context.repo.owner === 'canonical' &&
               context.repo.repo === 'multipass') {
-            runners.push("self-hosted-linux-ppc64el-noble-edge",
-                         "self-hosted-linux-s390x-noble-edge");
+            if (context.eventName === 'schedule' ||
+                context.eventName === 'pull_request') {
+              runners.push("self-hosted-linux-ppc64el-noble-edge");
+              runners.push("self-hosted-linux-s390x-noble-edge");
+            }
           }
 
           for (const runner of runners) {
