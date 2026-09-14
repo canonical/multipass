@@ -3784,6 +3784,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     timestamp->set_seconds(created_time.toSecsSinceEpoch());
     timestamp->set_nanos(created_time.time().msec() * 1'000'000);
 
+    // FIXME: Remove the mgmt IP gate when VSOCK lands
     if (!no_runtime_info && MP_UTILS.is_running(present_state) && vm.management_ipv4())
         RuntimeInstanceInfoHelper::populate_runtime_info(vm,
                                                          info,
