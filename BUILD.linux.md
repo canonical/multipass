@@ -69,20 +69,11 @@ this case, you need to manually fetch the tags from the upstream by running
 
 ## Run the Multipass daemon and client
 
-First, install Multipass's runtime dependencies. On AMD64 architecture, you can do this with:
+First, install Multipass's runtime dependencies. On both AMD64 and ARM64 architecture, you can do this with:
 
 ```
 sudo apt update
-sudo apt install libgl1 libpng16-16 libxml2 dnsmasq-base \
-    dnsmasq-utils libslang2 iproute2 iptables iputils-ping \
-    libatm1 libxtables12 xterm
-```
-
-On ARM64 architecture, you can do this by running:
-
-```
-sudo apt update
-sudo apt install libgl1 libpng16-16 libxml2 dnsmasq-base \
+sudo apt install libgl1 libpng16-16 dnsmasq-base \
     dnsmasq-utils libslang2 iproute2 iptables iputils-ping \
     libatm1 libxtables12 xterm
 ```
@@ -90,7 +81,7 @@ sudo apt install libgl1 libpng16-16 libxml2 dnsmasq-base \
 Then run the Multipass daemon:
 
 ```
-sudo <multipass>/build/bin/multipassd &
+pkexec <multipass>/build/bin/multipassd &
 ```
 
 Copy the desktop file that Multipass clients expect to find in your home:
@@ -113,5 +104,4 @@ export PATH=<multipass>/build/bin
 ```
 
 Now you can use the `multipass` command from your terminal (for example
-`<multipass>/build/bin/multipass launch --name foo`) or launch the GUI client with the command
-`<multipass>/build/bin/multipass.gui`.
+`<multipass>/build/bin/multipass launch --name foo`) or launch the GUI client with the command `<multipass>/build/bin/multipass.gui`.
