@@ -38,27 +38,27 @@ struct MockVirtDiskWrapper : public hyperv::virtdisk::VirtDiskWrapper
 
     MOCK_METHOD(hyperv::OperationResult,
                 resize_virtual_disk,
-                (const std::filesystem::path& vhdx_path, std::uint64_t new_size_bytes),
+                (const NativePath& vhdx_path, std::uint64_t new_size_bytes),
                 (const, override));
 
     MOCK_METHOD(hyperv::OperationResult,
                 merge_virtual_disk_into_parent,
-                (const std::filesystem::path& child),
+                (const NativePath& child),
                 (const, override));
 
     MOCK_METHOD(hyperv::OperationResult,
                 reparent_virtual_disk,
-                (const std::filesystem::path& child, const std::filesystem::path& parent),
+                (const NativePath& child, const NativePath& parent),
                 (const, override));
 
     MOCK_METHOD(hyperv::OperationResult,
                 get_virtual_disk_info,
-                (const std::filesystem::path& vhdx_path, hyperv::virtdisk::VirtualDiskInfo& vdinf),
+                (const NativePath& vhdx_path, hyperv::virtdisk::VirtualDiskInfo& vdinf),
                 (const, override));
 
     MOCK_METHOD(hyperv::OperationResult,
                 list_virtual_disk_chain,
-                (const std::filesystem::path& vhdx_path,
+                (const NativePath& vhdx_path,
                  std::vector<std::filesystem::path>& chain,
                  std::optional<std::size_t> max_depth),
                 (const, override));
