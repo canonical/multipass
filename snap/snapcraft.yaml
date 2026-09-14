@@ -51,6 +51,7 @@ apps:
       DAEMON_CONFIG_HOME: *daemon-config # temporary
     daemon: simple
     stop-timeout: 5m
+    stop-mode: sigterm
     plugs:
       - all-home
       - firewall-control
