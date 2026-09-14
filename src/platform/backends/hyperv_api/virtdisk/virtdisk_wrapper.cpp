@@ -62,14 +62,6 @@ struct overloaded : Ts...
 
 // ---------------------------------------------------------
 
-auto normalize_path(std::filesystem::path p)
-{
-    p.make_preferred();
-    return p;
-}
-
-// ---------------------------------------------------------
-
 struct HandleCloser
 {
     void operator()(HANDLE h) const noexcept
@@ -95,7 +87,7 @@ struct VirtDiskPredecessorError : FormattedExceptionBase<>
 // ---------------------------------------------------------
 
 UniqueHandle open_virtual_disk(
-    const std::filesystem::path& vhdx_path,
+    const NativePath& vhdx_path,
     VIRTUAL_DISK_ACCESS_MASK access_mask = VIRTUAL_DISK_ACCESS_MASK::VIRTUAL_DISK_ACCESS_ALL,
     OPEN_VIRTUAL_DISK_FLAG flags = OPEN_VIRTUAL_DISK_FLAG::OPEN_VIRTUAL_DISK_FLAG_NONE,
     POPEN_VIRTUAL_DISK_PARAMETERS params = nullptr)
@@ -110,7 +102,7 @@ UniqueHandle open_virtual_disk(
     type.VendorId = VIRTUAL_STORAGE_TYPE_VENDOR_UNKNOWN;
 
     UniqueHandle handle{nullptr};
-    const auto path_w = vhdx_path.generic_wstring();
+    const auto path_w = vhdx_path.wstring();
 
     const ResultCode result = API().OpenVirtualDisk(
         // [in] PVIRTUAL_STORAGE_TYPE VirtualStorageType
@@ -144,7 +136,7 @@ void fill_predecessor_info(const VirtDiskWrapper& wrapper,
                            PCWSTR& target_path,
                            VIRTUAL_STORAGE_TYPE& target_type)
 {
-    std::filesystem::path pp{predecessor_path};
+    NativePath pp{predecessor_path};
     if (!MP_FILEOPS.exists(pp))
     {
         throw VirtDiskPredecessorError{"Predecessor VHDX file `{}` does not exist!", pp};
@@ -202,7 +194,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
 {
     mpl::debug(log_category, "create_virtual_disk(...) > params: {}", params);
 
-    const auto target_path_normalized = normalize_path(params.path).generic_wstring();
+    const auto target_path = params.path.wstring();
     //
     // https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/Hyper-V/Storage/cpp/CreateVirtualDisk.cpp
     //
@@ -227,10 +219,9 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
     CREATE_VIRTUAL_DISK_FLAG flags{CREATE_VIRTUAL_DISK_FLAG_NONE};
 
     /**
-     * The source/parent paths need to be normalized first,
-     * and the normalized path needs to outlive the API call itself.
+     * The source/parent path strings need to outlive the API call itself.
      */
-    std::wstring predecessor_path_normalized{};
+    std::wstring predecessor_path{};
 
     std::visit(overloaded{
                    [&](const std::monostate&) {
@@ -250,21 +241,21 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
                        }
                    },
                    [&](const SourcePathParameters& params) {
-                       predecessor_path_normalized = normalize_path(params.path).wstring();
+                       predecessor_path = params.path.wstring();
                        fill_predecessor_info(*this,
-                                             predecessor_path_normalized,
+                                             predecessor_path,
                                              parameters.Version2.SourcePath,
                                              parameters.Version2.SourceVirtualStorageType);
                        flags |= CREATE_VIRTUAL_DISK_FLAG_PREVENT_WRITES_TO_SOURCE_DISK;
                        mpl::debug(log_category,
                                   "create_virtual_disk(...) > cloning `{}` to `{}`",
-                                  std::filesystem::path{predecessor_path_normalized},
-                                  std::filesystem::path{target_path_normalized});
+                                  std::filesystem::path{predecessor_path},
+                                  std::filesystem::path{target_path});
                    },
                    [&](const ParentPathParameters& params) {
-                       predecessor_path_normalized = normalize_path(params.path).wstring();
+                       predecessor_path = params.path.wstring();
                        fill_predecessor_info(*this,
-                                             predecessor_path_normalized,
+                                             predecessor_path,
                                              parameters.Version2.ParentPath,
                                              parameters.Version2.ParentVirtualStorageType);
                        flags |= CREATE_VIRTUAL_DISK_FLAG_PREVENT_WRITES_TO_SOURCE_DISK;
@@ -281,7 +272,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
     const auto result = API().CreateVirtualDisk(
         &type,
         // [in] PCWSTR Path
-        target_path_normalized.c_str(),
+        target_path.c_str(),
         // [in] VIRTUAL_DISK_ACCESS_MASK VirtualDiskAccessMask,
         VIRTUAL_DISK_ACCESS_NONE,
         // [in, optional] PSECURITY_DESCRIPTOR SecurityDescriptor,
@@ -308,7 +299,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
 
 // ---------------------------------------------------------
 
-OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path& vhdx_path,
+OperationResult VirtDiskWrapper::resize_virtual_disk(const NativePath& vhdx_path,
                                                      std::uint64_t new_size_bytes) const
 {
     mpl::debug(log_category,
@@ -349,8 +340,7 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const std::filesystem::path
 
 // ---------------------------------------------------------
 
-OperationResult VirtDiskWrapper::merge_virtual_disk_into_parent(
-    const std::filesystem::path& child) const
+OperationResult VirtDiskWrapper::merge_virtual_disk_into_parent(const NativePath& child) const
 {
     // https://github.com/microsoftarchive/msdn-code-gallery-microsoft/blob/21cb9b6bc0da3b234c5854ecac449cb3bd261f29/OneCodeTeam/Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/%5BC%2B%2B%5D-Demo%20various%20VHD%20API%20usage%20(CppVhdAPI)/C%2B%2B/CppVhdAPI/CppVhdAPI.cpp
     mpl::debug(log_category, "merge_virtual_disk_into_parent(...) > child: {}", child);
@@ -391,8 +381,8 @@ OperationResult VirtDiskWrapper::merge_virtual_disk_into_parent(
 
 // ---------------------------------------------------------
 
-OperationResult VirtDiskWrapper::reparent_virtual_disk(const std::filesystem::path& child,
-                                                       const std::filesystem::path& parent) const
+OperationResult VirtDiskWrapper::reparent_virtual_disk(const NativePath& child,
+                                                       const NativePath& parent) const
 {
     mpl::debug(log_category,
                "reparent_virtual_disk(...) > child: {}, new parent: {}",
@@ -413,7 +403,7 @@ OperationResult VirtDiskWrapper::reparent_virtual_disk(const std::filesystem::pa
         return OperationResult::failure(L"open_virtual_disk failed!");
     }
 
-    const auto parent_path_wstr = parent.generic_wstring();
+    const auto parent_path_wstr = parent.wstring();
 
     SET_VIRTUAL_DISK_INFO info{};
     // Confusing naming. version field is basically a "request type" field
@@ -469,7 +459,7 @@ std::optional<std::string> read_virtual_disk_info_type(const GET_VIRTUAL_DISK_IN
 
 // ---------------------------------------------------------
 
-OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::path& vhdx_path,
+OperationResult VirtDiskWrapper::get_virtual_disk_info(const NativePath& vhdx_path,
                                                        VirtualDiskInfo& vdinfo) const
 {
     mpl::debug(log_category, "get_virtual_disk_info(...) > vhdx_path: {}", vhdx_path);
@@ -531,7 +521,7 @@ OperationResult VirtDiskWrapper::get_virtual_disk_info(const std::filesystem::pa
 
 // ---------------------------------------------------------
 
-OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::path& vhdx_path,
+OperationResult VirtDiskWrapper::list_virtual_disk_chain(const NativePath& vhdx_path,
                                                          std::vector<std::filesystem::path>& chain,
                                                          std::optional<std::size_t> max_depth) const
 {
@@ -540,7 +530,7 @@ OperationResult VirtDiskWrapper::list_virtual_disk_chain(const std::filesystem::
     // https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/Hyper-V/Storage/cpp/GetVirtualDiskInformation.cpp#L285
 
     // Check if given vhdx is a differencing disk.
-    std::filesystem::path current = vhdx_path;
+    NativePath current = vhdx_path;
 
     auto allocate_disk_info = [](const std::size_t sz = sizeof(GET_VIRTUAL_DISK_INFO)) {
         return std::unique_ptr<GET_VIRTUAL_DISK_INFO, decltype(&std::free)>(

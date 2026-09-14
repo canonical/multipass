@@ -106,8 +106,8 @@ OperationResult wait_for_operation_result(
                timeout.count());
 
     UniqueHlocalString result_msg{};
-    const auto hresult_code =
-        ResultCode{API().HcsWaitForOperationResult(op.get(), timeout.count(), out_ptr(result_msg))};
+    const auto hresult_code = ResultCode{
+        API().HcsWaitForOperationResult(op.get(), timeout.count(), out_ptr(result_msg))};
     mpl::debug(log_category,
                "wait_for_operation_result(...) > finished ({}), result_code: {}",
                fmt::ptr(op.get()),
@@ -174,8 +174,9 @@ OperationResult HCSWrapper::open_compute_system(const std::string& name,
     constexpr auto requested_access_level = GENERIC_ALL;
 
     UniqueHcsSystem system{};
-    const ResultCode result =
-        API().HcsOpenComputeSystem(name_w.c_str(), requested_access_level, out_ptr(system));
+    const ResultCode result = API().HcsOpenComputeSystem(name_w.c_str(),
+                                                         requested_access_level,
+                                                         out_ptr(system));
     if (!result.success())
     {
         mpl::debug(log_category,
@@ -203,13 +204,13 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 
         if (vmgs && !std::filesystem::exists(vmgs->get()))
         {
-            if (const auto r = HCS().create_empty_guest_state_file(params.name, vmgs->get()); !r)
+            if (const auto r = HCS().create_empty_guest_state_file(params.name, *vmgs); !r)
                 return r;
         }
 
         if (vmrs && !std::filesystem::exists(vmrs->get()))
         {
-            if (const auto r = HCS().create_empty_runtime_state_file(params.name, vmrs->get()); !r)
+            if (const auto r = HCS().create_empty_runtime_state_file(params.name, *vmrs); !r)
                 return r;
         }
     }
@@ -237,8 +238,8 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
         return OperationResult{result, L"HcsCreateComputeSystem failed."};
     }
 
-    const auto op_result =
-        wait_for_operation_result(std::move(operation), std::chrono::seconds{240});
+    const auto op_result = wait_for_operation_result(std::move(operation),
+                                                     std::chrono::seconds{240});
 
     if (op_result)
     {
@@ -374,14 +375,14 @@ OperationResult HCSWrapper::get_compute_system_properties(
 // ---------------------------------------------------------
 
 OperationResult HCSWrapper::grant_vm_access(const std::string& compute_system_name,
-                                            const std::filesystem::path& file_path) const
+                                            const NativePath& file_path) const
 {
     mpl::debug(log_category,
                "grant_vm_access(...) > name: ({}), file_path: ({})",
                compute_system_name,
-               file_path.string());
+               file_path);
 
-    const auto path_as_wstring = file_path.generic_wstring();
+    const auto path_as_wstring = file_path.wstring();
     const std::wstring csname_as_wstring = to_wstring(compute_system_name);
     const auto result = API().HcsGrantVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
     return {result, FAILED(result) ? L"GrantVmAccess failed!" : L""};
@@ -390,12 +391,12 @@ OperationResult HCSWrapper::grant_vm_access(const std::string& compute_system_na
 // ---------------------------------------------------------
 
 OperationResult HCSWrapper::revoke_vm_access(const std::string& compute_system_name,
-                                             const std::filesystem::path& file_path) const
+                                             const NativePath& file_path) const
 {
     mpl::debug(log_category,
                "revoke_vm_access(...) > name: ({}), file_path: ({}) ",
                compute_system_name,
-               file_path.string());
+               file_path);
 
     const auto path_as_wstring = file_path.wstring();
     const std::wstring csname_as_wstring = to_wstring(compute_system_name);
@@ -519,18 +520,18 @@ OperationResult HCSWrapper::set_compute_system_callback(const HcsSystemHandle& t
                fmt::ptr(context),
                fmt::ptr(callback));
 
-    const ResultCode result =
-        API().HcsSetComputeSystemCallback(static_cast<HCS_SYSTEM>(target_hcs_system.get()),
-                                          HCS_EVENT_OPTIONS::HcsEventOptionNone,
-                                          context,
-                                          reinterpret_cast<HCS_EVENT_CALLBACK>(callback));
+    const ResultCode result = API().HcsSetComputeSystemCallback(
+        static_cast<HCS_SYSTEM>(target_hcs_system.get()),
+        HCS_EVENT_OPTIONS::HcsEventOptionNone,
+        context,
+        reinterpret_cast<HCS_EVENT_CALLBACK>(callback));
     return {result, L""};
 }
 
 // ---------------------------------------------------------
 
 OperationResult HCSWrapper::save_compute_system(const HcsSystemHandle& target_hcs_system,
-                                                const HcsPath& save_path) const
+                                                const NativePath& save_path) const
 {
     mpl::debug(log_category,
                "save_compute_system(...) > handle: {}, save_path: {}",
@@ -555,11 +556,10 @@ OperationResult HCSWrapper::save_compute_system(const HcsSystemHandle& target_hc
 }
 
 // ---------------------------------------------------------
-OperationResult HCSWrapper::create_empty_guest_state_file(
-    const std::string& compute_system_name,
-    const std::filesystem::path& vmgs_file_path) const
+OperationResult HCSWrapper::create_empty_guest_state_file(const std::string& compute_system_name,
+                                                          const NativePath& vmgs_file_path) const
 {
-    const std::wstring path_w = vmgs_file_path.generic_wstring();
+    const std::wstring path_w = vmgs_file_path.wstring();
     const auto result = ResultCode{API().HcsCreateEmptyGuestStateFile(path_w.c_str())};
     if (result.success())
     {
@@ -571,11 +571,10 @@ OperationResult HCSWrapper::create_empty_guest_state_file(
 
 // ---------------------------------------------------------
 
-OperationResult HCSWrapper::create_empty_runtime_state_file(
-    const std::string& compute_system_name,
-    const std::filesystem::path& vmrs_file_path) const
+OperationResult HCSWrapper::create_empty_runtime_state_file(const std::string& compute_system_name,
+                                                            const NativePath& vmrs_file_path) const
 {
-    const std::wstring path_w = vmrs_file_path.generic_wstring();
+    const std::wstring path_w = vmrs_file_path.wstring();
     const auto result = ResultCode{API().HcsCreateEmptyRuntimeStateFile(path_w.c_str())};
     if (result.success())
     {
