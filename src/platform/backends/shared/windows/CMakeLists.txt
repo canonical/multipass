@@ -21,6 +21,7 @@ add_library(shared_win STATIC
   wsa_init_wrapper.cpp
   windows_version.cpp
   guid_formatter.cpp
+  native_path.cpp
   windows_feature_status.cpp)
 
 include_directories(shared_win
@@ -28,6 +29,7 @@ include_directories(shared_win
 
 target_link_libraries(shared_win
   Qt6::Core
+  Boost::json
   fmt::fmt-header-only
   logger
   OpenSSL::Crypto
