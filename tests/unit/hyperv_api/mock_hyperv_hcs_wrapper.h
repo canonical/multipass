@@ -75,12 +75,12 @@ struct MockHCSWrapper : public hyperv::hcs::HCSWrapper
 
     MOCK_METHOD(hyperv::OperationResult,
                 grant_vm_access,
-                (const std::string& compute_system_name, const std::filesystem::path& file_path),
+                (const std::string& compute_system_name, const hyperv::hcs::HcsPath& file_path),
                 (const, override));
 
     MOCK_METHOD(hyperv::OperationResult,
                 revoke_vm_access,
-                (const std::string& compute_system_name, const std::filesystem::path& file_path),
+                (const std::string& compute_system_name, const hyperv::hcs::HcsPath& file_path),
                 (const, override));
 
     MOCK_METHOD(hyperv::OperationResult,

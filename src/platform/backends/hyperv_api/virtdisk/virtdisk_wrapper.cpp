@@ -110,7 +110,7 @@ UniqueHandle open_virtual_disk(
     type.VendorId = VIRTUAL_STORAGE_TYPE_VENDOR_UNKNOWN;
 
     UniqueHandle handle{nullptr};
-    const auto path_w = vhdx_path.generic_wstring();
+    const auto path_w = normalize_path(vhdx_path).wstring();
 
     const ResultCode result = API().OpenVirtualDisk(
         // [in] PVIRTUAL_STORAGE_TYPE VirtualStorageType
@@ -202,7 +202,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
 {
     mpl::debug(log_category, "create_virtual_disk(...) > params: {}", params);
 
-    const auto target_path_normalized = normalize_path(params.path).generic_wstring();
+    const auto target_path_normalized = normalize_path(params.path).wstring();
     //
     // https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/Hyper-V/Storage/cpp/CreateVirtualDisk.cpp
     //
@@ -413,7 +413,7 @@ OperationResult VirtDiskWrapper::reparent_virtual_disk(const std::filesystem::pa
         return OperationResult::failure(L"open_virtual_disk failed!");
     }
 
-    const auto parent_path_wstr = parent.generic_wstring();
+    const auto parent_path_wstr = normalize_path(parent).wstring();
 
     SET_VIRTUAL_DISK_INFO info{};
     // Confusing naming. version field is basically a "request type" field
