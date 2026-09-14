@@ -1634,6 +1634,44 @@ INSTANTIATE_TEST_SUITE_P(Daemon,
                                                 std::vector<std::string>{"list", "--no-ipv4"},
                                                 std::vector<std::string>{"Stopped", "--"})));
 
+struct RunningInstanceWithoutIP : public Daemon, public WithParamInterface<std::vector<std::string>>
+{
+};
+
+TEST_P(RunningInstanceWithoutIP, doesNotFailListOrInfo)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+
+    EXPECT_CALL(*instance_ptr, current_state())
+        .WillRepeatedly(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+    EXPECT_CALL(*instance_ptr, management_ipv4()).WillRepeatedly(Return(std::nullopt));
+    EXPECT_CALL(*instance_ptr, get_all_ipv4()).Times(0);
+    EXPECT_CALL(*instance_ptr, ssh_exec(_, _)).Times(0);
+
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, is_running, mp::Utils);
+
+    send_command({"launch"});
+
+    std::stringstream stream, err_stream;
+    send_command(GetParam(), stream, err_stream);
+
+    EXPECT_THAT(stream.str(), HasSubstr("Running"));
+    EXPECT_THAT(err_stream.str(), Not(HasSubstr("IP not available")));
+}
+
+INSTANTIATE_TEST_SUITE_P(Daemon,
+                         RunningInstanceWithoutIP,
+                         Values(std::vector<std::string>{"list"},
+                                std::vector<std::string>{"info"}));
+
 TEST_F(Daemon, preventsRepetitionOfLoadedMacAddresses)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
