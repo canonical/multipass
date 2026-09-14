@@ -30,6 +30,7 @@ sudo snap install rustup --classic
 ```
 rustup default stable
 ```
+
 ## Building
 
 First, go into the repository root and get all the submodules:
@@ -63,8 +64,13 @@ It should point to the root vcpkg location, where the top bootstrap scripts are 
 Finally, to build the project, run:
 
 ```
-cmake --build . --parallel
+cmake --build . [--parallel <N>]
 ```
+
+Tips:
+- You may use `--parallel <N>` to speed up the build.
+- However, make sure you have enough physical memory and swap space available before doing so (the build step has a very high memory footprint).
+- You may install and use `earlyoom` to prevent your computer from freezing if you're reaching the limits.
 
 Please note that if you're working on a forked repository that you created using the "Copy the main branch only" option,
 the repository will not include the necessary git tags to determine the Multipass version during CMake configuration. In
@@ -109,7 +115,7 @@ sudo cp /usr/share/qemu-efi-aarch64/QEMU_EFI.fd /usr/share/qemu/QEMU_EFI.fd
 Then run the Multipass daemon:
 
 ```
-sudo <multipass>/build/bin/multipassd &
+pkexec <multipass>/build/bin/multipassd &
 ```
 
 Copy the desktop file that Multipass clients expect to find in your home:
@@ -132,5 +138,4 @@ export PATH=<multipass>/build/bin
 ```
 
 Now you can use the `multipass` command from your terminal (for example
-`<multipass>/build/bin/multipass launch --name foo`) or launch the GUI client with the command
-`<multipass>/build/bin/multipass.gui`.
+`<multipass>/build/bin/multipass launch --name foo`) or launch the GUI client with the command `<multipass>/build/bin/multipass.gui`.
