@@ -15,6 +15,7 @@
 set(CMAKE_AUTOMOC ON)
 function(add_sshfs_mount_target TARGET_NAME LIBSSH_TARGET)
   add_library(${TARGET_NAME} STATIC
+    sshfs_client_steward.cpp
     sshfs_mount.cpp
     sshfs_mount_handler.cpp
     sftp_server.cpp

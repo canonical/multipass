@@ -384,7 +384,7 @@ TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
     bool invoked{false};
     auto request_exec = [&invoked](ssh_channel, const char* raw_cmd) {
         std::string cmd{raw_cmd};
-        if (cmd.find("sudo sshfs") != std::string::npos)
+        if (cmd.find("sudo -n sshfs") != std::string::npos)
         {
             invoked = true;
         }
@@ -429,7 +429,7 @@ TEST_F(SftpServer, throwsOnSshFailureReadExit)
     bool invoked{false};
     auto request_exec = [this, &invoked](ssh_channel, const char* raw_cmd) {
         std::string cmd{raw_cmd};
-        if (cmd.find("sudo sshfs") != std::string::npos)
+        if (cmd.find("sudo -n sshfs") != std::string::npos)
         {
             invoked = true;
             exit_status_mock.set_ssh_rc(SSH_ERROR);
