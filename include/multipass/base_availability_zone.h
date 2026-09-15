@@ -39,7 +39,7 @@ public:
     const std::string& get_name() const override;
     const Subnet& get_subnet() const override;
     bool is_available() const override;
-    void set_available(bool new_available) override;
+    std::vector<std::string> set_available(bool new_available) override;
     void add_vm(VirtualMachine& vm) override;
     void remove_vm(VirtualMachine& vm) override;
 

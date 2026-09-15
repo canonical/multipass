@@ -196,6 +196,7 @@ private:
     grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
 
     void init_mounts(const std::string& name);
+    void start_mounts(const std::string& name);
     void stop_mounts(const std::string& name);
 
     // This returns whether any specs were updated (and need persisting)

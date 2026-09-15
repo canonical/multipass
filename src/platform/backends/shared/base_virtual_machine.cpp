@@ -207,31 +207,28 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
     }
 }
 
-void mp::BaseVirtualMachine::set_available(bool available)
+bool mp::BaseVirtualMachine::set_available(bool available)
 {
     // Ignore idempotent calls
     if (available == (state != State::unavailable))
-        return;
+        return false;
 
     if (available)
     {
         state = State::off;
         handle_state_update();
-        if (was_running)
-        {
-            start();
+        if (!was_running)
+            return false;
 
-            // normally the daemon sets the state to running...
-            state = State::running;
-            handle_state_update();
-        }
-        return;
+        start();
+        return true;
     }
 
     was_running = state == State::running || state == State::starting || state == State::restarting;
     shutdown(ShutdownPolicy::Poweroff);
     state = State::unavailable;
     handle_state_update();
+    return true;
 }
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)

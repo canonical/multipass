@@ -47,8 +47,9 @@ public:
         return true;
     }
 
-    void set_available(bool) override
+    std::vector<std::string> set_available(bool) override
     {
+        return {};
     }
 
     void add_vm(VirtualMachine&) override
