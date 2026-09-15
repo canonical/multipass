@@ -14,6 +14,7 @@
 
 add_library(shared_macos STATIC
   backend_utils.cpp
+  dns_server.cpp
   process_factory.cpp)
 
 include_directories(shared_macos
