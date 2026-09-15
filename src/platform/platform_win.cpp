@@ -955,6 +955,12 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     throw std::runtime_error("Invalid virtualization driver set in the environment");
 }
 
+bool mp::platform::backend_supports_availability_zones()
+{
+    const auto driver = MP_SETTINGS.get(mp::driver_key);
+    return driver != QStringLiteral("hyperv") && driver != QStringLiteral("virtualbox");
+}
+
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(
     const mp::SSHFSServerConfig& config)
 {

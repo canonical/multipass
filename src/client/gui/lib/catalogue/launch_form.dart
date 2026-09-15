@@ -69,7 +69,18 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
   final scrollController = ScrollController();
 
   void updateZoneAvailability() {
+    if (!ref.read(azSupportedProvider)) {
+      launchRequest.zone = '';
+      if (!selectedZoneAvailable) {
+        setState(() => selectedZoneAvailable = true);
+      }
+      return;
+    }
+
     final zones = ref.read(zonesProvider);
+    if (zones.isEmpty) {
+      return;
+    }
     final hasAvailableZones = zones.any((z) => z.available);
 
     // Check if the currently selected zone is available
@@ -121,10 +132,19 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           error: (_, __) => null,
         );
     final zones = ref.watch(zonesProvider);
+    final azSupported = ref.watch(azSupportedProvider);
 
     // Update availability whenever zones change
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (!azSupported) {
+        launchRequest.zone = '';
+        updateZoneAvailability();
+        return;
+      }
+      if (zones.isEmpty) {
+        return;
+      }
       final hasAvailableZones = zones.any((z) => z.available);
       if (hasAvailableZones != selectedZoneAvailable ||
           (hasAvailableZones &&
@@ -315,84 +335,87 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             nameInput,
-            const SizedBox(width: 32),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    zoneDropdown,
-                    if (!selectedZoneAvailable &&
-                        launchRequest.zone.isNotEmpty &&
-                        !zones.any(
-                            (z) => z.name == launchRequest.zone && z.available))
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () {
-                              final grpcClient = ref.read(grpcClientProvider);
-                              final zone = launchRequest.zone;
-                              grpcClient.zonesState([zone], true).then((_) {
-                                updateZoneAvailability();
-                                ref.read(notificationsProvider.notifier).add(
-                                      SuccessNotification(
-                                        child: Text(l10n
-                                            .launchFormEnableZoneSuccess(zone)),
-                                      ),
-                                    );
-                              });
-                            },
-                            child: Text(
-                              l10n.launchFormEnableZoneLabel,
-                              style: TextStyle(
-                                color: Colors.blue[700],
-                                decoration: TextDecoration.underline,
-                                fontSize: 14,
-                                height: 1.5,
+            if (azSupported) ...[
+              const SizedBox(width: 32),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      zoneDropdown,
+                      if (!selectedZoneAvailable &&
+                          launchRequest.zone.isNotEmpty &&
+                          !zones.any((z) =>
+                              z.name == launchRequest.zone && z.available))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () {
+                                final grpcClient = ref.read(grpcClientProvider);
+                                final zone = launchRequest.zone;
+                                grpcClient.zonesState([zone], true).then((_) {
+                                  updateZoneAvailability();
+                                  ref.read(notificationsProvider.notifier).add(
+                                        SuccessNotification(
+                                          child: Text(
+                                              l10n.launchFormEnableZoneSuccess(
+                                                  zone)),
+                                        ),
+                                      );
+                                });
+                              },
+                              child: Text(
+                                l10n.launchFormEnableZoneLabel,
+                                style: TextStyle(
+                                  color: Colors.blue[700],
+                                  decoration: TextDecoration.underline,
+                                  fontSize: 14,
+                                  height: 1.5,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    if (!selectedZoneAvailable &&
-                        !zones.any((z) => z.available))
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () {
-                              final grpcClient = ref.read(grpcClientProvider);
-                              final allZones =
-                                  zones.map((z) => z.name).toList();
-                              grpcClient.zonesState(allZones, true).then((_) {
-                                updateZoneAvailability();
-                                ref.read(notificationsProvider.notifier).add(
-                                      SuccessNotification(
-                                        child: Text(l10n
-                                            .launchFormEnableAllZonesSuccess),
-                                      ),
-                                    );
-                              });
-                            },
-                            child: Text(
-                              l10n.launchFormEnableAllZonesLabel,
-                              style: TextStyle(
-                                color: Colors.blue[700],
-                                decoration: TextDecoration.underline,
-                                fontSize: 14,
-                                height: 1.5,
+                      if (!selectedZoneAvailable &&
+                          !zones.any((z) => z.available))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () {
+                                final grpcClient = ref.read(grpcClientProvider);
+                                final allZones =
+                                    zones.map((z) => z.name).toList();
+                                grpcClient.zonesState(allZones, true).then((_) {
+                                  updateZoneAvailability();
+                                  ref.read(notificationsProvider.notifier).add(
+                                        SuccessNotification(
+                                          child: Text(l10n
+                                              .launchFormEnableAllZonesSuccess),
+                                        ),
+                                      );
+                                });
+                              },
+                              child: Text(
+                                l10n.launchFormEnableAllZonesLabel,
+                                style: TextStyle(
+                                  color: Colors.blue[700],
+                                  decoration: TextDecoration.underline,
+                                  fontSize: 14,
+                                  height: 1.5,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
             const Spacer(),
           ],
         ),

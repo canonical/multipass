@@ -30,6 +30,7 @@
 #include <multipass/ssh/openssh_key_provider.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/standard_paths.h>
+#include <multipass/stub_availability_zone_manager.h>
 #include <multipass/utils.h>
 #include <multipass/utils/permission_utils.h>
 
@@ -137,7 +138,12 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     if (url_downloader == nullptr)
         url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
     if (az_manager == nullptr)
-        az_manager = std::make_unique<BaseAvailabilityZoneManager>(data_directory.toStdString());
+        az_manager = platform::backend_supports_availability_zones()
+                       ? std::unique_ptr<AvailabilityZoneManager>(
+                             std::make_unique<BaseAvailabilityZoneManager>(
+                                 data_directory.toStdString()))
+                       : std::unique_ptr<AvailabilityZoneManager>(
+                             std::make_unique<StubAvailabilityZoneManager>());
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory, *az_manager);
     if (update_prompt == nullptr)

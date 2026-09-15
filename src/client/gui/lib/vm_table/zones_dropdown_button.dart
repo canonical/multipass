@@ -13,6 +13,7 @@ class ZonesDropdownButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final zones = ref.watch(zonesProvider);
+    if (!ref.watch(azSupportedProvider)) return const SizedBox.shrink();
     final unavailableZones = zones.where((z) => !z.available).length;
 
     return Row(

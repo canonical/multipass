@@ -244,7 +244,13 @@ class GrpcClient {
 
   Future<List<Zone>> zones() {
     return doRpc(_client.zones, ZonesRequest(), log: false)
-        .then((r) => r!.zones);
+        .then<List<Zone>>((r) => r!.zones)
+        .onError<GrpcError>(
+          (_, __) => <Zone>[],
+          test: (e) =>
+              e.code == StatusCode.failedPrecondition &&
+              (e.message?.contains('not supported') ?? false),
+        );
   }
 }
 
