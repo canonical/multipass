@@ -15,14 +15,14 @@ Different sets of drivers are available on different platforms:
 
 - On Linux, Multipass can be configured to use QEMU. As of Multipass version 1.16, LXD and libvirt are no longer available.
 - On macOS, the options are QEMU, the Apple Virtualization framework (AppleVZ), and VirtualBox. As of Multipass version 1.13, Hyperkit is no longer available. As of Multipass version 1.17, VirtualBox is deprecated (see [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver)).
-- On Windows, Multipass uses native APIs, primarily the Host Compute System API. As of Multipass version 1.17, the `hyperv` driver is deprecated in favor of a new Hyper-V-based driver (see [Migrate from Hyper-V to the new Hyper-V API driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hyperv-api-on-windows)), and VirtualBox is deprecated with no migration planned (see [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver)).
+- On Windows, Multipass uses native APIs, primarily the Host Compute System API. As of Multipass version 1.17, the `hyperv` driver is deprecated in favor of the new `hcs` driver (see [Migrate from Hyper-V to the HCS driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows)), and VirtualBox is deprecated with no migration planned (see [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver)).
 
 ## Default drivers
 
 When Multipass is installed, the following drivers are selected by default:
 
 - On Linux and macOS, `qemu` is used.
-- On Windows, `hyperv_api` is the default.
+- On Windows, `hcs` is the default.
 
 ## Instance scopes
 
@@ -38,7 +38,7 @@ Nonetheless, instances are preserved across drivers. After switching back to a p
 There are two exceptions to the above:
 
   - On macOS, stopped Hyperkit instances are automatically migrated to QEMU by Multipass's version 1.12 (see [How to migrate from Hyperkit to QEMU on macOS](/how-to-guides/customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)).
-  - On Windows, stopped `hyperv` instances are automatically migrated to the new Hyper-V-based driver by Multipass's version 1.17 (see [Migrate from Hyper-V to the new Hyper-V API driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hyperv-api-on-windows)).
+  - On Windows, stopped `hyperv` instances are automatically migrated to the new `hcs` driver by Multipass's version 1.17 (see [Migrate from Hyper-V to the HCS driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows)).
 
 VirtualBox is also deprecated as of Multipass version 1.17, but — unlike the two cases above — no migration to another driver is planned; VirtualBox instances follow the general instance-scope rule (see [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver)).
 

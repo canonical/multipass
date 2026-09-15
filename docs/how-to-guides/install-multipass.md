@@ -32,7 +32,7 @@ The default backend on macOS is `qemu`, wrapping Apple's Hypervisor framework. Y
 ````{tab-item} Windows
 :sync: Windows
 
-Multipass supports Windows 11 and Windows 10 version **1803** ("April 2018 Update"), in Home, Pro, and Enterprise editions, where it uses the `hyperv_api` driver by default. You will need the [Virtual Machine Platform feature](https://support.microsoft.com/en-us/windows/experience/enable-virtualization-on-windows) enabled.
+Multipass supports Windows 11 and Windows 10 version **1803** ("April 2018 Update"), in Home, Pro, and Enterprise editions, where it uses the `hcs` driver by default. You will need the [Virtual Machine Platform feature](https://support.microsoft.com/en-us/windows/experience/enable-virtualization-on-windows) enabled.
 
 ````
 

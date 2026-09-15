@@ -29,10 +29,10 @@ multipass set local.driver=applevz
 ````{tab-item} Windows
 :sync: Windows
 
-Switch to `hyperv_api`:
+Switch to `hcs`:
 
 ```{code-block} text
-multipass set local.driver=hyperv_api
+multipass set local.driver=hcs
 ```
 
 ````
