@@ -28,10 +28,13 @@
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
 
+#include <atomic>
 #include <chrono>
 #include <future>
 #include <memory>
 #include <mutex>
+#include <optional>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -55,6 +58,8 @@ public:
 
 protected:
     using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
+
+    void connect_rpc(DaemonRpc& rpc);
 
     void on_resume() override;
     void on_shutdown() override;
@@ -183,6 +188,14 @@ public slots:
         DaemonRpcContext* context);
 
 private:
+    // Used at RPC dispatch and when registering an asynchronous instance preparation.
+    [[nodiscard]] bool reject_if_migrating(std::string_view rpc_name,
+                                           DaemonRpcContext* context) const;
+    [[nodiscard]] bool begin_instance_preparation(const std::string& name,
+                                                  std::string_view rpc_name,
+                                                  DaemonRpcContext* context);
+    void end_instance_preparation(const std::string& name);
+
     void release_resources(const std::string& instance);
     void create_vm(const CreateRequest* request,
                    grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
@@ -263,6 +276,12 @@ protected:
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     InstanceTable operative_instances;
 
+    // Set only while a bulk Hyper-V -> HCS migration runs inside Daemon::set. It guards
+    // conflicting mutating RPCs without taking a lock, so it cannot deadlock against the
+    // long-running migration. Atomic because RPC slots and the migration run on different
+    // threads.
+    std::atomic<bool> migration_in_progress{false};
+
     bool is_bridged(const std::string& instance_name) const;
     void add_bridged_interface(const std::string& instance_name);
 
@@ -285,6 +304,7 @@ private:
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;
     std::unordered_set<std::string> preparing_instances;
+    std::atomic_size_t preparations_in_progress{0};
     QFuture<void> image_update_future;
     SettingsHandler* instance_mod_handler;
     SettingsHandler* snapshot_mod_handler;

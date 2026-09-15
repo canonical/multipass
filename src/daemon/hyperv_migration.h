@@ -1,0 +1,153 @@
+/*
+ * Copyright (C) Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+
+#include "default_vm_image_vault.h"
+
+#include <multipass/network_interface_info.h>
+#include <multipass/path.h>
+#include <multipass/virtual_machine.h>
+#include <multipass/vm_specs.h>
+
+#include <boost/json.hpp>
+
+#include <filesystem>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+namespace multipass
+{
+class AvailabilityZoneManager;
+class VirtualMachineFactory;
+} // namespace multipass
+
+namespace multipass::hyperv
+{
+class HCSVirtualMachineFactory;
+
+// Fail this instance but continue the batch.
+class InstanceMigrationError : public std::runtime_error
+{
+public:
+    using std::runtime_error::runtime_error;
+};
+
+// Stop the batch because further target-store commits are unsafe.
+class MigrationAbortError : public std::runtime_error
+{
+public:
+    using std::runtime_error::runtime_error;
+};
+
+// Resolve vSwitches to single physical adapters, preserving NIC order, MACs and auto mode.
+[[nodiscard]] std::vector<NetworkInterface> translate_extra_interfaces(
+    const std::vector<NetworkInterface>& source_interfaces,
+    const std::vector<NetworkInterfaceInfo>& available_networks);
+
+enum class MigrationMessage
+{
+    phase,
+    diagnostic,
+    summary
+};
+
+enum class MigrationOutcome
+{
+    completed,
+    completed_with_failures,
+    cancelled,
+    aborted
+};
+
+using MigrationReporter = std::function<void(MigrationMessage, const std::string&)>;
+using MigrationCancellation = std::function<bool()>;
+
+// A value is the reason an instance was skipped; nullopt means it was migrated.
+using InstanceMigrationResult = std::optional<std::string>;
+
+class HyperVMigrationTargetRecords
+{
+public:
+    explicit HyperVMigrationTargetRecords(const Path& data_dir);
+
+    void preflight() const;
+    void prepare();
+
+    [[nodiscard]] bool target_exists(const std::string& name) const;
+    [[nodiscard]] VaultRecord source_image_record(const std::string& name) const;
+    [[nodiscard]] std::filesystem::path instance_dir(const std::string& name) const;
+
+    void commit(const std::string& name, const VMSpecs& spec, VaultRecord image_record);
+
+private:
+    static boost::json::object load_records(const std::filesystem::path& path);
+    static void persist_records(const boost::json::object& records,
+                                const std::filesystem::path& path);
+    static void require_writable_location(const std::filesystem::path& path);
+    void recover();
+
+    std::filesystem::path target_root;
+    std::filesystem::path target_vm_db;
+    std::filesystem::path target_image_db;
+    std::filesystem::path instances_root;
+    boost::json::object source_image_records;
+    boost::json::object target_vm_records;
+    boost::json::object target_image_records;
+};
+
+class DaemonHyperVInstanceMigrator final
+{
+public:
+    using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
+
+    DaemonHyperVInstanceMigrator(const std::unordered_map<std::string, VMSpecs>& specs,
+                                 const InstanceTable& operative_instances,
+                                 const InstanceTable& deleted_instances,
+                                 VirtualMachineFactory& source_factory,
+                                 AvailabilityZoneManager& az_manager,
+                                 const Path& data_dir,
+                                 HyperVMigrationTargetRecords& target_records);
+    ~DaemonHyperVInstanceMigrator();
+
+    [[nodiscard]] InstanceMigrationResult migrate(const std::string& name,
+                                                  const MigrationReporter& report);
+    // Finish each transaction before cancellation; retain and report earlier commits on failure.
+    [[nodiscard]] MigrationOutcome migrate_all(const MigrationReporter& report,
+                                               const MigrationCancellation& cancel);
+
+private:
+    [[nodiscard]] std::vector<NetworkInterface> translated_interfaces(
+        const std::vector<NetworkInterface>& source_interfaces);
+    HCSVirtualMachineFactory& target_factory();
+
+    const std::unordered_map<std::string, VMSpecs>& specs;
+    const InstanceTable& operative_instances;
+    const InstanceTable& deleted_instances;
+    VirtualMachineFactory& source_factory;
+    AvailabilityZoneManager& az_manager;
+    Path data_dir;
+    HyperVMigrationTargetRecords& target_records;
+    std::optional<std::vector<NetworkInterfaceInfo>> source_networks;
+    std::unique_ptr<HCSVirtualMachineFactory> hcs_factory;
+};
+
+} // namespace multipass::hyperv

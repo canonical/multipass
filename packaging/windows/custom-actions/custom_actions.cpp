@@ -58,6 +58,8 @@ UINT __stdcall EnableHyperV(__in MSIHANDLE hInstall)
     PMSIHANDLE hActionData;
     UINT uiLevel;
     DWORD exitCode = 0;
+    std::wstring customActionData;
+    const wchar_t* feature = nullptr;
 
     hr = WcaInitialize(hInstall, __FUNCTION__);
     ExitOnFailure(hr, "Failed to initialize");
@@ -66,7 +68,11 @@ UINT __stdcall EnableHyperV(__in MSIHANDLE hInstall)
     hr = MsiGetProperty(hInstall, TEXT("CustomActionData"), szBuf, &cchBuf);
     ExitOnFailure(hr, "Failed getting CustomActionData");
 
-    uiLevel = _ttoi(szBuf);
+    customActionData = szBuf;
+    uiLevel = _wtoi(customActionData.c_str());
+    feature = customActionData.find(L"|hyperv_api") == std::wstring::npos
+                ? L"Microsoft-Hyper-V"
+                : L"VirtualMachinePlatform";
     WcaLog(LOGMSG_STANDARD, std::to_string(uiLevel).c_str());
 
     hCancel_ = CreateEvent(nullptr, TRUE, FALSE, nullptr);
@@ -91,14 +97,14 @@ UINT __stdcall EnableHyperV(__in MSIHANDLE hInstall)
                       (pErrorString && pErrorString->Value) ? pErrorString->Value : L"");
     }
 
-    WcaLog(LOGMSG_STANDARD, "Enabling feature Microsoft-Hyper-V");
+    WcaLog(LOGMSG_STANDARD, "Enabling feature %ls", feature);
 
     hActionData = MsiCreateRecord(1);
-    if (hActionData && SUCCEEDED(WcaSetRecordString(hActionData, 1, L"Microsoft-Hyper-V")))
+    if (hActionData && SUCCEEDED(WcaSetRecordString(hActionData, 1, feature)))
         WcaProcessMessage(INSTALLMESSAGE::INSTALLMESSAGE_ACTIONDATA, hActionData);
 
     hr = DismEnableFeature(hSession,
-                           L"Microsoft-Hyper-V",
+                           feature,
                            nullptr,
                            DismPackageNone,
                            FALSE,
@@ -112,7 +118,8 @@ UINT __stdcall EnableHyperV(__in MSIHANDLE hInstall)
     {
         hr = S_OK;
         WcaLog(LOGMSG_STANDARD,
-               "Enabled feature Microsoft-Hyper-V. However, it requires reboot to complete");
+               "Enabled feature %ls. However, it requires reboot to complete",
+               feature);
         if (uiLevel > 3)
             WcaDeferredActionRequiresReboot();
         else
@@ -123,7 +130,8 @@ UINT __stdcall EnableHyperV(__in MSIHANDLE hInstall)
     {
         DismGetLastErrorMessage(&pErrorString);
         WcaLogError(hr,
-                    "Failed enabling feature Microsoft-Hyper-V. %ls",
+                    "Failed enabling feature %ls. %ls",
+                    feature,
                     (pErrorString && pErrorString->Value) ? pErrorString->Value : L"");
         ExitOnFailure(hr, "Failed enabling feature");
     }

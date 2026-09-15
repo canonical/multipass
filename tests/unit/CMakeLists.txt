@@ -84,6 +84,7 @@ add_executable(multipass_cpp_tests
   test_daemon_clone.cpp
   test_daemon_find.cpp
   test_daemon_mount.cpp
+  test_daemon_migration_guard.cpp
   test_daemon_restart.cpp
   test_daemon_snapshot_restore.cpp
   test_daemon_start.cpp
@@ -149,6 +150,10 @@ add_executable(multipass_cpp_tests
   test_xz_image_decoder.cpp
   test_yaml_node_utils.cpp
 )
+
+if(HYPERV_HCS_ENABLED)
+  target_sources(multipass_cpp_tests PRIVATE test_hyperv_migration_records.cpp)
+endif()
 
 target_include_directories(multipass_cpp_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
@@ -297,6 +302,10 @@ add_subdirectory(${MULTIPASS_PLATFORM})
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})
 endforeach()
+
+if(HYPERV_HCS_ENABLED)
+  add_subdirectory(hyperv_migration)
+endif()
 
 if (UNIX)
   add_subdirectory(unix)
