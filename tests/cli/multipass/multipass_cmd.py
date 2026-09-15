@@ -156,6 +156,10 @@ def multipass(*args, **kwargs):
 
         return retry_wrapper()
 
+    governor = getattr(cfg, "active_governor", None)
+    if governor is not None and cfg.daemon_health_check:
+        governor.check_health(cfg.health_check_timeout)
+
     if cfg.print_cli_output:
         # Move to the next line since the CLI modifies the current line for
         # updating progress message
