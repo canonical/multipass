@@ -50,16 +50,22 @@ mp::PlainSSHSession::PlainSSHSession(const std::string& host,
         throw mp::SSHException("could not allocate ssh session");
 
     /**
-     * Sometimes ssh_connect blocks while a VM is booting up where
-     * it won't return to the caller at all. Since the timeout is
-     * set to ~infinity the ssh_connect would block forever.
+     * Two timeouts govern this session (libssh reads SSH_OPTIONS_TIMEOUT as long seconds):
      *
-     * The attempt timeout is set as timeout before the ssh_connect
-     * in order to prevent that from happening. The established timeout
-     * is used afterward to prevent timing out in connected state.
+     *  - connect_timeout_secs bounds ssh_connect. A booting VM may accept the TCP connection
+     *    and then stall, so this needs to be short.
+     *  - established_timeout_secs is installed once connected and bounds every subsequent
+     *    blocking libssh call that uses SSH_TIMEOUT_DEFAULT: authentication, channel open/exec
+     *    requests, sftp request/response round trips, channel writes waiting for window space,
+     *    global requests (keepalives), etc. It is intentionally finite so that a hung peer
+     *    cannot block a thread forever.
+     *
+     * Consequently, components that keep a session idle for long periods (e.g. an sshfs mount
+     * whose client may send nothing for hours) must not rely on blocking reads. They should
+     * poll with an explicit timeout and send keepalives instead (see SftpServer::run).
      */
-    constexpr long connect_timeout_secs = 5; // < how long to wait for ssh_connect
-    constexpr long established_timeout_secs = std::numeric_limits<long>::max();
+    constexpr long connect_timeout_secs = 5;      // < how long to wait for ssh_connect
+    constexpr long established_timeout_secs = 10; // < bound on blocking calls once connected
 
     const int nodelay{1};
     auto ssh_dir = QDir(MP_STDPATHS.writableLocation(StandardPaths::AppConfigLocation))
