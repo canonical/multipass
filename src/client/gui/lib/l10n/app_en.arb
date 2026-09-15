@@ -575,6 +575,10 @@
     "@vmDetailsStopToConfigure": {
         "description": "Tooltip shown on the Configure button when the instance is running"
     },
+    "vmDetailsUnavailableToMount": "Instance is unavailable",
+    "@vmDetailsUnavailableToMount": {
+        "description": "Tooltip shown on the mounts Add mount/Configure buttons when the instance is unavailable"
+    },
     "resourcesTitle": "Resources",
     "@resourcesTitle": {
         "description": "Section heading on the Resources details tab"

@@ -1,5 +1,5 @@
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../confirmation_dialog.dart';
@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../notifications/notifications_provider.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
+import '../tooltip.dart';
 import 'mount_points.dart';
 import 'vm_details.dart';
 
@@ -34,10 +35,26 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
         return info.mountInfo.mountPaths.build();
       }),
     );
+    final unavailable = ref.watch(
+      vmInfoProvider(widget.name).select((info) {
+        return info.instanceStatus.status == Status.UNAVAILABLE;
+      }),
+    );
+
+    ref.listen(
+      vmInfoProvider(widget.name).select((info) {
+        return info.instanceStatus.status == Status.UNAVAILABLE;
+      }),
+      (_, isUnavailable) {
+        if (!isUnavailable || phase == MountDetailsPhase.idle) return;
+        setState(() => phase = MountDetailsPhase.idle);
+        ref.read(activeEditPageProvider(widget.name).notifier).set(null);
+      },
+    );
 
     final mountPointsView = MountPointsView(
       mounts: mounts,
-      allowDelete: phase != MountDetailsPhase.idle,
+      allowDelete: phase != MountDetailsPhase.idle && !unavailable,
       onDelete: doUnmount,
     );
 
@@ -57,14 +74,20 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       child: Text(l10n.commonSave),
     );
 
-    final configureButton = OutlinedButton(
-      onPressed: () {
-        setState(() => phase = MountDetailsPhase.configure);
-        ref
-            .read(activeEditPageProvider(widget.name).notifier)
-            .set(ActiveEditPage.mounts);
-      },
-      child: Text(l10n.commonConfigure),
+    final configureButton = Tooltip(
+      visible: unavailable,
+      message: l10n.vmDetailsUnavailableToMount,
+      child: OutlinedButton(
+        onPressed: unavailable
+            ? null
+            : () {
+                setState(() => phase = MountDetailsPhase.configure);
+                ref
+                    .read(activeEditPageProvider(widget.name).notifier)
+                    .set(ActiveEditPage.mounts);
+              },
+        child: Text(l10n.commonConfigure),
+      ),
     );
 
     final cancelButton = OutlinedButton(
@@ -75,14 +98,20 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       child: Text(l10n.commonCancel),
     );
 
-    final addMountButton = OutlinedButton(
-      onPressed: () {
-        setState(() => phase = MountDetailsPhase.adding);
-        ref
-            .read(activeEditPageProvider(widget.name).notifier)
-            .set(ActiveEditPage.mounts);
-      },
-      child: Text(l10n.mountsAddMount),
+    final addMountButton = Tooltip(
+      visible: unavailable,
+      message: l10n.vmDetailsUnavailableToMount,
+      child: OutlinedButton(
+        onPressed: unavailable
+            ? null
+            : () {
+                setState(() => phase = MountDetailsPhase.adding);
+                ref
+                    .read(activeEditPageProvider(widget.name).notifier)
+                    .set(ActiveEditPage.mounts);
+              },
+        child: Text(l10n.mountsAddMount),
+      ),
     );
 
     final topRightButton = phase == MountDetailsPhase.idle
