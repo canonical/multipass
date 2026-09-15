@@ -47,6 +47,26 @@ class TestTransfer:
             assert pull_file.exists()
             assert pull_file.read_text() == "hello from the other side"
 
+    def test_transfer_remote_wildcard(self, instance):
+        """Transfer files matching a wildcard from the guest to the host."""
+        with TempDirectory() as tmp:
+            source = tmp / "wildcard-source"
+            source.mkdir()
+            (source / "first.txt").write_text("first")
+            (source / "second.txt").write_text("second")
+            (source / "ignored.log").write_text("ignored")
+
+            assert multipass("transfer", "--recursive", str(source), f"{instance}:")
+
+            target = tmp / "wildcard-target"
+            target.mkdir()
+            assert multipass(
+                "transfer", f"{instance}:wildcard-source/*.txt", str(target)
+            )
+            assert (target / "first.txt").read_text() == "first"
+            assert (target / "second.txt").read_text() == "second"
+            assert not (target / "ignored.log").exists()
+
     def test_transfer_single_file_create_parents(self, instance):
         """Transfer a single file from the host to guest where the target is a
         nested folder structure."""

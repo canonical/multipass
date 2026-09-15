@@ -29,6 +29,7 @@ IMPL_MOCK_DEFAULT(1, sftp_close);
 IMPL_MOCK_DEFAULT(2, sftp_stat);
 IMPL_MOCK_DEFAULT(2, sftp_lstat);
 IMPL_MOCK_DEFAULT(2, sftp_opendir);
+IMPL_MOCK_DEFAULT(1, sftp_closedir);
 IMPL_MOCK_DEFAULT(2, sftp_readdir);
 IMPL_MOCK_DEFAULT(2, sftp_readlink);
 IMPL_MOCK_DEFAULT(3, sftp_mkdir);
