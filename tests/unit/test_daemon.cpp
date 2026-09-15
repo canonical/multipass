@@ -1634,6 +1634,142 @@ INSTANTIATE_TEST_SUITE_P(Daemon,
                                                 std::vector<std::string>{"list", "--no-ipv4"},
                                                 std::vector<std::string>{"Stopped", "--"})));
 
+TEST_F(Daemon, listOmitsZoneWhenBackendDoesNotSupportAvailabilityZones)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(false));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+
+    send_command({"launch"});
+
+    StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
+    mp::ListReply list_reply;
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+    ASSERT_THAT(list_reply.instance_list().instances(), SizeIs(1));
+    EXPECT_FALSE(list_reply.instance_list().instances(0).has_zone());
+}
+
+TEST_F(Daemon, listIncludesZoneWhenBackendSupportsAvailabilityZones)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(true));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+
+    send_command({"launch"});
+
+    StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
+    mp::ListReply list_reply;
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+    ASSERT_THAT(list_reply.instance_list().instances(), SizeIs(1));
+    EXPECT_TRUE(list_reply.instance_list().instances(0).has_zone());
+    EXPECT_EQ(list_reply.instance_list().instances(0).zone().name(), zone.get_name());
+}
+
+TEST_F(Daemon, infoOmitsZoneWhenBackendDoesNotSupportAvailabilityZones)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(false));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+
+    send_command({"launch"});
+
+    StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server;
+    mp::InfoReply info_reply;
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&info_reply), Return(true)));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server).ok());
+    ASSERT_THAT(info_reply.details(), SizeIs(1));
+    EXPECT_FALSE(info_reply.details(0).has_zone());
+}
+
+TEST_F(Daemon, infoIncludesZoneWhenBackendSupportsAvailabilityZones)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(true));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+
+    send_command({"launch"});
+
+    StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server;
+    mp::InfoReply info_reply;
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&info_reply), Return(true)));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server).ok());
+    ASSERT_THAT(info_reply.details(), SizeIs(1));
+    EXPECT_TRUE(info_reply.details(0).has_zone());
+    EXPECT_EQ(info_reply.details(0).zone().name(), zone.get_name());
+}
+
+TEST_F(Daemon, launchPersistsRealZoneNameEvenWhenBackendDoesNotSupportAvailabilityZones)
+{
+    // Regression test: create_vm() used to force zone_name to "" for backends that don't
+    // support availability zones, defeating the purpose of naming the stub zone "zone1" and
+    // meaning such instances would be persisted with an empty zone forever. The zone name
+    // that ends up on disk should always be a real, non-empty name (e.g. "zone1"), regardless
+    // of whether the backend advertises AZ support; it's the client-facing surface (list/info
+    // replies, LaunchReply.zone) that is gated on supports_availability_zones(), not the
+    // internal/persisted zone name.
+    const std::string expected_name{"pied-piper-valley"};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(false));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillRepeatedly(WithArg<0>([](const auto& desc) {
+            return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
+        }));
+
+    mpt::TempDir temp_dir;
+    config_builder.data_directory = temp_dir.path();
+    config_builder.name_generator = std::make_unique<StubNameGenerator>(expected_name);
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"launch"});
+
+    const auto filename = temp_dir.path() + "/multipassd-vm-instances.json";
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+        .WillOnce(WithArg<1>([&expected_name](const QByteArrayView& data) {
+            auto obj = boost::json::parse({data.begin(), data.end()});
+            const auto instance_object = obj.at(expected_name).as_object();
+            EXPECT_EQ(value_to<std::string>(instance_object.at("zone")), "zone1");
+        }));
+
+    daemon.persist_instances();
+}
+
 struct RunningInstanceWithoutIP : public Daemon, public WithParamInterface<std::vector<std::string>>
 {
 };

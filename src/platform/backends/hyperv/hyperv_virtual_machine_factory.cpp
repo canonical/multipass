@@ -23,7 +23,6 @@
 #include <multipass/format.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
-#include <multipass/stub_availability_zone.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 
@@ -257,8 +256,10 @@ void update_adapter_authorizations(std::vector<mp::NetworkInterfaceInfo>& adapte
                                    const std::vector<mp::NetworkInterfaceInfo>& switches)
 {
     for (auto& adapter : adapters)
-        adapter.needs_authorization =
-            std::none_of(switches.cbegin(), switches.cend(), [&adapter](const auto& switch_) {
+        adapter.needs_authorization = std::none_of(
+            switches.cbegin(),
+            switches.cend(),
+            [&adapter](const auto& switch_) {
                 return std::find(switch_.links.cbegin(), switch_.links.cend(), adapter.id) !=
                        switch_.links.cend();
             });
@@ -284,11 +285,12 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::HyperVVirtualMachine>(desc,
-                                                      monitor,
-                                                      key_provider,
-                                                      StubAvailabilityZone::instance(),
-                                                      get_instance_directory(desc.vm_name));
+    return std::make_unique<mp::HyperVVirtualMachine>(
+        desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(az_manager.get_default_zone_name()),
+        get_instance_directory(desc.vm_name));
 }
 
 void mp::HyperVVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -478,11 +480,12 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::clone_vm_impl(
     VMStatusMonitor& monitor,
     const SSHKeyProvider& key_provider)
 {
-    return std::make_unique<mp::HyperVVirtualMachine>(src_name,
-                                                      src_spec,
-                                                      dest_vm_desc,
-                                                      monitor,
-                                                      key_provider,
-                                                      StubAvailabilityZone::instance(),
-                                                      get_instance_directory(dest_vm_desc.vm_name));
+    return std::make_unique<mp::HyperVVirtualMachine>(
+        src_name,
+        src_spec,
+        dest_vm_desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(az_manager.get_default_zone_name()),
+        get_instance_directory(dest_vm_desc.vm_name));
 }

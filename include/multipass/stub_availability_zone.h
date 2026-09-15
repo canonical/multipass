@@ -18,18 +18,17 @@
 #ifndef MULTIPASS_STUB_AVAILABILITY_ZONE_H
 #define MULTIPASS_STUB_AVAILABILITY_ZONE_H
 
-#include <multipass/availability_zone.h>
-#include <multipass/singleton.h>
+#include "availability_zone.h"
 
 namespace multipass
 {
-// A no-op, always-available AvailabilityZone used by backends that do not support the concept of
-// availability zones (e.g. legacy VirtualBox and Hyper-V). It is never disabled and carries no
-// meaningful name or subnet, so it is safe to hand out regardless of any persisted zone state.
-class StubAvailabilityZone final : public AvailabilityZone, public Singleton<StubAvailabilityZone>
+// A minimal, always-available AvailabilityZone used by backends that do not support the concept
+// of availability zones (e.g. legacy VirtualBox and Hyper-V). It is not tied to any particular VM
+// and performs no persistence of its own; add_vm/remove_vm/set_available are no-ops.
+class StubAvailabilityZone final : public AvailabilityZone
 {
 public:
-    StubAvailabilityZone(const PrivatePass& pass) noexcept;
+    StubAvailabilityZone() noexcept;
 
     const std::string& get_name() const override;
     const Subnet& get_subnet() const override;

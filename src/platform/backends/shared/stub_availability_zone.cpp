@@ -20,8 +20,8 @@
 namespace multipass
 {
 
-StubAvailabilityZone::StubAvailabilityZone(const PrivatePass& pass) noexcept
-    : AvailabilityZone{}, Singleton<StubAvailabilityZone>{pass}, name{}, subnet{"0.0.0.0/0"}
+StubAvailabilityZone::StubAvailabilityZone() noexcept
+    : AvailabilityZone{}, name{"zone1"}, subnet{"0.0.0.0/0"}
 {
 }
 
@@ -40,20 +40,16 @@ bool StubAvailabilityZone::is_available() const
     return true;
 }
 
-void StubAvailabilityZone::set_available(bool)
+void StubAvailabilityZone::set_available(bool /*new_available*/)
 {
-    // no-op: backends that use this stub do not support availability zones, so this zone can
-    // never be disabled.
 }
 
-void StubAvailabilityZone::add_vm(VirtualMachine&)
+void StubAvailabilityZone::add_vm(VirtualMachine& /*vm*/)
 {
-    // no-op: no zone-availability tracking is needed for backends that use this stub.
 }
 
-void StubAvailabilityZone::remove_vm(VirtualMachine&)
+void StubAvailabilityZone::remove_vm(VirtualMachine& /*vm*/)
 {
-    // no-op: no zone-availability tracking is needed for backends that use this stub.
 }
 
 } // namespace multipass

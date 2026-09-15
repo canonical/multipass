@@ -25,7 +25,6 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
 #include <multipass/process/qemuimg_process_spec.h>
-#include <multipass/stub_availability_zone.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
@@ -134,11 +133,12 @@ auto mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor) -> mp::VirtualMachine::UPtr
 {
-    return std::make_unique<mp::VirtualBoxVirtualMachine>(desc,
-                                                          monitor,
-                                                          key_provider,
-                                                          StubAvailabilityZone::instance(),
-                                                          get_instance_directory(desc.vm_name));
+    return std::make_unique<mp::VirtualBoxVirtualMachine>(
+        desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(az_manager.get_default_zone_name()),
+        get_instance_directory(desc.vm_name));
 }
 
 void mp::VirtualBoxVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -287,6 +287,6 @@ mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::clone_vm_impl(
         dest_vm_desc,
         monitor,
         key_provider,
-        StubAvailabilityZone::instance(),
+        az_manager.get_zone(az_manager.get_default_zone_name()),
         get_instance_directory(dest_vm_desc.vm_name));
 }

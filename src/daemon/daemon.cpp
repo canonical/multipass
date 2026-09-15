@@ -1809,9 +1809,12 @@ try
         auto present_state = vm.current_state();
         auto entry = response.mutable_instance_list()->add_instances();
         entry->set_name(name);
-        const auto zone = entry->mutable_zone();
-        zone->set_name(vm.get_zone().get_name());
-        zone->set_available(vm.get_zone().is_available());
+        if (config->factory->supports_availability_zones())
+        {
+            const auto zone = entry->mutable_zone();
+            zone->set_name(vm.get_zone().get_name());
+            zone->set_available(vm.get_zone().is_available());
+        }
         if (deleted)
             entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
         else
@@ -3086,8 +3089,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     auto name = name_from(checked_args.instance_name, *config->name_generator, operative_instances);
 
-    auto zone_name = !config->factory->supports_availability_zones() ? std::string{}
-                   : !checked_args.zone_name.empty()
+    auto zone_name = !checked_args.zone_name.empty()
                        ? checked_args.zone_name
                        : config->az_manager->get_automatic_zone_name();
 
@@ -3160,7 +3162,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                          config->update_prompt->populate_if_time_to_show(
                                              reply.mutable_update_info());
 
-                                         reply.set_zone(zone);
+                                         if (config->factory->supports_availability_zones())
+                                             reply.set_zone(zone);
                                          server->Write(reply);
                                      });
                                  future_watcher->setFuture(QtConcurrent::run(
@@ -3199,9 +3202,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         try
         {
             CreateReply reply;
-            reply.set_create_message(zone_name.empty()
-                                         ? fmt::format("Creating {}", name)
-                                         : fmt::format("Creating {} in {}", name, zone_name));
+            reply.set_create_message(config->factory->supports_availability_zones()
+                                         ? fmt::format("Creating {} in {}", name, zone_name)
+                                         : fmt::format("Creating {}", name));
             server->Write(reply);
 
             Query query;
@@ -3766,10 +3769,13 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
 
     const auto& name = vm.get_name();
     info->set_name(name);
-    const auto zone = info->mutable_zone();
-    const auto& az = vm.get_zone();
-    zone->set_name(az.get_name());
-    zone->set_available(az.is_available());
+    if (config->factory->supports_availability_zones())
+    {
+        const auto zone = info->mutable_zone();
+        const auto& az = vm.get_zone();
+        zone->set_name(az.get_name());
+        zone->set_available(az.is_available());
+    }
 
     if (deleted)
         info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
