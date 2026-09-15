@@ -335,7 +335,7 @@ def pytest_collection_modifyitems(config, items):
         if cfg.driver in ("hyperv", "virtualbox"):
             item.add_marker(
                 pytest.mark.skip(
-                    f"Skipped -- {config.getoption('--driver')} driver does not "
+                    f"Skipped -- {cfg.driver} driver does not "
                     "support availability zones."
                 )
             )

@@ -69,14 +69,16 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
   final scrollController = ScrollController();
 
   void updateZoneAvailability() {
-    final zones = ref.read(zonesProvider);
-    // Backend doesn't support availability zones (or zones not loaded yet):
-    // don't let the empty zone list disable launching.
-    if (zones.isEmpty) {
+    if (!ref.read(azSupportedProvider)) {
       launchRequest.zone = '';
       if (!selectedZoneAvailable) {
         setState(() => selectedZoneAvailable = true);
       }
+      return;
+    }
+
+    final zones = ref.read(zonesProvider);
+    if (zones.isEmpty) {
       return;
     }
     final hasAvailableZones = zones.any((z) => z.available);
@@ -130,13 +132,17 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           error: (_, __) => null,
         );
     final zones = ref.watch(zonesProvider);
+    final azSupported = ref.watch(azSupportedProvider);
 
     // Update availability whenever zones change
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (zones.isEmpty) {
+      if (!azSupported) {
         launchRequest.zone = '';
         updateZoneAvailability();
+        return;
+      }
+      if (zones.isEmpty) {
         return;
       }
       final hasAvailableZones = zones.any((z) => z.available);
@@ -329,7 +335,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             nameInput,
-            if (zones.isNotEmpty) ...[
+            if (azSupported) ...[
               const SizedBox(width: 32),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
