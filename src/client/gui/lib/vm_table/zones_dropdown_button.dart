@@ -1,5 +1,7 @@
+import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch;
 import 'package:flutter_svg/flutter_svg.dart';
+import '../notifications.dart';
 import '../switch.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -97,23 +99,50 @@ class ZonesDropdownButton extends ConsumerWidget {
   }
 }
 
-class _ZoneToggleRow extends ConsumerWidget {
+class _ZoneToggleRow extends ConsumerStatefulWidget {
   final String zoneName;
 
   const _ZoneToggleRow(this.zoneName);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ZoneToggleRow> createState() => _ZoneToggleRowState();
+}
+
+class _ZoneToggleRowState extends ConsumerState<_ZoneToggleRow> {
+  // Tracks whether a zonesState request is currently in flight for this zone,
+  // so the switch can be disabled and rapid/overlapping toggles avoided
+  // (see https://github.com/canonical/multipass/issues/5230).
+  var pending = false;
+
+  Future<void> toggle(bool value) async {
+    final client = ref.read(grpcClientProvider);
+    setState(() => pending = true);
+    try {
+      await client.zonesState([widget.zoneName], value);
+    } catch (error) {
+      if (mounted) ref.read(notificationsProvider.notifier).addError(error);
+    } finally {
+      if (mounted) setState(() => pending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final client = ref.watch(grpcClientProvider);
 
     final available = ref.watch(zonesProvider.select((zones) {
-      return zones.firstWhere((z) => z.name == zoneName).available;
+      // The popup's item list is a static snapshot taken when it was opened,
+      // but this row keeps watching the live zonesProvider. If a transient
+      // polling error (e.g. an unrelated SSH failure) momentarily empties
+      // zonesProvider, this zone may briefly be absent from the live list;
+      // fall back to `false` instead of crashing with `firstWhere`.
+      return zones.where((z) => z.name == widget.zoneName).firstOrNull?.available ??
+          false;
     }));
 
     final instanceCount = ref.watch(vmInfosProvider.select((infos) {
       return infos
-          .where((vm) => vm.zone.name == zoneName)
+          .where((vm) => vm.zone.name == widget.zoneName)
           .where((vm) => vm.instanceStatus.status == Status.RUNNING)
           .length;
     }));
@@ -125,7 +154,7 @@ class _ZoneToggleRow extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              zoneName,
+              widget.zoneName,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -133,10 +162,13 @@ class _ZoneToggleRow extends ConsumerWidget {
               ),
             ),
             MouseRegion(
-              cursor: SystemMouseCursors.click,
+              cursor: pending
+                  ? SystemMouseCursors.basic
+                  : SystemMouseCursors.click,
               child: Switch(
                 value: available,
-                onChanged: (value) => client.zonesState([zoneName], value),
+                enabled: !pending,
+                onChanged: toggle,
                 size: 28,
               ),
             ),

@@ -41,9 +41,20 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       }),
     );
 
+    ref.listen(
+      vmInfoProvider(widget.name).select((info) {
+        return info.instanceStatus.status == Status.UNAVAILABLE;
+      }),
+      (_, isUnavailable) {
+        if (!isUnavailable || phase == MountDetailsPhase.idle) return;
+        setState(() => phase = MountDetailsPhase.idle);
+        ref.read(activeEditPageProvider(widget.name).notifier).set(null);
+      },
+    );
+
     final mountPointsView = MountPointsView(
       mounts: mounts,
-      allowDelete: phase != MountDetailsPhase.idle,
+      allowDelete: phase != MountDetailsPhase.idle && !unavailable,
       onDelete: doUnmount,
     );
 
