@@ -182,6 +182,19 @@ def pytest_addoption(parser):
         "Example: --cmd-timeouts launch=180 start=60",
     )
 
+    parser.addoption(
+        "--no-daemon-health-check",
+        action="store_true",
+        help="Disable the daemon health check that runs before each CLI command.",
+    )
+
+    parser.addoption(
+        "--health-check-timeout",
+        default=5,
+        type=int,
+        help="Timeout (seconds) for the per-step daemon health check.",
+    )
+
 
 def pytest_configure(config):
     """Validate command line args."""
@@ -225,6 +238,10 @@ def pytest_configure(config):
 
     for name, value in config.getoption("cmd_timeouts"):
         setattr(cfg.timeouts, name, value)
+
+    cfg.daemon_health_check = not config.getoption(
+        "--no-daemon-health-check")
+    cfg.health_check_timeout = config.getoption("--health-check-timeout")
 
     # If user gave --storage-dir, use it
     if not cfg.storage_dir:
@@ -566,7 +583,11 @@ def multipassd_impl():
         # Ensure the right driver is set
         set_driver(governor)
 
-        yield governor
+        cfg.active_governor = governor
+        try:
+            yield governor
+        finally:
+            cfg.active_governor = None
 
 
 @pytest.fixture(scope="function")
