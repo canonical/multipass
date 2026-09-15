@@ -24,8 +24,8 @@
 namespace multipass::hyperv::hcs
 {
 /**
- * The Host Compute System API expects paths with a single forward slash. HcsPath is a strong type
- * that ensures the correct formatting.
+ * HcsPath is a strong type that ensures paths use the native format expected by the Hyper-V APIs.
+
  */
 struct HcsPath
 {
@@ -33,18 +33,29 @@ struct HcsPath
         requires std::constructible_from<std::filesystem::path, Args...>
     HcsPath(Args&&... arg) : value{std::forward<Args>(arg)...}
     {
+        value.make_preferred();
     }
 
     template <typename T>
     HcsPath& operator=(T&& v)
     {
         value = std::forward<T>(v);
+        value.make_preferred();
         return *this;
     }
     [[nodiscard]] const std::filesystem::path& get() const noexcept
     {
         return value;
     }
+    [[nodiscard]] std::string string() const
+    {
+        return value.string();
+    }
+    [[nodiscard]] std::wstring wstring() const
+    {
+        return value.wstring();
+    }
+    friend bool operator==(const HcsPath&, const HcsPath&) = default;
 
 private:
     std::filesystem::path value;

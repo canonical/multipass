@@ -29,6 +29,8 @@
 #include <winerror.h>
 #include <winnt.h>
 
+#include <array>
+
 namespace mpt = multipass::test;
 namespace mpl = multipass::logging;
 
@@ -2495,6 +2497,47 @@ TEST_F(HyperVHCSAPI_UnitTests, get_compute_system_state_wait_for_operation_resul
         },
         nullptr,
         nullptr);
+}
+
+// ---------------------------------------------------------
+
+TEST(HcsPath, normalizes_native_separators)
+{
+    using path = std::filesystem::path;
+    const std::array<std::pair<HcsPath, path>, 6> paths = {
+        std::make_pair(HcsPath{"E:/some/path"}, path{"E:\\some\\path"}),
+        std::make_pair(HcsPath{"./some/path"}, path{".\\some\\path"}),
+        std::make_pair(HcsPath{"some/path"}, path{"some\\path"}),
+        std::make_pair(HcsPath{"some/path/"}, path{"some\\path\\"}),
+        std::make_pair(HcsPath{"some/"}, path{"some\\"}),
+        std::make_pair(HcsPath{"path"}, path{"path"}),
+    };
+
+    for (const auto& [hcs_path, fs_path] : paths)
+    {
+        EXPECT_EQ(hcs_path.get(), fs_path);
+    }
+}
+
+// ---------------------------------------------------------
+
+TEST(HcsPath, fmt_escapes_native_separators)
+{
+    using path = std::filesystem::path;
+    const std::array<std::pair<HcsPath, path>, 6> paths = {
+        std::make_pair(HcsPath{"E:/some/path"}, path{"E:\\\\some\\\\path"}),
+        std::make_pair(HcsPath{"./some/path"}, path{".\\\\some\\\\path"}),
+        std::make_pair(HcsPath{"some/path"}, path{"some\\\\path"}),
+        std::make_pair(HcsPath{"some/path/"}, path{"some\\\\path\\\\"}),
+        std::make_pair(HcsPath{"some/"}, path{"some\\\\"}),
+        std::make_pair(HcsPath{"path"}, path{"path"}),
+    };
+
+    for (const auto& [hcs_path, fs_path] : paths)
+    {
+        EXPECT_EQ(fmt::to_string(hcs_path), fs_path.string());
+        EXPECT_EQ(fmt::to_wstring(hcs_path), fs_path.wstring());
+    }
 }
 
 } // namespace multipass::test

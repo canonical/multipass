@@ -26,7 +26,6 @@
 
 #include <multipass/singleton.h>
 
-#include <filesystem>
 #include <string>
 
 struct HCS_EVENT;
@@ -61,18 +60,16 @@ struct HCSWrapper : public Singleton<HCSWrapper>
     save_compute_system(const HcsSystemHandle& target_hcs_system, const HcsPath& save_path) const;
     [[nodiscard]] virtual OperationResult get_compute_system_properties(
         const HcsSystemHandle& target_hcs_system) const;
-    [[nodiscard]] virtual OperationResult grant_vm_access(
-        const std::string& compute_system_name,
-        const std::filesystem::path& file_path) const;
-    [[nodiscard]] virtual OperationResult revoke_vm_access(
-        const std::string& compute_system_name,
-        const std::filesystem::path& file_path) const;
+    [[nodiscard]] virtual OperationResult grant_vm_access(const std::string& compute_system_name,
+                                                          const HcsPath& file_path) const;
+    [[nodiscard]] virtual OperationResult revoke_vm_access(const std::string& compute_system_name,
+                                                           const HcsPath& file_path) const;
     [[nodiscard]] virtual OperationResult create_empty_guest_state_file(
         const std::string& compute_system_name,
-        const std::filesystem::path& vmgs_file_path) const;
+        const HcsPath& vmgs_file_path) const;
     [[nodiscard]] virtual OperationResult create_empty_runtime_state_file(
         const std::string& compute_system_name,
-        const std::filesystem::path& vmrs_file_path) const;
+        const HcsPath& vmrs_file_path) const;
     [[nodiscard]] virtual OperationResult get_compute_system_state(
         const HcsSystemHandle& target_hcs_system,
         ComputeSystemState& state_out) const;

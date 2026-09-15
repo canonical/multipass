@@ -50,6 +50,7 @@ using uut_t = mhv::HCSVirtualMachine;
 using hcs_handle_t = mhv::hcs::HcsSystemHandle;
 using hcs_op_result_t = mhv::OperationResult;
 using hcs_system_state_t = mhv::hcs::ComputeSystemState;
+using hcs_path_t = mhv::hcs::HcsPath;
 
 struct PartiallyMockedHCSVM : public uut_t
 {
@@ -175,17 +176,18 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
                              std::optional<std::size_t> max_depth) { chain.push_back(vhdx_path); },
                       Return(hcs_op_result_t{0, L""})));
 
-        EXPECT_CALL(mock_hcs, grant_vm_access(Eq(dummy_vm_name), Eq(desc.image.image_path)))
+        EXPECT_CALL(mock_hcs,
+                    grant_vm_access(Eq(dummy_vm_name), Eq(hcs_path_t{desc.image.image_path})))
             .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
 
-        EXPECT_CALL(
-            mock_hcs,
-            grant_vm_access(Eq(dummy_vm_name), Eq(dummy_instances_dir.path().toStdString())))
+        EXPECT_CALL(mock_hcs,
+                    grant_vm_access(Eq(dummy_vm_name),
+                                    Eq(hcs_path_t{dummy_instances_dir.path().toStdString()})))
             .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
 
-        EXPECT_CALL(
-            mock_hcs,
-            grant_vm_access(Eq(dummy_vm_name), Eq(dummy_cloud_init_iso.name().toStdString())))
+        EXPECT_CALL(mock_hcs,
+                    grant_vm_access(Eq(dummy_vm_name),
+                                    Eq(hcs_path_t{dummy_cloud_init_iso.name().toStdString()})))
             .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
 
         EXPECT_CALL(mock_hcs, create_compute_system(_, _))
