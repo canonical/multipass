@@ -77,7 +77,7 @@ boost::json::object generate_instance_details(const mp::DetailedInfoItem& item)
 
     boost::json::object instance_info = {
         {"zone",
-         item.zone().supported()
+         !item.zone().name().empty()
              ? boost::json::value(boost::json::object{{"name", item.zone().name()},
                                                       {"available", item.zone().available()}})
              : boost::json::value(nullptr)},
@@ -173,7 +173,7 @@ boost::json::value generate_instances_list(const mp::InstancesList& instance_lis
             {"ipv4", boost::json::value_from(instance.ipv4())},
             {"release", std::move(release)},
             {"zone",
-             instance.zone().supported() ? boost::json::value(boost::json::object{
+             !instance.zone().name().empty() ? boost::json::value(boost::json::object{
                                                {"name", instance.zone().name()},
                                                {"available", instance.zone().available()}})
                                          : boost::json::value(nullptr)},

@@ -747,6 +747,10 @@
     "@vmTableAllInstances": {
         "description": "Page heading above the VM table"
     },
+    "vmTableZoneUnsupported": "n/a",
+    "@vmTableZoneUnsupported": {
+        "description": "Displayed in the Zone column when availability zones are not supported by the current backend"
+    },
     "vmTableZonesButtonTitle": "Zones",
     "@vmTableZonesButtonTitle": {
         "description": "Title label for zones button in the VM table"

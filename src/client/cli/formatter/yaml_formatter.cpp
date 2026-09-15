@@ -102,7 +102,7 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
     YAML::Node instance_node;
 
     instance_node["state"] = mp::format::status_string_for(item.instance_status());
-    if (item.zone().supported())
+    if (!item.zone().name().empty())
     {
         instance_node["zone"] = YAML::Node{};
         instance_node["zone"]["name"] = item.zone().name();
@@ -200,7 +200,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     {
         YAML::Node instance_node;
         instance_node["state"] = mp::format::status_string_for(instance.instance_status());
-        if (instance.zone().supported())
+        if (!instance.zone().name().empty())
         {
             instance_node["zone"] = YAML::Node{};
             instance_node["zone"]["name"] = instance.zone().name();

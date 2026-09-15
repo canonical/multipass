@@ -208,8 +208,9 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
         cpuCount: request.numCores.toString(),
         diskTotal: request.diskSpace,
         memoryTotal: request.memSize,
-        zone:
-            Zone(name: request.zone, supported: ref.read(azSupportedProvider)),
+        zone: Zone(
+          name: ref.read(azSupportedProvider) ? request.zone : '',
+        ),
         instanceInfo: InstanceDetails(
           currentRelease: request.image,
         ),

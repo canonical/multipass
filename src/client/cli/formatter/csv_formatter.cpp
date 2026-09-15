@@ -102,8 +102,8 @@ std::string generate_instance_details(const mp::InfoReply reply)
             "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}{}\n",
             info.name(),
             mp::format::status_string_for(info.instance_status()),
-            info.zone().supported() ? info.zone().name() : std::string{"n/a"},
-            info.zone().supported() ? fmt::to_string(info.zone().available()) : std::string{},
+            !info.zone().name().empty() ? info.zone().name() : std::string{"n/a"},
+            !info.zone().name().empty() ? fmt::to_string(info.zone().available()) : std::string{},
             instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
             instance_details.current_release(),
             instance_details.id(),
@@ -141,8 +141,8 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                 ? "Not Available"
                 : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release())),
             fmt::join(instance.ipv4(), ","),
-            instance.zone().supported() ? instance.zone().name() : std::string{"n/a"},
-            instance.zone().supported() ? fmt::to_string(instance.zone().available())
+            !instance.zone().name().empty() ? instance.zone().name() : std::string{"n/a"},
+            !instance.zone().name().empty() ? fmt::to_string(instance.zone().available())
                                         : std::string{});
     }
 

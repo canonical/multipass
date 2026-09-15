@@ -136,8 +136,9 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
                                    const std::string& backend_version_string,
                                    const mp::CreateRequest* request)
 {
-    auto ssh_key_line =
-        fmt::format("ssh-rsa {} {}@localhost", key_provider.public_key_as_base64(), username);
+    auto ssh_key_line = fmt::format("ssh-rsa {} {}@localhost",
+                                    key_provider.public_key_as_base64(),
+                                    username);
     QString pollinate_alias = QString::fromStdString(request->image());
 
     if (pollinate_alias.isEmpty())
@@ -165,10 +166,11 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
     {
         config["packages"].push_back("pollinate");
 
-        auto pollinate_user_agent_string =
-            fmt::format("multipass/version/{} # written by Multipass\n", multipass::version_string);
-        pollinate_user_agent_string +=
-            fmt::format("multipass/driver/{} # written by Multipass\n", backend_version_string);
+        auto pollinate_user_agent_string = fmt::format(
+            "multipass/version/{} # written by Multipass\n",
+            multipass::version_string);
+        pollinate_user_agent_string += fmt::format("multipass/driver/{} # written by Multipass\n",
+                                                   backend_version_string);
         pollinate_user_agent_string += fmt::format("multipass/host/{} # written by Multipass\n",
                                                    multipass::platform::host_version());
         pollinate_user_agent_string += fmt::format("multipass/alias/{}{} # written by Multipass\n",
@@ -323,8 +325,9 @@ bool is_bridged_impl(const mp::VMSpecs& specs,
                      const std::vector<mp::NetworkInterfaceInfo>& host_nets,
                      const std::string& preferred_net)
 {
-    const auto& matching_bridge =
-        mpu::find_bridge_with(host_nets, preferred_net, MP_PLATFORM.bridge_nomenclature());
+    const auto& matching_bridge = mpu::find_bridge_with(host_nets,
+                                                        preferred_net,
+                                                        MP_PLATFORM.bridge_nomenclature());
     return std::any_of(specs.extra_interfaces.cbegin(),
                        specs.extra_interfaces.cend(),
                        [&preferred_net, &matching_bridge](const auto& network) -> bool {
@@ -443,8 +446,8 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
     auto zone_name = request->zone();
     auto option_errors = mp::LaunchError{};
 
-    const auto opt_mem_size =
-        try_mem_size(mem_size_str.empty() ? mp::default_memory_size : mem_size_str);
+    const auto opt_mem_size = try_mem_size(mem_size_str.empty() ? mp::default_memory_size
+                                                                : mem_size_str);
 
     mp::MemorySize mem_size{};
     if (opt_mem_size && *opt_mem_size >= min_mem)
@@ -749,16 +752,19 @@ grpc::Status grpc_status_for_selection(const InstanceSelectionReport& selection,
     fmt::memory_buffer errors;
     auto status_code = grpc::StatusCode::OK;
 
-    if (auto code =
-            react_to_component(selection.operative_selection, reaction.operative_reaction, errors);
+    if (auto code = react_to_component(selection.operative_selection,
+                                       reaction.operative_reaction,
+                                       errors);
         code)
         status_code = code;
-    if (auto code =
-            react_to_component(selection.deleted_selection, reaction.deleted_reaction, errors);
+    if (auto code = react_to_component(selection.deleted_selection,
+                                       reaction.deleted_reaction,
+                                       errors);
         code)
         status_code = code;
-    if (auto code =
-            react_to_component(selection.missing_instances, reaction.missing_reaction, errors);
+    if (auto code = react_to_component(selection.missing_instances,
+                                       reaction.missing_reaction,
+                                       errors);
         code)
         status_code = code;
 
@@ -824,8 +830,10 @@ select_instances_and_react(InstanceTable& operative_instances,
                            InstanceGroup no_name_means,
                            const SelectionReaction& reaction)
 {
-    auto instance_selection =
-        select_instances(operative_instances, deleted_instances, names, no_name_means);
+    auto instance_selection = select_instances(operative_instances,
+                                               deleted_instances,
+                                               names,
+                                               no_name_means);
     return {instance_selection, grpc_status_for_selection(instance_selection, reaction)};
 }
 
@@ -1348,8 +1356,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        const auto instance_dir =
-            mp::utils::base_dir(MP_PLATFORM.path_to_qstr(vm_image.image_path));
+        const auto instance_dir = mp::utils::base_dir(
+            MP_PLATFORM.path_to_qstr(vm_image.image_path));
         const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
         mp::VirtualMachineDescription vm_desc{spec.num_cores,
                                               spec.mem_size,
@@ -1367,8 +1375,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {}};
 
         auto& instance_record = spec.deleted ? deleted_instances : operative_instances;
-        auto instance = instance_record[name] =
-            config->factory->create_virtual_machine(vm_desc, *config->ssh_key_provider, *this);
+        auto instance = instance_record[name] = config->factory->create_virtual_machine(
+            vm_desc,
+            *config->ssh_key_provider,
+            *this);
         instance->load_snapshots();
 
         // Add the new macs to the daemon's list only if we got this far
@@ -1747,12 +1757,12 @@ try
         return grpc_status_for(errors);
     };
 
-    auto [instance_selection, status] =
-        select_instances_and_react(operative_instances,
-                                   deleted_instances,
-                                   request->instance_snapshot_pairs(),
-                                   InstanceGroup::All,
-                                   require_existing_instances_reaction);
+    auto [instance_selection,
+          status] = select_instances_and_react(operative_instances,
+                                               deleted_instances,
+                                               request->instance_snapshot_pairs(),
+                                               InstanceGroup::All,
+                                               require_existing_instances_reaction);
 
     if (status.ok())
     {
@@ -1800,9 +1810,9 @@ try
         auto entry = response.mutable_instance_list()->add_instances();
         entry->set_name(name);
         const auto zone = entry->mutable_zone();
-        zone->set_name(vm.get_zone().get_name());
+        zone->set_name(config->factory->supports_availability_zones() ? vm.get_zone().get_name()
+                                                                      : "");
         zone->set_available(vm.get_zone().is_available());
-        zone->set_supported(config->factory->supports_availability_zones());
         if (deleted)
             entry->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
         else
@@ -1938,10 +1948,10 @@ try
     {
         const auto& name = path_entry.instance_name();
         auto q_target_path = QString::fromStdString(path_entry.target_path());
-        q_target_path =
-            q_target_path.isEmpty()
-                ? MP_UTILS.default_mount_target(QString::fromStdString(request->source_path()))
-                : MP_UTILS.normalize_mount_target(q_target_path);
+        q_target_path = q_target_path.isEmpty()
+                          ? MP_UTILS.default_mount_target(
+                                QString::fromStdString(request->source_path()))
+                          : MP_UTILS.normalize_mount_target(q_target_path);
         auto target_path = q_target_path.toStdString();
 
         auto it = operative_instances.find(name);
@@ -2021,12 +2031,12 @@ try
     recover_reaction.operative_reaction.message_template =
         "instance \"{}\" does not need to be recovered";
 
-    auto [instance_selection, status] =
-        select_instances_and_react(operative_instances,
-                                   deleted_instances,
-                                   request->instance_names().instance_name(),
-                                   InstanceGroup::Deleted,
-                                   recover_reaction);
+    auto [instance_selection,
+          status] = select_instances_and_react(operative_instances,
+                                               deleted_instances,
+                                               request->instance_names().instance_name(),
+                                               InstanceGroup::Deleted,
+                                               recover_reaction);
 
     if (status.ok())
     {
@@ -2055,12 +2065,12 @@ void mp::Daemon::ssh_info(const SSHInfoRequest* request,
                           DaemonRpcContext* context)
 try
 {
-    auto [instance_selection, status] =
-        select_instances_and_react(operative_instances,
-                                   deleted_instances,
-                                   request->instance_name(),
-                                   InstanceGroup::None,
-                                   require_operative_instances_reaction);
+    auto [instance_selection,
+          status] = select_instances_and_react(operative_instances,
+                                               deleted_instances,
+                                               request->instance_name(),
+                                               InstanceGroup::None,
+                                               require_operative_instances_reaction);
 
     if (status.ok())
     {
@@ -2094,12 +2104,12 @@ try
     const SelectionReaction custom_reaction{{grpc::StatusCode::OK},
                                             {grpc::StatusCode::ABORTED},
                                             {grpc::StatusCode::ABORTED}};
-    auto [instance_selection, status] =
-        select_instances_and_react(operative_instances,
-                                   deleted_instances,
-                                   request->instance_names().instance_name(),
-                                   InstanceGroup::Operative,
-                                   custom_reaction);
+    auto [instance_selection,
+          status] = select_instances_and_react(operative_instances,
+                                               deleted_instances,
+                                               request->instance_names().instance_name(),
+                                               InstanceGroup::Operative,
+                                               custom_reaction);
 
     if (!status.ok())
         return context->set_value({status.error_code(),
@@ -2121,10 +2131,10 @@ try
         {
         case VirtualMachine::State::unknown:
         {
-            auto error_string =
-                fmt::format("Instance '{0}' is already running, but in an unknown state.\n"
-                            "Try to stop it first.",
-                            name);
+            auto error_string = fmt::format(
+                "Instance '{0}' is already running, but in an unknown state.\n"
+                "Try to stop it first.",
+                name);
             mpl::log_message(mpl::Level::warning, category, error_string);
             start_errors.append(error_string);
             continue;
@@ -2180,12 +2190,12 @@ void mp::Daemon::stop(const StopRequest* request,
                       DaemonRpcContext* context)
 try
 {
-    auto [instance_selection, status] =
-        select_instances_and_react(operative_instances,
-                                   deleted_instances,
-                                   request->instance_names().instance_name(),
-                                   InstanceGroup::Operative,
-                                   require_operative_instances_reaction);
+    auto [instance_selection,
+          status] = select_instances_and_react(operative_instances,
+                                               deleted_instances,
+                                               request->instance_names().instance_name(),
+                                               InstanceGroup::Operative,
+                                               require_operative_instances_reaction);
 
     if (status.ok())
     {
@@ -2220,12 +2230,12 @@ void mp::Daemon::suspend(const SuspendRequest* request,
                          DaemonRpcContext* context)
 try
 {
-    auto [instance_selection, status] =
-        select_instances_and_react(operative_instances,
-                                   deleted_instances,
-                                   request->instance_names().instance_name(),
-                                   InstanceGroup::Operative,
-                                   require_operative_instances_reaction);
+    auto [instance_selection,
+          status] = select_instances_and_react(operative_instances,
+                                               deleted_instances,
+                                               request->instance_names().instance_name(),
+                                               InstanceGroup::Operative,
+                                               require_operative_instances_reaction);
 
     if (status.ok())
     {
@@ -2260,12 +2270,12 @@ try
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
-    auto [instance_selection, status] =
-        select_instances_and_react(operative_instances,
-                                   deleted_instances,
-                                   request->instance_names().instance_name(),
-                                   InstanceGroup::Operative,
-                                   require_operative_instances_reaction);
+    auto [instance_selection,
+          status] = select_instances_and_react(operative_instances,
+                                               deleted_instances,
+                                               request->instance_names().instance_name(),
+                                               InstanceGroup::Operative,
+                                               require_operative_instances_reaction);
 
     if (!status.ok())
     {
@@ -2307,12 +2317,12 @@ try
 {
     DeleteReply response;
 
-    auto [instance_selection, status] =
-        select_instances_and_react(operative_instances,
-                                   deleted_instances,
-                                   request->instance_snapshot_pairs(),
-                                   InstanceGroup::All,
-                                   require_existing_instances_reaction);
+    auto [instance_selection,
+          status] = select_instances_and_react(operative_instances,
+                                               deleted_instances,
+                                               request->instance_snapshot_pairs(),
+                                               InstanceGroup::All,
+                                               require_existing_instances_reaction);
 
     if (status.ok())
     {
@@ -2320,12 +2330,13 @@ try
         bool purge_snapshots = request->purge_snapshots();
         auto instances_dirty = false;
 
-        auto instance_snapshots_map =
-            map_snapshots_to_instances(request->instance_snapshot_pairs());
+        auto instance_snapshots_map = map_snapshots_to_instances(
+            request->instance_snapshot_pairs());
 
         // avoid deleting if any snapshot is missing or if we don't get confirmation
-        auto any_snapshot_args =
-            verify_snapshot_picks(instance_selection, instance_snapshots_map, purge);
+        auto any_snapshot_args = verify_snapshot_picks(instance_selection,
+                                                       instance_snapshots_map,
+                                                       purge);
         if (any_snapshot_args && !purge && !purge_snapshots)
         {
             DeleteReply confirm_action{};
@@ -2724,10 +2735,10 @@ try
                 reply_msg(server,
                           fmt::format("Taking snapshot before restoring {}", instance_name));
 
-                const auto snapshot =
-                    vm_ptr->take_snapshot(vm_specs,
-                                          "",
-                                          fmt::format("Before restoring {}", request->snapshot()));
+                const auto snapshot = vm_ptr->take_snapshot(
+                    vm_specs,
+                    "",
+                    fmt::format("Before restoring {}", request->snapshot()));
 
                 reply_msg(server,
                           fmt::format("Snapshot taken: {}.{}", instance_name, snapshot->get_name()),
@@ -2766,11 +2777,11 @@ void mp::Daemon::clone(const CloneRequest* request,
 try
 {
     const auto& source_name = request->source_name();
-    const auto [src_instance_trail, src_vm_status] =
-        find_instance_and_react(operative_instances,
-                                deleted_instances,
-                                source_name,
-                                require_operative_instances_reaction);
+    const auto [src_instance_trail,
+                src_vm_status] = find_instance_and_react(operative_instances,
+                                                         deleted_instances,
+                                                         source_name,
+                                                         require_operative_instances_reaction);
     if (src_vm_status.ok())
     {
         assert(src_instance_trail.index() == 0);
@@ -2802,20 +2813,21 @@ try
 
         config->vault->clone(source_name, destination_name);
 
-        const mp::VMImage dest_vm_image =
-            fetch_image_for(destination_name, *config->factory, *config->vault);
+        const mp::VMImage dest_vm_image = fetch_image_for(destination_name,
+                                                          *config->factory,
+                                                          *config->vault);
 
         // Specs need to be in place before the factory can create the VM
         // Notice that we are passing `this`, which can be used to retrieve further info
         vm_instance_specs.emplace(destination_name, dest_spec);
-        operative_instances[destination_name] =
-            config->factory->clone_bare_vm(src_spec,
-                                           dest_spec,
-                                           source_name,
-                                           destination_name,
-                                           dest_vm_image,
-                                           *config->ssh_key_provider,
-                                           *this);
+        operative_instances[destination_name] = config->factory->clone_bare_vm(
+            src_spec,
+            dest_spec,
+            source_name,
+            destination_name,
+            dest_vm_image,
+            *config->ssh_key_provider,
+            *this);
         ++src_spec.clone_count;
         // preparing instance is done
         preparing_instances.erase(destination_name);
@@ -2906,7 +2918,6 @@ try // clang-format on
         reply_zone->set_name(zone.get().get_name());
         reply_zone->set_subnet(zone.get().get_subnet().to_cidr());
         reply_zone->set_available(zone.get().is_available());
-        reply_zone->set_supported(true);
     }
 
     server->Write(response);
@@ -3076,8 +3087,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     auto name = name_from(checked_args.instance_name, *config->name_generator, operative_instances);
 
-    auto zone_name = checked_args.zone_name.empty() ? config->az_manager->get_automatic_zone_name()
-                                                    : checked_args.zone_name;
+    auto zone_name = !checked_args.zone_name.empty()
+                       ? checked_args.zone_name
+                       : config->az_manager->get_automatic_zone_name();
 
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
@@ -3125,10 +3137,10 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                  0,
                                  vm_desc.zone,
                              };
-                             operative_instances[name] =
-                                 config->factory->create_virtual_machine(vm_desc,
-                                                                         *config->ssh_key_provider,
-                                                                         *this);
+                             operative_instances[name] = config->factory->create_virtual_machine(
+                                 vm_desc,
+                                 *config->ssh_key_provider,
+                                 *this);
                              preparing_instances.erase(name);
 
                              persist_instances();
@@ -3188,7 +3200,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         try
         {
             CreateReply reply;
-            reply.set_create_message(fmt::format("Creating {} in {}", name, zone_name));
+            reply.set_create_message(config->factory->supports_availability_zones()
+                                         ? fmt::format("Creating {} in {}", name, zone_name)
+                                         : fmt::format("Creating {}", name));
             server->Write(reply);
 
             Query query;
@@ -3280,9 +3294,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
                 vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 
-            vm_desc.network_data_config =
-                mpu::make_cloud_init_network_config(vm_desc.default_mac_address,
-                                                    checked_args.extra_interfaces);
+            vm_desc.network_data_config = mpu::make_cloud_init_network_config(
+                vm_desc.default_mac_address,
+                checked_args.extra_interfaces);
 
             vm_desc.image = vm_image;
             config->factory->configure(vm_desc);
@@ -3755,9 +3769,8 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     info->set_name(name);
     const auto zone = info->mutable_zone();
     const auto& az = vm.get_zone();
-    zone->set_name(az.get_name());
+    zone->set_name(config->factory->supports_availability_zones() ? az.get_name() : "");
     zone->set_available(az.is_available());
-    zone->set_supported(config->factory->supports_availability_zones());
 
     if (deleted)
         info->mutable_instance_status()->set_status(mp::InstanceStatus::DELETED);
@@ -3828,11 +3841,11 @@ grpc::Status mp::Daemon::validate_dest_name(const std::string& name)
         return grpc::Status{grpc::INVALID_ARGUMENT, "Invalid destination instance name: " + name};
     }
 
-    const auto [dest_instance_trail, dest_vm_status] =
-        find_instance_and_react(operative_instances,
-                                deleted_instances,
-                                name,
-                                require_missing_instances_reaction);
+    const auto [dest_instance_trail,
+                dest_vm_status] = find_instance_and_react(operative_instances,
+                                                          deleted_instances,
+                                                          name,
+                                                          require_missing_instances_reaction);
     assert(dest_vm_status.ok() == (dest_instance_trail.index() == 2));
 
     if (!dest_vm_status.ok())
@@ -3890,8 +3903,8 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
     mp::VMSpecs& specs = vm_instance_specs.at(instance_name);
     mp::VirtualMachine::ShPtr instance = operative_instances.at(instance_name);
 
-    const auto& host_nets =
-        config->factory->networks(); // This will throw if not implemented on this backend.
+    const auto& host_nets = config->factory
+                                ->networks(); // This will throw if not implemented on this backend.
     const auto& preferred_net = get_bridged_interface_name();
     if (is_bridged_impl(specs, host_nets, preferred_net))
     {
@@ -3899,10 +3912,10 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
         return;
     }
 
-    if (const auto info =
-            std::find_if(host_nets.cbegin(),
-                         host_nets.cend(),
-                         [preferred_net](const auto& i) { return i.id == preferred_net; });
+    if (const auto info = std::find_if(
+            host_nets.cbegin(),
+            host_nets.cend(),
+            [preferred_net](const auto& i) { return i.id == preferred_net; });
         info == host_nets.cend())
     {
         throw std::runtime_error(
@@ -3929,8 +3942,8 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
 
     mpl::trace(category, "Prepare networking");
     config->factory->prepare_networking(specs.extra_interfaces);
-    new_if =
-        specs.extra_interfaces.back(); // prepare_networking can modify the id of the new interface.
+    new_if = specs.extra_interfaces
+                 .back(); // prepare_networking can modify the id of the new interface.
     mpl::trace(category, "Done preparation, new interface id is now \"{}\"", new_if.id);
 
     // Add the new interface to the VM.

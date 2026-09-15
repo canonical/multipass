@@ -245,9 +245,6 @@ class GrpcClient {
   Future<List<Zone>> zones() {
     return doRpc(_client.zones, ZonesRequest(), log: false)
         .then<List<Zone>>((r) => r!.zones)
-        // Backends that don't implement Availability Zones (VirtualBox, old
-        // Hyper-V) reject this with FAILED_PRECONDITION. Treat that as "no
-        // zones" so the rest of the polling (instance info) keeps working.
         .onError<GrpcError>(
           (_, __) => <Zone>[],
           test: (e) =>

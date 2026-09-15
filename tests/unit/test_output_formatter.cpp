@@ -70,7 +70,6 @@ auto construct_single_instance_list_reply()
     const auto zone = list_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
-    zone->set_supported(true);
 
     return list_reply;
 }
@@ -88,7 +87,6 @@ auto construct_multiple_instances_list_reply()
     auto zone = list_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
-    zone->set_supported(true);
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("bombastic");
@@ -98,7 +96,6 @@ auto construct_multiple_instances_list_reply()
     zone = list_entry->mutable_zone();
     zone->set_name("zone2");
     zone->set_available(false);
-    zone->set_supported(true);
 
     return list_reply;
 }
@@ -115,7 +112,6 @@ auto construct_unsorted_list_reply()
     auto zone = list_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
-    zone->set_supported(true);
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1535");
@@ -125,7 +121,6 @@ auto construct_unsorted_list_reply()
     zone = list_entry->mutable_zone();
     zone->set_name("zone2");
     zone->set_available(false);
-    zone->set_supported(true);
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1539");
@@ -134,7 +129,6 @@ auto construct_unsorted_list_reply()
     zone = list_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
-    zone->set_supported(true);
 
     list_entry = list_reply.mutable_instance_list()->add_instances();
     list_entry->set_name("trusty-190611-1529");
@@ -143,7 +137,6 @@ auto construct_unsorted_list_reply()
     zone = list_entry->mutable_zone();
     zone->set_name("zone2");
     zone->set_available(false);
-    zone->set_supported(true);
 
     return list_reply;
 }
@@ -231,7 +224,6 @@ auto add_petenv_to_reply(mp::ListReply& reply)
         const auto zone = instance->mutable_zone();
         zone->set_name("zone1");
         zone->set_available(true);
-        zone->set_supported(true);
     }
     else
     {
@@ -302,7 +294,6 @@ auto construct_single_instance_info_reply()
     const auto zone = info_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
-    zone->set_supported(true);
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(19);
@@ -359,7 +350,6 @@ auto construct_multiple_instances_info_reply()
     auto zone = info_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
-    zone->set_supported(true);
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(17);
@@ -397,7 +387,6 @@ auto construct_multiple_instances_info_reply()
     zone = info_entry->mutable_zone();
     zone->set_name("zone2");
     zone->set_available(false);
-    zone->set_supported(true);
 
     return info_reply;
 }
@@ -422,7 +411,6 @@ auto construct_single_snapshot_info_reply()
     const auto zone = info_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
-    zone->set_supported(true);
 
     auto mount_entry = info_entry->mutable_mount_info()->add_mount_paths();
     mount_entry->set_source_path("/home/user/source");
@@ -453,7 +441,6 @@ auto construct_multiple_snapshots_info_reply()
     auto zone = info_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
-    zone->set_supported(true);
     fundamentals->set_snapshot_name("black-hole");
     fundamentals->set_comment("Captured by EHT");
 
@@ -471,7 +458,6 @@ auto construct_multiple_snapshots_info_reply()
     zone = info_entry->mutable_zone();
     zone->set_name("zone2");
     zone->set_available(false);
-    zone->set_supported(true);
     fundamentals->set_snapshot_name("snapshot2");
     fundamentals->set_parent("snapshot1");
     info_entry->mutable_snapshot_info()->add_children("snapshot3");
@@ -505,7 +491,6 @@ auto construct_mixed_instance_and_snapshot_info_reply()
     auto zone = info_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
-    zone->set_supported(true);
     fundamentals->set_snapshot_name("snapshot2");
     fundamentals->set_parent("snapshot1");
     info_entry->mutable_snapshot_info()->add_children("snapshot3");
@@ -528,7 +513,6 @@ auto construct_mixed_instance_and_snapshot_info_reply()
     zone = info_entry->mutable_zone();
     zone->set_name("zone2");
     zone->set_available(false);
-    zone->set_supported(true);
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
     info_entry->mutable_instance_info()->set_os("Ubuntu");
@@ -553,7 +537,6 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     auto zone = info_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
-    zone->set_supported(true);
 
     auto mount_info = info_entry->mutable_mount_info();
     mount_info->set_longest_path_len(17);
@@ -591,7 +574,6 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     zone = info_entry->mutable_zone();
     zone->set_name("zone2");
     zone->set_available(false);
-    zone->set_supported(true);
     fundamentals->set_snapshot_name("snapshot2");
     fundamentals->set_parent("snapshot1");
     info_entry->mutable_snapshot_info()->add_children("snapshot3");
@@ -619,7 +601,6 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     zone = info_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
-    zone->set_supported(true);
     fundamentals->set_snapshot_name("snapshot1");
 
     timestamp.set_seconds(63107999);
@@ -631,7 +612,6 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     zone = info_entry->mutable_zone();
     zone->set_name("zone2");
     zone->set_available(false);
-    zone->set_supported(true);
     info_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     info_entry->mutable_instance_info()->set_image_release("18.04 LTS");
     info_entry->mutable_instance_info()->set_os("Ubuntu");
@@ -649,7 +629,6 @@ auto construct_multiple_mixed_instances_and_snapshots_info_reply()
     zone = info_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
-    zone->set_supported(true);
     fundamentals->set_snapshot_name("black-hole");
     fundamentals->set_comment("Captured by EHT");
 
@@ -669,7 +648,6 @@ auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
         const auto zone = entry->mutable_zone();
         zone->set_name("zone1");
         zone->set_available(true);
-        zone->set_supported(true);
         entry->mutable_instance_status()->set_status(mp::InstanceStatus::SUSPENDED);
         entry->mutable_instance_info()->set_image_release("18.10");
         entry->mutable_instance_info()->set_os("Ubuntu");
@@ -684,7 +662,6 @@ auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
         const auto zone = entry->mutable_zone();
         zone->set_name("zone1");
         zone->set_available(true);
-        zone->set_supported(true);
         entry->mutable_snapshot_info()->mutable_fundamentals()->set_snapshot_name("snapshot1");
     }
 }
@@ -1516,14 +1493,18 @@ TEST_F(BaseFormatterSuite, yaml_formatter_formats_zones_correctly)
 TEST_F(BaseFormatterSuite, formatters_render_unsupported_zone_as_na_in_list)
 {
     auto list_reply = construct_single_instance_list_reply();
-    list_reply.mutable_instance_list()->mutable_instances(0)->mutable_zone()->set_supported(false);
+    list_reply.mutable_instance_list()->mutable_instances(0)->mutable_zone()->clear_name();
 
     const auto table_output = table_formatter.format(list_reply);
-    EXPECT_THAT(table_output, HasSubstr("n/a"));
+    EXPECT_THAT(
+        table_output,
+        HasSubstr("foo                     Running           10.168.32.2      Ubuntu 16.04 LTS    n/a\n"));
     EXPECT_THAT(table_output, Not(HasSubstr("zone1")));
 
     const auto csv_output = csv_formatter.format(list_reply);
-    EXPECT_THAT(csv_output, HasSubstr("n/a"));
+    EXPECT_THAT(
+        csv_output,
+        HasSubstr("foo,Running,10.168.32.2,Ubuntu 16.04 LTS,\"10.168.32.2,200.3.123.30\",n/a,\n"));
     EXPECT_THAT(csv_output, Not(HasSubstr("zone1")));
 
     const auto json_output = json_formatter.format(list_reply);
@@ -1537,14 +1518,14 @@ TEST_F(BaseFormatterSuite, formatters_render_unsupported_zone_as_na_in_list)
 TEST_F(BaseFormatterSuite, formatters_render_unsupported_zone_as_na_in_info)
 {
     auto info_reply = construct_single_instance_info_reply();
-    info_reply.mutable_details(0)->mutable_zone()->set_supported(false);
+    info_reply.mutable_details(0)->mutable_zone()->clear_name();
 
     const auto table_output = table_formatter.format(info_reply);
-    EXPECT_THAT(table_output, HasSubstr("n/a"));
+    EXPECT_THAT(table_output, HasSubstr("Zone:           n/a\n"));
     EXPECT_THAT(table_output, Not(HasSubstr("zone1")));
 
     const auto csv_output = csv_formatter.format(info_reply);
-    EXPECT_THAT(csv_output, HasSubstr("n/a"));
+    EXPECT_THAT(csv_output, HasSubstr("foo,Running,n/a,,10.168.32.2,Ubuntu 16.04.3 LTS,"));
     EXPECT_THAT(csv_output, Not(HasSubstr("zone1")));
 
     const auto json_output = json_formatter.format(info_reply);

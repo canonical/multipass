@@ -148,7 +148,7 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
         dest,
         "{:<16}{}\n",
         "Zone:",
-        item.zone().supported()
+        !item.zone().name().empty()
             ? fmt::format("{}{}", item.zone().name(), item.zone().available() ? "" : "(n/a)")
             : std::string{"n/a"});
 
@@ -297,7 +297,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                 ? "Not Available"
                 : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release())),
             image_column_width,
-            instance.zone().supported() ? fmt::format("{}{}",
+            !instance.zone().name().empty() ? fmt::format("{}{}",
                                                       instance.zone().name(),
                                                       instance.zone().available() ? "" : "(n/a)")
                                         : std::string{"n/a"});
