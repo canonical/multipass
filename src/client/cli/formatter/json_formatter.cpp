@@ -174,9 +174,9 @@ boost::json::value generate_instances_list(const mp::InstancesList& instance_lis
             {"release", std::move(release)},
             {"zone",
              !instance.zone().name().empty() ? boost::json::value(boost::json::object{
-                                               {"name", instance.zone().name()},
-                                               {"available", instance.zone().available()}})
-                                         : boost::json::value(nullptr)},
+                                                   {"name", instance.zone().name()},
+                                                   {"available", instance.zone().available()}})
+                                             : boost::json::value(nullptr)},
         });
     }
 

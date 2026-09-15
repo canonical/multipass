@@ -1406,8 +1406,8 @@ TEST_P(PetenvFormatterSuite, petEnvFirstInOutput)
                                 "(Snapshot[[:print:]]*\n[[:print:]]*,{0},.*)",
                                 petenv_name());
         else if (dynamic_cast<const mp::YamlFormatter*>(formatter))
-            regex =
-                fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", petenv_name());
+            regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*",
+                                petenv_name());
         else
             FAIL() << "Not a supported formatter.";
     }
@@ -1496,9 +1496,9 @@ TEST_F(BaseFormatterSuite, formatters_render_unsupported_zone_as_na_in_list)
     list_reply.mutable_instance_list()->mutable_instances(0)->mutable_zone()->clear_name();
 
     const auto table_output = table_formatter.format(list_reply);
-    EXPECT_THAT(
-        table_output,
-        HasSubstr("foo                     Running           10.168.32.2      Ubuntu 16.04 LTS    n/a\n"));
+    EXPECT_THAT(table_output,
+                HasSubstr("foo                     Running           10.168.32.2      Ubuntu 16.04 "
+                          "LTS    n/a\n"));
     EXPECT_THAT(table_output, Not(HasSubstr("zone1")));
 
     const auto csv_output = csv_formatter.format(list_reply);

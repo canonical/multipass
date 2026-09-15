@@ -297,10 +297,11 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                 ? "Not Available"
                 : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release())),
             image_column_width,
-            !instance.zone().name().empty() ? fmt::format("{}{}",
-                                                      instance.zone().name(),
-                                                      instance.zone().available() ? "" : "(n/a)")
-                                        : std::string{"n/a"});
+            !instance.zone().name().empty()
+                ? fmt::format("{}{}",
+                              instance.zone().name(),
+                              instance.zone().available() ? "" : "(n/a)")
+                : std::string{"n/a"});
 
         for (int i = 1; i < ipv4_size; ++i)
         {

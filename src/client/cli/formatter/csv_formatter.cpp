@@ -143,7 +143,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
             fmt::join(instance.ipv4(), ","),
             !instance.zone().name().empty() ? instance.zone().name() : std::string{"n/a"},
             !instance.zone().name().empty() ? fmt::to_string(instance.zone().available())
-                                        : std::string{});
+                                            : std::string{});
     }
 
     return fmt::to_string(buf);
