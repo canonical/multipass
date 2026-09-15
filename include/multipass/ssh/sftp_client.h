@@ -51,7 +51,7 @@ public:
                int port,
                const std::string& username,
                const std::string& priv_key_blob);
-    SFTPClient(SSHSessionUPtr ssh_session);
+    SFTPClient(SSHSessionUPtr ssh_session_obj);
 
     virtual bool is_remote_dir(const fs::path& path);
     virtual bool push(const fs::path& source_path, const fs::path& target_path, Flags flags = {});
@@ -69,7 +69,7 @@ private:
     void do_push_file(std::istream& source, const fs::path& target_path);
     void do_pull_file(const fs::path& source_path, std::ostream& target);
 
-    SSHSessionUPtr ssh_session;
+    SSHSessionUPtr ssh_session_obj;
     SFTPSessionUPtr sftp;
 };
 
