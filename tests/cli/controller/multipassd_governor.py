@@ -242,7 +242,14 @@ class MultipassdGovernor:
         """Stop the multipassd daemon"""
         logging.debug("multipassd-governor :: stop called")
         self.graceful_exit_initiated = True
-        await self.controller.stop()
+        try:
+            await asyncio.wait_for(self.controller.stop(), timeout=30)
+        except asyncio.TimeoutError:
+            logging.warning(
+                "⚠️ multipassd stop timed out after 30s; the daemon may still be running."
+            )
+        except asyncio.CancelledError:
+            raise
 
         if self.monitor_task:
             try:
