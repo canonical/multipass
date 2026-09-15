@@ -91,6 +91,7 @@ protected:
         const VMSpecs& specs,
         std::shared_ptr<Snapshot> parent) override;
     void resize_disk_impl(const MemorySize& new_size) override;
+    void remove_suspend_state_file_if_exists();
 
 private:
     VirtualMachineDescription description{};
