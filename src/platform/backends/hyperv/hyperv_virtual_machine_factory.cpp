@@ -23,6 +23,7 @@
 #include <multipass/format.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
+#include <multipass/stub_availability_zone.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 
@@ -286,7 +287,7 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine
     return std::make_unique<mp::HyperVVirtualMachine>(desc,
                                                       monitor,
                                                       key_provider,
-                                                      az_manager.get_zone(desc.zone),
+                                                      StubAvailabilityZone::instance(),
                                                       get_instance_directory(desc.vm_name));
 }
 
@@ -482,6 +483,6 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::clone_vm_impl(
                                                       dest_vm_desc,
                                                       monitor,
                                                       key_provider,
-                                                      az_manager.get_zone(dest_vm_desc.zone),
+                                                      StubAvailabilityZone::instance(),
                                                       get_instance_directory(dest_vm_desc.vm_name));
 }
