@@ -81,6 +81,8 @@ void mp::PlainSSHProcess::ChannelDeleter::operator()(ssh_channel_struct* chan) c
 mp::PlainSSHProcess::ChannelUPtr mp::PlainSSHProcess::make_channel(ssh_session raw_session,
                                                                    const std::string& cmd)
 {
+    assert(raw_session && "precondition - need an actual session");
+
     if (!MP_LIBSSH.ssh_is_connected(raw_session))
         throw mp::SSHException(fmt::format(
             "unable to create a channel for remote process: '{}', the SSH session is not connected",
@@ -99,14 +101,14 @@ mp::PlainSSHProcess::ChannelUPtr mp::PlainSSHProcess::make_channel(ssh_session r
     return channel;
 }
 
-mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct& raw_session,
+mp::PlainSSHProcess::PlainSSHProcess(ssh_session_struct* raw_session,
                                      const std::string& cmd,
                                      std::unique_lock<std::mutex> session_lock)
     : session_lock{std::move(
           session_lock)}, // this is held until the exit code is requested or this is destroyed
-      raw_session{&raw_session},
+      raw_session{raw_session},
       cmd{cmd},
-      channel{make_channel(this->raw_session, cmd)},
+      channel{make_channel(raw_session, cmd)},
       exit_result{}
 {
     assert(this->session_lock.owns_lock());
