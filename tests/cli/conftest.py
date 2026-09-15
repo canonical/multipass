@@ -332,7 +332,7 @@ def pytest_collection_modifyitems(config, items):
         # hyperv_api is the successor of the deprecated `hyperv` backend and
         # does support availability zones -- only the legacy `hyperv` and
         # `virtualbox` backends are excluded here.
-        if config.getoption("--driver") in ("hyperv", "virtualbox"):
+        if cfg.driver in ("hyperv", "virtualbox"):
             item.add_marker(
                 pytest.mark.skip(
                     f"Skipped -- {config.getoption('--driver')} driver does not "

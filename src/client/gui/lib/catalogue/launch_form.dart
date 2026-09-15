@@ -136,6 +136,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       if (!mounted) return;
       if (zones.isEmpty) {
         launchRequest.zone = '';
+        updateZoneAvailability();
         return;
       }
       final hasAvailableZones = zones.any((z) => z.available);
