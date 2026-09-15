@@ -352,7 +352,7 @@ void mp::HyperVVirtualMachine::start()
     {
         state = instance_state_for(power_shell.get(), name);
         handle_state_update();
-        throw StartException{vm_name, output_err.toStdString()};
+        throw StartException{vm_name, output_err.toStdString(), false};
     }
 }
 

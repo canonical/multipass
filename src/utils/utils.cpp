@@ -582,11 +582,11 @@ std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& se
 {
     std::string absolute{get_resolved_target(session, target)};
 
-    std::string existing =
-        MP_UTILS.run_in_ssh_session(session,
-                                    fmt::format("sudo /bin/bash -c 'P={:?}; while [ ! -d \"$P/\" "
-                                                "]; do P=\"${{P%/*}}\"; done; echo $P/'",
-                                                absolute));
+    std::string existing = MP_UTILS.run_in_ssh_session(
+        session,
+        fmt::format("sudo /bin/bash -c 'P={:?}; while [ ! -d \"$P/\" "
+                    "]; do P=\"${{P%/*}}\"; done; echo $P/'",
+                    absolute));
 
     return {existing,
             QDir(QString::fromStdString(existing))
@@ -690,11 +690,25 @@ auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& ne
                                  const std::string& bridge_type)
     -> std::optional<mp::NetworkInterfaceInfo>
 {
-    const auto it =
-        std::find_if(std::cbegin(networks),
-                     std::cend(networks),
-                     [&target_network, &bridge_type](const NetworkInterfaceInfo& info) {
-                         return info.type == bridge_type && info.has_link(target_network);
-                     });
+    const auto it = std::find_if(std::cbegin(networks),
+                                 std::cend(networks),
+                                 [&target_network, &bridge_type](const NetworkInterfaceInfo& info) {
+                                     return info.type == bridge_type &&
+                                            info.has_link(target_network);
+                                 });
     return it == std::cend(networks) ? std::nullopt : std::make_optional(*it);
+}
+
+bool mp::utils::expects_shutdown_from_cloud_init(const YAML::Node& user_data_config)
+{
+    if (user_data_config["power_state"])
+    {
+        auto ps = user_data_config["power_state"];
+        if (ps["mode"])
+        {
+            std::string mode = ps["mode"].as<std::string>();
+            return (mode == "poweroff" || mode == "halt");
+        }
+    }
+    return false;
 }
