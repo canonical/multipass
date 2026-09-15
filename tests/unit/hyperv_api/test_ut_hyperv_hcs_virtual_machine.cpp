@@ -432,7 +432,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_powerdown_fail)
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
         .WillOnce(
             DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})))
-        .WillOnce(
+        .WillRepeatedly(
             DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, shutdown_compute_system(Eq(mock_handle)))
@@ -476,6 +476,107 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_halt)
     uut->shutdown(multipass::VirtualMachine::ShutdownPolicy::Halt);
 
     EXPECT_EQ(uut->state, multipass::VirtualMachine::State::stopped);
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_poweroff_suspended_removes_saved_state)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    default_open_success();
+
+    bool state_file_removed = false;
+
+    auto is_suspend_state_file = [](const std::filesystem::path& p) {
+        return p.string().find(".SavedState.vmrs") != std::string::npos;
+    };
+
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+        .WillRepeatedly([&](const mhv::hcs::HcsSystemHandle&, hcs_system_state_t& state) {
+            state = hcs_system_state_t::stopped;
+            return hcs_op_result_t{0, L""};
+        });
+
+    EXPECT_CALL(*mock_file_ops, exists(::testing::A<const std::filesystem::path&>()))
+        .WillRepeatedly([&](const std::filesystem::path& p) { return !state_file_removed; });
+
+    EXPECT_CALL(*mock_file_ops, remove(::testing::A<const std::filesystem::path&>(), _))
+        .WillOnce([&](const std::filesystem::path& p, std::error_code& err) {
+            if (is_suspend_state_file(p))
+            {
+                state_file_removed = true;
+            }
+            return true;
+        });
+
+    std::shared_ptr<uut_t> uut{nullptr};
+    ASSERT_NO_THROW(uut = construct_vm());
+
+    ASSERT_EQ(uut->state, multipass::VirtualMachine::State::suspended);
+
+    uut->shutdown(multipass::VirtualMachine::ShutdownPolicy::Poweroff);
+
+    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::stopped);
+    EXPECT_EQ(state_file_removed, true);
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests,
+       vm_shutdown_poweroff_suspended_saved_state_removal_failure_throws)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
+    default_open_success();
+
+    bool state_file_removal_attempted = false;
+
+    auto is_suspend_state_file = [](const std::filesystem::path& p) {
+        return p.string().find(".SavedState.vmrs") != std::string::npos;
+    };
+
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+        .WillRepeatedly([&](const mhv::hcs::HcsSystemHandle&, hcs_system_state_t& state) {
+            state = hcs_system_state_t::stopped;
+            return hcs_op_result_t{0, L""};
+        });
+
+    EXPECT_CALL(*mock_file_ops, exists(::testing::A<const std::filesystem::path&>()))
+        .WillRepeatedly(Return(true));
+
+    EXPECT_CALL(*mock_file_ops, remove(::testing::A<const std::filesystem::path&>(), _))
+        .WillOnce([&](const std::filesystem::path& p, std::error_code& err) {
+            if (is_suspend_state_file(p))
+            {
+                state_file_removal_attempted = true;
+                err = std::make_error_code(std::errc::permission_denied);
+            }
+            return false;
+        });
+
+    std::shared_ptr<uut_t> uut{nullptr};
+    ASSERT_NO_THROW(uut = construct_vm());
+
+    ASSERT_EQ(uut->state, multipass::VirtualMachine::State::suspended);
+
+    EXPECT_THROW(uut->shutdown(multipass::VirtualMachine::ShutdownPolicy::Poweroff),
+                 std::runtime_error);
+    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::suspended);
+    EXPECT_EQ(state_file_removal_attempted, true);
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_termination_failure_throws)
+{
+    default_open_success();
+
+    EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{1, L"termination failed"}));
+
+    std::shared_ptr<uut_t> uut{nullptr};
+    ASSERT_NO_THROW(uut = construct_vm());
+    EXPECT_THROW(uut->shutdown(multipass::VirtualMachine::ShutdownPolicy::Poweroff),
+                 std::runtime_error);
 }
 
 // ---------------------------------------------------------
@@ -558,6 +659,100 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_failure)
     ASSERT_THROW(uut->suspend(), multipass::hyperv::SaveComputeSystemException);
 
     EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_save_failure_resumes_and_throws)
+{
+    default_open_success();
+
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+        .WillRepeatedly(
+            DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})));
+    EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcs, save_compute_system(Eq(mock_handle), _))
+        .WillOnce(Return(hcs_op_result_t{1, L"save failed"}));
+    EXPECT_CALL(mock_hcs, resume_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+
+    std::shared_ptr<uut_t> uut{nullptr};
+    ASSERT_NO_THROW(uut = construct_vm());
+
+    EXPECT_THROW(uut->suspend(), mhv::SaveComputeSystemException);
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_save_and_resume_failure_terminates_and_throws)
+{
+    default_open_success();
+
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+        .WillRepeatedly(
+            DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})));
+    EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcs, save_compute_system(Eq(mock_handle), _))
+        .WillOnce(Return(hcs_op_result_t{1, L"save failed"}));
+    EXPECT_CALL(mock_hcs, resume_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{1, L"resume failed"}));
+    EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+
+    std::shared_ptr<uut_t> uut{nullptr};
+    ASSERT_NO_THROW(uut = construct_vm());
+
+    EXPECT_THROW(uut->suspend(), mhv::SaveComputeSystemException);
+    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::stopped);
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests,
+       vm_suspend_save_resume_and_terminate_failure_reports_unresponsive_vm)
+{
+    default_open_success();
+
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+        .WillRepeatedly(
+            DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})));
+    EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcs, save_compute_system(Eq(mock_handle), _))
+        .WillOnce(Return(hcs_op_result_t{1, L"save failed"}));
+    EXPECT_CALL(mock_hcs, resume_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{1, L"resume failed"}));
+    EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{1, L"termination failed"}));
+
+    std::shared_ptr<uut_t> uut{nullptr};
+    ASSERT_NO_THROW(uut = construct_vm());
+
+    EXPECT_THROW(uut->suspend(), mhv::SaveComputeSystemException);
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_termination_failure_throws)
+{
+    default_open_success();
+
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+        .WillRepeatedly(
+            DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})));
+    EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcs, save_compute_system(Eq(mock_handle), _))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{1, L"termination failed"}));
+
+    std::shared_ptr<uut_t> uut{nullptr};
+    ASSERT_NO_THROW(uut = construct_vm());
+
+    EXPECT_THROW(uut->suspend(), mhv::SaveComputeSystemException);
 }
 
 // ---------------------------------------------------------
@@ -679,24 +874,56 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_returns_empty_without_
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSVirtualMachine_UnitTests, update_state)
+TEST_F(HyperVHCSVirtualMachine_UnitTests, update_state_calls_persist_state_only_on_change)
 {
     default_open_success();
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
         .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::paused), Return(hcs_op_result_t{0, L""})));
+            DoAll(SetArgReferee<1>(hcs_system_state_t::paused), Return(hcs_op_result_t{0, L""})))
+        .WillOnce(
+            DoAll(SetArgReferee<1>(hcs_system_state_t::paused), Return(hcs_op_result_t{0, L""})))
+        .WillOnce(
+            DoAll(SetArgReferee<1>(hcs_system_state_t::paused), Return(hcs_op_result_t{0, L""})))
+        .WillRepeatedly(
+            DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})));
 
     mpt::MockVMStatusMonitor mock_monitor{};
+    InSequence sequence;
+
     EXPECT_CALL(
         mock_monitor,
-        persist_state_for(Eq(dummy_vm_name), Eq(multipass::VirtualMachine::State::suspended)))
-        .Times(2);
+        persist_state_for(Eq(dummy_vm_name), Eq(multipass::VirtualMachine::State::suspended)));
+    EXPECT_CALL(
+        mock_monitor,
+        persist_state_for(Eq(dummy_vm_name), Eq(multipass::VirtualMachine::State::running)));
 
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm(&mock_monitor));
 
-    uut->handle_state_update();
+    EXPECT_EQ(uut->current_state(), multipass::VirtualMachine::State::suspended);
+    EXPECT_EQ(uut->current_state(), multipass::VirtualMachine::State::suspended);
+    EXPECT_EQ(uut->current_state(), multipass::VirtualMachine::State::running);
+    EXPECT_EQ(uut->current_state(), multipass::VirtualMachine::State::running);
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, initial_state_is_persisted_when_unchanged)
+{
+    default_open_success();
+
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+        .WillOnce(
+            DoAll(SetArgReferee<1>(hcs_system_state_t::created), Return(hcs_op_result_t{0, L""})));
+
+    mpt::MockVMStatusMonitor mock_monitor{};
+    EXPECT_CALL(mock_monitor,
+                persist_state_for(Eq(dummy_vm_name), Eq(multipass::VirtualMachine::State::off)));
+
+    auto uut = construct_vm(&mock_monitor);
+
+    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::off);
 }
 
 // ---------------------------------------------------------
