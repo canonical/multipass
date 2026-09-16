@@ -416,16 +416,9 @@ void HCSVirtualMachine::start()
         handle_state_update();
         throw StartComputeSystemException{"Could not start the VM: {}", result};
     }
-    else if (has_saved_state_file())
+    else
     {
-        mpl::trace(get_name(), "start() -> Saved state file exits, attempting to remove");
-        std::error_code ec{};
-        if (!MP_FILEOPS.remove(get_saved_state_file_path(), ec))
-        {
-            mpl::warn(get_name(),
-                      "start() -> Could not remove the saved state file, error: {}",
-                      ec);
-        }
+        remove_saved_state_file_if_exists();
     }
 
     mpl::debug(get_name(), "start() -> result `{}`", result);
@@ -462,8 +455,18 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         mpl::debug(get_name(),
                    "shutdown() -> Requested halt/poweroff, initiating forceful shutdown");
         // These are non-graceful variants. Just terminate the system immediately.
-        const auto r = HCS().terminate_compute_system(hcs_system);
-        mpl::debug(get_name(), "shutdown -> terminate_compute_system result: {}", r.code);
+        const auto hcs_state = fetch_state_from_api();
+        if (hcs_state == hcs::ComputeSystemState::running ||
+            hcs_state == hcs::ComputeSystemState::paused ||
+            hcs_state == hcs::ComputeSystemState::unknown)
+        {
+            const auto r = HCS().terminate_compute_system(hcs_system);
+            mpl::debug(get_name(), "shutdown -> terminate_compute_system result: {}", r.code);
+        }
+
+        if (shutdown_policy == ShutdownPolicy::Poweroff)
+            remove_saved_state_file_if_exists();
+
         drop_ssh_session();
         break;
     }
@@ -479,6 +482,15 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         case VirtualMachine::State::stopped:
         case VirtualMachine::State::off:
             return multipass::utils::TimeoutAction::done;
+        case VirtualMachine::State::suspended:
+            // FIXME: If we're here, then we've tried to delete the state file but
+            // failed. VM state will remain suspended which might cause issues the
+            // next time the VM is run.
+            //
+            // We should ignore this state file by persisting the state of the VM,
+            // and not relying on the existence of this file to infer suspension.
+            throw std::runtime_error(
+                fmt::format("Could not remove state file: {}", get_saved_state_file_path()));
         default:
             return multipass::utils::TimeoutAction::retry;
         }
@@ -674,6 +686,19 @@ std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const QStrin
     return std::make_shared<virtdisk::VirtDiskSnapshot>(filename.toStdWString(),
                                                         *this,
                                                         description);
+}
+
+void HCSVirtualMachine::remove_saved_state_file_if_exists()
+{
+    if (has_saved_state_file())
+    {
+        mpl::trace(get_name(), "Saved state file exists, attempting to remove");
+        std::error_code ec{};
+        if (!MP_FILEOPS.remove(get_saved_state_file_path(), ec))
+        {
+            mpl::warn(get_name(), "Could not remove the saved state file, error: {}", ec);
+        }
+    }
 }
 
 } // namespace multipass::hyperv
