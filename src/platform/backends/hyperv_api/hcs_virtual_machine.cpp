@@ -462,7 +462,8 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             const auto r = HCS().terminate_compute_system(hcs_system);
             mpl::debug(get_name(), "shutdown -> terminate_compute_system result: {}", r.code);
         }
-        remove_saved_state_file_if_exists();
+if (shutdown_policy == ShutdownPolicy::Poweroff)
+            remove_saved_state_file_if_exists();
         drop_ssh_session();
         break;
     }
