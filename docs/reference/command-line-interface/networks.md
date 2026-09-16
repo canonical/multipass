@@ -9,7 +9,7 @@ At this time, `multipass networks` can only find interfaces in the following sce
 
 - on Linux, with QEMU
 - on Windows, with both Hyper-V and VirtualBox
-- on macOS, with the QEMU, AppleVZ, and VirtualBox drivers
+- on macOS, with the QEMU, Apple Virtualization framework, and VirtualBox drivers
 
 For example, on Windows with Hyper-V the `multipass networks` command returns:
 

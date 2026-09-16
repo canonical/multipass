@@ -14,7 +14,7 @@ On some platforms, it is possible to select a driver during installation. Until 
 Different sets of drivers are available on different platforms:
 
 - On Linux, Multipass can be configured to use QEMU. As of Multipass version 1.16, LXD and libvirt are no longer available.
-- On macOS, the options are QEMU, the Apple Virtualization framework (AppleVZ), and VirtualBox. As of Multipass version 1.13, Hyperkit is no longer available.
+- On macOS, the options are QEMU, the Apple Virtualization framework, and VirtualBox. As of Multipass version 1.13, Hyperkit is no longer available.
 - On Windows, Multipass uses Hyper-V (only available on Windows Pro) or VirtualBox.
 
 ## Default drivers
@@ -48,9 +48,9 @@ While we strive to offer a uniform interface across the board, not all features 
 
 | Feature | Not supported on... | Notes |
 |--- | --- | --- |
-| **Native mounts** | <ul><li>AppleVZ</li><li>VirtualBox</li></ul> | This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command). |
-| **Snapshots** | <ul><li>AppleVZ</li></ul> | This affects the [`snapshot`](/reference/command-line-interface/snapshot) command. |
-| **Suspend** | <ul><li>AppleVZ</li></ul> | This affects the [`suspend`](/reference/command-line-interface/suspend) command. |
+| **Native mounts** | <ul><li>Apple Virtualization framework</li><li>VirtualBox</li></ul> | This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command). |
+| **Snapshots** | <ul><li>Apple Virtualization framework</li></ul> | This affects the [`snapshot`](/reference/command-line-interface/snapshot) command. |
+| **Suspend** | <ul><li>Apple Virtualization framework</li></ul> | This affects the [`suspend`](/reference/command-line-interface/suspend) command. |
 
 <!-- old formatting
 - **Native mounts** are supported only on Hyper-V and QEMU. This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command).
