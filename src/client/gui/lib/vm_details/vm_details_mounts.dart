@@ -41,20 +41,19 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       }),
     );
 
-    ref.listen(
-      vmInfoProvider(widget.name).select((info) {
-        return info.instanceStatus.status == Status.UNAVAILABLE;
-      }),
-      (_, isUnavailable) {
-        if (!isUnavailable || phase == MountDetailsPhase.idle) return;
+    final effectivePhase = unavailable ? MountDetailsPhase.idle : phase;
+
+    if (unavailable && phase != MountDetailsPhase.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         setState(() => phase = MountDetailsPhase.idle);
         ref.read(activeEditPageProvider(widget.name).notifier).set(null);
-      },
-    );
+      });
+    }
 
     final mountPointsView = MountPointsView(
       mounts: mounts,
-      allowDelete: phase != MountDetailsPhase.idle && !unavailable,
+      allowDelete: effectivePhase != MountDetailsPhase.idle,
       onDelete: doUnmount,
     );
 
@@ -114,7 +113,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       ),
     );
 
-    final topRightButton = phase == MountDetailsPhase.idle
+    final topRightButton = effectivePhase == MountDetailsPhase.idle
         ? (mounts.isEmpty ? addMountButton : configureButton)
         : cancelButton;
 
@@ -137,8 +136,8 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
           ),
           mountPointsView,
           const SizedBox(height: 20),
-          if (phase == MountDetailsPhase.configure) addMountButton,
-          if (phase == MountDetailsPhase.adding) ...[
+          if (effectivePhase == MountDetailsPhase.configure) addMountButton,
+          if (effectivePhase == MountDetailsPhase.adding) ...[
             editableMountPoint,
             Padding(padding: const EdgeInsets.only(top: 16), child: saveButton),
           ],

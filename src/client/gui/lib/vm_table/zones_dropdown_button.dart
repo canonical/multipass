@@ -110,20 +110,22 @@ class _ZoneToggleRow extends ConsumerStatefulWidget {
 }
 
 class _ZoneToggleRowState extends ConsumerState<_ZoneToggleRow> {
-  // Tracks whether a zonesState request is currently in flight for this zone,
-  // so the switch can be disabled and rapid/overlapping toggles avoided
-  // (see https://github.com/canonical/multipass/issues/5230).
-  var pending = false;
+  bool? lastKnownAvailable;
 
   Future<void> toggle(bool value) async {
     final client = ref.read(grpcClientProvider);
-    setState(() => pending = true);
+    final pendingNotifier = ref.read(pendingZoneTogglesProvider.notifier);
+    // Guard against overlapping requests for the same zone even if this row
+    // was disposed and recreated (e.g. popup closed and reopened) while a
+    // previous request was still in flight
+    if (ref.read(pendingZoneTogglesProvider).contains(widget.zoneName)) return;
+    pendingNotifier.add(widget.zoneName);
     try {
       await client.zonesState([widget.zoneName], value);
     } catch (error) {
       if (mounted) ref.read(notificationsProvider.notifier).addError(error);
     } finally {
-      if (mounted) setState(() => pending = false);
+      pendingNotifier.remove(widget.zoneName);
     }
   }
 
@@ -131,15 +133,20 @@ class _ZoneToggleRowState extends ConsumerState<_ZoneToggleRow> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    final available = ref.watch(zonesProvider.select((zones) {
+    final pending = ref.watch(pendingZoneTogglesProvider
+        .select((pendingZones) => pendingZones.contains(widget.zoneName)));
+
+    final zoneAvailable = ref.watch(zonesProvider.select((zones) {
       // The popup's item list is a static snapshot taken when it was opened,
-      // but this row keeps watching the live zonesProvider. If a transient
-      // polling error (e.g. an unrelated SSH failure) momentarily empties
-      // zonesProvider, this zone may briefly be absent from the live list;
-      // fall back to `false` instead of crashing with `firstWhere`.
-      return zones.where((z) => z.name == widget.zoneName).firstOrNull?.available ??
-          false;
+      // but this row keeps watching the live zonesProvider.
+      return zones
+          .where((z) => z.name == widget.zoneName)
+          .firstOrNull
+          ?.available;
     }));
+    final zoneMissing = zoneAvailable == null;
+    if (!zoneMissing) lastKnownAvailable = zoneAvailable;
+    final available = lastKnownAvailable ?? false;
 
     final instanceCount = ref.watch(vmInfosProvider.select((infos) {
       return infos
@@ -163,12 +170,12 @@ class _ZoneToggleRowState extends ConsumerState<_ZoneToggleRow> {
               ),
             ),
             MouseRegion(
-              cursor: pending
+              cursor: (pending || zoneMissing)
                   ? SystemMouseCursors.basic
                   : SystemMouseCursors.click,
               child: Switch(
                 value: available,
-                enabled: !pending,
+                enabled: !pending && !zoneMissing,
                 onChanged: toggle,
                 size: 28,
               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:multipass_gui/ffi.dart';
 import 'package:multipass_gui/grpc_client.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/providers.dart';
@@ -62,18 +63,50 @@ void main() {
     testWidgets(
         'closes the add-mount form and disables actions when instance '
         'becomes unavailable while adding a mount', (tester) async {
-      await tester.pumpWidget(buildWidget(Status.RUNNING));
+      late VmInfoNotifier notifier;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            vmInfoProvider(vmName).overrideWithBuild((ref, n) {
+              notifier = n;
+              return DetailedInfoItem(
+                instanceStatus: InstanceStatus(status: Status.RUNNING),
+              );
+            }),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: MountDetails(vmName),
+            ),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Open the add-mount form.
       await tester.tap(find.widgetWithText(OutlinedButton, 'Add mount'));
       await tester.pumpAndSettle();
 
+      // EditableMountPoint prefills its target-path hint via a native FFI
+      // call (defaultMountTarget).
+      final pendingException = tester.takeException();
+      if (isFFIAvailable) {
+        expect(pendingException, isNull);
+      } else {
+        expect(pendingException, isNotNull);
+        expect(pendingException.toString(),
+            contains('Failed to load libdart_ffi library'));
+      }
+
       expect(find.byType(EditableMountPoint), findsOneWidget);
       expect(find.widgetWithText(TextButton, 'Save'), findsOneWidget);
 
-      // Instance becomes unavailable (e.g. its zone was disabled).
-      await tester.pumpWidget(buildWidget(Status.UNAVAILABLE));
+      notifier.state = DetailedInfoItem(
+        instanceStatus: InstanceStatus(status: Status.UNAVAILABLE),
+      );
       await tester.pumpAndSettle();
 
       // The form should close and no save action should remain available.
