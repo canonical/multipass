@@ -509,6 +509,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_poweroff_suspended_removes
             return true;
         });
 
+    EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
 
@@ -552,6 +555,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests,
             }
             return false;
         });
+
+    EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
 
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
