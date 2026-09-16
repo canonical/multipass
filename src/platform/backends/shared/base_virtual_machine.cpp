@@ -333,7 +333,9 @@ void mp::BaseVirtualMachine::detect_aborted_start()
         state_wait.notify_all();
 
         std::string msg{"Instance shutdown during start"};
-        if (!saved_error_msg.empty())
+        bool error_occurred{!saved_error_msg.empty()};
+
+        if (error_occurred)
         {
             msg += ": " + saved_error_msg;
             saved_error_msg.clear();
@@ -341,7 +343,8 @@ void mp::BaseVirtualMachine::detect_aborted_start()
 
         throw StartException(vm_name,
                              msg,
-                             mpu::expects_shutdown_from_cloud_init(desc.user_data_config));
+                             !error_occurred &&
+                                 mpu::expects_shutdown_from_cloud_init(desc.user_data_config));
     }
 }
 
