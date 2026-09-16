@@ -482,7 +482,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             // next time the VM is run.
             //
             // We should ignore this state file by persisting the state of the VM,
-            // and not reling on the existence of this file to infer suspension.
+            // and not relying on the existence of this file to infer suspension.
             mpl::warn(get_name(), "VM state file has not been removed");
             return multipass::utils::TimeoutAction::done;
         default:
@@ -686,7 +686,7 @@ void HCSVirtualMachine::remove_suspend_state_file_if_exists()
 {
     if (has_saved_state_file())
     {
-        mpl::trace(get_name(), "Saved state file exits, attempting to remove");
+        mpl::trace(get_name(), "Saved state file exists, attempting to remove");
         std::error_code ec{};
         if (!MP_FILEOPS.remove(get_saved_state_file_path(), ec))
         {
