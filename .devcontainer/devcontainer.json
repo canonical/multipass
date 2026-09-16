@@ -1,0 +1,17 @@
+// For format details, see https://aka.ms/devcontainer.json.
+{
+    "name": "Multipass Dev (Ubuntu 26.04)",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "${localWorkspaceFolder}"
+    },
+    "runArgs": [
+        "--device=/dev/kvm",
+        "--device=/dev/net/tun",
+        "--cap-add=NET_ADMIN",
+        "--cap-add=NET_RAW"
+    ],
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+    "workspaceFolder": "/workspace",
+    "postCreateCommand": "git config --global --add safe.directory /workspace"
+}
