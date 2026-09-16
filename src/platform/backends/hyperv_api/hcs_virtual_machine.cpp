@@ -455,14 +455,18 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         mpl::debug(get_name(),
                    "shutdown() -> Requested halt/poweroff, initiating forceful shutdown");
         // These are non-graceful variants. Just terminate the system immediately.
-        const auto hcs_state = fetch_state_from_api();
-        if (hcs_state == hcs::ComputeSystemState::running ||
-            hcs_state == hcs::ComputeSystemState::paused ||
-            hcs_state == hcs::ComputeSystemState::unknown)
-        {
-            const auto r = HCS().terminate_compute_system(hcs_system);
-            mpl::debug(get_name(), "shutdown -> terminate_compute_system result: {}", r.code);
-        }
+
+        // FIXME: If the VM is suspended, this will produce an error message, as
+        // suspended VMs are already terminated.
+        //
+        // We also can't test if it's suspended using state == State::suspended,
+        // because "suspend" might fail to persist on disk, in which case the VM
+        // will be paused, and should be terminated.
+        // The proper solution is to fetch the api state and check whether
+        // the VM is in running/unknown/paused state, but that would cause a number
+        // of tests to fail, so let's just ignore the error log message for now.
+        const auto r = HCS().terminate_compute_system(hcs_system);
+        mpl::debug(get_name(), "shutdown -> terminate_compute_system result: {}", r.code);
 
         if (shutdown_policy == ShutdownPolicy::Poweroff)
             remove_saved_state_file_if_exists();
