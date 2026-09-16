@@ -707,7 +707,25 @@ bool mp::utils::expects_shutdown_from_cloud_init(const YAML::Node& user_data_con
         if (ps["mode"])
         {
             std::string mode = ps["mode"].as<std::string>();
-            return (mode == "poweroff" || mode == "halt");
+            if (mode == "poweroff" || mode == "halt")
+            {
+                if (auto condition = ps["condition"])
+                {
+                    if (condition.IsScalar())
+                    {
+                        try
+                        {
+                            return condition.as<bool>();
+                        }
+                        catch (const YAML::BadConversion&)
+                        {
+                            return false; // condition is a command string; can't determine
+                        }
+                    }
+                    return false; // condition is a command with arguments; can't determine
+                }
+                return true;
+            }
         }
     }
     return false;
