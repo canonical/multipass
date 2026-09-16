@@ -14,7 +14,7 @@ class MacOSPlatform extends MpPlatform {
   @override
   Map<String, String> get drivers => const {
         'qemu': 'QEMU',
-        'applevz': 'AppleVZ',
+        'applevz': 'Apple Virtualization framework',
         'virtualbox': 'VirtualBox',
       };
 
