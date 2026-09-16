@@ -2978,6 +2978,66 @@ void mp::Daemon::on_suspend()
 {
 }
 
+void mp::Daemon::suspend_all_instances()
+{
+    if (!MP_SETTINGS.get_as<bool>(mp::auto_suspend_key))
+        return;
+
+    mpl::log(mpl::Level::info, category, "Auto-suspending instances due to system sleep");
+
+    for (auto& [name, vm] : operative_instances)
+    {
+        auto state = vm->current_state();
+        if (state == VirtualMachine::State::running)
+        {
+            try
+            {
+                stop_mounts(name);
+                vm->suspend();
+                auto_suspended_instances.insert(name);
+                mpl::log(mpl::Level::info, name, "Auto-suspended instance");
+            }
+            catch (const std::exception& e)
+            {
+                mpl::log(mpl::Level::error,
+                         name,
+                         fmt::format("Failed to auto-suspend: {}", e.what()));
+            }
+        }
+    }
+}
+
+void mp::Daemon::resume_suspended_instances()
+{
+    if (!MP_SETTINGS.get_as<bool>(mp::auto_resume_key))
+        return;
+
+    mpl::log(mpl::Level::info, category, "Auto-resuming instances after system wake");
+
+    for (const auto& name : auto_suspended_instances)
+    {
+        try
+        {
+            auto it = operative_instances.find(name);
+            if (it != operative_instances.end())
+            {
+                auto& vm = it->second;
+                if (vm->current_state() == VirtualMachine::State::suspended)
+                {
+                    vm->start();
+                    mpl::log(mpl::Level::info, name, "Auto-resumed instance");
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            mpl::log(mpl::Level::error, name, fmt::format("Failed to auto-resume: {}", e.what()));
+        }
+    }
+
+    auto_suspended_instances.clear();
+}
+
 void mp::Daemon::on_restart(const std::string& name)
 {
     stop_mounts(name);

@@ -53,6 +53,10 @@ public:
 
     void persist_instances();
 
+    // Auto-suspend/resume on system sleep/wake
+    void suspend_all_instances();
+    void resume_suspended_instances();
+
 protected:
     using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
 
@@ -290,5 +294,6 @@ private:
     SettingsHandler* snapshot_mod_handler;
     std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
     std::unordered_set<std::string> user_authorized_bridges;
+    std::set<std::string> auto_suspended_instances; // Instances suspended by auto-suspend on sleep
 };
 } // namespace multipass
