@@ -418,7 +418,7 @@ void HCSVirtualMachine::start()
     }
     else
     {
-        remove_suspend_state_file_if_exists();
+        remove_saved_state_file_if_exists();
     }
 
     mpl::debug(get_name(), "start() -> result `{}`", result);
@@ -455,12 +455,14 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         mpl::debug(get_name(),
                    "shutdown() -> Requested halt/poweroff, initiating forceful shutdown");
         // These are non-graceful variants. Just terminate the system immediately.
-        if (state != State::suspended)
+        const auto hcs_state = fetch_state_from_api();
+        if (hcs_state == hcs::ComputeSystemState::running ||
+            hcs_state == hcs::ComputeSystemState::paused)
         {
             const auto r = HCS().terminate_compute_system(hcs_system);
             mpl::debug(get_name(), "shutdown -> terminate_compute_system result: {}", r.code);
         }
-        remove_suspend_state_file_if_exists();
+        remove_saved_state_file_if_exists();
         drop_ssh_session();
         break;
     }
@@ -483,8 +485,8 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             //
             // We should ignore this state file by persisting the state of the VM,
             // and not relying on the existence of this file to infer suspension.
-            mpl::warn(get_name(), "VM state file has not been removed");
-            return multipass::utils::TimeoutAction::done;
+            throw std::runtime_error(
+                fmt::format("Could not remove state file: {}", get_saved_state_file_path()));
         default:
             return multipass::utils::TimeoutAction::retry;
         }
@@ -682,7 +684,7 @@ std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const QStrin
                                                         description);
 }
 
-void HCSVirtualMachine::remove_suspend_state_file_if_exists()
+void HCSVirtualMachine::remove_saved_state_file_if_exists()
 {
     if (has_saved_state_file())
     {
