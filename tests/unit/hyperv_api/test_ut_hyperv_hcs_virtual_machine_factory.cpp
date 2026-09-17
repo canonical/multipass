@@ -19,6 +19,7 @@
 #include <hyperv_api/hcs_virtual_machine_exceptions.h>
 #include <hyperv_api/hcs_virtual_machine_factory.h>
 #include <multipass/network_interface.h>
+#include <multipass/stub_availability_zone_manager.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_image.h>
 
@@ -27,7 +28,6 @@
 #include "tests/unit/hyperv_api/mock_hyperv_hcs_wrapper.h"
 #include "tests/unit/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
 #include "tests/unit/mock_platform.h"
-#include "tests/unit/stub_availability_zone_manager.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
 #include "tests/unit/temp_dir.h"
@@ -49,7 +49,7 @@ struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
     mpt::TempDir dummy_data_dir;
     mpt::StubSSHKeyProvider stub_key_provider{};
     mpt::StubVMStatusMonitor stub_monitor{};
-    mpt::StubAvailabilityZoneManager az_manager{};
+    mp::StubAvailabilityZoneManager az_manager{};
 
     mpt::MockHCSWrapper::GuardedMock mock_hcs_wrapper_injection =
         mpt::MockHCSWrapper::inject<StrictMock>();

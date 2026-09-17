@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include "stub_availability_zone.h"
 #include "stub_mount_handler.h"
 #include "stub_snapshot.h"
 #include "temp_dir.h"
@@ -25,6 +24,7 @@
 #include <multipass/ip_address.h>
 #include <multipass/ssh/ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/stub_availability_zone.h>
 #include <multipass/virtual_machine.h>
 
 namespace multipass
@@ -228,7 +228,7 @@ struct StubVirtualMachine final : public VirtualMachine
 
     StubSnapshot snapshot;
     std::string name;
-    StubAvailabilityZone zone{};
+    StubAvailabilityZone zone{"zone1"};
     std::unique_ptr<TempDir> tmp_dir;
 };
 } // namespace test

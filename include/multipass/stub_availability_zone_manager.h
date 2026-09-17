@@ -18,46 +18,32 @@
 #ifndef MULTIPASS_STUB_AVAILABILITY_ZONE_MANAGER_H
 #define MULTIPASS_STUB_AVAILABILITY_ZONE_MANAGER_H
 
+#include <initializer_list>
+#include <memory>
+#include <vector>
+
 #include "availability_zone_manager.h"
 #include "stub_availability_zone.h"
 
 namespace multipass
 {
-// An AvailabilityZoneManager for backends that do not support the concept of availability zones
-// (e.g. legacy VirtualBox and Hyper-V). It hands out a single, always-available
-// StubAvailabilityZone regardless of the name requested, so that stale or empty zone names
-// persisted by an older build (or coming in over the wire) never cause a lookup failure -- the
-// name argument is intentionally ignored rather than validated.
+// A minimal AvailabilityZoneManager for tests and backends that don't support availability zones
+// (e.g. legacy VirtualBox and Hyper-V). It provides one or more always-available
+// StubAvailabilityZones that can be used in place of a real AZ.
 class StubAvailabilityZoneManager final : public AvailabilityZoneManager
 {
 public:
-    AvailabilityZone& get_zone(const std::string& /*name*/) override
-    {
-        return zone;
-    }
+    StubAvailabilityZoneManager();
+    StubAvailabilityZoneManager(const std::initializer_list<Subnet> subnets);
 
-    const AvailabilityZone& get_zone(const std::string& /*name*/) const override
-    {
-        return zone;
-    }
-
-    Zones get_zones() const override
-    {
-        return {zone};
-    }
-
-    std::string get_automatic_zone_name() override
-    {
-        return zone.get_name();
-    }
-
-    std::string get_default_zone_name() const override
-    {
-        return zone.get_name();
-    }
+    AvailabilityZone& get_zone(const std::string& name) override;
+    const AvailabilityZone& get_zone(const std::string& name) const override;
+    std::string get_automatic_zone_name() override;
+    std::vector<std::reference_wrapper<const AvailabilityZone>> get_zones() const override;
+    std::string get_default_zone_name() const override;
 
 private:
-    StubAvailabilityZone zone;
+    std::vector<std::unique_ptr<StubAvailabilityZone>> zones;
 };
 } // namespace multipass
 

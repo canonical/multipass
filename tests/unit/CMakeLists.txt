@@ -137,6 +137,7 @@ add_executable(multipass_cpp_tests
   test_sshfsmount.cpp
   test_ssl_cert_provider.cpp
   test_standard_logger.cpp
+  test_stub_availability_zone_manager.cpp
   test_subnet.cpp
   test_timer.cpp
   test_top_catch_all.cpp

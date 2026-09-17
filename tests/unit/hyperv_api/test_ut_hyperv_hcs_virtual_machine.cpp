@@ -22,6 +22,7 @@
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/mount_handler.h>
+#include <multipass/stub_availability_zone.h>
 #include <multipass/vm_mount.h>
 
 #include "tests/unit/common.h"
@@ -30,7 +31,6 @@
 #include "tests/unit/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
 #include "tests/unit/mock_file_ops.h"
 #include "tests/unit/mock_status_monitor.h"
-#include "tests/unit/stub_availability_zone.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
 #include "tests/unit/temp_dir.h"
@@ -70,7 +70,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
     mpt::TempFile dummy_cloud_init_iso;
     mpt::TempDir dummy_instances_dir;
     const std::string dummy_vm_name{"lord-of-the-pings"};
-    mpt::StubAvailabilityZone dummy_zone{};
+    mp::StubAvailabilityZone dummy_zone{"zone1"};
 
     mp::VirtualMachineDescription desc{
         2,
