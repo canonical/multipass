@@ -11,7 +11,7 @@ orphan: true
 ## Breaking Changes
 
 {{#breaking_changes.items}}
-- [{{category}}] {{subject}} ([#{{pr_number}}](https://github.com/canonical/multipass/pull/{{pr_number}}))
+- [{{category}}] {{subject}}
 {{/breaking_changes.items}}
 
 {{/BREAKING_CHANGES}}
@@ -19,7 +19,7 @@ orphan: true
 
 {{#features.by_category}}
 {{#items}}
-- [{{category}}] {{subject}} ([#{{pr_number}}](https://github.com/canonical/multipass/pull/{{pr_number}}))
+- [{{category}}] {{subject}}
 {{/items}}
 
 {{/features.by_category}}
