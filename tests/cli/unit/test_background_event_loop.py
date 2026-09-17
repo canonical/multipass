@@ -121,23 +121,28 @@ class TestBackgroundEventLoop:
 
     def test_drain_loop_until_handles_tasks_spawning_tasks(self):
         """drain_loop_until should handle tasks that spawn new tasks during cancellation."""
-        spawned = []
+        started = asyncio.Event()
+        spawned_task = None
 
         async def spawner():
+            nonlocal spawned_task
+            started.set()
             try:
                 await asyncio.sleep(3600)
             except asyncio.CancelledError:
-                spawned.append(asyncio.create_task(asyncio.sleep(0.01)))
+                spawned_task = asyncio.create_task(asyncio.sleep(3600))
                 raise
 
         with BackgroundEventLoop() as loop:
             future = loop.run(spawner())
+            loop.run(started.wait()).result(timeout=1.0)
             self._timed_drain_loop(loop, timeout=1.0)
 
             assert future.done()
             assert future.cancelled()
-            for t in spawned:
-                assert t.done()
+            assert spawned_task is not None
+            assert spawned_task.done()
+            assert spawned_task.cancelled()
 
     def test_drain_loop_until_times_out_on_resistant_tasks(self):
         """drain_loop_until should timeout on tasks that resist cancellation."""
