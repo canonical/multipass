@@ -1325,6 +1325,11 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         const auto& name = entry.first;
         auto& spec = entry.second;
 
+        // Immutable copy of the persisted spec -- VMs can update the
+        // spec once they're created and the code needs to know the initial
+        // state for several things, like auto-resume.
+        const auto persisted_spec = spec;
+
         if (!config->vault->has_record_for(name))
         {
             invalid_specs.push_back(name);
@@ -1375,6 +1380,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {}};
 
         auto& instance_record = spec.deleted ? deleted_instances : operative_instances;
+
         auto instance = instance_record[name] = config->factory->create_virtual_machine(
             vm_desc,
             *config->ssh_key_provider,
@@ -1400,7 +1406,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             init_mounts(name);
         std::unique_lock lock{start_mutex};
 
-        if (spec.state == e_state::running)
+        if (persisted_spec.state == e_state::running)
         {
             // If the VM was in running state before, we need to do some additional
             // work to ensure everything is in sync.
