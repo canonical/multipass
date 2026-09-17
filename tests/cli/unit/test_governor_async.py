@@ -25,6 +25,7 @@ import pytest
 
 from cli.controller.multipassd_governor import MultipassdGovernor
 from cli.multipass.exceptions import TestCaseFailure, TestSessionFailure
+from cli.unit.governor_helpers import MockController, run_governor
 
 
 class MockSubprocess:
@@ -44,106 +45,13 @@ class MockSubprocess:
         pass
 
 
-class MockController:
-    """Mock controller for testing governor async behavior."""
-
-    def __init__(self, exit_code=None, exit_delay=0.0):
-        self.exit_code_value = exit_code
-        self.exit_delay = exit_delay
-        self.start_called = False
-        self.stop_called = False
-        self.supports_autorestart = False
-        self._stop_event = asyncio.Event()
-
-    async def start(self):
-        self.start_called = True
-        self._stop_event.clear()
-
-    async def stop(self, graceful=True):
-        self.stop_called = True
-        self._stop_event.set()
-
-    async def restart(self):
-        await self.stop()
-        await self.start()
-
-    async def follow_output(self):
-        return
-        yield
-
-    async def is_active(self):
-        return self.exit_code_value is None and not self._stop_event.is_set()
-
-    async def wait_exit(self):
-        if self.exit_code_value is None:
-            await self._stop_event.wait()
-            return 0
-        if self.exit_delay > 0:
-            await asyncio.sleep(self.exit_delay)
-        return self.exit_code_value
-
-    async def exit_code(self):
-        return self.exit_code_value
-
-    def supports_self_autorestart(self):
-        return self.supports_autorestart
-
-    async def wait_for_self_autorestart(self):
-        pass
-
-
-@pytest.fixture
-def controller():
-    """Factory fixture for creating MockController instances."""
-
-    def _factory(exit_code=None, exit_delay=0.0):
-        return MockController(exit_code=exit_code, exit_delay=exit_delay)
-
-    return _factory
-
-
-async def run_governor(controller, ready_fn=None, exit_fn=None):
-    """Start governor with mocked dependencies."""
-
-    async def hang_forever():
-        await asyncio.sleep(3600)
-
-    async def noop(*args, **kwargs):
-        pass
-
-    governor = MultipassdGovernor(controller, None, print_daemon_output=False)
-    ready_side_effect = ready_fn or hang_forever
-    if not asyncio.iscoroutinefunction(ready_side_effect):
-        sync_ready = ready_side_effect
-
-        async def ready_side_effect(*args, **kwargs):
-            result = sync_ready(*args, **kwargs)
-            if asyncio.iscoroutine(result):
-                return await result
-            return result
-
-    with (
-        patch.object(governor, "_ensure_client_certs_are_created"),
-        patch.object(governor, "_authenticate_client_cert"),
-        patch.object(
-            governor,
-            "wait_for_multipassd_ready",
-            side_effect=ready_side_effect,
-        ),
-        patch.object(governor, "on_monitor_exit", side_effect=exit_fn or noop),
-        patch("cli.controller.multipassd_governor.Session"),
-    ):
-        await governor.start_async()
-    return governor
-
-
 class TestGovernorStopAsync:
     """Test governor stop_async timeout and cancellation behavior."""
 
     @pytest.mark.asyncio
-    async def test_stop_async_timeout_cancels_monitor_task(self, controller):
+    async def test_stop_async_timeout_cancels_monitor_task(self):
         """stop_async should cancel monitor_task if it doesn't complete in 10s."""
-        governor = await run_governor(controller(exit_code=None), ready_fn=lambda: True)
+        governor = await run_governor(MockController(exit_code=None), ready_fn=lambda: True)
 
         async def slow_monitor():
             await asyncio.sleep(3600)
@@ -156,9 +64,9 @@ class TestGovernorStopAsync:
         assert governor.monitor_task.cancelled()
 
     @pytest.mark.asyncio
-    async def test_stop_async_waits_for_monitor_task_completion(self, controller):
+    async def test_stop_async_waits_for_monitor_task_completion(self):
         """stop_async should wait for monitor_task to complete normally."""
-        governor = await run_governor(controller(exit_code=None), ready_fn=lambda: True)
+        governor = await run_governor(MockController(exit_code=None), ready_fn=lambda: True)
         monitor_task = governor.monitor_task
 
         await governor.stop_async()
@@ -182,14 +90,13 @@ class TestGovernorOnMonitorExit:
     )
     async def test_on_monitor_exit_restart_logic(
         self,
-        controller,
         cancelled,
         exit_code,
         supports_autorestart,
         expects_restart,
     ):
         """on_monitor_exit should restart only for an unhandled settings change."""
-        ctrl = controller(exit_code=exit_code)
+        ctrl = MockController(exit_code=exit_code)
         ctrl.supports_autorestart = supports_autorestart
         mock_loop = MagicMock()
         governor = MultipassdGovernor(ctrl, mock_loop, print_daemon_output=False)
@@ -208,10 +115,10 @@ class TestGovernorReadStream:
     """Test governor _read_stream error pattern matching."""
 
     @pytest.mark.asyncio
-    async def test_read_stream_matches_dnsmasq_error(self, controller):
+    async def test_read_stream_matches_dnsmasq_error(self):
         """_read_stream should match dnsmasq binding error."""
         governor = MultipassdGovernor(
-            controller(exit_code=None), None, print_daemon_output=False
+            MockController(exit_code=None), None, print_daemon_output=False
         )
 
         async def mock_output():
@@ -225,10 +132,10 @@ class TestGovernorReadStream:
         assert "port 53" in result
 
     @pytest.mark.asyncio
-    async def test_read_stream_matches_write_lock_error(self, controller):
+    async def test_read_stream_matches_write_lock_error(self):
         """_read_stream should match shared write lock error."""
         governor = MultipassdGovernor(
-            controller(exit_code=None), None, print_daemon_output=False
+            MockController(exit_code=None), None, print_daemon_output=False
         )
 
         async def mock_output():
@@ -241,10 +148,10 @@ class TestGovernorReadStream:
         assert "write lock" in result
 
     @pytest.mark.asyncio
-    async def test_read_stream_matches_socket_address_error(self, controller):
+    async def test_read_stream_matches_socket_address_error(self):
         """_read_stream should match socket address in use error."""
         governor = MultipassdGovernor(
-            controller(exit_code=None), None, print_daemon_output=False
+            MockController(exit_code=None), None, print_daemon_output=False
         )
 
         async def mock_output():
@@ -257,10 +164,10 @@ class TestGovernorReadStream:
         assert "gRPC port" in result
 
     @pytest.mark.asyncio
-    async def test_read_stream_handles_cancelled_error(self, controller):
+    async def test_read_stream_handles_cancelled_error(self):
         """_read_stream should handle CancelledError gracefully."""
         governor = MultipassdGovernor(
-            controller(exit_code=None), None, print_daemon_output=False
+            MockController(exit_code=None), None, print_daemon_output=False
         )
 
         async def mock_output():
@@ -274,10 +181,10 @@ class TestGovernorReadStream:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_read_stream_returns_none_on_no_match(self, controller):
+    async def test_read_stream_returns_none_on_no_match(self):
         """_read_stream should return None when no error patterns match."""
         governor = MultipassdGovernor(
-            controller(exit_code=None), None, print_daemon_output=False
+            MockController(exit_code=None), None, print_daemon_output=False
         )
 
         async def mock_output():
@@ -295,10 +202,10 @@ class TestGovernorMonitor:
     """Test governor _monitor task cancellation propagation."""
 
     @pytest.mark.asyncio
-    async def test_monitor_cancellation_propagates_to_stdout_task(self, controller):
+    async def test_monitor_cancellation_propagates_to_stdout_task(self):
         """_monitor cancellation should propagate to stdout_task."""
         governor = MultipassdGovernor(
-            controller(exit_code=None), None, print_daemon_output=False
+            MockController(exit_code=None), None, print_daemon_output=False
         )
         read_stream_cancelled = asyncio.Event()
 
@@ -339,11 +246,11 @@ class TestGovernorMonitor:
         ],
     )
     async def test_monitor_reports_daemon_failure(
-        self, controller, exit_code, error_reason, exception
+        self, exit_code, error_reason, exception
     ):
         """_monitor should report the daemon exit code and any stream error reason."""
         governor = MultipassdGovernor(
-            controller(exit_code=exit_code, exit_delay=0.01),
+            MockController(exit_code=exit_code, exit_delay=0.01),
             None,
             print_daemon_output=False,
         )
@@ -362,9 +269,9 @@ class TestGovernorStartupFailures:
     """Test governor startup failure scenarios."""
 
     @pytest.mark.asyncio
-    async def test_daemon_never_ready_stops_and_exits(self, controller):
+    async def test_daemon_never_ready_stops_and_exits(self):
         """wait_for_multipassd_ready returning False should stop daemon and exit."""
-        ctrl = controller(exit_code=None)
+        ctrl = MockController(exit_code=None)
 
         with patch(
             "cli.controller.multipassd_governor.pytest.exit",
@@ -378,9 +285,9 @@ class TestGovernorStartupFailures:
         assert ctrl.stop_called
 
     @pytest.mark.asyncio
-    async def test_cert_creation_failure_propagates(self, controller):
+    async def test_cert_creation_failure_propagates(self):
         """_ensure_client_certs_are_created failure should propagate."""
-        ctrl = controller(exit_code=None)
+        ctrl = MockController(exit_code=None)
 
         governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
 
@@ -393,9 +300,9 @@ class TestGovernorStartupFailures:
                 await governor.start_async()
 
     @pytest.mark.asyncio
-    async def test_auth_failure_propagates(self, controller):
+    async def test_auth_failure_propagates(self):
         """_authenticate_client_cert failure should propagate."""
-        ctrl = controller(exit_code=None)
+        ctrl = MockController(exit_code=None)
 
         governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
 
@@ -415,9 +322,9 @@ class TestGovernorConcurrentOperations:
     """Test governor concurrent operation scenarios."""
 
     @pytest.mark.asyncio
-    async def test_stop_during_start_causes_startup_failure(self, controller):
+    async def test_stop_during_start_causes_startup_failure(self):
         """Calling stop_async during start_async should cause startup failure."""
-        ctrl = controller(exit_code=None)
+        ctrl = MockController(exit_code=None)
         governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
         ready_cancelled = asyncio.Event()
 
@@ -449,9 +356,9 @@ class TestGovernorConcurrentOperations:
         assert not governor.daemon_ready_event.is_set()
 
     @pytest.mark.asyncio
-    async def test_stop_resets_state(self, controller):
+    async def test_stop_resets_state(self):
         """stop_async should leave the governor in its stopped state."""
-        ctrl = controller(exit_code=None)
+        ctrl = MockController(exit_code=None)
 
         governor = await run_governor(ctrl, ready_fn=lambda: True)
 
@@ -471,9 +378,9 @@ class TestGovernorCrashMidTest:
     """Test governor handling daemon crash during test execution."""
 
     @pytest.mark.asyncio
-    async def test_daemon_crash_with_exit_code_1_aborts_session(self, controller):
+    async def test_daemon_crash_with_exit_code_1_aborts_session(self):
         """Daemon exit with code 1 during test should raise TestSessionFailure."""
-        ctrl = controller(exit_code=1)
+        ctrl = MockController(exit_code=1)
 
         with pytest.raises(TestSessionFailure) as exc_info:
             await run_governor(ctrl)
@@ -481,12 +388,10 @@ class TestGovernorCrashMidTest:
         assert "multipassd died with code 1" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_daemon_crash_with_other_codes_raises_test_case_failure(
-        self, controller
-    ):
+    async def test_daemon_crash_with_other_codes_raises_test_case_failure(self):
         """Daemon exit with non-1 codes should raise TestCaseFailure."""
         for exit_code in [2, 137, 139]:
-            ctrl = controller(exit_code=exit_code)
+            ctrl = MockController(exit_code=exit_code)
 
             with pytest.raises(TestCaseFailure) as exc_info:
                 await run_governor(ctrl)
