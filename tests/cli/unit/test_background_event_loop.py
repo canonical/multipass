@@ -146,16 +146,20 @@ class TestBackgroundEventLoop:
 
     def test_drain_loop_until_times_out_on_resistant_tasks(self):
         """drain_loop_until should timeout on tasks that resist cancellation."""
+        started = asyncio.Event()
+        cancellation_seen = asyncio.Event()
 
         async def resistant_task():
+            started.set()
             try:
                 await asyncio.sleep(3600)
             except asyncio.CancelledError:
+                cancellation_seen.set()
                 await asyncio.sleep(3600)
 
         async def run_and_drain():
             task = asyncio.create_task(resistant_task())
-            await asyncio.sleep(0.01)  # Let task start and become visible
+            await started.wait()
 
             start = time.monotonic()
             await loop.drain_loop_until(timeout=0.2)
@@ -168,6 +172,8 @@ class TestBackgroundEventLoop:
             task, elapsed = future.result(timeout=2.0)
 
             assert 0.2 <= elapsed < 2.0
+            assert cancellation_seen.is_set()
+            assert task.done()
 
     def test_drain_loop_until_handles_multiple_tasks(self):
         """drain_loop_until should cancel multiple pending tasks."""
