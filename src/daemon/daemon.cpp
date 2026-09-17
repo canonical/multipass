@@ -1391,19 +1391,22 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         allocated_mac_addrs = std::move(new_macs);
 
         // FIXME: somehow we're writing contradictory state to disk.
-        if (spec.deleted && spec.state != e_state::stopped && spec.state != e_state::off)
+        if (spec.deleted)
         {
-            mpl::warn(
-                category,
-                "{} is deleted but has incompatible state {}, resetting state to {} (stopped)",
-                name,
-                static_cast<int>(spec.state),
-                static_cast<int>(e_state::stopped));
-            spec.state = e_state::stopped;
+            if (spec.state != e_state::stopped && spec.state != e_state::off)
+            {
+                mpl::warn(
+                    category,
+                    "{} is deleted but has incompatible state {}, resetting state to {} (stopped)",
+                    name,
+                    static_cast<int>(spec.state),
+                    static_cast<int>(e_state::stopped));
+                spec.state = e_state::stopped;
+            }
         }
-
-        if (!spec.deleted)
+        else
             init_mounts(name);
+
         std::unique_lock lock{start_mutex};
 
         if (persisted_spec.state == e_state::running)
