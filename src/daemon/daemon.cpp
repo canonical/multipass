@@ -1402,15 +1402,19 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                     static_cast<int>(e_state::stopped));
                 runtime_spec.state = e_state::stopped;
             }
+            continue;
         }
-        else
-            init_mounts(name);
+
+        // No deleted spec must cross this boundary.
+        assert(!spec.deleted);
+        init_mounts(name);
 
         std::unique_lock lock{start_mutex};
 
         // Was running before shutdown?
         if (spec.state == e_state::running)
         {
+            assert(operative_instances.contains(name));
             // If the VM was in running state before, we need to do some additional
             // work to ensure everything is in sync.
             switch (operative_instances[name]->current_state())
@@ -1429,7 +1433,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             break;
             default:
             {
-                assert(!spec.deleted);
                 mpl::info(category, "{} needs starting. Starting now...", name);
 
                 multipass::top_catch_all(name, [this, &name, &lock]() {
