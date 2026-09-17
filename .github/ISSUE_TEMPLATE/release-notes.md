@@ -12,7 +12,7 @@ Fill in the two values below, then assign this issue to @copilot.
 
 The Release Notes Generator agent
 (.github/agents/release-notes-generator.agent.md) will:
-  1. run ./tools/release-notes/get-commits-since-release.sh --json --enrich --tag <PREVIOUS_TAG>
+  1. run ./tools/release-notes/get-commits-since-release.sh --json --tag <PREVIOUS_TAG>
   2. rank PRs with the signal-net + anchored, batched rubric
   3. write docs/reference/release-notes/<TARGET_VERSION>.md from
      docs/reference/release-notes/RELEASE_NOTES_TEMPLATE.md and update docs/reference/release-notes/index.md
@@ -27,6 +27,6 @@ The Release Notes Generator agent
 
 Follow the Release Notes Generator agent
 (`.github/agents/release-notes-generator.agent.md`) end to end for the release
-above. Use `--enrich` for the commit data, respect the `skip` pre-filter, and
-rank PRs with the batched, anchored rubric (do not judge importance from commit
-subjects alone). Open the result as a **draft** PR against `main`.
+above. Respect the `skip` pre-filter, and rank PRs with the batched, anchored
+rubric (do not judge importance from commit subjects alone). Open the result as
+a **draft** PR against `main`.

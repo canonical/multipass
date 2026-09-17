@@ -38,7 +38,7 @@ Then, end to end:
    fork, export `PR_REPO` first (e.g. `export PR_REPO=canonical/multipass`) so
    enrichment resolves PR numbers against the upstream repo, not the fork.
 2. Generate enriched data:
-   `./tools/release-notes/get-commits-since-release.sh --json --enrich --tag "$PREVIOUS_TAG" > /tmp/commits-data.json`
+   `./tools/release-notes/get-commits-since-release.sh --json --tag "$PREVIOUS_TAG" > /tmp/commits-data.json`
 3. Run the data-validation queries, then the signal-net candidate selection and
    the batched, anchored PR ranking (all below).
 4. Write `docs/reference/release-notes/<TARGET_VERSION>.md` from
@@ -51,22 +51,15 @@ Then, end to end:
 
 ```bash
 # Generate commits JSON WITH PR context (title, body, labels, diffstat, changed dirs)
-# --enrich fetches PR metadata via the GitHub CLI (`gh`) and caches per PR.
 # PREVIOUS_TAG comes from the issue (see Operating procedure); e.g. v1.16.3.
-./tools/release-notes/get-commits-since-release.sh --json --enrich --tag "$PREVIOUS_TAG" > /tmp/commits-data.json
+./tools/release-notes/get-commits-since-release.sh --json --tag "$PREVIOUS_TAG" > /tmp/commits-data.json
 
 # Fill template using commits-data.json
 ```
 
-> **Always pass `--enrich`.** Without it, each record contains only the commit
-> subject line, and importance judgments collapse (a self-describing minor
-> change like "Select All" outranks a terse but major one like an image
-> catalogue redesign). Enrichment is what lets subagents see *what a PR
-> actually did* instead of guessing from one line.
-
 ## Input Data Format
 
-The `tools/release-notes/get-commits-since-release.sh --json --enrich` script outputs:
+The `tools/release-notes/get-commits-since-release.sh --json` script outputs:
 
 ```json
 {
@@ -84,11 +77,11 @@ The `tools/release-notes/get-commits-since-release.sh --json --enrich` script ou
       "type": "feature|fix|breaking|docs|performance|other",
       "pr_number": 5078,
       "is_new_author": false,
-      // Present only for authors the local history check flagged as new, when
-      // run with --enrich (resolved via the GitHub commit-search API):
+      // Present only for authors the local history check flagged as new
+      // (resolved via the GitHub commit-search API):
       "author_login": "github-username",
 
-      // Present only with --enrich (null/absent for commits without a PR):
+      // Null/absent for commits without a PR:
       "pr_title": "Full PR title",
       "pr_body": "PR description, truncated to 4000 chars",
       "labels": ["feature", "area/networking"],
@@ -197,7 +190,7 @@ fewer lines than a mechanical refactor). Select candidates by the **union** of
 several signals so important PRs can't be filtered out before evaluation:
 
 ```bash
-# Requires enriched data (/tmp/commits-data.json produced with --enrich).
+# Requires enriched data (/tmp/commits-data.json).
 # A PR is a candidate if ANY of these hold:
 #   - large diff (additions+deletions >= 200 OR changed_files >= 8)
 #   - carries a feature/breaking type or a feature/area label
@@ -364,16 +357,17 @@ where #N is that earliest PR. Exclude `[bot]` logins from this section — the
 "new contributors".
 
 **`is_new_author` means "first shipped change", and is verified against
-GitHub.** With `--enrich`, an author is only flagged new when they have (a) no
+GitHub.** An author is only flagged new when they have (a) no
 authored commit before the release tag on any branch AND (b) no merged PR
 dated before the tag. Check (b) is what makes it trustworthy: squash-merges
 and cherry-picks routinely record commits under a different author name than
 the person who wrote the change, so a contributor can look "new" to local git
 history when they are not (or vice versa). Use `author_login` (the resolved
 GitHub username) for the `[@login](https://github.com/login)` links — never
-guess a login from the display name. When `author_login` is absent (offline
-run or unresolvable), fall back to the display name and verify by hand before
-publishing. Note the wording is "first contribution in PR": the flagged commit
+guess a login from the display name. When `author_login` is absent (e.g. `gh`
+unavailable or the author is unresolvable), fall back to the display name and
+verify by hand before publishing. Note the wording is "first contribution in
+PR": the flagged commit
 may be one they authored without owning the PR (a squash-merge or cherry-pick
 landed under someone else's name), so the linked PR is their earliest merged
 PR overall — not necessarily a PR from this release, and not necessarily one
@@ -381,9 +375,9 @@ that shipped in this release.
 
 ## Manual Release Notes Generation
 
-1. **Gather commits**: `./tools/release-notes/get-commits-since-release.sh --json --enrich --tag <PREVIOUS_TAG> > /tmp/commits-data.json`
-   (always use `--enrich` so PR titles, bodies, labels, and diffstats are
-   available — importance ranking is unreliable without them)
+1. **Gather commits**: `./tools/release-notes/get-commits-since-release.sh --json --tag <PREVIOUS_TAG> > /tmp/commits-data.json`
+   (PR titles, bodies, labels, and diffstats are always fetched — importance
+   ranking is unreliable without them)
 
 2. **Run data validation queries** (see section above):
    - Run the 5 queries to understand what the team actually worked on
