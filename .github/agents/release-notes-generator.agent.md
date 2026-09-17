@@ -186,16 +186,6 @@ git log "$PREVIOUS_TAG".."$TARGET_TAG" --oneline | head -50
 
 **Goal:** Identify which PRs are most important for release notes, so you prioritize high-impact items and avoid overwhelming users with exhaustive lists.
 
-> **Why this used to fail:** subagents were handed only a PR *number* and asked
-> to "analyze PR #XXXX", with no description in the prompt. Read-only subagents
-> can't fetch a PR body at all, so they scored from the subject line and their
-> own guesses. That inverts importance — a self-describing minor change
-> ("Select All in the terminal menu") reads as clear and scores well, while a
-> terse but major one ("Redesign image catalogue", "Add Debian/Fedora images",
-> "ppc64el/s390x support") reads as one vague line and gets buried. The fixes
-> below all serve one principle: **put the real evidence in the prompt, and
-> force relative comparison.**
-
 ### Build the candidate set with a signal net, not just diff size
 
 Diff size alone hides high-impact work (a dense catalogue redesign can touch
@@ -385,54 +375,3 @@ may be one they authored without owning the PR (a squash-merge or cherry-pick
 landed under someone else's name), so the linked PR is their earliest merged
 PR overall — not necessarily a PR from this release, and not necessarily one
 that shipped in this release.
-
-## Manual Release Notes Generation
-
-1. **Gather commits**: `./tools/release-notes/get-commits-since-release.sh --json --tag <PREVIOUS_TAG> --to <TARGET_TAG> > /tmp/commits-data.json`
-   (PR titles, bodies, labels, and diffstats are always fetched — importance
-   ranking is unreliable without them)
-
-2. **Run data validation queries** (see section above):
-   - Run the 5 queries to understand what the team actually worked on
-   - Read through full PR subject list from jq
-   - Check which files changed most frequently
-   - Look at commit diffs to understand scope
-   - Don't just skim—do a comprehensive analysis of the work
-
-3. **Evaluate top PRs for importance** (optional but recommended):
-   - Use diff metrics and sub-agent evaluation (see section above) to identify high-impact changes
-   - Score PRs on magnitude, novelty, user impact, technical significance
-   - Tier PRs: Must-mention → Should-mention → Nice-to-mention → Skip
-   - This guides your curation in the template step
-
-4. **Fill template using curated data**:
-   - Set `# X.Y.Z` at the top and the `(...)=` anchor (use the bare version, e.g. `1.17.0`)
-   - Write brief description that captures the release theme
-   - Prioritize features and fixes by your PR tier rankings
-   - Organize by subsystem but within each, lead with high-impact items
-   - Curate "breaking" list: **remove internal cleanups**, keep only user-facing removals
-   - Keep the notes user-facing: skip-tier build/CI/packaging work gets no
-     section of its own, and areas with nothing user-facing are omitted
-   - List new contributors with their first PR links
-   - Update diff link: `{{PREVIOUS_TAG}}` is the start tag (e.g. `v1.16.3`),
-     `{{VERSION_TAG}}` is the target tag (e.g. `v1.17.0`) so the compare URL is
-     valid
-
-5. **Update the release-notes index**:
-   - Add the new release to the table at the top of `docs/reference/release-notes/index.md`
-   - Update the "What's new in X.Y.x?" section. This section is shared across all
-     patch releases of a minor line: `1.17.0` and a later `1.17.1` both update
-     the single "What's new in 1.17.x?" section. Only create a new "What's new"
-     section when the minor version changes (e.g. the first `1.18.0`).
-
-6. **Verify** before publishing:
-   - All PR links are valid (#XXXX format)
-   - No placeholder text remains
-   - Categories are recognized
-   - Index table is updated with new release date and link
-   - "What's new" section reflects current release
-   - No important features skipped (compare against your validation query analysis)
-   - No standalone "Dependencies" section or dependency-bump bullet list
-   - New contributors match the `new_authors` jq output — re-run it and confirm
-     no flagged first-timer (incl. ci/tests-only humans) was dropped, and no
-     `[bot]` login was included
