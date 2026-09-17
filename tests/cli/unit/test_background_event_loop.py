@@ -29,6 +29,12 @@ from cli.utilities.threadutils import BackgroundEventLoop
 class TestBackgroundEventLoop:
     """Test BackgroundEventLoop lifecycle and task draining."""
 
+    @staticmethod
+    def _timed_drain_loop(loop, timeout=5.0):
+        start = time.monotonic()
+        loop.run(loop.drain_loop_until(timeout)).result(timeout=timeout + 1.0)
+        return time.monotonic() - start
+
     def test_context_manager_starts_and_stops(self):
         """Context manager should start and stop the loop."""
         with BackgroundEventLoop() as loop:
@@ -94,15 +100,8 @@ class TestBackgroundEventLoop:
 
     def test_drain_loop_until_no_tasks(self):
         """drain_loop_until should exit immediately with no pending tasks."""
-
-        async def check_drain():
-            start = time.monotonic()
-            await loop.drain_loop_until(timeout=1.0)
-            return time.monotonic() - start
-
         with BackgroundEventLoop() as loop:
-            future = loop.run(check_drain())
-            elapsed = future.result(timeout=2.0)
+            elapsed = self._timed_drain_loop(loop, timeout=1.0)
 
         assert elapsed < 1.0
 
@@ -112,21 +111,12 @@ class TestBackgroundEventLoop:
         async def hanging_task():
             await asyncio.sleep(3600)
 
-        async def run_and_drain():
-            task = asyncio.create_task(hanging_task())
-
-            start = time.monotonic()
-            await loop.drain_loop_until(timeout=1.0)
-            elapsed = time.monotonic() - start
-
-            return task, elapsed
-
         with BackgroundEventLoop() as loop:
-            future = loop.run(run_and_drain())
-            task, elapsed = future.result(timeout=2.0)
+            future = loop.run(hanging_task())
+            elapsed = self._timed_drain_loop(loop, timeout=1.0)
 
-            assert task.done()
-            assert task.cancelled()
+            assert future.done()
+            assert future.cancelled()
             assert elapsed < 1.5
 
     def test_drain_loop_until_handles_tasks_spawning_tasks(self):
@@ -140,16 +130,12 @@ class TestBackgroundEventLoop:
                 spawned.append(asyncio.create_task(asyncio.sleep(0.01)))
                 raise
 
-        async def run_and_drain():
-            task = asyncio.create_task(spawner())
-            await loop.drain_loop_until(timeout=1.0)
-            return task
-
         with BackgroundEventLoop() as loop:
-            future = loop.run(run_and_drain())
-            task = future.result(timeout=2.0)
+            future = loop.run(spawner())
+            self._timed_drain_loop(loop, timeout=1.0)
 
-            assert task.done()
+            assert future.done()
+            assert future.cancelled()
             for t in spawned:
                 assert t.done()
 
