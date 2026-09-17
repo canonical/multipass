@@ -125,7 +125,11 @@ resolve_github_login() {
   local name="$1"
   local email="$2"
   local cache_key
-  cache_key=$(echo -n "${name}<${email}>" | shasum | cut -d' ' -f1)
+  if command -v shasum >/dev/null 2>&1; then
+    cache_key=$(printf '%s' "${name}<${email}>" | shasum | awk '{print $1}')
+  else
+    cache_key=$(printf '%s' "${name}<${email}>" | sha1sum | awk '{print $1}')
+  fi
   local cache_file="$PR_CACHE_DIR/${PR_REPO//\//_}-author-${cache_key}.txt"
 
   if [[ -s $cache_file ]]; then
