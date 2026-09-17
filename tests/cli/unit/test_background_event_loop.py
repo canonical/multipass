@@ -67,6 +67,31 @@ class TestBackgroundEventLoop:
         loop.shutdown()
         loop.shutdown()
 
+    def test_start_is_idempotent(self):
+        """Calling start() twice should keep the original loop thread running."""
+        loop = BackgroundEventLoop()
+        loop.start()
+        thread = loop.thread
+
+        try:
+            loop.start()
+
+            assert loop.thread is thread
+            assert thread.is_alive()
+        finally:
+            loop.shutdown()
+
+    def test_start_after_shutdown_is_safe(self):
+        """Starting and shutting down an already-stopped loop should not crash."""
+        loop = BackgroundEventLoop()
+        loop.start()
+        loop.shutdown()
+        loop.start()
+        loop.shutdown()
+
+        assert loop.loop is None
+        assert not loop.thread.is_alive()
+
     def test_drain_loop_until_no_tasks(self):
         """drain_loop_until should exit immediately with no pending tasks."""
 

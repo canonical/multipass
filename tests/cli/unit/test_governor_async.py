@@ -447,6 +447,7 @@ class TestGovernorConcurrentOperations:
 
         assert ready_cancelled.is_set()
         assert not governor.daemon_ready_event.is_set()
+
     @pytest.mark.asyncio
     async def test_stop_resets_state(self, controller):
         """stop_async should leave the governor in its stopped state."""
