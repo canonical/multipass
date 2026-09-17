@@ -184,39 +184,30 @@ class TestBackgroundEventLoop:
         async def task2():
             await asyncio.sleep(3600)
 
-        async def run_and_drain():
-            t1 = asyncio.create_task(task1())
-            t2 = asyncio.create_task(task2())
-
-            await loop.drain_loop_until(timeout=1.0)
-
-            return t1, t2
-
         with BackgroundEventLoop() as loop:
-            future = loop.run(run_and_drain())
-            t1, t2 = future.result(timeout=2.0)
+            t1 = loop.run(task1())
+            t2 = loop.run(task2())
+            self._timed_drain_loop(loop, timeout=1.0)
 
             assert t1.done() and t1.cancelled()
             assert t2.done() and t2.cancelled()
 
     def test_drain_loop_until_handles_failing_tasks(self):
         """drain_loop_until should handle tasks that raise exceptions."""
+        started = asyncio.Event()
 
         async def failing_task():
-            await asyncio.sleep(0.01)
-            raise ValueError("task failed")
-
-        async def run_and_drain():
-            task = asyncio.create_task(failing_task())
-            await asyncio.sleep(0.05)
-
-            await loop.drain_loop_until(timeout=1.0)
-
-            return task
+            started.set()
+            try:
+                await asyncio.sleep(3600)
+            except asyncio.CancelledError as exc:
+                raise ValueError("task failed") from exc
 
         with BackgroundEventLoop() as loop:
-            future = loop.run(run_and_drain())
-            task = future.result(timeout=2.0)
+            future = loop.run(failing_task())
+            loop.run(started.wait()).result(timeout=1.0)
+            self._timed_drain_loop(loop, timeout=1.0)
 
-            assert task.done()
-            assert isinstance(task.exception(), ValueError)
+            assert future.done()
+            with pytest.raises(ValueError, match="task failed"):
+                future.result()
