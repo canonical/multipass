@@ -19,6 +19,7 @@
 
 import asyncio
 import time
+from unittest import mock
 
 import pytest
 
@@ -52,15 +53,12 @@ class TestBackgroundEventLoop:
 
     def test_run_fn_schedules_callable(self):
         """run_fn() should schedule a callable on the loop thread."""
-        results = []
-
-        def callback():
-            results.append("called")
+        callback = mock.MagicMock()
 
         with BackgroundEventLoop() as loop:
             loop.run_fn(callback)
 
-        assert results == ["called"]
+        callback.assert_called_once()
 
     def test_shutdown_is_idempotent(self):
         """Calling shutdown() twice should not crash."""
