@@ -17,6 +17,7 @@
 
 """Unit tests for MultipassdGovernor to verify the fix for cascading CancelledError."""
 
+import asyncio
 import re
 
 import pytest
@@ -44,7 +45,7 @@ async def test_startup_failures(exit_code, exception, message):
 @pytest.mark.asyncio
 async def test_successful_startup_and_shutdown():
     """Daemon startup and shutdown should complete cleanly."""
-    governor = await run_governor(MockController(exit_code=None), ready_fn=lambda: True)
+    governor = await run_governor(MockController(), ready_delay=0)
 
     assert governor.monitor_task is not None
     assert governor.daemon_ready_event.is_set()
@@ -52,14 +53,10 @@ async def test_successful_startup_and_shutdown():
     assert governor.controller.start_called
 
     await governor.stop_async()
+    await asyncio.to_thread(governor.wait_for_shutdown, timeout=1)
 
     assert governor.controller.stop_called
     assert not governor.daemon_ready_event.is_set()
     assert governor.daemon_stopped_event.is_set()
-
-
-@pytest.mark.asyncio
-async def test_no_cancelled_error_on_exit_code_42():
-    """Ensure CancelledError is not raised when daemon exits with code 42."""
-    with pytest.raises(TestCaseFailure):
-        await run_governor(MockController(exit_code=42))
+    assert governor.monitor_task is None
+    assert not governor.graceful_exit_initiated

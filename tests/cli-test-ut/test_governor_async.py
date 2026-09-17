@@ -51,47 +51,32 @@ class TestGovernorStopAsync:
     @pytest.mark.asyncio
     async def test_stop_async_timeout_cancels_monitor_task(self):
         """stop_async should cancel monitor_task if it doesn't complete in 10s."""
-        governor = await run_governor(MockController(exit_code=None), ready_fn=lambda: True)
+        governor = MultipassdGovernor(
+            MockController(), None, print_daemon_output=False
+        )
 
         async def slow_monitor():
             await asyncio.sleep(3600)
 
-        governor.monitor_task = asyncio.create_task(slow_monitor())
+        monitor_task = asyncio.create_task(slow_monitor())
+        governor.monitor_task = monitor_task
 
         with patch("asyncio.wait_for", side_effect=asyncio.TimeoutError):
             await governor.stop_async()
 
             assert governor.controller.stop_called
-            assert governor.monitor_task.cancelled()
+            assert monitor_task.cancelled()
 
     @pytest.mark.asyncio
     async def test_stop_async_waits_for_monitor_task_completion(self):
         """stop_async should wait for monitor_task to complete normally."""
-        governor = await run_governor(MockController(exit_code=None), ready_fn=lambda: True)
+        governor = await run_governor(MockController(), ready_delay=0)
         monitor_task = governor.monitor_task
 
         await governor.stop_async()
 
         assert governor.controller.stop_called
         assert monitor_task.done()
-
-    @pytest.mark.asyncio
-    async def test_stop_resets_state(self):
-        """stop_async should leave the governor in its stopped state."""
-        ctrl = MockController(exit_code=None)
-
-        governor = await run_governor(ctrl, ready_fn=lambda: True)
-
-        assert governor.daemon_ready_event.is_set()
-        assert governor.monitor_task is not None
-
-        await governor.stop_async()
-
-        assert ctrl.stop_called
-        assert not governor.daemon_ready_event.is_set()
-        assert governor.daemon_stopped_event.is_set()
-        assert governor.monitor_task is None
-        assert not governor.graceful_exit_initiated
 
 
 class TestGovernorOnMonitorExit:
@@ -115,8 +100,9 @@ class TestGovernorOnMonitorExit:
         expects_restart,
     ):
         """on_monitor_exit should restart only for an unhandled settings change."""
-        ctrl = MockController(exit_code=exit_code)
-        ctrl.supports_autorestart = supports_autorestart
+        ctrl = MockController(
+            exit_code=exit_code, supports_autorestart=supports_autorestart
+        )
         mock_loop = MagicMock()
         governor = MultipassdGovernor(ctrl, mock_loop, print_daemon_output=False)
         task = MagicMock(**{"cancelled.return_value": cancelled})
@@ -264,7 +250,7 @@ class TestGovernorStartupFailures:
             side_effect=SystemExit(12),
         ):
             with pytest.raises(SystemExit) as exc_info:
-                await run_governor(ctrl, ready_fn=lambda: False)
+                await run_governor(ctrl, ready_delay=0, ready_result=False)
 
             assert exc_info.value.code == 12
 

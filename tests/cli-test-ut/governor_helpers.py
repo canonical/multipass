@@ -23,14 +23,18 @@ from cli.controller.multipassd_governor import MultipassdGovernor
 
 
 class MockController(MultipassdController):
-    """Mock controller that simulates daemon behavior."""
+    """Simulate either a stop-driven daemon or one that exits on its own.
 
-    def __init__(self, exit_code=None, exit_delay=0.0):
+    With exit_code=None, wait_exit blocks until stop is called and returns zero.
+    Otherwise, it returns exit_code after exit_delay, independently of stop.
+    """
+
+    def __init__(self, exit_code=None, exit_delay=0.0, supports_autorestart=False):
         self.exit_code_value = exit_code
         self.exit_delay = exit_delay
         self.start_called = False
         self.stop_called = False
-        self.supports_autorestart = False
+        self.supports_autorestart = supports_autorestart
         self._stop_event = asyncio.Event()
 
     async def start(self):
@@ -70,27 +74,14 @@ class MockController(MultipassdController):
         pass
 
 
-async def run_governor(daemon_controller, ready_fn=None, exit_fn=None):
+async def run_governor(daemon_controller, ready_delay=3600, ready_result=True):
     """Start governor with mocked dependencies."""
 
-    async def hang_forever():
-        await asyncio.sleep(3600)
+    async def ready():
+        await asyncio.sleep(ready_delay)
+        return ready_result
 
-    async def noop(*args, **kwargs):
-        pass
-
-    governor = MultipassdGovernor(
-        daemon_controller, None, print_daemon_output=False
-    )
-    ready_side_effect = ready_fn or hang_forever
-    if not asyncio.iscoroutinefunction(ready_side_effect):
-        sync_ready = ready_side_effect
-
-        async def ready_side_effect(*args, **kwargs):
-            result = sync_ready(*args, **kwargs)
-            if asyncio.iscoroutine(result):
-                return await result
-            return result
+    governor = MultipassdGovernor(daemon_controller, None, print_daemon_output=False)
 
     with (
         patch.object(governor, "_ensure_client_certs_are_created"),
@@ -98,9 +89,9 @@ async def run_governor(daemon_controller, ready_fn=None, exit_fn=None):
         patch.object(
             governor,
             "wait_for_multipassd_ready",
-            side_effect=ready_side_effect,
+            side_effect=ready,
         ),
-        patch.object(governor, "on_monitor_exit", side_effect=exit_fn or noop),
+        patch.object(governor, "on_monitor_exit"),
         patch("cli.controller.multipassd_governor.Session"),
     ):
         await governor.start_async()
