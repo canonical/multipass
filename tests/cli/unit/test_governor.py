@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Unit tests for MultipassdGovernor to verify the fix for cascading CancelledError."""
 
 import asyncio

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Unit tests for BooleanLatch synchronization primitive."""
 
 import threading
