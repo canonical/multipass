@@ -134,53 +134,38 @@ class TestGovernorReadStream:
     """Test governor _read_stream error pattern matching."""
 
     @pytest.mark.asyncio
-    async def test_read_stream_matches_dnsmasq_error(self):
-        """_read_stream should match dnsmasq binding error."""
+    @pytest.mark.parametrize(
+        "lines,expected",
+        [
+            (
+                ["dnsmasq: failed to create listening socket"],
+                "Could not bind dnsmasq to port 53, is there another process running?",
+            ),
+            (
+                ['Failed to get shared "write" lock'],
+                "Cannot open an image file for writing, is another process holding "
+                "a write lock?",
+            ),
+            (
+                ["Only one usage of each socket address"],
+                "Could not bind gRPC port -- is there another daemon process running?",
+            ),
+            (["normal log line", "another normal line"], None),
+        ],
+    )
+    async def test_read_stream(self, lines, expected):
+        """_read_stream should return the reason matching daemon output."""
         governor = MultipassdGovernor(
             MockController(exit_code=None), None, print_daemon_output=False
         )
 
         async def mock_output():
-            yield "dnsmasq: failed to create listening socket"
+            for line in lines:
+                yield line
 
         governor.controller.follow_output = mock_output
 
-        result = await governor._read_stream()
-
-        assert "dnsmasq" in result
-        assert "port 53" in result
-
-    @pytest.mark.asyncio
-    async def test_read_stream_matches_write_lock_error(self):
-        """_read_stream should match shared write lock error."""
-        governor = MultipassdGovernor(
-            MockController(exit_code=None), None, print_daemon_output=False
-        )
-
-        async def mock_output():
-            yield 'Failed to get shared "write" lock'
-
-        governor.controller.follow_output = mock_output
-
-        result = await governor._read_stream()
-
-        assert "write lock" in result
-
-    @pytest.mark.asyncio
-    async def test_read_stream_matches_socket_address_error(self):
-        """_read_stream should match socket address in use error."""
-        governor = MultipassdGovernor(
-            MockController(exit_code=None), None, print_daemon_output=False
-        )
-
-        async def mock_output():
-            yield "Only one usage of each socket address"
-
-        governor.controller.follow_output = mock_output
-
-        result = await governor._read_stream()
-
-        assert "gRPC port" in result
+        assert await governor._read_stream() == expected
 
     @pytest.mark.asyncio
     async def test_read_stream_handles_cancelled_error(self):
@@ -198,24 +183,6 @@ class TestGovernorReadStream:
         result = await governor._read_stream()
 
         assert result is None
-
-    @pytest.mark.asyncio
-    async def test_read_stream_returns_none_on_no_match(self):
-        """_read_stream should return None when no error patterns match."""
-        governor = MultipassdGovernor(
-            MockController(exit_code=None), None, print_daemon_output=False
-        )
-
-        async def mock_output():
-            yield "normal log line"
-            yield "another normal line"
-
-        governor.controller.follow_output = mock_output
-
-        result = await governor._read_stream()
-
-        assert result is None
-
 
 class TestGovernorMonitor:
     """Test governor _monitor task cancellation propagation."""
