@@ -242,12 +242,22 @@ class TestGovernorStartupFailures:
 
     @pytest.mark.asyncio
     async def test_daemon_never_ready_stops_and_exits(self):
-        """wait_for_multipassd_ready returning False should stop daemon and exit."""
+        """Failed readiness should stop and drain the daemon before exiting."""
         ctrl = MockController(exit_code=None)
+        monitor_task = None
+        original_monitor = MultipassdGovernor._monitor
 
-        with patch(
-            "cli.controller.multipassd_governor.pytest.exit",
-            side_effect=SystemExit(12),
+        async def monitor(governor):
+            nonlocal monitor_task
+            monitor_task = asyncio.current_task()
+            return await original_monitor(governor)
+
+        with (
+            patch.object(MultipassdGovernor, "_monitor", new=monitor),
+            patch(
+                "cli.controller.multipassd_governor.pytest.exit",
+                side_effect=SystemExit(12),
+            ),
         ):
             with pytest.raises(SystemExit) as exc_info:
                 await run_governor(ctrl, ready_delay=0, ready_result=False)
@@ -255,6 +265,9 @@ class TestGovernorStartupFailures:
             assert exc_info.value.code == 12
 
         assert ctrl.stop_called
+        assert monitor_task is not None
+        assert monitor_task.done()
+        assert monitor_task.result() is None
 
 class TestGovernorConcurrentOperations:
     """Test governor concurrent operation scenarios."""
