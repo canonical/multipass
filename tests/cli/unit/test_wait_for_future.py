@@ -17,8 +17,10 @@
 
 """Unit tests for wait_for_future utility function."""
 
+import threading
 import time
 from concurrent.futures import Future
+from unittest import mock
 
 import pytest
 
@@ -44,6 +46,8 @@ class TestWaitForFuture:
         with pytest.raises(TimeoutError, match="Operation timed out"):
             wait_for_future(future, timeout=0.1, poll_interval=0.01)
 
+        assert future.cancelled()
+
     def test_propagates_exception_from_future(self):
         """wait_for_future should propagate exception raised by the future."""
         future = Future()
@@ -52,19 +56,8 @@ class TestWaitForFuture:
         with pytest.raises(ValueError, match="test error"):
             wait_for_future(future, timeout=1.0)
 
-    def test_handles_already_completed_future(self):
-        """wait_for_future should handle already-completed future."""
-        future = Future()
-        future.set_result("done")
-
-        result = wait_for_future(future, timeout=1.0)
-
-        assert result == "done"
-
     def test_waits_for_delayed_completion(self):
         """wait_for_future should wait for future that completes after delay."""
-        import threading
-
         future = Future()
 
         def delayed_set():
@@ -79,20 +72,14 @@ class TestWaitForFuture:
         thread.join()
         assert result == "delayed"
 
-    def test_cancels_future_on_timeout(self):
-        """wait_for_future should cancel future on timeout."""
-        future = Future()
-
-        with pytest.raises(TimeoutError):
-            wait_for_future(future, timeout=0.1, poll_interval=0.01)
-
-        assert future.cancelled()
-
     def test_respects_custom_poll_interval(self):
         """wait_for_future should respect custom poll interval."""
-        future = Future()
-        future.set_result(42)
+        future = mock.Mock(spec=Future)
+        future.done.side_effect = [False, True, True]
+        future.result.return_value = 42
 
-        result = wait_for_future(future, timeout=1.0, poll_interval=0.5)
+        with mock.patch("cli.utilities.threadutils.time.sleep") as sleep:
+            result = wait_for_future(future, timeout=1.0, poll_interval=0.5)
 
         assert result == 42
+        sleep.assert_called_once_with(0.5)

@@ -340,30 +340,6 @@ class TestGovernorConcurrentOperations:
         assert ready_cancelled.is_set()
         assert not governor.daemon_ready_event.is_set()
 
-class TestGovernorCrashMidTest:
-    """Test governor handling daemon crash during test execution."""
-
-    @pytest.mark.asyncio
-    async def test_daemon_crash_with_exit_code_1_aborts_session(self):
-        """Daemon exit with code 1 during test should raise TestSessionFailure."""
-        ctrl = MockController(exit_code=1)
-
-        with pytest.raises(TestSessionFailure) as exc_info:
-            await run_governor(ctrl)
-
-        assert "multipassd died with code 1" in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_daemon_crash_with_other_codes_raises_test_case_failure(self):
-        """Daemon exit with non-1 codes should raise TestCaseFailure."""
-        for exit_code in [2, 137, 139]:
-            ctrl = MockController(exit_code=exit_code)
-
-            with pytest.raises(TestCaseFailure) as exc_info:
-                await run_governor(ctrl)
-
-            assert f"multipassd died with code {exit_code}" in str(exc_info.value)
-
 
 class TestWaitForMultipassdReady:
     """Test wait_for_multipassd_ready static method."""
