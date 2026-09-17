@@ -133,6 +133,18 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
     HCSVirtualMachine::handle_state_update();
 }
 
+HCSVirtualMachine::~HCSVirtualMachine()
+{
+    top_catch_all(vm_name, [this]() {
+        if (current_state() == State::running)
+        {
+            suspend_impl(e_suspend_reason::by_vm_destruction);
+            state = VirtualMachine::State::running;
+            handle_state_update();
+        }
+    });
+}
+
 void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* context)
 {
 
@@ -488,6 +500,11 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 void HCSVirtualMachine::suspend()
 {
     mpl::debug(get_name(), "suspend() -> Suspending, current state {}", state);
+    suspend_impl(e_suspend_reason::by_request);
+}
+
+void HCSVirtualMachine::suspend_impl(e_suspend_reason reason)
+{
     if (const auto pause_result = HCS().pause_compute_system(hcs_system))
     {
         // Pause succeeded. We can suspend to disk now
@@ -510,7 +527,18 @@ void HCSVirtualMachine::suspend()
     {
         throw SaveComputeSystemException{"Could not pause VM for suspend: {}", pause_result};
     }
-    set_state(fetch_state_from_api());
+
+    switch (reason)
+    {
+    case e_suspend_reason::by_request:
+        set_state(fetch_state_from_api());
+        break;
+    case e_suspend_reason::by_vm_destruction:
+        // Explicitly set state as running so VM would be started up next time
+        // that the VM class is constructed.
+        set_state(hcs::ComputeSystemState::running);
+        break;
+    }
     handle_state_update();
 }
 

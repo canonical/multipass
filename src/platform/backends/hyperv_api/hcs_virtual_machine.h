@@ -63,6 +63,8 @@ struct HCSVirtualMachine : public BaseVirtualMachine
                       AvailabilityZone& zone,
                       const Path& dest_instance_dir);
 
+    ~HCSVirtualMachine();
+
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy) override;
     void suspend() override;
@@ -98,6 +100,14 @@ private:
     VMStatusMonitor& monitor;
 
     hcs::HcsSystemHandle hcs_system{nullptr};
+
+    enum class e_suspend_reason : std::uint8_t
+    {
+        by_request,
+        by_vm_destruction
+    };
+
+    void suspend_impl(e_suspend_reason reason = e_suspend_reason::by_request);
 
     [[nodiscard]] hcs::ComputeSystemState fetch_state_from_api() const;
     void set_state(hcs::ComputeSystemState state);
