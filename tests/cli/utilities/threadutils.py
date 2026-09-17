@@ -23,33 +23,6 @@ from typing import Callable, Any
 from contextlib import suppress
 
 
-class BooleanLatch:
-    def __init__(self):
-        self._flag = False
-        self._cond = threading.Condition()
-
-    def is_set(self):
-        with self._cond:
-            return self._flag
-
-    def set(self):
-        with self._cond:
-            self._flag = True
-            self._cond.notify_all()
-
-    def clear(self):
-        with self._cond:
-            self._flag = False
-            self._cond.notify_all()
-
-    def wait_until(self, value: bool, timeout=None):
-        with self._cond:
-            self._cond.wait_for(lambda: self._flag == value, timeout=timeout)
-
-    def wait(self):
-        self.wait_until(True)
-
-
 class BackgroundEventLoop:
     def __init__(self, name: str = "background-event-loop"):
         self.loop = asyncio.new_event_loop()

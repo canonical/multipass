@@ -143,6 +143,7 @@ async def test_successful_startup(controller):
 
     assert governor.monitor_task is not None
     assert governor.daemon_ready_event.is_set()
+    assert not governor.daemon_stopped_event.is_set()
     assert governor.controller.start_called
 
     await governor.stop_async()
@@ -154,6 +155,8 @@ async def test_stop_after_successful_startup(controller):
     governor = await run_governor(controller(exit_code=None), ready_fn=lambda: True)
     await governor.stop_async()
     assert governor.controller.stop_called
+    assert not governor.daemon_ready_event.is_set()
+    assert governor.daemon_stopped_event.is_set()
 
 
 @pytest.mark.asyncio

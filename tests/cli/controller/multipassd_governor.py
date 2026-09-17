@@ -21,6 +21,7 @@ import asyncio
 import logging
 import re
 import sys
+import threading
 import time
 from contextlib import suppress
 from typing import Optional
@@ -39,7 +40,6 @@ from cli.multipass import (
     TestCaseFailure
 )
 from cli.utilities import (
-    BooleanLatch,
     SilentAsyncSubprocess,
     StdoutAsyncSubprocess,
     run_in_new_interpreter,
@@ -59,7 +59,8 @@ class MultipassdGovernor:
         self.asyncio_loop = asyncio_loop
         self.print_daemon_output = print_daemon_output
         self.controller = controller
-        self.daemon_ready_event = BooleanLatch()
+        self.daemon_ready_event = threading.Event()
+        self.daemon_stopped_event = threading.Event()
         self.monitor_task = None
         self._reset_state()
 
@@ -67,6 +68,7 @@ class MultipassdGovernor:
         self.monitor_task = None
         self.graceful_exit_initiated = False
         self.daemon_ready_event.clear()
+        self.daemon_stopped_event.set()
 
     def _get_error_patterns(self):
         return {
@@ -239,6 +241,7 @@ class MultipassdGovernor:
             )
 
         self.monitor_task = monitor_task
+        self.daemon_stopped_event.clear()
         self.daemon_ready_event.set()
 
     async def stop_async(self):
@@ -277,10 +280,10 @@ class MultipassdGovernor:
         self.asyncio_loop.run(self.stop_async()).result(timeout=timeout)
 
     def wait_for_shutdown(self, timeout=60):
-        self.daemon_ready_event.wait_until(False, timeout=timeout)
+        self.daemon_stopped_event.wait(timeout=timeout)
 
     def wait_for_start(self, timeout=60):
-        self.daemon_ready_event.wait_until(True, timeout=timeout)
+        self.daemon_ready_event.wait(timeout=timeout)
 
     def wait_for_restart(self, timeout=60):
         # Restart events are opaque to us when the controller supports
