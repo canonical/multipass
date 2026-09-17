@@ -5,7 +5,8 @@ inside VS Code, using Copilot Chat and the repo's own agent definition.
 
 The goal is to produce release notes for a specific release by:
 
-1. setting the previous tag and target version,
+1. setting the previous tag and target tag (both v-prefixed, e.g. `v1.16.3` →
+   `v1.17.0`),
 2. letting Copilot use the local agent definition,
 3. generating the enriched commit data,
 4. reviewing the ranked PRs and choosing the notes to keep,
@@ -49,7 +50,7 @@ git fetch --tags --unshallow 2>/dev/null || git fetch --tags
 
 Ask your agent something like:
 
-> Use the Release Notes Generator agent. Generate release notes for PREVIOUS_TAG=v1.16.3 and TARGET_VERSION=1.17.0 in this repo.
+> Use the Release Notes Generator agent. Generate release notes for PREVIOUS_TAG=v1.16.3.
 
 If desired, open a draft PR against `main` with the notes file and index update.
 
@@ -60,7 +61,7 @@ that you select the correct release range from the repo history.
 
 For example, if you want to regenerate notes for the 1.15 → 1.16 range:
 
-> Use the Release Notes Generator agent. Generate release notes for v1.14.0 since v1.13.1
+> Use the Release Notes Generator agent. Generate release notes for v1.16.0 since v1.15.1
 
 A few historical ranges are especially noisy because of merged repo history or
 cherry-picked backports, so it is worth checking the earlier notes and validation

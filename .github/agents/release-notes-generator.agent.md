@@ -9,8 +9,16 @@ tools: ['search/codebase', 'edit/editFiles', 'web/githubRepo', 'web/fetch', 'exe
 ## Overview
 
 This agent generates professional release notes for Multipass using commit
-metadata and the mustache template in `docs/reference/release-notes/RELEASE_NOTES_TEMPLATE.md`. The process is
-**deterministic** and **data-driven**.
+metadata and the mustache template in `docs/reference/release-notes/RELEASE_NOTES_TEMPLATE.md`.
+The process is **deterministic** and **data-driven**.
+
+**Abort on failure.** If any step below reports an error (failed fetches or
+tag lookups, broken `gh` auth, the script's stderr saying enrichment failed
+for all/most PRs, ...), stop and report the failure instead of continuing.
+The script degrades to thin-but-valid JSON instead of failing loudly, so
+pushing through an error produces plausible-looking output that cannot
+support the ranking rubric. After fixing the cause (auth, `PR_REPO`, tags),
+re-run — the per-PR cache makes retries fast.
 
 ## Operating procedure (issue-driven, reusable each release)
 
@@ -18,14 +26,17 @@ When invoked from a "Generate release notes" issue (see
 `.github/ISSUE_TEMPLATE/release-notes.md`), the issue provides two inputs:
 
 - **`PREVIOUS_TAG`** — the last released tag to diff against (e.g. `v1.16.3`).
-- **`TARGET_VERSION`** — the version being released (e.g. `1.17.0`).
+- **`TARGET_TAG`** — the tag being released, i.e. the end of the range
+  (e.g. `v1.17.0`).
 
 Export both from the issue body before running anything, so every command and
-validation query below picks them up:
+validation query below picks them up. Also derive the bare version (no `v`)
+for the document filename and heading:
 
 ```bash
-export PREVIOUS_TAG=<value from issue>     # e.g. v1.16.3
-export TARGET_VERSION=<value from issue>   # e.g. 1.17.0
+export PREVIOUS_TAG=<value from issue>            # e.g. v1.16.3
+export TARGET_TAG=<value from issue>              # e.g. v1.17.0
+export TARGET_VERSION="${TARGET_TAG#v}"           # e.g. 1.17.0 (docs only)
 ```
 
 Then, end to end:
@@ -37,8 +48,9 @@ Then, end to end:
    `gh pr view 1 --repo canonical/multipass >/dev/null`. If running from a
    fork, export `PR_REPO` first (e.g. `export PR_REPO=canonical/multipass`) so
    enrichment resolves PR numbers against the upstream repo, not the fork.
-2. Generate enriched data:
-   `./tools/release-notes/get-commits-since-release.sh --json --tag "$PREVIOUS_TAG" > /tmp/commits-data.json`
+2. Generate enriched data (the range is tag-to-tag; if the target tag doesn't
+   exist yet, the release hasn't been cut — stop and report):
+   `./tools/release-notes/get-commits-since-release.sh --json --tag "$PREVIOUS_TAG" --to "$TARGET_TAG" > /tmp/commits-data.json`
 3. Run the data-validation queries, then the signal-net candidate selection and
    the batched, anchored PR ranking (all below).
 4. Write `docs/reference/release-notes/<TARGET_VERSION>.md` from
@@ -51,8 +63,8 @@ Then, end to end:
 
 ```bash
 # Generate commits JSON WITH PR context (title, body, labels, diffstat, changed dirs)
-# PREVIOUS_TAG comes from the issue (see Operating procedure); e.g. v1.16.3.
-./tools/release-notes/get-commits-since-release.sh --json --tag "$PREVIOUS_TAG" > /tmp/commits-data.json
+# Both tags come from the issue (see Operating procedure); e.g. v1.16.3 to v1.17.0.
+./tools/release-notes/get-commits-since-release.sh --json --tag "$PREVIOUS_TAG" --to "$TARGET_TAG" > /tmp/commits-data.json
 
 # Fill template using commits-data.json
 ```
@@ -65,6 +77,7 @@ The `tools/release-notes/get-commits-since-release.sh --json` script outputs:
 {
   "metadata": {
     "release_tag": "v1.16.3",
+    "range_end": "v1.17.0",
     "total_commits": 3736,
     "generated_at": "2026-07-17T18:00:34Z"
   },
@@ -136,8 +149,8 @@ the jq filter, and any `[bot]` login by hand).
 **Before generating release notes, analyze the commits comprehensively to understand what actually changed:**
 
 ```bash
-# All git-based queries use $PREVIOUS_TAG (set it from the issue input first,
-# e.g. export PREVIOUS_TAG=v1.16.3).
+# All git-based queries span $PREVIOUS_TAG..$TARGET_TAG (export both from the
+# issue inputs first, e.g. PREVIOUS_TAG=v1.16.3 TARGET_TAG=v1.17.0).
 
 # 1. Get full view of user-facing PRs with real titles + churn (noise excluded)
 jq -r '.commits[] | select(.pr_number != null and (.skip | not))
@@ -155,16 +168,16 @@ jq -r '[.commits[] | select(.skip) | .skip_reason]
 
 # 2. Examine actual code changes to see scope of work
 # Which files and directories changed most frequently?
-git diff "$PREVIOUS_TAG"..HEAD --name-only | cut -d'/' -f1-2 | sort | uniq -c | sort -rn | head -20
+git diff "$PREVIOUS_TAG".."$TARGET_TAG" --name-only | cut -d'/' -f1-2 | sort | uniq -c | sort -rn | head -20
 
 # 3. Get category distribution (noise excluded) to understand where effort was concentrated
 jq -r '[.commits[] | select(.pr_number != null and (.skip | not)) | .category] | group_by(.) | map({category: .[0], count: length}) | sort_by(-.count) | .[] | "\(.category): \(.count)"' /tmp/commits-data.json
 
 # 4. List commits with larger diffs (more substantial changes)
-git log "$PREVIOUS_TAG"..HEAD --oneline --stat | grep -E "^ [a-f0-9]+|^ Author|^ Date|files? changed" | head -50
+git log "$PREVIOUS_TAG".."$TARGET_TAG" --oneline --stat | grep -E "^ [a-f0-9]+|^ Author|^ Date|files? changed" | head -50
 
 # 5. Get recent git log to see summary of major work areas
-git log "$PREVIOUS_TAG"..HEAD --oneline | head -50
+git log "$PREVIOUS_TAG".."$TARGET_TAG" --oneline | head -50
 ```
 
 **Critical Insight:** The problem isn't looking for specific subsystems or keywords—it's analyzing commits comprehensively. Read through the full list of PR subjects from jq output, understand which directories changed most via `git diff --name-only`, and look at commit diffs to see the actual scope of work. This reveals what the team actually worked on, not just what keywords appear in commit messages.
@@ -375,7 +388,7 @@ that shipped in this release.
 
 ## Manual Release Notes Generation
 
-1. **Gather commits**: `./tools/release-notes/get-commits-since-release.sh --json --tag <PREVIOUS_TAG> > /tmp/commits-data.json`
+1. **Gather commits**: `./tools/release-notes/get-commits-since-release.sh --json --tag <PREVIOUS_TAG> --to <TARGET_TAG> > /tmp/commits-data.json`
    (PR titles, bodies, labels, and diffstats are always fetched — importance
    ranking is unreliable without them)
 
@@ -401,8 +414,9 @@ that shipped in this release.
    - Keep the notes user-facing: skip-tier build/CI/packaging work gets no
      section of its own, and areas with nothing user-facing are omitted
    - List new contributors with their first PR links
-   - Update diff link: `{{PREVIOUS_TAG}}` is the tag (e.g. `v1.16.3`), `{{VERSION_TAG}}`
-     is the v-prefixed target tag (e.g. `v1.17.0`) so the compare URL is valid
+   - Update diff link: `{{PREVIOUS_TAG}}` is the start tag (e.g. `v1.16.3`),
+     `{{VERSION_TAG}}` is the target tag (e.g. `v1.17.0`) so the compare URL is
+     valid
 
 5. **Update the release-notes index**:
    - Add the new release to the table at the top of `docs/reference/release-notes/index.md`

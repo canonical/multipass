@@ -6,7 +6,8 @@
 #   -f, --format FORMAT   Output format: oneline, short, medium, full (default: oneline)
 #   -s, --stat            Show diffstat
 #   -a, --author          Group by author
-#   --tag TAG             Use specific release tag (default: auto-detect latest)
+#   --tag TAG             Start of range: previous release tag (default: auto-detect latest)
+#   --to REF              End of range: target ref (default: HEAD)
 #   -h, --help            Show this help message
 
 set -euo pipefail
@@ -214,6 +215,7 @@ NEW_AUTHORS_ONLY=false
 MERGE_ONLY=false
 JSON_OUTPUT=false
 CUSTOM_TAG=""
+TO_REF="HEAD"
 HELP=false
 
 # Repository used to resolve PR metadata (override with PR_REPO env var)
@@ -247,6 +249,10 @@ while [[ $# -gt 0 ]]; do
       CUSTOM_TAG="$2"
       shift 2
       ;;
+    --to)
+      TO_REF="$2"
+      shift 2
+      ;;
     -h|--help)
       HELP=true
       shift
@@ -270,7 +276,8 @@ if [[ $HELP == true ]]; then
   echo "  --new-authors         Show only new authors (first-time contributors)"
   echo "  -m, --merge           Show only merge commits from PRs"
   echo "  --json                Output as JSON with metadata and categorization"
-  echo "  --tag TAG             Use specific release tag (default: auto-detect latest)"
+  echo "  --tag TAG             Start of range: previous release tag (default: auto-detect latest)"
+  echo "  --to REF              End of range: target ref (default: HEAD)"
   echo "  -h, --help            Show this help message"
   echo ""
   echo "Examples:"
@@ -279,7 +286,8 @@ if [[ $HELP == true ]]; then
   echo "  $(basename "$0") -a                   # Group by author"
   echo "  $(basename "$0") --new-authors        # Show only new authors since release"
   echo "  $(basename "$0") -m                   # Show only merge commits"
-  echo "  $(basename "$0") --tag v1.16.0        # Use specific tag"
+  echo "  $(basename "$0") --tag v1.16.0        # Start from a specific tag"
+  echo "  $(basename "$0") --tag v1.16.0 --to v1.17.0  # Full tag-to-tag range"
   exit 0
 fi
 
@@ -292,35 +300,40 @@ fi
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "$REPO_ROOT" || exit 1
 
-# Find the latest release tag
+# Find the latest release tag (start of range)
 if [[ -z $CUSTOM_TAG ]]; then
   # Look for release tags matching v<digit>.<digit>.<digit> (excluding -dev, -rc, etc.)
-  LATEST_TAG=$(git tag -l 'v[0-9]*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+  FROM_TAG=$(git tag -l 'v[0-9]*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
 
-  if [[ -z $LATEST_TAG ]]; then
+  if [[ -z $FROM_TAG ]]; then
     # Fallback: get any v-prefixed tag
-    LATEST_TAG=$(git tag -l 'v[0-9]*' --sort=-version:refname | head -1)
+    FROM_TAG=$(git tag -l 'v[0-9]*' --sort=-version:refname | head -1)
   fi
 
-  if [[ -z $LATEST_TAG ]]; then
+  if [[ -z $FROM_TAG ]]; then
     echo -e "${RED}Error: No release tags found${NC}"
     exit 1
   fi
 else
-  LATEST_TAG=$CUSTOM_TAG
+  FROM_TAG=$CUSTOM_TAG
 fi
 
-# Verify the tag exists
-if ! git rev-parse "$LATEST_TAG" > /dev/null 2>&1; then
-  echo -e "${RED}Error: Tag '$LATEST_TAG' not found${NC}"
+# Verify both ends of the range exist
+if ! git rev-parse "$FROM_TAG" > /dev/null 2>&1; then
+  echo -e "${RED}Error: Tag '$FROM_TAG' not found${NC}"
+  exit 1
+fi
+
+if ! git rev-parse "$TO_REF" > /dev/null 2>&1; then
+  echo -e "${RED}Error: Ref '$TO_REF' not found${NC}"
   exit 1
 fi
 
 # Get commit count and summary
-COMMIT_COUNT=$(git rev-list --count "$LATEST_TAG..HEAD")
+COMMIT_COUNT=$(git rev-list --count "$FROM_TAG..$TO_REF")
 
 if [[ $JSON_OUTPUT == false ]]; then
-  echo -e "${BLUE}Commits since ${GREEN}${LATEST_TAG}${BLUE}:${NC} ${GREEN}${COMMIT_COUNT}${NC}"
+  echo -e "${BLUE}Commits since ${GREEN}${FROM_TAG}${BLUE}:${NC} ${GREEN}${COMMIT_COUNT}${NC}"
   echo ""
 fi
 
@@ -332,16 +345,16 @@ fi
 
 case $FORMAT in
   oneline)
-    LOG_CMD="git log $LATEST_TAG..HEAD $MERGE_FLAG --oneline"
+    LOG_CMD="git log $FROM_TAG..$TO_REF $MERGE_FLAG --oneline"
     ;;
   short)
-    LOG_CMD="git log $LATEST_TAG..HEAD $MERGE_FLAG --format='%h%n%an%n%s%n'"
+    LOG_CMD="git log $FROM_TAG..$TO_REF $MERGE_FLAG --format='%h%n%an%n%s%n'"
     ;;
   medium)
-    LOG_CMD="git log $LATEST_TAG..HEAD $MERGE_FLAG --format='%H%n%an <%ae>%naD%n%s%n%b%n'"
+    LOG_CMD="git log $FROM_TAG..$TO_REF $MERGE_FLAG --format='%H%n%an <%ae>%naD%n%s%n%b%n'"
     ;;
   full)
-    LOG_CMD="git log $LATEST_TAG..HEAD $MERGE_FLAG"
+    LOG_CMD="git log $FROM_TAG..$TO_REF $MERGE_FLAG"
     ;;
   *)
     echo -e "${RED}Error: Unknown format '$FORMAT'${NC}"
@@ -353,11 +366,11 @@ esac
 if [[ $GROUP_BY_AUTHOR == true ]]; then
   # Show summary by author
   if [[ $NEW_AUTHORS_ONLY == true ]]; then
-    echo -e "${YELLOW}New authors since ${LATEST_TAG}:${NC}"
+    echo -e "${YELLOW}New authors since ${FROM_TAG}:${NC}"
     # Get all authors before the release tag
-    HISTORICAL_AUTHORS=$(git log --all --before="$(git log -1 --format=%aI $LATEST_TAG)" --format=format:"%aN" | sort | uniq)
+    HISTORICAL_AUTHORS=$(git log --all --before="$(git log -1 --format=%aI $FROM_TAG)" --format=format:"%aN" | sort | uniq)
     # Get all authors since the release tag
-    NEW_RELEASE_AUTHORS=$(git log "$LATEST_TAG..HEAD" --format=format:"%aN")
+    NEW_RELEASE_AUTHORS=$(git log "$FROM_TAG..$TO_REF" --format=format:"%aN")
     # Find authors that are new (not in historical authors)
     echo "$NEW_RELEASE_AUTHORS" | sort | uniq | while read author; do
       if ! echo "$HISTORICAL_AUTHORS" | grep -Fxq "$author"; then
@@ -367,19 +380,19 @@ if [[ $GROUP_BY_AUTHOR == true ]]; then
     done | sort -rn
   else
     echo -e "${YELLOW}Commits by author:${NC}"
-    git log "$LATEST_TAG..HEAD" --format=format:"%aN" | sort | uniq -c | sort -rn | while read count author; do
+    git log "$FROM_TAG..$TO_REF" --format=format:"%aN" | sort | uniq -c | sort -rn | while read count author; do
       echo "  $count commits - $author"
     done
   fi
 elif [[ $JSON_OUTPUT == true ]]; then
   # Generate JSON output with categorization
-  HISTORICAL_AUTHORS=$(git log --all --before="$(git log -1 --format=%aI $LATEST_TAG)" --format=format:"%aN" 2>/dev/null | sort | uniq)
+  HISTORICAL_AUTHORS=$(git log --all --before="$(git log -1 --format=%aI $FROM_TAG)" --format=format:"%aN" 2>/dev/null | sort | uniq)
   # Use the tag's own date (when the release was actually cut) as the "shipped"
   # cutoff. The tagged commit's author date can be days/weeks earlier, which
   # would wrongly count work merged in between as "before release".
-  TAG_DATE=$(git for-each-ref --format='%(taggerdate:iso-strict)' "refs/tags/$LATEST_TAG")
+  TAG_DATE=$(git for-each-ref --format='%(taggerdate:iso-strict)' "refs/tags/$FROM_TAG")
   # Lightweight tags have no tagger date; fall back to the commit date.
-  [[ -z $TAG_DATE ]] && TAG_DATE=$(git log -1 --format=%cI "$LATEST_TAG")
+  [[ -z $TAG_DATE ]] && TAG_DATE=$(git log -1 --format=%cI "$FROM_TAG")
 
   # Enrichment requires the GitHub CLI
   if ! command -v gh > /dev/null 2>&1; then
@@ -502,7 +515,7 @@ elif [[ $JSON_OUTPUT == true ]]; then
             | sort_by(-.count) | .[0:6]
           )
         } else {} end)' >> "$RECORDS_FILE"
-  done < <(git log "$LATEST_TAG..HEAD" --format="%h|%aN|%aE|%s")
+  done < <(git log "$FROM_TAG..$TO_REF" --format="%h|%aN|%aE|%s")
 
   # Surface enrichment problems on stderr (stdout stays valid JSON).
   if [[ $ENRICH_ATTEMPTED -gt 0 ]]; then
@@ -514,13 +527,15 @@ elif [[ $JSON_OUTPUT == true ]]; then
   fi
 
   jq -n \
-    --arg tag "$LATEST_TAG" \
+    --arg tag "$FROM_TAG" \
+    --arg to "$TO_REF" \
     --argjson count "$COMMIT_COUNT" \
     --arg gen "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --slurpfile commits "$RECORDS_FILE" \
     '{
       metadata: {
         release_tag: $tag,
+        range_end: $to,
         total_commits: $count,
         generated_at: $gen
       },
