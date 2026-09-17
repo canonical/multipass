@@ -274,9 +274,12 @@ Anchors (calibrate every score against these):
     5 = unblocks other work or changes architecture; 1 = low
 
 Rules of thumb:
-- A new image OS family, a new CPU architecture, or an image-catalogue redesign
-  is ALWAYS must-mention, even if its title/diff looks small.
-- A GUI convenience item (right-click menu entry, minor toggle) is at most
+- A new feature, like a new image OS family, a new CPU architecture, or an
+  image-catalogue redesign is ALWAYS must-mention, even if its title/diff looks
+  small.
+- A significant GUI change (addition of GUI elements for a new feature,
+  significant change of user experience) is at least a should-mention, while a
+  convenience change (right-click menu entry, minor toggle) is at most
   nice-to-mention.
 - Internal refactors, test-only changes, and dependency bumps are skip unless
   they enable a user-visible capability.
