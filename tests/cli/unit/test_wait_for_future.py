@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Unit tests for wait_for_future utility function."""
 
 import time
