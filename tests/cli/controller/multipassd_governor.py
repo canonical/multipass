@@ -34,6 +34,7 @@ from cli.multipass import (
     get_client_cert_path,
     get_multipass_env,
     get_multipass_path,
+    parse_multipass_versions,
     TestSessionFailure,
     TestCaseFailure
 )
@@ -382,12 +383,9 @@ class MultipassdGovernor:
 
                 # Otherwise, verify the version
                 _, stdout = await MultipassdGovernor._run_version_probe()
-                version_lines = stdout.decode().strip().splitlines()
+                cli_ver, daemon_ver = parse_multipass_versions(stdout.decode())
 
-                if len(version_lines) >= 2:
-                    cli_ver = version_lines[0].split()[-1]
-                    daemon_ver = version_lines[1].split()[-1]
-
+                if daemon_ver is not None:
                     if cli_ver == daemon_ver:
                         return True
 
@@ -403,6 +401,8 @@ class MultipassdGovernor:
                 # Try again.
                 continue
             except asyncio.CancelledError:
+                raise
+            except AssertionError:
                 raise
             except Exception as exc:
                 logging.error(exc)

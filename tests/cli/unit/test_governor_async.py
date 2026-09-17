@@ -589,7 +589,7 @@ class TestWaitForMultipassdReady:
 
     @pytest.mark.asyncio
     async def test_returns_false_when_version_output_insufficient(self, mock_env):
-        """Returns False when version output has fewer than 2 lines."""
+        """Returns False when daemon version output is absent."""
         commands = []
 
         def subprocess(*args, **kwargs):
@@ -617,3 +617,43 @@ class TestWaitForMultipassdReady:
 
         assert result is False
         assert commands == ["find", "version", "find", "version"]
+
+    @pytest.mark.asyncio
+    async def test_missing_cli_version_raises(self, mock_env):
+        """Missing CLI version output should be a hard failure."""
+
+        def subprocess(*args, **kwargs):
+            if args[1] == "version":
+                return MockSubprocess(stdout=b"multipassd  1.12.0\n")
+            return MockSubprocess()
+
+        with (
+            patch(
+                "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
+                side_effect=subprocess,
+            ),
+            pytest.raises(AssertionError, match="Could not extract Multipass version"),
+        ):
+            await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
+
+    @pytest.mark.asyncio
+    async def test_malformed_daemon_version_raises(self, mock_env):
+        """A present but malformed daemon version should be a hard failure."""
+
+        def subprocess(*args, **kwargs):
+            if args[1] == "version":
+                return MockSubprocess(
+                    stdout=b"multipass  1.12.0\nmultipassd  unknown\n"
+                )
+            return MockSubprocess()
+
+        with (
+            patch(
+                "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
+                side_effect=subprocess,
+            ),
+            pytest.raises(
+                AssertionError, match="Could not extract multipassd version"
+            ),
+        ):
+            await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
