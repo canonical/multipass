@@ -130,8 +130,8 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
 
         ON_CALL(mock_hcs, set_compute_system_callback(Eq(mock_handle), _, _))
             .WillByDefault(DoAll(SaveArg<1>(&compute_system_callback_context),
-                                SaveArg<2>(&compute_system_callback),
-                                Return(hcs_op_result_t{0, L""})));
+                                 SaveArg<2>(&compute_system_callback),
+                                 Return(hcs_op_result_t{0, L""})));
         EXPECT_CALL(mock_hcs, set_compute_system_callback(Eq(mock_handle), _, _))
             .Times(AnyNumber());
 
@@ -300,8 +300,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, construct_vm_class_exists_open)
             SetArgReferee<1>(mock_handle),
             Return(hcs_op_result_t{0, L""})));
 
-    EXPECT_CALL(mock_hcs, set_compute_system_callback(Eq(mock_handle), _, _))
-        .Times(1);
+    EXPECT_CALL(mock_hcs, set_compute_system_callback(Eq(mock_handle), _, _)).Times(1);
 
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
@@ -505,8 +504,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_on_destruction_persists_run
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
     default_open_success();
 
-    const auto saved_state_file =
-        std::filesystem::path{desc.image.image_path}.replace_extension(".SavedState.vmrs");
+    const auto saved_state_file = std::filesystem::path{desc.image.image_path}.replace_extension(
+        ".SavedState.vmrs");
     EXPECT_CALL(*mock_file_ops, exists(TypedEq<const std::filesystem::path&>(saved_state_file)))
         .WillRepeatedly(Return(true));
 
@@ -514,9 +513,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_on_destruction_persists_run
     InSequence sequence;
     EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::running));
     EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle))).Times(1);
-    EXPECT_CALL(mock_hcs,
-                save_compute_system(Eq(mock_handle),
-                                    Property(&mhv::hcs::HcsPath::get, saved_state_file)))
+    EXPECT_CALL(
+        mock_hcs,
+        save_compute_system(Eq(mock_handle), Property(&mhv::hcs::HcsPath::get, saved_state_file)))
         .Times(1);
     EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle))).Times(1);
     EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::off));
