@@ -12,16 +12,16 @@ Fill in the two values below, then assign this issue to @copilot.
 
 The Release Notes Generator agent
 (.github/agents/release-notes-generator.agent.md) will:
-  1. run ./tools/release-notes/get-commits-since-release.sh --json --tag <PREVIOUS_TAG>
+  1. run ./tools/release-notes/get-commits-since-release.sh --json --tag <PREVIOUS_TAG> --to <TARGET_TAG>
   2. rank PRs with the signal-net + anchored, batched rubric
-  3. write docs/reference/release-notes/<TARGET_VERSION>.md from
+  3. write docs/reference/release-notes/<VERSION>.md (bare version, no "v") from
      docs/reference/release-notes/RELEASE_NOTES_TEMPLATE.md and update docs/reference/release-notes/index.md
   4. open a draft PR linked back to this issue
 -->
 
-**PREVIOUS_TAG:** <!-- last released tag to diff against, e.g. v1.16.3 -->
+**PREVIOUS_TAG:** <!-- add last released tag to diff against, e.g. **PREVIOUS_TAG:v1.16.3** -->
 
-**TARGET_VERSION:** <!-- version being released, e.g. 1.17.0 -->
+**TARGET_TAG:** <!-- add tag being released, e.g. **TARGET_TAG:v1.17.0** -->
 
 ## Task
 
