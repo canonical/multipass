@@ -135,11 +135,11 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
 
 HCSVirtualMachine::~HCSVirtualMachine()
 {
-    if (current_state() != State::running)
-        return;
-
-    // Auto-suspend if running
     top_catch_all(vm_name, [this]() {
+        if (current_state() != State::running)
+            return;
+
+        // Auto-suspend if running
         suspend();
         // Persist previous VM state
         state = VirtualMachine::State::running;
