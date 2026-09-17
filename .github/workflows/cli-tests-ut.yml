@@ -17,7 +17,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          sparse-checkout: tests/cli
+          sparse-checkout: |
+            tests/cli
+            tests/cli-test-ut
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -33,9 +35,9 @@ jobs:
 
       - name: Run unit tests
         run: |
-          cd tests/cli
-          source .venv/bin/activate
-          pytest unit/ -v --tb=short --junitxml=test-results.xml
+          cd tests
+          source cli/.venv/bin/activate
+          pytest cli-test-ut/ -v --tb=short --junitxml=cli/test-results.xml
 
       - name: Report test results
         if: always()

@@ -22,7 +22,7 @@ import re
 import pytest
 
 from cli.multipass.exceptions import TestCaseFailure, TestSessionFailure
-from cli.unit.governor_helpers import MockController, run_governor
+from governor_helpers import MockController, run_governor
 
 
 @pytest.mark.asyncio
