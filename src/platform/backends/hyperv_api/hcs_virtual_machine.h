@@ -21,6 +21,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_system_handle.h>
 
+#include <multipass/signal.h>
 #include <shared/base_virtual_machine.h>
 
 #include <multipass/virtual_machine_description.h>
@@ -98,16 +99,9 @@ private:
     VirtualMachineDescription description{};
     const std::string primary_network_guid{};
     VMStatusMonitor& monitor;
+    Signal termination_signal;
 
     hcs::HcsSystemHandle hcs_system{nullptr};
-
-    enum class e_suspend_reason : std::uint8_t
-    {
-        by_request,
-        by_vm_destruction
-    };
-
-    void suspend_impl(e_suspend_reason reason = e_suspend_reason::by_request);
 
     [[nodiscard]] hcs::ComputeSystemState fetch_state_from_api() const;
     void set_state(hcs::ComputeSystemState state);

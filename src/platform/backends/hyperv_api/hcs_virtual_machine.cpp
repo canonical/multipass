@@ -135,13 +135,15 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
 
 HCSVirtualMachine::~HCSVirtualMachine()
 {
+    if (current_state() != State::running)
+        return;
+
+    // Auto-suspend if running
     top_catch_all(vm_name, [this]() {
-        if (current_state() == State::running)
-        {
-            suspend_impl(e_suspend_reason::by_vm_destruction);
-            state = VirtualMachine::State::running;
-            handle_state_update();
-        }
+        suspend();
+        // Persist previous VM state
+        state = VirtualMachine::State::running;
+        handle_state_update();
     });
 }
 
@@ -163,6 +165,7 @@ void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* co
         mpl::info(vm->get_name(), "compute_system_event_callback() > SystemExited event received");
         vm->state = State::off;
         vm->handle_state_update();
+        vm->termination_signal.signal();
     }
     break;
     case hcs::HcsEventType::Unknown:
@@ -474,6 +477,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         mpl::debug(get_name(),
                    "shutdown() -> Requested halt/poweroff, initiating forceful shutdown");
         // These are non-graceful variants. Just terminate the system immediately.
+        termination_signal.reset();
         const auto r = HCS().terminate_compute_system(hcs_system);
         mpl::debug(get_name(), "shutdown -> terminate_compute_system result: {}", r.code);
         drop_ssh_session();
@@ -485,37 +489,30 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         throw std::runtime_error("timed out waiting for VM shutdown to complete");
     };
 
-    multipass::utils::try_action_for(on_timeout, vm_shutdown_timeout, [this]() {
-        switch (current_state())
-        {
-        case VirtualMachine::State::stopped:
-        case VirtualMachine::State::off:
-            return multipass::utils::TimeoutAction::done;
-        default:
-            return multipass::utils::TimeoutAction::retry;
-        }
-    });
+    termination_signal.wait_for(vm_shutdown_timeout);
+
+    switch (auto s = current_state())
+    {
+    case VirtualMachine::State::stopped:
+    case VirtualMachine::State::off:
+        break;
+    default:
+        mpl::warn(get_name(), "shutdown -> VM is not in stopped state after termination: {}", s);
+        break;
+    }
 }
 
 void HCSVirtualMachine::suspend()
 {
     mpl::debug(get_name(), "suspend() -> Suspending, current state {}", state);
-    suspend_impl(e_suspend_reason::by_request);
-}
 
-void HCSVirtualMachine::suspend_impl(e_suspend_reason reason)
-{
     if (const auto pause_result = HCS().pause_compute_system(hcs_system))
     {
         // Pause succeeded. We can suspend to disk now
         if (const auto& r = HCS().save_compute_system(hcs_system, get_saved_state_file_path()); r)
         {
             // Save succeeded. Now, it's safe to terminate the system.
-            if (const auto& terminate_result = HCS().terminate_compute_system(hcs_system);
-                !terminate_result)
-                mpl::warn(get_name(),
-                          "VM suspended successfully but terminate failed, reason: {}",
-                          terminate_result);
+            shutdown(ShutdownPolicy::Poweroff);
         }
         else
             throw SaveComputeSystemException{"Could not save the virtual machine state for VM `{}` "
@@ -528,17 +525,7 @@ void HCSVirtualMachine::suspend_impl(e_suspend_reason reason)
         throw SaveComputeSystemException{"Could not pause VM for suspend: {}", pause_result};
     }
 
-    switch (reason)
-    {
-    case e_suspend_reason::by_request:
-        set_state(fetch_state_from_api());
-        break;
-    case e_suspend_reason::by_vm_destruction:
-        // Explicitly set state as running so VM would be started up next time
-        // that the VM class is constructed.
-        set_state(hcs::ComputeSystemState::running);
-        break;
-    }
+    set_state(fetch_state_from_api());
     handle_state_update();
 }
 
@@ -610,7 +597,7 @@ void HCSVirtualMachine::handle_state_update()
 hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api() const
 {
     hcs::ComputeSystemState compute_system_state{hcs::ComputeSystemState::unknown};
-    const auto result = HCS().get_compute_system_state(hcs_system, compute_system_state);
+    const auto r = HCS().get_compute_system_state(hcs_system, compute_system_state);
     return compute_system_state;
 }
 
