@@ -24,6 +24,8 @@ Apply the checks for each touched area:
 | `tests/` | Mocks updated alongside interface changes; error paths covered, not just happy paths |
 | `CMakeLists.txt`, `*.cmake` | Modern target-centric idioms; no repeated `find_package`; alphabetical ordering where the file already has it |
 
+**Documentation check (any diff):** If the change alters user-facing behavior — new or changed CLI commands, flags, settings, defaults, or workflows — the published docs in `docs/` (reference, how-to-guides, explanation, tutorial) must be updated in the same PR. Flag user-facing changes that ship without corresponding doc updates; do not require docs for internal refactors or test-only changes.
+
 ## 3. Core rules
 
 1. **Verify before asserting.** Never claim a defect you cannot confirm in the actual code — no asserted compile/link failures, dangling pointers, or API-contract violations without checking the callee's real implementation. If unverifiable, ask a question instead.
