@@ -1322,13 +1322,12 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
     for (auto& entry : vm_instance_specs)
     {
-        const auto& name = entry.first;
-        auto& spec = entry.second;
-
-        // Immutable copy of the persisted spec -- VMs can update the
+        // Immutable copy of the persisted spec and the name -- VMs can update the
         // spec once they're created and the code needs to know the initial
         // state for several things, like auto-resume.
-        const auto persisted_spec = spec;
+        const auto [name, spec] = entry;
+
+        auto& runtime_spec = entry.second;
 
         if (!config->vault->has_record_for(name))
         {
@@ -1401,7 +1400,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                     name,
                     static_cast<int>(spec.state),
                     static_cast<int>(e_state::stopped));
-                spec.state = e_state::stopped;
+                runtime_spec.state = e_state::stopped;
             }
         }
         else
@@ -1409,7 +1408,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         std::unique_lock lock{start_mutex};
 
-        if (persisted_spec.state == e_state::running)
+        // Was running before shutdown?
+        if (spec.state == e_state::running)
         {
             // If the VM was in running state before, we need to do some additional
             // work to ensure everything is in sync.
