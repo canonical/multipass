@@ -448,7 +448,7 @@ void HCSVirtualMachine::start()
 void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     mpl::debug(get_name(), "shutdown() -> Shutting down, current state {}", state);
-
+    termination_signal.reset();
     try
     {
         check_state_for_shutdown(shutdown_policy);
@@ -477,7 +477,6 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         mpl::debug(get_name(),
                    "shutdown() -> Requested halt/poweroff, initiating forceful shutdown");
         // These are non-graceful variants. Just terminate the system immediately.
-        termination_signal.reset();
         const auto r = HCS().terminate_compute_system(hcs_system);
         mpl::debug(get_name(), "shutdown -> terminate_compute_system result: {}", r.code);
         drop_ssh_session();
@@ -485,15 +484,12 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     }
 
     // We need to wait here.
-    auto on_timeout = [] {
+    if (!termination_signal.wait_for(vm_shutdown_timeout))
         throw std::runtime_error("timed out waiting for VM shutdown to complete");
-    };
-
-    termination_signal.wait_for(vm_shutdown_timeout);
 
     switch (auto s = current_state())
     {
-case VirtualMachine::State::stopped:
+    case VirtualMachine::State::stopped:
     case VirtualMachine::State::off:
     case VirtualMachine::State::suspended:
         break;
