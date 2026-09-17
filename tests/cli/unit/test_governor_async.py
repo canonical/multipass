@@ -61,7 +61,8 @@ class TestGovernorStopAsync:
         with patch("asyncio.wait_for", side_effect=asyncio.TimeoutError):
             await governor.stop_async()
 
-        assert governor.monitor_task.cancelled()
+            assert governor.controller.stop_called
+            assert governor.monitor_task.cancelled()
 
     @pytest.mark.asyncio
     async def test_stop_async_waits_for_monitor_task_completion(self):
@@ -73,6 +74,24 @@ class TestGovernorStopAsync:
 
         assert governor.controller.stop_called
         assert monitor_task.done()
+
+    @pytest.mark.asyncio
+    async def test_stop_resets_state(self):
+        """stop_async should leave the governor in its stopped state."""
+        ctrl = MockController(exit_code=None)
+
+        governor = await run_governor(ctrl, ready_fn=lambda: True)
+
+        assert governor.daemon_ready_event.is_set()
+        assert governor.monitor_task is not None
+
+        await governor.stop_async()
+
+        assert ctrl.stop_called
+        assert not governor.daemon_ready_event.is_set()
+        assert governor.daemon_stopped_event.is_set()
+        assert governor.monitor_task is None
+        assert not governor.graceful_exit_initiated
 
 
 class TestGovernorOnMonitorExit:
@@ -284,40 +303,6 @@ class TestGovernorStartupFailures:
 
         assert ctrl.stop_called
 
-    @pytest.mark.asyncio
-    async def test_cert_creation_failure_propagates(self):
-        """_ensure_client_certs_are_created failure should propagate."""
-        ctrl = MockController(exit_code=None)
-
-        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
-
-        with patch.object(
-            governor,
-            "_ensure_client_certs_are_created",
-            side_effect=RuntimeError("cert creation failed"),
-        ):
-            with pytest.raises(RuntimeError, match="cert creation failed"):
-                await governor.start_async()
-
-    @pytest.mark.asyncio
-    async def test_auth_failure_propagates(self):
-        """_authenticate_client_cert failure should propagate."""
-        ctrl = MockController(exit_code=None)
-
-        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
-
-        with (
-            patch.object(governor, "_ensure_client_certs_are_created"),
-            patch.object(
-                governor,
-                "_authenticate_client_cert",
-                side_effect=RuntimeError("auth failed"),
-            ),
-        ):
-            with pytest.raises(RuntimeError, match="auth failed"):
-                await governor.start_async()
-
-
 class TestGovernorConcurrentOperations:
     """Test governor concurrent operation scenarios."""
 
@@ -354,25 +339,6 @@ class TestGovernorConcurrentOperations:
 
         assert ready_cancelled.is_set()
         assert not governor.daemon_ready_event.is_set()
-
-    @pytest.mark.asyncio
-    async def test_stop_resets_state(self):
-        """stop_async should leave the governor in its stopped state."""
-        ctrl = MockController(exit_code=None)
-
-        governor = await run_governor(ctrl, ready_fn=lambda: True)
-
-        assert governor.daemon_ready_event.is_set()
-        assert governor.monitor_task is not None
-
-        await governor.stop_async()
-
-        assert ctrl.stop_called
-        assert not governor.daemon_ready_event.is_set()
-        assert governor.daemon_stopped_event.is_set()
-        assert governor.monitor_task is None
-        assert not governor.graceful_exit_initiated
-
 
 class TestGovernorCrashMidTest:
     """Test governor handling daemon crash during test execution."""

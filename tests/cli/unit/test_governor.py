@@ -17,6 +17,8 @@
 
 """Unit tests for MultipassdGovernor to verify the fix for cascading CancelledError."""
 
+import re
+
 import pytest
 
 from cli.multipass.exceptions import TestCaseFailure, TestSessionFailure
@@ -35,14 +37,13 @@ from cli.unit.governor_helpers import MockController, run_governor
 )
 async def test_startup_failures(exit_code, exception, message):
     """Test governor behavior when daemon exits during startup."""
-    with pytest.raises(exception) as exc_info:
+    with pytest.raises(exception, match=re.escape(message)):
         await run_governor(MockController(exit_code=exit_code))
-    assert message in str(exc_info.value)
 
 
 @pytest.mark.asyncio
-async def test_successful_startup():
-    """Successful daemon startup should complete without errors."""
+async def test_successful_startup_and_shutdown():
+    """Daemon startup and shutdown should complete cleanly."""
     governor = await run_governor(MockController(exit_code=None), ready_fn=lambda: True)
 
     assert governor.monitor_task is not None
@@ -52,12 +53,6 @@ async def test_successful_startup():
 
     await governor.stop_async()
 
-
-@pytest.mark.asyncio
-async def test_stop_after_successful_startup():
-    """Stopping governor after successful startup should work cleanly."""
-    governor = await run_governor(MockController(exit_code=None), ready_fn=lambda: True)
-    await governor.stop_async()
     assert governor.controller.stop_called
     assert not governor.daemon_ready_event.is_set()
     assert governor.daemon_stopped_event.is_set()
