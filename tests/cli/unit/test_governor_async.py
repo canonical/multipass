@@ -462,6 +462,7 @@ class TestGovernorConcurrentOperations:
 
         assert ctrl.stop_called
         assert not governor.daemon_ready_event.is_set()
+        assert governor.daemon_stopped_event.is_set()
         assert governor.monitor_task is None
         assert not governor.graceful_exit_initiated
 

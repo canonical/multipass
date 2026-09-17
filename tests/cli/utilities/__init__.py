@@ -18,7 +18,6 @@
 import sys
 
 from .threadutils import (
-    BooleanLatch,
     BackgroundEventLoop,
     AsyncSubprocess,
     SilentAsyncSubprocess,
