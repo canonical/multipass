@@ -18,8 +18,7 @@
 """Unit tests for MultipassdGovernor to verify the fix for cascading CancelledError."""
 
 import asyncio
-from contextlib import ExitStack
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -95,35 +94,27 @@ async def run_governor(controller, ready_fn=None, exit_fn=None):
         pass
 
     governor = MultipassdGovernor(controller, None, print_daemon_output=False)
-    with ExitStack() as stack:
-        stack.enter_context(
-            patch.object(
-                governor, "_ensure_client_certs_are_created", new_callable=AsyncMock
-            )
-        )
-        stack.enter_context(patch.object(governor, "_authenticate_client_cert"))
+    ready_side_effect = ready_fn or hang_forever
+    if not asyncio.iscoroutinefunction(ready_side_effect):
+        sync_ready = ready_side_effect
 
-        ready_side_effect = ready_fn or hang_forever
-        if not asyncio.iscoroutinefunction(ready_side_effect):
-            sync_ready = ready_side_effect
+        async def ready_side_effect(*args, **kwargs):
+            result = sync_ready(*args, **kwargs)
+            if asyncio.iscoroutine(result):
+                return await result
+            return result
 
-            async def ready_side_effect(*args, **kwargs):
-                result = sync_ready(*args, **kwargs)
-                if asyncio.iscoroutine(result):
-                    return await result
-                return result
-
-        stack.enter_context(
-            patch.object(
-                governor,
-                "wait_for_multipassd_ready",
-                side_effect=ready_side_effect,
-            )
-        )
-        stack.enter_context(
-            patch.object(governor, "on_monitor_exit", side_effect=exit_fn or noop)
-        )
-        stack.enter_context(patch("cli.controller.multipassd_governor.Session"))
+    with (
+        patch.object(governor, "_ensure_client_certs_are_created"),
+        patch.object(governor, "_authenticate_client_cert"),
+        patch.object(
+            governor,
+            "wait_for_multipassd_ready",
+            side_effect=ready_side_effect,
+        ),
+        patch.object(governor, "on_monitor_exit", side_effect=exit_fn or noop),
+        patch("cli.controller.multipassd_governor.Session"),
+    ):
         await governor.start_async()
     return governor
 

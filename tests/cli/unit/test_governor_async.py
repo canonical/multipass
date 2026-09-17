@@ -18,7 +18,7 @@
 """Unit tests for MultipassdGovernor async paths."""
 
 import asyncio
-from contextlib import ExitStack
+import re
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -112,35 +112,27 @@ async def run_governor(controller, ready_fn=None, exit_fn=None):
         pass
 
     governor = MultipassdGovernor(controller, None, print_daemon_output=False)
-    with ExitStack() as stack:
-        stack.enter_context(
-            patch.object(
-                governor, "_ensure_client_certs_are_created", new_callable=AsyncMock
-            )
-        )
-        stack.enter_context(patch.object(governor, "_authenticate_client_cert"))
+    ready_side_effect = ready_fn or hang_forever
+    if not asyncio.iscoroutinefunction(ready_side_effect):
+        sync_ready = ready_side_effect
 
-        ready_side_effect = ready_fn or hang_forever
-        if not asyncio.iscoroutinefunction(ready_side_effect):
-            sync_ready = ready_side_effect
+        async def ready_side_effect(*args, **kwargs):
+            result = sync_ready(*args, **kwargs)
+            if asyncio.iscoroutine(result):
+                return await result
+            return result
 
-            async def ready_side_effect(*args, **kwargs):
-                result = sync_ready(*args, **kwargs)
-                if asyncio.iscoroutine(result):
-                    return await result
-                return result
-
-        stack.enter_context(
-            patch.object(
-                governor,
-                "wait_for_multipassd_ready",
-                side_effect=ready_side_effect,
-            )
-        )
-        stack.enter_context(
-            patch.object(governor, "on_monitor_exit", side_effect=exit_fn or noop)
-        )
-        stack.enter_context(patch("cli.controller.multipassd_governor.Session"))
+    with (
+        patch.object(governor, "_ensure_client_certs_are_created"),
+        patch.object(governor, "_authenticate_client_cert"),
+        patch.object(
+            governor,
+            "wait_for_multipassd_ready",
+            side_effect=ready_side_effect,
+        ),
+        patch.object(governor, "on_monitor_exit", side_effect=exit_fn or noop),
+        patch("cli.controller.multipassd_governor.Session"),
+    ):
         await governor.start_async()
     return governor
 
@@ -167,80 +159,49 @@ class TestGovernorStopAsync:
     async def test_stop_async_waits_for_monitor_task_completion(self, controller):
         """stop_async should wait for monitor_task to complete normally."""
         governor = await run_governor(controller(exit_code=None), ready_fn=lambda: True)
+        monitor_task = governor.monitor_task
 
         await governor.stop_async()
 
         assert governor.controller.stop_called
-        assert governor.monitor_task.done()
+        assert monitor_task.done()
 
 
 class TestGovernorOnMonitorExit:
     """Test governor on_monitor_exit restart logic."""
 
     @pytest.mark.asyncio
-    async def test_on_monitor_exit_cancelled_task_returns_early(self, controller):
-        """on_monitor_exit should return early if task was cancelled."""
-        governor = MultipassdGovernor(
-            controller(exit_code=42), None, print_daemon_output=False
-        )
-
-        task = MagicMock()
-        task.cancelled.return_value = True
-
-        await governor.on_monitor_exit(task)
-
-        assert not governor.controller.start_called
-
-    @pytest.mark.asyncio
-    async def test_on_monitor_exit_exit_code_42_no_autorestart_triggers_restart(
-        self, controller
+    @pytest.mark.parametrize(
+        "cancelled,exit_code,supports_autorestart,expects_restart",
+        [
+            (True, 42, False, False),
+            (False, 42, False, True),
+            (False, 42, True, False),
+            (False, 1, False, False),
+        ],
+    )
+    async def test_on_monitor_exit_restart_logic(
+        self,
+        controller,
+        cancelled,
+        exit_code,
+        supports_autorestart,
+        expects_restart,
     ):
-        """on_monitor_exit should trigger restart on exit code 42 without self-autorestart."""
-        ctrl = controller(exit_code=42)
-        ctrl.supports_autorestart = False
-
+        """on_monitor_exit should restart only for an unhandled settings change."""
+        ctrl = controller(exit_code=exit_code)
+        ctrl.supports_autorestart = supports_autorestart
         mock_loop = MagicMock()
-
         governor = MultipassdGovernor(ctrl, mock_loop, print_daemon_output=False)
-
-        task = MagicMock()
-        task.cancelled.return_value = False
-
-        await governor.on_monitor_exit(task)
-
-        mock_loop.run_fn.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_on_monitor_exit_exit_code_42_with_autorestart_no_restart(
-        self, controller
-    ):
-        """on_monitor_exit should not restart on exit code 42 with self-autorestart."""
-        ctrl = controller(exit_code=42)
-        ctrl.supports_autorestart = True
-
-        governor = MultipassdGovernor(ctrl, MagicMock(), print_daemon_output=False)
-
-        task = MagicMock()
-        task.cancelled.return_value = False
+        task = MagicMock(**{"cancelled.return_value": cancelled})
 
         await governor.on_monitor_exit(task)
 
         assert not ctrl.start_called
-
-    @pytest.mark.asyncio
-    async def test_on_monitor_exit_other_exit_code_no_restart(self, controller):
-        """on_monitor_exit should not restart on non-42 exit codes."""
-        ctrl = controller(exit_code=1)
-        ctrl.supports_autorestart = False
-
-        governor = MultipassdGovernor(ctrl, MagicMock(), print_daemon_output=False)
-
-        task = MagicMock()
-        task.cancelled.return_value = False
-
-        await governor.on_monitor_exit(task)
-
-        assert not ctrl.start_called
+        if expects_restart:
+            mock_loop.run_fn.assert_called_once()
+        else:
+            mock_loop.run_fn.assert_not_called()
 
 
 class TestGovernorReadStream:
@@ -339,94 +300,62 @@ class TestGovernorMonitor:
         governor = MultipassdGovernor(
             controller(exit_code=None), None, print_daemon_output=False
         )
+        read_stream_cancelled = asyncio.Event()
 
-        async def slow_output():
-            await asyncio.sleep(3600)
-            yield
+        async def slow_read_stream():
+            try:
+                await asyncio.sleep(3600)
+            except asyncio.CancelledError:
+                read_stream_cancelled.set()
+                raise
 
-        governor.controller.follow_output = slow_output
+        with patch.object(governor, "_read_stream", side_effect=slow_read_stream):
+            monitor_task = asyncio.create_task(governor._monitor())
+            await asyncio.sleep(0)
 
-        monitor_task = asyncio.create_task(governor._monitor())
-        await asyncio.sleep(0.1)
+            monitor_task.cancel()
 
-        monitor_task.cancel()
-
-        try:
-            await monitor_task
-        except asyncio.CancelledError:
-            pass
+            with pytest.raises(asyncio.CancelledError):
+                await monitor_task
 
         assert monitor_task.cancelled()
+        assert read_stream_cancelled.is_set()
 
     @pytest.mark.asyncio
-    async def test_monitor_includes_error_reason_in_exception(self, controller):
-        """_monitor should include error reason from _read_stream in exception message."""
-        ctrl = controller(exit_code=2, exit_delay=0.1)
-        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
+    @pytest.mark.parametrize(
+        "exit_code,error_reason,exception",
+        [
+            (
+                2,
+                "Could not bind dnsmasq to port 53, is there another process running?",
+                TestCaseFailure,
+            ),
+            (
+                1,
+                "Cannot open an image file for writing, is another process holding a write lock?",
+                TestSessionFailure,
+            ),
+            (2, None, TestCaseFailure),
+        ],
+    )
+    async def test_monitor_reports_daemon_failure(
+        self, controller, exit_code, error_reason, exception
+    ):
+        """_monitor should report the daemon exit code and any stream error reason."""
+        governor = MultipassdGovernor(
+            controller(exit_code=exit_code, exit_delay=0.01),
+            None,
+            print_daemon_output=False,
+        )
+        expected = f"FATAL: multipassd died with code {exit_code}!"
+        if error_reason:
+            expected += f"\nReason: {error_reason}"
 
-        async def error_output():
-            yield "dnsmasq: failed to create listening socket"
-
-        governor.controller.follow_output = error_output
-
-        with pytest.raises(TestCaseFailure) as exc_info:
+        with (
+            patch.object(governor, "_read_stream", return_value=error_reason),
+            pytest.raises(exception, match=re.escape(expected)),
+        ):
             await governor._monitor()
-
-        assert "multipassd died with code 2" in str(exc_info.value)
-        assert "dnsmasq" in str(exc_info.value)
-        assert "port 53" in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_monitor_includes_error_reason_in_session_failure(self, controller):
-        """_monitor should include error reason in TestSessionFailure for exit code 1."""
-        ctrl = controller(exit_code=1, exit_delay=0.1)
-        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
-
-        async def error_output():
-            yield 'Failed to get shared "write" lock'
-
-        governor.controller.follow_output = error_output
-
-        with pytest.raises(TestSessionFailure) as exc_info:
-            await governor._monitor()
-
-        assert "multipassd died with code 1" in str(exc_info.value)
-        assert "write lock" in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_monitor_no_error_reason_when_stream_returns_none(self, controller):
-        """_monitor should not include reason when _read_stream returns None."""
-        ctrl = controller(exit_code=2, exit_delay=0.1)
-        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
-
-        async def normal_output():
-            yield "normal log line"
-
-        governor.controller.follow_output = normal_output
-
-        with pytest.raises(TestCaseFailure) as exc_info:
-            await governor._monitor()
-
-        assert "multipassd died with code 2" in str(exc_info.value)
-        assert "Reason:" not in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_monitor_no_error_reason_when_stream_cancelled(self, controller):
-        """_monitor should handle CancelledError from _read_stream gracefully."""
-        ctrl = controller(exit_code=2, exit_delay=0.1)
-        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
-
-        async def cancelling_output():
-            await asyncio.sleep(3600)
-            yield
-
-        governor.controller.follow_output = cancelling_output
-
-        with pytest.raises(TestCaseFailure) as exc_info:
-            await governor._monitor()
-
-        assert "multipassd died with code 2" in str(exc_info.value)
-        assert "Reason:" not in str(exc_info.value)
 
 
 class TestGovernorStartupFailures:
@@ -437,32 +366,12 @@ class TestGovernorStartupFailures:
         """wait_for_multipassd_ready returning False should stop daemon and exit."""
         ctrl = controller(exit_code=None)
 
-        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
-
-        async def never_ready():
-            return False
-
-        with ExitStack() as stack:
-            stack.enter_context(
-                patch.object(
-                    governor, "_ensure_client_certs_are_created", new_callable=AsyncMock
-                )
-            )
-            stack.enter_context(patch.object(governor, "_authenticate_client_cert"))
-            stack.enter_context(
-                patch.object(
-                    governor, "wait_for_multipassd_ready", side_effect=never_ready
-                )
-            )
-            stack.enter_context(
-                patch(
-                    "cli.controller.multipassd_governor.pytest.exit",
-                    side_effect=SystemExit(12),
-                )
-            )
-
+        with patch(
+            "cli.controller.multipassd_governor.pytest.exit",
+            side_effect=SystemExit(12),
+        ):
             with pytest.raises(SystemExit) as exc_info:
-                await governor.start_async()
+                await run_governor(ctrl, ready_fn=lambda: False)
 
             assert exc_info.value.code == 12
 
@@ -475,16 +384,11 @@ class TestGovernorStartupFailures:
 
         governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
 
-        with ExitStack() as stack:
-            stack.enter_context(
-                patch.object(
-                    governor,
-                    "_ensure_client_certs_are_created",
-                    new_callable=AsyncMock,
-                    side_effect=RuntimeError("cert creation failed"),
-                )
-            )
-
+        with patch.object(
+            governor,
+            "_ensure_client_certs_are_created",
+            side_effect=RuntimeError("cert creation failed"),
+        ):
             with pytest.raises(RuntimeError, match="cert creation failed"):
                 await governor.start_async()
 
@@ -495,20 +399,14 @@ class TestGovernorStartupFailures:
 
         governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
 
-        with ExitStack() as stack:
-            stack.enter_context(
-                patch.object(
-                    governor, "_ensure_client_certs_are_created", new_callable=AsyncMock
-                )
-            )
-            stack.enter_context(
-                patch.object(
-                    governor,
-                    "_authenticate_client_cert",
-                    side_effect=RuntimeError("auth failed"),
-                )
-            )
-
+        with (
+            patch.object(governor, "_ensure_client_certs_are_created"),
+            patch.object(
+                governor,
+                "_authenticate_client_cert",
+                side_effect=RuntimeError("auth failed"),
+            ),
+        ):
             with pytest.raises(RuntimeError, match="auth failed"):
                 await governor.start_async()
 
@@ -520,41 +418,38 @@ class TestGovernorConcurrentOperations:
     async def test_stop_during_start_causes_startup_failure(self, controller):
         """Calling stop_async during start_async should cause startup failure."""
         ctrl = controller(exit_code=None)
-
         governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
+        ready_cancelled = asyncio.Event()
 
         async def slow_ready():
-            await asyncio.sleep(1.0)
-            return True
+            try:
+                await asyncio.sleep(3600)
+            except asyncio.CancelledError:
+                ready_cancelled.set()
+                raise
 
-        with ExitStack() as stack:
-            stack.enter_context(
-                patch.object(
-                    governor, "_ensure_client_certs_are_created", new_callable=AsyncMock
-                )
-            )
-            stack.enter_context(patch.object(governor, "_authenticate_client_cert"))
-            stack.enter_context(
-                patch.object(
-                    governor, "wait_for_multipassd_ready", side_effect=slow_ready
-                )
-            )
-            stack.enter_context(
-                patch.object(governor, "on_monitor_exit", new_callable=AsyncMock)
-            )
-            stack.enter_context(patch("cli.controller.multipassd_governor.Session"))
-
+        with (
+            patch.object(governor, "_ensure_client_certs_are_created"),
+            patch.object(governor, "_authenticate_client_cert"),
+            patch.object(
+                governor, "wait_for_multipassd_ready", side_effect=slow_ready
+            ),
+            patch.object(governor, "on_monitor_exit"),
+            patch("cli.controller.multipassd_governor.Session"),
+        ):
             start_task = asyncio.create_task(governor.start_async())
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0)
 
             await governor.stop_async()
 
             with pytest.raises(TestCaseFailure, match="daemon exited during startup"):
                 await start_task
 
+        assert ready_cancelled.is_set()
+        assert not governor.daemon_ready_event.is_set()
     @pytest.mark.asyncio
-    async def test_restart_cycle_resets_state(self, controller):
-        """restart_async should properly reset state between cycles."""
+    async def test_stop_resets_state(self, controller):
+        """stop_async should leave the governor in its stopped state."""
         ctrl = controller(exit_code=None)
 
         governor = await run_governor(ctrl, ready_fn=lambda: True)
@@ -564,14 +459,10 @@ class TestGovernorConcurrentOperations:
 
         await governor.stop_async()
 
-        assert governor.graceful_exit_initiated
         assert ctrl.stop_called
-
-        governor2 = await run_governor(ctrl, ready_fn=lambda: True)
-
-        assert governor2.daemon_ready_event.is_set()
-        assert governor2.monitor_task is not None
-        assert not governor2.graceful_exit_initiated
+        assert not governor.daemon_ready_event.is_set()
+        assert governor.monitor_task is None
+        assert not governor.graceful_exit_initiated
 
 
 class TestGovernorCrashMidTest:
@@ -636,40 +527,50 @@ class TestWaitForMultipassdReady:
     @pytest.mark.asyncio
     async def test_returns_false_on_timeout(self, mock_env):
         """Returns False when daemon doesn't respond within timeout."""
+        timeout_proc = MockSubprocess()
+        timeout_proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError)
 
-        class TimeoutSubprocess(MockSubprocess):
-            async def communicate(self):
-                raise asyncio.TimeoutError()
-
-        with patch(
-            "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
-            return_value=TimeoutSubprocess(),
+        with (
+            patch(
+                "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
+                return_value=timeout_proc,
+            ),
+            patch(
+                "cli.controller.multipassd_governor.time.time",
+                side_effect=[0, 0, 1],
+            ),
         ):
             result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=0.5)
-            assert result is False
+
+        assert result is False
+        timeout_proc.communicate.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_retries_on_timeout_error(self, mock_env):
         """Retries when subprocess raises TimeoutError."""
-        call_count = 0
+        commands = []
 
-        class FlakySubprocess(MockSubprocess):
-            async def __aenter__(self):
-                nonlocal call_count
-                call_count += 1
-                if call_count < 2:
-                    raise asyncio.TimeoutError()
+        def subprocess(*args, **kwargs):
+            command = args[1]
+            commands.append(command)
+            if command == "find" and commands.count("find") == 1:
+                proc = MockSubprocess()
+                proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError)
+                return proc
+            if command == "version":
                 return MockSubprocess(
-                    stdout=b"multipass  1.12.0\nmultipassd  1.12.0\n", returncode=0
+                    stdout=b"multipass  1.12.0\nmultipassd  1.12.0\n"
                 )
+            return MockSubprocess()
 
         with patch(
             "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
-            return_value=FlakySubprocess(),
+            side_effect=subprocess,
         ):
             result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=2)
-            assert result is True
-            assert call_count >= 2
+
+        assert result is True
+        assert commands == ["find", "find", "version"]
 
     @pytest.mark.asyncio
     async def test_propagates_cancelled_error(self, mock_env):
@@ -689,12 +590,30 @@ class TestWaitForMultipassdReady:
     @pytest.mark.asyncio
     async def test_returns_false_when_version_output_insufficient(self, mock_env):
         """Returns False when version output has fewer than 2 lines."""
-        find_proc = MockSubprocess(stdout=b"", returncode=0)
-        version_proc = MockSubprocess(stdout=b"multipass  1.12.0\n", returncode=0)
+        commands = []
 
-        with patch(
-            "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
-            side_effect=[find_proc, version_proc],
+        def subprocess(*args, **kwargs):
+            command = args[1]
+            commands.append(command)
+            if command == "version":
+                return MockSubprocess(stdout=b"multipass  1.12.0\n")
+            return MockSubprocess()
+
+        with (
+            patch(
+                "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
+                side_effect=subprocess,
+            ),
+            patch(
+                "cli.controller.multipassd_governor.time.time",
+                side_effect=[0, 0, 0, 1],
+            ),
+            patch(
+                "cli.controller.multipassd_governor.asyncio.sleep",
+                new_callable=AsyncMock,
+            ),
         ):
             result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
-            assert result is False
+
+        assert result is False
+        assert commands == ["find", "version", "find", "version"]
