@@ -138,19 +138,17 @@ class AsyncSubprocess:
         return {}
 
     async def __aenter__(self):
-        # Shield the spawn so it completes even if we get cancelled mid-await.
-        fut = asyncio.shield(asyncio.create_subprocess_exec(*self.args, **self.kwargs))
+        # Keep the inner task so cancellation of the shield cannot lose the handle.
+        spawn_task = asyncio.create_task(
+            asyncio.create_subprocess_exec(*self.args, **self.kwargs)
+        )
         try:
-            self.proc = await fut
+            self.proc = await asyncio.shield(spawn_task)
             return self.proc
         except asyncio.CancelledError:
             # If cancellation hit mid-spawn, the process may already exist.
             # Finish the spawn to obtain the handle, clean it up, then re-raise.
-            try:
-                self.proc = await fut
-            except Exception:
-                # Spawn actually failed; nothing to clean.
-                raise
+            self.proc = await spawn_task
             # Drain & close deterministically
             if self.proc.returncode is None:
                 with suppress(ProcessLookupError):

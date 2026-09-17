@@ -37,7 +37,7 @@ jobs:
         run: |
           cd tests
           source cli/.venv/bin/activate
-          pytest cli-test-ut/ -v --tb=short --junitxml=cli/test-results.xml
+          python -m pytest cli-test-ut/ -v --tb=short --junitxml=cli/test-results.xml
 
       - name: Report test results
         if: always()
