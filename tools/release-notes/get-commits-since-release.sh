@@ -213,7 +213,6 @@ GROUP_BY_AUTHOR=false
 NEW_AUTHORS_ONLY=false
 MERGE_ONLY=false
 JSON_OUTPUT=false
-ENRICH=false
 CUSTOM_TAG=""
 HELP=false
 
@@ -244,10 +243,6 @@ while [[ $# -gt 0 ]]; do
       JSON_OUTPUT=true
       shift
       ;;
-    --enrich)
-      ENRICH=true
-      shift
-      ;;
     --tag)
       CUSTOM_TAG="$2"
       shift 2
@@ -275,7 +270,6 @@ if [[ $HELP == true ]]; then
   echo "  --new-authors         Show only new authors (first-time contributors)"
   echo "  -m, --merge           Show only merge commits from PRs"
   echo "  --json                Output as JSON with metadata and categorization"
-  echo "  --enrich              With --json, fetch PR title/body/labels/diffstat via gh"
   echo "  --tag TAG             Use specific release tag (default: auto-detect latest)"
   echo "  -h, --help            Show this help message"
   echo ""
@@ -388,9 +382,8 @@ elif [[ $JSON_OUTPUT == true ]]; then
   [[ -z $TAG_DATE ]] && TAG_DATE=$(git log -1 --format=%cI "$LATEST_TAG")
 
   # Enrichment requires the GitHub CLI
-  if [[ $ENRICH == true ]] && ! command -v gh > /dev/null 2>&1; then
-    echo -e "${YELLOW}Warning: --enrich requested but 'gh' not found; continuing without PR metadata${NC}" >&2
-    ENRICH=false
+  if ! command -v gh > /dev/null 2>&1; then
+    echo -e "${YELLOW}Warning: 'gh' was not found; continuing without PR metadata${NC}" >&2
   fi
 
   # Per-PR cache so re-runs don't re-hit the GitHub API
@@ -431,7 +424,7 @@ elif [[ $JSON_OUTPUT == true ]]; then
       # Cheap local check says "new"; verify against GitHub history before
       # believing it (squash-merge/cherry-pick artifacts make local author
       # names unreliable). Only hits the network for candidate-new authors.
-      if [[ $ENRICH == true ]] && command -v gh > /dev/null 2>&1; then
+      if command -v gh > /dev/null 2>&1; then
         author_login=$(resolve_github_login "$author" "$author_email")
         is_new_author=$(is_genuinely_new_author "$author" "$author_email" "$TAG_DATE")
       else
@@ -444,10 +437,10 @@ elif [[ $JSON_OUTPUT == true ]]; then
     skip=false
     [[ -n $skip_reason ]] && skip=true
 
-    # Fetch PR metadata (title, body, labels, diffstat, files) when enriching.
-    # Skipped commits are never enriched: no gh call, no body in context.
+    # Fetch PR metadata (title, body, labels, diffstat, files). Skipped commits
+    # are never enriched: no gh call, no body in context.
     enrich="{}"
-    if [[ $ENRICH == true && $skip == false && -n $pr_number ]]; then
+    if [[ $skip == false && -n $pr_number ]]; then
       cache_file="$PR_CACHE_DIR/${PR_REPO//\//_}-${pr_number}.json"
       if [[ ! -s $cache_file ]]; then
         gh pr view "$pr_number" --repo "$PR_REPO" \
@@ -512,7 +505,7 @@ elif [[ $JSON_OUTPUT == true ]]; then
   done < <(git log "$LATEST_TAG..HEAD" --format="%h|%aN|%aE|%s")
 
   # Surface enrichment problems on stderr (stdout stays valid JSON).
-  if [[ $ENRICH == true && $ENRICH_ATTEMPTED -gt 0 ]]; then
+  if [[ $ENRICH_ATTEMPTED -gt 0 ]]; then
     if [[ $ENRICH_FAILED -eq $ENRICH_ATTEMPTED ]]; then
       echo -e "${RED}Error: enrichment failed for all ${ENRICH_ATTEMPTED} PRs. Check 'gh auth status' and that PR_REPO='${PR_REPO}' is correct.${NC}" >&2
     elif [[ $ENRICH_FAILED -gt 0 ]]; then
