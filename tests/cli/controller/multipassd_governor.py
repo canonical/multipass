@@ -234,7 +234,8 @@ class MultipassdGovernor:
         if not await ready_task:
             logging.warning(
                 "⚠️ multipassd not ready, attempting graceful shutdown...")
-            await self.controller.stop()
+            self.monitor_task = monitor_task
+            await self.stop_async()
             pytest.exit(
                 "Tests cannot proceed, multipassd not responding in time.",
                 returncode=12,

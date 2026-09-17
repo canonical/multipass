@@ -165,15 +165,26 @@ class TestAsyncSubprocess:
     @pytest.mark.asyncio
     async def test_process_killed_after_terminate_timeout(self, monkeypatch):
         """Process should be killed if terminate times out."""
-        async with AsyncSubprocess(
-            sys.executable, "-c", "import time; time.sleep(3600)"
-        ) as proc:
-            # Ignore termination on every platform, without a child signal-handler race.
-            monkeypatch.setattr(proc, "terminate", Mock())
-            monkeypatch.setattr(proc, "kill", Mock(wraps=proc.kill))
-            start = time.monotonic()
+        wait_for = asyncio.wait_for
 
-        assert 5 <= time.monotonic() - start < 10
+        async def expire_immediately(awaitable, timeout):
+            assert timeout == 5
+            return await wait_for(awaitable, timeout=0)
+
+        with patch(
+            "cli.utilities.threadutils.asyncio.wait_for",
+            side_effect=expire_immediately,
+        ) as timeout:
+            async with AsyncSubprocess(
+                sys.executable, "-c", "import time; time.sleep(3600)"
+            ) as proc:
+                # Ignore termination without a platform-specific signal handler.
+                monkeypatch.setattr(proc, "terminate", Mock())
+                monkeypatch.setattr(proc, "kill", Mock(wraps=proc.kill))
+                start = time.monotonic()
+
+        assert time.monotonic() - start < 5
+        timeout.assert_awaited_once()
         proc.terminate.assert_called_once_with()
         proc.kill.assert_called_once_with()
         assert proc.returncode is not None and proc.returncode != 0
