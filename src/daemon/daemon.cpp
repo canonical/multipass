@@ -682,9 +682,8 @@ const std::string& get_instance_name(InstanceElem instance_element)
 }
 
 template <typename... Ts>
-auto add_fmt_to(fmt::memory_buffer& buffer,
-                fmt::format_string<Ts...> fmt,
-                Ts&&... fmt_params) -> std::back_insert_iterator<fmt::memory_buffer>
+auto add_fmt_to(fmt::memory_buffer& buffer, fmt::format_string<Ts...> fmt, Ts&&... fmt_params)
+    -> std::back_insert_iterator<fmt::memory_buffer>
 {
     if (buffer.size())
         buffer.push_back('\n');
@@ -1426,7 +1425,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                 mpl::info(category, "{} needs syncing. Syncing now...", name);
                 // We don't need to start the instance, but we need to ensure that
                 // the daemon side resources for the VM are initialized.
-                multipass::top_catch_all(name, [this, &name, &lock] {
+                multipass::top_catch_all(name, [this, name, &lock] {
                     lock.unlock();
                     on_restart(name);
                 });
@@ -1436,7 +1435,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             {
                 mpl::info(category, "{} needs starting. Starting now...", name);
 
-                multipass::top_catch_all(name, [this, &name, &lock]() {
+                multipass::top_catch_all(name, [this, name, &lock]() {
                     operative_instances[name]->start();
                     lock.unlock();
                     on_restart(name);
@@ -2994,7 +2993,7 @@ void mp::Daemon::on_suspend()
 void mp::Daemon::on_restart(const std::string& name)
 {
     stop_mounts(name);
-    auto future_watcher = create_future_watcher([this, &name]() {
+    auto future_watcher = create_future_watcher([this, name]() {
         try
         {
             auto virtual_machine = operative_instances.at(name);
@@ -3196,7 +3195,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                          }
                          catch (const std::exception& e)
                          {
-                             mp::top_catch_all(category, [this, &name]() {
+                             mp::top_catch_all(category, [this, name]() {
                                  preparing_instances.erase(name);
                                  release_resources(name);
                                  operative_instances.erase(name);
