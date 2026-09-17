@@ -493,8 +493,9 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
     switch (auto s = current_state())
     {
-    case VirtualMachine::State::stopped:
+case VirtualMachine::State::stopped:
     case VirtualMachine::State::off:
+    case VirtualMachine::State::suspended:
         break;
     default:
         mpl::warn(get_name(), "shutdown -> VM is not in stopped state after termination: {}", s);
