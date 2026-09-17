@@ -34,13 +34,14 @@ class TestBackgroundEventLoop:
             assert loop.loop is not None
             assert loop.thread.is_alive()
 
+        assert loop.loop is None
         assert not loop.thread.is_alive()
 
     def test_run_returns_future_with_result(self):
         """run() should return a Future that resolves the coroutine result."""
 
         async def compute():
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0)
             return 42
 
         with BackgroundEventLoop() as loop:
@@ -52,17 +53,12 @@ class TestBackgroundEventLoop:
     def test_run_fn_schedules_callable(self):
         """run_fn() should schedule a callable on the loop thread."""
         results = []
-        import threading
-
-        called = threading.Event()
 
         def callback():
             results.append("called")
-            called.set()
 
         with BackgroundEventLoop() as loop:
             loop.run_fn(callback)
-            assert called.wait(timeout=1.0)
 
         assert results == ["called"]
 
