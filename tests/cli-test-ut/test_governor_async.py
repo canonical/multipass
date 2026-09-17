@@ -25,7 +25,7 @@ import pytest
 
 from cli.controller.multipassd_governor import MultipassdGovernor
 from cli.multipass.exceptions import TestCaseFailure, TestSessionFailure
-from cli.unit.governor_helpers import MockController, run_governor
+from governor_helpers import MockController, run_governor
 
 
 class MockSubprocess:
