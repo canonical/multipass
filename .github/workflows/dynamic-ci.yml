@@ -68,6 +68,8 @@ jobs:
               - "vcpkg.json"
             cli-tests:
               - 'tests/cli/**'
+              - 'tests/cli-test-ut/**'
+              - '.github/workflows/cli-tests-ut.yml'
             hooks:
               - "git-hooks/**"
 
