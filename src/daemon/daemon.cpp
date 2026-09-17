@@ -1323,11 +1323,9 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     for (auto& entry : vm_instance_specs)
     {
         // Immutable copy of the persisted spec and the name -- VMs can update the
-        // spec once they're created and the code needs to know the initial
+        // spec once they're created through persist calls and the code needs to know the initial
         // state for several things, like auto-resume.
         const auto [name, spec] = entry;
-
-        auto& runtime_spec = entry.second;
 
         if (!config->vault->has_record_for(name))
         {
@@ -1400,7 +1398,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                     name,
                     static_cast<int>(spec.state),
                     static_cast<int>(e_state::stopped));
-                runtime_spec.state = e_state::stopped;
+                auto& mutable_spec = entry.second;
+                mutable_spec.state = e_state::stopped;
             }
             continue;
         }
@@ -3252,7 +3251,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 return server->Write(create_reply);
             };
 
-            auto prepare_action = [this, server, &name](const VMImage& source_image) -> VMImage {
+            auto prepare_action = [this, server, name](const VMImage& source_image) -> VMImage {
                 CreateReply reply;
                 reply.set_create_message("Preparing image for " + name);
                 server->Write(reply);
