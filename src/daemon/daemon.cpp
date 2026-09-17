@@ -682,8 +682,9 @@ const std::string& get_instance_name(InstanceElem instance_element)
 }
 
 template <typename... Ts>
-auto add_fmt_to(fmt::memory_buffer& buffer, fmt::format_string<Ts...> fmt, Ts&&... fmt_params)
-    -> std::back_insert_iterator<fmt::memory_buffer>
+auto add_fmt_to(fmt::memory_buffer& buffer,
+                fmt::format_string<Ts...> fmt,
+                Ts&&... fmt_params) -> std::back_insert_iterator<fmt::memory_buffer>
 {
     if (buffer.size())
         buffer.push_back('\n');
@@ -1378,9 +1379,9 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {},
                                               {}};
 
-        auto& instance_record = spec.deleted ? deleted_instances : operative_instances;
+        auto& instance_records_table = spec.deleted ? deleted_instances : operative_instances;
 
-        auto instance = instance_record[name] = config->factory->create_virtual_machine(
+        auto instance = instance_records_table[name] = config->factory->create_virtual_machine(
             vm_desc,
             *config->ssh_key_provider,
             *this);
