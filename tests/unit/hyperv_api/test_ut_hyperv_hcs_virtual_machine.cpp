@@ -267,6 +267,17 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
             .WillOnce(Return(hcs_op_result_t{E_FAIL, L"Endpoint query failed"}));
     }
 
+    void expect_failed_recreation()
+    {
+        EXPECT_CALL(mock_hcs, open_compute_system(dummy_vm_name, _))
+            .WillRepeatedly(Return(hcs_op_result_t{HCS_E_SYSTEM_NOT_FOUND, L""}));
+        EXPECT_CALL(mock_hcn, delete_endpoint(EndsWith("aabbccddeeff")))
+            .WillOnce(Return(hcs_op_result_t{0, L""}));
+        EXPECT_CALL(mock_hcn, create_endpoint(_))
+            .WillOnce(Return(hcs_op_result_t{E_FAIL, L"Endpoint creation failed"}));
+        EXPECT_CALL(mock_hcs, create_compute_system(_, _)).Times(0);
+    }
+
     void expect_permanent_neighbor(bool present)
     {
         auto* raw_table = new MIB_IPNET_TABLE2{};
@@ -455,6 +466,47 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, saved_vm_start_keeps_permanent_neighbo
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(0);
 
     EXPECT_NO_THROW(uut->start());
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, failed_saved_vm_recreation_remains_suspended)
+{
+    default_open_success();
+    const auto saved_state_path = std::filesystem::path{desc.image.image_path}.replace_extension(
+        ".SavedState.vmrs");
+    std::ofstream{saved_state_path} << "stub";
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+        .WillRepeatedly(
+            DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
+    auto uut = construct_vm();
+    ASSERT_EQ(uut->current_state(), mp::VirtualMachine::State::suspended);
+
+    expect_failed_recreation();
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(0);
+
+    EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
+    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::suspended);
+    EXPECT_TRUE(std::filesystem::exists(saved_state_path));
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, failed_cold_vm_recreation_reports_off)
+{
+    default_open_success();
+    auto uut = construct_vm();
+    expect_failed_recreation();
+
+    EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
+    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::off);
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, missing_compute_system_preserves_unavailable_state)
+{
+    default_open_success();
+    auto uut = construct_vm();
+    expect_failed_recreation();
+    EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
+    uut->state = mp::VirtualMachine::State::unavailable;
+
+    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::unavailable);
 }
 
 // ---------------------------------------------------------

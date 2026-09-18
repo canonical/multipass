@@ -566,7 +566,7 @@ HCSVirtualMachine::State HCSVirtualMachine::current_state()
     if (!hcs_system && !maybe_open_compute_system())
     {
         if (state != State::unavailable)
-            state = State::off;
+            state = has_saved_state_file() ? State::suspended : State::off;
 
         return state;
     }
