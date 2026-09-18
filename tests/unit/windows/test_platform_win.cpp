@@ -39,12 +39,15 @@
 
 #include <json/json.h>
 
+#include <fmt/format.h>
 #include <scope_guard.hpp>
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <initializer_list>
 #include <memory>
 #include <sstream>
 #include <utility>
@@ -56,6 +59,9 @@ using namespace testing;
 
 namespace
 {
+
+mp::hyperv::IpNetTable make_neighbor_table(
+    std::initializer_list<std::array<unsigned char, 4>> addresses);
 
 auto expect_only_log(multipass::logging::Level lvl, const std::string& substr)
 {
@@ -192,6 +198,28 @@ TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenGetIpNetTableFails)
             Return(ByMove(mp::hyperv::IpNetTableResult{ERROR_ACCESS_DENIED, std::move(table)})));
 
     EXPECT_FALSE(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff"));
+}
+
+TEST_F(PermanentIpv4Neighbor, removesAllEntriesForMac)
+{
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(Return(ByMove(mp::hyperv::IpNetTableResult{
+            NO_ERROR,
+            make_neighbor_table(
+                {{172, 19, 154, 10}, {10, 97, 0, 75}, {10, 97, 1, 11}})})));
+    std::vector<std::string> removed_addresses;
+    EXPECT_CALL(mock_net_io_api, DeleteIpNetEntry2(_))
+        .Times(3)
+        .WillRepeatedly([&removed_addresses](const MIB_IPNET_ROW2* row) {
+            const auto& address = row->Address.Ipv4.sin_addr.S_un.S_un_b;
+            removed_addresses.push_back(
+                fmt::format("{}.{}.{}.{}", address.s_b1, address.s_b2, address.s_b3, address.s_b4));
+            return NO_ERROR;
+        });
+
+    EXPECT_TRUE(mp::remove_permanent_ipv4_neighbors("aa:bb:cc:dd:ee:ff"));
+    EXPECT_THAT(removed_addresses,
+                ElementsAre("172.19.154.10", "10.97.0.75", "10.97.1.11"));
 }
 
 TEST(PlatformWin, testDefaultDriver)
@@ -771,6 +799,34 @@ TEST(PlatformWin, test_qstr_path_conversion)
     // Spaces and special filesystem characters
     QString special = QStringLiteral("/path with spaces/file (1).txt");
     EXPECT_EQ(MP_PLATFORM.path_to_qstr(MP_PLATFORM.qstr_to_path(special)), special);
+}
+
+mp::hyperv::IpNetTable make_neighbor_table(
+    std::initializer_list<std::array<unsigned char, 4>> addresses)
+{
+    const auto size = sizeof(MIB_IPNET_TABLE2) +
+                      (addresses.size() - 1) * sizeof(MIB_IPNET_ROW2);
+    auto* storage = new std::byte[size]{};
+    auto* table = reinterpret_cast<MIB_IPNET_TABLE2*>(storage);
+    table->NumEntries = static_cast<ULONG>(addresses.size());
+
+    std::size_t index = 0;
+    for (const auto& address : addresses)
+    {
+        auto& row = table->Table[index++];
+        row.Address.Ipv4.sin_family = AF_INET;
+        row.Address.Ipv4.sin_addr.S_un.S_un_b = {
+            address[0], address[1], address[2], address[3]};
+        row.State = NlnsPermanent;
+        row.PhysicalAddressLength = 6;
+        const std::array<unsigned char, 6> physical_address{
+            0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+        std::ranges::copy(physical_address, row.PhysicalAddress);
+    }
+
+    return {table, [](MIB_IPNET_TABLE2* table) {
+                delete[] reinterpret_cast<std::byte*>(table);
+            }};
 }
 
 } // namespace
