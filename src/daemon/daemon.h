@@ -79,9 +79,9 @@ public slots:
                        grpc::ServerReaderWriterInterface<PurgeReply, PurgeRequest>* server,
                        DaemonRpcContext* context);
 
-    virtual void find(const FindRequest* request,
-                      grpc::ServerReaderWriterInterface<FindReply, FindRequest>* server,
-                      DaemonRpcContext* context);
+    virtual void images(const ImagesRequest* request,
+                        grpc::ServerReaderWriterInterface<ImagesReply, ImagesRequest>* server,
+                        DaemonRpcContext* context);
 
     virtual void info(const InfoRequest* request,
                       grpc::ServerReaderWriterInterface<InfoReply, InfoRequest>* server,

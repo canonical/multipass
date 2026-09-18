@@ -14,7 +14,7 @@ You can then shell into an instance by its name:
 multipass shell relishing-lionfish
 ```
 
-The only, optional, positional argument is the image to launch an instance from. See [`find`](/reference/command-line-interface/find) for how to find information on the available images.
+The only, optional, positional argument is the image to launch an instance from. See [`images`](/reference/command-line-interface/images) for how to find information on the available images.
 
 It's also possible to provide a full URL to the image (use `file://` for an image available on the host running `multipassd`).
 

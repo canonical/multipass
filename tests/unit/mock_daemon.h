@@ -51,9 +51,9 @@ struct MockDaemon : public Daemon
                  DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
-                find,
-                (const FindRequest* request,
-                 (grpc::ServerReaderWriterInterface<FindReply, FindRequest>*),
+                images,
+                (const ImagesRequest* request,
+                 (grpc::ServerReaderWriterInterface<ImagesReply, ImagesRequest>*),
                  DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,

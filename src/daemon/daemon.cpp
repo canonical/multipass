@@ -510,7 +510,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_create, &daemon, &mp::Daemon::create);
     QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch);
     QObject::connect(&rpc, &mp::DaemonRpc::on_purge, &daemon, &mp::Daemon::purge);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_images, &daemon, &mp::Daemon::images);
     QObject::connect(&rpc, &mp::DaemonRpc::on_info, &daemon, &mp::Daemon::info);
     QObject::connect(&rpc, &mp::DaemonRpc::on_list, &daemon, &mp::Daemon::list);
     QObject::connect(&rpc, &mp::DaemonRpc::on_clone, &daemon, &mp::Daemon::clone);
@@ -1117,7 +1117,7 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
     return any_snapshot;
 }
 
-void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container,
+void add_aliases(google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>* container,
                  const std::string& remote_name,
                  const mp::VMImageInfo& info)
 {
@@ -1595,12 +1595,12 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::find(const FindRequest* request,
-                      grpc::ServerReaderWriterInterface<FindReply, FindRequest>* server,
-                      DaemonRpcContext* context)
+void mp::Daemon::images(const ImagesRequest* request,
+                        grpc::ServerReaderWriterInterface<ImagesReply, ImagesRequest>* server,
+                        DaemonRpcContext* context)
 try
 {
-    FindReply response;
+    ImagesReply response;
 
     if (!request->search_string().empty())
     {

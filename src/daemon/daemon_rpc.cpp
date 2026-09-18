@@ -204,10 +204,10 @@ grpc::Status mp::DaemonRpc::purge(grpc::ServerContext* context,
                                                 server);
 }
 
-grpc::Status mp::DaemonRpc::find(grpc::ServerContext* context,
-                                 grpc::ServerReaderWriter<FindReply, FindRequest>* server)
+grpc::Status mp::DaemonRpc::images(grpc::ServerContext* context,
+                                   grpc::ServerReaderWriter<ImagesReply, ImagesRequest>* server)
 {
-    return verify_client_and_dispatch_operation(std::bind(&DaemonRpc::on_find,
+    return verify_client_and_dispatch_operation(std::bind(&DaemonRpc::on_images,
                                                           this,
                                                           std::placeholders::_1,
                                                           std::placeholders::_2,

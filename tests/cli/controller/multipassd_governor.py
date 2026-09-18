@@ -306,7 +306,7 @@ class MultipassdGovernor:
                 find_exitcode = 0
                 async with StdoutAsyncSubprocess(
                     get_multipass_path(),
-                    "find",
+                    "images",
                     "noble",
                     env=get_multipass_env(),
                 ) as find_proc:
