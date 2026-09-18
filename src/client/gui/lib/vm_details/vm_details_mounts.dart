@@ -1,5 +1,5 @@
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../confirmation_dialog.dart';
@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../notifications/notifications_provider.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
+import '../tooltip.dart';
 import 'mount_points.dart';
 import 'vm_details.dart';
 
@@ -34,10 +35,25 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
         return info.mountInfo.mountPaths.build();
       }),
     );
+    final unavailable = ref.watch(
+      vmInfoProvider(widget.name).select((info) {
+        return info.instanceStatus.status == Status.UNAVAILABLE;
+      }),
+    );
+
+    final effectivePhase = unavailable ? MountDetailsPhase.idle : phase;
+
+    if (unavailable && phase != MountDetailsPhase.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => phase = MountDetailsPhase.idle);
+        ref.read(activeEditPageProvider(widget.name).notifier).set(null);
+      });
+    }
 
     final mountPointsView = MountPointsView(
       mounts: mounts,
-      allowDelete: phase != MountDetailsPhase.idle,
+      allowDelete: effectivePhase != MountDetailsPhase.idle,
       onDelete: doUnmount,
     );
 
@@ -57,14 +73,20 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       child: Text(l10n.commonSave),
     );
 
-    final configureButton = OutlinedButton(
-      onPressed: () {
-        setState(() => phase = MountDetailsPhase.configure);
-        ref
-            .read(activeEditPageProvider(widget.name).notifier)
-            .set(ActiveEditPage.mounts);
-      },
-      child: Text(l10n.commonConfigure),
+    final configureButton = Tooltip(
+      visible: unavailable,
+      message: l10n.vmDetailsUnavailableToMount,
+      child: OutlinedButton(
+        onPressed: unavailable
+            ? null
+            : () {
+                setState(() => phase = MountDetailsPhase.configure);
+                ref
+                    .read(activeEditPageProvider(widget.name).notifier)
+                    .set(ActiveEditPage.mounts);
+              },
+        child: Text(l10n.commonConfigure),
+      ),
     );
 
     final cancelButton = OutlinedButton(
@@ -75,17 +97,23 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       child: Text(l10n.commonCancel),
     );
 
-    final addMountButton = OutlinedButton(
-      onPressed: () {
-        setState(() => phase = MountDetailsPhase.adding);
-        ref
-            .read(activeEditPageProvider(widget.name).notifier)
-            .set(ActiveEditPage.mounts);
-      },
-      child: Text(l10n.mountsAddMount),
+    final addMountButton = Tooltip(
+      visible: unavailable,
+      message: l10n.vmDetailsUnavailableToMount,
+      child: OutlinedButton(
+        onPressed: unavailable
+            ? null
+            : () {
+                setState(() => phase = MountDetailsPhase.adding);
+                ref
+                    .read(activeEditPageProvider(widget.name).notifier)
+                    .set(ActiveEditPage.mounts);
+              },
+        child: Text(l10n.mountsAddMount),
+      ),
     );
 
-    final topRightButton = phase == MountDetailsPhase.idle
+    final topRightButton = effectivePhase == MountDetailsPhase.idle
         ? (mounts.isEmpty ? addMountButton : configureButton)
         : cancelButton;
 
@@ -108,8 +136,8 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
           ),
           mountPointsView,
           const SizedBox(height: 20),
-          if (phase == MountDetailsPhase.configure) addMountButton,
-          if (phase == MountDetailsPhase.adding) ...[
+          if (effectivePhase == MountDetailsPhase.configure) addMountButton,
+          if (effectivePhase == MountDetailsPhase.adding) ...[
             editableMountPoint,
             Padding(padding: const EdgeInsets.only(top: 16), child: saveButton),
           ],
