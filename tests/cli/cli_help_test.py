@@ -51,7 +51,7 @@ ALL_COMMANDS = [
     ("clone", "Clone an instance"),
     ("delete", "Delete instances and snapshots"),
     ("exec", "Run a command on an instance"),
-    ("find", "Display available images to create instances from"),
+    ("images", "Display available images to create instances from"),
     ("get", "Get a configuration setting"),
     ("help", "Display help about a command"),
     ("info", "Display information about instances or snapshots"),

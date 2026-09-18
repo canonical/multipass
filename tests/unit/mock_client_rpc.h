@@ -103,18 +103,19 @@ public:
         PrepareAsyncpurgeRaw,
         (grpc::ClientContext * context, grpc::CompletionQueue* cq),
         (override));
-    MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::FindRequest, multipass::FindReply>*),
-                findRaw,
-                (grpc::ClientContext * context),
-                (override));
     MOCK_METHOD(
-        (grpc::ClientAsyncReaderWriterInterface<multipass::FindRequest, multipass::FindReply>*),
-        AsyncfindRaw,
+        (grpc::ClientReaderWriterInterface<multipass::ImagesRequest, multipass::ImagesReply>*),
+        imagesRaw,
+        (grpc::ClientContext * context),
+        (override));
+    MOCK_METHOD(
+        (grpc::ClientAsyncReaderWriterInterface<multipass::ImagesRequest, multipass::ImagesReply>*),
+        AsyncimagesRaw,
         (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
         (override));
     MOCK_METHOD(
-        (grpc::ClientAsyncReaderWriterInterface<multipass::FindRequest, multipass::FindReply>*),
-        PrepareAsyncfindRaw,
+        (grpc::ClientAsyncReaderWriterInterface<multipass::ImagesRequest, multipass::ImagesReply>*),
+        PrepareAsyncimagesRaw,
         (grpc::ClientContext * context, grpc::CompletionQueue* cq),
         (override));
     MOCK_METHOD((grpc::ClientReaderWriterInterface<multipass::InfoRequest, multipass::InfoReply>*),

@@ -228,7 +228,7 @@ _multipass_complete()
     fi
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
-    multipass_cmds="authenticate transfer delete exec find help info launch list mount networks \
+    multipass_cmds="authenticate transfer delete exec images help info launch list mount networks \
                     purge recover restart restore shell snapshot start stop suspend umount version get set \
                     clone alias aliases unalias"
 
@@ -266,6 +266,9 @@ _multipass_complete()
         ;;
         "stop")
             _add_nonrepeating_args "--all --cancel --time"
+        ;;
+        "images")
+            _add_nonrepeating_args "--show-unsupported --force-update --format"
         ;;
         "find")
             _add_nonrepeating_args "--show-unsupported --force-update --format"
