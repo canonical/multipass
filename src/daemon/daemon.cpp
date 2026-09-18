@@ -1320,8 +1320,9 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         mpl::warn(category, "Hypervisor health check failed: {}", e.what());
     }
 
-    for (const auto [name, spec_copy] : vm_instance_specs)
+    for (const auto& entry : vm_instance_specs)
     {
+        const auto [name, spec_copy] = entry;
         if (!config->vault->has_record_for(name))
         {
             invalid_specs.push_back(name);
