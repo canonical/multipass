@@ -344,6 +344,11 @@ mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 
 void mp::HyperVVirtualMachine::start()
 {
+    const auto present_state = current_state();
+    if ((present_state == State::off || present_state == State::stopped) &&
+        !remove_permanent_ipv4_neighbors(desc.default_mac_address))
+        mpl::warn(vm_name, "Could not remove all stale management IP entries");
+
     state = State::starting;
     handle_state_update();
 

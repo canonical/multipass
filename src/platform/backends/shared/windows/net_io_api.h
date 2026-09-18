@@ -46,5 +46,6 @@ struct NetIOAPI : public Singleton<NetIOAPI>
     [[nodiscard]] virtual DWORD ConvertInterfaceAliasToLuid(const WCHAR* InterfaceName,
                                                             NET_LUID* InterfaceLuid) const;
     [[nodiscard]] virtual IpNetTableResult GetIpNetTable2(ADDRESS_FAMILY Family) const;
+    [[nodiscard]] virtual DWORD DeleteIpNetEntry2(const MIB_IPNET_ROW2* Row) const;
 };
 } // namespace multipass::hyperv

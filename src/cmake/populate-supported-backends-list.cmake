@@ -26,11 +26,15 @@ elseif(WIN32)
     set(MULTIPASS_BACKENDS hyperv virtualbox)
 
     if(HYPERV_HCS_ENABLED)
-        add_definitions(-DHYPERV_HCS_ENABLED=1)
         list(APPEND MULTIPASS_BACKENDS hyperv_api)
     endif()
 else()
     message(WARNING "No suitable backend exists for the platform!")
 endif()
+
+foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
+    string(TOUPPER "${BACKEND}_ENABLED" BACKEND_ENABLED)
+    set(${BACKEND_ENABLED} ON)
+endforeach()
 
 message(STATUS "Enabled backends: ${MULTIPASS_BACKENDS}")

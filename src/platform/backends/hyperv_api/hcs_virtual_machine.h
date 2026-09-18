@@ -71,6 +71,7 @@ struct HCSVirtualMachine : public BaseVirtualMachine
     [[nodiscard]] std::string ssh_hostname() override;
     [[nodiscard]] std::string ssh_username() override;
     [[nodiscard]] std::optional<IPAddress> management_ipv4() override;
+    void restore_snapshot(const std::string& name, VMSpecs& specs) override;
 
     void handle_state_update() override;
     void update_cpus(int num_cores) override;
@@ -101,6 +102,14 @@ private:
 
     [[nodiscard]] hcs::ComputeSystemState fetch_state_from_api() const;
     void set_state(hcs::ComputeSystemState state);
+
+    /**
+     * Open the compute system if it's present.
+     *
+     * @return true The compute system was opened
+     * @return false HCS confirmed the compute system is absent
+     */
+    [[nodiscard]] bool maybe_open_compute_system() noexcept(false);
 
     /**
      * Create the compute system if it's not already present.

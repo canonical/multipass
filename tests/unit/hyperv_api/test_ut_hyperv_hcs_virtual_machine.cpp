@@ -115,6 +115,14 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
     void SetUp() override
     {
         std::ofstream{desc.image.image_path} << "stub";
+        EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+            .Times(AnyNumber())
+            .WillRepeatedly([] {
+                auto* raw_table = new MIB_IPNET_TABLE2{};
+                auto table =
+                    mhv::IpNetTable{raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
+                return mhv::IpNetTableResult{NO_ERROR, std::move(table)};
+            });
     }
 
     void default_open_success()
@@ -223,6 +231,17 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
             .WillOnce(Return(hcs_op_result_t{E_FAIL, L"Endpoint query failed"}));
     }
 
+    void expect_failed_recreation()
+    {
+        EXPECT_CALL(mock_hcs, open_compute_system(dummy_vm_name, _))
+            .WillRepeatedly(Return(hcs_op_result_t{HCS_E_SYSTEM_NOT_FOUND, L""}));
+        EXPECT_CALL(mock_hcn, delete_endpoint(EndsWith("aabbccddeeff")))
+            .WillOnce(Return(hcs_op_result_t{0, L""}));
+        EXPECT_CALL(mock_hcn, create_endpoint(_))
+            .WillOnce(Return(hcs_op_result_t{E_FAIL, L"Endpoint creation failed"}));
+        EXPECT_CALL(mock_hcs, create_compute_system(_, _)).Times(0);
+    }
+
     void expect_permanent_neighbor(bool present)
     {
         auto* raw_table = new MIB_IPNET_TABLE2{};
@@ -302,6 +321,66 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, construct_vm_class_exists_create)
     EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
 }
 
+TEST_F(HyperVHCSVirtualMachine_UnitTests, create_removes_stale_neighbors_for_management_mac)
+{
+    default_create_success();
+
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce([] {
+            auto* raw_table = new MIB_IPNET_TABLE2{};
+            raw_table->NumEntries = 1;
+            auto& row = raw_table->Table[0];
+            row.Address.Ipv4.sin_family = AF_INET;
+            row.Address.Ipv4.sin_addr.S_un.S_un_b = {10, 97, 0, 82};
+            row.State = NlnsPermanent;
+            row.PhysicalAddressLength = 6;
+            const std::array<unsigned char, 6> physical_address{
+                0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+            std::ranges::copy(physical_address, row.PhysicalAddress);
+
+            auto table = mhv::IpNetTable{
+                raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
+            return mhv::IpNetTableResult{NO_ERROR, std::move(table)};
+        });
+    EXPECT_CALL(mock_net_io_api, DeleteIpNetEntry2(_))
+        .WillOnce([](const MIB_IPNET_ROW2* row) {
+            const auto& address = row->Address.Ipv4.sin_addr.S_un.S_un_b;
+            EXPECT_EQ(address.s_b1, 10);
+            EXPECT_EQ(address.s_b2, 97);
+            EXPECT_EQ(address.s_b3, 0);
+            EXPECT_EQ(address.s_b4, 82);
+            return NO_ERROR;
+        });
+
+    EXPECT_NO_THROW(construct_vm());
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, create_continues_when_stale_neighbors_cannot_be_queried)
+{
+    default_create_success();
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce([] {
+            auto table = mhv::IpNetTable{nullptr, [](MIB_IPNET_TABLE2*) {}};
+            return mhv::IpNetTableResult{ERROR_ACCESS_DENIED, std::move(table)};
+        });
+
+    EXPECT_NO_THROW(construct_vm());
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, create_failure_removes_created_endpoint)
+{
+    EXPECT_CALL(mock_hcs, open_compute_system(_, _))
+        .WillOnce(Return(hcs_op_result_t{HCS_E_SYSTEM_NOT_FOUND, L""}));
+    EXPECT_CALL(mock_hcn, delete_endpoint(EndsWith("aabbccddeeff")))
+        .WillOnce(Return(hcs_op_result_t{E_FAIL, L"not found"}))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcn, create_endpoint(_)).WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcs, create_compute_system(_, _))
+        .WillOnce(Return(hcs_op_result_t{E_FAIL, L"create failed"}));
+
+    EXPECT_THROW(construct_vm(), mhv::CreateComputeSystemException);
+}
+
 // ---------------------------------------------------------
 
 TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_start_success)
@@ -325,6 +404,85 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_start_success)
     uut->start();
 
     EXPECT_EQ(uut->state, multipass::VirtualMachine::State::starting);
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, existing_vm_cold_start_removes_stale_neighbors)
+{
+    default_open_success();
+
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+        .WillRepeatedly(
+            DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
+    EXPECT_CALL(mock_hcs, start_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+
+    auto uut = construct_vm();
+
+    expect_permanent_neighbor(true);
+    EXPECT_CALL(mock_net_io_api, DeleteIpNetEntry2(_)).WillOnce(Return(NO_ERROR));
+
+    EXPECT_NO_THROW(uut->start());
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, saved_vm_start_keeps_permanent_neighbors)
+{
+    default_open_success();
+    auto saved_state_path = std::filesystem::path{desc.image.image_path}.replace_extension(
+        ".SavedState.vmrs");
+    std::ofstream{saved_state_path} << "stub";
+
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+        .WillRepeatedly(
+            DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
+    EXPECT_CALL(mock_hcs, start_compute_system(Eq(mock_handle)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+
+    auto uut = construct_vm();
+
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(0);
+
+    EXPECT_NO_THROW(uut->start());
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, failed_saved_vm_recreation_remains_suspended)
+{
+    default_open_success();
+    const auto saved_state_path = std::filesystem::path{desc.image.image_path}.replace_extension(
+        ".SavedState.vmrs");
+    std::ofstream{saved_state_path} << "stub";
+    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
+        .WillRepeatedly(
+            DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
+    auto uut = construct_vm();
+    ASSERT_EQ(uut->current_state(), mp::VirtualMachine::State::suspended);
+
+    expect_failed_recreation();
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(0);
+
+    EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
+    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::suspended);
+    EXPECT_TRUE(std::filesystem::exists(saved_state_path));
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, failed_cold_vm_recreation_reports_off)
+{
+    default_open_success();
+    auto uut = construct_vm();
+    expect_failed_recreation();
+
+    EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
+    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::off);
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, missing_compute_system_preserves_unavailable_state)
+{
+    default_open_success();
+    auto uut = construct_vm();
+    expect_failed_recreation();
+    EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
+    uut->state = mp::VirtualMachine::State::unavailable;
+
+    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::unavailable);
 }
 
 // ---------------------------------------------------------

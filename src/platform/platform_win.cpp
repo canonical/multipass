@@ -18,6 +18,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
@@ -29,7 +30,7 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
-#if defined(HYPERV_HCS_ENABLED)
+#if defined(HYPERV_API_ENABLED)
 #include "backends/hyperv_api/hcs_virtual_machine_factory.h"
 #endif
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
@@ -808,7 +809,7 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
     constexpr std::string_view supported_backends[] = {
         "hyperv",
         "virtualbox",
-#if defined(HYPERV_HCS_ENABLED)
+#if defined(HYPERV_API_ENABLED)
         "hyperv_api",
 #endif
     };
@@ -871,7 +872,7 @@ std::string mp::platform::default_server_address()
 
 QString mp::platform::Platform::default_driver() const
 {
-#if defined(HYPERV_HCS_ENABLED)
+#if defined(HYPERV_API_ENABLED)
     return QStringLiteral("hyperv_api");
 #else
     return QStringLiteral("hyperv");
@@ -945,7 +946,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 
         return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
     }
-#if defined(HYPERV_HCS_ENABLED)
+#if defined(HYPERV_API_ENABLED)
     else if (driver == "hyperv_api")
     {
         return std::make_unique<hyperv::HCSVirtualMachineFactory>(data_dir, az_manager);

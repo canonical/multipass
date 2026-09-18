@@ -3,7 +3,7 @@
     <Package Name="Multipass" Manufacturer="Canonical Ltd" Version="$(Version)"
         UpgradeCode="faebc626-1491-49bb-8162-22b1684013d9">
         <MajorUpgrade AllowDowngrades="yes" />
-        <Launch Condition="Installed OR WIN_VERSION >= 17134" Message="!(loc.FeatureUpdateReqd)" />
+        <Launch Condition="Installed OR WIN_VERSION >= 17763" Message="!(loc.FeatureUpdateReqd)" />
 
         <MediaTemplate EmbedCab="yes" />
         <Icon Id="mp.exe" SourceFile="icon.ico" />
@@ -17,7 +17,9 @@
                 Key='SOFTWARE\Microsoft\Windows NT\CurrentVersion' Name='CurrentBuildNumber' />
         </Property>
 
-        <Property Id="DRIVER" Value="hyperv" Secure="yes" />
+        <Property Id="DRIVER" Value="hyperv_api" Secure="yes" />
+        <Property Id="DRIVER_FULL" Value="hyperv_api" Secure="yes" />
+        <Property Id="DRIVER_LIMITED" Value="hyperv_api" Secure="yes" />
 
         <Binary Id="CABinary" SourceFile="custom-actions.dll" />
 
@@ -89,8 +91,17 @@
             <RegistrySearch Id="WINDOWS_EDITION" Root="HKLM"
                 Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="EditionID" Type="raw" />
         </Property>
-        <SetProperty Id="DRIVER" Value="virtualbox" Condition="WINDOWS_EDITION &gt;&lt; &quot;Core&quot;"
-            After="AppSearch" />
+
+        <!--
+          The new Hyper-V/HCS driver (hyperv_api, backed by VirtualMachinePlatform) is the default
+          on every supported edition. The legacy full Hyper-V driver (hyperv, backed by
+          Microsoft-Hyper-V) is only offered on editions that support it: Home ("Core") editions do
+          not, so the legacy option is hidden there. VirtualBox remains selectable everywhere.
+        -->
+        <Property Id="LEGACY_HYPERV_AVAILABLE" Secure="yes" />
+        <SetProperty Id="LEGACY_HYPERV_AVAILABLE" Value="1"
+            Condition="WINDOWS_EDITION AND NOT (WINDOWS_EDITION &gt;&lt; &quot;Core&quot;)"
+            After="AppSearch" Sequence="both" />
 
 
         <!-- Create Multipass daemon configuration file -->
@@ -115,11 +126,11 @@
             Target="[INSTALLFOLDER]bin\multipassd.exe" ElevatedEndSessionMessage="yes"
             Condition="Installed AND (REMOVE~=&quot;ALL&quot; OR UPGRADINGPRODUCTCODE)" />
 
-        <!-- Enable HyperV -->
+        <!-- Enable the optional feature required by the selected Hyper-V driver -->
         <CustomAction Id="EnableHyperVAction" BinaryRef="CABinary" DllEntry="EnableHyperV"
             Return="ignore" Execute="deferred" Impersonate="no" />
         <CustomAction Id="EnableHyperVAction.SetProperty" Property="EnableHyperVAction"
-            Value="[UILevel]" />
+            Value="[UILevel]|[DRIVER]" />
         <util:CheckRebootRequired />
 
         <CustomAction Id="GUI.TaskClose.SetCmdLine" Execute="immediate"
@@ -145,9 +156,9 @@
                 Condition="NOT Installed AND UNINSTALLER_PATH" />
 
             <Custom Action="EnableHyperVAction.SetProperty" Before="EnableHyperVAction"
-                Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
+                Condition="(DRIVER = &quot;hyperv&quot; OR DRIVER = &quot;hyperv_api&quot;) AND NOT Installed" />
             <Custom Action="EnableHyperVAction" After="InstallInitialize"
-                Condition="DRIVER = &quot;hyperv&quot; AND NOT Installed" />
+                Condition="(DRIVER = &quot;hyperv&quot; OR DRIVER = &quot;hyperv_api&quot;) AND NOT Installed" />
 
             <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize"
                 Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA &lt;&gt; &quot;yes&quot; AND REMOVE_DATA &lt;&gt; &quot;no&quot;" />
@@ -161,9 +172,9 @@
             <Custom Action="InstallClientCertsAction" Before="StartServices" />
 
             <Custom Action="DaemonConfigFileAction.SetCmdLine" Before="DaemonConfigFileAction"
-                Condition="NOT (Installed AND WIX_UPGRADE_DETECTED)" />
+                Condition="NOT Installed AND NOT WIX_UPGRADE_DETECTED" />
             <Custom Action="DaemonConfigFileAction" Before="StartServices"
-                Condition="NOT (Installed AND WIX_UPGRADE_DETECTED)" />
+                Condition="NOT Installed AND NOT WIX_UPGRADE_DETECTED" />
 
             <Custom Action="override Wix4CloseApplications_$(sys.BUILDARCHSHORT)"
                 Before="StopServices" />

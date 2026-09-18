@@ -7,21 +7,19 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #pragma once
 
-#include <optional>
 #include <string>
 
-namespace multipass
+namespace multipass::hyperv
 {
-[[nodiscard]] std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_address);
-[[nodiscard]] bool remove_permanent_ipv4_neighbors(const std::string& mac_address);
-} // namespace multipass
+[[nodiscard]] std::string endpoint_guid_for_mac(std::string mac_address);
+[[nodiscard]] bool release_hcs_resources(const std::string& name);
+} // namespace multipass::hyperv
