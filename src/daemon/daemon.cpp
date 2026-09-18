@@ -1322,7 +1322,9 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
     for (const auto& entry : vm_instance_specs)
     {
-        const auto [name, spec_copy] = entry;
+        const auto& name = entry.first;
+        const auto spec_copy = entry.second;
+
         if (!config->vault->has_record_for(name))
         {
             invalid_specs.push_back(name);
