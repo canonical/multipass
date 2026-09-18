@@ -633,6 +633,22 @@ std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
     return std::nullopt;
 }
 
+void HCSVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs)
+{
+    // Restoring replaces the active VHD chain, so discard the system configured for the old chain.
+    const auto resources_released = release_hcs_resources(get_name());
+    hcs_system.reset();
+    if (!resources_released)
+    {
+        throw ComputeSystemStateException{
+            "Could not release HCS resources before restoring snapshot '{}.{}'",
+            get_name(),
+            name};
+    }
+
+    BaseVirtualMachine::restore_snapshot(name, specs);
+}
+
 void HCSVirtualMachine::handle_state_update()
 {
     monitor.persist_state_for(get_name(), state);
