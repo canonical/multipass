@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: How to choose and set up the Multipass driver on Linux, macOS and Windows, including QEMU, Apple's Virtualization framework (AppleVZ) and Hyper-V.
+---
+
 (how-to-guides-customise-multipass-set-up-the-driver)=
 # How to set up the driver
 
