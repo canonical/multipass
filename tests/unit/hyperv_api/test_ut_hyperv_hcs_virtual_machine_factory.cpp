@@ -265,20 +265,16 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
         .WillRepeatedly(DoAll(SetArgReferee<1>(mock_handle), Return(hcs_op_result_t{0, L""})));
 
     EXPECT_CALL(mock_hcs, set_compute_system_callback(Eq(mock_handle), _, _))
-        .WillRepeatedly(DoAll(
-            [this](const hcs_handle_t& target_hcs_system,
-                   void* context,
-                   void (*callback)(HCS_EVENT* hcs_event, void* context)) {
-
-            },
-            Return(hcs_op_result_t{0, L""})));
+        .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillRepeatedly(DoAll(SetArgReferee<1>(mhv::hcs::ComputeSystemState::running),
+        .WillRepeatedly(DoAll(SetArgReferee<1>(mhv::hcs::ComputeSystemState::stopped),
                               Return(hcs_op_result_t{0, L""})));
 
     ASSERT_NO_THROW(uut = construct_factory());
 
     uut->prepare_networking(desc.extra_interfaces);
     auto ptr = uut->create_virtual_machine(desc, stub_key_provider, stub_monitor);
+    ASSERT_NE(ptr, nullptr);
+    EXPECT_EQ(ptr->state, mp::VirtualMachine::State::stopped);
 }

@@ -42,7 +42,7 @@ enum class ComputeSystemState : std::uint8_t
     paused,
     stopped,
     saved_as_template,
-    unknown,
+    unknown
 };
 
 namespace detail
