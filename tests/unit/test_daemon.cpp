@@ -45,6 +45,7 @@
 #include <src/daemon/instance_settings_handler.h>
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/start_exception.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
@@ -1910,6 +1911,84 @@ TEST_F(Daemon, releasesMacsWhenLaunchFails)
     auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,name=wlan0"};
     send_command(cmd); // we cause this one to fail
     send_command(cmd); // and confirm we can repeat the same mac
+}
+
+TEST_F(Daemon, launchSuppressesErrorFromIntentionalStartException)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    const std::string instance_name{"asustere-manul"};
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(instance_name));
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
+        .WillOnce(
+            Throw(mp::StartException{instance_name, "shutdown requested by cloud-init", true}));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream out_stream, err_stream;
+    send_command({"launch", "--name", instance_name}, out_stream, err_stream);
+
+    EXPECT_THAT(err_stream.str(), IsEmpty());
+}
+
+TEST_F(Daemon, launchReportsErrorFromNonIntentionalStartException)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    const std::string instance_name{"asustere-manul"};
+    const std::string error_msg{"ssh timed out"};
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(instance_name));
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
+        .WillOnce(Throw(mp::StartException{instance_name, error_msg, false}));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream out_stream, err_stream;
+    send_command({"launch", "--name", instance_name}, out_stream, err_stream);
+
+    EXPECT_THAT(err_stream.str(), HasSubstr(error_msg));
+}
+
+TEST_F(Daemon, startReportsErrorEvenWhenStartExceptionIsIntentional)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    mpt::fake_vm_properties vm_props{};
+    vm_props.state = mp::VirtualMachine::State::off;
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    const std::string error_msg{"shutdown requested by cloud-init"};
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
+    EXPECT_CALL(*mock_vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*mock_vm, start()).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
+        .WillOnce(Throw(mp::StartException{vm_props.name, error_msg, true}));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::StartRequest request;
+    request.mutable_instance_names()->add_instance_name(vm_props.name);
+
+    StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> mock_server{};
+    EXPECT_CALL(mock_server, Write(_, _)).Times(1);
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(mock_server));
+
+    EXPECT_FALSE(status.ok());
+    EXPECT_THAT(status.error_message(), HasSubstr(error_msg));
 }
 
 TEST_F(Daemon, releasesMacsOfPurgedInstancesButKeepsTheRest)
