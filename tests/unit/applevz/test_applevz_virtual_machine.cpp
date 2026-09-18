@@ -20,7 +20,6 @@
 #include "tests/unit/common.h"
 #include "tests/unit/mock_logger.h"
 #include "tests/unit/mock_status_monitor.h"
-#include "tests/unit/stub_availability_zone_manager.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/temp_dir.h"
 #include "tests/unit/temp_file.h"
@@ -28,6 +27,7 @@
 #include <applevz/applevz_virtual_machine.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/stub_availability_zone_manager.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -63,7 +63,7 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
     mpt::StubSSHKeyProvider stub_key_provider{};
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
-    mpt::StubAvailabilityZoneManager az_manager{};
+    mp::StubAvailabilityZoneManager az_manager{};
 
     mpt::MockAppleVZWrapper::GuardedMock mock_applevz_wrapper_injection{
         mpt::MockAppleVZWrapper::inject<NiceMock>()};

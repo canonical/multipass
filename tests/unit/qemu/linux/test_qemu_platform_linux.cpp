@@ -23,10 +23,10 @@
 #include "tests/unit/mock_file_ops.h"
 #include "tests/unit/mock_logger.h"
 #include "tests/unit/mock_utils.h"
-#include "tests/unit/stub_availability_zone_manager.h"
 #include "tests/unit/temp_dir.h"
 
 #include <multipass/process/process.h>
+#include <multipass/stub_availability_zone_manager.h>
 #include <src/platform/backends/qemu/linux/qemu_platform_linux.h>
 
 #include <QCoreApplication>
@@ -131,7 +131,7 @@ struct QemuPlatformLinux : public Test
                                         "192.168.128.255",
                                         "baz"}};
 
-    mpt::StubAvailabilityZoneManager stub_az_manager{zone1_subnet, zone2_subnet, zone3_subnet};
+    mp::StubAvailabilityZoneManager stub_az_manager{zone1_subnet, zone2_subnet, zone3_subnet};
 
     mpt::TempDir data_dir;
 

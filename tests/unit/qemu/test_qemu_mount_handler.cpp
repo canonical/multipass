@@ -22,12 +22,12 @@
 #include "tests/unit/mock_ssh_process.h"
 #include "tests/unit/mock_ssh_session.h"
 #include "tests/unit/mock_virtual_machine.h"
-#include "tests/unit/stub_availability_zone.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 
 #include "qemu_mount_handler.h"
 
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/stub_availability_zone.h>
 #include <multipass/utils.h>
 #include <multipass/vm_mount.h>
 
@@ -152,7 +152,7 @@ struct QemuMountHandlerTest : public ::Test
     mpt::MockFileOps& mock_file_ops = *mock_file_ops_injection.first;
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::debug);
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
-    mpt::StubAvailabilityZone zone{};
+    mp::StubAvailabilityZone zone{"zone1"};
     NiceMock<MockQemuVirtualMachine> vm{"my_instance", zone};
     mp::QemuVirtualMachine::MountArgs mount_args;
 };

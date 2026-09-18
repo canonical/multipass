@@ -18,12 +18,12 @@
 #include "hyperv_test_utils.h"
 #include "multipass/test_data_path.h"
 #include "tests/unit/common.h"
-#include "tests/unit/stub_availability_zone.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
 
 #include <shared/windows/network_utils.h>
 
+#include <multipass/stub_availability_zone.h>
 #include <multipass/subnet.h>
 
 #include <fmt/xchar.h>
@@ -270,7 +270,7 @@ TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn
         ASSERT_TRUE(status_msg.empty());
     }
 
-    StubAvailabilityZone zone;
+    StubAvailabilityZone zone{"zone1"};
     StubSSHKeyProvider key_provider;
     StubVMStatusMonitor monitor;
     const VirtualMachineDescription description{1,

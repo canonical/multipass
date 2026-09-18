@@ -17,10 +17,10 @@
 
 #include "tests/unit/mock_process_factory.h"
 #include "tests/unit/mock_utils.h"
-#include "tests/unit/stub_availability_zone_manager.h"
 
 #include <src/platform/backends/shared/macos/backend_utils.h>
 
+#include <multipass/stub_availability_zone_manager.h>
 #include <multipass/subnet.h>
 
 namespace mp = multipass;
@@ -123,7 +123,7 @@ TEST(EnableCrossZoneRouting, singleZoneDoesNotTouchForwardingOrPf)
     const auto mock_process_factory = mpt::MockProcessFactory::Inject();
     auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
 
-    const mpt::StubAvailabilityZoneManager az_manager;
+    const mp::StubAvailabilityZoneManager az_manager;
 
     // Neither IP forwarding nor pf rules should be touched with fewer than two zones.
     EXPECT_CALL(*mock_utils, run_cmd_for_status(_, _, _)).Times(0);
@@ -132,6 +132,7 @@ TEST(EnableCrossZoneRouting, singleZoneDoesNotTouchForwardingOrPf)
 
     EXPECT_TRUE(mock_process_factory->process_list().empty());
 }
+g
 
 TEST(EnableCrossZoneRouting, multipleZonesEnablesForwardingAndInstallsPfRules)
 {
@@ -141,7 +142,7 @@ TEST(EnableCrossZoneRouting, multipleZonesEnablesForwardingAndInstallsPfRules)
     const auto zones = {mp::Subnet{"192.168.64.0/24"},
                         mp::Subnet{"192.168.65.0/24"},
                         mp::Subnet{"192.168.66.0/24"}};
-    const mpt::StubAvailabilityZoneManager az_manager{zones};
+    const mp::StubAvailabilityZoneManager az_manager{zones};
 
     EXPECT_CALL(
         *mock_utils,

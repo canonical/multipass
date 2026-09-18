@@ -21,6 +21,7 @@ add_library(shared STATIC
   snapshot_description.cpp
   sshfs_server_process_spec.cpp
   stub_availability_zone.cpp
+  stub_availability_zone_manager.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h
   ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h)
 

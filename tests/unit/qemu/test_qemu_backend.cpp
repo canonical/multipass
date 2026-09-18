@@ -27,8 +27,6 @@
 #include "tests/unit/mock_status_monitor.h"
 #include "tests/unit/mock_virtual_machine.h"
 #include "tests/unit/path.h"
-#include "tests/unit/stub_availability_zone.h"
-#include "tests/unit/stub_availability_zone_manager.h"
 #include "tests/unit/stub_process_factory.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
@@ -46,6 +44,8 @@
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/snapshot.h>
+#include <multipass/stub_availability_zone.h>
+#include <multipass/stub_availability_zone_manager.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
@@ -100,8 +100,8 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
     const std::string subnet{"192.168.64"};
     mpt::StubSSHKeyProvider key_provider{};
     mpt::StubVMStatusMonitor stub_monitor{};
-    mpt::StubAvailabilityZoneManager az_manager{};
-    mpt::StubAvailabilityZone zone{};
+    mp::StubAvailabilityZoneManager az_manager{};
+    mp::StubAvailabilityZone zone{"zone1"};
 
     mpt::MockProcessFactory::Callback handle_external_process_calls =
         [](mpt::MockProcess* process) {

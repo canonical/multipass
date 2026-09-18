@@ -20,8 +20,8 @@
 namespace multipass
 {
 
-StubAvailabilityZone::StubAvailabilityZone() noexcept
-    : AvailabilityZone{}, name{"zone1"}, subnet{"0.0.0.0/0"}
+StubAvailabilityZone::StubAvailabilityZone(std::string name, Subnet subnet) noexcept
+    : name{std::move(name)}, subnet{std::move(subnet)}
 {
 }
 

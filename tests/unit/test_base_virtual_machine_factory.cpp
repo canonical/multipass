@@ -19,7 +19,6 @@
 #include "mock_logger.h"
 #include "mock_platform.h"
 #include "mock_process_factory.h"
-#include "stub_availability_zone_manager.h"
 #include "stub_url_downloader.h"
 #include "temp_dir.h"
 #include "temp_file.h"
@@ -28,6 +27,7 @@
 
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/network_interface_info.h>
+#include <multipass/stub_availability_zone_manager.h>
 #include <multipass/utils/qemu_img_utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
@@ -91,7 +91,7 @@ struct MockBaseFactory : mp::BaseVirtualMachineFactory
 struct BaseFactory : public Test
 {
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
-    mpt::StubAvailabilityZoneManager az_manager{};
+    mp::StubAvailabilityZoneManager az_manager{};
 };
 
 TEST_F(BaseFactory, dirNameReturnsEmptyString)
