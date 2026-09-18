@@ -25,6 +25,7 @@
 #include "tests/unit/stub_status_monitor.h"
 #include "tests/unit/temp_dir.h"
 #include "tests/unit/temp_file.h"
+#include "tests/unit/windows/mock_net_io_api.h"
 #include "tests/unit/windows/powershell_test_helper.h"
 
 #include <src/platform/backends/hyperv/hyperv_virtual_machine_factory.h>
@@ -38,6 +39,8 @@
 
 #include <QRegularExpression>
 
+#include <algorithm>
+#include <array>
 #include <stdexcept>
 #include <tuple>
 
@@ -153,6 +156,60 @@ TEST_F(HyperVBackend, createsInOffState)
     ASSERT_THAT(machine.get(), NotNull());
     EXPECT_THAT(machine->state, Eq(mp::VirtualMachine::State::off));
 }
+
+using HyperVStartParams = std::tuple<std::string, mpt::PowerShellTestHelper::RunSpec, bool>;
+
+struct HyperVStart : public HyperVBackend, public WithParamInterface<HyperVStartParams>
+{
+    mpt::MockNetIOAPI::GuardedMock mock_net_io_api_injection =
+        mpt::MockNetIOAPI::inject<StrictMock>();
+    mpt::MockNetIOAPI& mock_net_io_api = *mock_net_io_api_injection.first;
+};
+
+TEST_P(HyperVStart, removesNeighborsOnlyForConfirmedColdStart)
+{
+    const auto& [initial_state, state_query, remove_neighbors] = GetParam();
+    ps_helper.setup_mocked_run_sequence({{"Get-VM"},
+                                         {"-ExpandProperty State", initial_state},
+                                         state_query,
+                                         {"-ExpandProperty State", state_query.will_output},
+                                         {"Start-VM"},
+                                         min_dtor_run});
+
+    ON_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillByDefault([] {
+            auto* raw_table = new MIB_IPNET_TABLE2{};
+            raw_table->NumEntries = 1;
+            auto& row = raw_table->Table[0];
+            row.Address.Ipv4.sin_family = AF_INET;
+            row.Address.Ipv4.sin_addr.S_un.S_un_b = {10, 97, 0, 82};
+            row.State = NlnsPermanent;
+            row.PhysicalAddressLength = 6;
+            const std::array<unsigned char, 6> mac{0xba, 0xba, 0xca, 0xca, 0xca, 0xba};
+            std::ranges::copy(mac, row.PhysicalAddress);
+            auto table = mp::hyperv::IpNetTable{
+                raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
+            return mp::hyperv::IpNetTableResult{NO_ERROR, std::move(table)};
+        });
+    const auto expected_removals = remove_neighbors ? 1 : 0;
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(expected_removals);
+    EXPECT_CALL(mock_net_io_api, DeleteIpNetEntry2(_)).Times(expected_removals);
+
+    auto machine =
+        backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor);
+    EXPECT_NO_THROW(machine->start());
+    EXPECT_EQ(machine->state, mp::VirtualMachine::State::starting);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    HyperVBackend,
+    HyperVStart,
+    Values(HyperVStartParams{"Off", {"-ExpandProperty State", "Off"}, true},
+           HyperVStartParams{"Saved", {"-ExpandProperty State", "Saved"}, false},
+           HyperVStartParams{"Off", {"-ExpandProperty State", "Running"}, false},
+           HyperVStartParams{"Off", {"-ExpandProperty State", "Starting"}, false},
+           HyperVStartParams{"Paused", {"-ExpandProperty State", "Paused"}, false},
+           HyperVStartParams{"Saved", {"-ExpandProperty State", "", false}, false}));
 
 TEST_F(HyperVBackend, setsMacAddressOnDefaultNetworkAdapter)
 {
