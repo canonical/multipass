@@ -15,16 +15,20 @@
  *
  */
 
-#include "find.h"
+#include "images.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/formatter.h>
 
-namespace mp = multipass;
-namespace cmd = multipass::cmd;
+#include <string>
 
-mp::ReturnCodeVariant cmd::Find::run(mp::ArgParser* parser)
+namespace multipass::cmd
+{
+
+constexpr std::string deprecated_name = "find";
+
+ReturnCodeVariant Images::run(ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -32,7 +36,7 @@ mp::ReturnCodeVariant cmd::Find::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [this](FindReply& reply) -> ReturnCodeVariant {
+    auto on_success = [this](ImagesReply& reply) -> ReturnCodeVariant {
         cout << chosen_formatter->format(reply);
 
         return ReturnCode::Ok;
@@ -43,26 +47,31 @@ mp::ReturnCodeVariant cmd::Find::run(mp::ArgParser* parser)
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::find, request, on_success, on_failure);
+    return dispatch(&RpcMethod::images, request, on_success, on_failure);
 }
 
-std::string cmd::Find::name() const
+std::string Images::name() const
 {
-    return "find";
+    return "images";
 }
 
-QString cmd::Find::short_help() const
+QString Images::short_help() const
 {
     return QStringLiteral("Display available images to create instances from");
 }
 
-QString cmd::Find::description() const
+QString Images::description() const
 {
     return QStringLiteral("Lists available images matching <string> for creating instances from.\n"
                           "With no search string, lists all aliases for supported releases.");
 }
 
-mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
+std::vector<std::string> Images::aliases() const
+{
+    return {name(), deprecated_name};
+}
+
+ParseCode Images::parse_args(ArgParser* parser)
 {
     parser->addPositionalArgument(
         "string",
@@ -72,6 +81,7 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
         "then search ‘daily‘. <string> can be a partial image hash or a "
         "release version, codename or alias.",
         "[<remote:>][<string>]");
+
     QCommandLineOption unsupportedOption("show-unsupported",
                                          "Show unsupported cloud images as well");
     QCommandLineOption formatOption("format",
@@ -89,6 +99,13 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
     {
         return status;
+    }
+
+    if (parser->commandName() == deprecated_name)
+    {
+        cerr << "Warning: ‘multipass " << deprecated_name
+             << "’ is deprecated and will be removed in a future release.\n"
+             << "Use ‘multipass " << name() << "’ instead." << std::endl;
     }
 
     if (parser->positionalArguments().count() > 1)
@@ -124,3 +141,5 @@ mp::ParseCode cmd::Find::parse_args(mp::ArgParser* parser)
 
     return status;
 }
+
+} // namespace multipass::cmd

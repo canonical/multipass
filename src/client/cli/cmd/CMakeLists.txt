@@ -24,9 +24,9 @@ add_library(commands STATIC
   disable_zones.cpp
   enable_zones.cpp
   exec.cpp
-  find.cpp
   get.cpp
   help.cpp
+  images.cpp
   info.cpp
   launch.cpp
   list.cpp

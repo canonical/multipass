@@ -312,7 +312,7 @@ std::string mp::YamlFormatter::format(const NetworksReply& reply) const
     return mpu::emit_yaml(list);
 }
 
-std::string mp::YamlFormatter::format(const FindReply& reply) const
+std::string mp::YamlFormatter::format(const ImagesReply& reply) const
 {
     YAML::Node find;
     find["errors"] = std::vector<YAML::Node>{};
