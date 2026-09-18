@@ -58,6 +58,7 @@ public:
     QString value(const QString& option) const;
     QStringList values(const QCommandLineOption& option) const;
 
+    QString commandName() const;
     QStringList positionalArguments() const;
 
     QStringList unknownOptionNames() const;

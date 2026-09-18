@@ -39,8 +39,8 @@ bool check_is_server_running(const std::string& address)
     auto stub = mp::Rpc::NewStub(channel);
 
     grpc::ClientContext context;
-    auto deadline =
-        std::chrono::system_clock::now() + std::chrono::milliseconds(100); // should be enough...
+    auto deadline = std::chrono::system_clock::now() +
+                    std::chrono::milliseconds(100); // should be enough...
     context.set_deadline(deadline);
 
     mp::PingRequest request;
@@ -194,10 +194,10 @@ grpc::Status mp::DaemonRpc::purge(grpc::ServerContext* context,
                                                 server);
 }
 
-grpc::Status mp::DaemonRpc::find(grpc::ServerContext* context,
-                                 grpc::ServerReaderWriter<FindReply, FindRequest>* server)
+grpc::Status mp::DaemonRpc::images(grpc::ServerContext* context,
+                                   grpc::ServerReaderWriter<ImagesReply, ImagesRequest>* server)
 {
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_find, this),
+    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_images, this),
                                                 client_cert_from(context),
                                                 server);
 }

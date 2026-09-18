@@ -41,7 +41,7 @@ markers = [
     "authenticate: Authenticate tests",
     "help: Help tests",
     "version: Version tests",
-    "find: Find tests",
+    "images: Images tests",
     "exec: Exec tests",
     "az: Availability zone tests",
 ]

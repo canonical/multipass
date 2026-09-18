@@ -53,7 +53,7 @@ Here are some pointers to get started with Multipass.
 
 | Task | Command |
 |----|----|
-| Find available images | `multipass find` |
+| Enumerate available images | `multipass images` |
 | Launch an instance with the current Ubuntu LTS | `multipass launch lts` |
 | List existing instances | `multipass list` |
 | Get info about an instance | `multipass info <instance-name>` |

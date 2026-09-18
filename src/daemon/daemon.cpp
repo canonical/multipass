@@ -1107,7 +1107,7 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
     return any_snapshot;
 }
 
-void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container,
+void add_aliases(google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>* container,
                  const std::string& remote_name,
                  const mp::VMImageInfo& info)
 {
@@ -1335,7 +1335,7 @@ constexpr bool is_one_of_v = (std::is_same_v<T, Types> || ...);
 // Request types not listed here are blocked during migration.
 template <typename Request>
 constexpr bool allowed_during_migration = is_one_of_v<Request,
-                                                      mp::FindRequest,
+                                                      mp::ImagesRequest,
                                                       mp::InfoRequest,
                                                       mp::ListRequest,
                                                       mp::NetworksRequest,
@@ -1379,7 +1379,7 @@ void mp::Daemon::connect_rpc(DaemonRpc& rpc)
     connect(&DaemonRpc::on_create, &Daemon::create);
     connect(&DaemonRpc::on_launch, &Daemon::launch);
     connect(&DaemonRpc::on_purge, &Daemon::purge);
-    connect(&DaemonRpc::on_find, &Daemon::find);
+    connect(&DaemonRpc::on_images, &Daemon::images);
     connect(&DaemonRpc::on_info, &Daemon::info);
     connect(&DaemonRpc::on_list, &Daemon::list);
     connect(&DaemonRpc::on_clone, &Daemon::clone);
@@ -1749,14 +1749,14 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::find(const FindRequest* request,
-                      grpc::ServerReaderWriterInterface<FindReply, FindRequest>* server,
-                      DaemonRpcContext* context)
+void mp::Daemon::images(const ImagesRequest* request,
+                        grpc::ServerReaderWriterInterface<ImagesReply, ImagesRequest>* server,
+                        DaemonRpcContext* context)
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
 
-    FindReply response;
+    ImagesReply response;
 
     if (!request->search_string().empty())
     {

@@ -14,42 +14,79 @@
 
 add_library(commands STATIC
   alias.cpp
+  alias.h
   aliases.cpp
+  aliases.h
   animated_spinner.cpp
+  animated_spinner.h
   authenticate.cpp
+  authenticate.h
   clone.cpp
+  clone.h
   common_cli.cpp
+  common_cli.h
   create_alias.cpp
+  create_alias.h
   delete.cpp
+  delete.h
   disable_zones.cpp
+  disable_zones.h
   enable_zones.cpp
+  enable_zones.h
   exec.cpp
-  find.cpp
+  exec.h
+  images.cpp
+  images.h
   get.cpp
+  get.h
   help.cpp
+  help.h
   info.cpp
+  info.h
   launch.cpp
+  launch.h
   list.cpp
+  list.h
   mount.cpp
+  mount.h
   networks.cpp
+  networks.h
   prefer.cpp
+  prefer.h
   purge.cpp
+  purge.h
   recover.cpp
+  recover.h
   remote_settings_handler.cpp
+  remote_settings_handler.h
   restart.cpp
+  restart.h
   restore.cpp
+  restore.h
   set.cpp
+  set.h
   shell.cpp
+  shell.h
   snapshot.cpp
+  snapshot.h
   start.cpp
+  start.h
   stop.cpp
+  stop.h
   suspend.cpp
+  suspend.h
   transfer.cpp
+  transfer.h
   umount.cpp
+  umount.h
   unalias.cpp
+  unalias.h
   version.cpp
+  version.h
   wait_ready.cpp
-  zones.cpp)
+  wait_ready.h
+  zones.cpp
+  zones.h)
 
 target_link_libraries(commands
   client_common

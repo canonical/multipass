@@ -668,13 +668,13 @@ auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
 
 auto construct_empty_reply()
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::ImagesReply();
     return reply;
 }
 
 auto construct_find_one_reply()
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::ImagesReply();
 
     auto image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
@@ -687,7 +687,7 @@ auto construct_find_one_reply()
 
 auto construct_find_one_reply_no_os()
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::ImagesReply();
 
     auto image_entry = reply.add_images_info();
     image_entry->set_release("Snapcraft builder for core18");
@@ -700,7 +700,7 @@ auto construct_find_one_reply_no_os()
 
 auto construct_find_multiple_reply()
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::ImagesReply();
 
     auto image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
@@ -733,7 +733,7 @@ auto construct_find_multiple_reply()
 
 auto construct_find_multiple_reply_duplicate_image()
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::ImagesReply();
 
     auto image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
@@ -1302,7 +1302,7 @@ TEST_P(FormatterSuite, properlyFormatsOutput)
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::InfoReply*>(reply))
         output = formatter->format(*input);
-    else if (auto input = dynamic_cast<const mp::FindReply*>(reply))
+    else if (auto input = dynamic_cast<const mp::ImagesReply*>(reply))
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::VersionReply*>(reply))
         output = formatter->format(*input, "Client version");
