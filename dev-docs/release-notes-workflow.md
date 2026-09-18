@@ -1,7 +1,7 @@
 # How to run the Release Notes Generator locally in VS Code
 
 This is the local workflow for running the Multipass release-notes agent from
-inside VS Code, using Copilot Chat and the repo's own agent definition.
+inside VS Code, using Copilot Chat and the repository's own agent definition.
 
 The goal is to produce release notes for a specific release by:
 
@@ -23,11 +23,11 @@ The goal is to produce release notes for a specific release by:
 
 ## Prerequisites
 
-Before you start, make sure you are in the Multipass repo and have the normal
+Before you start, make sure you are in the Multipass root folder and have the normal
 release-notes tooling available:
 
 ```bash
-cd /Users/scott/Documents/dev/multipass
+cd multipass
 which gh
 which jq
 gh auth status
@@ -40,7 +40,7 @@ If you are working from a fork, set:
 export PR_REPO=canonical/multipass
 ```
 
-If the repo is shallow, fetch more history first:
+If the repository is shallow, fetch more history first:
 
 ```bash
 git fetch --tags --unshallow 2>/dev/null || git fetch --tags
@@ -63,7 +63,7 @@ For example, if you want to regenerate notes for the 1.15 → 1.16 range:
 
 > Use the Release Notes Generator agent. Generate release notes for v1.16.0 since v1.15.1
 
-A few historical ranges are especially noisy because of merged repo history or
+A few historical ranges are especially noisy because of merged repository history or
 cherry-picked backports, so it is worth checking the earlier notes and validation
 queries before finalizing the write-up.
 
