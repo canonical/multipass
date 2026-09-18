@@ -18,14 +18,15 @@
 
 import sys
 import asyncio
+import logging
 import subprocess
+import time
 from asyncio.subprocess import Process
 from typing import AsyncIterator, Optional
 
 from cli.utilities import (
     sudo,
     StdoutAsyncSubprocess,
-    SilentAsyncSubprocess,
 )
 from .controller_exceptions import ControllerPrerequisiteError
 
@@ -53,44 +54,76 @@ class SnapMultipassdController:
                 f"`{self.snap_name}` snap is not installed!"
             )
 
-    async def _get_status(self):
-        async with StdoutAsyncSubprocess(
-            *sudo("snap", "services", self.daemon_service_name)
-        ) as proc:
-            stdout, _ = await proc.communicate()
+    async def _run_snap_service_command(
+        self, command: str, timeout: float = 720, delay: float = 2.0
+    ) -> None:
+        """Run `snap <command> <snap>`, retrying the transient
+        "service-control change in progress" rejection for up to `timeout`.
 
-            if proc.returncode != 0:
-                raise RuntimeError("failed")
-            lines = stdout.decode("utf-8").splitlines()
+        snapd refuses a new service command while a previous change on the
+        same snap is still in flight (e.g. a `stop` that is waiting on a
+        daemon that ignores SIGTERM). Retry — telling the user we are waiting —
+        so the in-flight change can settle; raise loudly for any other failure
+        or once the deadline passes.
+        """
+        deadline = time.monotonic() + timeout
+        warned = False
+        while True:
+            async with StdoutAsyncSubprocess(
+                *sudo("snap", command, self.snap_name)
+            ) as proc:
+                stdout, _ = await proc.communicate()
+                if proc.returncode == 0:
+                    return
+                message = stdout.decode("utf-8", "replace").strip()
+                if "change in progress" not in message:
+                    raise RuntimeError(
+                        f"`snap {command} {self.snap_name}` exited "
+                        f"{proc.returncode}: {message}"
+                    )
+            if time.monotonic() + delay >= deadline:
+                break
+            if not warned:
+                logging.warning(
+                    "`snap %s %s`: a service-control change is still in "
+                    "progress; waiting up to %.0fs for it to settle...",
+                    command, self.snap_name, timeout,
+                )
+                warned = True
+            await asyncio.sleep(delay)
 
-            if len(lines) < 2:
-                raise RuntimeError(f"No such service: {self.daemon_service_name}")
+        raise RuntimeError(
+            f"`snap {command} {self.snap_name}` still had a service-control "
+            f"change in progress after {timeout:.0f}s"
+        )
 
-            properties = dict(
-                zip(("service", "startup", "current", "notes"), lines[1].split(None, 3))
-            )
-
-            return properties["current"]
+    async def _wait_for_state(self, active: bool, timeout: float = 60) -> None:
+        """Poll until the service is active or not; fail on timeout."""
+        deadline = time.monotonic() + timeout
+        while await self.is_active() != active:
+            if time.monotonic() >= deadline:
+                desired = "active" if active else "inactive"
+                raise RuntimeError(
+                    f"Service `{self.daemon_service_name}` did not become "
+                    f"{desired} within {timeout}s"
+                )
+            await asyncio.sleep(0.5)
 
     async def start(self) -> None:
-        async with SilentAsyncSubprocess(
-            *sudo("snap", "start", self.snap_name)
-        ) as proc:
-            await proc.communicate()
+        await self._run_snap_service_command("start")
+        await self._wait_for_state(active=True)
 
         self._active_enter_timestamp_monotonic = (
             await self._get_active_enter_timestamp_monotonic()
         )
 
     async def stop(self, graceful=True) -> None:
-        async with SilentAsyncSubprocess(*sudo("snap", "stop", self.snap_name)) as proc:
-            await proc.communicate()
+        await self._run_snap_service_command("stop")
+        await self._wait_for_state(active=False)
 
     async def restart(self) -> None:
-        async with SilentAsyncSubprocess(
-            *sudo("snap", "restart", self.snap_name)
-        ) as proc:
-            await proc.communicate()
+        await self._run_snap_service_command("restart")
+        await self._wait_for_state(active=True)
 
     async def follow_output(self) -> AsyncIterator[str]:
         """Yield decoded log lines (utf-8, replace errors)."""
@@ -105,7 +138,19 @@ class SnapMultipassdController:
                 yield line.decode("utf-8", "replace")
 
     async def is_active(self) -> bool:
-        return await self._get_status() == "active"
+        # Ask systemd directly: `snap services` only reports active/inactive
+        # and folds the transitional "activating"/"deactivating" states into
+        # "inactive". A daemon that is still shutting down (stop-sigterm) must
+        # count as active so wait_exit() keeps polling until it really exits.
+        state = await self._get_systemctl_property(
+            f"snap.{self.daemon_service_name}.service", "ActiveState"
+        )
+        return (state or "").strip() in (
+            "active",
+            "activating",
+            "deactivating",
+            "reloading",
+        )
 
     async def wait_exit(self) -> Optional[int]:
         """Return exit code if available; else None. Should return promptly if stopped."""
