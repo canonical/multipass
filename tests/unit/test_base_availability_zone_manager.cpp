@@ -75,8 +75,10 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
 
-    const auto zones = manager.get_zones();
+    auto zones = manager.get_zones();
     EXPECT_EQ(zones.size(), expected_zone_count);
+    const auto czones = manager.get_zones();
+    EXPECT_EQ(czones.size(), expected_zone_count);
 
     // First zone in default_zone_names should be our default
     EXPECT_EQ(manager.get_default_zone_name(), *mp::default_zone_names.begin());
@@ -232,9 +234,13 @@ TEST_F(StubAvailabilityZoneManagerTest, getZoneIgnoresRequestedNameAndIsAlwaysAv
 
 TEST_F(StubAvailabilityZoneManagerTest, getZonesReturnsTheSingleStubZone)
 {
-    const auto zones = manager.get_zones();
+    auto zones = manager.get_zones();
     ASSERT_EQ(zones.size(), 1u);
     EXPECT_EQ(zones[0].get().get_name(), "zone1");
+
+    const auto czones = manager.get_zones();
+    ASSERT_EQ(czones.size(), 1u);
+    EXPECT_EQ(czones[0].get().get_name(), "zone1");
 }
 
 TEST_F(StubAvailabilityZoneManagerTest, setAvailableIsANoOp)
