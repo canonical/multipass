@@ -75,7 +75,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <functional>
+#include <future>
 #include <optional>
 #include <stdexcept>
 #include <type_traits>
@@ -1542,7 +1544,16 @@ mp::Daemon::~Daemon()
 
 void mp::Daemon::shutdown_grpc_server()
 {
-    daemon_rpc.shutdown_and_wait();
+    static constexpr auto poll_interval = std::chrono::milliseconds{50};
+
+    auto shutdown = daemon_rpc.shutdown();
+
+    do
+    { // RPCs in flight still need this thread to keep pumping events for their slots to finish.
+        QCoreApplication::processEvents(QEventLoop::AllEvents);
+    } while (shutdown.wait_for(poll_interval) != std::future_status::ready);
+
+    shutdown.get(); // rethrows if there were exceptions
 }
 
 void mp::Daemon::create(const CreateRequest* request,

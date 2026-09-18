@@ -98,11 +98,12 @@ int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
 
     mp::Daemon daemon(std::move(config));
 
-    QObject::connect(&app,
-                     &QCoreApplication::aboutToQuit,
-                     &daemon,
-                     &mp::Daemon::shutdown_grpc_server,
-                     Qt::DirectConnection);
+    QObject::connect(
+        &app,
+        &QCoreApplication::aboutToQuit,
+        &daemon,
+        [&daemon] { mp::top_catch_all("daemon", [&daemon] { daemon.shutdown_grpc_server(); }); },
+        Qt::DirectConnection);
 
     mpl::info("daemon", "Starting Multipass {}", mp::version_string);
     mpl::info("daemon", "Daemon arguments: {}", app.arguments().join(" "));
