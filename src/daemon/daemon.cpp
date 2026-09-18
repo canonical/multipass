@@ -1320,13 +1320,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         mpl::warn(category, "Hypervisor health check failed: {}", e.what());
     }
 
-    for (auto& entry : vm_instance_specs)
+    for (const auto [name, spec_copy] : vm_instance_specs)
     {
-        // Immutable copy of the persisted spec and the name -- VMs can update the
-        // spec once they're created through persist calls and the code needs to know the initial
-        // state for several things, like auto-resume.
-        const auto [name, spec] = entry;
-
         if (!config->vault->has_record_for(name))
         {
             invalid_specs.push_back(name);
@@ -1336,9 +1331,9 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         // Check that all the interfaces in the instance have different MAC address, and that they
         // were not used in the other instances. String validity was already checked in load_db().
         // Add these MAC's to the daemon's set only if this instance is not invalid.
-        auto new_macs = mac_set_from(spec);
+        auto new_macs = mac_set_from(spec_copy);
 
-        if (new_macs.size() <= spec.extra_interfaces.size() ||
+        if (new_macs.size() <= spec_copy.extra_interfaces.size() ||
             !merge_if_disjoint(new_macs, allocated_mac_addrs))
         {
             // There is at least one repeated address in new_macs.
@@ -1361,14 +1356,14 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         const auto instance_dir = mp::utils::base_dir(
             MP_PLATFORM.path_to_qstr(vm_image.image_path));
         const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
-        mp::VirtualMachineDescription vm_desc{spec.num_cores,
-                                              spec.mem_size,
-                                              spec.disk_space,
+        mp::VirtualMachineDescription vm_desc{spec_copy.num_cores,
+                                              spec_copy.mem_size,
+                                              spec_copy.disk_space,
                                               name,
-                                              spec.zone,
-                                              spec.default_mac_address,
-                                              spec.extra_interfaces,
-                                              spec.ssh_username,
+                                              spec_copy.zone,
+                                              spec_copy.default_mac_address,
+                                              spec_copy.extra_interfaces,
+                                              spec_copy.ssh_username,
                                               vm_image,
                                               cloud_init_iso,
                                               {},
@@ -1376,7 +1371,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               {},
                                               {}};
 
-        auto& instance_records_table = spec.deleted ? deleted_instances : operative_instances;
+        auto& instance_records_table = spec_copy.deleted ? deleted_instances : operative_instances;
 
         auto instance = instance_records_table[name] = config->factory->create_virtual_machine(
             vm_desc,
@@ -1388,30 +1383,31 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         allocated_mac_addrs = std::move(new_macs);
 
         // FIXME: somehow we're writing contradictory state to disk.
-        if (spec.deleted)
+        if (spec_copy.deleted)
         {
-            if (spec.state != e_state::stopped && spec.state != e_state::off)
+            if (spec_copy.state != e_state::stopped && spec_copy.state != e_state::off)
             {
                 mpl::warn(
                     category,
                     "{} is deleted but has incompatible state {}, resetting state to {} (stopped)",
                     name,
-                    static_cast<int>(spec.state),
+                    static_cast<int>(spec_copy.state),
                     static_cast<int>(e_state::stopped));
-                auto& mutable_spec = entry.second;
+                assert(vm_instance_specs.contains(name));
+                auto& mutable_spec = vm_instance_specs[name];
                 mutable_spec.state = e_state::stopped;
             }
             continue;
         }
 
         // No deleted spec must cross this boundary.
-        assert(!spec.deleted);
+        assert(!spec_copy.deleted);
         init_mounts(name);
 
         std::unique_lock lock{start_mutex};
 
         // Was running before shutdown?
-        if (spec.state == e_state::running)
+        if (spec_copy.state == e_state::running)
         {
             assert(operative_instances.contains(name));
             // If the VM was in running state before, we need to do some additional
