@@ -1,7 +1,7 @@
-(reference-command-line-interface-find)=
-# find
+(reference-command-line-interface-images)=
+# images
 
-The `multipass find` command without any argument lists the images Multipass can use to run instances with [`launch`](/reference/command-line-interface/launch) on your system and associated version information. For example:
+The `multipass images` command without any argument lists the images Multipass can use to run instances with [`launch`](/reference/command-line-interface/launch) on your system and associated version information. For example:
 
 ```{code-block} text
 Image             Aliases                     Version          Description
@@ -37,7 +37,7 @@ The list of available images is updated periodically. The option `--force-update
 
 The option `--show-unsupported` includes old Ubuntu images, which were available at some point but are not supported anymore. This means that some features of Multipass might not work on these images and no user support is given. However, they are still available for testing.
 
-The command also supports searching through available images. For example, `multipass find resolute` returns:
+The command also supports searching through available images. For example, `multipass images resolute` returns:
 
 ```{code-block} text
 Image             Aliases                     Version          Description
@@ -47,10 +47,10 @@ resolute                                      20260720         Ubuntu 26.04 LTS
 
 ---
 
-The full `multipass help find` output explains the available options:
+The full `multipass help images` output explains the available options:
 
 ```{code-block} text
-Usage: multipass find [options] [<remote:>][<string>]
+Usage: multipass images [options] [<remote:>][<string>]
 Lists available images matching <string> for creating instances from.
 With no search string, lists all aliases for supported releases.
 

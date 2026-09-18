@@ -115,7 +115,7 @@ TEST(InstanceStatusString, delayedShutdownStatusReturnsDelayedShutdown)
 
 TEST(AliasFilter, unwantedAliasesFilteredOut)
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::ImagesReply();
     auto image = reply.add_images_info();
 
     image->add_aliases("ubuntu");
@@ -133,7 +133,7 @@ TEST(AliasFilter, unwantedAliasesFilteredOut)
 
 TEST(AliasFilter, singleCharacterAliasesFilteredOut)
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::ImagesReply();
     auto image = reply.add_images_info();
 
     image->add_aliases("a");
@@ -150,7 +150,7 @@ TEST(AliasFilter, singleCharacterAliasesFilteredOut)
 
 TEST(AliasFilter, wantedAliasesNotFilteredOut)
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::ImagesReply();
     auto image = reply.add_images_info();
 
     image->add_aliases("lts");
@@ -169,7 +169,7 @@ TEST(AliasFilter, wantedAliasesNotFilteredOut)
 
 TEST(AliasFilter, mixedAliasesFilteredOut)
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::ImagesReply();
     auto image = reply.add_images_info();
 
     image->add_aliases("lts");
@@ -189,7 +189,7 @@ TEST(AliasFilter, mixedAliasesFilteredOut)
 
 TEST(AliasFilter, atLeastOneAliasLeft)
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::ImagesReply();
     auto image = reply.add_images_info();
 
     image->add_aliases("d");

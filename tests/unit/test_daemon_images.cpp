@@ -35,7 +35,7 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
-struct DaemonFind : public mpt::DaemonTestFixture
+struct DaemonImages : public mpt::DaemonTestFixture
 {
     void SetUp() override
     {
@@ -60,7 +60,7 @@ struct DaemonFind : public mpt::DaemonTestFixture
     mpt::MockUtils& mock_utils = *mock_utils_injection.first;
 };
 
-TEST_F(DaemonFind, blankQueryReturnsAllData)
+TEST_F(DaemonImages, blankQueryReturnsAllData)
 {
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
 
@@ -69,7 +69,7 @@ TEST_F(DaemonFind, blankQueryReturnsAllData)
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
-    send_command({"find"}, stream);
+    send_command({"images"}, stream);
 
     EXPECT_THAT(stream.str(),
                 AllOf(HasSubstr(mpt::default_alias),
@@ -87,7 +87,7 @@ TEST_F(DaemonFind, blankQueryReturnsAllData)
     EXPECT_EQ(total_lines_of_output(stream), 5);
 }
 
-TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
+TEST_F(DaemonImages, queryForDefaultReturnsExpectedData)
 {
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
@@ -103,7 +103,7 @@ TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
-    send_command({"find", "default"}, stream);
+    send_command({"images", "default"}, stream);
 
     EXPECT_THAT(stream.str(),
                 AllOf(HasSubstr(mpt::default_alias), HasSubstr(mpt::default_release_info)));
@@ -111,7 +111,7 @@ TEST_F(DaemonFind, queryForDefaultReturnsExpectedData)
     EXPECT_EQ(total_lines_of_output(stream), 3);
 }
 
-TEST_F(DaemonFind, unknownQueryReturnsEmpty)
+TEST_F(DaemonImages, unknownQueryReturnsEmpty)
 {
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
@@ -122,12 +122,12 @@ TEST_F(DaemonFind, unknownQueryReturnsEmpty)
 
     constexpr auto phony_name = "phony";
     std::stringstream stream;
-    send_command({"find", phony_name}, stream);
+    send_command({"images", phony_name}, stream);
 
     EXPECT_THAT(stream.str(), HasSubstr("No images found."));
 }
 
-TEST_F(DaemonFind, forByRemoteReturnsExpectedData)
+TEST_F(DaemonImages, forByRemoteReturnsExpectedData)
 {
     NiceMock<mpt::MockImageHost> mock_image_host;
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -150,7 +150,7 @@ TEST_F(DaemonFind, forByRemoteReturnsExpectedData)
 
     constexpr auto remote_name = "release:";
     std::stringstream stream;
-    send_command({"find", remote_name}, stream);
+    send_command({"images", remote_name}, stream);
 
     EXPECT_THAT(stream.str(),
                 AllOf(HasSubstr(fmt::format("{}", mpt::default_alias)),
@@ -161,14 +161,14 @@ TEST_F(DaemonFind, forByRemoteReturnsExpectedData)
     EXPECT_EQ(total_lines_of_output(stream), 4);
 }
 
-TEST_F(DaemonFind, invalidRemoteNameAndEmptySearchString)
+TEST_F(DaemonImages, invalidRemoteNameAndEmptySearchString)
 {
     auto mock_image_vault = std::make_unique<NiceMock<const mpt::MockVMImageVault>>();
 
     constexpr std::string_view remote_name = "nonsense";
-    const std::string error_msg = fmt::format(
-        "Remote \'{}\' is not found. Please use `multipass find` for supported remotes and images.",
-        remote_name);
+    const std::string error_msg = fmt::format("Remote \'{}\' is not found. Please use `multipass "
+                                              "images` for supported remotes and images.",
+                                              remote_name);
 
     EXPECT_CALL(*mock_image_vault, image_host_for(_)).Times(1).WillOnce([&error_msg]() {
         throw std::runtime_error(error_msg);
@@ -181,20 +181,20 @@ TEST_F(DaemonFind, invalidRemoteNameAndEmptySearchString)
     const std::string full_name = std::string(remote_name) + ":";
     std::stringstream cerr_Stream;
     // std::cout is the place holder here.
-    send_command({"find", full_name}, std::cout, cerr_Stream);
+    send_command({"images", full_name}, std::cout, cerr_Stream);
 
     EXPECT_THAT(cerr_Stream.str(), HasSubstr(error_msg));
     EXPECT_EQ(total_lines_of_output(cerr_Stream), 1);
 }
 
-TEST_F(DaemonFind, invalidRemoteNameAndNonEmptySearchString)
+TEST_F(DaemonImages, invalidRemoteNameAndNonEmptySearchString)
 {
     auto mock_image_vault = std::make_unique<NiceMock<const mpt::MockVMImageVault>>();
 
     constexpr std::string_view remote_name = "nonsense";
-    const std::string error_msg = fmt::format(
-        "Remote \'{}\' is not found. Please use `multipass find` for supported remotes and images.",
-        remote_name);
+    const std::string error_msg = fmt::format("Remote \'{}\' is not found. Please use `multipass "
+                                              "images` for supported remotes and images.",
+                                              remote_name);
 
     EXPECT_CALL(*mock_image_vault, image_host_for(_)).Times(1).WillOnce([&error_msg]() {
         throw std::runtime_error(error_msg);
@@ -208,13 +208,13 @@ TEST_F(DaemonFind, invalidRemoteNameAndNonEmptySearchString)
     const std::string full_name = std::string(remote_name) + ":" + std::string(search_string);
     std::stringstream cerr_Stream;
     // std::cout is the place holder here.
-    send_command({"find", full_name}, std::cout, cerr_Stream);
+    send_command({"images", full_name}, std::cout, cerr_Stream);
 
     EXPECT_THAT(cerr_Stream.str(), HasSubstr(error_msg));
     EXPECT_EQ(total_lines_of_output(cerr_Stream), 1);
 }
 
-TEST_F(DaemonFind, findWithoutForceUpdateCheckUpdateManifestsCall)
+TEST_F(DaemonImages, findWithoutForceUpdateCheckUpdateManifestsCall)
 {
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
 
@@ -224,10 +224,11 @@ TEST_F(DaemonFind, findWithoutForceUpdateCheckUpdateManifestsCall)
     config_builder.image_hosts[0] = std::move(mock_image_host);
     const mp::Daemon daemon{config_builder.build()};
 
-    send_command({"find"});
+    send_command({"images"});
 }
 
-TEST_F(DaemonFind, updateManifestsThrowTriggersTheFailedCaseEventHandlerOfAsyncPeriodicDownloadTask)
+TEST_F(DaemonImages,
+       updateManifestsThrowTriggersTheFailedCaseEventHandlerOfAsyncPeriodicDownloadTask)
 {
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
 
@@ -242,15 +243,15 @@ TEST_F(DaemonFind, updateManifestsThrowTriggersTheFailedCaseEventHandlerOfAsyncP
 
     // need it because mp::Daemon destructor which destructs qfuture and qfuturewatcher does not
     // wait the async task to finish. As a consequence, the event handler is not guaranteed to be
-    // called without send_command({"find"});
-    send_command({"find"});
+    // called without send_command({"images"});
+    send_command({"images"});
 }
 
-TEST_F(DaemonFind, findForceUpdateCheckUpdateManifestsCalls)
+TEST_F(DaemonImages, findForceUpdateCheckUpdateManifestsCalls)
 {
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
 
-    // daemon constructor invoke it first and find --force-update invoke it with force flag true
+    // daemon constructor invoke it first and images --force-update invoke it with force flag true
     // after
     const testing::InSequence sequence; // Force the following expectations to occur in order
     EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
@@ -258,10 +259,10 @@ TEST_F(DaemonFind, findForceUpdateCheckUpdateManifestsCalls)
 
     config_builder.image_hosts[0] = std::move(mock_image_host);
     const mp::Daemon daemon{config_builder.build()};
-    send_command({"find", "--force-update"});
+    send_command({"images", "--force-update"});
 }
 
-TEST_F(DaemonFind, findForceUpdateRemoteCheckUpdateManifestsCalls)
+TEST_F(DaemonImages, findForceUpdateRemoteCheckUpdateManifestsCalls)
 {
     // this unit test requires and mock image_host_for of vault, so
     // auto image_host = config->vault->image_host_for(remote);
@@ -285,7 +286,7 @@ TEST_F(DaemonFind, findForceUpdateRemoteCheckUpdateManifestsCalls)
     send_command({"find", "release:", "--force-update"});
 }
 
-TEST_F(DaemonFind, findForceUpdateRemoteSearchNameCheckUpdateManifestsCalls)
+TEST_F(DaemonImages, findForceUpdateRemoteSearchNameCheckUpdateManifestsCalls)
 {
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
 
