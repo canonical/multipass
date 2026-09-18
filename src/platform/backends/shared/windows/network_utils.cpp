@@ -74,16 +74,31 @@ std::string ipv4_to_string(const IN_ADDR& address)
                        address.S_un.S_un_b.s_b3,
                        address.S_un.S_un_b.s_b4);
 }
+
+bool matches_mac(const MIB_IPNET_ROW2& row,
+                 const std::array<unsigned char, ethernet_address_length>& mac)
+{
+    return row.Address.si_family == AF_INET && row.State == NlnsPermanent &&
+           row.PhysicalAddressLength == ethernet_address_length &&
+           std::memcmp(row.PhysicalAddress, mac.data(), mac.size()) == 0;
+}
+
+std::optional<std::array<unsigned char, ethernet_address_length>> validated_mac(
+    const std::string& mac_address)
+{
+    const auto mac = physical_address(mac_address);
+    if (!mac)
+        logging::error(log_category, "Invalid MAC address `{}`", mac_address);
+
+    return mac;
+}
 } // namespace
 
 std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_address)
 {
-    const auto mac = physical_address(mac_address);
+    const auto mac = validated_mac(mac_address);
     if (!mac)
-    {
-        logging::error(log_category, "Invalid MAC address `{}`", mac_address);
         return std::nullopt;
-    }
 
     auto result = MP_NETIOAPI.GetIpNetTable2(AF_INET);
     if (result.error != NO_ERROR)
@@ -92,18 +107,50 @@ std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_addres
         return std::nullopt;
     }
 
-    const auto matches = [&mac](const MIB_IPNET_ROW2& row) {
-        return row.Address.si_family == AF_INET && row.State == NlnsPermanent &&
-               row.PhysicalAddressLength == ethernet_address_length &&
-               std::memcmp(row.PhysicalAddress, mac->data(), mac->size()) == 0;
-    };
-
     const auto* begin = result.table->Table;
     const auto* end = begin + result.table->NumEntries;
-    if (const auto row = std::find_if(begin, end, matches); row != end)
+    if (const auto row = std::find_if(begin, end, [&mac](const MIB_IPNET_ROW2& row) {
+            return matches_mac(row, *mac);
+        });
+        row != end)
         return ipv4_to_string(row->Address.Ipv4.sin_addr);
 
     return std::nullopt;
+}
+
+bool remove_permanent_ipv4_neighbors(const std::string& mac_address)
+{
+    const auto mac = validated_mac(mac_address);
+    if (!mac)
+        return false;
+
+    auto result = MP_NETIOAPI.GetIpNetTable2(AF_INET);
+    if (result.error != NO_ERROR)
+    {
+        logging::error(log_category, "GetIpNetTable2 failed with error code {}", result.error);
+        return false;
+    }
+
+    auto success = true;
+    const auto* begin = result.table->Table;
+    const auto* end = begin + result.table->NumEntries;
+    for (auto row = begin; row != end; ++row)
+    {
+        if (!matches_mac(*row, *mac))
+            continue;
+
+        const auto error = MP_NETIOAPI.DeleteIpNetEntry2(row);
+        if (error != NO_ERROR && error != ERROR_NOT_FOUND)
+        {
+            logging::error(log_category,
+                           "DeleteIpNetEntry2 failed for {} with error code {}",
+                           ipv4_to_string(row->Address.Ipv4.sin_addr),
+                           error);
+            success = false;
+        }
+    }
+
+    return success;
 }
 
 } // namespace multipass
