@@ -37,6 +37,7 @@ public:
                 GetIpNetTable2,
                 (ADDRESS_FAMILY Family),
                 (const override));
+    MOCK_METHOD(DWORD, DeleteIpNetEntry2, (const MIB_IPNET_ROW2* Row), (const override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockNetIOAPI, NetIOAPI);
 };

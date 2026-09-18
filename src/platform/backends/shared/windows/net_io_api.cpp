@@ -54,4 +54,9 @@ IpNetTableResult NetIOAPI::GetIpNetTable2(ADDRESS_FAMILY Family) const
     const auto error = ::GetIpNetTable2(Family, &table);
     return {error, IpNetTable{table, &free_mib_table}};
 }
+
+DWORD NetIOAPI::DeleteIpNetEntry2(const MIB_IPNET_ROW2* Row) const
+{
+    return ::DeleteIpNetEntry2(Row);
+}
 } // namespace multipass::hyperv

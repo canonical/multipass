@@ -23,4 +23,5 @@
 namespace multipass
 {
 [[nodiscard]] std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_address);
+[[nodiscard]] bool remove_permanent_ipv4_neighbors(const std::string& mac_address);
 } // namespace multipass
