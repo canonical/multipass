@@ -28,4 +28,9 @@ else()
     message(WARNING "No suitable backend exists for the platform!")
 endif()
 
+foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
+    string(TOUPPER "${BACKEND}_ENABLED" BACKEND_ENABLED)
+    set(${BACKEND_ENABLED} ON)
+endforeach()
+
 message(STATUS "Enabled backends: ${MULTIPASS_BACKENDS}")
