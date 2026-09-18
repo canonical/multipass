@@ -961,7 +961,7 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: "90d7d290eac0a1876ef7a59ba266a253c9ffee45"
+      resolved-ref: 21a817b5ff266f334b664c9ddeac41be57b6bae0
       url: "https://github.com/canonical/tray_menu.git"
     source: git
     version: "0.0.1"
