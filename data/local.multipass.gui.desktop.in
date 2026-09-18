@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Multipass (local)
+Exec=@MULTIPASS_GUI@
+Icon=@MULTIPASS_ICON@
+Type=Application
+Terminal=false
+Categories=Utility;

@@ -12,6 +12,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+option(MULTIPASS_DESKTOP_INTEGRATION "Whether to copy the files required for a proper desktop integration of the built executables." OFF)
+
 set(MULTIPASS_GUI_TARGET linux)
 set(MULTIPASS_GUI_PREFIX ${MULTIPASS_GUI_TARGET}/${MULTIPASS_GUI_ARCH}/release)
 set(MULTIPASS_GUI_BUNDLE_RELATIVE bundle)
@@ -27,7 +29,12 @@ set(MULTIPASS_GUI_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/client/gui)
 set(MULTIPASS_GUI_LINK_NAME multipass.gui)
 set(MULTIPASS_GUI_EXECUTABLE_FULL_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${MULTIPASS_GUI_PREFIX}/${MULTIPASS_GUI_BUNDLE_RELATIVE}/${MULTIPASS_GUI_EXEC_PATH_RELATIVE_TO_BUNDLE}/${MULTIPASS_GUI_EXECUTABLE})
 
-file(GLOB_RECURSE MULTIPASS_GUI_SOURCE_FILES ${MULTIPASS_GUI_SOURCE_DIR}/lib/*.dart)
+file(GLOB_RECURSE MULTIPASS_GUI_SOURCE_FILES
+  ${MULTIPASS_GUI_SOURCE_DIR}/lib/*.dart
+  ${MULTIPASS_GUI_SOURCE_DIR}/linux/CMakeLists.txt
+  ${MULTIPASS_GUI_SOURCE_DIR}/linux/*.cc
+  ${MULTIPASS_GUI_SOURCE_DIR}/linux/*.h
+)
 
 set(FLUTTER_BUILD_ARGS --release --suppress-analytics --verbose --build-name=${MULTIPASS_SEMANTIC_VERSION} --build-number=${MULTIPASS_BUILD_NUMBER})
 
@@ -47,6 +54,32 @@ add_custom_command(OUTPUT ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH}
 add_custom_target(${MULTIPASS_GUI_EXECUTABLE} ALL
   DEPENDS ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH}
 )
+
+if(MULTIPASS_DESKTOP_INTEGRATION)
+  set(DESKTOP_FOLDER "$ENV{HOME}/.local/share/applications")
+
+  # Need to match the Application ID.
+  set(DESKTOP_FILENAME "com.canonical.multipass_gui.desktop")
+
+  block()
+    set(MULTIPASS_GUI "${MULTIPASS_GUI_EXECUTABLE_FULL_PATH}")
+    set(MULTIPASS_ICON "${CMAKE_SOURCE_DIR}/data/multipass.gui.svg")
+    configure_file(
+      "${CMAKE_SOURCE_DIR}/data/local.multipass.gui.desktop.in"
+      "${MULTIPASS_GENERATED_SOURCE_DIR}/${DESKTOP_FILENAME}"
+      @ONLY
+    )
+  endblock()
+
+  add_custom_command(
+    TARGET ${MULTIPASS_GUI_EXECUTABLE} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${DESKTOP_FOLDER}
+    COMMAND ${CMAKE_COMMAND} -E copy
+      ${MULTIPASS_GENERATED_SOURCE_DIR}/${DESKTOP_FILENAME}
+      ${DESKTOP_FOLDER}/${DESKTOP_FILENAME}
+    COMMENT "Copying ${DESKTOP_FILENAME} to ${DESKTOP_FOLDER}"
+  )
+endif()
 
 # This creates the link to the executable inside the bundle directory, but will work only after install.
 add_custom_target(${MULTIPASS_GUI_LINK_NAME} ALL
