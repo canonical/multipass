@@ -264,22 +264,27 @@ std::vector<hcn::CreateEndpointParameters> HCSVirtualMachine::make_endpoint_para
     return params;
 };
 
-bool HCSVirtualMachine::maybe_create_compute_system()
+bool HCSVirtualMachine::maybe_open_compute_system()
 {
-    // Always reset the handle and create a new one.
     hcs_system.reset();
-    auto attach_callback_handler = sg::make_scope_guard(
-        [this]() noexcept { set_compute_system_callback_handler(); });
 
     if (const auto result = HCS().open_compute_system(get_name(), hcs_system))
     {
-        // Opened existing VM
-        return false;
+        set_compute_system_callback_handler();
+        return true;
     }
     else if (HCS_E_SYSTEM_NOT_FOUND != static_cast<HRESULT>(result.code))
     {
         throw OpenComputeSystemException{"Failed with error code: {}", result.code};
     }
+
+    return false;
+}
+
+bool HCSVirtualMachine::maybe_create_compute_system()
+{
+    if (maybe_open_compute_system())
+        return false;
 
     // Create the VM from scratch.
     const auto endpoints = make_endpoint_parameters();
@@ -338,6 +343,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     // Also grant access to the VM folder itself
     grant_access_to_paths({instance_dir.absolutePath().toStdString()});
     rollback_creation.dismiss();
+    set_compute_system_callback_handler();
     return true;
 }
 
@@ -383,8 +389,18 @@ void HCSVirtualMachine::start()
     mpl::debug(get_name(), "start() -> Starting VM, current state {}", state);
 
     // Create the compute system, if not created yet.
-    if (maybe_create_compute_system())
+    const auto created_from_scratch = maybe_create_compute_system();
+    if (created_from_scratch)
         mpl::debug(get_name(), "start() -> VM was not present, created from scratch");
+
+    const auto hcs_state = fetch_state_from_api();
+    const auto is_cold_start = hcs_state == hcs::ComputeSystemState::created ||
+                               hcs_state == hcs::ComputeSystemState::stopped;
+    if (!created_from_scratch && is_cold_start && !has_saved_state_file() &&
+        !remove_permanent_ipv4_neighbors(description.default_mac_address))
+    {
+        mpl::warn(get_name(), "Could not remove all stale management IP entries");
+    }
 
     const auto prev_state = state;
     state = VirtualMachine::State::starting;
@@ -392,8 +408,6 @@ void HCSVirtualMachine::start()
     // Resume and start are the same thing in Multipass terms
     // Try to determine whether we need to resume or start here.
     const auto result = [&] {
-        // Fetch the latest state value.
-        const auto hcs_state = fetch_state_from_api();
         switch (hcs_state)
         {
         case hcs::ComputeSystemState::paused:
@@ -517,6 +531,14 @@ void HCSVirtualMachine::suspend()
 
 HCSVirtualMachine::State HCSVirtualMachine::current_state()
 {
+    if (!hcs_system && !maybe_open_compute_system())
+    {
+        if (state != State::unavailable)
+            state = State::off;
+
+        return state;
+    }
+
     set_state(fetch_state_from_api());
     return state;
 }

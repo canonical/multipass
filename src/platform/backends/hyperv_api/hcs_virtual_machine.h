@@ -103,6 +103,14 @@ private:
     void set_state(hcs::ComputeSystemState state);
 
     /**
+     * Open the compute system if it's present.
+     *
+     * @return true The compute system was opened
+     * @return false HCS confirmed the compute system is absent
+     */
+    [[nodiscard]] bool maybe_open_compute_system() noexcept(false);
+
+    /**
      * Create the compute system if it's not already present.
      *
      * @return true The compute system was absent and created
