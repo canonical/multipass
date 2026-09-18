@@ -71,8 +71,9 @@ packages:
 - binfmt-support
 - docker-ce
 - docker-ce-cli
-- docker-compose
 - containerd.io
+- docker-buildx-plugin
+- docker-compose-plugin
 - jq
 - qemu-user-static
 - skopeo
