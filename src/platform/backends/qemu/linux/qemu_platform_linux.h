@@ -59,7 +59,7 @@ private:
     };
     using Bridges = std::unordered_map<std::string, Bridge>;
 
-    [[nodiscard]] static Bridges get_bridges(const AvailabilityZoneManager::Zones& zones);
+    [[nodiscard]] static Bridges get_bridges(const AvailabilityZoneManager::ConstZones& zones);
 
     [[nodiscard]] static BridgeSubnetList get_bridge_list(const Bridges&);
 

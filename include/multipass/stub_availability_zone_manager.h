@@ -41,7 +41,11 @@ public:
         return zone;
     }
 
-    Zones get_zones() const override
+    Zones get_zones() override
+    {
+        return {zone};
+    }
+    ConstZones get_zones() const override
     {
         return {zone};
     }
