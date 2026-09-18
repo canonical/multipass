@@ -25,7 +25,8 @@ add_library(daemon STATIC
   runtime_instance_info_helper.cpp
   snapshot_settings_handler.cpp)
 
-if(HYPERV_HCS_ENABLED)
+if(HYPERV_API_ENABLED)
+  target_compile_definitions(daemon PRIVATE HYPERV_API_ENABLED)
   target_sources(daemon PRIVATE
     hyperv_driver_transition.cpp
     hyperv_migration.cpp)

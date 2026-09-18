@@ -2606,7 +2606,7 @@ try
         val = mp::daemon::interpret_driver(QString::fromStdString(val)).toStdString();
     std::string bridge_name;
 
-#if defined(HYPERV_HCS_ENABLED)
+#if defined(HYPERV_API_ENABLED)
     mp::hyperv::DriverTransition transition{{*config,
                                              vm_instance_specs,
                                              operative_instances,
@@ -2639,7 +2639,7 @@ try
     mpu::send_messages(server, messages);
     mpl::debug(category, "Succeeded setting {}={}", key, val);
 
-#if defined(HYPERV_HCS_ENABLED)
+#if defined(HYPERV_API_ENABLED)
     context->set_value(transition.complete(server));
 #else
     context->set_value(grpc::Status::OK);

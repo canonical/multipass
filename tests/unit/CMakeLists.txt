@@ -151,7 +151,7 @@ add_executable(multipass_cpp_tests
   test_yaml_node_utils.cpp
 )
 
-if(HYPERV_HCS_ENABLED)
+if(HYPERV_API_ENABLED)
   target_sources(multipass_cpp_tests PRIVATE test_hyperv_migration_records.cpp)
 endif()
 
@@ -303,7 +303,7 @@ foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})
 endforeach()
 
-if(HYPERV_HCS_ENABLED)
+if(HYPERV_API_ENABLED)
   add_subdirectory(hyperv_migration)
 endif()
 

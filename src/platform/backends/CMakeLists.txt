@@ -18,6 +18,6 @@ foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})
 endforeach()
 
-if(HYPERV_HCS_ENABLED)
+if(HYPERV_API_ENABLED)
   add_subdirectory(hyperv_migration)
 endif()

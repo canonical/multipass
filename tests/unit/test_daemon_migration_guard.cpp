@@ -41,7 +41,7 @@
 #include <thread>
 #include <tuple>
 
-#if defined(HYPERV_HCS_ENABLED)
+#if defined(HYPERV_API_ENABLED)
 #include "hyperv_api/mock_hyperv_hcn_wrapper.h"
 #include "hyperv_api/mock_hyperv_hcs_wrapper.h"
 
@@ -359,7 +359,7 @@ TEST_F(TestDaemonRpcMigrationGuard, initiatingSettingCanAcquireMigrationGuard)
     EXPECT_TRUE(daemon->is_migrating());
 }
 
-#if defined(HYPERV_HCS_ENABLED)
+#if defined(HYPERV_API_ENABLED)
 TEST_F(TestDaemonMigrationGuard, driverChangeRejectsRunningHcsInstance)
 {
     GuardTestDaemon daemon{config_builder.build()};
