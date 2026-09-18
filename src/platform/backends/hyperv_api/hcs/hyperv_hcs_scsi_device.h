@@ -17,8 +17,9 @@
 
 #pragma once
 
-#include <hyperv_api/hcs/hyperv_hcs_path.h>
 #include <hyperv_api/hcs/hyperv_hcs_scsi_device_type.h>
+
+#include <shared/windows/native_path.h>
 
 #include <fmt/xchar.h>
 
@@ -31,7 +32,7 @@ struct HcsScsiDevice
 {
     HcsScsiDeviceType type;
     std::string name;
-    HcsPath path;
+    NativePath path;
     bool read_only{false};
 };
 

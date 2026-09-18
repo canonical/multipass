@@ -29,9 +29,9 @@ namespace multipass::hyperv::hcs
 
 struct GuestState
 {
-    std::optional<HcsPath> guest_state_file_path{};
-    std::optional<HcsPath> runtime_state_file_path{};
-    std::optional<HcsPath> save_state_file_path{};
+    std::optional<NativePath> guest_state_file_path{};
+    std::optional<NativePath> runtime_state_file_path{};
+    std::optional<NativePath> save_state_file_path{};
 };
 
 struct CreateComputeSystemParameters
