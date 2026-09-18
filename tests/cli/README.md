@@ -195,6 +195,13 @@ Additionally, there's a convenience flag called `--remove-all-instances`. The te
 pytest tests/cli/cli_tests.py --bin-dir build/bin/ --storage-dir=/tmp/multipass-test --remove-all-instances # would remove all instances in the `/tmp/multipass-test` before the test session.
 ```
 
+#### Daemon health check
+
+Before each CLI command, the test harness runs a lightweight daemon liveness probe (`multipass version` with a short timeout). If the daemon is believed to be up but does not respond, the session aborts immediately instead of hanging on the offending command's own timeout. The check is skipped when the daemon was intentionally stopped by the test.
+
+- `--health-check-timeout` (default `5`): seconds to wait for the probe before treating the daemon as unresponsive.
+- `--no-daemon-health-check`: disable the per-step health check.
+
 ### Setting default resources and parameters for the test VM
 
 By default, the default VM is a `noble` VM with `6G` disk, `1G` memory and `2` cores. All of these parameters can be overridden by specifying `--vm-<option>` parameters listed below.

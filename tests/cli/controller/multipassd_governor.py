@@ -242,7 +242,14 @@ class MultipassdGovernor:
         """Stop the multipassd daemon"""
         logging.debug("multipassd-governor :: stop called")
         self.graceful_exit_initiated = True
-        await self.controller.stop()
+        try:
+            await asyncio.wait_for(self.controller.stop(), timeout=30)
+        except asyncio.TimeoutError:
+            logging.warning(
+                "⚠️ multipassd stop timed out after 30s; the daemon may still be running."
+            )
+        except asyncio.CancelledError:
+            raise
 
         if self.monitor_task:
             try:
@@ -279,6 +286,22 @@ class MultipassdGovernor:
     def wait_for_start(self, timeout=60):
         self.daemon_ready_event.wait_until(True, timeout=timeout)
 
+    def check_health(self, timeout=5):
+        """Verify the daemon is responsive before a test step.
+
+        No-op when the daemon is believed to be intentionally down (the ready
+        latch is clear). Otherwise probes the daemon and aborts the session on
+        an unresponsive daemon.
+        """
+        if not self.daemon_ready_event.is_set():
+            return
+
+        healthy = self.asyncio_loop.run(self._probe_healthy(timeout)).result()
+        if not healthy:
+            raise TestSessionFailure(
+                "multipassd is unresponsive; aborting the test session."
+            )
+
     def wait_for_restart(self, timeout=60):
         # Restart events are opaque to us when the controller supports
         # self auto-restart. We need to ensure that the daemon is ready, though.
@@ -292,6 +315,38 @@ class MultipassdGovernor:
             return
         self.wait_for_shutdown(timeout=timeout)
         self.wait_for_start(timeout=timeout)
+
+    @staticmethod
+    async def _run_version_probe():
+        """Run `multipass version` directly; returns (exitcode, stdout)."""
+        async with StdoutAsyncSubprocess(
+            get_multipass_path(),
+            "version",
+            env=get_multipass_env(),
+        ) as version_proc:
+            stdout, _ = await version_proc.communicate()
+            return version_proc.returncode, stdout
+
+    @staticmethod
+    async def _probe_healthy(timeout):
+        """Return True if the daemon answers a cheap `version` probe within `timeout`."""
+        try:
+            exitcode, stdout = await asyncio.wait_for(
+                MultipassdGovernor._run_version_probe(), timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            return False
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            return False
+
+        if exitcode != 0:
+            return False
+        return any(
+            line.lstrip().startswith("multipassd")
+            for line in stdout.decode("utf-8", "replace").splitlines()
+        )
 
     @staticmethod
     async def wait_for_multipassd_ready(timeout=60):
@@ -324,28 +379,23 @@ class MultipassdGovernor:
                     logging.debug(find_stdout)
 
                 # Otherwise, verify the version
-                async with StdoutAsyncSubprocess(
-                    get_multipass_path(),
-                    "version",
-                    env=get_multipass_env(),
-                ) as version_proc:
-                    stdout, _ = await version_proc.communicate()
-                    version_lines = stdout.decode().strip().splitlines()
+                _, stdout = await MultipassdGovernor._run_version_probe()
+                version_lines = stdout.decode().strip().splitlines()
 
-                    if len(version_lines) >= 2:
-                        cli_ver = version_lines[0].split()[-1]
-                        daemon_ver = version_lines[1].split()[-1]
+                if len(version_lines) >= 2:
+                    cli_ver = version_lines[0].split()[-1]
+                    daemon_ver = version_lines[1].split()[-1]
 
-                        if cli_ver == daemon_ver:
-                            return True
+                    if cli_ver == daemon_ver:
+                        return True
 
-                        sys.stderr.write(
-                            f"Version mismatch detected!\n"
-                            f"👉 CLI version: {cli_ver}\n"
-                            f"👉 Daemon version: {daemon_ver}\n"
-                        )
-                        sys.stderr.flush()
-                        return False
+                    sys.stderr.write(
+                        f"Version mismatch detected!\n"
+                        f"👉 CLI version: {cli_ver}\n"
+                        f"👉 Daemon version: {daemon_ver}\n"
+                    )
+                    sys.stderr.flush()
+                    return False
 
             except asyncio.TimeoutError:
                 # Try again.
