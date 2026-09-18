@@ -1,5 +1,4 @@
 # pylint: disable=broad-exception-caught
-#!/usr/bin/env python3
 #
 # Copyright (C) Canonical, Ltd.
 #

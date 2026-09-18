@@ -28,6 +28,19 @@ choco install rust-ms
 
 Controlling the Multipass service and running the Multipass daemon needs superuser privileges. Hence, `sudo` (or `gsudo` in Windows) needs to be available in the environment. The test harness will prompt for an initial `sudo` escalation and will keep the `sudo` ticket alive for the duration of the tests. The tests themselves will run as non-privileged but some parts, like spawning the daemon process, or removing a `root` owned directory will escalate privileges as needed.
 
+## Unit tests for the harness
+
+The harness unit tests are in the sibling `cli-test-ut` directory under `tests`. They use mocked daemon controllers and do not require an installed Multipass daemon or elevated privileges.
+
+After installing the dependencies above, run the following from the repository root:
+
+```shell
+cd tests
+python -m pytest cli-test-ut
+```
+
+Use `python -m pytest` so the `tests` directory is on Python's import path. Keeping these tests outside the `cli` directory prevents them from inheriting the CLI integration tests' autouse fixtures.
+
 ## To run
 
 The tests support running on installed versions of Multipass on Linux (snap), macOS (package), Windows (MSI package). Additionally, the tests also support running on a source-built version of Multipass, which is referred to as `standalone` mode.
