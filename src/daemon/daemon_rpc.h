@@ -59,7 +59,7 @@ public:
               CertStore* client_cert_store,
               std::shared_ptr<logging::MultiplexingLogger> logger);
 
-    void shutdown_and_wait();
+    std::future<void> shutdown();
 
 signals:
     void on_create(const CreateRequest* request,

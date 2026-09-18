@@ -1525,13 +1525,10 @@ void mp::Daemon::shutdown_grpc_server()
 {
     static constexpr auto poll_interval = std::chrono::milliseconds{50};
 
-    // We cannot simply wait for gRPC here, since the RPCs queue slots on this thread.
-    // grpc::Server::Shutdown() refuses new calls right away, but RPCs already in flight still need
-    // this thread to keep pumping events for their slots to finish.
-    auto shutdown = std::async(std::launch::async, [this] { daemon_rpc.shutdown_and_wait(); });
+    auto shutdown = daemon_rpc.shutdown();
 
     do
-    {
+    { // RPCs in flight still need this thread to keep pumping events for their slots to finish.
         QCoreApplication::processEvents(QEventLoop::AllEvents);
     } while (shutdown.wait_for(poll_interval) != std::future_status::ready);
 
