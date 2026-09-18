@@ -1,11 +1,11 @@
 (explanation-image)=
 # Image
 
-> See also: [`find`](/reference/command-line-interface/find), [`launch`](/reference/command-line-interface/launch)
+> See also: [`images`](/reference/command-line-interface/images), [`launch`](/reference/command-line-interface/launch)
 
 Multipass uses **images** (short for [disk images](https://en.wikipedia.org/wiki/Disk_image) or [system images](https://en.wikipedia.org/wiki/System_image)) tuned for cloud usage to spin up VMs.
 
-You can use `multipass find` to view a list of the available images. These images are obtained from different sources, such as:
+You can use `multipass images` to view a list of the available images. These images are obtained from different sources, such as:
 * Ubuntu Cloud Images: https://cloud-images.ubuntu.com/
 * Ubuntu CD Images: https://cdimages.ubuntu.com/
 

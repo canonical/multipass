@@ -324,10 +324,10 @@ In Multipass, an instance with the name "primary" is privileged. That is, it ser
 
 ## Create a customised instance
 
-Multipass has a great feature to help you get started with creating customised instances. Open a terminal and run the `multipass find` command. The result shows a list of all images you can currently launch through Multipass.
+Multipass has a great feature to help you get started with creating customised instances. Open a terminal and run the `multipass images` command. The result shows a list of all images you can currently launch through Multipass.
 
 ```{code-block} text
-$ multipass find
+$ multipass images
 Image             Aliases                     Version          Description
 22.04             jammy                       20260705         Ubuntu 22.04 LTS
 24.04             noble                       20260705         Ubuntu 24.04 LTS

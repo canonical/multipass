@@ -35,9 +35,9 @@ Mounts:         --
 
 ## Create an instance with a specific image
 
-> See also: [`find`](reference-command-line-interface-find), [`launch <image>`](reference-command-line-interface-launch), [`info`](reference-command-line-interface-info)
+> See also: [`images`](reference-command-line-interface-images), [`launch <image>`](reference-command-line-interface-launch), [`info`](reference-command-line-interface-info)
 
-To find out which images are available, run `multipass find`. Here's a sample output:
+To find out which images are available, run `multipass images`. Here's a sample output:
 
 ```{code-block} text
 Image             Aliases                     Version          Description
