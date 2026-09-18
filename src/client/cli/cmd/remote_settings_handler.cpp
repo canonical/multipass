@@ -143,7 +143,7 @@ public:
                 {
                     spinner.stop();
                     mp::BridgePrompter prompter{&term};
-                    const std::vector<std::string> networks{reply.reply_message()};
+                    const std::vector<std::string> networks{1, reply.reply_message()};
                     mp::SetRequest request;
                     request.set_authorized(prompter.bridge_prompt(networks));
                     client->Write(request);
