@@ -287,6 +287,9 @@ bool HCSVirtualMachine::maybe_create_compute_system()
         return false;
 
     // Create the VM from scratch.
+    if (!remove_permanent_ipv4_neighbors(description.default_mac_address))
+        mpl::warn(get_name(), "Could not remove all stale management IP entries");
+
     const auto endpoints = make_endpoint_parameters();
 
     try_create_endpoints(get_name(), endpoints);
