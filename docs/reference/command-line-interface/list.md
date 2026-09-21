@@ -11,7 +11,7 @@ primary                 Suspended         --               Ubuntu 26.04 LTS   zo
 calm-squirrel           Running           10.218.69.109    Ubuntu 26.04 LTS   zone2
 ```
 
-If an instance's zone has been disabled with {ref}`disable-zones <reference-command-line-interface-disable-zones>`, `(n/a)` is appended to its zone in the table output, and its state shows as `Unavailable` (see {ref}`Instance states <reference-instance-states>`).
+If an instance's zone has been disabled with [`multipass disable-zones`](reference-command-line-interface-disable-zones), `(n/a)` is appended to its zone in the table output, and its state shows as `Unavailable` (see {ref}`Instance states <reference-instance-states>`).
 
 You can also call it with the `--snapshots` flag to get an overview of available snapshots. Here's a sample output of `multipass list --snapshots`:
 

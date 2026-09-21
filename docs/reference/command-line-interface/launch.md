@@ -30,7 +30,7 @@ Use the `--network` option to {ref}`create-an-instance-with-multiple-network-int
 
 Passing `--bridged` and `--network bridged` are shortcuts to `--network <name>`, where `<name>` is configured via `multipass set local.bridged-interface`.
 
-By default, Multipass picks an {ref}`availability zone <explanation-availability-zone>` for the instance automatically, cycling through the available zones. Use the `--zone` option to launch the instance into a specific zone instead. See {ref}`zones <reference-command-line-interface-zones>` for a list of the zones known to Multipass and their availability.
+By default, Multipass picks an {ref}`availability zone <explanation-availability-zone>` for the instance automatically, cycling through the available zones. Use the `--zone` option to launch the instance into a specific zone instead. See [`multipass zones`](reference-command-line-interface-zones) for a list of the zones known to Multipass and their availability.
 
 You can also mount folders in the instance after it is launched using the  `--mount` option. It can be specified multiple times, with different mount paths.
 

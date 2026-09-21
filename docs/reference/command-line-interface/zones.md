@@ -14,9 +14,9 @@ zone2   Available    10.42.1.0/24
 zone3   Unavailable  10.42.2.0/24
 ```
 
-A zone in the `Unavailable` state has been disabled with {ref}`disable-zones <reference-command-line-interface-disable-zones>`; instances cannot be launched into it, and any instances already in it are forcefully stopped until the zone is re-enabled with {ref}`enable-zones <reference-command-line-interface-enable-zones>`.
+A zone in the `Unavailable` state has been disabled with [`multipass disable-zones`](reference-command-line-interface-disable-zones); instances cannot be launched into it, and any instances already in it are forcefully stopped until the zone is re-enabled with [`multipass enable-zones`](reference-command-line-interface-enable-zones).
 
-Like {ref}`list <reference-command-line-interface-list>`, `zones` supports the `--format` option to get machine-readable output. For example, `multipass zones --format yaml`:
+Like [`multipass list`](reference-command-line-interface-list), `multipass zones` supports the `--format` option to get machine-readable output. For example, `multipass zones --format yaml`:
 
 ```{code-block} text
 zone1:
