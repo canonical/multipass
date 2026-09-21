@@ -172,14 +172,11 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
         ON_CALL(mock_hcs, shutdown_compute_system(Eq(mock_handle)))
             .WillByDefault([this](const hcs_handle_t&) { return complete_system_exit(); });
         EXPECT_CALL(mock_hcs, shutdown_compute_system(Eq(mock_handle))).Times(AnyNumber());
-        EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-            .Times(AnyNumber())
-            .WillRepeatedly([] {
-                auto* raw_table = new MIB_IPNET_TABLE2{};
-                auto table =
-                    mhv::IpNetTable{raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
-                return mhv::IpNetTableResult{NO_ERROR, std::move(table)};
-            });
+        EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(AnyNumber()).WillRepeatedly([] {
+            auto* raw_table = new MIB_IPNET_TABLE2{};
+            auto table = mhv::IpNetTable{raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
+            return mhv::IpNetTableResult{NO_ERROR, std::move(table)};
+        });
     }
 
     void default_open_success()
@@ -355,32 +352,28 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, create_removes_stale_neighbors_for_man
 {
     default_create_success();
 
-    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-        .WillOnce([] {
-            auto* raw_table = new MIB_IPNET_TABLE2{};
-            raw_table->NumEntries = 1;
-            auto& row = raw_table->Table[0];
-            row.Address.Ipv4.sin_family = AF_INET;
-            row.Address.Ipv4.sin_addr.S_un.S_un_b = {10, 97, 0, 82};
-            row.State = NlnsPermanent;
-            row.PhysicalAddressLength = 6;
-            const std::array<unsigned char, 6> physical_address{
-                0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
-            std::ranges::copy(physical_address, row.PhysicalAddress);
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).WillOnce([] {
+        auto* raw_table = new MIB_IPNET_TABLE2{};
+        raw_table->NumEntries = 1;
+        auto& row = raw_table->Table[0];
+        row.Address.Ipv4.sin_family = AF_INET;
+        row.Address.Ipv4.sin_addr.S_un.S_un_b = {10, 97, 0, 82};
+        row.State = NlnsPermanent;
+        row.PhysicalAddressLength = 6;
+        const std::array<unsigned char, 6> physical_address{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+        std::ranges::copy(physical_address, row.PhysicalAddress);
 
-            auto table = mhv::IpNetTable{
-                raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
-            return mhv::IpNetTableResult{NO_ERROR, std::move(table)};
-        });
-    EXPECT_CALL(mock_net_io_api, DeleteIpNetEntry2(_))
-        .WillOnce([](const MIB_IPNET_ROW2* row) {
-            const auto& address = row->Address.Ipv4.sin_addr.S_un.S_un_b;
-            EXPECT_EQ(address.s_b1, 10);
-            EXPECT_EQ(address.s_b2, 97);
-            EXPECT_EQ(address.s_b3, 0);
-            EXPECT_EQ(address.s_b4, 82);
-            return NO_ERROR;
-        });
+        auto table = mhv::IpNetTable{raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
+        return mhv::IpNetTableResult{NO_ERROR, std::move(table)};
+    });
+    EXPECT_CALL(mock_net_io_api, DeleteIpNetEntry2(_)).WillOnce([](const MIB_IPNET_ROW2* row) {
+        const auto& address = row->Address.Ipv4.sin_addr.S_un.S_un_b;
+        EXPECT_EQ(address.s_b1, 10);
+        EXPECT_EQ(address.s_b2, 97);
+        EXPECT_EQ(address.s_b3, 0);
+        EXPECT_EQ(address.s_b4, 82);
+        return NO_ERROR;
+    });
 
     EXPECT_NO_THROW(construct_vm());
 }
@@ -388,11 +381,10 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, create_removes_stale_neighbors_for_man
 TEST_F(HyperVHCSVirtualMachine_UnitTests, create_continues_when_stale_neighbors_cannot_be_queried)
 {
     default_create_success();
-    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-        .WillOnce([] {
-            auto table = mhv::IpNetTable{nullptr, [](MIB_IPNET_TABLE2*) {}};
-            return mhv::IpNetTableResult{ERROR_ACCESS_DENIED, std::move(table)};
-        });
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).WillOnce([] {
+        auto table = mhv::IpNetTable{nullptr, [](MIB_IPNET_TABLE2*) {}};
+        return mhv::IpNetTableResult{ERROR_ACCESS_DENIED, std::move(table)};
+    });
 
     EXPECT_NO_THROW(construct_vm());
 }

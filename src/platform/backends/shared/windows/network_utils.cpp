@@ -109,9 +109,10 @@ std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_addres
 
     const auto* begin = result.table->Table;
     const auto* end = begin + result.table->NumEntries;
-    if (const auto row = std::find_if(begin, end, [&mac](const MIB_IPNET_ROW2& row) {
-            return matches_mac(row, *mac);
-        });
+    if (const auto row = std::find_if(
+            begin,
+            end,
+            [&mac](const MIB_IPNET_ROW2& row) { return matches_mac(row, *mac); });
         row != end)
         return ipv4_to_string(row->Address.Ipv4.sin_addr);
 
