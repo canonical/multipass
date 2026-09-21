@@ -384,6 +384,7 @@ curl.exe "http://$LB_IP"
 
 ```text
 <h1>Welcome to web-c in zone3</h1>
+<h1>Welcome to web-c in zone3</h1>
 ```
 
 ## Conclusion
