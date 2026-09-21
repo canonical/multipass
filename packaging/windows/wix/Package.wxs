@@ -18,8 +18,8 @@
         </Property>
 
         <Property Id="DRIVER" Value="hyperv_api" Secure="yes" />
-        <Property Id="DRIVER_FULL" Value="hyperv_api" Secure="yes" />
-        <Property Id="DRIVER_LIMITED" Value="hyperv_api" Secure="yes" />
+        <Property Id="DRIVER_FULL" Value="hyperv_api" />
+        <Property Id="DRIVER_LIMITED" Value="hyperv_api" />
 
         <Binary Id="CABinary" SourceFile="custom-actions.dll" />
 
@@ -98,10 +98,9 @@
           Microsoft-Hyper-V) is only offered on editions that support it: Home ("Core") editions do
           not, so the legacy option is hidden there. VirtualBox remains selectable everywhere.
         -->
-        <Property Id="LEGACY_HYPERV_AVAILABLE" Secure="yes" />
         <SetProperty Id="LEGACY_HYPERV_AVAILABLE" Value="1"
             Condition="WINDOWS_EDITION AND NOT (WINDOWS_EDITION &gt;&lt; &quot;Core&quot;)"
-            After="AppSearch" Sequence="both" />
+            After="AppSearch" Sequence="ui" />
 
 
         <!-- Create Multipass daemon configuration file -->

@@ -485,12 +485,16 @@ message SetRequest {
     bool authorized = 4;
 }
 
+message HCSMigrationReport {
+    string phase = 1;
+    string summary = 2;
+}
+
 message SetReply {
     string log_line = 1;
     string reply_message = 2;
     bool needs_authorization = 3;
-    string summary = 4;
-    string migration_phase = 5;
+    HCSMigrationReport hcs_migration_report = 4;
 }
 
 message KeysRequest {
