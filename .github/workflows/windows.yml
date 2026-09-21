@@ -143,7 +143,7 @@ jobs:
       uses: mozilla-actions/sccache-action@v0.0.11
       continue-on-error: true
       with:
-        version: "v0.12.0"
+        version: "v0.18.0"
 
     - name: Install Windows ADK
       uses: crazy-max/ghaction-chocolatey@v4
