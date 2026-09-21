@@ -1,9 +1,9 @@
 (reference-command-line-interface-list)=
 # list
 
-> See also: [`info`](/reference/command-line-interface/info), [`launch`](/reference/command-line-interface/launch), [`snapshot`](/reference/command-line-interface/snapshot), [Availability zone](/explanation/availability-zone)
+> See also: {ref}`info <reference-command-line-interface-info>`, {ref}`launch <reference-command-line-interface-launch>`, {ref}`snapshot <reference-command-line-interface-snapshot>`, {ref}`Availability zone <explanation-availability-zone>`
 
-The `multipass list` command lists available instances or snapshots. With no options, it presents a generic view of instances, with some of their properties, including the [availability zone](/explanation/availability-zone) each instance is in; for example:
+The `multipass list` command lists available instances or snapshots. With no options, it presents a generic view of instances, with some of their properties, including the {ref}`availability zone <explanation-availability-zone>` each instance is in; for example:
 
 ```{code-block} text
 Name                    State             IPv4             Release            Zone
@@ -11,7 +11,7 @@ primary                 Suspended         --               Ubuntu 26.04 LTS   zo
 calm-squirrel           Running           10.218.69.109    Ubuntu 26.04 LTS   zone2
 ```
 
-If an instance's zone has been disabled with [`disable-zones`](/reference/command-line-interface/disable-zones), `(n/a)` is appended to its zone in the table output, and its state shows as `Unavailable` (see [Instance states](/reference/instance-states)).
+If an instance's zone has been disabled with {ref}`disable-zones <reference-command-line-interface-disable-zones>`, `(n/a)` is appended to its zone in the table output, and its state shows as `Unavailable` (see {ref}`Instance states <reference-instance-states>`).
 
 You can also call it with the `--snapshots` flag to get an overview of available snapshots. Here's a sample output of `multipass list --snapshots`:
 

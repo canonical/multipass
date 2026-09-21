@@ -1,9 +1,9 @@
 (reference-command-line-interface-zones)=
 # zones
 
-> See also: [Availability zone](/explanation/availability-zone), [`enable-zones`](/reference/command-line-interface/enable-zones), [`disable-zones`](/reference/command-line-interface/disable-zones), [`launch`](/reference/command-line-interface/launch)
+> See also: {ref}`Availability zone <explanation-availability-zone>`, {ref}`enable-zones <reference-command-line-interface-enable-zones>`, {ref}`disable-zones <reference-command-line-interface-disable-zones>`, {ref}`launch <reference-command-line-interface-launch>`
 
-The `multipass zones` command lists all the [availability zones](/explanation/availability-zone) known to Multipass, together with their current availability and the subnet reserved for instances launched into them.
+The `multipass zones` command lists all the {ref}`availability zones <explanation-availability-zone>` known to Multipass, together with their current availability and the subnet reserved for instances launched into them.
 
 For example:
 
@@ -14,9 +14,9 @@ zone2   Available    10.42.1.0/24
 zone3   Unavailable  10.42.2.0/24
 ```
 
-A zone in the `Unavailable` state has been disabled with [`disable-zones`](/reference/command-line-interface/disable-zones); instances cannot be launched into it, and any instances already in it are forcefully stopped until the zone is re-enabled with [`enable-zones`](/reference/command-line-interface/enable-zones).
+A zone in the `Unavailable` state has been disabled with {ref}`disable-zones <reference-command-line-interface-disable-zones>`; instances cannot be launched into it, and any instances already in it are forcefully stopped until the zone is re-enabled with {ref}`enable-zones <reference-command-line-interface-enable-zones>`.
 
-Like [`list`](/reference/command-line-interface/list), `zones` supports the `--format` option to get machine-readable output. For example, `multipass zones --format yaml`:
+Like {ref}`list <reference-command-line-interface-list>`, `zones` supports the `--format` option to get machine-readable output. For example, `multipass zones --format yaml`:
 
 ```{code-block} text
 zone1:

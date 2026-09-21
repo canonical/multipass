@@ -1,9 +1,9 @@
 (reference-command-line-interface-disable-zones)=
 # disable-zones
 
-> See also: [Availability zone](/explanation/availability-zone), [`enable-zones`](/reference/command-line-interface/enable-zones), [`zones`](/reference/command-line-interface/zones)
+> See also: {ref}`Availability zone <explanation-availability-zone>`, {ref}`enable-zones <reference-command-line-interface-enable-zones>`, {ref}`zones <reference-command-line-interface-zones>`
 
-The `multipass disable-zones` command makes one or more [availability zones](/explanation/availability-zone) unavailable, simulating a loss of availability on a cloud provider. Instances in the affected zones are forcefully switched off, and Multipass refuses to launch new instances into the zone, until it is re-enabled with [`enable-zones`](/reference/command-line-interface/enable-zones).
+The `multipass disable-zones` command makes one or more {ref}`availability zones <explanation-availability-zone>` unavailable, simulating a loss of availability on a cloud provider. Instances in the affected zones are forcefully switched off, and Multipass refuses to launch new instances into the zone, until it is re-enabled with {ref}`enable-zones <reference-command-line-interface-enable-zones>`.
 
 Pass one or more zone names as arguments, or use `--all` to disable every zone at once:
 

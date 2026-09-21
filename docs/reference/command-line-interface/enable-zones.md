@@ -1,9 +1,9 @@
 (reference-command-line-interface-enable-zones)=
 # enable-zones
 
-> See also: [Availability zone](/explanation/availability-zone), [`disable-zones`](/reference/command-line-interface/disable-zones), [`zones`](/reference/command-line-interface/zones)
+> See also: {ref}`Availability zone <explanation-availability-zone>`, {ref}`disable-zones <reference-command-line-interface-disable-zones>`, {ref}`zones <reference-command-line-interface-zones>`
 
-The `multipass enable-zones` command makes one or more [availability zones](/explanation/availability-zone) available again after they were disabled with [`disable-zones`](/reference/command-line-interface/disable-zones). Any instances that were running in the zone when it was disabled are started back up.
+The `multipass enable-zones` command makes one or more {ref}`availability zones <explanation-availability-zone>` available again after they were disabled with {ref}`disable-zones <reference-command-line-interface-disable-zones>`. Any instances that were running in the zone when it was disabled are started back up.
 
 Pass one or more zone names as arguments, or use `--all` to enable every zone at once:
 
