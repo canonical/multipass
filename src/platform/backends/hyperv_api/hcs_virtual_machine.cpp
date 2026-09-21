@@ -133,6 +133,20 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
     HCSVirtualMachine::handle_state_update();
 }
 
+HCSVirtualMachine::~HCSVirtualMachine()
+{
+    top_catch_all(vm_name, [this]() {
+        if (current_state() != State::running)
+            return;
+
+        // Auto-suspend if running
+        suspend();
+        // Persist previous VM state
+        state = VirtualMachine::State::running;
+        handle_state_update();
+    });
+}
+
 void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* context)
 {
 
@@ -151,6 +165,7 @@ void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* co
         mpl::info(vm->get_name(), "compute_system_event_callback() > SystemExited event received");
         vm->state = State::off;
         vm->handle_state_update();
+        vm->termination_signal.signal();
     }
     break;
     case hcs::HcsEventType::Unknown:
@@ -433,7 +448,7 @@ void HCSVirtualMachine::start()
 void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     mpl::debug(get_name(), "shutdown() -> Shutting down, current state {}", state);
-
+    termination_signal.reset();
     try
     {
         check_state_for_shutdown(shutdown_policy);
@@ -469,36 +484,32 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     }
 
     // We need to wait here.
-    auto on_timeout = [] {
+    if (!termination_signal.wait_for(vm_shutdown_timeout))
         throw std::runtime_error("timed out waiting for VM shutdown to complete");
-    };
 
-    multipass::utils::try_action_for(on_timeout, vm_shutdown_timeout, [this]() {
-        switch (current_state())
-        {
-        case VirtualMachine::State::stopped:
-        case VirtualMachine::State::off:
-            return multipass::utils::TimeoutAction::done;
-        default:
-            return multipass::utils::TimeoutAction::retry;
-        }
-    });
+    switch (auto s = current_state())
+    {
+    case VirtualMachine::State::stopped:
+    case VirtualMachine::State::off:
+    case VirtualMachine::State::suspended:
+        break;
+    default:
+        mpl::warn(get_name(), "shutdown -> VM is not in stopped state after termination: {}", s);
+        break;
+    }
 }
 
 void HCSVirtualMachine::suspend()
 {
     mpl::debug(get_name(), "suspend() -> Suspending, current state {}", state);
+
     if (const auto pause_result = HCS().pause_compute_system(hcs_system))
     {
         // Pause succeeded. We can suspend to disk now
         if (const auto& r = HCS().save_compute_system(hcs_system, get_saved_state_file_path()); r)
         {
             // Save succeeded. Now, it's safe to terminate the system.
-            if (const auto& terminate_result = HCS().terminate_compute_system(hcs_system);
-                !terminate_result)
-                mpl::warn(get_name(),
-                          "VM suspended successfully but terminate failed, reason: {}",
-                          terminate_result);
+            shutdown(ShutdownPolicy::Poweroff);
         }
         else
             throw SaveComputeSystemException{"Could not save the virtual machine state for VM `{}` "
@@ -510,6 +521,7 @@ void HCSVirtualMachine::suspend()
     {
         throw SaveComputeSystemException{"Could not pause VM for suspend: {}", pause_result};
     }
+
     set_state(fetch_state_from_api());
     handle_state_update();
 }
@@ -582,7 +594,7 @@ void HCSVirtualMachine::handle_state_update()
 hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api() const
 {
     hcs::ComputeSystemState compute_system_state{hcs::ComputeSystemState::unknown};
-    const auto result = HCS().get_compute_system_state(hcs_system, compute_system_state);
+    const auto r = HCS().get_compute_system_state(hcs_system, compute_system_state);
     return compute_system_state;
 }
 

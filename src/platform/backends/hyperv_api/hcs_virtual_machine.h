@@ -21,6 +21,7 @@
 #include <hyperv_api/hcs/hyperv_hcs_compute_system_state.h>
 #include <hyperv_api/hcs/hyperv_hcs_system_handle.h>
 
+#include <multipass/signal.h>
 #include <shared/base_virtual_machine.h>
 
 #include <multipass/virtual_machine_description.h>
@@ -63,6 +64,8 @@ struct HCSVirtualMachine : public BaseVirtualMachine
                       AvailabilityZone& zone,
                       const Path& dest_instance_dir);
 
+    ~HCSVirtualMachine();
+
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy) override;
     void suspend() override;
@@ -96,6 +99,7 @@ private:
     VirtualMachineDescription description{};
     const std::string primary_network_guid{};
     VMStatusMonitor& monitor;
+    Signal termination_signal;
 
     hcs::HcsSystemHandle hcs_system{nullptr};
 
