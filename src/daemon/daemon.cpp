@@ -1300,20 +1300,15 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
         "When you are ready to have your instances migrated, please stop them "
         "(multipass stop --all) and switch to the new {0} driver "
         "(multipass set local.driver={1}).";
-    static constexpr auto* recommended_driver_name =
+    static constexpr auto recommended_driver = std::pair{
 #ifdef MULTIPASS_PLATFORM_APPLE
-        "Apple Virtualization framework"
-#else
-        "Host Compute System (HCS)"
-#endif
-        ;
-    static constexpr auto* recommended_driver_setting =
-#ifdef MULTIPASS_PLATFORM_APPLE
+        "Apple Virtualization framework",
         "applevz"
 #else
+        "Host Compute System (HCS)",
         "hcs"
 #endif
-        ;
+    };
 
     // We know the driver doesn't change throughout a daemon run, so cache it and avoid the whole
     // settings call tree (which would run on every GUI poll)
@@ -1334,8 +1329,8 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
     if (current_driver == "virtualbox" || current_driver == "hyperv")
     {
         const auto deprecation_warning = compose_warning(current_driver,
-                                                         recommended_driver_name,
-                                                         recommended_driver_setting,
+                                                         recommended_driver.first,
+                                                         recommended_driver.second,
                                                          current_driver == "hyperv");
         W reply{};
         reply.set_log_line(std::move(deprecation_warning));
