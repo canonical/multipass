@@ -205,8 +205,7 @@ TEST_F(PermanentIpv4Neighbor, removesAllEntriesForMac)
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
         .WillOnce(Return(ByMove(mp::hyperv::IpNetTableResult{
             NO_ERROR,
-            make_neighbor_table(
-                {{172, 19, 154, 10}, {10, 97, 0, 75}, {10, 97, 1, 11}})})));
+            make_neighbor_table({{172, 19, 154, 10}, {10, 97, 0, 75}, {10, 97, 1, 11}})})));
     std::vector<std::string> removed_addresses;
     EXPECT_CALL(mock_net_io_api, DeleteIpNetEntry2(_))
         .Times(3)
@@ -218,8 +217,7 @@ TEST_F(PermanentIpv4Neighbor, removesAllEntriesForMac)
         });
 
     EXPECT_TRUE(mp::remove_permanent_ipv4_neighbors("aa:bb:cc:dd:ee:ff"));
-    EXPECT_THAT(removed_addresses,
-                ElementsAre("172.19.154.10", "10.97.0.75", "10.97.1.11"));
+    EXPECT_THAT(removed_addresses, ElementsAre("172.19.154.10", "10.97.0.75", "10.97.1.11"));
 }
 
 TEST(PlatformWin, testDefaultDriver)
@@ -804,8 +802,7 @@ TEST(PlatformWin, test_qstr_path_conversion)
 mp::hyperv::IpNetTable make_neighbor_table(
     std::initializer_list<std::array<unsigned char, 4>> addresses)
 {
-    const auto size = sizeof(MIB_IPNET_TABLE2) +
-                      (addresses.size() - 1) * sizeof(MIB_IPNET_ROW2);
+    const auto size = sizeof(MIB_IPNET_TABLE2) + (addresses.size() - 1) * sizeof(MIB_IPNET_ROW2);
     auto* storage = new std::byte[size]{};
     auto* table = reinterpret_cast<MIB_IPNET_TABLE2*>(storage);
     table->NumEntries = static_cast<ULONG>(addresses.size());
@@ -815,18 +812,14 @@ mp::hyperv::IpNetTable make_neighbor_table(
     {
         auto& row = table->Table[index++];
         row.Address.Ipv4.sin_family = AF_INET;
-        row.Address.Ipv4.sin_addr.S_un.S_un_b = {
-            address[0], address[1], address[2], address[3]};
+        row.Address.Ipv4.sin_addr.S_un.S_un_b = {address[0], address[1], address[2], address[3]};
         row.State = NlnsPermanent;
         row.PhysicalAddressLength = 6;
-        const std::array<unsigned char, 6> physical_address{
-            0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+        const std::array<unsigned char, 6> physical_address{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
         std::ranges::copy(physical_address, row.PhysicalAddress);
     }
 
-    return {table, [](MIB_IPNET_TABLE2* table) {
-                delete[] reinterpret_cast<std::byte*>(table);
-            }};
+    return {table, [](MIB_IPNET_TABLE2* table) { delete[] reinterpret_cast<std::byte*>(table); }};
 }
 
 } // namespace
