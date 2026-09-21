@@ -311,7 +311,7 @@ To simulate an outage of an entire availability zone, disable `zone1`. Multipass
 multipass disable-zones zone1
 ```
 
-After a few moments, query the same load balancer address twice. HAProxy detects that `web-a` is unavailable and sends the requests to the surviving web servers:
+After a few moments, query the same load balancer address three times. HAProxy detects that `web-a` is unavailable and sends the requests to the surviving web servers:
 
 `````{tab-set}
 
@@ -319,6 +319,7 @@ After a few moments, query the same load balancer address twice. HAProxy detects
 :sync: Linux/macOS
 
 ```bash
+curl http://$LB_IP
 curl http://$LB_IP
 curl http://$LB_IP
 ```
@@ -343,6 +344,7 @@ curl.exe "http://$LB_IP"
 ```text
 <h1>Welcome to web-b in zone2</h1>
 <h1>Welcome to web-c in zone3</h1>
+<h1>Welcome to web-b in zone2</h1>
 ```
 
 Notice that none of the responses comes from `web-a` in `zone1`.
