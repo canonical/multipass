@@ -376,6 +376,7 @@ curl http://$LB_IP
 
 ```powershell
 curl.exe "http://$LB_IP"
+curl.exe "http://$LB_IP"
 ```
 
 ````
