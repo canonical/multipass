@@ -9,7 +9,7 @@ Every instance belongs to exactly one zone, chosen at launch time and visible as
 
 ## Default zones
 
-Out of the box, Multipass creates three zones: `zone1`, `zone2` and `zone3`. Each zone reserves its own subnet, so instances in different zones never share the same private network. Use [`multipass zones`](reference-command-line-interface-zones) to see the current zones, their availability, and their subnets.
+Out of the box, Multipass creates three zones: `zone1`, `zone2` and `zone3`. Each zone reserves its own subnet, so instances in different zones never share the same private network. Use [`multipass zones`](reference-command-line-interface-zones) to see the current zones, their availability, and the subnet assigned to each one.
 
 ## Choosing a zone at launch
 
