@@ -342,6 +342,18 @@ a genuinely-new *human* contributor whose only in-range commits happen to be
 skip-filtered (e.g. a tests-only or CI-only change) must still be listed — only
 dependency/CI *bots* are excluded.
 
+**PR-link convention — match the template exactly.** The template
+(`RELEASE_NOTES_TEMPLATE.md`) links PRs in only three sections: **Bug fixes**,
+**Documentation**, and **New contributors**. **Breaking Changes** and
+**Features / New features and improvements** render as `- [{category}] {subject}`
+with **no** `[#N](...)` link. This holds even when you depart from the literal
+mustache layout and hand-author curated, themed subsections (e.g. grouping
+features under `###` headings): keep the same linking rule — no PR links under
+Breaking Changes or any Features/improvements subsection; links only under Bug
+fixes, Documentation, and New contributors. Do not add PR links uniformly to
+every bullet. If a breaking or feature entry needs traceability, put the PR
+number in your working notes, not in the published bullet.
+
 `names` is a sorted list of logins (unresolvable ones fall back to display
 names — verify those by hand before publishing, since a display name with a
 space renders a broken `github.com/<name>` link). The linked PR is the
