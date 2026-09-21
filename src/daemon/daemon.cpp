@@ -1328,7 +1328,8 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
 
     if (current_driver == "virtualbox" || current_driver == "hyperv")
     {
-        const auto deprecation_warning = compose_warning(current_driver,
+        const auto current_name = current_driver == "hyperv" ? "Hyper-V" : "VirtualBox";
+        const auto deprecation_warning = compose_warning(current_name,
                                                          recommended_driver.first,
                                                          recommended_driver.second,
                                                          current_driver == "hyperv");
