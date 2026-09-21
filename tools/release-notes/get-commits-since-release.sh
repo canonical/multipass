@@ -390,13 +390,19 @@ if [[ $GROUP_BY_AUTHOR == true ]]; then
   fi
 elif [[ $JSON_OUTPUT == true ]]; then
   # Generate JSON output with categorization
-  HISTORICAL_AUTHORS=$(git log --all --before="$(git log -1 --format=%aI $FROM_TAG)" --format=format:"%aN" 2>/dev/null | sort | uniq)
-  # Use the tag's own date (when the release was actually cut) as the "shipped"
-  # cutoff. The tagged commit's author date can be days/weeks earlier, which
-  # would wrongly count work merged in between as "before release".
-  TAG_DATE=$(git for-each-ref --format='%(taggerdate:iso-strict)' "refs/tags/$FROM_TAG")
-  # Lightweight tags have no tagger date; fall back to the commit date.
-  [[ -z $TAG_DATE ]] && TAG_DATE=$(git log -1 --format=%cI "$FROM_TAG")
+
+  # New-author cutoff: authors with any commit before this date are "historical".
+  # The previous release tag may be a PATCH cut from a release branch that is
+  # NOT an ancestor of the range end, in which case the tag's own date sits
+  # *after* most of this release's development and would sweep every
+  # contributor into "historical" (yielding zero new authors). Use the branch
+  # point instead -- the merge-base of the tag and the range end -- so
+  # "historical" means "authored before this release line diverged". For a
+  # normal ancestor tag the merge-base IS the tagged commit, so this is
+  # equivalent to the tag date in the common case.
+  CUTOFF_REF=$(git merge-base "$FROM_TAG" "$TO_REF" 2>/dev/null || echo "$FROM_TAG")
+  TAG_DATE=$(git log -1 --format=%cI "$CUTOFF_REF")
+  HISTORICAL_AUTHORS=$(git log --all --before="$TAG_DATE" --format=format:"%aN" 2>/dev/null | sort | uniq)
 
   # Enrichment requires the GitHub CLI
   if ! command -v gh > /dev/null 2>&1; then
