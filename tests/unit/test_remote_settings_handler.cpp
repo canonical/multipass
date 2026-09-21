@@ -302,13 +302,14 @@ TEST_F(RemoteSettingsTest, setDisplaysMigrationProgressDiagnosticsAndSummary)
         switch (read_count++)
         {
         case 0:
-            reply->set_migration_phase("Copying disks: vm");
+            reply->mutable_hcs_migration_report()->set_phase("Copying disks: vm");
             return true;
         case 1:
             reply->set_log_line("Cannot migrate other: instance is running\n");
             return true;
         case 2:
-            reply->set_summary("The following instances were successfully migrated:\n  vm\n");
+            reply->mutable_hcs_migration_report()->set_summary(
+                "The following instances were successfully migrated:\n  vm\n");
             return true;
         default:
             return false;

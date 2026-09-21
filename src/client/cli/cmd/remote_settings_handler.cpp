@@ -138,6 +138,8 @@ public:
                 if (!reply.log_line().empty())
                     spinner.print(term.cerr(), reply.log_line());
 
+                const auto& migration_report = reply.hcs_migration_report();
+
                 if (key.startsWith(mp::daemon_settings_root) &&
                     key.endsWith(mp::bridged_network_name) && reply.needs_authorization())
                 {
@@ -148,17 +150,17 @@ public:
                     request.set_authorized(prompter.bridge_prompt(networks));
                     client->Write(request);
                 }
-                else if (!reply.summary().empty())
+                else if (!migration_report.summary().empty())
                 {
                     spinner.stop();
-                    term.cout() << reply.summary();
-                    if (reply.summary().back() != '\n')
+                    term.cout() << migration_report.summary();
+                    if (migration_report.summary().back() != '\n')
                         term.cout() << '\n';
                 }
-                else if (!reply.migration_phase().empty())
+                else if (!migration_report.phase().empty())
                 {
                     spinner.stop();
-                    spinner.start(reply.migration_phase());
+                    spinner.start(migration_report.phase());
                 }
                 else if (!reply.reply_message().empty())
                 {

@@ -119,13 +119,13 @@ grpc::Status mhv::DriverTransition::complete(
         switch (kind)
         {
         case MigrationMessage::phase:
-            reply.set_migration_phase(text);
+            reply.mutable_hcs_migration_report()->set_phase(text);
             break;
         case MigrationMessage::diagnostic:
             reply.set_log_line(text);
             break;
         case MigrationMessage::summary:
-            reply.set_summary(text);
+            reply.mutable_hcs_migration_report()->set_summary(text);
             break;
         }
 

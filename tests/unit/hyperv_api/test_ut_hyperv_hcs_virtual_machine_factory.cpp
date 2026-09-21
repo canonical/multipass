@@ -108,7 +108,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, usesDedicatedBackendDirectory)
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_vm_exists)
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, removeResourcesForImplVmExists)
 {
     auto vm_name = "test-vm";
     EXPECT_CALL(mock_hcs, open_compute_system(_, _))
@@ -138,7 +138,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_vm_ex
     uut->remove_resources_for(vm_name);
 }
 
-TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_does_not_exists)
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, removeResourcesForImplDoesNotExist)
 {
     auto vm_name = "test-vm";
     EXPECT_CALL(mock_hcs, open_compute_system(_, _))
@@ -156,7 +156,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, remove_resources_for_impl_does_
 }
 
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
-       remove_resources_for_impl_cleans_up_endpoints_by_name_when_already_terminated)
+       removeResourcesForImplCleansUpEndpointsByNameWhenAlreadyTerminated)
 {
     auto vm_name = "test-vm";
     EXPECT_CALL(mock_hcs, open_compute_system(_, _))
@@ -184,7 +184,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
 }
 
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
-       release_resources_removes_named_endpoint_without_compute_system)
+       releaseResourcesRemovesNamedEndpointWithoutComputeSystem)
 {
     const std::string vm_name{"test-vm"};
     EXPECT_CALL(mock_hcs, open_compute_system(vm_name, _))
@@ -198,7 +198,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
 }
 
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
-       release_resources_keeps_endpoint_when_compute_system_cleanup_fails)
+       releaseResourcesKeepsEndpointWhenComputeSystemCleanupFails)
 {
     const std::string vm_name{"test-vm"};
     EXPECT_CALL(mock_hcs, open_compute_system(vm_name, _))
@@ -208,7 +208,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
     EXPECT_FALSE(mhv::release_hcs_resources(vm_name));
 }
 
-TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, release_resources_reports_endpoint_lookup_failure)
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, releaseResourcesReportsEndpointLookupFailure)
 {
     EXPECT_CALL(mock_hcs, open_compute_system("test-vm", _))
         .WillOnce(Return(hcs_op_result_t{HCS_E_SYSTEM_NOT_FOUND, L""}));
@@ -220,7 +220,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, release_resources_reports_endpo
 }
 
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
-       release_resources_attempts_all_endpoints_and_reports_failure)
+       releaseResourcesAttemptsAllEndpointsAndReportsFailure)
 {
     EXPECT_CALL(mock_hcs, open_compute_system("test-vm", _))
         .WillOnce(Return(hcs_op_result_t{HCS_E_SYSTEM_NOT_FOUND, L""}));
@@ -234,7 +234,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests,
     EXPECT_FALSE(mhv::release_hcs_resources("test-vm"));
 }
 
-TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepare_instance_image)
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepareInstanceImage)
 {
     std::shared_ptr<uut_t> uut{nullptr};
 
@@ -251,7 +251,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepare_instance_image)
     uut->prepare_instance_image(img, desc);
 }
 
-TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepare_instance_image_failed)
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepareInstanceImageFailed)
 {
     std::shared_ptr<uut_t> uut{nullptr};
 
@@ -268,7 +268,7 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepare_instance_image_failed)
     EXPECT_THROW(uut->prepare_instance_image(img, desc), mhv::ImageResizeException);
 }
 
-TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, create_virtual_machine)
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, createVirtualMachine)
 {
     std::shared_ptr<uut_t> uut{nullptr};
     multipass::VirtualMachineDescription desc;
