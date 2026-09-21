@@ -36,6 +36,7 @@
 #include <QCoreApplication>
 
 #include <csignal>
+#include <signal.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -44,16 +45,35 @@ namespace mpp = multipass::platform;
 namespace
 {
 
+void signal_handler(int signo)
+{
+    if (signo == SIGTERM || signo == SIGINT || signo == SIGUSR1)
+    {
+        mpp::AsyncSignalSafeTransport::signal(signo);
+    }
+}
+
+void register_signal_handlers()
+{
+    struct sigaction sa = {};
+    sa.sa_handler = &signal_handler;
+    sigemptyset(&sa.sa_mask);
+    if (sigaction(SIGTERM, &sa, nullptr) < 0 || sigaction(SIGINT, &sa, nullptr) < 0 ||
+        sigaction(SIGUSR1, &sa, nullptr) < 0)
+    {
+        throw std::runtime_error(
+            fmt::format("Failed to register signal handlers for SIGTERM, SIGINT, or SIGUSR1: {}",
+                        strerror(errno)));
+    }
+}
+
 class UnixSignalHandler
 {
 public:
     UnixSignalHandler(mp::Signal& app_ready_signal)
-        : app_ready_signal(app_ready_signal),
-          signal_handling_thread{
-              [this, sigs = mpp::make_and_block_signals({SIGTERM, SIGINT, SIGUSR1})] {
-                  monitor_signals(sigs);
-              }}
+        : app_ready_signal(app_ready_signal), signal_handling_thread{[this] { monitor_signals(); }}
     {
+        register_signal_handlers();
     }
 
     ~UnixSignalHandler()
@@ -61,23 +81,32 @@ public:
         pthread_kill(signal_handling_thread.thread.native_handle(), SIGUSR1);
     }
 
-    void monitor_signals(sigset_t sigset)
+    void monitor_signals()
     {
-        int sig = -1;
-        sigwait(&sigset, &sig);
-        if (sig != SIGUSR1)
-            mpl::info("daemon", "Received signal {} ({})", sig, strsignal(sig));
+        auto signo = signal_transport.wait();
+        if (!signo.has_value())
+        {
+            mpl::error("daemon",
+                       "Something went wrong while waiting for termination signals... "
+                       "Program will be stopped.");
+        }
+        else if (*signo != SIGUSR1)
+        {
+            mpl::info("daemon", "Received signal {} ({})", *signo, strsignal(*signo));
+        }
 
         // In order to be able to gracefully end the application via QCoreApplication::quit()
         // the initialization (QT, Daemon) have to happen first. Otherwise, the application
-        // might not be in a state that the QT's event loop would pick up the signal and terminate.
-        // This happens when the daemon is started and being signaled in quick succession.
+        // might not be in a state that the QT's event loop would pick up the signal and
+        // terminate. This happens when the daemon is started and being signaled in quick
+        // succession.
         app_ready_signal.wait();
         QCoreApplication::quit();
     }
 
 private:
     mp::Signal& app_ready_signal;
+    mpp::AsyncSignalSafeTransport signal_transport;
     mp::AutoJoinThread signal_handling_thread;
 };
 

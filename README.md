@@ -98,7 +98,25 @@ the default linker of the toolchain. To override, set
 [CMAKE_LINKER_TYPE](https://cmake.org/cmake/help/latest/variable/CMAKE_LINKER_TYPE.html#cmake-linker-type) at CMake
 configure step.
 
-## Contributing
+## Developer environment setup
+
+You can quickly set up a working development environment by following the [Multipass development guide](./dev-docs/DEVELOP.md).
+
+## Code of Conduct
+
+When contributing, you must adhere to the [Code of Conduct](https://ubuntu.com/community/ethos/code-of-conduct).
+
+## Copyright
+
+The code in this repository is licensed under GNU General Public License v3.0.
+See [LICENSE](https://github.com/canonical/multipass/blob/main/LICENSE) for more information.
+
+## License agreement
+
+All contributors must sign the [Canonical contributor license agreement (CLA)](https://ubuntu.com/legal/contributors),
+which gives Canonical permission to use the contributions. Without the CLA, contributions cannot be accepted.
+
+## Pull requests
 
 The Multipass team appreciates contributions to the project, through pull requests, issues, or discussions.
 Changes to this project should be proposed as pull requests. Proposed changes will then go through review and once

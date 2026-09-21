@@ -29,6 +29,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <stdexcept>
 #include <unistd.h>
 
 #include <cerrno>
@@ -185,9 +186,7 @@ QString mp::platform::Platform::multipass_storage_location() const
 
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
 {
-    struct stat st
-    {
-    };
+    struct stat st{};
 
     auto ret = lstat(path, &st);
 
@@ -293,3 +292,60 @@ void mp::platform::Platform::shutdown_socket(mp::Socket socket) const
         if (auto err = errno; err != ENOTCONN)
             throw std::system_error(err, std::generic_category(), "Failed to shutdown socket");
 }
+
+namespace multipass::platform
+{
+
+AsyncSignalSafeTransport::AsyncSignalSafeTransport()
+{
+    if (fd[0] != -1 || fd[1] != -1)
+    {
+        throw std::logic_error("AsyncSignalSafeTransport already initialized");
+    }
+
+    if (pipe(fd) != 0)
+    {
+        throw std::runtime_error(
+            fmt::format("Failed to create clean exit pipe: {}", strerror(errno)));
+    }
+}
+
+AsyncSignalSafeTransport::~AsyncSignalSafeTransport()
+{
+    close(fd[0]);
+    close(fd[1]);
+}
+
+void AsyncSignalSafeTransport::signal(int signo)
+{
+    write(fd[1], &signo, sizeof(int));
+}
+
+std::optional<int> AsyncSignalSafeTransport::wait()
+{
+    auto signo = int{};
+    auto begin = reinterpret_cast<char*>(&signo);
+    auto count = size_t{};
+
+    while (true)
+    {
+        auto r = read(fd[0], begin + count, sizeof(int) - count);
+        if (r >= 0)
+        {
+            count += r;
+        }
+        else if (errno != EINTR)
+        {
+            // EINTR can be safely ignored: they happen when a
+            // read is interrupted by a signal.
+            return std::nullopt;
+        }
+
+        if (count == sizeof(int))
+        {
+            return signo;
+        }
+    };
+}
+
+} // namespace multipass::platform

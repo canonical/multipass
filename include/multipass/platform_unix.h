@@ -18,7 +18,10 @@
 #pragma once
 
 #include <csignal>
+#include <optional>
 #include <vector>
+
+#include <multipass/disabled_copy_move.h>
 
 #include "singleton.h"
 
@@ -39,5 +42,22 @@ public:
 
 sigset_t make_sigset(const std::vector<int>& sigs);
 sigset_t make_and_block_signals(const std::vector<int>& sigs);
+
+/**
+ * This class supports signals being sent from different asynchronous contexts.
+ * Reads need to happen from a single thread.
+ */
+class AsyncSignalSafeTransport : private DisabledCopyMove
+{
+public:
+    AsyncSignalSafeTransport();
+    ~AsyncSignalSafeTransport();
+
+    static void signal(int signo);
+    std::optional<int> wait();
+
+private:
+    static inline int fd[2] = {-1, -1};
+};
 
 } // namespace multipass::platform
