@@ -28,6 +28,7 @@
 
 #include <memory>
 #include <optional>
+#include <system_error>
 
 struct HCS_EVENT;
 
@@ -105,6 +106,8 @@ private:
 
     [[nodiscard]] hcs::ComputeSystemState fetch_state_from_api() const;
     void set_state(hcs::ComputeSystemState state);
+    void set_state(State state);
+    void update_current_state();
 
     /**
      * Create the compute system if it's not already present.
@@ -123,6 +126,7 @@ private:
     [[nodiscard]] std::filesystem::path get_runtime_state_file_path() const;
     [[nodiscard]] std::filesystem::path get_saved_state_file_path() const;
     [[nodiscard]] bool has_saved_state_file() const;
+    std::error_code remove_saved_state_file_if_exists();
 
     void grant_access_to_scsi_device(const hcs::HcsScsiDevice& device) const;
     void grant_access_to_paths(std::list<std::filesystem::path> paths) const;

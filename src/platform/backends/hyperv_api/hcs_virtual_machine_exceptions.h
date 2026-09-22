@@ -92,4 +92,9 @@ struct SaveComputeSystemException : public FormattedExceptionBase<>
     using FormattedExceptionBase::FormattedExceptionBase;
 };
 
+struct ShutdownComputeSystemException : public FormattedExceptionBase<>
+{
+    using FormattedExceptionBase::FormattedExceptionBase;
+};
+
 } // namespace multipass::hyperv
