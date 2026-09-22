@@ -182,24 +182,6 @@ final zonesProvider = Provider<BuiltList<Zone>>((ref) {
       );
 });
 
-// Tracks zone names with an in-flight zonesState request.
-class PendingZoneTogglesNotifier extends Notifier<BuiltSet<String>> {
-  @override
-  BuiltSet<String> build() => BuiltSet();
-
-  void add(String zoneName) {
-    state = state.rebuild((b) => b.add(zoneName));
-  }
-
-  void remove(String zoneName) {
-    state = state.rebuild((b) => b.remove(zoneName));
-  }
-}
-
-final pendingZoneTogglesProvider =
-    NotifierProvider<PendingZoneTogglesNotifier, BuiltSet<String>>(
-        PendingZoneTogglesNotifier.new);
-
 // Whether the active backend implements Availability Zones. Backends that don't
 // (VirtualBox, old Hyper-V) return no zones, so an empty list means unsupported.
 // TODO@backends: remove once deprecated backends are removed
