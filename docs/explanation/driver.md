@@ -15,7 +15,7 @@ Different sets of drivers are available on different platforms:
 
 - On Linux, Multipass uses QEMU.
 - On macOS, the options are QEMU, the Apple Virtualization framework (AppleVZ), and VirtualBox (deprecated).
-- On Windows, Multipass uses native APIs. The options are the Host Compute System API or Hyper-V (deprecated).
+- On Windows, Multipass supports the Host Compute System API, Hyper-V (deprecated), and VirtualBox (deprecated).
 
 ## Default drivers
 
