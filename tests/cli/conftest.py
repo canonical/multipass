@@ -329,7 +329,7 @@ def pytest_collection_modifyitems(config, items):
     def maybe_skip_az_test(item):
         if not item.get_closest_marker("az"):
             return
-        # hyperv_api is the successor of the deprecated `hyperv` backend and
+        # hcs is the successor of the deprecated `hyperv` backend and
         # does support availability zones -- only the legacy `hyperv` and
         # `virtualbox` backends are excluded here.
         if cfg.driver in ("hyperv", "virtualbox"):
