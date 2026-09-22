@@ -71,41 +71,13 @@ void BaseAvailabilityZone::set_available(const bool new_available)
         return;
 
     m.available = new_available;
-    auto save_file_guard = sg::make_scope_guard([this]() noexcept {
-        try
-        {
-            save_file();
-        }
-        catch (const std::exception& e)
-        {
-            mpl::error(name, "Failed to serialize availability zone: {}", e.what());
-        }
-    });
-
     try
     {
-        for (auto& vm : vms)
-            vm.get().set_available(new_available);
+        save_file();
     }
-    catch (...)
+    catch (const std::exception& e)
     {
-        // if an error occurs fallback to available.
-        m.available = true;
-
-        // make sure nothing is still unavailable.
-        for (auto& vm : vms)
-        {
-            // setting the state here breaks encapsulation, but it's already broken.
-            std::unique_lock vm_lock{vm.get().state_mutex};
-            if (vm.get().current_state() == VirtualMachine::State::unavailable)
-            {
-                vm.get().state = VirtualMachine::State::off;
-                vm.get().handle_state_update();
-            }
-        }
-
-        // rethrow the error so something else can deal with it.
-        throw;
+        mpl::error(name, "Failed to serialize availability zone: {}", e.what());
     }
 }
 

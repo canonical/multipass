@@ -446,6 +446,12 @@ void mp::VirtualBoxVirtualMachine::suspend()
     monitor->on_suspend();
 }
 
+bool mp::VirtualBoxVirtualMachine::set_available(bool /*available*/)
+{
+    assert(false && "VirtualBox driver doesn't support availability zones");
+    return false;
+}
+
 mp::VirtualMachine::State mp::VirtualBoxVirtualMachine::current_state()
 {
     auto present_state = instance_state_for(name);
