@@ -52,19 +52,46 @@ driver and bringing over anything you need from the old one, for example:
 
 ```{code-block} text
 multipass set local.driver=virtualbox
-multipass mount <local-path> <instance>:<path>   # or: multipass transfer <instance>:<path> <local-path>, to copy files out
+multipass mount <local-path> <instance>:<path>
+# or: multipass transfer <instance>:<path> <local-path>, to copy files out
 multipass set local.driver=<new-driver>
 multipass launch --name <instance> ...
-multipass mount <local-path> <instance>:<path>   # or: multipass transfer <local-path> <instance>:<path>, to copy files in
+multipass mount <local-path> <instance>:<path>
+# or: multipass transfer <local-path> <instance>:<path>, to copy files in
 ```
 
-Once you have recreated the instances you need, you can delete the old VirtualBox ones by
-temporarily switching back:
+`````{tab-set}
+
+````{tab-item} macOS
+:sync: macOS
+
+Once you have (re-)created the instances you need on the new driver, you can permanently delete the
+original instances. For this, temporarily move back to `virtualbox` and use the `delete` (and purge)
+command before switching to the `applevz` driver again:
 
 ```{code-block} text
 multipass set local.driver=virtualbox
 multipass delete [-p] <instance> [...]
+multipass set local.driver=applevz
 ```
+````
+
+````{tab-item} Windows
+:sync: Windows
+
+Once you have (re-)created the instances you need on the new driver, you can permanently delete the
+original instances. For this, you can temporarily move back to `virtualbox` and use the `delete`
+(and purge) command before switching to the `hyperv_api` driver again:
+
+```{code-block} text
+multipass set local.driver=virtualbox
+multipass delete [-p] <instance> [...]
+multipass set local.driver=hyperv_api
+```
+
+````
+
+`````
 
 You can move back and forth between `virtualbox` and the new driver as many times as you want until
 VirtualBox is removed. Apart from the deprecation warning, old functionality remains the same until

@@ -32,7 +32,10 @@ The default backend on macOS is `qemu`, wrapping Apple's Hypervisor framework. Y
 ````{tab-item} Windows
 :sync: Windows
 
-Multipass supports Windows 11 and Windows 10 version **1809** ("October 2018 Update") or later, in Home, Pro, and Enterprise editions, where it uses the `hyperv_api` driver by default. You will need the [Virtual Machine Platform feature](https://support.microsoft.com/en-us/windows/experience/enable-virtualization-on-windows) enabled.
+Multipass supports Windows 10 or 11 on Home, Pro, and Enterprise editions. The minimal required
+version is **1809** ("October 2018 Update"). You will need the
+[Virtual Machine Platform feature](https://support.microsoft.com/en-us/windows/experience/enable-virtualization-on-windows)
+enabled.
 
 ````
 
@@ -189,10 +192,6 @@ multipass set local.driver=applevz
 :sync: Windows
 
 You've installed Multipass. Time to run your first commands! Launch a **Command Prompt** (`cmd.exe`) or **PowerShell** as a regular user. Use `multipass version` to check your version or `multipass launch` to create your first instance.
-
-Multipass uses native APIs for its virtualization needs on Windows.
-
-> See also: [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver).
 
 ````
 

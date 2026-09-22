@@ -75,13 +75,27 @@ From now on, all instances started with `multipass launch` will use VirtualBox b
 ````{tab-item} Windows
 :sync: Windows
 
-You can change the hypervisor that Multipass uses to VirtualBox.
+You can change the hypervisor that Multipass uses to Hyper-V or VirtualBox.
 
 ```{note}
-VirtualBox is deprecated as of Multipass 1.17 and will be removed in a future release, with no migration planned. See [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver).
+The Hyper-V driver is deprecated as of Multipass version 1.17 (see
+[Migrate from Hyper-V to the new Hyper-V API driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hyperv-api-on-windows)).
+
+VirtualBox is deprecated as of Multipass 1.17 and will be removed in a future release, with no
+migration planned. See
+[Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver).
 ```
 
-First, install VirtualBox. You may find that you need to <a href="https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658">run the VirtualBox installer as administrator</a>.
+To switch the Multipass driver to Hyper-V, run this command:
+
+```{code-block} powershell
+multipass set local.driver=hyperv
+```
+
+From then on, all instances started with multipass launch will use Hyper-V behind the scenes.
+
+To use VirtualBox, you first have to install VirtualBox. You may find that you need to
+<a href="https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658">run the VirtualBox installer as administrator</a>.
 
 <!-- Sphinx doesn't like the & character in the above link, the only way to make it work is using basic HTML syntax. The link was:
 [run the VirtualBox installer as administrator](https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658)
