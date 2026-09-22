@@ -50,6 +50,7 @@ using uut_t = mhv::HCSVirtualMachine;
 using hcs_handle_t = mhv::hcs::HcsSystemHandle;
 using hcs_op_result_t = mhv::OperationResult;
 using hcs_system_state_t = mhv::hcs::ComputeSystemState;
+using native_path_t = multipass::NativePath;
 
 struct PartiallyMockedHCSVM : public uut_t
 {
@@ -205,7 +206,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
 
         EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(Eq(desc.image.image_path), _, _))
             .WillRepeatedly(
-                DoAll([this](const std::filesystem::path& vhdx_path,
+                DoAll([this](const native_path_t& vhdx_path,
                              std::vector<std::filesystem::path>& chain,
                              std::optional<std::size_t> max_depth) { chain.push_back(vhdx_path); },
                       Return(hcs_op_result_t{0, L""})));
@@ -213,14 +214,14 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
         EXPECT_CALL(mock_hcs, grant_vm_access(Eq(dummy_vm_name), Eq(desc.image.image_path)))
             .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
 
-        EXPECT_CALL(
-            mock_hcs,
-            grant_vm_access(Eq(dummy_vm_name), Eq(dummy_instances_dir.path().toStdString())))
+        EXPECT_CALL(mock_hcs,
+                    grant_vm_access(Eq(dummy_vm_name),
+                                    Eq(native_path_t{dummy_instances_dir.path().toStdString()})))
             .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
 
-        EXPECT_CALL(
-            mock_hcs,
-            grant_vm_access(Eq(dummy_vm_name), Eq(dummy_cloud_init_iso.name().toStdString())))
+        EXPECT_CALL(mock_hcs,
+                    grant_vm_access(Eq(dummy_vm_name),
+                                    Eq(native_path_t{dummy_cloud_init_iso.name().toStdString()})))
             .WillRepeatedly(Return(hcs_op_result_t{0, L""}));
 
         EXPECT_CALL(mock_hcs, create_compute_system(_, _))
@@ -515,7 +516,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_on_destruction_persists_run
     EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle))).Times(1);
     EXPECT_CALL(
         mock_hcs,
-        save_compute_system(Eq(mock_handle), Property(&mhv::hcs::HcsPath::get, saved_state_file)))
+        save_compute_system(Eq(mock_handle), Property(&mp::NativePath::get, saved_state_file)))
         .Times(1);
     EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle))).Times(1);
     EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::off));

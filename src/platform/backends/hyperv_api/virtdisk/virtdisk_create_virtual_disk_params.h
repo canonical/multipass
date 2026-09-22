@@ -17,7 +17,8 @@
 
 #pragma once
 
-#include <filesystem>
+#include <shared/windows/native_path.h>
+
 #include <variant>
 
 #include <fmt/format.h>
@@ -30,7 +31,7 @@ namespace multipass::hyperv::virtdisk
  */
 struct SourcePathParameters
 {
-    std::filesystem::path path;
+    NativePath path;
 };
 
 /**
@@ -38,7 +39,7 @@ struct SourcePathParameters
  */
 struct ParentPathParameters
 {
-    std::filesystem::path path;
+    NativePath path;
 };
 
 struct VirtualDiskPredecessorInfo
@@ -85,7 +86,7 @@ struct CreateVirtualDiskParameters
     // source virtual disk to be used, otherwise the size specified must be greater than or equal to
     // the size of the source disk.
     std::uint64_t size_in_bytes{};
-    std::filesystem::path path{};
+    NativePath path{};
     /**
      * Monostate: A new disk.
      *
@@ -114,6 +115,6 @@ struct fmt::formatter<multipass::hyperv::virtdisk::CreateVirtualDiskParameters, 
         return fmt::format_to(ctx.out(),
                               "Size (in bytes): ({}) | Path: ({}) ",
                               params.size_in_bytes,
-                              params.path.string());
+                              params.path);
     }
 };

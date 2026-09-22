@@ -23,6 +23,8 @@
 
 #include <multipass/singleton.h>
 
+#include <shared/windows/native_path.h>
+
 namespace multipass::hyperv::virtdisk
 {
 
@@ -56,8 +58,8 @@ struct VirtDiskWrapper : public Singleton<VirtDiskWrapper>
      * @param [in] vhdx_path Path to the virtual disk
      * @param [in] new_size New disk size, in bytes
      */
-    [[nodiscard]] virtual OperationResult
-    resize_virtual_disk(const std::filesystem::path& vhdx_path, std::uint64_t new_size_bytes) const;
+    [[nodiscard]] virtual OperationResult resize_virtual_disk(const NativePath& vhdx_path,
+                                                              std::uint64_t new_size_bytes) const;
 
     // ---------------------------------------------------------
 
@@ -67,7 +69,7 @@ struct VirtDiskWrapper : public Singleton<VirtDiskWrapper>
      * @param [in] child Path to the differencing disk
      */
     [[nodiscard]] virtual OperationResult merge_virtual_disk_into_parent(
-        const std::filesystem::path& child) const;
+        const NativePath& child) const;
 
     // ---------------------------------------------------------
 
@@ -77,9 +79,8 @@ struct VirtDiskWrapper : public Singleton<VirtDiskWrapper>
      * @param [in] child Path to the virtual disk to reparent
      * @param [in] parent Path to the new parent
      */
-    [[nodiscard]] virtual OperationResult reparent_virtual_disk(
-        const std::filesystem::path& child,
-        const std::filesystem::path& parent) const;
+    [[nodiscard]] virtual OperationResult reparent_virtual_disk(const NativePath& child,
+                                                                const NativePath& parent) const;
 
     // ---------------------------------------------------------
 
@@ -89,8 +90,8 @@ struct VirtDiskWrapper : public Singleton<VirtDiskWrapper>
      * @param [in] vhdx_path Path to the virtual disk
      * @param [out] vdinfo Virtual disk info output object
      */
-    [[nodiscard]] virtual OperationResult
-    get_virtual_disk_info(const std::filesystem::path& vhdx_path, VirtualDiskInfo& vdinfo) const;
+    [[nodiscard]] virtual OperationResult get_virtual_disk_info(const NativePath& vhdx_path,
+                                                                VirtualDiskInfo& vdinfo) const;
 
     /**
      * List all the virtual disks in a virtual disk chain.
@@ -100,7 +101,7 @@ struct VirtDiskWrapper : public Singleton<VirtDiskWrapper>
      * @param [in] max_depth Maximum depth to list (optional)
      */
     [[nodiscard]] virtual OperationResult list_virtual_disk_chain(
-        const std::filesystem::path& vhdx_path,
+        const NativePath& vhdx_path,
         std::vector<std::filesystem::path>& chain,
         std::optional<std::size_t> max_depth = std::nullopt) const;
 };

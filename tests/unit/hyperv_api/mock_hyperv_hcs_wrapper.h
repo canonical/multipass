@@ -75,12 +75,12 @@ struct MockHCSWrapper : public hyperv::hcs::HCSWrapper
 
     MOCK_METHOD(hyperv::OperationResult,
                 grant_vm_access,
-                (const std::string& compute_system_name, const std::filesystem::path& file_path),
+                (const std::string& compute_system_name, const NativePath& file_path),
                 (const, override));
 
     MOCK_METHOD(hyperv::OperationResult,
                 revoke_vm_access,
-                (const std::string& compute_system_name, const std::filesystem::path& file_path),
+                (const std::string& compute_system_name, const NativePath& file_path),
                 (const, override));
 
     MOCK_METHOD(hyperv::OperationResult,
@@ -110,7 +110,7 @@ struct MockHCSWrapper : public hyperv::hcs::HCSWrapper
     MOCK_METHOD(hyperv::OperationResult,
                 save_compute_system,
                 (const hyperv::hcs::HcsSystemHandle& target_hcs_system,
-                 const hyperv::hcs::HcsPath& save_path),
+                 const NativePath& save_path),
                 (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockHCSWrapper, HCSWrapper);
