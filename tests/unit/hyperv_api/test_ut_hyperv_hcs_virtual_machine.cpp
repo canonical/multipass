@@ -516,7 +516,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_on_destruction_persists_run
     EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle))).Times(1);
     EXPECT_CALL(
         mock_hcs,
-        save_compute_system(Eq(mock_handle), Property(&mhv::hcs::HcsPath::get, saved_state_file)))
+        save_compute_system(Eq(mock_handle), Property(&mp::NativePath::get, saved_state_file)))
         .Times(1);
     EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle))).Times(1);
     EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::off));
