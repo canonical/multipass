@@ -76,12 +76,14 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
     );
 
     final configureButton = OutlinedButton(
-      onPressed: () {
-        setState(() => phase = MountDetailsPhase.configure);
-        ref
-            .read(activeEditPageProvider(widget.name).notifier)
-            .set(ActiveEditPage.mounts);
-      },
+      onPressed: unavailable
+          ? null
+          : () {
+              setState(() => phase = MountDetailsPhase.configure);
+              ref
+                  .read(activeEditPageProvider(widget.name).notifier)
+                  .set(ActiveEditPage.mounts);
+            },
       child: Text(l10n.commonConfigure),
     );
 
@@ -94,12 +96,14 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
     );
 
     final addMountButton = OutlinedButton(
-      onPressed: () {
-        setState(() => phase = MountDetailsPhase.adding);
-        ref
-            .read(activeEditPageProvider(widget.name).notifier)
-            .set(ActiveEditPage.mounts);
-      },
+      onPressed: unavailable
+          ? null
+          : () {
+              setState(() => phase = MountDetailsPhase.adding);
+              ref
+                  .read(activeEditPageProvider(widget.name).notifier)
+                  .set(ActiveEditPage.mounts);
+            },
       child: Text(l10n.mountsAddMount),
     );
 
