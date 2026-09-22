@@ -17,8 +17,16 @@ tag lookups, broken `gh` auth, the script's stderr saying enrichment failed
 for all/most PRs, ...), stop and report the failure instead of continuing.
 The script degrades to thin-but-valid JSON instead of failing loudly, so
 pushing through an error produces plausible-looking output that cannot
-support the ranking rubric. After fixing the cause (auth, `PR_REPO`, tags),
-re-run — the per-PR cache makes retries fast.
+support the ranking rubric.
+
+When enrichment fails for all/most PRs but `gh auth`, `PR_REPO`, and the tags
+are all fine, the cause is almost always GitHub's **secondary rate limit**
+(triggered by bulk PR fetches). It does NOT show up in `gh api rate_limit`, so
+`used:0` there is not proof of health. The script now batches PR metadata via
+GraphQL and caches only successful fetches, so **just re-run** — it retries
+exactly the misses. The enrichment cache lives at `${TMPDIR:-/tmp}/mp-pr-cache`
+and is self-healing (a legacy poisoned `{}` entry is purged on start); delete
+that directory only if you want a guaranteed clean slate.
 
 ## Operating procedure (issue-driven, reusable each release)
 
@@ -45,12 +53,20 @@ Then, end to end:
    already ships `git`, `gh`, and `jq`). If the checkout is shallow or missing
    tags, run `git fetch --tags --unshallow 2>/dev/null || git fetch --tags`.
    Verify `gh` is authenticated and can read PRs from the target repo:
-   `gh pr view 1 --repo canonical/multipass >/dev/null`. If running from a
+   `gh pr list --repo canonical/multipass --limit 1 >/dev/null` (do NOT use
+   `gh pr view 1` — in this repo #1 is an issue, so that check spuriously
+   fails). If running from a
    fork, export `PR_REPO` first (e.g. `export PR_REPO=canonical/multipass`) so
    enrichment resolves PR numbers against the upstream repo, not the fork.
 2. Generate enriched data (the range is tag-to-tag; if the target tag doesn't
    exist yet, the release hasn't been cut — stop and report):
    `./tools/release-notes/get-commits-since-release.sh --json --tag "$PREVIOUS_TAG" --to "$TARGET_TAG" > /tmp/commits-data.json`
+   Before trusting the range, confirm `PREVIOUS_TAG` is actually an ancestor of
+   `TARGET_TAG`: `git merge-base --is-ancestor "$PREVIOUS_TAG" "$TARGET_TAG"`.
+   If it is NOT (e.g. `PREVIOUS_TAG` is a patch cut from a diverged release
+   branch), `PREVIOUS_TAG..TARGET_TAG` balloons to the entire main-line history
+   and the notes will span far more than one release — stop and confirm the
+   intended baseline before continuing.
 3. Run the data-validation queries, then the signal-net candidate selection and
    the batched, anchored PR ranking (all below).
 4. Write `docs/reference/release-notes/<TARGET_VERSION>.md` from
@@ -259,11 +275,16 @@ single RELATIVE ranking of the whole batch and assign each PR a tier
 
 Anchors (calibrate every score against these):
 - User impact:
-    5 = new capability users directly act on (new OS image family such as
-        Debian/Fedora; new CPU architecture such as ppc64el/s390x; new backend;
+    5 = new capability all users directly act on (new OS image family such as 
+        Debian/Fedora; new major feature like a new GUI subsystem;
         redesigned image catalogue changing what users can launch)
+    4 = new capapbility most users directly act on, e.g. limited to a 
+        particular platform (new CPU architecture such as ppc64el/s390x; new backend);
     3 = notable improvement to an existing workflow (new launch/mount option)
+    2 = minor improvement to an existing workflow (removed inconveniences,
+        small tweak to launch/mount options)
     1 = cosmetic or niche convenience (a context-menu item like "Select All")
+    0 = purely cosmetic or trivial change (typo fix, formatting, comment-only change)
 - Novelty:
     5 = new subsystem / first-of-its-kind support; 3 = meaningful extension;
     1 = incremental tweak or internal cleanup

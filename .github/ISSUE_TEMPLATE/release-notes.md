@@ -30,3 +30,13 @@ Follow the Release Notes Generator agent
 above. Respect the `skip` pre-filter, and rank PRs with the batched, anchored
 rubric (do not judge importance from commit subjects alone). Open the result as
 a **draft** PR against `main`.
+
+## If generation fails
+
+If enrichment reports it failed for all/most PRs while `gh auth`, `PR_REPO`, and
+the tags are all fine, it is almost certainly GitHub's secondary rate limit. The
+script batches its GitHub requests and caches only successful fetches, so simply
+**re-run** to retry the misses (delete `${TMPDIR:-/tmp}/mp-pr-cache` first only
+if you want a guaranteed clean slate). For an unexpectedly broad diff, confirm
+`PREVIOUS_TAG` is an ancestor of `TARGET_TAG`
+(`git merge-base --is-ancestor "$PREVIOUS_TAG" "$TARGET_TAG"`) before proceeding.
