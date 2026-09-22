@@ -41,6 +41,8 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       }),
     );
 
+    // When the zone is unavailable, the user can't configure it. Hide the mount details in that
+    // case to prevent changes.
     final effectivePhase = unavailable ? MountDetailsPhase.idle : phase;
 
     if (unavailable && phase != MountDetailsPhase.idle) {
@@ -73,20 +75,14 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       child: Text(l10n.commonSave),
     );
 
-    final configureButton = Tooltip(
-      visible: unavailable,
-      message: l10n.vmDetailsUnavailableToMount,
-      child: OutlinedButton(
-        onPressed: unavailable
-            ? null
-            : () {
-                setState(() => phase = MountDetailsPhase.configure);
-                ref
-                    .read(activeEditPageProvider(widget.name).notifier)
-                    .set(ActiveEditPage.mounts);
-              },
-        child: Text(l10n.commonConfigure),
-      ),
+    final configureButton = OutlinedButton(
+      onPressed: () {
+        setState(() => phase = MountDetailsPhase.configure);
+        ref
+            .read(activeEditPageProvider(widget.name).notifier)
+            .set(ActiveEditPage.mounts);
+      },
+      child: Text(l10n.commonConfigure),
     );
 
     final cancelButton = OutlinedButton(
@@ -97,25 +93,23 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       child: Text(l10n.commonCancel),
     );
 
-    final addMountButton = Tooltip(
-      visible: unavailable,
-      message: l10n.vmDetailsUnavailableToMount,
-      child: OutlinedButton(
-        onPressed: unavailable
-            ? null
-            : () {
-                setState(() => phase = MountDetailsPhase.adding);
-                ref
-                    .read(activeEditPageProvider(widget.name).notifier)
-                    .set(ActiveEditPage.mounts);
-              },
-        child: Text(l10n.mountsAddMount),
-      ),
+    final addMountButton = OutlinedButton(
+      onPressed: () {
+        setState(() => phase = MountDetailsPhase.adding);
+        ref
+            .read(activeEditPageProvider(widget.name).notifier)
+            .set(ActiveEditPage.mounts);
+      },
+      child: Text(l10n.mountsAddMount),
     );
 
-    final topRightButton = effectivePhase == MountDetailsPhase.idle
-        ? (mounts.isEmpty ? addMountButton : configureButton)
-        : cancelButton;
+    final detailsButton = Tooltip(
+      visible: unavailable,
+      message: l10n.vmDetailsUnavailableToMount,
+      child: mounts.isEmpty ? addMountButton : configureButton,
+    );
+    final topRightButton =
+        effectivePhase == MountDetailsPhase.idle ? detailsButton : cancelButton;
 
     return Form(
       key: formKey,
