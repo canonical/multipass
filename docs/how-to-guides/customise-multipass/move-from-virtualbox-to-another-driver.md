@@ -29,10 +29,10 @@ multipass set local.driver=applevz
 ````{tab-item} Windows
 :sync: Windows
 
-Switch to `hyperv_api`:
+Switch to `hcs`:
 
 ```{code-block} text
-multipass set local.driver=hyperv_api
+multipass set local.driver=hcs
 ```
 
 ````
@@ -81,12 +81,12 @@ multipass set local.driver=applevz
 
 Once you have (re-)created the instances you need on the new driver, you can permanently delete the
 original instances. For this, you can temporarily move back to `virtualbox` and use the `delete`
-(and purge) command before switching to the `hyperv_api` driver again:
+(and purge) command before switching to the `hcs` driver again:
 
 ```{code-block} text
 multipass set local.driver=virtualbox
 multipass delete [-p] <instance> [...]
-multipass set local.driver=hyperv_api
+multipass set local.driver=hcs
 ```
 
 ````

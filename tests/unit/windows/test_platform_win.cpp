@@ -196,7 +196,7 @@ TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenGetIpNetTableFails)
 
 TEST(PlatformWin, testDefaultDriver)
 {
-    EXPECT_THAT(MP_PLATFORM.default_driver(), "hyperv_api");
+    EXPECT_THAT(MP_PLATFORM.default_driver(), "hcs");
 }
 
 TEST(PlatformWin, testDefaultPrivilegedMounts)
