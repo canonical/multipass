@@ -116,7 +116,7 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     std::unique_lock<std::mutex> lock{state_mutex};
     if (!vm_handle)
     {
-        assert(state == State::stopped);
+        assert(state == State::stopped || state == State::unavailable);
         return;
     }
 
@@ -171,7 +171,6 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         }
         else
         {
-            // Go nuclear and just kill the VM process
             mpl::warn(
                 log_category,
                 "shutdown() -> VM `{}` cannot be stopped from state `{}`, killing process instead",

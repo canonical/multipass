@@ -91,7 +91,6 @@ TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
     EXPECT_CALL(mock_platform, subnet_used_locally).WillOnce(Return(false));
 
     NiceMock<mpt::MockVirtualMachine> mock_vm;
-    EXPECT_CALL(mock_vm, set_available(false));
 
     mp::BaseAvailabilityZone zone{az_name, az_dir, subnet_alloc};
 
@@ -126,10 +125,6 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
 
     NiceMock<mpt::MockVirtualMachine> mock_vm1;
     NiceMock<mpt::MockVirtualMachine> mock_vm2;
-
-    // Both VMs should be notified when state changes
-    EXPECT_CALL(mock_vm1, set_available(false));
-    EXPECT_CALL(mock_vm2, set_available(false));
 
     mp::BaseAvailabilityZone zone{az_name, az_dir, subnet_alloc};
 

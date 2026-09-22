@@ -56,6 +56,7 @@ public:
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy) override;
     void suspend() override;
+    bool set_available(bool available) override;
     State current_state() override;
     int ssh_port() override;
     std::string ssh_hostname() override;
