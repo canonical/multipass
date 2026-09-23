@@ -490,6 +490,21 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, failed_cold_vm_recreation_reports_off)
     EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::off);
 }
 
+TEST_F(HyperVHCSVirtualMachine_UnitTests, compute_system_open_error_reports_unknown_state)
+{
+    default_open_success();
+    auto uut = construct_vm();
+    expect_failed_recreation();
+    EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
+
+    EXPECT_CALL(mock_hcs, open_compute_system(dummy_vm_name, _))
+        .WillOnce(Return(hcs_op_result_t{E_ACCESSDENIED, L"Access denied"}));
+
+    mp::VirtualMachine::State state{};
+    EXPECT_NO_THROW(state = uut->current_state());
+    EXPECT_EQ(state, mp::VirtualMachine::State::unknown);
+}
+
 TEST_F(HyperVHCSVirtualMachine_UnitTests, missing_compute_system_preserves_unavailable_state)
 {
     default_open_success();
