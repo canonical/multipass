@@ -98,6 +98,7 @@ mp::PowerShell::PowerShell(const std::string& name)
 
 mp::PowerShell::~PowerShell()
 {
+    std::scoped_lock lock {transaction_mutex};
     if (!write("Exit\n") || !powershell_proc->wait_for_finished())
     {
         auto error = powershell_proc->error_string();
@@ -122,6 +123,8 @@ bool mp::PowerShell::run(const QStringList& args,
                          QString* output_err,
                          bool whisper)
 {
+    std::scoped_lock lock{transaction_mutex};
+
     QString default_output, default_output_err;
     output = output ? output : &default_output;
     output_err = output_err ? output_err : &default_output_err;
