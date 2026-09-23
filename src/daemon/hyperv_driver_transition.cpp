@@ -63,7 +63,7 @@ grpc::Status mhv::DriverTransition::prepare(const std::string& key, const std::s
         return migration_conflict_status("change settings");
 
     migration_flag_acquired = true;
-    if (context.preparations_in_progress.load() != 0)
+    if (!context.preparing_instances.empty())
         return {grpc::StatusCode::FAILED_PRECONDITION,
                 "Cannot change driver while an instance is being prepared"};
 

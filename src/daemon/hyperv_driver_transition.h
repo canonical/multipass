@@ -28,6 +28,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace grpc
 {
@@ -65,7 +66,7 @@ struct DriverTransitionContext
     const InstanceTable& operative_instances;
     const InstanceTable& deleted_instances;
     std::atomic<bool>& migration_in_progress;
-    const std::atomic_size_t& preparations_in_progress;
+    const std::unordered_set<std::string>& preparing_instances;
 };
 
 class DriverTransition : private DisabledCopyMove

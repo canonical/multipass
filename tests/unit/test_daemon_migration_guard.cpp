@@ -40,6 +40,7 @@
 #include <functional>
 #include <thread>
 #include <tuple>
+#include <unordered_set>
 
 #if defined(HYPERV_API_ENABLED)
 #include "hyperv_api/mock_hyperv_hcn_wrapper.h"
@@ -497,7 +498,7 @@ struct TestHyperVDriverTransition : public TestDaemonMigrationGuard
     mp::hyperv::DriverTransition::InstanceTable instances;
     mp::hyperv::DriverTransition::InstanceTable deleted_instances;
     std::atomic<bool> migrating{false};
-    std::atomic_size_t preparing{0};
+    std::unordered_set<std::string> preparing;
     StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>> server;
 };
 } // namespace
@@ -555,7 +556,7 @@ TEST_F(TestHyperVDriverTransition, conflictingTransitionDoesNotReleaseAnotherOwn
 TEST_F(TestHyperVDriverTransition, preparationConflictReleasesAcquiredGuard)
 {
     const auto config = config_builder.build();
-    preparing = 1;
+    preparing.insert("vm");
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
         .WillOnce(Return(QStringLiteral("hyperv_api")));
     {
@@ -566,7 +567,6 @@ TEST_F(TestHyperVDriverTransition, preparationConflictReleasesAcquiredGuard)
                   "Cannot change driver while an instance is being prepared");
     }
     EXPECT_FALSE(migrating);
-    EXPECT_EQ(preparing.load(), 1);
 }
 
 TEST_F(TestHyperVDriverTransition, deletedHcsInstancesAreCheckedBeforeReleasingResources)
