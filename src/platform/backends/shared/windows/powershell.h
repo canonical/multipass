@@ -65,7 +65,6 @@ private:
 
     std::unique_ptr<Process> powershell_proc;
     const std::string name;
-    std::mutex transaction_mutex;
 
     inline static const QString output_end_marker = "cmdlet status is";
 };

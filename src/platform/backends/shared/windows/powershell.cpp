@@ -23,6 +23,7 @@
 #include <shared/windows/process_factory.h>
 
 #include <QProcess>
+#include <QThread>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -98,7 +99,6 @@ mp::PowerShell::PowerShell(const std::string& name)
 
 mp::PowerShell::~PowerShell()
 {
-    std::scoped_lock lock {transaction_mutex};
     if (!write("Exit\n") || !powershell_proc->wait_for_finished())
     {
         auto error = powershell_proc->error_string();
@@ -132,7 +132,14 @@ bool mp::PowerShell::run(const QStringList& args,
                          QString* output_err,
                          bool whisper)
 {
-    std::scoped_lock lock{transaction_mutex};
+    // Callers on other threads get a fresh process instead of sharing the
+    // persistent one: that process can only be used safely from its owning thread.
+    if (QThread::currentThread() != powershell_proc->thread())
+        return exec(QStringList{"-NoProfile", "-NonInteractive", "-Command"} + args,
+                    name,
+                    output,
+                    output_err);
+
     // Discard leftovers from the previous transaction (e.g. late stderr)
     // before sending a new command, so they can't leak into this reply.
     drain();
