@@ -106,7 +106,7 @@ release/1.15 $ git push --tags
 12. Submit the update on the Microsoft Store.
 13. Submit an issue to the [canonical.com](https://github.com/canonical/canonical.com) repository to change the `static/files/latest-multipass-releases.json` file, updating all links to the new version.
     1. Verify that the package links work after the release is published.
-    2. Follow up on the issue until it is merged.
+    2. Follow up on the issue until it is closed.
 14. Set the `stable` branch to point to the release. This will allow Launchpad to generate updated snaps in the candidate channel (with updated deb dependencies): Launchpad checks daily if there are out of date dependencies in our snap; if there are, a new package gets built as candidate and if it's good we promote it to stable.
 ```shell
 stable $ git reset --hard release/1.15
@@ -125,7 +125,7 @@ main $ git push
 Steps to follow up on the following few days:
 
 20. Verify that the Microsoft store submission is approved (moves from "in review").
-21. Confirm that the links for the latest version are updated in canonical.com.
+21. Confirm that the links for the latest version are updated in <https://canonical.com/multipass/install>.
 22. Confirm that candidate snaps are built for the release.
 
 ## Note on `stable-docs` and release branches
