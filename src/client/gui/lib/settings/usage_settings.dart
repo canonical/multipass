@@ -12,6 +12,7 @@ import '../providers.dart';
 import '../l10n/app_localizations.dart';
 import '../switch.dart';
 import 'hotkey.dart';
+import 'settings.dart';
 
 final primaryNameProvider = clientSettingProvider(primaryNameKey);
 final passphraseProvider = daemonSettingProvider(passphraseKey);
@@ -349,7 +350,7 @@ class SettingField extends StatelessWidget {
           ),
           const SizedBox(width: 12),
         ],
-        SizedBox(width: 260, child: child),
+        SizedBox(width: settingFieldWidth, child: child),
       ],
     );
   }

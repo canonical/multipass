@@ -5,6 +5,7 @@ import '../display_field.dart';
 import '../ffi.dart';
 import '../l10n/app_localizations.dart';
 import '../providers.dart';
+import 'settings.dart';
 
 class AboutSection extends ConsumerWidget {
   const AboutSection({super.key});
@@ -23,7 +24,7 @@ class AboutSection extends ConsumerWidget {
         const SizedBox(height: 20),
         DisplayField(
           label: l10n.aboutVersionLabel,
-          width: 260,
+          width: settingFieldWidth,
           text: multipassVersion,
           copyable: true,
         ),
@@ -31,14 +32,14 @@ class AboutSection extends ConsumerWidget {
         if (multipassVersion != daemonVersion)
           DisplayField(
             label: l10n.aboutDaemonVersionLabel,
-            width: 260,
+            width: settingFieldWidth,
             text: daemonVersion,
             copyable: true,
           ),
         const SizedBox(height: 20),
         const DisplayField(
           label: 'Copyright © Canonical, Ltd.',
-          width: 260,
+          width: settingFieldWidth,
           copyable: false,
         ),
       ],
