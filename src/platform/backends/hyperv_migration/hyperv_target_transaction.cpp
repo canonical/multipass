@@ -15,7 +15,9 @@
  */
 
 #include "hyperv_target_transaction.h"
+#include "hyperv_migration_utils.h"
 
+#include <hyperv_api/virtdisk/virtdisk_utils.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <QUuid>
@@ -37,6 +39,10 @@ namespace
 namespace fs = std::filesystem;
 namespace mhv = multipass::hyperv;
 namespace mpl = multipass::logging;
+using multipass::hyperv::migration::logical_file_length;
+using multipass::hyperv::migration::path_is_within;
+using multipass::hyperv::migration::same_path;
+using multipass::hyperv::virtdisk::get_parent_disk;
 using multipass::hyperv::virtdisk::VirtDisk;
 
 constexpr auto log_category = "Hyper-V migration transaction";
@@ -44,41 +50,6 @@ constexpr auto snapshot_head_filename = "snapshot-head";
 constexpr auto snapshot_count_filename = "snapshot-count";
 // Bounded overhead reserved on the target volume for copy churn and HCS state files.
 constexpr std::uintmax_t migration_overhead_bytes = 512ull * 1024 * 1024;
-
-bool same_path(const fs::path& lhs, const fs::path& rhs)
-{
-    return MP_FILEOPS.weakly_canonical(lhs) == MP_FILEOPS.weakly_canonical(rhs);
-}
-
-bool path_is_within(const fs::path& path, const fs::path& root)
-{
-    const auto canonical_path = MP_FILEOPS.weakly_canonical(path);
-    const auto canonical_root = MP_FILEOPS.weakly_canonical(root);
-    return std::ranges::mismatch(canonical_root, canonical_path).in1 == canonical_root.end();
-}
-
-std::uintmax_t logical_file_length(const fs::path& path)
-{
-    std::error_code error;
-    const auto size = MP_FILEOPS.file_size(path, error);
-    if (error)
-        throw std::runtime_error{
-            fmt::format("Could not read the length of '{}': {}", path, error.message())};
-    return size;
-}
-
-fs::path immediate_parent(const fs::path& disk)
-{
-    std::vector<fs::path> chain;
-    if (const auto result = VirtDisk().list_virtual_disk_chain(disk, chain, 2); !result)
-        throw std::runtime_error{
-            fmt::format("Could not inspect virtual disk chain for '{}': {}", disk, result)};
-    if (chain.empty())
-        throw std::runtime_error{fmt::format("Virtual disk chain for '{}' is empty", disk)};
-    if (chain.size() < 2)
-        return {};
-    return chain[1];
-}
 
 std::string unique_target_name(const fs::path& source, std::unordered_set<std::string>& taken)
 {
@@ -199,9 +170,9 @@ multipass::hyperv::TargetDiskMapping multipass::hyperv::TargetMigrationTransacti
 
     for (const auto& entry : mapping.disks)
     {
-        if (const auto parent = immediate_parent(entry.source); !parent.empty())
+        if (const auto parent = get_parent_disk(entry.source))
             mapping.parent_links.push_back(
-                {.child = entry.target, .parent = mapping.target_for(parent)});
+                {.child = entry.target, .parent = mapping.target_for(*parent)});
     }
 
     for (const auto& snapshot : layout.snapshots)
@@ -301,17 +272,17 @@ void multipass::hyperv::TargetMigrationTransaction::verify(const TargetDiskMappi
 
     for (const auto& link : mapping.parent_links)
     {
-        const auto parent = immediate_parent(link.child);
-        if (parent.empty() || !same_path(parent, link.parent))
+        const auto parent = get_parent_disk(link.child);
+        if (!parent || !same_path(*parent, link.parent))
             throw std::runtime_error{
                 fmt::format("Migrated disk '{}' does not reopen onto its target-local parent '{}'",
                             link.child,
                             link.parent)};
-        if (!path_is_within(parent, mapping.root))
+        if (!path_is_within(*parent, mapping.root))
             throw std::runtime_error{
                 fmt::format("Migrated disk '{}' points at a non-target-local parent '{}'",
                             link.child,
-                            parent)};
+                            *parent)};
     }
 }
 

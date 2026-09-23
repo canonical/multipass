@@ -15,6 +15,7 @@
  */
 
 #include "hyperv_disk_layout.h"
+#include "hyperv_migration_utils.h"
 
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
@@ -35,6 +36,7 @@ namespace
 {
 namespace fs = std::filesystem;
 namespace mhv = multipass::hyperv;
+using multipass::hyperv::migration::same_path;
 using multipass::hyperv::virtdisk::VirtDisk;
 
 QString quoted_name(const std::string& name)
@@ -55,11 +57,6 @@ std::vector<fs::path> disk_chain(const fs::path& disk)
         throw std::runtime_error{fmt::format("Virtual disk chain for '{}' is empty", disk)};
 
     return chain;
-}
-
-bool same_path(const fs::path& lhs, const fs::path& rhs)
-{
-    return MP_FILEOPS.weakly_canonical(lhs) == MP_FILEOPS.weakly_canonical(rhs);
 }
 
 void append_unique(std::vector<fs::path>& disks, const std::vector<fs::path>& chain)
