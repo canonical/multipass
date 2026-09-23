@@ -182,6 +182,23 @@ TEST_F(HyperVTargetTransaction, planReservesSnapshotNamesAndDisambiguatesDiskNam
     EXPECT_EQ(mapping.target_for(duplicate), target_instance_dir / "active-1.avhdx");
 }
 
+TEST_F(HyperVTargetTransaction, planDisambiguatesDiskNamesCaseInsensitively)
+{
+    const auto snapshot_collision = source_dir / "other" / "1.AVHDX";
+    const auto active_collision = source_dir / "nested" / "ACTIVE.avhdx";
+    layout.all_disks.insert(layout.all_disks.end(), {snapshot_collision, active_collision});
+    ON_CALL(*virtdisk.first, list_virtual_disk_chain(_, _, _))
+        .WillByDefault(Invoke(chain_by_filename({})));
+    mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
+
+    const auto mapping = transaction.plan(layout, target_instance_dir);
+
+    EXPECT_EQ(mapping.target_for(snap1), target_instance_dir / "1.avhdx");
+    EXPECT_EQ(mapping.target_for(snapshot_collision), target_instance_dir / "1-1.AVHDX");
+    EXPECT_EQ(mapping.target_for(active), target_instance_dir / "active.avhdx");
+    EXPECT_EQ(mapping.target_for(active_collision), target_instance_dir / "ACTIVE-1.avhdx");
+}
+
 TEST_F(HyperVTargetTransaction, stageCopiesReparentsAndRewritesSnapshotsWithoutTouchingSource)
 {
     const auto original_snapshot = *MP_FILEOPS.try_read_file(snapshot_json);

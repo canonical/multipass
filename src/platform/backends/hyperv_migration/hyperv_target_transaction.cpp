@@ -20,6 +20,7 @@
 #include <hyperv_api/virtdisk/virtdisk_utils.h>
 #include <hyperv_api/virtdisk/virtdisk_wrapper.h>
 
+#include <QString>
 #include <QUuid>
 #include <multipass/constants.h>
 #include <multipass/file_ops.h>
@@ -51,10 +52,16 @@ constexpr auto snapshot_count_filename = "snapshot-count";
 // Bounded overhead reserved on the target volume for copy churn and HCS state files.
 constexpr std::uintmax_t migration_overhead_bytes = 512ull * 1024 * 1024;
 
+// The target directory is case-insensitive, so reserve names by their case-folded form.
+std::string reservation_key(const std::string& name)
+{
+    return QString::fromStdString(name).toCaseFolded().toStdString();
+}
+
 std::string unique_target_name(const fs::path& source, std::unordered_set<std::string>& taken)
 {
     auto base = source.filename().string();
-    if (taken.insert(base).second)
+    if (taken.insert(reservation_key(base)).second)
         return base;
 
     for (int suffix = 1;; ++suffix)
@@ -63,7 +70,7 @@ std::string unique_target_name(const fs::path& source, std::unordered_set<std::s
                                      source.stem().string(),
                                      suffix,
                                      source.extension().string());
-        if (taken.insert(candidate).second)
+        if (taken.insert(reservation_key(candidate)).second)
             return candidate;
     }
 }
@@ -149,7 +156,7 @@ multipass::hyperv::TargetDiskMapping multipass::hyperv::TargetMigrationTransacti
     for (const auto& snapshot : layout.snapshots)
     {
         const auto target_name = fmt::format("{}.avhdx", snapshot.index);
-        if (!taken_names.insert(target_name).second)
+        if (!taken_names.insert(reservation_key(target_name)).second)
             throw std::runtime_error{
                 fmt::format("Multiple snapshots have index {}", snapshot.index)};
     }
