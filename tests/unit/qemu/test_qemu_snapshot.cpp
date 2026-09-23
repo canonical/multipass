@@ -22,11 +22,11 @@
 #include "tests/unit/mock_snapshot.h"
 #include "tests/unit/mock_virtual_machine.h"
 #include "tests/unit/path.h"
-#include "tests/unit/stub_availability_zone.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 
 #include <multipass/platform.h>
 #include <multipass/process/process.h>
+#include <multipass/stub_availability_zone.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 #include <src/platform/backends/qemu/qemu_snapshot.h>
@@ -101,10 +101,11 @@ struct TestQemuSnapshot : public Test
     }();
 
     mpt::StubSSHKeyProvider key_provider{};
-    mpt::StubAvailabilityZone zone{};
+    mp::StubAvailabilityZone zone{"zone1"};
     NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{"qemu-vm", key_provider, zone};
-    ArgsMatcher list_args_matcher =
-        ElementsAre("snapshot", "-l", QString::fromStdString(desc.image.image_path));
+    ArgsMatcher list_args_matcher = ElementsAre("snapshot",
+                                                "-l",
+                                                QString::fromStdString(desc.image.image_path));
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
 

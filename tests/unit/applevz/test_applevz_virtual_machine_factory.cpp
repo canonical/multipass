@@ -20,7 +20,6 @@
 #include "tests/unit/common.h"
 #include "tests/unit/mock_cloud_init_file_ops.h"
 #include "tests/unit/mock_logger.h"
-#include "tests/unit/stub_availability_zone_manager.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
 #include "tests/unit/temp_dir.h"
@@ -28,6 +27,7 @@
 #include <applevz/applevz_virtual_machine_factory.h>
 #include <multipass/memory_size.h>
 #include <multipass/network_interface_info.h>
+#include <multipass/stub_availability_zone_manager.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_image.h>
 #include <multipass/vm_specs.h>
@@ -46,7 +46,7 @@ namespace
 struct AppleVZVirtualMachineFactory_UnitTests : public ::testing::Test
 {
     mpt::TempDir dummy_data_dir;
-    mpt::StubAvailabilityZoneManager stub_az_manager{};
+    mp::StubAvailabilityZoneManager stub_az_manager{};
     mpt::StubSSHKeyProvider stub_key_provider{};
     mpt::StubVMStatusMonitor stub_monitor{};
 

@@ -24,7 +24,6 @@
 #include "mock_daemon_rpc_context.h"
 #include "mock_server_reader_writer.h"
 #include "mock_standard_paths.h"
-#include "stub_availability_zone_manager.h"
 #include "stub_cert_store.h"
 #include "stub_image_host.h"
 #include "stub_logger.h"
@@ -41,6 +40,7 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/command.h>
 #include <multipass/daemon_rpc_context.h>
+#include <multipass/stub_availability_zone_manager.h>
 
 #include <chrono>
 
