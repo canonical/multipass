@@ -490,6 +490,21 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, failed_cold_vm_recreation_reports_off)
     EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::off);
 }
 
+TEST_F(HyperVHCSVirtualMachine_UnitTests, failure_after_compute_system_creation_drops_handle)
+{
+    default_open_success();
+    auto uut = construct_vm();
+
+    default_create_success();
+    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(Eq(desc.image.image_path), _, _))
+        .WillOnce(Throw(std::runtime_error{"disk chain failed"}));
+
+    EXPECT_THROW(uut->start(), std::runtime_error);
+
+    // The terminated handle would still report `stopped`; reopening finds no compute system.
+    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::off);
+}
+
 TEST_F(HyperVHCSVirtualMachine_UnitTests, compute_system_open_error_reports_unknown_state)
 {
     default_open_success();
