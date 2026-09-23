@@ -159,6 +159,7 @@ public:
     virtual fs::path relative(const fs::path& path,
                               const fs::path& base,
                               std::error_code& ec) const;
+    // TODO hyperv migration, remove (file_size and space)
     virtual std::uintmax_t file_size(const fs::path& path, std::error_code& err) const;
     virtual fs::space_info space(const fs::path& path, std::error_code& err) const;
 

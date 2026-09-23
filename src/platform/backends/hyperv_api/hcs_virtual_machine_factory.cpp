@@ -315,6 +315,7 @@ void HCSVirtualMachineFactory::hypervisor_health_check()
     check_hyperv_api_support();
 }
 
+// TODO hyperv migration, revert: inline back into hypervisor_health_check above
 void check_hyperv_api_support()
 {
     if (auto state = get_windows_feature_state(L"VirtualMachinePlatform"))

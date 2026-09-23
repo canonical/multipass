@@ -18,6 +18,7 @@
         </Property>
 
         <Property Id="DRIVER" Value="hyperv_api" Secure="yes" />
+        <!-- TODO hyperv migration, remove: DRIVER_FULL/DRIVER_LIMITED, the dialog sets DRIVER directly -->
         <Property Id="DRIVER_FULL" Value="hyperv_api" />
         <Property Id="DRIVER_LIMITED" Value="hyperv_api" />
 
@@ -92,6 +93,7 @@
                 Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="EditionID" Type="raw" />
         </Property>
 
+        <!-- TODO hyperv migration, remove: LEGACY_HYPERV_AVAILABLE, and WINDOWS_EDITION above, which only feeds it -->
         <!--
           The new Hyper-V/HCS driver (hyperv_api, backed by VirtualMachinePlatform) is the default
           on every supported edition. The legacy full Hyper-V driver (hyperv, backed by
@@ -154,6 +156,7 @@
             <Custom Action="UninstallExeMPAction" After="InstallInitialize"
                 Condition="NOT Installed AND UNINSTALLER_PATH" />
 
+            <!-- TODO hyperv migration, revert: drop DRIVER = "hyperv" from both conditions below -->
             <Custom Action="EnableHyperVAction.SetProperty" Before="EnableHyperVAction"
                 Condition="(DRIVER = &quot;hyperv&quot; OR DRIVER = &quot;hyperv_api&quot;) AND NOT Installed" />
             <Custom Action="EnableHyperVAction" After="InstallInitialize"

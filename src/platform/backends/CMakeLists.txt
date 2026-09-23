@@ -18,6 +18,7 @@ foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})
 endforeach()
 
+# TODO hyperv migration, remove
 if(HYPERV_API_ENABLED)
   add_subdirectory(hyperv_migration)
 endif()

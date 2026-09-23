@@ -60,6 +60,7 @@ public:
 protected:
     using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
 
+    // TODO hyperv migration, revert: back to a free function in daemon.cpp
     void connect_rpc(DaemonRpc& rpc);
 
     void on_resume() override;
@@ -187,6 +188,7 @@ public slots:
         DaemonRpcContext* context);
 
 private:
+    // TODO hyperv migration, remove
     // Used at RPC dispatch.
     [[nodiscard]] bool reject_if_migrating(std::string_view rpc_name,
                                            DaemonRpcContext* context) const;
@@ -271,6 +273,7 @@ protected:
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     InstanceTable operative_instances;
 
+    // TODO hyperv migration, remove
     // Set only while a bulk Hyper-V -> HCS migration runs inside Daemon::set. It guards
     // conflicting mutating RPCs without taking a lock, so it cannot deadlock against the
     // long-running migration. Atomic because RPC slots and the migration run on different

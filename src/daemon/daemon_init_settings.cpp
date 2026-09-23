@@ -79,6 +79,7 @@ QString image_mirror_interpreter(QString val)
 
 } // namespace
 
+// TODO hyperv migration, revert: move back into the anonymous namespace above
 QString mp::daemon::interpret_driver(QString val)
 {
     val = val.toLower();

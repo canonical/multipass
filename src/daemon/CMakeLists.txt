@@ -25,6 +25,7 @@ add_library(daemon STATIC
   runtime_instance_info_helper.cpp
   snapshot_settings_handler.cpp)
 
+# TODO hyperv migration, remove
 if(HYPERV_API_ENABLED)
   target_compile_definitions(daemon PRIVATE HYPERV_API_ENABLED)
   target_sources(daemon PRIVATE

@@ -485,6 +485,7 @@ message SetRequest {
     bool authorized = 4;
 }
 
+// TODO hyperv migration, remove
 message HCSMigrationReport {
     string phase = 1;
     string summary = 2;
@@ -494,6 +495,7 @@ message SetReply {
     string log_line = 1;
     string reply_message = 2;
     bool needs_authorization = 3;
+    // TODO hyperv migration, remove (and add `reserved 4;`)
     HCSMigrationReport hcs_migration_report = 4;
 }
 

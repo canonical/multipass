@@ -1301,9 +1301,11 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
     }
 }
 
+// TODO hyperv migration, remove
 template <typename T, typename... Types>
 constexpr bool is_one_of_v = (std::is_same_v<T, Types> || ...);
 
+// TODO hyperv migration, remove
 // Request types not listed here are blocked during migration.
 template <typename Request>
 constexpr bool allowed_during_migration = is_one_of_v<Request,
@@ -1322,6 +1324,8 @@ constexpr bool allowed_during_migration = is_one_of_v<Request,
 
 } // namespace
 
+// TODO hyperv migration, revert: back to the free function connect_rpc(rpc, daemon) with plain
+// QObject::connect(&rpc, &mp::DaemonRpc::on_x, &daemon, &mp::Daemon::x) calls
 void mp::Daemon::connect_rpc(DaemonRpc& rpc)
 {
     const auto connect =
@@ -1647,6 +1651,7 @@ void mp::Daemon::shutdown_grpc_server()
     shutdown.get(); // rethrows if there were exceptions
 }
 
+// TODO hyperv migration, remove
 bool mp::Daemon::reject_if_migrating(std::string_view rpc_name, DaemonRpcContext* context) const
 {
     if (!migration_in_progress.load())
@@ -2637,10 +2642,12 @@ try
 {
     auto key = request->key();
     auto val = request->val();
+    // TODO hyperv migration, remove
     if (key == mp::driver_key)
         val = mp::daemon::interpret_driver(QString::fromStdString(val)).toStdString();
     std::string bridge_name;
 
+// TODO hyperv migration, remove
 #if defined(HYPERV_API_ENABLED)
     mp::hyperv::DriverTransition transition{{*config,
                                              vm_instance_specs,
@@ -2674,6 +2681,7 @@ try
     mpu::send_messages(server, messages);
     mpl::debug(category, "Succeeded setting {}={}", key, val);
 
+// TODO hyperv migration, revert: context->set_value(grpc::Status::OK);
 #if defined(HYPERV_API_ENABLED)
     // Runs the Hyper-V to HCS migration only if prepare() started one; otherwise returns OK.
     context->set_value(transition.complete(server));
@@ -2985,6 +2993,7 @@ try
             *config->ssh_key_provider,
             *this);
         ++src_spec.clone_count;
+        // preparing instance is done
         preparing_instances.erase(destination_name);
         persist_instances();
         init_mounts(destination_name);

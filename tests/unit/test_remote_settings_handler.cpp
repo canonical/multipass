@@ -292,6 +292,7 @@ TEST_F(RemoteSettingsTest, setRequestsSpecifiedSettingKeyAndValue)
     EXPECT_TRUE(fake_cerr.str().empty());
 }
 
+// TODO hyperv migration, remove
 TEST_F(RemoteSettingsTest, setDisplaysMigrationProgressDiagnosticsAndSummary)
 {
     auto mock_client = make_mock_reader_writer<mp::SetRequest, mp::SetReply>();
