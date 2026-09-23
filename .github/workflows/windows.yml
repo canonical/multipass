@@ -146,9 +146,17 @@ jobs:
         version: "v0.18.0"
 
     - name: Install Windows ADK
-      uses: crazy-max/ghaction-chocolatey@v4
-      with:
-        args: install --yes windows-adk-deploy
+      shell: pwsh
+      run: |
+        winget install --id Microsoft.WindowsADK --exact --silent `
+          --disable-interactivity `
+          --accept-package-agreements `
+          --accept-source-agreements
+
+        winget install --id Microsoft.WindowsADK.WinPEAddon --exact --silent `
+          --disable-interactivity `
+          --accept-package-agreements `
+          --accept-source-agreements
 
     - name: Install cmake
       uses: lukka/get-cmake@v4.4.2
