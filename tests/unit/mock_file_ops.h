@@ -171,6 +171,7 @@ public:
                 relative,
                 (const fs::path& path, const fs::path& base, std::error_code& ec),
                 (override, const));
+    // TODO hyperv migration, remove (file_size and space)
     MOCK_METHOD(std::uintmax_t,
                 file_size,
                 (const fs::path& path, std::error_code& err),

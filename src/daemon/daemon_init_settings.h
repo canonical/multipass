@@ -21,6 +21,7 @@
 
 namespace multipass::daemon
 {
+// TODO hyperv migration, revert: move back into daemon_init_settings.cpp's anonymous namespace
 [[nodiscard]] QString interpret_driver(QString val);
 void monitor_and_quit_on_settings_change(); // TODO replace with async restart in relevant settings
                                             // handlers (see #2514)

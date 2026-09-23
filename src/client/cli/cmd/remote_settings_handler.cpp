@@ -36,7 +36,7 @@ namespace
 {
 constexpr auto category = "remote settings";
 
-// TODO(hyperv-migration): Remove once the Hyper-V to HCS migration is dropped.
+// TODO hyperv migration, remove
 // Adds HCS migration progress reporting on top of `callback`. To remove:
 //   1. Unwrap the call in RemoteSet: pass make_confirmation_callback(...) to dispatch() directly.
 //   2. Delete this function and the "animated_spinner.h" and <memory> includes.
@@ -175,7 +175,7 @@ public:
             set_request,
             on_success<mp::SetReply>,
             on_failure,
-            // TODO(hyperv-migration): Unwrap, see with_hcs_migration_progress
+            // TODO hyperv migration, revert: unwrap, see with_hcs_migration_progress
             with_hcs_migration_progress(
                 *term,
                 mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(*term, key)));

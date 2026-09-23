@@ -15,6 +15,8 @@
  *
  */
 
+// TODO hyperv migration, remove (whole file)
+
 // The daemon test fixture contains premock code so it must be included first.
 #include "daemon_test_fixture.h"
 

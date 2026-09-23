@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# TODO hyperv migration, remove (whole file)
+
 import hashlib
 import json
 import os

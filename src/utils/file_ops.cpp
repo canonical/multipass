@@ -476,6 +476,7 @@ fs::path mp::FileOps::relative(const fs::path& path,
     return fs::relative(path, base, ec);
 }
 
+// TODO hyperv migration, remove (file_size and space)
 std::uintmax_t mp::FileOps::file_size(const fs::path& path, std::error_code& err) const
 {
     return fs::file_size(path, err);

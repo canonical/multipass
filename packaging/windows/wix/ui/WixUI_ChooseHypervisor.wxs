@@ -5,6 +5,7 @@
                 Title="!(loc.WelcomeDlg_Title)">
                 <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17"
                     Default="yes" Text="!(loc.WixUINext)">
+                    <!-- TODO hyperv migration, revert: the radio group sets DRIVER directly, no Publish needed -->
                     <Publish Property="DRIVER" Value="[DRIVER_FULL]"
                         Condition="LEGACY_HYPERV_AVAILABLE" />
                     <Publish Property="DRIVER" Value="[DRIVER_LIMITED]"
@@ -25,6 +26,7 @@
                 <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15"
                     Transparent="yes" NoPrefix="yes" Text="!(loc.ChooseHypervisorDlgTitle)" />
 
+                <!-- TODO hyperv migration, remove -->
                 <Control Id="HypervisorGroupFull" Type="RadioButtonGroup" X="20" Y="55" Width="330"
                     Height="120" Property="DRIVER_FULL" ShowCondition="LEGACY_HYPERV_AVAILABLE"
                     HideCondition="NOT LEGACY_HYPERV_AVAILABLE">
@@ -38,6 +40,7 @@
                     </RadioButtonGroup>
                 </Control>
 
+                <!-- TODO hyperv migration, revert: drop Show/HideCondition and bind the group to DRIVER -->
                 <Control Id="HypervisorGroupLimited" Type="RadioButtonGroup" X="20" Y="55" Width="330"
                     Height="120" Property="DRIVER_LIMITED" ShowCondition="NOT LEGACY_HYPERV_AVAILABLE"
                     HideCondition="LEGACY_HYPERV_AVAILABLE">

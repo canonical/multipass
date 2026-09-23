@@ -14,6 +14,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// TODO hyperv migration, remove (whole file)
+
 #pragma once
 
 #include <cstdint>
