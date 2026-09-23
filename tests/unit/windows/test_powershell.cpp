@@ -213,6 +213,7 @@ TEST_P(TestPSStatusAndOutput, runReturnsCmdletStatusAndOutput)
     logger.expect_log(mpl::Level::debug, fmt::format("{}", GetParam()));
 
     ps_helper.setup([this](auto* process) {
+        InSequence seq;
         expect_writes(process);
         EXPECT_CALL(*process, read_all_standard_output)
             .WillOnce(Return(QByteArray{data}.append(end_marker())));
@@ -231,6 +232,7 @@ TEST_P(TestPSStatusAndOutput, runHandlesTricklingOutput)
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
 
     ps_helper.setup([this](auto* process) {
+        InSequence seq;
         expect_writes(process);
         EXPECT_CALL(*process, read_all_standard_output)
             .WillOnce(Return(""))
@@ -262,6 +264,7 @@ TEST_P(TestPSStatusAndOutput, runHandlesSplitEndMarker)
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
 
     ps_helper.setup([this](auto* process) {
+        InSequence seq;
         const auto marker_halves = halves(ps_helper.output_end_marker);
         const auto status_halves = halves(get_status());
 
