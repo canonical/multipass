@@ -528,60 +528,18 @@ void HCSVirtualMachine::suspend()
     if (const auto pause_result = HCS().pause_compute_system(hcs_system); !pause_result)
         throw SaveComputeSystemException{"Could not pause VM for suspend: {}", pause_result};
 
-    const auto save_result = HCS().save_compute_system(hcs_system, get_saved_state_file_path());
-    if (save_result)
+    if (const auto save_result = HCS().save_compute_system(hcs_system, get_saved_state_file_path());
+        !save_result)
     {
-        // Save succeeded. Now, it's safe to terminate the system.
-        return shutdown(ShutdownPolicy::Poweroff);
+        recover_from_failed_save();
+        throw SaveComputeSystemException{"Failed to save suspended VM state to disk: {}",
+                                         save_result};
     }
 
-    // If saved failed, we try to resume
-    if (const auto ec = remove_saved_state_file_if_exists(); ec)
-    {
-        // FIXME: This leaves the class in an undefined state.
-        // Although the suspend file is corrupt, terminating the VM will still
-        // transition it to the suspended state.
-        mpl::warn(get_name(),
-                  "Could not remove state file after partial write '{}': {}",
-                  get_saved_state_file_path(),
-                  ec);
-    }
-
-    const auto resume_result = HCS().resume_compute_system(hcs_system);
-    if (resume_result)
-    {
-        update_current_state();
-        throw SaveComputeSystemException{
-            "Could not save the virtual machine state for VM `{}` to disk for suspend; the VM "
-            "was resumed. Error details: {}",
-            get_name(),
-            save_result};
-    }
-
-    // If resuming failed as well, we try to force shutdown.
-    try
-    {
-        shutdown(ShutdownPolicy::Poweroff);
-    }
-    catch (const std::exception& exception)
-    {
-        // If we're here, then everything failed.
-        throw SaveComputeSystemException{
-            "VM `{}` is not responding correctly: saving its state, resuming it, and "
-            "terminating it all failed. Save error: {}; resume error: {}.\n{}",
-            get_name(),
-            save_result,
-            resume_result,
-            exception.what()};
-    }
-
-    // We managed to at least shutdown the VM.
-    throw SaveComputeSystemException{
-        "Could not save the virtual machine state for VM `{}` to disk for suspend or "
-        "resume it; the VM was terminated. Save error: {}; resume error: {}",
-        get_name(),
-        save_result,
-        resume_result};
+    // NOTE: We intentionally keep the old state here because updating it would map "paused" to
+    // "suspended", causing shutdown to remove the newly saved state file.
+    shutdown(ShutdownPolicy::Poweroff);
+    return;
 }
 
 HCSVirtualMachine::State HCSVirtualMachine::current_state()
@@ -766,6 +724,30 @@ std::error_code HCSVirtualMachine::remove_saved_state_file_if_exists()
     }
 
     return {};
+}
+
+void HCSVirtualMachine::recover_from_failed_save()
+{
+    remove_saved_state_file_if_exists();
+
+    const auto resume_result = HCS().resume_compute_system(hcs_system);
+    if (resume_result)
+    {
+        update_current_state();
+        return;
+    }
+
+    mpl::error(get_name(),
+               "Could not resume after failed suspend ({}); powering off",
+               resume_result);
+    try
+    {
+        shutdown(ShutdownPolicy::Poweroff);
+    }
+    catch (const std::exception& e)
+    {
+        mpl::error(get_name(), "Power off after failed suspend also failed: {}", e.what());
+    }
 }
 
 } // namespace multipass::hyperv
