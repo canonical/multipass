@@ -132,13 +132,19 @@ bool mp::PowerShell::run(const QStringList& args,
                          QString* output_err,
                          bool whisper)
 {
+    const bool is_foreign_call = (QThread::currentThread() != powershell_proc->thread());
     // Callers on other threads get a fresh process instead of sharing the
     // persistent one: that process can only be used safely from its owning thread.
-    if (QThread::currentThread() != powershell_proc->thread())
+    if (!powershell_proc->running() || is_foreign_call)
+    {
+        mpl::trace(name,
+                   "Dispatching through exec (reason: {})",
+                   is_foreign_call ? "foreign thread" : "persistent process not running");
         return exec(QStringList{"-NoProfile", "-NonInteractive", "-Command"} + args,
                     name,
                     output,
                     output_err);
+    }
 
     // Discard leftovers from the previous transaction (e.g. late stderr)
     // before sending a new command, so they can't leak into this reply.
