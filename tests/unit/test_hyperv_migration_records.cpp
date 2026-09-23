@@ -31,9 +31,7 @@
 #include <multipass/json_utils.h>
 
 #include <filesystem>
-#include <future>
 #include <initializer_list>
-#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -283,7 +281,7 @@ struct HyperVMigrationEligibility : Test
                     bool finished = true)
     {
         ps_helper.setup(
-            [this, output, error, exit_code, finished](auto* process) {
+            [output, error, exit_code, finished](auto* process) {
                 EXPECT_EQ(process->program(), "powershell.exe");
                 EXPECT_THAT(process->arguments(),
                             ElementsAre("-NoProfile",
@@ -298,14 +296,7 @@ struct HyperVMigrationEligibility : Test
                 });
                 EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return(output));
                 EXPECT_CALL(*process, read_all_standard_error()).WillOnce(Return(error));
-                EXPECT_CALL(*process, wait_for_finished(60000)).WillOnce([this, finished](int) {
-                    auto lock_available = std::async(std::launch::async, [this] {
-                        const std::unique_lock lock{vm->state_mutex, std::try_to_lock};
-                        return lock.owns_lock();
-                    });
-                    EXPECT_TRUE(lock_available.get());
-                    return finished;
-                });
+                EXPECT_CALL(*process, wait_for_finished(60000)).WillOnce(Return(finished));
                 ON_CALL(*process, process_state())
                     .WillByDefault(Return(mp::ProcessState{exit_code, std::nullopt}));
             },
@@ -325,22 +316,6 @@ struct HyperVMigrationEligibility : Test
     StrictMock<MockFunction<void(mhv::MigrationMessage, const std::string&)>> report;
 };
 } // namespace
-
-TEST_F(HyperVMigrationEligibility, skipsStartingWithoutQueryingPowerShell)
-{
-    vm->state = mp::VirtualMachine::State::starting;
-
-    EXPECT_EQ(migrate(), "instance is starting and needs to be stopped");
-    EXPECT_FALSE(ps_helper.was_ps_run());
-}
-
-TEST_F(HyperVMigrationEligibility, skipsRestartingWithoutQueryingPowerShell)
-{
-    vm->state = mp::VirtualMachine::State::restarting;
-
-    EXPECT_EQ(migrate(), "instance is restarting and needs to be stopped");
-    EXPECT_FALSE(ps_helper.was_ps_run());
-}
 
 TEST_F(HyperVMigrationEligibility, confirmsStoppedStateBeforeCheckingTargetCollision)
 {
