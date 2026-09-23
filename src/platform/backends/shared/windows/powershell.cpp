@@ -163,7 +163,7 @@ bool mp::PowerShell::run(const QStringList& args,
         QString powershell_stdout;
         QString powershell_stderr;
         auto cmdlet_exit_found{false};
-        while (!cmdlet_exit_found)
+        while (powershell_proc->running() && !cmdlet_exit_found)
         {
             powershell_proc
                 ->wait_for_ready_read(); // ignore timeouts - will just loop back if no output
