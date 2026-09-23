@@ -102,13 +102,13 @@ TEST(LegacyDiskLayout, rejectsSnapshotsOnDifferentBaseImages)
           discovery_json(active, {{"@s1", first_disk}, {"@s2", second_disk}})}});
 
     auto virtdisk = mpt::MockVirtDiskWrapper::inject<NiceMock>();
-    ON_CALL(*virtdisk.first, list_virtual_disk_chain(active, _, _))
+    ON_CALL(*virtdisk.first, list_virtual_disk_chain(mp::NativePath{active}, _, _))
         .WillByDefault(DoAll(SetArgReferee<1>(std::vector{active, first_disk}),
                              Return(mhv::OperationResult::success())));
-    ON_CALL(*virtdisk.first, list_virtual_disk_chain(first_disk, _, _))
+    ON_CALL(*virtdisk.first, list_virtual_disk_chain(mp::NativePath{first_disk}, _, _))
         .WillByDefault(DoAll(SetArgReferee<1>(std::vector{first_disk}),
                              Return(mhv::OperationResult::success())));
-    ON_CALL(*virtdisk.first, list_virtual_disk_chain(second_disk, _, _))
+    ON_CALL(*virtdisk.first, list_virtual_disk_chain(mp::NativePath{second_disk}, _, _))
         .WillByDefault(DoAll(SetArgReferee<1>(std::vector{second_disk, second_base}),
                              Return(mhv::OperationResult::success())));
 
