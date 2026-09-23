@@ -313,6 +313,8 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     auto rollback_creation = sg::make_scope_guard([&]() noexcept {
         if (hcs_system)
             (void)HCS().terminate_compute_system(hcs_system);
+        // Drop the dead handle so that the next state query reopens the compute system.
+        hcs_system.reset();
 
         for (const auto& endpoint : endpoints)
             (void)HCN().delete_endpoint(endpoint.endpoint_guid);
