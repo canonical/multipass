@@ -5,7 +5,7 @@ import '../display_field.dart';
 import '../ffi.dart';
 import '../l10n/app_localizations.dart';
 import '../providers.dart';
-import 'settings.dart';
+import 'constants.dart';
 
 class AboutSection extends ConsumerWidget {
   const AboutSection({super.key});

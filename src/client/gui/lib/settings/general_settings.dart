@@ -8,8 +8,8 @@ import '../notifications.dart';
 import '../providers.dart';
 import '../switch.dart';
 import '../update_available.dart';
-import 'settings.dart';
 import 'autostart_notifiers.dart';
+import 'constants.dart';
 
 final onAppCloseProvider = guiSettingProvider(onAppCloseKey);
 

@@ -6,7 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../notifications/notifications_provider.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
-import 'settings.dart';
+import 'constants.dart';
 
 final driverProvider = daemonSettingProvider(driverKey);
 final bridgedNetworkProvider = daemonSettingProvider(bridgedNetworkKey);

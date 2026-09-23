@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
 import '../l10n/app_localizations.dart';
-import 'settings.dart';
+import 'constants.dart';
 
 final hotkeySettingProvider = guiSettingProvider(hotkeyKey);
 

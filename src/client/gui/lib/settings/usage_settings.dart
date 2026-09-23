@@ -11,8 +11,8 @@ import '../notifications/notifications_provider.dart';
 import '../providers.dart';
 import '../l10n/app_localizations.dart';
 import '../switch.dart';
+import 'constants.dart';
 import 'hotkey.dart';
-import 'settings.dart';
 
 final primaryNameProvider = clientSettingProvider(primaryNameKey);
 final passphraseProvider = daemonSettingProvider(passphraseKey);
