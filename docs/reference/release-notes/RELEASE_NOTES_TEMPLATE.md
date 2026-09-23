@@ -59,7 +59,7 @@ Special thanks to our new contributors
 
 ## Changes
 
-See also the full diff: [`{{PREVIOUS_TAG}}...{{VERSION_TAG}}`](https://github.com/canonical/multipass/compare/{{PREVIOUS_TAG}}...{{VERSION_TAG}}).
+See also the full diff: [`{{PREVIOUS_TAG}}...{{TARGET_TAG}}`](https://github.com/canonical/multipass/compare/{{PREVIOUS_TAG}}...{{TARGET_TAG}}).
 
 ## Feedback
 

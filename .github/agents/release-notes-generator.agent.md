@@ -249,7 +249,7 @@ Two rules make the difference:
 
    ```bash
    jq -c --slurpfile candidates /tmp/candidate-prs.json '
-     ($candidates[0] | map(.pr_number | tostring) | INDEX(.)) as $candidate_prs
+     ($candidates[0] | map(.pr_number | tostring) | INDEX(.[]; .pr_number | tostring)) as $candidate_prs
      | [.commits[]
      | select(.pr_number != null and (.skip | not) and ($candidate_prs[.pr_number | tostring] != null))
      | {pr_number, pr_title, category, type, labels,
@@ -377,8 +377,11 @@ jq --slurpfile ranked /tmp/ranked-prs.json '
     | map(del(.rank));
 
   . as $data
-  | [$data.commits[] | select(.type == "breaking" and .pr_number != null and (.skip | not)) | selected | del(.labels, .hash)] | sort_by(.rank) as $breaking_items
-  | [$data.commits[] | select(.type == "docs" and .pr_number != null and (.skip | not)) | selected | del(.category, .labels, .hash)] | sort_by(.rank) as $doc_items
+  # One PR can map to several in-range commits (cherry-picks, backports, re-merges);
+  # dedupe by PR so each ranked PR renders exactly once across all sections.
+  | ([$data.commits[] | select(.pr_number != null and (.skip | not))] | unique_by(.pr_number)) as $commits
+  | [$commits[] | select(.type == "breaking") | selected | del(.labels, .hash)] | sort_by(.rank) as $breaking_items
+  | [$commits[] | select(.type == "docs") | selected | del(.category, .labels, .hash)] | sort_by(.rank) as $doc_items
   |
 
 {
@@ -386,12 +389,12 @@ jq --slurpfile ranked /tmp/ranked-prs.json '
   DOCS: ($doc_items | length > 0),
   features: {
     by_category: [
-      $data.commits[] | select(.type == "feature" and .pr_number != null and (.skip | not)) | selected
+      $commits[] | select(.type == "feature") | selected
     ] | by_ranked_category
   },
   fixes: {
     by_category: [
-      $data.commits[] | select(.type == "fix" and .pr_number != null and (.skip | not)) | selected
+      $commits[] | select(.type == "fix") | selected
     ] | by_ranked_category
   },
   breaking_changes: {

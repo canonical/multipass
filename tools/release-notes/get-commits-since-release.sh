@@ -438,8 +438,10 @@ cd "$REPO_ROOT" || exit 1
 
 # Find the latest release tag (start of range)
 if [[ -z $CUSTOM_TAG ]]; then
-  # Look for release tags matching v<digit>.<digit>.<digit> (excluding -dev, -rc, etc.)
-  FROM_TAG=$(git tag -l 'v[0-9]*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+  # Look for release tags matching v<digit>.<digit>.<digit> (excluding -dev, -rc, etc.).
+  # `|| true`: under `set -o pipefail` a no-match `grep` fails the pipeline, which
+  # would abort the assignment via `set -e` before the fallback below can run.
+  FROM_TAG=$(git tag -l 'v[0-9]*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1) || true
 
   if [[ -z $FROM_TAG ]]; then
     # Fallback: get any v-prefixed tag
