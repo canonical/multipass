@@ -141,11 +141,14 @@ grpc::Status mhv::DriverTransition::complete(
     case MigrationOutcome::completed:
         return grpc::Status::OK;
     case MigrationOutcome::completed_with_failures:
-        return {grpc::StatusCode::FAILED_PRECONDITION, "One or more instances failed to migrate"};
+        return {grpc::StatusCode::FAILED_PRECONDITION,
+                "Driver change succeeded, but one or more instances failed to migrate"};
     case MigrationOutcome::cancelled:
-        return {grpc::StatusCode::CANCELLED, "Hyper-V migration was cancelled"};
+        return {grpc::StatusCode::CANCELLED,
+                "Driver change succeeded, but the migration was cancelled"};
     case MigrationOutcome::aborted:
-        return {grpc::StatusCode::FAILED_PRECONDITION, "Hyper-V migration aborted"};
+        return {grpc::StatusCode::FAILED_PRECONDITION,
+                "Driver change succeeded, but the migration was aborted"};
     }
     throw std::logic_error{"Unknown Hyper-V migration outcome"};
 }

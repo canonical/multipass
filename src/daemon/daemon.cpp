@@ -2696,6 +2696,7 @@ try
     mpl::debug(category, "Succeeded setting {}={}", key, val);
 
 #if defined(HYPERV_API_ENABLED)
+    // Runs the Hyper-V to HCS migration only if prepare() started one; otherwise returns OK.
     context->set_value(transition.complete(server));
 #else
     context->set_value(grpc::Status::OK);
