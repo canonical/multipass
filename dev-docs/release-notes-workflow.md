@@ -50,7 +50,7 @@ git fetch --tags --unshallow 2>/dev/null || git fetch --tags
 
 Ask your agent something like:
 
-> Use the Release Notes Generator agent. Generate release notes for PREVIOUS_TAG=v1.16.3.
+> Use the Release Notes Generator agent. Generate release notes for PREVIOUS_TAG=v1.16.3 and TARGET_TAG=v1.17.0.
 
 If desired, open a draft PR against `main` with the notes file and index update.
 

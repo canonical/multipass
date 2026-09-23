@@ -93,11 +93,12 @@ release/1.15 $ git push --tags
     1. Place the package in a public place, accessible with a no-redirect URL. For example https://people.canonical.com/~ricab/multipass-1.15.0+win-win64.msi.
     2. Go to https://partner.microsoft.com/en-us/dashboard/apps-and-games/overview, navigate to "Multipass > Packages" and upload the package.
     3. Run validation on the new package. This might take a few working days.
-8. Prepare release notes and release announcements for Discourse, Matrix, and Mattermost
-9. Submit a PR to `main` with
-    1. The new release notes for this version in `docs/reference/release-notes`.
-    2. Update the `index.md` file as well, adding a link to the release notes and changing/adding details about the release's contents.
-    3. Follow the [template](https://github.com/canonical/multipass/blob/main/docs/reference/release-notes/release-notes-templates.md) and use these release notes in the GH draft release as well.
+8. Submit a release notes PR using the [release notes workflow](release-notes-workflow.md)
+    1. The release notes workflow creates both the release notes from a template in `docs/reference/release-notes` and updates the `index.md` accordingly.
+    2. Review the generated release notes and improve their content with a focus on user value and readability.
+    3. For feature releases ensure that the latest release's highlights are updated in `index.md`.
+    4. Use these release notes in the GH draft release as well.
+9. Prepare release announcements for Discourse, Matrix, and Mattermost.
 
 ### Publicly release
 

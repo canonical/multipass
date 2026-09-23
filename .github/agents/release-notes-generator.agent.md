@@ -215,21 +215,25 @@ several signals so important PRs can't be filtered out before evaluation:
 #   - carries a feature/breaking type or a feature/area label
 #   - touches high-signal paths (new image hosts, backends, arch triplets,
 #     image vault/catalogue, rpc/proto, networking)
-jq -r '
-  .commits[]
-  | select(.pr_number != null and (.skip | not))   # drop pre-filtered noise
-  | . as $c
-  | ((.additions // 0) + (.deletions // 0)) as $churn
-  | (([.top_dirs[]?.dir] | join(" ")) ) as $dirs
-  | select(
-      $churn >= 200
-      or (.changed_files // 0) >= 8
-      or (.type == "feature" or .type == "breaking")
-      or ((.labels // []) | any(test("feature|enhancement|area/"; "i")))
-      or ($dirs | test("image_host|image_vault|backends|vcpkg-triplets|src/rpc|src/network|src/platform"; "i"))
-    )
-  | "\(.pr_number)\t\($churn)\t\(.type)\t\(.pr_title // .subject)"
-' /tmp/commits-data.json | sort -t$'\t' -k2 -rn
+jq '
+  [.commits[]
+    | select(.pr_number != null and (.skip | not))   # drop pre-filtered noise
+    | . as $c
+    | ((.additions // 0) + (.deletions // 0)) as $churn
+    | (([.top_dirs[]?.dir] | join(" ")) ) as $dirs
+    | select(
+        $churn >= 200
+        or (.changed_files // 0) >= 8
+        or (.type == "feature" or .type == "breaking")
+        or ((.labels // []) | any(test("feature|enhancement|area/"; "i")))
+        or ($dirs | test("image_host|image_vault|backends|vcpkg-triplets|src/rpc|src/network|src/platform"; "i"))
+      )
+    | {pr_number, churn: $churn, type, title: (.pr_title // .subject)}]
+  | unique_by(.pr_number)
+  | sort_by(-.churn)
+' /tmp/commits-data.json > /tmp/candidate-prs.json
+
+jq -r '.[] | "\(.pr_number)\t\(.churn)\t\(.type)\t\(.title)"' /tmp/candidate-prs.json
 ```
 
 Everything in this candidate set gets evaluated. Do **not** pre-trim it by gut
@@ -244,8 +248,10 @@ Two rules make the difference:
    guesses. Build one JSON blob per candidate:
 
    ```bash
-   jq -c '[.commits[]
-     | select(.pr_number != null and (.skip | not))
+   jq -c --slurpfile candidates /tmp/candidate-prs.json '
+     ($candidates[0] | map(.pr_number | tostring) | INDEX(.)) as $candidate_prs
+     | [.commits[]
+     | select(.pr_number != null and (.skip | not) and ($candidate_prs[.pr_number | tostring] != null))
      | {pr_number, pr_title, category, type, labels,
         additions, deletions, changed_files, top_dirs,
         pr_body: (.pr_body // .subject)}]' /tmp/commits-data.json > /tmp/eval-input.json
@@ -278,7 +284,7 @@ Anchors (calibrate every score against these):
     5 = new capability all users directly act on (new OS image family such as 
         Debian/Fedora; new major feature like a new GUI subsystem;
         redesigned image catalogue changing what users can launch)
-    4 = new capapbility most users directly act on, e.g. limited to a 
+    4 = new capability most users directly act on, e.g. limited to a 
         particular platform (new CPU architecture such as ppc64el/s390x; new backend);
     3 = notable improvement to an existing workflow (new launch/mount option)
     2 = minor improvement to an existing workflow (removed inconveniences,
@@ -319,7 +325,10 @@ PRs:
 
 Feed candidates in batches of ~15-20 so the whole batch fits in context and the
 relative ranking stays meaningful. Merge the batch outputs, then re-rank the
-top of each tier across batches if needed.
+top of each tier across batches if needed. Save the final merged/re-ranked
+result to `/tmp/ranked-prs.json` in the exact JSON shape returned by the
+ranking prompt. Template input must use this file; unranked classified commits
+are intermediate data only.
 
 Use the tiers to:
 - **Structure the notes**: must-mention items lead each subsystem section.
@@ -329,30 +338,70 @@ Use the tiers to:
 
 ## Preparing Data for Template
 
-Transform commits to template-compatible structure with jq. Every selection
-requires `.pr_number != null and (.skip | not)` so noise and PR-less commits
-(which lack enriched fields) never reach the template:
+Transform ranked PRs to template-compatible structure with jq. Every release-note
+entry must be present in `/tmp/ranked-prs.json` with a final tier other than
+`skip`; unranked classified commits are intermediate data only. The base
+selection still requires `.pr_number != null and (.skip | not)` so noise and
+PR-less commits (which lack enriched fields) never reach the template:
 
 ```bash
-jq '{
+jq --slurpfile ranked /tmp/ranked-prs.json '
+  ($ranked[0]
+    | map(select(.tier != "skip"))
+    | INDEX(.pr_number | tostring)) as $selected
+  |
+  def ranked_item($ranking):
+    {
+      category,
+      subject,
+      title: .pr_title,
+      labels,
+      hash: .hash[0:9],
+      pr_number,
+      author,
+      tier: $ranking.tier,
+      rank: $ranking.rank,
+      reason: $ranking.one_line_reason
+    };
+
+  def selected:
+    . as $commit
+    | ($selected[$commit.pr_number | tostring]) as $ranking
+    | select($ranking != null)
+    | ranked_item($ranking);
+
+  def by_ranked_category:
+    group_by(.category)
+    | map({category: .[0].category, rank: (map(.rank) | min), items: sort_by(.rank)})
+    | sort_by(.rank)
+    | map(del(.rank));
+
+  . as $data
+  | [$data.commits[] | select(.type == "breaking" and .pr_number != null and (.skip | not)) | selected | del(.labels, .hash)] | sort_by(.rank) as $breaking_items
+  | [$data.commits[] | select(.type == "docs" and .pr_number != null and (.skip | not)) | selected | del(.category, .labels, .hash)] | sort_by(.rank) as $doc_items
+  |
+
+{
+  BREAKING_CHANGES: ($breaking_items | length > 0),
+  DOCS: ($doc_items | length > 0),
   features: {
     by_category: [
-      .commits[] | select(.type == "feature" and .pr_number != null and (.skip | not)) | {category, subject, title: .pr_title, labels, hash: .hash[0:9], pr_number, author}
-    ] | group_by(.category) | map({category: .[0].category, items: .})
+      $data.commits[] | select(.type == "feature" and .pr_number != null and (.skip | not)) | selected
+    ] | by_ranked_category
   },
   fixes: {
     by_category: [
-      .commits[] | select(.type == "fix" and .pr_number != null and (.skip | not)) | {category, subject, title: .pr_title, labels, hash: .hash[0:9], pr_number, author}
-    ] | group_by(.category) | map({category: .[0].category, items: .})
+      $data.commits[] | select(.type == "fix" and .pr_number != null and (.skip | not)) | selected
+    ] | by_ranked_category
   },
   breaking_changes: {
-    items: [.commits[] | select(.type == "breaking" and .pr_number != null and (.skip | not)) | {category, subject, title: .pr_title, pr_number, author}]
+    items: $breaking_items
   },
   docs: {
-    items: [.commits[] | select(.type == "docs" and .pr_number != null and (.skip | not)) | {subject, title: .pr_title, pr_number, author}]
+    items: $doc_items
   },
   new_authors: {
-    names: [.commits[] | select(.is_new_author == true and (.skip_reason != "automation-author"))
+    names: [$data.commits[] | select(.is_new_author == true and (.skip_reason != "automation-author"))
       | (.author_login // .author)] | unique | sort
   }
 }' /tmp/commits-data.json
@@ -386,7 +435,8 @@ doesn't lose to a quick one):
 
 ```bash
 gh search prs --repo "${PR_REPO:-canonical/multipass}" --author <login> \
-  --merged --sort closed --order asc --limit 1 --json number,title
+  --merged --sort created --order asc --limit 100 --json number,title,closedAt \
+  | jq 'sort_by(.closedAt) | .[0] | {number, title}'
 ```
 
 The template renders each entry as

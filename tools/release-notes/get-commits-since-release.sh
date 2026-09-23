@@ -4,7 +4,6 @@
 # Usage: ./get-commits-since-release.sh [options]
 # Options:
 #   -f, --format FORMAT   Output format: oneline, short, medium, full (default: oneline)
-#   -s, --stat            Show diffstat
 #   -a, --author          Group by author
 #   --tag TAG             Start of range: previous release tag (default: auto-detect latest)
 #   --to REF              End of range: target ref (default: HEAD)
@@ -197,13 +196,25 @@ is_genuinely_new_author() {
     return
   fi
 
-  # Any merged PR by this login before the tag date means not new. Sort by
-  # close date ascending so the earliest MERGED PR is first regardless of when
-  # PRs were opened; limit(1) avoids a SIGPIPE under `set -o pipefail`.
-  local earlier
-  earlier=$(gh search prs --repo "$PR_REPO" --author "$login" --merged \
-    --sort closed --order asc --json number,closedAt --limit 20 2>/dev/null \
-    | jq -r --arg d "$tag_date" 'limit(1; .[] | select(.closedAt < $d)) | .number' 2>/dev/null)
+  # Any merged PR by this login before the tag date means not new. GitHub's
+  # issue-search sorting does not support "closed", so filter by closed date
+  # and select the earliest closedAt locally.
+  local earlier search_json
+  if ! search_json=$(gh search prs --repo "$PR_REPO" --author "$login" --merged \
+      --closed "<$tag_date" \
+      --sort created --order asc --json number,closedAt --limit 100 2>/dev/null); then
+    echo "Warning: could not search merged PR history for GitHub login '$login'; treating '$name' as locally new" >&2
+    echo "true"
+    return
+  fi
+
+  if ! earlier=$(jq -r --arg d "$tag_date" \
+      '[.[] | select(.closedAt != null and .closedAt < $d)] | sort_by(.closedAt) | .[0].number // ""' \
+      <<<"$search_json" 2>/dev/null); then
+    echo "Warning: could not parse merged PR history for GitHub login '$login'; treating '$name' as locally new" >&2
+    echo "true"
+    return
+  fi
   if [[ -n $earlier ]]; then
     echo "false"
     return
