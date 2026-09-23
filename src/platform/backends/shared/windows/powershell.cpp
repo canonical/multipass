@@ -118,12 +118,24 @@ void mp::PowerShell::easy_run(const QStringList& args, std::string&& error_msg)
         throw std::runtime_error{std::move(error_msg)};
 }
 
+void mp::PowerShell::drain()
+{
+    assert(powershell_proc);
+    if (auto stale = powershell_proc->read_all_standard_output(); !stale.isEmpty())
+        mpl::trace(name, "[{}] Discarded stale stdout: {}", powershell_proc->process_id(), stale);
+    if (auto stale = powershell_proc->read_all_standard_error(); !stale.isEmpty())
+        mpl::trace(name, "[{}] Discarded stale stderr: {}", powershell_proc->process_id(), stale);
+}
+
 bool mp::PowerShell::run(const QStringList& args,
                          QString* output,
                          QString* output_err,
                          bool whisper)
 {
     std::scoped_lock lock{transaction_mutex};
+    // Discard leftovers from the previous transaction (e.g. late stderr)
+    // before sending a new command, so they can't leak into this reply.
+    drain();
 
     QString default_output, default_output_err;
     output = output ? output : &default_output;
