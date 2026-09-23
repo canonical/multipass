@@ -95,6 +95,7 @@ mp::PowerShell::PowerShell(const std::string& name)
     setup_powershell(powershell_proc.get(), this->name);
 
     powershell_proc->start();
+    powershell_proc->wait_for_started();
 }
 
 mp::PowerShell::~PowerShell()
