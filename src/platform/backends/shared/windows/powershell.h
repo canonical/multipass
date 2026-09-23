@@ -22,7 +22,6 @@
 #include <QStringList>
 
 #include <memory>
-#include <mutex>
 #include <string>
 
 namespace multipass
