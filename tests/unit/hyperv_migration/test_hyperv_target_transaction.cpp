@@ -358,15 +358,41 @@ TEST_F(HyperVTargetTransaction, missingCloudInitRollsBackCopiedDisks)
     EXPECT_TRUE(MP_FILEOPS.exists(active));
 }
 
-TEST_F(HyperVTargetTransaction, missingOptionalSnapshotCountDoesNotPreventMigration)
+TEST_F(HyperVTargetTransaction, missingSnapshotCountIsAllowedWithoutSnapshots)
 {
     fs::remove(source_dir / "snapshot-count");
+    layout.snapshots.clear();
+    std::erase(layout.all_disks, snap1);
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
 
     const auto mapping = transaction.stage(layout, source_dir);
 
     EXPECT_NO_THROW(transaction.verify(mapping));
     EXPECT_FALSE(MP_FILEOPS.exists(target_instance_dir / "snapshot-count"));
+}
+
+TEST_F(HyperVTargetTransaction, missingSnapshotCountAbortsWhenSnapshotsExist)
+{
+    fs::remove(source_dir / "snapshot-count");
+    {
+        mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
+        MP_EXPECT_THROW_THAT((void)transaction.stage(layout, source_dir),
+                             std::runtime_error,
+                             mpt::match_what(HasSubstr("Missing 'snapshot-count'")));
+    }
+    EXPECT_FALSE(MP_FILEOPS.exists(target_instance_dir));
+}
+
+TEST_F(HyperVTargetTransaction, missingSnapshotHeadAbortsWhenSnapshotsExist)
+{
+    fs::remove(source_dir / "snapshot-head");
+    {
+        mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
+        MP_EXPECT_THROW_THAT((void)transaction.stage(layout, source_dir),
+                             std::runtime_error,
+                             mpt::match_what(HasSubstr("Missing 'snapshot-head'")));
+    }
+    EXPECT_FALSE(MP_FILEOPS.exists(target_instance_dir));
 }
 
 TEST_F(HyperVTargetTransaction, rollbackPreservesPreparedTarget)

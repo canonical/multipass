@@ -253,6 +253,10 @@ multipass::hyperv::TargetDiskMapping multipass::hyperv::TargetMigrationTransacti
         MP_FILEOPS.copy(count,
                         target_instance_dir / snapshot_count_filename,
                         fs::copy_options::overwrite_existing);
+    else if (!layout.snapshots.empty())
+        // The target cannot load its snapshots without it (see load_generic_snapshot_info).
+        throw std::runtime_error{
+            fmt::format("Missing '{}' for an instance with snapshots", snapshot_count_filename)};
     write_snapshot_bookkeeping(layout, source_instance_dir);
 
     return mapping;
@@ -372,4 +376,7 @@ void multipass::hyperv::TargetMigrationTransaction::write_snapshot_bookkeeping(
 
     if (const auto head = MP_FILEOPS.try_read_file(source_instance_dir / snapshot_head_filename))
         MP_FILEOPS.write_transactionally(target_instance_dir / snapshot_head_filename, *head);
+    else if (!layout.snapshots.empty())
+        throw std::runtime_error{
+            fmt::format("Missing '{}' for an instance with snapshots", snapshot_head_filename)};
 }
