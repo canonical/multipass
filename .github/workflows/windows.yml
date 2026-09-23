@@ -148,15 +148,25 @@ jobs:
     - name: Install Windows ADK
       shell: pwsh
       run: |
-        winget install --id Microsoft.WindowsADK --exact --silent `
-          --disable-interactivity `
-          --accept-package-agreements `
-          --accept-source-agreements
+        Invoke-WebRequest `
+          "https://go.microsoft.com/fwlink/?linkid=2289980" `
+          -OutFile "$env:TEMP\adksetup.exe"
 
-        winget install --id Microsoft.WindowsADK.WinPEAddon --exact --silent `
-          --disable-interactivity `
-          --accept-package-agreements `
-          --accept-source-agreements
+        Start-Process `
+          "$env:TEMP\adksetup.exe" `
+          -ArgumentList "/quiet /norestart /features OptionId.DeploymentTools" `
+          -Wait `
+          -NoNewWindow
+
+        Invoke-WebRequest `
+          "https://go.microsoft.com/fwlink/?linkid=2289981" `
+          -OutFile "$env:TEMP\adkwinpesetup.exe"
+
+        Start-Process `
+          "$env:TEMP\adkwinpesetup.exe" `
+          -ArgumentList "/quiet /norestart" `
+          -Wait `
+          -NoNewWindow
 
     - name: Install cmake
       uses: lukka/get-cmake@v4.4.2
