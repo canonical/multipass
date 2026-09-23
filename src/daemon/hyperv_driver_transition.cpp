@@ -47,7 +47,8 @@ grpc::Status mhv::DriverTransition::prepare(const std::string& key, const std::s
 
     const auto current_driver = MP_SETTINGS.get(mp::driver_key).toStdString();
     const auto migrate_hyperv = current_driver == "hyperv" && value == "hyperv_api";
-    if (!migrate_hyperv && !(current_driver == "hyperv_api" && value != "hyperv_api"))
+    const auto leave_hyperv_api = current_driver == "hyperv_api" && value != "hyperv_api";
+    if (!migrate_hyperv && !leave_hyperv_api)
         return grpc::Status::OK;
 
     if (migrate_hyperv)
