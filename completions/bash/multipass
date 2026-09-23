@@ -64,6 +64,12 @@ _multipass_complete()
         opts=$( multipass networks --format=csv 2>/dev/null | \tail -n +2 | \cut -d',' -f 1 )
     }
 
+    # Set $opts to the list of available availability zones.
+    _multipass_zones()
+    {
+        opts=$( multipass zones --format=csv 2>/dev/null | \tail -n +2 | \cut -d',' -f 1 )
+    }
+
     _multipass_instances_with_colon()
     {
         local opts_bak="${opts}"
@@ -230,7 +236,7 @@ _multipass_complete()
     prev_opts=false
     multipass_cmds="authenticate transfer delete exec find help info launch list mount networks \
                     purge recover restart restore shell snapshot start stop suspend umount version get set \
-                    clone alias aliases unalias"
+                    clone alias aliases unalias zones enable-zones disable-zones"
 
     if [[ "${multipass_cmds}" =~ " ${cmd} " || "${multipass_cmds}" =~ ^${cmd} || "${multipass_cmds}" =~ \ ${cmd}$ ]];
     then
@@ -248,14 +254,14 @@ _multipass_complete()
         "list"|"ls")
             _add_nonrepeating_args "--format --snapshots"
         ;;
-        "networks"|"aliases")
+        "networks"|"aliases"|"zones")
             _add_nonrepeating_args "--format"
         ;;
         "delete")
             _add_nonrepeating_args "--all --purge"
         ;;
         "launch")
-            _add_nonrepeating_args "--cpus --disk --memory --name --cloud-init --bridged --mount"
+            _add_nonrepeating_args "--cpus --disk --memory --name --cloud-init --bridged --mount --zone"
             opts="${opts} --network --mount"
         ;;
         "mount")
@@ -304,6 +310,10 @@ _multipass_complete()
             "--mount")
                 _filedir
                 return
+            ;;
+            "--zone")
+                _multipass_zones
+                prev_opts=true
             ;;
             "--network")
                 _multipass_networks
