@@ -35,7 +35,6 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <fmt/std.h>
-#include <mutex>
 #include <system_error>
 
 namespace
@@ -420,16 +419,6 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
 
     try
     {
-        {
-            const std::lock_guard lock{vm_it->second->state_mutex};
-            const auto state = vm_it->second->state;
-            if (state == VirtualMachine::State::starting ||
-                state == VirtualMachine::State::restarting)
-                return fmt::format("instance is {} and needs to be stopped",
-                                   state == VirtualMachine::State::starting ? "starting"
-                                                                            : "restarting");
-        }
-
         const auto command = QStringLiteral("Get-VM -Name '%1' -ErrorAction Stop | "
                                             "Select-Object -ExpandProperty State")
                                  .arg(QString::fromStdString(name));
