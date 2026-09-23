@@ -562,6 +562,7 @@ void HCSVirtualMachine::suspend()
 }
 
 HCSVirtualMachine::State HCSVirtualMachine::current_state()
+try
 {
     if (!hcs_system && !maybe_open_compute_system())
     {
@@ -574,11 +575,19 @@ HCSVirtualMachine::State HCSVirtualMachine::current_state()
     update_current_state();
     return state;
 }
+catch (const OpenComputeSystemException& e)
+{
+    // Callers such as daemon startup and `list` do not expect state queries to throw.
+    mpl::warn(get_name(), "current_state() > {}", e.what());
+    set_state(hcs::ComputeSystemState::unknown);
+    return state;
+}
 
 void HCSVirtualMachine::update_current_state()
 {
     set_state(fetch_state_from_api());
 }
+
 int HCSVirtualMachine::ssh_port()
 {
     return default_ssh_port;
