@@ -187,13 +187,9 @@ public slots:
         DaemonRpcContext* context);
 
 private:
-    // Used at RPC dispatch and when registering an asynchronous instance preparation.
+    // Used at RPC dispatch.
     [[nodiscard]] bool reject_if_migrating(std::string_view rpc_name,
                                            DaemonRpcContext* context) const;
-    [[nodiscard]] bool begin_instance_preparation(const std::string& name,
-                                                  std::string_view rpc_name,
-                                                  DaemonRpcContext* context);
-    void end_instance_preparation(const std::string& name);
 
     void release_resources(const std::string& instance);
     void create_vm(const CreateRequest* request,
@@ -303,7 +299,6 @@ private:
     std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
     std::mutex start_mutex;
     std::unordered_set<std::string> preparing_instances;
-    std::atomic_size_t preparations_in_progress{0};
     QFuture<void> image_update_future;
     SettingsHandler* instance_mod_handler;
     SettingsHandler* snapshot_mod_handler;

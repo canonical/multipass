@@ -1657,27 +1657,6 @@ bool mp::Daemon::reject_if_migrating(std::string_view rpc_name, DaemonRpcContext
     return true;
 }
 
-bool mp::Daemon::begin_instance_preparation(const std::string& name,
-                                            std::string_view rpc_name,
-                                            DaemonRpcContext* context)
-{
-    ++preparations_in_progress;
-    if (reject_if_migrating(rpc_name, context))
-    {
-        --preparations_in_progress;
-        return false;
-    }
-
-    preparing_instances.insert(name);
-    return true;
-}
-
-void mp::Daemon::end_instance_preparation(const std::string& name)
-{
-    if (preparing_instances.erase(name) > 0)
-        --preparations_in_progress;
-}
-
 void mp::Daemon::create(const CreateRequest* request,
                         grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                         DaemonRpcContext* context)
@@ -2668,7 +2647,7 @@ try
                                              operative_instances,
                                              deleted_instances,
                                              migration_in_progress,
-                                             preparations_in_progress}};
+                                             preparing_instances}};
     if (auto status = transition.prepare(key, val); !status.ok())
     {
         context->set_value(std::move(status));
@@ -2976,16 +2955,15 @@ try
         if (auto dest_vm_status = validate_dest_name(destination_name); !dest_vm_status.ok())
             return context->set_value(std::move(dest_vm_status));
 
-        if (!begin_instance_preparation(destination_name, "clone an instance", context))
-            return;
-
         auto rollback_resources = sg::make_scope_guard([this, destination_name]() noexcept -> void {
             top_catch_all(category, [this, destination_name]() {
                 release_resources(destination_name);
-                end_instance_preparation(destination_name);
+                preparing_instances.erase(destination_name);
             });
         });
 
+        // signal that the new instance is being cooked up
+        preparing_instances.insert(destination_name);
         auto& src_spec = vm_instance_specs[source_name];
         auto dest_spec = clone_spec(src_spec, source_name, destination_name);
 
@@ -3007,7 +2985,7 @@ try
             *config->ssh_key_provider,
             *this);
         ++src_spec.clone_count;
-        end_instance_preparation(destination_name);
+        preparing_instances.erase(destination_name);
         persist_instances();
         init_mounts(destination_name);
 
@@ -3287,10 +3265,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     auto timeout = timeout_for(request->timeout());
 
-    if (!begin_instance_preparation(name,
-                                    start ? "launch an instance" : "create an instance",
-                                    context))
-        return;
+    preparing_instances.insert(name);
 
     auto prepare_future_watcher = new QFutureWatcher<mp::VirtualMachineDescription>();
 
@@ -3321,7 +3296,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                  vm_desc,
                                  *config->ssh_key_provider,
                                  *this);
-                             end_instance_preparation(name);
+                             preparing_instances.erase(name);
 
                              persist_instances();
 
@@ -3362,7 +3337,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                          catch (const std::exception& e)
                          {
                              mp::top_catch_all(category, [this, name]() {
-                                 end_instance_preparation(name);
+                                 preparing_instances.erase(name);
                                  release_resources(name);
                                  operative_instances.erase(name);
                                  persist_instances();
