@@ -25,6 +25,7 @@
 #include <multipass/logging/log.h>
 
 #include <cassert>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 
@@ -34,6 +35,45 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "remote settings";
+
+// TODO(hyperv-migration): Remove once the Hyper-V to HCS migration is dropped.
+// Adds HCS migration progress reporting on top of `callback`. To remove:
+//   1. Unwrap the call in RemoteSet: pass make_confirmation_callback(...) to dispatch() directly.
+//   2. Delete this function and the "animated_spinner.h" and <memory> includes.
+template <typename Callback>
+auto with_hcs_migration_progress(mp::Terminal& term, Callback callback)
+{
+    auto spinner = std::make_shared<mp::AnimatedSpinner>(term.cerr());
+    return [spinner, &term, callback = std::move(callback)](
+               mp::SetReply& reply,
+               grpc::ClientReaderWriterInterface<mp::SetRequest, mp::SetReply>* client) {
+        // Print log lines here so that an ongoing migration phase keeps spinning
+        if (!reply.log_line().empty())
+        {
+            spinner->print(term.cerr(), reply.log_line());
+            reply.clear_log_line();
+        }
+
+        const auto& migration_report = reply.hcs_migration_report();
+        if (!migration_report.phase().empty())
+        {
+            spinner->stop();
+            spinner->start(migration_report.phase());
+        }
+        else if (!migration_report.summary().empty())
+        {
+            spinner->stop();
+            term.cout() << migration_report.summary();
+            if (migration_report.summary().back() != '\n')
+                term.cout() << '\n';
+        }
+        else if (reply.needs_authorization() || !reply.reply_message().empty())
+        {
+            spinner->stop();
+            callback(reply, client);
+        }
+    };
+}
 
 class InternalCmd
     : public mp::cmd::Command // TODO feels hacky, better untangle dispatch from commands
@@ -130,52 +170,15 @@ public:
         set_request.set_val(val.toStdString());
         set_request.set_authorized(user_authorized);
 
-        mp::AnimatedSpinner spinner{term->cerr()};
-        auto streaming_callback =
-            [&spinner, &term = *term, key](
-                mp::SetReply& reply,
-                grpc::ClientReaderWriterInterface<mp::SetRequest, mp::SetReply>* client) {
-                if (!reply.log_line().empty())
-                    spinner.print(term.cerr(), reply.log_line());
-
-                const auto& migration_report = reply.hcs_migration_report();
-
-                if (key.startsWith(mp::daemon_settings_root) &&
-                    key.endsWith(mp::bridged_network_name) && reply.needs_authorization())
-                {
-                    spinner.stop();
-                    mp::BridgePrompter prompter{&term};
-                    const std::vector<std::string> networks{1, reply.reply_message()};
-                    mp::SetRequest request;
-                    request.set_authorized(prompter.bridge_prompt(networks));
-                    client->Write(request);
-                }
-                else if (!migration_report.summary().empty())
-                {
-                    spinner.stop();
-                    term.cout() << migration_report.summary();
-                    if (migration_report.summary().back() != '\n')
-                        term.cout() << '\n';
-                }
-                else if (!migration_report.phase().empty())
-                {
-                    spinner.stop();
-                    spinner.start(migration_report.phase());
-                }
-                else if (!reply.reply_message().empty())
-                {
-                    spinner.stop();
-                    term.cout() << reply.reply_message();
-                    if (reply.reply_message().back() != '\n')
-                        term.cout() << '\n';
-                }
-            };
-
-        [[maybe_unused]] auto ret = dispatch(&RpcMethod::set,
-                                             set_request,
-                                             on_success<mp::SetReply>,
-                                             on_failure,
-                                             streaming_callback);
+        [[maybe_unused]] auto ret = dispatch(
+            &RpcMethod::set,
+            set_request,
+            on_success<mp::SetReply>,
+            on_failure,
+            // TODO(hyperv-migration): Unwrap, see with_hcs_migration_progress
+            with_hcs_migration_progress(
+                *term,
+                mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(*term, key)));
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 };
