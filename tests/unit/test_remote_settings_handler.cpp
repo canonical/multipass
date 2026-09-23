@@ -299,6 +299,7 @@ TEST_F(RemoteSettingsTest, setDisplaysMigrationProgressDiagnosticsAndSummary)
 
     auto read_count = 0;
     EXPECT_CALL(*mock_client, Read).WillRepeatedly([&read_count](mp::SetReply* reply) {
+        reply->Clear(); // like gRPC, which parses each message into a cleared reply
         switch (read_count++)
         {
         case 0:
