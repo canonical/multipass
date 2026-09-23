@@ -17,6 +17,7 @@
 #include "tests/unit/common.h"
 #include "tests/unit/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
 #include "tests/unit/mock_file_ops.h"
+#include "tests/unit/mock_recursive_dir_iterator.h"
 #include "tests/unit/mock_virtual_machine.h"
 #include "tests/unit/stub_availability_zone_manager.h"
 #include "tests/unit/stub_virtual_machine_factory.h"
@@ -215,6 +216,45 @@ TEST_F(HyperVMigrationTargetRecords, recoveryIgnoresMalformedManifest)
 
     EXPECT_TRUE(MP_FILEOPS.exists(malformed / mhv::MigrationTransactionManifest::filename));
     EXPECT_FALSE(MP_FILEOPS.exists(target_dir));
+}
+
+TEST_F(HyperVMigrationTargetRecords, recoveryAbortsWhenInstancesCannotBeEnumerated)
+{
+    mhv::HyperVMigrationTargetRecords store{data.path()};
+    const auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, create_directories(instances_root, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, dir_iterator(instances_root, _))
+        .WillOnce(DoAll(SetArgReferee<1>(std::make_error_code(std::errc::permission_denied)),
+                        Return(ByMove(std::unique_ptr<mp::DirIterator>{}))));
+
+    MP_EXPECT_THROW_THAT(
+        store.prepare(),
+        mhv::MigrationAbortError,
+        mpt::match_what(HasSubstr("Could not enumerate target instances directory")));
+}
+
+TEST_F(HyperVMigrationTargetRecords, recoveryAbortsWhenTargetCannotBeInspected)
+{
+    const auto unreadable = instances_root / "unreadable";
+    mpt::MockDirectoryEntry entry;
+    ON_CALL(entry, path()).WillByDefault(ReturnRef(unreadable));
+
+    mhv::HyperVMigrationTargetRecords store{data.path()};
+    const auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, create_directories(instances_root, _)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, dir_iterator(instances_root, _)).WillOnce([&entry] {
+        auto iterator = std::make_unique<NiceMock<mpt::MockDirIterator>>();
+        EXPECT_CALL(*iterator, hasNext()).WillOnce(Return(true));
+        EXPECT_CALL(*iterator, next()).WillOnce(ReturnRef(entry));
+        return iterator;
+    });
+    EXPECT_CALL(*mock_file_ops, is_directory(unreadable, _))
+        .WillOnce(DoAll(SetArgReferee<1>(std::make_error_code(std::errc::permission_denied)),
+                        Return(false)));
+
+    MP_EXPECT_THROW_THAT(store.prepare(),
+                         mhv::MigrationAbortError,
+                         mpt::match_what(HasSubstr("Could not inspect migration target")));
 }
 
 TEST_F(HyperVMigrationTargetRecords, recoveryRemovesRecordOnlyOrphan)

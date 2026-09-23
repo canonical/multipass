@@ -199,8 +199,12 @@ void multipass::hyperv::HyperVMigrationTargetRecords::recover()
 {
     std::error_code error;
     auto iterator = MP_FILEOPS.dir_iterator(instances_root, error);
+    // Unrecovered transactions must be examined before the driver is switched.
     if (error || !iterator)
-        return;
+        throw MigrationAbortError{
+            fmt::format("Could not enumerate target instances directory '{}': {}",
+                        instances_root,
+                        error ? error.message() : "no iterator")};
 
     std::vector<fs::path> directories;
     while (iterator->hasNext())
@@ -211,7 +215,12 @@ void multipass::hyperv::HyperVMigrationTargetRecords::recover()
             continue;
 
         std::error_code dir_error;
-        if (MP_FILEOPS.is_directory(path, dir_error) && !dir_error)
+        const auto is_directory = MP_FILEOPS.is_directory(path, dir_error);
+        if (dir_error)
+            throw MigrationAbortError{fmt::format("Could not inspect migration target '{}': {}",
+                                                  path,
+                                                  dir_error.message())};
+        if (is_directory)
             directories.push_back(path);
     }
 
