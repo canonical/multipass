@@ -6,7 +6,7 @@ import 'usage_settings.dart';
 import 'virtualization_settings.dart';
 import 'about_section.dart';
 
-const settingFieldWidth = 260.0;
+const settingFieldWidth = 270.0;
 
 class SettingsScreen extends StatelessWidget {
   static const sidebarKey = 'settings';
