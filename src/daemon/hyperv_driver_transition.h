@@ -78,6 +78,7 @@ public:
 
     // Keep this object alive across the settings write and completion, including error exits.
     [[nodiscard]] grpc::Status prepare(const std::string& key, const std::string& value);
+    // Migrates the instances if prepare() started a Hyper-V to HCS migration; otherwise returns OK.
     [[nodiscard]] grpc::Status complete(
         grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server);
 
