@@ -619,6 +619,21 @@ TEST_F(HyperVBulkMigration, processesNamesLexicographicallyAndRetainsSourceCopie
         expect_committed(name);
 }
 
+TEST_F(HyperVBulkMigration, migratedRecordIsStoppedWhenCachedStateIsStale)
+{
+    add_instance("a");
+    specs.at("a").state = mp::VirtualMachine::State::running;
+    expect_migration("a");
+
+    EXPECT_EQ(run(), mhv::MigrationOutcome::completed);
+
+    const auto vm_records = read_records(target_root / "multipassd-vm-instances.json");
+    ASSERT_TRUE(vm_records.contains("a"));
+    EXPECT_EQ(boost::json::value_to<mp::VMSpecs>(vm_records.at("a")).state,
+              mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(specs.at("a").state, mp::VirtualMachine::State::running);
+}
+
 TEST_F(HyperVBulkMigration, emptyBatchReportsEmptySummary)
 {
     StrictMock<MockFunction<bool()>> cancel;
