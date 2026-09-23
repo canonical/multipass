@@ -148,25 +148,48 @@ jobs:
     - name: Install Windows ADK
       shell: pwsh
       run: |
-        Invoke-WebRequest `
-          "https://go.microsoft.com/fwlink/?linkid=2289980" `
-          -OutFile "$env:TEMP\adksetup.exe"
+        $ErrorActionPreference = "Stop"
 
-        Start-Process `
-          "$env:TEMP\adksetup.exe" `
-          -ArgumentList "/quiet /norestart /features OptionId.DeploymentTools" `
-          -Wait `
-          -NoNewWindow
+        function Install-MicrosoftPackage {
+            param(
+                [string]$Url,
+                [string]$Path,
+                [string]$Arguments
+            )
 
-        Invoke-WebRequest `
-          "https://go.microsoft.com/fwlink/?linkid=2289981" `
-          -OutFile "$env:TEMP\adkwinpesetup.exe"
+            Invoke-WebRequest -Uri $Url -OutFile $Path
 
-        Start-Process `
-          "$env:TEMP\adkwinpesetup.exe" `
-          -ArgumentList "/quiet /norestart" `
-          -Wait `
-          -NoNewWindow
+            $signature = Get-AuthenticodeSignature $Path
+
+            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+                throw "Invalid Authenticode signature for $Path`: $($signature.Status)"
+            }
+
+            if ($signature.SignerCertificate.Subject -notmatch '(^|,\s*)O=Microsoft Corporation(,|$)') {
+                throw "Unexpected signer for $Path`: $($signature.SignerCertificate.Subject)"
+            }
+
+            $process = Start-Process `
+                -FilePath $Path `
+                -ArgumentList $Arguments `
+                -Wait `
+                -PassThru `
+                -NoNewWindow
+
+            if ($process.ExitCode -ne 0) {
+                throw "$Path failed with exit code $($process.ExitCode)"
+            }
+        }
+
+        Install-MicrosoftPackage `
+            -Url "https://go.microsoft.com/fwlink/?linkid=2289980" `
+            -Path "$env:TEMP\adksetup.exe" `
+            -Arguments "/quiet /norestart /features OptionId.DeploymentTools"
+
+        Install-MicrosoftPackage `
+            -Url "https://go.microsoft.com/fwlink/?linkid=2289981" `
+            -Path "$env:TEMP\adkwinpesetup.exe" `
+            -Arguments "/quiet /norestart"
 
     - name: Install cmake
       uses: lukka/get-cmake@v4.4.2
