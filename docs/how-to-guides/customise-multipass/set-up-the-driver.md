@@ -48,7 +48,7 @@ On Linux, only the `qemu` driver is supported, so switching `local.driver` is no
 
 An alternative option is to use the Apple Virtualization framework.
 
-To switch the Multipass driver to AppleVZ, run this command:
+To switch the Multipass driver to the Apple Virtualization framework, run this command:
 
 ```{code-block} text
 multipass set local.driver=applevz

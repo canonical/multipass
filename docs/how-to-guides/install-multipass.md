@@ -176,7 +176,7 @@ You've installed Multipass. Time to run your first commands! Use `multipass vers
 
 You've installed Multipass. Time to run your first commands! Use `multipass version` to check your version or `multipass launch` to create your first instance.
 
-Multipass defaults to using QEMU as its virtualisation provider. If you'd like to use AppleVZ, you can do so using the following command:
+Multipass defaults to using QEMU as its virtualisation provider. If you'd like to use the Apple Virtualization framework, you can do so using the following command:
 
 ```{code-block} text
 multipass set local.driver=applevz

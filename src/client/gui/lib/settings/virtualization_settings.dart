@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../notifications/notifications_provider.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
+import 'constants.dart';
 
 final driverProvider = daemonSettingProvider(driverKey);
 final bridgedNetworkProvider = daemonSettingProvider(bridgedNetworkKey);
@@ -42,7 +43,7 @@ class VirtualizationSettings extends ConsumerWidget {
         const SizedBox(height: 20),
         Dropdown(
           label: l10n.virtualizationDriverLabel,
-          width: 260,
+          width: settingFieldWidth,
           value: driver,
           items: {if (driver != null) driver: driver, ...mpPlatform.drivers},
           onChanged: (value) {
@@ -55,7 +56,7 @@ class VirtualizationSettings extends ConsumerWidget {
         if (networks.isNotEmpty)
           Dropdown<String>(
             label: l10n.bridgeTitle,
-            width: 260,
+            width: settingFieldWidth,
             value: networks.contains(bridgedNetwork) ? bridgedNetwork : '',
             items: {
               '': l10n.virtualizationBridgedNetworkNone,
