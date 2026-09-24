@@ -54,6 +54,7 @@ apps:
                                          # temporary
     daemon: simple
     stop-timeout: 5m
+    stop-mode: sigterm
     plugs:
     - all-home
     - firewall-control
