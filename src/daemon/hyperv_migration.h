@@ -60,10 +60,12 @@ public:
     using std::runtime_error::runtime_error;
 };
 
-// Resolve vSwitches to single physical adapters, preserving NIC order, MACs and auto mode.
+// Keep vSwitches the target can attach to as they are, and resolve the rest to their single
+// physical adapter, preserving NIC order, MACs and auto mode.
 [[nodiscard]] std::vector<NetworkInterface> translate_extra_interfaces(
     const std::vector<NetworkInterface>& source_interfaces,
-    const std::vector<NetworkInterfaceInfo>& available_networks);
+    const std::vector<NetworkInterfaceInfo>& available_networks,
+    const std::vector<NetworkInterfaceInfo>& target_networks);
 
 enum class MigrationMessage
 {
@@ -149,6 +151,7 @@ private:
     Path data_dir;
     HyperVMigrationTargetRecords& target_records;
     std::optional<std::vector<NetworkInterfaceInfo>> source_networks;
+    std::optional<std::vector<NetworkInterfaceInfo>> target_networks;
     std::unique_ptr<HCSVirtualMachineFactory> hcs_factory;
 };
 

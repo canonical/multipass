@@ -87,11 +87,24 @@ std::optional<mhv::MigrationTransactionManifest> try_load_manifest(const fs::pat
 
 std::vector<multipass::NetworkInterface> multipass::hyperv::translate_extra_interfaces(
     const std::vector<NetworkInterface>& source_interfaces,
-    const std::vector<NetworkInterfaceInfo>& available_networks)
+    const std::vector<NetworkInterfaceInfo>& available_networks,
+    const std::vector<NetworkInterfaceInfo>& target_networks)
 {
+    const auto target_can_attach = [&target_networks](const std::string& id) {
+        return std::ranges::any_of(target_networks, [&id](const auto& network) {
+            return network.id == id && network.type == MP_PLATFORM.bridge_nomenclature();
+        });
+    };
+
     auto translated = source_interfaces;
     for (auto& iface : translated)
     {
+        // Keep the vSwitch when the target can attach to it directly. An external switch's
+        // physical adapter is bound to it, so it can't be bridged again while the source (which
+        // is retained) keeps using it.
+        if (target_can_attach(iface.id))
+            continue;
+
         const auto network = std::ranges::find(available_networks,
                                                iface.id,
                                                &NetworkInterfaceInfo::id);
@@ -397,8 +410,12 @@ multipass::hyperv::DaemonHyperVInstanceMigrator::translated_interfaces(
 
     if (!source_networks)
         source_networks = source_factory.networks();
+    if (!target_networks)
+        target_networks = target_factory().networks();
 
-    auto target_interfaces = translate_extra_interfaces(source_interfaces, *source_networks);
+    auto target_interfaces = translate_extra_interfaces(source_interfaces,
+                                                        *source_networks,
+                                                        *target_networks);
     target_factory().prepare_networking(target_interfaces);
 
     return target_interfaces;
