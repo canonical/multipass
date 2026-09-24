@@ -33,6 +33,7 @@ target_link_libraries(daemon
   delayed_shutdown
   fmt::fmt-header-only
   image_host
+  localization
   logger
   namegen
   platform
