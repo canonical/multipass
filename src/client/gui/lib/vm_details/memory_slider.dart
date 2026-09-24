@@ -16,6 +16,7 @@ class MemorySlider extends StatefulWidget {
   final int max;
   final bool enabled;
   final int sysMax;
+  final String Function(int) memoryFormatter;
 
   const MemorySlider({
     super.key,
@@ -26,6 +27,7 @@ class MemorySlider extends StatefulWidget {
     required this.max,
     this.enabled = true,
     required this.sysMax,
+    this.memoryFormatter = humanReadableMemory,
   });
 
   @override
@@ -131,9 +133,9 @@ class _MemorySliderState extends State<MemorySlider> {
             const SizedBox(height: 5),
             Row(
               children: [
-                Text(humanReadableMemory(widget.min)),
+                Text(widget.memoryFormatter(widget.min)),
                 Spacer(),
-                Text(humanReadableMemory(widget.max)),
+                Text(widget.memoryFormatter(widget.max)),
               ],
             ),
             if ((field.value ?? widget.min) > widget.sysMax) ...[
