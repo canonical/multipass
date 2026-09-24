@@ -1,0 +1,17 @@
+clients:
+  sbom:
+    service_url: https://sbom-request.canonical.com
+    department: devex
+    email: __EMAIL__
+    team: multipass
+  secscan: {}
+
+artifacts:
+  - name: multipass
+    type: snap
+    arch: s390x
+    channel: edge  # TODO: remove once released to stable
+    ssdlc_params:
+      name: multipass
+      version: ""
+      channel: edge
