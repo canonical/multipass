@@ -973,6 +973,11 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
     return std::make_unique<DefaultUpdatePrompt>();
 }
 
+std::unique_ptr<mp::BaseDNSServer> mp::platform::make_dns_server(mp::BaseDNSServer::Resolver)
+{
+    return nullptr;
+}
+
 int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid) const
 {
     logging::trace(log_category,
