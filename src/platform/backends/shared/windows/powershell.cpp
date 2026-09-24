@@ -32,7 +32,7 @@ namespace mpu = multipass::utils;
 namespace
 {
 constexpr auto ps_cmd = "powershell.exe";
-const auto default_args = QStringList{"-NoProfile", "-NoExit", "-Command", "-"};
+const auto default_args = QStringList{"-NoProfile", "-NonInteractive", "-NoExit", "-Command", "-"};
 
 // One-shot processes skip the user's profile, whose output would corrupt what we parse.
 QStringList with_non_interactive_flags(const QStringList& args)

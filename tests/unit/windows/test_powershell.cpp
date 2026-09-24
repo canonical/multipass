@@ -52,6 +52,17 @@ TEST_F(PowerShellTest, createsPsProcess)
     mp::PowerShell ps{"test"};
 }
 
+TEST_F(PowerShellTest, createsNonInteractivePsProcess)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    ps_helper.setup([](auto* process) {
+        EXPECT_EQ(process->arguments(),
+                  QStringList({"-NoProfile", "-NonInteractive", "-NoExit", "-Command", "-"}));
+    });
+
+    mp::PowerShell ps{"test"};
+}
+
 TEST_F(PowerShellTest, exitsPsProcess)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::info);
