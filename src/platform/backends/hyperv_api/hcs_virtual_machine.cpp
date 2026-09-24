@@ -374,7 +374,9 @@ void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
         state = State::suspended;
         break;
     case hcs::ComputeSystemState::running:
-        state = State::running;
+        // Let wait_until_ssh_up decide when we are running
+        if (state != State::starting)
+            state = State::running;
         break;
     case hcs::ComputeSystemState::saved_as_template:
     case hcs::ComputeSystemState::stopped:
