@@ -296,11 +296,24 @@ TEST_F(PowerShellTest, execRunsGivenCmd)
 
     ps_helper.setup(
         [&args](auto* process) {
-            EXPECT_EQ(process->arguments(), args);
+            EXPECT_EQ(process->arguments(), QStringList({"-NoProfile", "-NonInteractive"}) + args);
             EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
         },
         /* auto_exit = */ false);
     mp::PowerShell::exec(args, "Mitis");
+}
+
+TEST_F(PowerShellTest, execDoesNotDuplicateNonInteractiveFlags)
+{
+    const auto args = QStringList{"-noprofile", "-NonInteractive", "-Command", "Get-VM"};
+
+    ps_helper.setup(
+        [&args](auto* process) {
+            EXPECT_EQ(process->arguments(), args);
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+        },
+        /* auto_exit = */ false);
+    mp::PowerShell::exec(args, "Nerid");
 }
 
 TEST_F(PowerShellTest, execSucceedsWhenNoTimeoutAndProcessSuccessful)
