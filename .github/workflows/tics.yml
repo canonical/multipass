@@ -104,7 +104,7 @@ jobs:
         TICSMaintenance -project multipass -detach
 
     - name: Run TICS Analysis
-      uses: tiobe/tics-github-action@v3
+      uses: tiobe/tics-github-action@v4
       env:
         # Add environment variables to optimize TICS performance
         TICS_NUM_THREADS: 4  # Adjust based on runner's capabilities
