@@ -22,6 +22,7 @@
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/mount_handler.h>
+#include <multipass/utils.h>
 #include <multipass/vm_mount.h>
 
 #include "tests/unit/common.h"
@@ -265,6 +266,23 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
                 Return(hcs_op_result_t{0, L""})));
     }
 
+    // Makes HCN report the given networks, as (guid, name) pairs.
+    void expect_networks(const std::vector<std::pair<std::string, std::string>>& networks)
+    {
+        std::vector<std::string> guids;
+        for (const auto& [guid, name] : networks)
+        {
+            guids.push_back(guid);
+            EXPECT_CALL(mock_hcn, query_network(Eq(guid), _))
+                .WillRepeatedly([name](const std::string&, mhv::hcn::HcnNetworkInfo& info) {
+                    info.name = name;
+                    return hcs_op_result_t{0, L""};
+                });
+        }
+        EXPECT_CALL(mock_hcn, enumerate_networks(_))
+            .WillRepeatedly(DoAll(SetArgReferee<0>(guids), Return(hcs_op_result_t{0, L""})));
+    }
+
     void expect_endpoint_query(std::vector<std::string> ip_addresses,
                                std::optional<std::string> mac_address = std::nullopt)
     {
@@ -402,6 +420,80 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, create_failure_removes_created_endpoin
 
     EXPECT_THROW(construct_vm(), mhv::CreateComputeSystemException);
 }
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, create_attaches_extra_interface_to_network_found_by_name)
+{
+    default_create_success();
+    desc.extra_interfaces = {{"mpclitestsw0", "52:54:00:4d:50:01", false}};
+
+    // A vSwitch created through Hyper-V has a GUID unrelated to its name.
+    expect_networks({{"guid-default-switch", "Default Switch"}, {"guid-private", "mpclitestsw0"}});
+    EXPECT_CALL(mock_hcn, delete_endpoint(EndsWith("5254004d5001")))
+        .WillOnce(Return(hcs_op_result_t{E_FAIL, L"not found"}));
+    EXPECT_CALL(mock_hcn,
+                create_endpoint(Field(&mhv::hcn::CreateEndpointParameters::network_guid,
+                                      Eq("guid-private"))))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcs, create_compute_system(_, _))
+        .WillOnce(DoAll(
+            [](const mhv::hcs::CreateComputeSystemParameters& params, hcs_handle_t&) {
+                EXPECT_EQ(params.network_adapters.size(), 2);
+            },
+            SetArgReferee<1>(mock_handle),
+            Return(hcs_op_result_t{0, L""})));
+
+    EXPECT_NO_THROW(construct_vm());
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, create_attaches_extra_interface_to_multipass_network)
+{
+    default_create_success();
+    desc.extra_interfaces = {{"Multipass vSwitch (Ethernet)", "52:54:00:4d:50:01", false}};
+
+    // Networks created by Multipass keep a GUID derived from their name.
+    const auto network_guid = mp::utils::make_uuid("Multipass vSwitch (Ethernet)");
+    expect_networks({{network_guid, "Multipass vSwitch (Ethernet)"}});
+    EXPECT_CALL(mock_hcn, delete_endpoint(EndsWith("5254004d5001")))
+        .WillOnce(Return(hcs_op_result_t{E_FAIL, L"not found"}));
+    EXPECT_CALL(mock_hcn,
+                create_endpoint(Field(&mhv::hcn::CreateEndpointParameters::network_guid,
+                                      Eq(network_guid))))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
+    EXPECT_CALL(mock_hcs, create_compute_system(_, _))
+        .WillOnce(DoAll(SetArgReferee<1>(mock_handle), Return(hcs_op_result_t{0, L""})));
+
+    EXPECT_NO_THROW(construct_vm());
+}
+
+struct HyperVHCSVirtualMachine_UnresolvedNetwork
+    : public HyperVHCSVirtualMachine_UnitTests,
+      public WithParamInterface<std::vector<std::pair<std::string, std::string>>>
+{
+};
+
+TEST_P(HyperVHCSVirtualMachine_UnresolvedNetwork, create_fails_before_creating_endpoints)
+{
+    EXPECT_CALL(mock_hcs, open_compute_system(_, _))
+        .WillRepeatedly(Return(hcs_op_result_t{HCS_E_SYSTEM_NOT_FOUND, L""}));
+    desc.extra_interfaces = {{"mpclitestsw0", "52:54:00:4d:50:01", false}};
+    expect_networks(GetParam());
+    EXPECT_CALL(mock_hcn, create_endpoint(_)).Times(0);
+    EXPECT_CALL(mock_hcs, create_compute_system(_, _)).Times(0);
+
+    MP_EXPECT_THROW_THAT(construct_vm(),
+                         mhv::CreateEndpointException,
+                         mpt::match_what(HasSubstr("Could not find network `mpclitestsw0`")));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    HyperVHCSVirtualMachine_UnitTests,
+    HyperVHCSVirtualMachine_UnresolvedNetwork,
+    Values(
+        // No network with that name
+        std::vector<std::pair<std::string, std::string>>{{"guid-default-switch", "Default Switch"}},
+        // Ambiguous name
+        std::vector<std::pair<std::string, std::string>>{{"guid-a", "mpclitestsw0"},
+                                                         {"guid-b", "mpclitestsw0"}}));
 
 // ---------------------------------------------------------
 

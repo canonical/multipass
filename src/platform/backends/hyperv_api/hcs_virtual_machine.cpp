@@ -265,15 +265,21 @@ std::vector<hcn::CreateEndpointParameters> HCSVirtualMachine::make_endpoint_para
          .mac_address = replace_colon_with_dash(description.default_mac_address),
          .name = endpoint_name}};
 
-    // Additional endpoints, a.k.a. extra interfaces.
-    std::ranges::transform(description.extra_interfaces,
-                           std::back_inserter(params),
-                           [&endpoint_name](const auto& v) -> hcn::CreateEndpointParameters {
-                               return {.network_guid = multipass::utils::make_uuid(v.id),
-                                       .endpoint_guid = endpoint_guid_for_mac(v.mac_address),
-                                       .mac_address = replace_colon_with_dash(v.mac_address),
-                                       .name = endpoint_name};
-                           });
+    // Additional endpoints, a.k.a. extra interfaces. Their networks are referred to by name, and
+    // are looked up since only networks Multipass created have GUIDs derived from their names.
+    for (const auto& extra : description.extra_interfaces)
+    {
+        const auto network_guid = network_guid_for_name(extra.id);
+        if (!network_guid)
+            throw CreateEndpointException{"Could not find network `{}` for interface {}",
+                                          extra.id,
+                                          extra.mac_address};
+
+        params.push_back({.network_guid = *network_guid,
+                          .endpoint_guid = endpoint_guid_for_mac(extra.mac_address),
+                          .mac_address = replace_colon_with_dash(extra.mac_address),
+                          .name = endpoint_name});
+    }
 
     return params;
 };
