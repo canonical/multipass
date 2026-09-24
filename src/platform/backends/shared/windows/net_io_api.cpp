@@ -48,8 +48,7 @@ DWORD NetIOAPI::ConvertInterfaceAliasToLuid(const WCHAR* InterfaceName,
     return ::ConvertInterfaceAliasToLuid(InterfaceName, InterfaceLuid);
 }
 
-DWORD NetIOAPI::ConvertInterfaceGuidToLuid(const GUID* InterfaceGuid,
-                                           NET_LUID* InterfaceLuid) const
+DWORD NetIOAPI::ConvertInterfaceGuidToLuid(const GUID* InterfaceGuid, NET_LUID* InterfaceLuid) const
 {
     return ::ConvertInterfaceGuidToLuid(InterfaceGuid, InterfaceLuid);
 }

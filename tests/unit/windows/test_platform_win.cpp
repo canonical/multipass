@@ -204,8 +204,7 @@ TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenOnlyOtherInterfacesMatch)
 
 TEST_F(PermanentIpv4Neighbor, warnsAndUsesFirstOfMultipleEntries)
 {
-    auto logger_scope = expect_only_log(mpl::Level::warning,
-                                        "Multiple permanent IPv4 neighbors");
+    auto logger_scope = expect_only_log(mpl::Level::warning, "Multiple permanent IPv4 neighbors");
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
         .WillOnce(Return(ByMove(mpt::make_neighbor_table(
             {{{172, 19, 154, 10}, mgmt_luid}, {{172, 19, 154, 11}, mgmt_luid}}))));
