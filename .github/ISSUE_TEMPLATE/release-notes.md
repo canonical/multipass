@@ -40,3 +40,8 @@ script batches its GitHub requests and caches only successful fetches, so simply
 if you want a guaranteed clean slate). For an unexpectedly broad diff, confirm
 `PREVIOUS_TAG` is an ancestor of `TARGET_TAG`
 (`git merge-base --is-ancestor "$PREVIOUS_TAG" "$TARGET_TAG"`) before proceeding.
+
+Contributor detection is release-aware and stateless: a contributor is listed
+as new only when none of their PRs shipped in a published release before the
+target, so a contributor first shipped in a maintenance release is not
+acknowledged again by a later feature release. No manual step is required.

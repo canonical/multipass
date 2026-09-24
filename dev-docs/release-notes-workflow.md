@@ -34,6 +34,14 @@ gh auth status
 git fetch --tags
 ```
 
+Contributor detection is release-aware and stateless. The generator uses the
+GitHub PR author, not the Git commit author, and marks a contributor as new
+only when none of their PRs shipped in a published release before the target.
+This is computed on the fly from GitHub's published releases plus local git
+reachability, so a contributor first shipped in a maintenance release is not
+acknowledged again by the next feature release. Nothing needs to be committed or
+run after publication.
+
 If you are working from a fork, set:
 
 ```bash
@@ -62,6 +70,11 @@ that you select the correct release range from the repo history.
 For example, if you want to regenerate notes for the 1.15 → 1.16 range:
 
 > Use the Release Notes Generator agent. Generate release notes for v1.16.0 since v1.15.1
+
+For historical regeneration, the same stateless rule applies: pass the target
+tag and the generator treats only releases published before it as prior. An
+unreleased maintenance-branch merge does not consume an acknowledgement; a
+published maintenance release does.
 
 A few historical ranges are especially noisy because of merged repository history or
 cherry-picked backports, so it is worth checking the earlier notes and validation

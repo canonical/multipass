@@ -61,6 +61,10 @@ Then, end to end:
 2. Generate enriched data (the range is tag-to-tag; if the target tag doesn't
    exist yet, the release hasn't been cut — stop and report):
    `./tools/release-notes/get-commits-since-release.sh --json --tag "$PREVIOUS_TAG" --to "$TARGET_TAG" > /tmp/commits-data.json`
+  Inspect `.metadata.contributor_detection.complete`. Do not publish the
+  contributor section unless it is `true` (every PR author was resolved against
+  GitHub's published releases). Detection is stateless and release-aware: it
+  accounts for PR authors from feature and maintenance releases automatically.
    Before trusting the range, confirm `PREVIOUS_TAG` is actually an ancestor of
    `TARGET_TAG`: `git merge-base --is-ancestor "$PREVIOUS_TAG" "$TARGET_TAG"`.
    If it is NOT (e.g. `PREVIOUS_TAG` is a patch cut from a diverged release
@@ -85,6 +89,13 @@ Then, end to end:
 # Fill template using commits-data.json
 ```
 
+Contributor detection is stateless: the script marks a PR author as new only
+when none of their PRs shipped in a published release before the target,
+computed from GitHub's published releases plus local git reachability. A
+contributor first shipped in a maintenance release is therefore not credited
+again by a later feature release, and nothing needs to be recorded or committed
+after publication.
+
 ## Input Data Format
 
 The `tools/release-notes/get-commits-since-release.sh --json` script outputs:
@@ -106,8 +117,10 @@ The `tools/release-notes/get-commits-since-release.sh --json` script outputs:
       "type": "feature|fix|breaking|docs|performance|other",
       "pr_number": 5078,
       "is_new_author": false,
-      // Present only for authors the local history check flagged as new
-      // (resolved via the GitHub commit-search API):
+      "contributor_status": "true|false|bot|unresolved|not-applicable",
+      "pr_author_login": "github-username",
+      "pr_author_type": "User",
+      // Legacy identity, retained only for backwards-compatible PR-less data:
       "author_login": "github-username",
 
       // Null/absent for commits without a PR:
@@ -404,16 +417,23 @@ jq --slurpfile ranked /tmp/ranked-prs.json '
     items: $doc_items
   },
   new_authors: {
-    names: [$data.commits[] | select(.is_new_author == true and (.skip_reason != "automation-author"))
-      | (.author_login // .author)] | unique | sort
+    names: [$data.commits[]
+      | select(.is_new_author == true
+          and .contributor_status == "true"
+          and (.pr_author_type != "Bot")
+          and (.pr_author_login != null)
+          and (.skip_reason != "automation-author"))
+      | .pr_author_login] | unique | sort
   }
 }' /tmp/commits-data.json
 ```
 
-Note the filter is `.skip_reason != "automation-author"`, NOT `(.skip | not)`:
-a genuinely-new *human* contributor whose only in-range commits happen to be
-skip-filtered (e.g. a tests-only or CI-only change) must still be listed — only
-dependency/CI *bots* are excluded.
+The contributor identity comes from the PR (`pr_author_login`), not the Git
+commit author. The filter deliberately does not require `(.skip | not)`: a
+genuinely-new human contributor whose only in-range commits happen to be
+skip-filtered (for example a tests-only or CI-only change) must still be listed.
+Bot PR authors and unresolved identities must never be rendered as new
+contributors.
 
 **PR-link convention — match the template exactly.** The template
 (`RELEASE_NOTES_TEMPLATE.md`) links PRs in only three sections: **Bug fixes**,
@@ -427,40 +447,30 @@ fixes, Documentation, and New contributors. Do not add PR links uniformly to
 every bullet. If a breaking or feature entry needs traceability, put the PR
 number in your working notes, not in the published bullet.
 
-`names` is a sorted list of logins (unresolvable ones fall back to display
-names — verify those by hand before publishing, since a display name with a
-space renders a broken `github.com/<name>` link). The linked PR is the
-contributor's actual FIRST PR, which is usually NOT in this release range
-(e.g. merged to main earlier but never shipped, or the range only contains a
-later cherry-pick of their work). Resolve it per login with their earliest
-merged PR (sort by close date, not creation, so a long-open PR merged late
-doesn't lose to a quick one):
+`names` is a sorted list of authoritative GitHub PR logins. The linked PR is
+the contributor's first PR that shipped in this release; pick their earliest
+in-range PR by number. `contributor_status == "true"` already means "first
+shipped in this release" (no PR of theirs shipped in any earlier published
+release, including maintenance releases on divergent branches). Do not infer
+first-time status from merge time alone and do not silently render unresolved
+identities.
 
 ```bash
-gh search prs --repo "${PR_REPO:-canonical/multipass}" --author <login> \
-  --merged --sort created --order asc --limit 100 --json number,title,closedAt \
-  | jq 'sort_by(.closedAt) | .[0] | {number, title}'
+# earliest in-range PR for the contributor, from the generated data
+jq -r --arg login "<login>" '[.commits[]
+  | select(.pr_author_login == $login and .contributor_status == "true")
+  | .pr_number] | min' /tmp/commits-data.json
 ```
 
 The template renders each entry as
 `[@login](https://github.com/login), with their first contribution in PR ([#N](...))`
-where #N is that earliest PR. Exclude `[bot]` logins from this section — the
-`copilot-swe-agent` carve-out keeps bot commits in the data, but bots are not
-"new contributors".
+where #N is that earliest in-range PR. Exclude bot actors from this section.
 
-**`is_new_author` means "first shipped change", and is verified against
-GitHub.** An author is only flagged new when they have (a) no
-authored commit before the release tag on any branch AND (b) no merged PR
-dated before the tag. Check (b) is what makes it trustworthy: squash-merges
-and cherry-picks routinely record commits under a different author name than
-the person who wrote the change, so a contributor can look "new" to local git
-history when they are not (or vice versa). Use `author_login` (the resolved
-GitHub username) for the `[@login](https://github.com/login)` links — never
-guess a login from the display name. When `author_login` is absent (e.g. `gh`
-unavailable or the author is unresolvable), fall back to the display name and
-verify by hand before publishing. Note the wording is "first contribution in
-PR": the flagged commit
-may be one they authored without owning the PR (a squash-merge or cherry-pick
-landed under someone else's name), so the linked PR is their earliest merged
-PR overall — not necessarily a PR from this release, and not necessarily one
-that shipped in this release.
+**`contributor_status` is authoritative and stateless.** It is computed from
+the authoritative PR author against GitHub's published releases plus local git
+reachability: `true` = first shipped in this release, `false` = already shipped
+in an earlier published release, `bot` = automation, `unresolved` = a GitHub
+history query failed. A contributor already shipped in a maintenance release is
+`false` even if their feature-branch PR merged earlier. `unresolved` marks the
+run incomplete (`.metadata.contributor_detection.complete == false`) and blocks
+publication rather than becoming a new contributor by fallback.

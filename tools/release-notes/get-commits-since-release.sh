@@ -21,13 +21,17 @@ NC='\033[0m' # No Color
 # Helper functions for JSON generation
 extract_pr_number() {
   local subject="$1"
+  local parenthesized
   # Extract PR number from squash-merge format like "(#5078)", or from
   # merge-commit format like "Merge pull request #5078 from ..." (used heavily
   # before squash merging became the norm, e.g. the v1.15..v1.16 era).
-  if [[ $subject =~ \(#([0-9]+)\) ]]; then
+  # Backport subjects can contain both the original PR and the backport PR,
+  # e.g. "... (#4198) (#4352)". The final parenthesized number is the PR that
+  # landed the commit in the release branch and is the one whose author counts.
+  if [[ $subject =~ ^Merge\ pull\ request\ \#([0-9]+) ]]; then
     echo "${BASH_REMATCH[1]}"
-  elif [[ $subject =~ ^Merge\ pull\ request\ \#([0-9]+) ]]; then
-    echo "${BASH_REMATCH[1]}"
+  elif parenthesized=$(grep -oE '\(#[0-9]+\)' <<<"$subject" | tail -n 1); then
+    grep -oE '[0-9]+' <<<"$parenthesized"
   else
     echo ""
   fi
@@ -114,113 +118,89 @@ classify_skip() {
   echo ""
 }
 
-# Resolve a git author identity (name + email) to a GitHub login, using the
-# commit-search API. The local git author name alone is unreliable for
-# crediting: squash-merges and cherry-picks routinely record a different
-# author than the person who wrote the change. We search GitHub for commits
-# by this author and take the login GitHub reports. Echoes the login, or
-# nothing when unresolvable.
-resolve_github_login() {
-  local name="$1"
-  local email="$2"
-  local cache_key
-  if command -v shasum >/dev/null 2>&1; then
-    cache_key=$(printf '%s' "${name}<${email}>" | shasum | awk '{print $1}')
+# Populate SHIPPED_PR with every PR number that already shipped in a published
+# release before the target, computed on the fly from local git. No persistent
+# ledger is kept: a PR "shipped" iff its number appears in a commit reachable
+# from a prior published release tag, which holds across divergent feature and
+# maintenance branches (a cherry-pick carries the PR number in its subject on
+# the release branch).
+#
+# Published releases in this repo are the signed vMAJOR.MINOR.PATCH tags; RC and
+# dev builds carry -rc/-dev suffixes and are excluded. For historical
+# regeneration where the target is itself a release tag, only lower-versioned
+# releases count as prior.
+compute_prior_shipped_prs() {
+  local -a tags=() prior=() refs=()
+  local tag
+  while IFS= read -r tag; do
+    [[ -n $tag ]] && tags+=("$tag")
+  done < <(git tag -l 'v[0-9]*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V)
+
+  if printf '%s\n' "${tags[@]}" | grep -qxF "$TO_REF"; then
+    for tag in "${tags[@]}"; do
+      [[ $tag == "$TO_REF" ]] && break
+      prior+=("$tag")
+    done
   else
-    cache_key=$(printf '%s' "${name}<${email}>" | sha1sum | awk '{print $1}')
-  fi
-  local cache_file="$PR_CACHE_DIR/${PR_REPO//\//_}-author-${cache_key}.txt"
-
-  if [[ -s $cache_file ]]; then
-    cat "$cache_file"
-    return
+    prior=("${tags[@]}")
   fi
 
-  local login=""
-  # Name search is the primary path: it works for noreply emails and for
-  # people whose canonical email isn't linked to their GitHub account. Quote
-  # the name so multi-word names aren't split into free-text terms.
-  local name_q
-  name_q=$(jq -rn --arg n "repo:${PR_REPO} author-name:\"$name\"" '$n|@uri')
-  login=$(gh api "search/commits?q=${name_q}" \
-    --jq '.items[0].author.login // ""' 2>/dev/null || echo "")
+  # Keep only tags that resolve locally (a shallow clone may miss some).
+  for tag in "${prior[@]}"; do
+    git rev-parse --verify --quiet "${tag}^{commit}" >/dev/null 2>&1 && refs+=("$tag")
+  done
+  PRIOR_RELEASE_COUNT=${#refs[@]}
+  [[ ${#refs[@]} -eq 0 ]] && return 0
 
-  # Fall back to email search when the name didn't resolve (e.g. the author
-  # has since changed their display name).
-  if [[ -z $login ]]; then
-    local email_q
-    email_q=$(jq -rn --arg e "repo:${PR_REPO} author-email:$email" '$e|@uri')
-    login=$(gh api "search/commits?q=${email_q}" \
-      --jq '.items[0].author.login // ""' 2>/dev/null || echo "")
-  fi
-
-  # Only cache a successful resolution; an empty result is transient (offline,
-  # rate limit, auth) and must not poison future runs.
-  if [[ -n $login ]]; then
-    echo "$login" > "$cache_file"
-  else
-    echo "Warning: could not resolve a GitHub login for '$name' <$email>" >&2
-  fi
-  echo "$login"
+  # Every PR number referenced by any commit reachable from a prior release.
+  # Capturing every "(#N)" (not just the last one) is deliberate: a backport
+  # subject like "... (#4198) (#4352)" marks BOTH numbers as shipped.
+  local n
+  while IFS= read -r n; do
+    [[ -n $n ]] && SHIPPED_PR["$n"]=1
+  done < <(git log "${refs[@]}" --format='%s' 2>/dev/null \
+            | grep -oE '\(#[0-9]+\)|^Merge pull request #[0-9]+' \
+            | grep -oE '[0-9]+')
+  return 0
 }
 
-# Decide whether an author is a genuinely NEW contributor, defined as "first
-# shipped change": the person has no authored commit on any branch dated
-# before the release tag, and no merged PR dated before the tag. Local
-# commit-author-name matching alone produces both false positives
-# (squash-merge/cherry-pick artifacts) and false negatives (committer vs
-# author mismatches), so when a local name looks new we verify against GitHub
-# history via the author's login.
+# Classify a PR author login as a first-time contributor for this release,
+# defined as "first shipped in a published release". Echoes true, false, or
+# unresolved. Memoized per login.
 #
-# Args: name, email, tag_date (ISO-8601).
-# Echoes "true" or "false".
-is_genuinely_new_author() {
-  local name="$1"
-  local email="$2"
-  local tag_date="$3"
+# 1. git-only shortcut: if any of the author's in-range PRs already shipped in a
+#    prior release (e.g. a maintenance cherry-pick), they are not new.
+# 2. otherwise, one GitHub query for the author's merged PR numbers; if any
+#    already shipped in a prior release, they are not new; else they are new.
+classify_new_login() {
+  local login="$1"
+  [[ -n ${LOGIN_STATUS[$login]:-} ]] && { echo "${LOGIN_STATUS[$login]}"; return; }
 
-  # Cheap local check first: any authored commit before the tag on ANY branch
-  # means not new. Match on the full %aN name, exactly as the caller's
-  # HISTORICAL_AUTHORS check does, so the two agree.
-  if git log --all --before="$tag_date" --format='%aN' 2>/dev/null | grep -Fxq "$name"; then
-    echo "false"
-    return
+  local pr
+  for pr in ${AUTHOR_INRANGE_PRS[$login]:-}; do
+    if [[ -n ${SHIPPED_PR[$pr]:-} ]]; then
+      LOGIN_STATUS[$login]=false; echo false; return
+    fi
+  done
+
+  if ! command -v gh >/dev/null 2>&1; then
+    LOGIN_STATUS[$login]=unresolved; echo unresolved; return
   fi
 
-  # Name looked new locally; verify against GitHub before believing it.
-  local login
-  login=$(resolve_github_login "$name" "$email")
-  if [[ -z $login ]]; then
-    # Can't resolve a login: fall back to the local verdict.
-    echo "true"
-    return
+  local nums
+  if ! nums=$(gh search prs --repo "$PR_REPO" --author "$login" --merged \
+      --limit 1000 --json number --jq '.[].number' 2>/dev/null); then
+    echo "Warning: could not query merged PR history for GitHub login '$login'; contributor status is unresolved" >&2
+    LOGIN_STATUS[$login]=unresolved; echo unresolved; return
   fi
 
-  # Any merged PR by this login before the tag date means not new. GitHub's
-  # issue-search sorting does not support "closed", so filter by closed date
-  # and select the earliest closedAt locally.
-  local earlier search_json
-  if ! search_json=$(gh search prs --repo "$PR_REPO" --author "$login" --merged \
-      --closed "<$tag_date" \
-      --sort created --order asc --json number,closedAt --limit 100 2>/dev/null); then
-    echo "Warning: could not search merged PR history for GitHub login '$login'; treating '$name' as locally new" >&2
-    echo "true"
-    return
-  fi
-
-  if ! earlier=$(jq -r --arg d "$tag_date" \
-      '[.[] | select(.closedAt != null and .closedAt < $d)] | sort_by(.closedAt) | .[0].number // ""' \
-      <<<"$search_json" 2>/dev/null); then
-    echo "Warning: could not parse merged PR history for GitHub login '$login'; treating '$name' as locally new" >&2
-    echo "true"
-    return
-  fi
-  if [[ -n $earlier ]]; then
-    echo "false"
-    return
-  fi
-
-  echo "true"
+  local n
+  for n in $nums; do
+    if [[ -n ${SHIPPED_PR[$n]:-} ]]; then
+      LOGIN_STATUS[$login]=false; echo false; return
+    fi
+  done
+  LOGIN_STATUS[$login]=true; echo true
 }
 
 # --- PR enrichment cache helpers -------------------------------------------
@@ -246,7 +226,7 @@ PR_NOTFOUND_SENTINEL='{"__notfound__":true}'
 
 # jq program reshaping a GraphQL pullRequest node into the same shape the rest
 # of the script expects from `gh pr view --json title,body,labels,...`.
-GQL_TO_PRVIEW='{title, body, labels: [ .labels.nodes[]? | {name} ], additions, deletions, changedFiles, files: [ .files.nodes[]? | {path} ]}'
+GQL_TO_PRVIEW='{title, body, author_login: (.author.login // null), author_type: (.author.__typename // null), labels: [ .labels.nodes[]? | {name} ], additions, deletions, changedFiles, files: [ .files.nodes[]? | {path} ]}'
 
 # Fetch a single PR, distinguishing permanent from transient failures. On
 # success (or a confirmed "not a PR") it writes the cache; on a transient error
@@ -260,8 +240,11 @@ fetch_one_pr() {
   err_file=$(mktemp)
   while :; do
     if out=$(gh pr view "$pr" --repo "$PR_REPO" \
-        --json title,body,labels,additions,deletions,changedFiles,files 2>"$err_file"); then
-      printf '%s' "$out" > "$cache_file"
+      --json title,body,author,labels,additions,deletions,changedFiles,files 2>"$err_file"); then
+      printf '%s' "$out" | jq \
+        '.["author_login"] = (.author.login // null)
+         | .["author_type"] = (if .author.is_bot == true then "Bot" else "User" end)
+         | del(.author)' > "$cache_file"
       rm -f "$err_file"
       return 0
     fi
@@ -304,7 +287,12 @@ prefetch_pr_cache() {
           _pr=$(extract_pr_number "$_subject"); [[ -z $_pr ]] && continue
           _cat=$(extract_category "$_subject")
           _skip=$(classify_skip "$_cat" "$_author" "$_subject"); [[ -n $_skip ]] && continue
-          [[ -s "$PR_CACHE_DIR/${PR_REPO//\//_}-${_pr}.json" ]] && continue
+          _cache_file="$PR_CACHE_DIR/${PR_REPO//\//_}-${_pr}.json"
+          if [[ -s $_cache_file ]] && jq -e \
+              '.__notfound__ == true or (has("author_login") and has("author_type"))' \
+              "$_cache_file" >/dev/null 2>&1; then
+            continue
+          fi
           echo "$_pr"
         done | sort -un
   )
@@ -319,7 +307,7 @@ prefetch_pr_cache() {
     for ((j = 0; j < batch_size && i + j < n; j++)); do
       p=${prs[$((i + j))]}
       slice+=("$p")
-      q+="p${p}: pullRequest(number:${p}){number title body additions deletions changedFiles labels(first:30){nodes{name}} files(first:100){nodes{path}}} "
+      q+="p${p}: pullRequest(number:${p}){number title body author{login __typename} additions deletions changedFiles labels(first:30){nodes{name}} files(first:100){nodes{path}}} "
     done
     q+='}}'
     printf '%s' "$q" > "$qfile"
@@ -525,19 +513,6 @@ if [[ $GROUP_BY_AUTHOR == true ]]; then
 elif [[ $JSON_OUTPUT == true ]]; then
   # Generate JSON output with categorization
 
-  # New-author cutoff: authors with any commit before this date are "historical".
-  # The previous release tag may be a PATCH cut from a release branch that is
-  # NOT an ancestor of the range end, in which case the tag's own date sits
-  # *after* most of this release's development and would sweep every
-  # contributor into "historical" (yielding zero new authors). Use the branch
-  # point instead -- the merge-base of the tag and the range end -- so
-  # "historical" means "authored before this release line diverged". For a
-  # normal ancestor tag the merge-base IS the tagged commit, so this is
-  # equivalent to the tag date in the common case.
-  CUTOFF_REF=$(git merge-base "$FROM_TAG" "$TO_REF" 2>/dev/null || echo "$FROM_TAG")
-  TAG_DATE=$(git log -1 --format=%cI "$CUTOFF_REF")
-  HISTORICAL_AUTHORS=$(git log --all --before="$TAG_DATE" --format=format:"%aN" 2>/dev/null | sort | uniq)
-
   # Enrichment requires the GitHub CLI
   if ! command -v gh > /dev/null 2>&1; then
     echo -e "${YELLOW}Warning: 'gh' was not found; continuing without PR metadata${NC}" >&2
@@ -564,6 +539,18 @@ elif [[ $JSON_OUTPUT == true ]]; then
   ENRICH_ATTEMPTED=0
   ENRICH_FAILED=0
   ENRICH_NOTFOUND=0
+
+  # Contributor detection is release-aware and stateless: a contributor is new
+  # iff none of their PRs shipped in a published release before the target.
+  # SHIPPED_PR holds every PR number already shipped; the per-author arrays feed
+  # classify_new_login. No persistent ledger is required.
+  declare -A SHIPPED_PR=()
+  declare -A LOGIN_STATUS=()
+  declare -A AUTHOR_INRANGE_PRS=()
+  declare -A AUTHOR_IS_BOT=()
+  PRIOR_RELEASE_COUNT=0
+  CONTRIBUTOR_UNRESOLVED=0
+  compute_prior_shipped_prs
 
   # Warm the cache in bulk BEFORE the per-commit loop. This is the key fix for
   # mass-enrichment failures: batching ~30 PRs per GraphQL request keeps us well
@@ -593,20 +580,6 @@ elif [[ $JSON_OUTPUT == true ]]; then
     pr_number=$(extract_pr_number "$subject")
     category=$(extract_category "$subject")
 
-    is_new_author=false
-    author_login=""
-    if ! echo "$HISTORICAL_AUTHORS" | grep -Fxq "$author"; then
-      # Cheap local check says "new"; verify against GitHub history before
-      # believing it (squash-merge/cherry-pick artifacts make local author
-      # names unreliable). Only hits the network for candidate-new authors.
-      if command -v gh > /dev/null 2>&1; then
-        author_login=$(resolve_github_login "$author" "$author_email")
-        is_new_author=$(is_genuinely_new_author "$author" "$author_email" "$TAG_DATE")
-      else
-        is_new_author=true
-      fi
-    fi
-
     # Early-exit classification: skip release-notes noise before enrichment.
     skip_reason=$(classify_skip "$category" "$author" "$subject")
     skip=false
@@ -617,8 +590,15 @@ elif [[ $JSON_OUTPUT == true ]]; then
     # above usually populated the cache already; the per-PR call here is a
     # backoff-guarded fallback for anything a batch missed.
     enrich="{}"
-    if [[ $skip == false && -n $pr_number ]]; then
+    if [[ -n $pr_number ]]; then
       cache_file="$PR_CACHE_DIR/${PR_REPO//\//_}-${pr_number}.json"
+      # Older cache entries predate authoritative PR-author fields. Remove
+      # them so the fallback fetch cannot silently use commit attribution.
+      if [[ -s $cache_file ]] && ! jq -e \
+          '.__notfound__ == true or (has("author_login") and has("author_type"))' \
+          "$cache_file" >/dev/null 2>&1; then
+        rm -f "$cache_file"
+      fi
       # fetch_one_pr never persists "{}" on failure, so a transient error can't
       # poison the cache and block a later retry.
       if [[ ! -s $cache_file ]] && command -v gh >/dev/null 2>&1; then
@@ -647,6 +627,28 @@ elif [[ $JSON_OUTPUT == true ]]; then
       fi
     fi
 
+    # Prefer the authoritative PR author over the Git commit author. The
+    # latter is frequently the merger for squash merges and the cherry-picker
+    # for maintenance releases. PR-less commits do not create contributor
+    # claims because there is no authoritative PR author to credit.
+    pr_author_login=""
+    pr_author_type=""
+    if [[ $enrich != "{}" ]]; then
+      pr_author_login=$(echo "$enrich" | jq -r '.author_login // ""' 2>/dev/null || echo "")
+      pr_author_type=$(echo "$enrich" | jq -r '.author_type // ""' 2>/dev/null || echo "")
+    fi
+    # Record the authoritative PR author for stateless, release-aware
+    # contributor detection performed after the loop. PR-less commits never
+    # create a contributor claim (no authoritative author to credit).
+    author_login=""
+    if [[ -n $pr_author_login ]]; then
+      author_login="$pr_author_login"
+      if [[ $pr_author_type == "Bot" || $pr_author_login == *"[bot]" ]]; then
+        AUTHOR_IS_BOT["$pr_author_login"]=1
+      fi
+      [[ -n $pr_number ]] && AUTHOR_INRANGE_PRS["$pr_author_login"]+=" $pr_number"
+    fi
+
     # Classify using the PR body when available, not just the subject line
     body_for_type=""
     if [[ $enrich != "{}" ]]; then
@@ -654,7 +656,8 @@ elif [[ $JSON_OUTPUT == true ]]; then
     fi
     commit_type=$(detect_commit_type "$subject" "$body_for_type")
 
-    # Build the record; merge enrichment fields when present
+    # Build the record; merge enrichment fields when present. contributor_status
+    # and is_new_author are injected in a post-pass once every author is known.
     jq -nc \
       --arg hash "$hash" \
       --arg author "$author" \
@@ -663,7 +666,6 @@ elif [[ $JSON_OUTPUT == true ]]; then
       --arg category "$category" \
       --arg type "$commit_type" \
       --argjson pr "${pr_number:-null}" \
-      --argjson new "$([[ $is_new_author == true ]] && echo true || echo false)" \
       --argjson skip "$skip" \
       --arg skip_reason "$skip_reason" \
       --argjson enrich "$enrich" \
@@ -674,7 +676,6 @@ elif [[ $JSON_OUTPUT == true ]]; then
         category: $category,
         type: $type,
         pr_number: $pr,
-        is_new_author: $new,
         skip: $skip,
         skip_reason: (if $skip_reason == "" then null else $skip_reason end)
       }
@@ -682,6 +683,8 @@ elif [[ $JSON_OUTPUT == true ]]; then
       + (if ($enrich | type) == "object" and ($enrich | keys | length) > 0 then {
           pr_title: ($enrich.title // null),
           pr_body: (($enrich.body // "") | .[0:4000]),
+          pr_author_login: ($enrich.author_login // null),
+          pr_author_type: ($enrich.author_type // null),
           labels: [ (($enrich.labels // [])[] | .name) ],
           additions: ($enrich.additions // null),
           deletions: ($enrich.deletions // null),
@@ -710,18 +713,53 @@ elif [[ $JSON_OUTPUT == true ]]; then
     echo -e "${YELLOW}  Likely secondary rate limiting; re-run to retry the misses via cache. If it persists, verify 'gh auth status' and PR_REPO='${PR_REPO}'.${NC}" >&2
   fi
 
+  # Classify every distinct PR author once, statelessly (see classify_new_login),
+  # then inject contributor_status / is_new_author into the records. Bots are
+  # never new contributors; an unresolved GitHub history marks the run
+  # incomplete rather than guessing "new".
+  STATUS_MAP=$(mktemp)
+  echo '{}' > "$STATUS_MAP"
+  for _login in "${!AUTHOR_INRANGE_PRS[@]}"; do
+    if [[ -n ${AUTHOR_IS_BOT[$_login]:-} ]]; then
+      _st="bot"
+    else
+      _st=$(classify_new_login "$_login")
+    fi
+    [[ $_st == "unresolved" ]] && CONTRIBUTOR_UNRESOLVED=$((CONTRIBUTOR_UNRESOLVED + 1))
+    jq -c --arg l "$_login" --arg s "$_st" '.[$l] = $s' "$STATUS_MAP" > "${STATUS_MAP}.tmp" \
+      && mv "${STATUS_MAP}.tmp" "$STATUS_MAP"
+  done
+
+  jq -c --slurpfile smap "$STATUS_MAP" '
+    ($smap[0]) as $status
+    | (.pr_author_login // null) as $login
+    | .contributor_status = (if $login == null then "not-applicable"
+                             else ($status[$login] // "not-applicable") end)
+    | .is_new_author = (.contributor_status == "true")
+  ' "$RECORDS_FILE" > "${RECORDS_FILE}.classified" \
+    && mv "${RECORDS_FILE}.classified" "$RECORDS_FILE"
+  rm -f "$STATUS_MAP"
+
   jq -n \
     --arg tag "$FROM_TAG" \
     --arg to "$TO_REF" \
     --argjson count "$COMMIT_COUNT" \
     --arg gen "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --argjson prior_releases "$PRIOR_RELEASE_COUNT" \
+    --argjson contributor_unresolved "$CONTRIBUTOR_UNRESOLVED" \
     --slurpfile commits "$RECORDS_FILE" \
     '{
       metadata: {
         release_tag: $tag,
         range_end: $to,
         total_commits: $count,
-        generated_at: $gen
+        generated_at: $gen,
+        contributor_detection: {
+          method: "first-shipped-release",
+          prior_releases: $prior_releases,
+          unresolved: $contributor_unresolved,
+          complete: ($prior_releases > 0 and $contributor_unresolved == 0)
+        }
       },
       commits: $commits
     }'
