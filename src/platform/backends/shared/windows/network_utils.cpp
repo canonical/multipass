@@ -128,8 +128,7 @@ std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_addres
     return ipv4_to_string(row->Address.Ipv4.sin_addr);
 }
 
-bool remove_permanent_ipv4_neighbors(const std::string& mac_address,
-                                     const NET_LUID& interface_luid)
+bool remove_permanent_ipv4_neighbors(const std::string& mac_address, const NET_LUID& interface_luid)
 {
     const auto mac = validated_mac(mac_address);
     if (!mac)

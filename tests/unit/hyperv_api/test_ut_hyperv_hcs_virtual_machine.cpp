@@ -299,9 +299,9 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
     void expect_permanent_neighbor(bool present, ULONG64 interface_luid = host_interface_luid)
     {
         EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-            .WillOnce(Return(ByMove(present ? mpt::make_neighbor_table(
-                                                  {{{10, 123, 45, 67}, interface_luid}})
-                                            : mpt::make_neighbor_table({}))));
+            .WillOnce(Return(
+                ByMove(present ? mpt::make_neighbor_table({{{10, 123, 45, 67}, interface_luid}})
+                               : mpt::make_neighbor_table({}))));
     }
 
     template <typename T = uut_t>
