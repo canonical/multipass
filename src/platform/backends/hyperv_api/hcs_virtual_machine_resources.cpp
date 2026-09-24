@@ -27,6 +27,7 @@
 #include <multipass/logging/log.h>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <algorithm>
 #include <vector>
@@ -98,6 +99,35 @@ bool multipass::hyperv::remove_management_ipv4_neighbors(const std::string& netw
 {
     const auto luid = host_interface_luid(network_guid);
     return luid && remove_permanent_ipv4_neighbors(mac_address, *luid);
+}
+
+std::optional<std::string> multipass::hyperv::network_guid_for_name(const std::string& name)
+{
+    std::vector<std::string> network_guids;
+    if (const auto result = hcn::HCN().enumerate_networks(network_guids); !result)
+    {
+        mpl::warn(log_category, "Could not enumerate networks: {}", result);
+        return std::nullopt;
+    }
+
+    std::vector<std::string> matches;
+    for (const auto& network_guid : network_guids)
+    {
+        hcn::HcnNetworkInfo info{};
+        if (hcn::HCN().query_network(network_guid, info) && info.name == name)
+            matches.push_back(network_guid);
+    }
+
+    if (matches.size() > 1)
+    {
+        mpl::error(log_category,
+                   "Network name `{}` is ambiguous, used by: {}",
+                   name,
+                   fmt::join(matches, ", "));
+        return std::nullopt;
+    }
+
+    return matches.empty() ? std::nullopt : std::make_optional(matches.front());
 }
 
 std::string multipass::hyperv::endpoint_guid_for_mac(std::string mac_address)

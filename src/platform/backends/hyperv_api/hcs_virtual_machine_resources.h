@@ -30,4 +30,8 @@ namespace multipass::hyperv
                                                                   const std::string& mac_address);
 [[nodiscard]] bool remove_management_ipv4_neighbors(const std::string& network_guid,
                                                     const std::string& mac_address);
+
+// GUID of the HCN network with the given name, if exactly one exists. Networks that Multipass
+// didn't create (e.g. vSwitches created through Hyper-V) have GUIDs unrelated to their names.
+[[nodiscard]] std::optional<std::string> network_guid_for_name(const std::string& name);
 } // namespace multipass::hyperv
