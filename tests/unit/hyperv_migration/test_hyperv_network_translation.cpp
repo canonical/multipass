@@ -111,10 +111,10 @@ TEST(HyperVNetworkTranslation, keepsSwitchTheTargetCanAttachTo)
     const std::vector<multipass::NetworkInterface> source{
         {.id = "ExtSwitch (nic-a)", .mac_address = "52:54:00:00:00:0a", .auto_mode = true}};
 
-    const auto translated =
-        mhv::translate_extra_interfaces(source,
-                                        {make_switch("ExtSwitch (nic-a)", {"Ethernet 1"})},
-                                        {make_switch("ExtSwitch (nic-a)", {})});
+    const auto translated = mhv::translate_extra_interfaces(
+        source,
+        {make_switch("ExtSwitch (nic-a)", {"Ethernet 1"})},
+        {make_switch("ExtSwitch (nic-a)", {})});
 
     EXPECT_EQ(translated, source);
 }
@@ -137,11 +137,11 @@ TEST(HyperVNetworkTranslation, resolvesOnlySwitchesTheTargetCannotAttachTo)
         {.id = "ExtSwitch (nic-a)", .mac_address = "52:54:00:00:00:0a", .auto_mode = true},
         {.id = "ExtSwitch (nic-b)", .mac_address = "52:54:00:00:00:0b", .auto_mode = true}};
 
-    const auto translated =
-        mhv::translate_extra_interfaces(source,
-                                        {make_switch("ExtSwitch (nic-a)", {"Ethernet 1"}),
-                                         make_switch("ExtSwitch (nic-b)", {"Ethernet 2"})},
-                                        {make_switch("ExtSwitch (nic-a)", {})});
+    const auto translated = mhv::translate_extra_interfaces(
+        source,
+        {make_switch("ExtSwitch (nic-a)", {"Ethernet 1"}),
+         make_switch("ExtSwitch (nic-b)", {"Ethernet 2"})},
+        {make_switch("ExtSwitch (nic-a)", {})});
 
     ASSERT_EQ(translated.size(), 2u);
     EXPECT_EQ(translated[0].id, "ExtSwitch (nic-a)");

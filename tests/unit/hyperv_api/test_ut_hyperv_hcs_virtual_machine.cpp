@@ -431,16 +431,14 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, create_attaches_extra_interface_to_net
     EXPECT_CALL(mock_hcn, delete_endpoint(EndsWith("5254004d5001")))
         .WillOnce(Return(hcs_op_result_t{E_FAIL, L"not found"}));
     EXPECT_CALL(mock_hcn,
-                create_endpoint(Field(&mhv::hcn::CreateEndpointParameters::network_guid,
-                                      Eq("guid-private"))))
+                create_endpoint(
+                    Field(&mhv::hcn::CreateEndpointParameters::network_guid, Eq("guid-private"))))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
     EXPECT_CALL(mock_hcs, create_compute_system(_, _))
-        .WillOnce(DoAll(
-            [](const mhv::hcs::CreateComputeSystemParameters& params, hcs_handle_t&) {
-                EXPECT_EQ(params.network_adapters.size(), 2);
-            },
-            SetArgReferee<1>(mock_handle),
-            Return(hcs_op_result_t{0, L""})));
+        .WillOnce(DoAll([](const mhv::hcs::CreateComputeSystemParameters& params,
+                           hcs_handle_t&) { EXPECT_EQ(params.network_adapters.size(), 2); },
+                        SetArgReferee<1>(mock_handle),
+                        Return(hcs_op_result_t{0, L""})));
 
     EXPECT_NO_THROW(construct_vm());
 }
@@ -455,9 +453,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, create_attaches_extra_interface_to_mul
     expect_networks({{network_guid, "Multipass vSwitch (Ethernet)"}});
     EXPECT_CALL(mock_hcn, delete_endpoint(EndsWith("5254004d5001")))
         .WillOnce(Return(hcs_op_result_t{E_FAIL, L"not found"}));
-    EXPECT_CALL(mock_hcn,
-                create_endpoint(Field(&mhv::hcn::CreateEndpointParameters::network_guid,
-                                      Eq(network_guid))))
+    EXPECT_CALL(
+        mock_hcn,
+        create_endpoint(Field(&mhv::hcn::CreateEndpointParameters::network_guid, Eq(network_guid))))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
     EXPECT_CALL(mock_hcs, create_compute_system(_, _))
         .WillOnce(DoAll(SetArgReferee<1>(mock_handle), Return(hcs_op_result_t{0, L""})));
