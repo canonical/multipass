@@ -129,7 +129,7 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
                compute_state);
 
     // Reflect compute system's state
-    auto prev_state = state;
+    const auto prev_state = state;
     set_state(compute_state);
 
     // Persist initial state even if unchanged
