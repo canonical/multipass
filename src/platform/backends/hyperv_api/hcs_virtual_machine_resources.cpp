@@ -17,8 +17,12 @@
 #include "hcs_virtual_machine_resources.h"
 
 #include <hyperv_api/hcn/hyperv_hcn_endpoint_naming.h>
+#include <hyperv_api/hcn/hyperv_hcn_network_info.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <hyperv_api/hcs/hyperv_hcs_wrapper.h>
+#include <hyperv_api/hyperv_guid.h>
+#include <shared/windows/net_io_api.h>
+#include <shared/windows/network_utils.h>
 
 #include <multipass/logging/log.h>
 
@@ -31,7 +35,70 @@ namespace
 {
 constexpr auto log_category = "HyperV-Virtual-Machine-Resources";
 namespace mpl = multipass::logging;
+namespace mhv = multipass::hyperv;
+
+// LUID of the host vNIC attached to the given HCN network, e.g. "vEthernet (Default Switch)".
+// Resolved on every call since host vNICs are recreated along with their network.
+std::optional<NET_LUID> host_interface_luid(const std::string& network_guid)
+{
+    mhv::hcn::HcnNetworkInfo info{};
+    if (const auto result = mhv::hcn::HCN().query_network(network_guid, info); !result)
+    {
+        mpl::warn(log_category, "Could not query network `{}`: {}", network_guid, result);
+        return std::nullopt;
+    }
+
+    if (!info.host_interface_guid)
+    {
+        mpl::warn(log_category, "Network `{}` has no host interface", network_guid);
+        return std::nullopt;
+    }
+
+    GUID interface_guid{};
+    try
+    {
+        interface_guid = mhv::guid_from_string(*info.host_interface_guid);
+    }
+    catch (const mhv::GuidParseError& e)
+    {
+        mpl::warn(log_category,
+                  "Invalid host interface GUID `{}` for network `{}`: {}",
+                  *info.host_interface_guid,
+                  network_guid,
+                  e.what());
+        return std::nullopt;
+    }
+
+    NET_LUID luid{};
+    if (const auto error = MP_NETIOAPI.ConvertInterfaceGuidToLuid(&interface_guid, &luid);
+        error != NO_ERROR)
+    {
+        mpl::warn(log_category,
+                  "Could not get LUID for host interface `{}` of network `{}`, error code {}",
+                  *info.host_interface_guid,
+                  network_guid,
+                  error);
+        return std::nullopt;
+    }
+
+    return luid;
+}
 } // namespace
+
+std::optional<std::string> multipass::hyperv::management_ipv4_neighbor(
+    const std::string& network_guid,
+    const std::string& mac_address)
+{
+    const auto luid = host_interface_luid(network_guid);
+    return luid ? permanent_ipv4_neighbor(mac_address, *luid) : std::nullopt;
+}
+
+bool multipass::hyperv::remove_management_ipv4_neighbors(const std::string& network_guid,
+                                                         const std::string& mac_address)
+{
+    const auto luid = host_interface_luid(network_guid);
+    return luid && remove_permanent_ipv4_neighbors(mac_address, *luid);
+}
 
 std::string multipass::hyperv::endpoint_guid_for_mac(std::string mac_address)
 {

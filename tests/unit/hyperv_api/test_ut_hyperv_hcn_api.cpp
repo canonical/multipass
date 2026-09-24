@@ -84,6 +84,26 @@ struct HyperVHCNAPI_UnitTests : public ::testing::Test
         EXPECT_CALL(mock_hcn_api, HcnCloseEndpoint(mock_endpoint_object)).WillOnce(Return(NOERROR));
         EXPECT_CALL(mock_hcn_api, CoTaskMemFree(endpoint_properties));
     }
+
+    void expect_network_query(wchar_t* network_properties)
+    {
+        EXPECT_CALL(mock_hcn_api, HcnOpenNetwork)
+            .WillOnce(DoAll(
+                [&](REFGUID id, PHCN_NETWORK network, PWSTR*) {
+                    ASSERT_EQ("c08cb7b8-9b3c-408e-8e30-5e16a3aeb444", fmt::to_string(id));
+                    *network = mock_network_object;
+                },
+                Return(NOERROR)));
+        EXPECT_CALL(mock_hcn_api, HcnQueryNetworkProperties)
+            .WillOnce(DoAll(
+                [network_properties](HCN_NETWORK network, PCWSTR, PWSTR* properties, PWSTR*) {
+                    ASSERT_EQ(mock_network_object, network);
+                    *properties = network_properties;
+                },
+                Return(NOERROR)));
+        EXPECT_CALL(mock_hcn_api, HcnCloseNetwork(mock_network_object)).WillOnce(Return(NOERROR));
+        EXPECT_CALL(mock_hcn_api, CoTaskMemFree(network_properties));
+    }
 };
 
 // ---------------------------------------------------------
@@ -814,6 +834,36 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_merges_flattened_ip_configuration)
     ASSERT_EQ(endpoint_info.ip_addresses.size(), 2);
     EXPECT_EQ(endpoint_info.ip_addresses[0], "fe80::1");
     EXPECT_EQ(endpoint_info.ip_addresses[1], "172.20.1.2");
+}
+
+TEST_F(HyperVHCNAPI_UnitTests, query_network_reads_host_interface_guid)
+{
+    static wchar_t network_properties[] =
+        LR"({"Name":"Default Switch","Type":"ICS","Resources":{"Allocators":[{"Tag":"ICS","PrivateInterfaceGUID":"11111111-2222-3333-4444-555555555555"},{"Tag":"Host Vnic","InterfaceGuid":"99F4AB49-031B-48CE-B1E3-69068EBEEA09"}]}})";
+
+    expect_network_query(network_properties);
+
+    hcn::HcnNetworkInfo network_info;
+    const auto result = HCN().query_network("c08cb7b8-9b3c-408e-8e30-5e16a3aeb444", network_info);
+
+    ASSERT_TRUE(result);
+    EXPECT_EQ(network_info.name, "Default Switch");
+    ASSERT_TRUE(network_info.host_interface_guid);
+    EXPECT_EQ(*network_info.host_interface_guid, "99F4AB49-031B-48CE-B1E3-69068EBEEA09");
+}
+
+TEST_F(HyperVHCNAPI_UnitTests, query_network_without_host_vnic)
+{
+    static wchar_t network_properties[] =
+        LR"({"Name":"mpupgtsw0","Type":"Private","Resources":{"AllocationOrder":0}})";
+
+    expect_network_query(network_properties);
+
+    hcn::HcnNetworkInfo network_info;
+    const auto result = HCN().query_network("c08cb7b8-9b3c-408e-8e30-5e16a3aeb444", network_info);
+
+    ASSERT_TRUE(result);
+    EXPECT_FALSE(network_info.host_interface_guid);
 }
 
 TEST(HcnEndpointInfo, rejects_malformed_ip_configurations)

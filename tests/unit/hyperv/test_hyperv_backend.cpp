@@ -26,6 +26,7 @@
 #include "tests/unit/temp_dir.h"
 #include "tests/unit/temp_file.h"
 #include "tests/unit/windows/mock_net_io_api.h"
+#include "tests/unit/windows/neighbor_table.h"
 #include "tests/unit/windows/powershell_test_helper.h"
 
 #include <src/platform/backends/hyperv/hyperv_virtual_machine_factory.h>
@@ -157,42 +158,104 @@ TEST_F(HyperVBackend, createsInOffState)
     EXPECT_THAT(machine->state, Eq(mp::VirtualMachine::State::off));
 }
 
-using HyperVStartParams = std::tuple<std::string, mpt::PowerShellTestHelper::RunSpec, bool>;
+// Neighbor entries on the Default Switch host vNIC, or on another network's host vNIC.
+constexpr ULONG64 default_switch_luid = 42;
+constexpr ULONG64 other_network_luid = 7;
 
-struct HyperVStart : public HyperVBackend, public WithParamInterface<HyperVStartParams>
+struct HyperVNeighbors : public HyperVBackend
 {
+    // The PowerShell query for the Default Switch host vNIC, which HNS names after its network.
+    inline static const RunSpec default_switch_lookup_run{
+        "Get-VMNetworkAdapter -ManagementOS -Name 'Host Vnic C08CB7B8-9B3C-408E-8E30-5E16A3AEB444'",
+        "{99F4AB49-031B-48CE-B1E3-69068EBEEA09}"};
+
+    // Expects the device ID returned by the lookup to resolve to `default_switch_luid`.
+    void expect_default_switch_luid()
+    {
+        EXPECT_CALL(mock_net_io_api,
+                    ConvertInterfaceGuidToLuid(Pointee(Field(&GUID::Data1, 0x99F4AB49u)), _))
+            .WillOnce([](const GUID*, NET_LUID* luid) {
+                luid->Value = default_switch_luid;
+                return static_cast<DWORD>(NO_ERROR);
+            });
+    }
+
+    // A table with an entry for the VM's MAC on the other network, then on the Default Switch.
+    static mp::hyperv::IpNetTableResult make_neighbor_table()
+    {
+        constexpr std::array<unsigned char, 6> mac{0xba, 0xba, 0xca, 0xca, 0xca, 0xba};
+        return mpt::make_neighbor_table({{{10, 97, 0, 82}, other_network_luid, mac},
+                                         {{10, 22, 0, 82}, default_switch_luid, mac}});
+    }
+
     mpt::MockNetIOAPI::GuardedMock mock_net_io_api_injection =
         mpt::MockNetIOAPI::inject<StrictMock>();
     mpt::MockNetIOAPI& mock_net_io_api = *mock_net_io_api_injection.first;
 };
 
+TEST_F(HyperVNeighbors, managementIpv4UsesDefaultSwitchEntry)
+{
+    // The host vNIC is looked up once and reused by later queries.
+    ps_helper.setup_mocked_run_sequence(
+        {{"Get-VM"}, {"-ExpandProperty State", "Off"}, default_switch_lookup_run, min_dtor_run});
+    expect_default_switch_luid();
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(2).WillRepeatedly([] {
+        return make_neighbor_table();
+    });
+
+    auto machine = backend.create_virtual_machine(default_description,
+                                                  stub_key_provider,
+                                                  stub_monitor);
+    EXPECT_EQ(machine->management_ipv4(), mp::IPAddress{"10.22.0.82"});
+    EXPECT_EQ(machine->management_ipv4(), mp::IPAddress{"10.22.0.82"});
+}
+
+TEST_F(HyperVNeighbors, managementIpv4ReturnsEmptyWithoutDefaultSwitchInterface)
+{
+    auto failed_lookup = default_switch_lookup_run;
+    failed_lookup.will_output = "";
+    failed_lookup.will_return = false;
+    ps_helper.setup_mocked_run_sequence(
+        {{"Get-VM"}, {"-ExpandProperty State", "Off"}, failed_lookup, min_dtor_run});
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(0);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "Could not find the Default Switch host interface");
+
+    auto machine = backend.create_virtual_machine(default_description,
+                                                  stub_key_provider,
+                                                  stub_monitor);
+    EXPECT_EQ(machine->management_ipv4(), std::nullopt);
+}
+
+using HyperVStartParams = std::tuple<std::string, mpt::PowerShellTestHelper::RunSpec, bool>;
+
+struct HyperVStart : public HyperVNeighbors, public WithParamInterface<HyperVStartParams>
+{
+};
+
 TEST_P(HyperVStart, removesNeighborsOnlyForConfirmedColdStart)
 {
     const auto& [initial_state, state_query, remove_neighbors] = GetParam();
-    ps_helper.setup_mocked_run_sequence({{"Get-VM"},
-                                         {"-ExpandProperty State", initial_state},
-                                         state_query,
-                                         {"-ExpandProperty State", state_query.will_output},
-                                         {"Start-VM"},
-                                         min_dtor_run});
+    std::vector<RunSpec> runs{{"Get-VM"}, {"-ExpandProperty State", initial_state}, state_query};
+    if (remove_neighbors)
+        runs.push_back(default_switch_lookup_run);
+    runs.insert(runs.end(),
+                {{"-ExpandProperty State", state_query.will_output}, {"Start-VM"}, min_dtor_run});
+    ps_helper.setup_mocked_run_sequence(runs);
 
-    ON_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).WillByDefault([] {
-        auto* raw_table = new MIB_IPNET_TABLE2{};
-        raw_table->NumEntries = 1;
-        auto& row = raw_table->Table[0];
-        row.Address.Ipv4.sin_family = AF_INET;
-        row.Address.Ipv4.sin_addr.S_un.S_un_b = {10, 97, 0, 82};
-        row.State = NlnsPermanent;
-        row.PhysicalAddressLength = 6;
-        const std::array<unsigned char, 6> mac{0xba, 0xba, 0xca, 0xca, 0xca, 0xba};
-        std::ranges::copy(mac, row.PhysicalAddress);
-        auto table = mp::hyperv::IpNetTable{raw_table,
-                                            [](MIB_IPNET_TABLE2* table) { delete table; }};
-        return mp::hyperv::IpNetTableResult{NO_ERROR, std::move(table)};
-    });
-    const auto expected_removals = remove_neighbors ? 1 : 0;
-    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(expected_removals);
-    EXPECT_CALL(mock_net_io_api, DeleteIpNetEntry2(_)).Times(expected_removals);
+    // The mocks are strict, so without expectations no lookup or removal may happen.
+    if (remove_neighbors)
+    {
+        expect_default_switch_luid();
+        EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).WillOnce([] {
+            return make_neighbor_table();
+        });
+        // Only the Default Switch entry is removed; the other network's entry is left alone.
+        EXPECT_CALL(mock_net_io_api,
+                    DeleteIpNetEntry2(Pointee(Field(&MIB_IPNET_ROW2::InterfaceLuid,
+                                                    Field(&NET_LUID::Value, default_switch_luid)))))
+            .WillOnce(Return(NO_ERROR));
+    }
 
     auto machine = backend.create_virtual_machine(default_description,
                                                   stub_key_provider,

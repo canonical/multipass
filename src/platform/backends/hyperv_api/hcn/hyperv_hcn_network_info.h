@@ -19,6 +19,7 @@
 
 #include <fmt/xchar.h>
 
+#include <optional>
 #include <string>
 
 namespace multipass::hyperv::hcn
@@ -29,6 +30,8 @@ struct HcnNetworkInfo
     std::string name;
     std::string type;
     std::optional<std::string> network_adapter_name;
+    // Interface GUID of the network's host vNIC (e.g. "vEthernet (Default Switch)"), if any.
+    std::optional<std::string> host_interface_guid;
 };
 
 }; // namespace multipass::hyperv::hcn

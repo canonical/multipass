@@ -22,8 +22,6 @@
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
 
-#include <shared/windows/network_utils.h>
-
 #include <multipass/subnet.h>
 
 #include <fmt/xchar.h>
@@ -35,6 +33,7 @@
 #include <src/platform/backends/hyperv_api/hcn/hyperv_hcn_wrapper.h>
 #include <src/platform/backends/hyperv_api/hcs/hyperv_hcs_wrapper.h>
 #include <src/platform/backends/hyperv_api/hcs_virtual_machine.h>
+#include <src/platform/backends/hyperv_api/hcs_virtual_machine_resources.h>
 #include <src/platform/backends/hyperv_api/virtdisk/virtdisk_wrapper.h>
 
 #include <computecore.h>
@@ -234,7 +233,8 @@ TEST_F(HyperV_ComponentIntegrationTests, alpine_vm_gets_permanent_neighbor_on_ic
     std::optional<std::string> neighbor_address;
     for (auto attempts = 0; attempts < 720 && !neighbor_address; ++attempts)
     {
-        neighbor_address = permanent_ipv4_neighbor(*endpoint_info.mac_address);
+        neighbor_address = hyperv::management_ipv4_neighbor(network_parameters.guid,
+                                                            *endpoint_info.mac_address);
         if (!neighbor_address)
             std::this_thread::sleep_for(500ms);
     }

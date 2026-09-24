@@ -36,6 +36,7 @@
 #include "tests/unit/temp_dir.h"
 #include "tests/unit/temp_file.h"
 #include "tests/unit/windows/mock_net_io_api.h"
+#include "tests/unit/windows/neighbor_table.h"
 
 #include <algorithm>
 #include <array>
@@ -108,6 +109,17 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
         mpt::MockNetIOAPI::inject<StrictMock>();
     mpt::MockNetIOAPI& mock_net_io_api = *mock_net_io_api_injection.first;
 
+    // Host vNIC of the primary network ("abcd"); neighbor entries on other interfaces are ignored.
+    static constexpr ULONG64 host_interface_luid = 42;
+    static constexpr ULONG64 other_interface_luid = 7;
+
+    static NET_LUID make_luid(ULONG64 value)
+    {
+        NET_LUID luid{};
+        luid.Value = value;
+        return luid;
+    }
+
     inline static auto mock_handle_raw = reinterpret_cast<void*>(0xbadf00d);
     hcs_handle_t mock_handle{mock_handle_raw, [](void*) {}};
     void* compute_system_callback_context{nullptr};
@@ -173,10 +185,19 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
             .WillByDefault([this](const hcs_handle_t&) { return complete_system_exit(); });
         EXPECT_CALL(mock_hcs, shutdown_compute_system(Eq(mock_handle))).Times(AnyNumber());
         EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(AnyNumber()).WillRepeatedly([] {
-            auto* raw_table = new MIB_IPNET_TABLE2{};
-            auto table = mhv::IpNetTable{raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
-            return mhv::IpNetTableResult{NO_ERROR, std::move(table)};
+            return mpt::make_neighbor_table({});
         });
+
+        EXPECT_CALL(mock_hcn, query_network(Eq("abcd"), _))
+            .Times(AnyNumber())
+            .WillRepeatedly([](const std::string&, mhv::hcn::HcnNetworkInfo& info) {
+                info.host_interface_guid = "99F4AB49-031B-48CE-B1E3-69068EBEEA09";
+                return hcs_op_result_t{0, L""};
+            });
+        EXPECT_CALL(mock_net_io_api, ConvertInterfaceGuidToLuid(_, _))
+            .Times(AnyNumber())
+            .WillRepeatedly(
+                DoAll(SetArgPointee<1>(make_luid(host_interface_luid)), Return(NO_ERROR)));
     }
 
     void default_open_success()
@@ -275,24 +296,12 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
         EXPECT_CALL(mock_hcs, create_compute_system(_, _)).Times(0);
     }
 
-    void expect_permanent_neighbor(bool present)
+    void expect_permanent_neighbor(bool present, ULONG64 interface_luid = host_interface_luid)
     {
-        auto* raw_table = new MIB_IPNET_TABLE2{};
-        if (present)
-        {
-            raw_table->NumEntries = 1;
-            auto& row = raw_table->Table[0];
-            row.Address.Ipv4.sin_family = AF_INET;
-            row.Address.Ipv4.sin_addr.S_un.S_un_b = {10, 123, 45, 67};
-            row.State = NlnsPermanent;
-            row.PhysicalAddressLength = 6;
-            const std::array<unsigned char, 6> physical_address{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
-            std::ranges::copy(physical_address, row.PhysicalAddress);
-        }
-
-        auto table = mhv::IpNetTable{raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
         EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-            .WillOnce(Return(ByMove(mhv::IpNetTableResult{NO_ERROR, std::move(table)})));
+            .WillOnce(Return(ByMove(present ? mpt::make_neighbor_table(
+                                                  {{{10, 123, 45, 67}, interface_luid}})
+                                            : mpt::make_neighbor_table({}))));
     }
 
     template <typename T = uut_t>
@@ -352,19 +361,10 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, create_removes_stale_neighbors_for_man
 {
     default_create_success();
 
+    // The same MAC also has an entry on another network, which must be left alone.
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).WillOnce([] {
-        auto* raw_table = new MIB_IPNET_TABLE2{};
-        raw_table->NumEntries = 1;
-        auto& row = raw_table->Table[0];
-        row.Address.Ipv4.sin_family = AF_INET;
-        row.Address.Ipv4.sin_addr.S_un.S_un_b = {10, 97, 0, 82};
-        row.State = NlnsPermanent;
-        row.PhysicalAddressLength = 6;
-        const std::array<unsigned char, 6> physical_address{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
-        std::ranges::copy(physical_address, row.PhysicalAddress);
-
-        auto table = mhv::IpNetTable{raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
-        return mhv::IpNetTableResult{NO_ERROR, std::move(table)};
+        return mpt::make_neighbor_table(
+            {{{10, 97, 1, 82}, other_interface_luid}, {{10, 97, 0, 82}, host_interface_luid}});
     });
     EXPECT_CALL(mock_net_io_api, DeleteIpNetEntry2(_)).WillOnce([](const MIB_IPNET_ROW2* row) {
         const auto& address = row->Address.Ipv4.sin_addr.S_un.S_un_b;
@@ -1111,6 +1111,30 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_returns_empty_without_
 
     auto uut = construct_vm();
     expect_permanent_neighbor(false);
+
+    EXPECT_EQ(uut->management_ipv4(), std::nullopt);
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_ignores_neighbor_on_other_interface)
+{
+    default_open_success();
+    expect_endpoint_query({}, "aa-bb-cc-dd-ee-ff");
+
+    auto uut = construct_vm();
+    expect_permanent_neighbor(true, other_interface_luid);
+
+    EXPECT_EQ(uut->management_ipv4(), std::nullopt);
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_returns_empty_without_host_interface)
+{
+    default_open_success();
+    expect_endpoint_query({}, "aa-bb-cc-dd-ee-ff");
+
+    auto uut = construct_vm();
+    EXPECT_CALL(mock_hcn, query_network(Eq("abcd"), _))
+        .WillOnce(Return(hcs_op_result_t{E_FAIL, L"Network query failed"}));
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(0);
 
     EXPECT_EQ(uut->management_ipv4(), std::nullopt);
 }

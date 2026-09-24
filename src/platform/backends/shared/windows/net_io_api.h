@@ -45,6 +45,8 @@ struct NetIOAPI : public Singleton<NetIOAPI>
     [[nodiscard]] virtual DWORD SetIpInterfaceEntry(PMIB_IPINTERFACE_ROW Row) const;
     [[nodiscard]] virtual DWORD ConvertInterfaceAliasToLuid(const WCHAR* InterfaceName,
                                                             NET_LUID* InterfaceLuid) const;
+    [[nodiscard]] virtual DWORD ConvertInterfaceGuidToLuid(const GUID* InterfaceGuid,
+                                                           NET_LUID* InterfaceLuid) const;
     [[nodiscard]] virtual IpNetTableResult GetIpNetTable2(ADDRESS_FAMILY Family) const;
     [[nodiscard]] virtual DWORD DeleteIpNetEntry2(const MIB_IPNET_ROW2* Row) const;
 };

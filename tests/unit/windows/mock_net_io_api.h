@@ -33,6 +33,10 @@ public:
                 ConvertInterfaceAliasToLuid,
                 (const WCHAR* InterfaceName, NET_LUID* InterfaceLuid),
                 (const override));
+    MOCK_METHOD(DWORD,
+                ConvertInterfaceGuidToLuid,
+                (const GUID* InterfaceGuid, NET_LUID* InterfaceLuid),
+                (const override));
     MOCK_METHOD(hyperv::IpNetTableResult,
                 GetIpNetTable2,
                 (ADDRESS_FAMILY Family),

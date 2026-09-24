@@ -24,6 +24,7 @@
 #include "tests/unit/mock_utils.h"
 #include "tests/unit/temp_dir.h"
 #include "tests/unit/windows/mock_net_io_api.h"
+#include "tests/unit/windows/neighbor_table.h"
 
 #include "shared/windows/network_utils.h"
 
@@ -60,8 +61,15 @@ using namespace testing;
 namespace
 {
 
-mp::hyperv::IpNetTable make_neighbor_table(
-    std::initializer_list<std::array<unsigned char, 4>> addresses);
+// Neighbor entries on the interface being queried, or on some other interface.
+constexpr ULONG64 mgmt_luid = 42;
+constexpr ULONG64 other_luid = 7;
+
+const NET_LUID mgmt_interface = [] {
+    NET_LUID luid{};
+    luid.Value = mgmt_luid;
+    return luid;
+}();
 
 auto expect_only_log(multipass::logging::Level lvl, const std::string& substr)
 {
@@ -165,27 +173,44 @@ struct PermanentIpv4Neighbor : public Test
 
 TEST_F(PermanentIpv4Neighbor, rejectsInvalidMac)
 {
-    EXPECT_FALSE(mp::permanent_ipv4_neighbor("not-a-mac"));
+    EXPECT_FALSE(mp::permanent_ipv4_neighbor("not-a-mac", mgmt_interface));
 }
 
 TEST_F(PermanentIpv4Neighbor, findsEntryByPhysicalAddress)
 {
-    auto* raw_table = new MIB_IPNET_TABLE2{};
-    raw_table->NumEntries = 1;
-
-    auto& row = raw_table->Table[0];
-    row.Address.Ipv4.sin_family = AF_INET;
-    row.Address.Ipv4.sin_addr.S_un.S_un_b = {10, 123, 45, 67};
-    row.State = NlnsPermanent;
-    row.PhysicalAddressLength = 6;
-    const std::array<unsigned char, 6> physical_address{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
-    std::ranges::copy(physical_address, row.PhysicalAddress);
-
-    auto table = mp::hyperv::IpNetTable{raw_table, [](MIB_IPNET_TABLE2* table) { delete table; }};
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-        .WillOnce(Return(ByMove(mp::hyperv::IpNetTableResult{NO_ERROR, std::move(table)})));
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{10, 123, 45, 67}, mgmt_luid}}))));
 
-    EXPECT_EQ(mp::permanent_ipv4_neighbor("AA-BB-CC-DD-EE-FF"), "10.123.45.67");
+    EXPECT_EQ(mp::permanent_ipv4_neighbor("AA-BB-CC-DD-EE-FF", mgmt_interface), "10.123.45.67");
+}
+
+TEST_F(PermanentIpv4Neighbor, ignoresEntriesOnOtherInterfaces)
+{
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{10, 97, 0, 75}, other_luid},
+                                                          {{172, 19, 154, 10}, mgmt_luid},
+                                                          {{10, 97, 1, 11}, other_luid}}))));
+
+    EXPECT_EQ(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff", mgmt_interface), "172.19.154.10");
+}
+
+TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenOnlyOtherInterfacesMatch)
+{
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{10, 97, 0, 75}, other_luid}}))));
+
+    EXPECT_FALSE(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff", mgmt_interface));
+}
+
+TEST_F(PermanentIpv4Neighbor, warnsAndUsesFirstOfMultipleEntries)
+{
+    auto logger_scope = expect_only_log(mpl::Level::warning,
+                                        "Multiple permanent IPv4 neighbors");
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table(
+            {{{172, 19, 154, 10}, mgmt_luid}, {{172, 19, 154, 11}, mgmt_luid}}))));
+
+    EXPECT_EQ(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff", mgmt_interface), "172.19.154.10");
 }
 
 TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenGetIpNetTableFails)
@@ -197,15 +222,15 @@ TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenGetIpNetTableFails)
         .WillOnce(
             Return(ByMove(mp::hyperv::IpNetTableResult{ERROR_ACCESS_DENIED, std::move(table)})));
 
-    EXPECT_FALSE(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff"));
+    EXPECT_FALSE(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff", mgmt_interface));
 }
 
 TEST_F(PermanentIpv4Neighbor, removesAllEntriesForMac)
 {
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-        .WillOnce(Return(ByMove(mp::hyperv::IpNetTableResult{
-            NO_ERROR,
-            make_neighbor_table({{172, 19, 154, 10}, {10, 97, 0, 75}, {10, 97, 1, 11}})})));
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{172, 19, 154, 10}, mgmt_luid},
+                                                          {{10, 97, 0, 75}, mgmt_luid},
+                                                          {{10, 97, 1, 11}, mgmt_luid}}))));
     std::vector<std::string> removed_addresses;
     EXPECT_CALL(mock_net_io_api, DeleteIpNetEntry2(_))
         .Times(3)
@@ -216,8 +241,22 @@ TEST_F(PermanentIpv4Neighbor, removesAllEntriesForMac)
             return NO_ERROR;
         });
 
-    EXPECT_TRUE(mp::remove_permanent_ipv4_neighbors("aa:bb:cc:dd:ee:ff"));
+    EXPECT_TRUE(mp::remove_permanent_ipv4_neighbors("aa:bb:cc:dd:ee:ff", mgmt_interface));
     EXPECT_THAT(removed_addresses, ElementsAre("172.19.154.10", "10.97.0.75", "10.97.1.11"));
+}
+
+TEST_F(PermanentIpv4Neighbor, removesOnlyEntriesOnInterface)
+{
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{10, 97, 0, 75}, other_luid},
+                                                          {{172, 19, 154, 10}, mgmt_luid},
+                                                          {{10, 97, 1, 11}, other_luid}}))));
+    EXPECT_CALL(mock_net_io_api,
+                DeleteIpNetEntry2(Pointee(
+                    Field(&MIB_IPNET_ROW2::InterfaceLuid, Field(&NET_LUID::Value, mgmt_luid)))))
+        .WillOnce(Return(NO_ERROR));
+
+    EXPECT_TRUE(mp::remove_permanent_ipv4_neighbors("aa:bb:cc:dd:ee:ff", mgmt_interface));
 }
 
 TEST(PlatformWin, testDefaultDriver)
@@ -797,29 +836,6 @@ TEST(PlatformWin, test_qstr_path_conversion)
     // Spaces and special filesystem characters
     QString special = QStringLiteral("/path with spaces/file (1).txt");
     EXPECT_EQ(MP_PLATFORM.path_to_qstr(MP_PLATFORM.qstr_to_path(special)), special);
-}
-
-mp::hyperv::IpNetTable make_neighbor_table(
-    std::initializer_list<std::array<unsigned char, 4>> addresses)
-{
-    const auto size = sizeof(MIB_IPNET_TABLE2) + (addresses.size() - 1) * sizeof(MIB_IPNET_ROW2);
-    auto* storage = new std::byte[size]{};
-    auto* table = reinterpret_cast<MIB_IPNET_TABLE2*>(storage);
-    table->NumEntries = static_cast<ULONG>(addresses.size());
-
-    std::size_t index = 0;
-    for (const auto& address : addresses)
-    {
-        auto& row = table->Table[index++];
-        row.Address.Ipv4.sin_family = AF_INET;
-        row.Address.Ipv4.sin_addr.S_un.S_un_b = {address[0], address[1], address[2], address[3]};
-        row.State = NlnsPermanent;
-        row.PhysicalAddressLength = 6;
-        const std::array<unsigned char, 6> physical_address{0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
-        std::ranges::copy(physical_address, row.PhysicalAddress);
-    }
-
-    return {table, [](MIB_IPNET_TABLE2* table) { delete[] reinterpret_cast<std::byte*>(table); }};
 }
 
 } // namespace

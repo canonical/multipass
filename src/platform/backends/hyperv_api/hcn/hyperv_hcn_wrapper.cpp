@@ -20,6 +20,7 @@
 #include <hyperv_api/hcn/hyperv_hcn_create_network_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_endpoint_query.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
+#include <hyperv_api/hyperv_guid.h>
 
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/logging/log.h>
@@ -48,11 +49,6 @@ using ztd::out_ptr::out_ptr;
 
 namespace multipass::hyperv::hcn
 {
-
-struct GuidParseError : multipass::FormattedExceptionBase<>
-{
-    using FormattedExceptionBase<>::FormattedExceptionBase;
-};
 
 namespace
 {
@@ -100,60 +96,28 @@ constexpr auto log_category = "HyperV-HCN-Wrapper";
 // ---------------------------------------------------------
 
 /**
- * Parse given GUID string into a GUID struct.
+ * Find the interface GUID of the network's host vNIC in the network properties.
  *
- * @param guid_wstr GUID in wide string form, either 36 characters
- *                  (without braces) or 38 characters (with braces.)
+ * @param network Network properties, as returned by HcnQueryNetworkProperties
  *
- * @return GUID The parsed GUID
+ * @return The InterfaceGuid of the "Host Vnic" allocator, if present
  */
-auto guid_from_string(const std::wstring& guid_wstr) -> ::GUID
+std::optional<std::string> host_interface_guid_of(const boost::json::value& network)
 {
-    constexpr auto guid_length = 36;
-    constexpr auto guid_length_with_braces = guid_length + 2;
+    boost::system::error_code ec;
+    const auto* allocators = network.find_pointer("/Resources/Allocators", ec);
+    if (!allocators || !allocators->is_array())
+        return std::nullopt;
 
-    const auto input = [&guid_wstr]() {
-        switch (guid_wstr.length())
-        {
-        case guid_length:
-            // CLSIDFromString requires GUIDs to be wrapped with braces.
-            return fmt::format(L"{{{}}}", guid_wstr);
-        case guid_length_with_braces:
-        {
-            if (guid_wstr.front() != L'{' || guid_wstr.back() != L'}')
-            {
-                throw GuidParseError{"GUID string either does not start or end with a brace."};
-            }
-            return guid_wstr;
-        }
-        }
-        throw GuidParseError{"Invalid length for a GUID string ({}).", guid_wstr.length()};
-    }();
-
-    ::GUID guid = {};
-
-    const auto result = CLSIDFromString(input.c_str(), &guid);
-
-    if (FAILED(result))
+    for (const auto& allocator : allocators->as_array())
     {
-        throw GuidParseError{"Failed to parse the GUID string ({}).", result};
+        const auto* tag = allocator.find_pointer("/Tag", ec);
+        const auto* guid = allocator.find_pointer("/InterfaceGuid", ec);
+        if (tag && guid && guid->is_string() && *tag == "Host Vnic")
+            return std::string{guid->as_string()};
     }
 
-    return guid;
-}
-
-/**
- * Parse given GUID string into a GUID struct.
- *
- * @param guid_str GUID in string form, either 36 characters
- *                 (without braces) or 38 characters (with braces.)
- *
- * @return GUID The parsed GUID
- */
-auto guid_from_string(const std::string& guid_str) -> ::GUID
-{
-    const std::wstring v = to_wstring(guid_str);
-    return guid_from_string(v);
+    return std::nullopt;
 }
 
 // ---------------------------------------------------------
@@ -456,6 +420,8 @@ OperationResult HCNWrapper::query_network(const std::string& network_guid,
 
                 if (const auto* value = obj.if_contains("NetworkAdapterName"))
                     out_info.network_adapter_name = value->as_string();
+
+                out_info.host_interface_guid = host_interface_guid_of(as_json);
 
                 if (const auto* value = obj.if_contains("Type"))
                     out_info.type = value->as_string();
