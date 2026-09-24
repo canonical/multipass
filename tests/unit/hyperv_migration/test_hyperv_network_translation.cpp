@@ -48,7 +48,7 @@ TEST(HyperVNetworkTranslation, resolvesSwitchToItsSinglePhysicalAdapterPreservin
         make_switch("ExtSwitch (nic-b)", {"Ethernet 2"}),
         {.id = "Ethernet 1", .type = "Ethernet", .description = "adapter"}};
 
-    const auto translated = mhv::translate_extra_interfaces(source, networks);
+    const auto translated = mhv::translate_extra_interfaces(source, networks, {});
 
     ASSERT_EQ(translated.size(), 2u);
     // Order preserved (source order, not networks order).
@@ -64,7 +64,7 @@ TEST(HyperVNetworkTranslation, resolvesSwitchToItsSinglePhysicalAdapterPreservin
 
 TEST(HyperVNetworkTranslation, emptySourceYieldsEmptyResult)
 {
-    EXPECT_TRUE(mhv::translate_extra_interfaces({}, {make_switch("s", {"eth0"})}).empty());
+    EXPECT_TRUE(mhv::translate_extra_interfaces({}, {make_switch("s", {"eth0"})}, {}).empty());
 }
 
 TEST(HyperVNetworkTranslation, failsWhenSwitchIsUnknown)
@@ -72,8 +72,9 @@ TEST(HyperVNetworkTranslation, failsWhenSwitchIsUnknown)
     const std::vector<multipass::NetworkInterface> source{
         {.id = "missing", .mac_address = "52:54:00:00:00:01", .auto_mode = true}};
 
-    EXPECT_THROW((void)mhv::translate_extra_interfaces(source, {make_switch("other", {"eth0"})}),
-                 mhv::InstanceMigrationError);
+    EXPECT_THROW(
+        (void)mhv::translate_extra_interfaces(source, {make_switch("other", {"eth0"})}, {}),
+        mhv::InstanceMigrationError);
 }
 
 TEST(HyperVNetworkTranslation, failsWhenSwitchBridgesNoPhysicalAdapter)
@@ -81,7 +82,7 @@ TEST(HyperVNetworkTranslation, failsWhenSwitchBridgesNoPhysicalAdapter)
     const std::vector<multipass::NetworkInterface> source{
         {.id = "internal", .mac_address = "52:54:00:00:00:01", .auto_mode = true}};
 
-    EXPECT_THROW((void)mhv::translate_extra_interfaces(source, {make_switch("internal", {})}),
+    EXPECT_THROW((void)mhv::translate_extra_interfaces(source, {make_switch("internal", {})}, {}),
                  mhv::InstanceMigrationError);
 }
 
@@ -92,13 +93,72 @@ TEST(HyperVNetworkTranslation, failsWhenSwitchBridgesMultiplePhysicalAdapters)
 
     EXPECT_THROW(
         (void)mhv::translate_extra_interfaces(source,
-                                              {make_switch("team", {"Ethernet 1", "Ethernet 2"})}),
+                                              {make_switch("team", {"Ethernet 1", "Ethernet 2"})},
+                                              {}),
         mhv::InstanceMigrationError);
 }
 
 TEST(HyperVNetworkTranslation, failsWhenPhysicalAdapterLinkIsEmpty)
 {
     EXPECT_THROW(
-        (void)mhv::translate_extra_interfaces({{.id = "empty"}}, {make_switch("empty", {""})}),
+        (void)mhv::translate_extra_interfaces({{.id = "empty"}}, {make_switch("empty", {""})}, {}),
         mhv::InstanceMigrationError);
+}
+
+TEST(HyperVNetworkTranslation, keepsSwitchTheTargetCanAttachTo)
+{
+    // The source's external switch holds the physical adapter, so the target must reuse it.
+    const std::vector<multipass::NetworkInterface> source{
+        {.id = "ExtSwitch (nic-a)", .mac_address = "52:54:00:00:00:0a", .auto_mode = true}};
+
+    const auto translated =
+        mhv::translate_extra_interfaces(source,
+                                        {make_switch("ExtSwitch (nic-a)", {"Ethernet 1"})},
+                                        {make_switch("ExtSwitch (nic-a)", {})});
+
+    EXPECT_EQ(translated, source);
+}
+
+TEST(HyperVNetworkTranslation, keepsAdapterlessSwitchTheTargetCanAttachTo)
+{
+    const std::vector<multipass::NetworkInterface> source{
+        {.id = "internal", .mac_address = "52:54:00:00:00:01", .auto_mode = false}};
+
+    const auto translated = mhv::translate_extra_interfaces(source,
+                                                            {make_switch("internal", {})},
+                                                            {make_switch("internal", {})});
+
+    EXPECT_EQ(translated, source);
+}
+
+TEST(HyperVNetworkTranslation, resolvesOnlySwitchesTheTargetCannotAttachTo)
+{
+    const std::vector<multipass::NetworkInterface> source{
+        {.id = "ExtSwitch (nic-a)", .mac_address = "52:54:00:00:00:0a", .auto_mode = true},
+        {.id = "ExtSwitch (nic-b)", .mac_address = "52:54:00:00:00:0b", .auto_mode = true}};
+
+    const auto translated =
+        mhv::translate_extra_interfaces(source,
+                                        {make_switch("ExtSwitch (nic-a)", {"Ethernet 1"}),
+                                         make_switch("ExtSwitch (nic-b)", {"Ethernet 2"})},
+                                        {make_switch("ExtSwitch (nic-a)", {})});
+
+    ASSERT_EQ(translated.size(), 2u);
+    EXPECT_EQ(translated[0].id, "ExtSwitch (nic-a)");
+    EXPECT_EQ(translated[1].id, "Ethernet 2");
+}
+
+TEST(HyperVNetworkTranslation, doesNotKeepTargetAdapterWithTheSameName)
+{
+    // Only vSwitches are attachable as they are; an adapter would need a bridge.
+    const std::vector<multipass::NetworkInterface> source{
+        {.id = "shared-name", .mac_address = "52:54:00:00:00:01", .auto_mode = true}};
+
+    const auto translated = mhv::translate_extra_interfaces(
+        source,
+        {make_switch("shared-name", {"Ethernet 1"})},
+        {{.id = "shared-name", .type = "Ethernet", .description = "adapter"}});
+
+    ASSERT_EQ(translated.size(), 1u);
+    EXPECT_EQ(translated[0].id, "Ethernet 1");
 }
