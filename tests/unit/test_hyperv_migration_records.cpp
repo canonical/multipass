@@ -671,7 +671,7 @@ TEST_F(HyperVBulkMigration, migratedRecordIsStoppedWhenCachedStateIsStale)
 
     const auto vm_records = read_records(target_root / "multipassd-vm-instances.json");
     ASSERT_TRUE(vm_records.contains("a"));
-    EXPECT_EQ(boost::json::value_to<mp::VMSpecs>(vm_records.at("a")).state,
+    EXPECT_EQ(boost::json::value_to<mp::VMSpecs>(vm_records.at("a"), az_manager).state,
               mp::VirtualMachine::State::stopped);
     EXPECT_EQ(specs.at("a").state, mp::VirtualMachine::State::running);
 }
