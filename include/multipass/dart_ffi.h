@@ -12,13 +12,15 @@ char* get_server_address();
 
 struct KeyCertificatePair
 {
-    const char* pem_cert;
-    const char* pem_priv_key;
+    char* pem_cert;
+    char* pem_priv_key;
 };
 
 struct KeyCertificatePair get_cert_pair();
 
 char* get_root_cert();
+
+void free_ffi_string(char* string);
 
 enum SettingResult
 {
@@ -30,9 +32,9 @@ enum SettingResult
 
 char* settings_file();
 
-enum SettingResult get_setting(char* key, char** output);
+enum SettingResult get_setting(const char* key, char** output);
 
-enum SettingResult set_setting(char* key, char* value, char** output);
+enum SettingResult set_setting(const char* key, const char* value, char** output);
 
 int uid();
 
@@ -40,11 +42,11 @@ int gid();
 
 int default_id();
 
-long long memory_in_bytes(char* value);
+long long memory_in_bytes(const char* value);
 
-const char* human_readable_memory(long long bytes);
+char* human_readable_memory(long long bytes);
 
 long long get_total_disk_size();
 
-char* default_mount_target(char* source);
+char* default_mount_target(const char* source);
 }
