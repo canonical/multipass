@@ -16,10 +16,18 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 
 namespace multipass::hyperv
 {
 [[nodiscard]] std::string endpoint_guid_for_mac(std::string mac_address);
 [[nodiscard]] bool release_hcs_resources(const std::string& name);
+
+// Permanent IPv4 neighbor entries for `mac_address`, considering only the host vNIC of the given
+// HCN network. Fail (nullopt/false) if that host vNIC can't be resolved.
+[[nodiscard]] std::optional<std::string> management_ipv4_neighbor(const std::string& network_guid,
+                                                                  const std::string& mac_address);
+[[nodiscard]] bool remove_management_ipv4_neighbors(const std::string& network_guid,
+                                                    const std::string& mac_address);
 } // namespace multipass::hyperv

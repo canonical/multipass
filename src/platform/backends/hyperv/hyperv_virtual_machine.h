@@ -25,6 +25,8 @@
 
 #include <QString>
 
+#include <cstdint>
+#include <optional>
 #include <string>
 
 namespace multipass
@@ -91,10 +93,14 @@ private:
     void setup_network_interfaces();
     void update_network_interfaces(const VMSpecs& src_specs);
     void remove_snapshots_from_backend() const;
+    std::optional<std::uint64_t> resolve_default_switch_interface();
 
     const QString name;
     std::unique_ptr<PowerShell> power_shell;
     VMStatusMonitor* monitor;
     bool update_suspend_status{true};
+    // LUID of the Default Switch host vNIC, where the management IP's neighbor entry lives.
+    // Resolved again on every start, since the host vNIC can be recreated in the meantime.
+    std::optional<std::uint64_t> default_switch_interface;
 };
 } // namespace multipass

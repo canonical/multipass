@@ -17,8 +17,6 @@
 
 #include <hyperv_api/hcs_virtual_machine.h>
 
-#include <shared/windows/network_utils.h>
-
 #include <hyperv_api/hcn/hyperv_hcn_create_endpoint_params.h>
 #include <hyperv_api/hcn/hyperv_hcn_endpoint_naming.h>
 #include <hyperv_api/hcn/hyperv_hcn_wrapper.h>
@@ -304,7 +302,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
 
     // Create the VM from scratch.
     if (!has_saved_state_file() &&
-        !remove_permanent_ipv4_neighbors(description.default_mac_address))
+        !remove_management_ipv4_neighbors(primary_network_guid, description.default_mac_address))
         mpl::warn(get_name(), "Could not remove all stale management IP entries");
 
     const auto endpoints = make_endpoint_parameters();
@@ -424,7 +422,7 @@ void HCSVirtualMachine::start()
     const auto is_cold_start = hcs_state == hcs::ComputeSystemState::created ||
                                hcs_state == hcs::ComputeSystemState::stopped;
     if (!created_from_scratch && is_cold_start && !has_saved_state_file() &&
-        !remove_permanent_ipv4_neighbors(description.default_mac_address))
+        !remove_management_ipv4_neighbors(primary_network_guid, description.default_mac_address))
     {
         mpl::warn(get_name(), "Could not remove all stale management IP entries");
     }
@@ -636,7 +634,8 @@ std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
 
     if (endpoint_info.mac_address)
     {
-        if (const auto ip_address = permanent_ipv4_neighbor(*endpoint_info.mac_address))
+        if (const auto ip_address = management_ipv4_neighbor(primary_network_guid,
+                                                             *endpoint_info.mac_address))
         {
             return make_ip_address(*ip_address);
         }

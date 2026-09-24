@@ -76,9 +76,11 @@ std::string ipv4_to_string(const IN_ADDR& address)
 }
 
 bool matches_mac(const MIB_IPNET_ROW2& row,
-                 const std::array<unsigned char, ethernet_address_length>& mac)
+                 const std::array<unsigned char, ethernet_address_length>& mac,
+                 const NET_LUID& interface_luid)
 {
     return row.Address.si_family == AF_INET && row.State == NlnsPermanent &&
+           row.InterfaceLuid.Value == interface_luid.Value &&
            row.PhysicalAddressLength == ethernet_address_length &&
            std::memcmp(row.PhysicalAddress, mac.data(), mac.size()) == 0;
 }
@@ -94,7 +96,8 @@ std::optional<std::array<unsigned char, ethernet_address_length>> validated_mac(
 }
 } // namespace
 
-std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_address)
+std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_address,
+                                                   const NET_LUID& interface_luid)
 {
     const auto mac = validated_mac(mac_address);
     if (!mac)
@@ -107,19 +110,26 @@ std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_addres
         return std::nullopt;
     }
 
+    const auto matches = [&mac, &interface_luid](const MIB_IPNET_ROW2& row) {
+        return matches_mac(row, *mac, interface_luid);
+    };
     const auto* begin = result.table->Table;
     const auto* end = begin + result.table->NumEntries;
-    if (const auto row = std::find_if(
-            begin,
-            end,
-            [&mac](const MIB_IPNET_ROW2& row) { return matches_mac(row, *mac); });
-        row != end)
-        return ipv4_to_string(row->Address.Ipv4.sin_addr);
+    const auto row = std::find_if(begin, end, matches);
+    if (row == end)
+        return std::nullopt;
 
-    return std::nullopt;
+    if (std::find_if(row + 1, end, matches) != end)
+        logging::warn(log_category,
+                      "Multiple permanent IPv4 neighbors for `{}`, using {}",
+                      mac_address,
+                      ipv4_to_string(row->Address.Ipv4.sin_addr));
+
+    return ipv4_to_string(row->Address.Ipv4.sin_addr);
 }
 
-bool remove_permanent_ipv4_neighbors(const std::string& mac_address)
+bool remove_permanent_ipv4_neighbors(const std::string& mac_address,
+                                     const NET_LUID& interface_luid)
 {
     const auto mac = validated_mac(mac_address);
     if (!mac)
@@ -137,7 +147,7 @@ bool remove_permanent_ipv4_neighbors(const std::string& mac_address)
     const auto* end = begin + result.table->NumEntries;
     for (auto row = begin; row != end; ++row)
     {
-        if (!matches_mac(*row, *mac))
+        if (!matches_mac(*row, *mac, interface_luid))
             continue;
 
         const auto error = MP_NETIOAPI.DeleteIpNetEntry2(row);

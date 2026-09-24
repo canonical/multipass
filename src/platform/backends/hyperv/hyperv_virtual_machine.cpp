@@ -31,9 +31,12 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
+#include <shared/windows/net_io_api.h>
 #include <shared/windows/network_utils.h>
 #include <shared/windows/powershell.h>
 #include <shared/windows/smb_mount_handler.h>
+
+#include <QUuid>
 
 #include <fmt/format.h>
 
@@ -52,6 +55,13 @@ namespace fs = std::filesystem;
 QString quoted(const QString& str)
 {
     return '"' + str + '"';
+}
+
+NET_LUID to_net_luid(std::uint64_t value)
+{
+    NET_LUID luid{};
+    luid.Value = value;
+    return luid;
 }
 
 std::optional<mp::IPAddress> remote_ip(const std::string& host,
@@ -345,9 +355,14 @@ mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 void mp::HyperVVirtualMachine::start()
 {
     const auto present_state = current_state();
-    if ((present_state == State::off || present_state == State::stopped) &&
-        !remove_permanent_ipv4_neighbors(desc.default_mac_address))
-        mpl::warn(vm_name, "Could not remove all stale management IP entries");
+    if (present_state == State::off || present_state == State::stopped)
+    {
+        default_switch_interface = resolve_default_switch_interface();
+        if (!default_switch_interface ||
+            !remove_permanent_ipv4_neighbors(desc.default_mac_address,
+                                             to_net_luid(*default_switch_interface)))
+            mpl::warn(vm_name, "Could not remove all stale management IP entries");
+    }
 
     state = State::starting;
     handle_state_update();
@@ -467,13 +482,62 @@ std::string mp::HyperVVirtualMachine::ssh_username()
 
 std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
 {
-    if (const auto ip_address = permanent_ipv4_neighbor(desc.default_mac_address))
+    if (!default_switch_interface)
+        default_switch_interface = resolve_default_switch_interface();
+    if (!default_switch_interface)
+        return std::nullopt;
+
+    if (const auto ip_address = permanent_ipv4_neighbor(desc.default_mac_address,
+                                                        to_net_luid(*default_switch_interface)))
     {
         IPAddress address{*ip_address};
         mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", address.as_string());
         return address;
     }
     return std::nullopt;
+}
+
+std::optional<std::uint64_t> mp::HyperVVirtualMachine::resolve_default_switch_interface()
+{
+    // All AZ networks share the Default Switch's vSwitch, so the switch ID alone is ambiguous.
+    // HNS names each host vNIC after its network, and the Default Switch network has the same ID
+    // as the switch itself.
+    QString device_id;
+    if (!power_shell->run({"Get-VMNetworkAdapter",
+                           "-ManagementOS",
+                           "-Name",
+                           QStringLiteral("'Host Vnic %1'").arg(default_switch_guid),
+                           "|",
+                           "Select-Object",
+                           "-ExpandProperty",
+                           "DeviceId"},
+                          &device_id,
+                          nullptr,
+                          /* whisper = */ true))
+    {
+        mpl::warn(vm_name, "Could not find the Default Switch host interface");
+        return std::nullopt;
+    }
+
+    const QUuid interface_guid{device_id.trimmed()};
+    if (interface_guid.isNull())
+    {
+        mpl::warn(vm_name, "Unexpected Default Switch host interface ID: `{}`", device_id);
+        return std::nullopt;
+    }
+
+    const GUID guid = interface_guid;
+    NET_LUID luid{};
+    if (const auto error = MP_NETIOAPI.ConvertInterfaceGuidToLuid(&guid, &luid); error != NO_ERROR)
+    {
+        mpl::warn(vm_name,
+                  "Could not get the LUID of Default Switch host interface `{}`, error code {}",
+                  device_id,
+                  error);
+        return std::nullopt;
+    }
+
+    return luid.Value;
 }
 
 void mp::HyperVVirtualMachine::update_cpus(int num_cores)
