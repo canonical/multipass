@@ -556,7 +556,7 @@ struct HyperVBulkMigration : Test
         expect_state_query(name);
         process_setups.push_back([this, name](auto* process) {
             EXPECT_THAT(process->arguments(),
-                        ElementsAre("-NoProfile", "-NoExit", "-Command", "-"));
+                        ElementsAre("-NoProfile", "-NonInteractive", "-NoExit", "-Command", "-"));
             EXPECT_CALL(*process, start()).Times(1);
             InSequence sequence;
             ps_helper.expect_writes(process,
