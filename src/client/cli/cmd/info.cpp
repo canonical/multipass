@@ -92,6 +92,8 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         return status;
 
     status = handle_format_option(parser, &chosen_formatter, cerr);
+    if (status != ParseCode::Ok)
+        return status;
 
     if (status != ParseCode::Ok)
         return status;
