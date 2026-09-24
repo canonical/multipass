@@ -121,12 +121,10 @@ mp::BaseVirtualMachine::BaseVirtualMachine(State state,
       zone{zone},
       instance_dir{instance_dir}
 {
-    zone.add_vm(*this);
 }
 
 mp::BaseVirtualMachine::~BaseVirtualMachine()
 {
-    mp::top_catch_all(vm_name, [this] { zone.remove_vm(*this); });
 }
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(

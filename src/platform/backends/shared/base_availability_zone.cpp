@@ -81,24 +81,6 @@ void BaseAvailabilityZone::set_available(const bool new_available)
     }
 }
 
-void BaseAvailabilityZone::add_vm(VirtualMachine& vm)
-{
-    mpl::debug(name, "adding vm '{}' to AZ", vm.get_name());
-    const std::unique_lock lock{mutex};
-    vms.emplace_back(vm);
-}
-
-void BaseAvailabilityZone::remove_vm(VirtualMachine& vm)
-{
-    mpl::debug(name, "removing vm '{}' from AZ", vm.get_name());
-    const std::unique_lock lock{mutex};
-    // as of now, we use vm names to uniquely identify vms, so we can do the same here
-    const auto to_remove = std::remove_if(vms.begin(), vms.end(), [&](const auto& some_vm) {
-        return some_vm.get().get_name() == vm.get_name();
-    });
-    vms.erase(to_remove, vms.end());
-}
-
 BaseAvailabilityZone::Data BaseAvailabilityZone::load_file(const std::string& name,
                                                            const fs::path& file_path,
                                                            SubnetAllocator& subnet_allocator)

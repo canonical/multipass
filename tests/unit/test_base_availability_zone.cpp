@@ -82,7 +82,7 @@ TEST_F(BaseAvailabilityZoneTest, loadsExistingZoneFile)
     EXPECT_FALSE(zone.is_available());
 }
 
-TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
+TEST_F(BaseAvailabilityZoneTest, UpdatesOnAvailabilityChange)
 {
     EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
     EXPECT_CALL(mock_file_ops,
@@ -90,28 +90,9 @@ TEST_F(BaseAvailabilityZoneTest, AddsVmAndUpdatesOnAvailabilityChange)
         .Times(2); // Once in constructor, once in set_available
     EXPECT_CALL(mock_platform, subnet_used_locally).WillOnce(Return(false));
 
-    NiceMock<mpt::MockVirtualMachine> mock_vm;
-
     mp::BaseAvailabilityZone zone{az_name, az_dir, subnet_alloc};
 
-    zone.add_vm(mock_vm);
     zone.set_available(false);
-}
-
-TEST_F(BaseAvailabilityZoneTest, RemovesVmCorrectly)
-{
-    EXPECT_CALL(*mock_logger.mock_logger, log(_, _, _)).Times(AnyNumber());
-    EXPECT_CALL(mock_file_ops, try_read_file(az_file)).WillOnce(Return("{}"));
-    EXPECT_CALL(mock_file_ops,
-                write_transactionally(QString::fromStdU16String(az_file.u16string()), _));
-    EXPECT_CALL(mock_platform, subnet_used_locally).WillOnce(Return(false));
-
-    NiceMock<mpt::MockVirtualMachine> mock_vm;
-
-    mp::BaseAvailabilityZone zone{az_name, az_dir, subnet_alloc};
-
-    zone.add_vm(mock_vm);
-    zone.remove_vm(mock_vm);
 }
 
 TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
@@ -120,20 +101,14 @@ TEST_F(BaseAvailabilityZoneTest, AvailabilityStateManagement)
     EXPECT_CALL(mock_file_ops, try_read_file(az_file)).WillOnce(Return("{}"));
     EXPECT_CALL(mock_file_ops,
                 write_transactionally(QString::fromStdU16String(az_file.u16string()), _))
-        .Times(2); // Once in constructor, once in set_available
+        .Times(2); // Once in constructor, once in set_available(false)
     EXPECT_CALL(mock_platform, subnet_used_locally).WillOnce(Return(false));
-
-    NiceMock<mpt::MockVirtualMachine> mock_vm1;
-    NiceMock<mpt::MockVirtualMachine> mock_vm2;
 
     mp::BaseAvailabilityZone zone{az_name, az_dir, subnet_alloc};
 
-    zone.add_vm(mock_vm1);
-    zone.add_vm(mock_vm2);
-
-    // Setting to current state (true) shouldn't trigger VM updates
     zone.set_available(true);
+    EXPECT_TRUE(zone.is_available());
 
-    // Setting to new state should notify all VMs
     zone.set_available(false);
+    EXPECT_FALSE(zone.is_available());
 }
