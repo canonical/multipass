@@ -16,7 +16,7 @@
 #
 #
 
-"""Multipass command line tests for the find CLI command."""
+"""Multipass command line tests for the images CLI command."""
 
 import logging
 
@@ -43,20 +43,25 @@ supported_blueprints = [
 ]
 
 
-@pytest.mark.find
+@pytest.mark.images
 @pytest.mark.usefixtures("multipassd_class_scoped")
-class TestFind:
-    """Find command tests."""
+class TestImages:
+    """Images command tests."""
+
+    @pytest.fixture(params=["images", "find"])
+    def cmd(self, request):
+        # Run agains both "images" and deprecated "find" alias.
+        return request.param
 
     @pytest.mark.parametrize("show", ["", "--only-images",
                                       "--only-blueprints"])
-    def test_find_all(self, show):
+    def test_find_all(self, cmd, show):
 
         if show in ["--only-images", "--only-blueprints"]:
             skip_if_feature_not_supported("blueprints")
 
         # Confirm that it shows at least 1 devel, 2 LTS releases
-        with multipass("find", "--format=json", show).json() as output:
+        with multipass(cmd, "--format=json", show).json() as output:
             assert "images" in output or (
                 show == "--only-blueprints")
 
@@ -108,9 +113,9 @@ class TestFind:
             {"name": "18.04", "expected_release": "18.04 LTS", "unsupported": True},
         ],
     )
-    def test_query_image_ubuntu(self, param):
+    def test_query_image_ubuntu(self, cmd, param):
         with multipass(
-            "find",
+            cmd,
             param["name"],
             "--format=json",
             *(["--show-unsupported"] if param.get("unsupported") else []),
@@ -129,10 +134,10 @@ class TestFind:
             # Pull the keys present in expected and do a comparison
             assert {k: image[k] for k in expected_image} == expected_image
 
-    def test_query_image_debian(self):
+    def test_query_image_debian(self, cmd):
         skip_if_feature_not_supported("debian_images")
 
-        with multipass("find", "debian", "--format=json").json() as output:
+        with multipass(cmd, "debian", "--format=json").json() as output:
             assert output
             image = output["images"]["debian"]
 
@@ -145,10 +150,10 @@ class TestFind:
             assert {k: image[k] for k in expected_image} == expected_image
             assert image["release"]
 
-    def test_query_image_fedora(self):
+    def test_query_image_fedora(self, cmd):
         skip_if_feature_not_supported("fedora_images")
 
-        with multipass("find", "fedora", "--format=json").json() as output:
+        with multipass(cmd, "fedora", "--format=json").json() as output:
             assert output
             image = output["images"]["fedora"]
 

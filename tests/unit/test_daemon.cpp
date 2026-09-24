@@ -196,9 +196,9 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
     EXPECT_CALL(daemon, purge(_, _, _))
         .WillOnce(
             Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::PurgeRequest, mp::PurgeReply>));
-    EXPECT_CALL(daemon, find(_, _, _))
-        .WillOnce(
-            Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::FindRequest, mp::FindReply>));
+    EXPECT_CALL(daemon, images(_, _, _))
+        .WillOnce(Invoke(&daemon,
+                         &mpt::MockDaemon::set_promise_value<mp::ImagesRequest, mp::ImagesReply>));
     EXPECT_CALL(daemon, ssh_info(_, _, _))
         .WillOnce(
             Invoke(&daemon,
@@ -306,7 +306,7 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
         {"restart", "foo"},
         {"restore", "foo.bar"},
         {"version"},
-        {"find", "something"},
+        {"images", "something"},
         {"mount", ".", "target"},
         {"umount", "instance"},
         {"networks"},

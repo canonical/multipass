@@ -86,9 +86,9 @@ struct MockDaemonRpc : public mp::DaemonRpc
                  (grpc::ServerReaderWriter<mp::PurgeReply, mp::PurgeRequest> * server)),
                 (override));
     MOCK_METHOD(grpc::Status,
-                find,
+                images,
                 (grpc::ServerContext * context,
-                 (grpc::ServerReaderWriter<mp::FindReply, mp::FindRequest> * server)),
+                 (grpc::ServerReaderWriter<mp::ImagesReply, mp::ImagesRequest> * server)),
                 (override));
     MOCK_METHOD(grpc::Status,
                 info,
@@ -3337,44 +3337,51 @@ TEST_F(Client, deleteCmdWrongVmState)
     EXPECT_THAT(send_command({"delete", "foo"}), Eq(mp::ReturnCode::CommandFail));
 }
 
-// find cli tests
-TEST_F(Client, findCmdUnsupportedOptionOk)
+// images cli tests
+struct ImagesCmdClient : public Client, public WithParamInterface<std::string>
 {
-    EXPECT_CALL(mock_daemon, find(_, _));
-    EXPECT_THAT(send_command({"find", "--show-unsupported"}), Eq(mp::ReturnCode::Ok));
+    inline static const auto command_names = Values("images", "find");
+};
+
+INSTANTIATE_TEST_SUITE_P(Client, ImagesCmdClient, ImagesCmdClient::command_names);
+
+TEST_P(ImagesCmdClient, findCmdUnsupportedOptionOk)
+{
+    EXPECT_CALL(mock_daemon, images(_, _));
+    EXPECT_THAT(send_command({GetParam(), "--show-unsupported"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, findCmdForceUpdateOk)
+TEST_P(ImagesCmdClient, findCmdForceUpdateOk)
 {
-    EXPECT_CALL(mock_daemon, find(_, _));
-    EXPECT_EQ(send_command({"find", "--force-update"}), mp::ReturnCode::Ok);
+    EXPECT_CALL(mock_daemon, images(_, _));
+    EXPECT_EQ(send_command({GetParam(), "--force-update"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, findCmdForceUpdateWithRemoteOk)
+TEST_P(ImagesCmdClient, findCmdForceUpdateWithRemoteOk)
 {
-    EXPECT_CALL(mock_daemon, find(_, _));
-    EXPECT_EQ(send_command({"find", "foo:", "--force-update"}), mp::ReturnCode::Ok);
+    EXPECT_CALL(mock_daemon, images(_, _));
+    EXPECT_EQ(send_command({GetParam(), "foo:", "--force-update"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, findCmdForceUpdateWithRemoteAndSearchNameOk)
+TEST_P(ImagesCmdClient, findCmdForceUpdateWithRemoteAndSearchNameOk)
 {
-    EXPECT_CALL(mock_daemon, find(_, _));
-    EXPECT_EQ(send_command({"find", "foo:bar", "--force-update"}), mp::ReturnCode::Ok);
+    EXPECT_CALL(mock_daemon, images(_, _));
+    EXPECT_EQ(send_command({GetParam(), "foo:bar", "--force-update"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, findCmdTooManyArgsFails)
+TEST_P(ImagesCmdClient, findCmdTooManyArgsFails)
 {
-    EXPECT_THAT(send_command({"find", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({GetParam(), "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, findCmdMultipleColonsFails)
+TEST_P(ImagesCmdClient, findCmdMultipleColonsFails)
 {
-    EXPECT_THAT(send_command({"find", "foo::bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({GetParam(), "foo::bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, findCmdHelpOk)
+TEST_P(ImagesCmdClient, findCmdHelpOk)
 {
-    EXPECT_THAT(send_command({"find", "-h"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({GetParam(), "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
 // wait-ready cli tests

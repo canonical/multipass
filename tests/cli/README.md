@@ -153,7 +153,7 @@ pytest tests/cli/ --log-level=DEBUG # INFO, TRACE, WARN..
 # DEBUG    root:privutils.py:93 module.__file__ = /workspace/multipass/tests/cli/multipass/certutils.py
 # DEBUG    root:privutils.py:94 inferred PYTHONPATH = /workspace/multipass/tools
 # DEBUG    root:multipassd_governor.py:64 multipassd-governor :: read_stream start
-# DEBUG    root:multipassd_governor.py:301 b'find failed: cannot connect to the multipass socket\n'
+# DEBUG    root:multipassd_governor.py:301 b'images failed: cannot connect to the multipass socket\n'
 # DEBUG    root:multipassd_governor.py:124 multipassd-governor :: monitor task exited (cancelled: False)
 # DEBUG    root:multipassd_governor.py:219 multipassd-governor :: stop called
 # [DEBUG] environment_setup :: teardown

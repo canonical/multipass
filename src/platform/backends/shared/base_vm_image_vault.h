@@ -42,10 +42,10 @@ public:
         auto it = remote_image_host_map.find(remote_name);
         if (it == remote_image_host_map.end())
         {
-            throw std::runtime_error(
-                fmt::format("Remote \'{}\' is not found. Please use `multipass find` for supported "
-                            "remotes and images.",
-                            remote_name));
+            throw std::runtime_error(fmt::format(
+                "Remote \'{}\' is not found. Please use `multipass images` for supported "
+                "remotes and images.",
+                remote_name));
         }
 
         return it->second;
