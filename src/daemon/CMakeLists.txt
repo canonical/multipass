@@ -33,6 +33,7 @@ target_link_libraries(daemon
   delayed_shutdown
   fmt::fmt-header-only
   image_host
+  localization
   logger
   namegen
   platform
@@ -52,6 +53,7 @@ add_library(delayed_shutdown STATIC
 
 target_link_libraries(delayed_shutdown
   fmt::fmt-header-only
+  localization
   logger
   ssh_common
   Qt6::Core
