@@ -512,8 +512,10 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, compute_system_open_error_reports_unkn
     expect_failed_recreation();
     EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
 
+    // Once for the explicit query, once more from the destructor's state check.
     EXPECT_CALL(mock_hcs, open_compute_system(dummy_vm_name, _))
-        .WillOnce(Return(hcs_op_result_t{E_ACCESSDENIED, L"Access denied"}));
+        .Times(2)
+        .WillRepeatedly(Return(hcs_op_result_t{E_ACCESSDENIED, L"Access denied"}));
 
     mp::VirtualMachine::State state{};
     EXPECT_NO_THROW(state = uut->current_state());
