@@ -3,7 +3,9 @@
 # TODO hyperv migration, remove (whole file)
 
 import hashlib
+import ipaddress
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -13,9 +15,11 @@ import pytest
 
 from cli.config import cfg
 from cli.multipass import (
+    exec,
     get_cloudinit_instance_id,
     get_default_interface_name,
     get_mac_addr_of,
+    info,
     launch,
     multipass,
     path_exists,
@@ -25,7 +29,7 @@ from cli.multipass import (
     vm_exists,
     write_file,
 )
-from cli.utilities import uuid4_str
+from cli.utilities import sudo, uuid4_str
 
 STOPPED_VM = "upg-hcs-phase1-stopped"
 RUNNING_VM = "upg-hcs-phase1-running"
@@ -41,6 +45,17 @@ BASE = "legacy-base"
 HEAD = "legacy-head"
 POST = "hcs-post"
 MOUNT_TARGET = "/home/ubuntu/upgrade-mount"
+
+# Networking scenario: extra interfaces on vSwitches created through Hyper-V, not by Multipass.
+NETWORK_VM = "upg-hcs-phase1-network"
+PRIVATE_SWITCH = "mpupg-hcs-private"
+PRIVATE_MAC = "52:54:00:4d:50:11"
+# An external switch rebinds a physical adapter, so it's only covered when an adapter that
+# doesn't carry host traffic is given explicitly.
+EXTERNAL_ADAPTER_ENV = "MP_UPGRADE_EXTERNAL_ADAPTER"
+EXTERNAL_SWITCH = "mpupg-hcs-external"
+EXTERNAL_MAC = "52:54:00:4d:50:12"
+DEFAULT_SWITCH_HOST_VNIC = "vEthernet (Default Switch)"
 
 pytestmark = pytest.mark.skipif(
     sys.platform != "win32" or getattr(cfg, "driver", None) != "hyperv",
@@ -279,6 +294,86 @@ def assert_output(output, *messages):
         assert message in output.content
 
 
+def create_switch(name, *switch_args):
+    """Create a vSwitch through Hyper-V, replacing any leftover from an interrupted run."""
+    remove_switch(name)
+    logging.info("hyperv-migration :: creating vSwitch `%s`", name)
+    subprocess.run(
+        sudo(
+            "powershell",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            f"New-VMSwitch -Name {ps_quote(name)} {' '.join(switch_args)} | Out-Null",
+        ),
+        check=True,
+    )
+    return name
+
+
+def remove_switch(name):
+    subprocess.run(
+        sudo(
+            "powershell",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            f"Remove-VMSwitch -Name {ps_quote(name)} -Force -ErrorAction SilentlyContinue",
+        ),
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def launch_with_networks(name, networks):
+    """Launch `name` with a manual-mode extra interface per (switch, mac) in `networks`."""
+    network_args = [
+        arg
+        for switch, mac in networks
+        for arg in ("--network", f"name={switch},mode=manual,mac={mac}")
+    ]
+    result = multipass(
+        "launch",
+        "--cpus",
+        cfg.vm.cpus,
+        "--memory",
+        cfg.vm.memory,
+        "--disk",
+        cfg.vm.disk,
+        "--name",
+        name,
+        *network_args,
+        "--timeout",
+        getattr(cfg.timeouts, "launch", 300),
+        cfg.vm.image,
+        retry=getattr(cfg.retries, "launch", 0),
+    )
+    assert result, f"Failed to launch `{name}`: {result}"
+
+
+def guest_macs(name):
+    """Sorted MAC addresses of the guest's interfaces, loopback excluded."""
+    with exec(name, "sh", "-c", "cat /sys/class/net/*/address") as result:
+        assert result, f"Could not read `{name}`'s interfaces: {result}"
+        return sorted(
+            mac.lower() for mac in str(result).split() if mac != "00:00:00:00:00:00"
+        )
+
+
+def management_ip(name):
+    return ipaddress.ip_address(info(name)[name]["ipv4"][0])
+
+
+def host_subnet(interface_alias):
+    address = powershell(
+        f"Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias {ps_quote(interface_alias)} "
+        "-ErrorAction Stop | Select-Object -First 1 | "
+        'ForEach-Object { "$($_.IPAddress)/$($_.PrefixLength)" }'
+    )
+    return ipaddress.ip_interface(address).network
+
+
 def assert_stopped_guest(source):
     assert_sentinel(STOPPED_VM, source["base"])
     assert_sentinel(STOPPED_VM, source["head"])
@@ -499,3 +594,81 @@ def test_hyperv_migration_verify(scenario, daemon_session):
     )
     Path(record["stopped"]["mount"]["file"]).unlink()
     Path(record["stopped"]["mount"]["source"]).rmdir()
+
+
+@pytest.mark.seed
+@pytest.mark.scenario(NETWORK_VM)
+def test_hyperv_migration_network_seed(scenario):
+    assert current_driver() == "hyperv"
+
+    networks = [(create_switch(PRIVATE_SWITCH, "-SwitchType", "Private"), PRIVATE_MAC)]
+    if adapter := os.environ.get(EXTERNAL_ADAPTER_ENV):
+        networks.append(
+            (
+                create_switch(
+                    EXTERNAL_SWITCH,
+                    "-NetAdapterName",
+                    ps_quote(adapter),
+                    "-AllowManagementOS",
+                    "$true",
+                ),
+                EXTERNAL_MAC,
+            )
+        )
+
+    if vm_exists(NETWORK_VM):
+        assert multipass("delete", NETWORK_VM, "--purge")
+    launch_with_networks(NETWORK_VM, networks)
+
+    macs = guest_macs(NETWORK_VM)
+    for _, mac in networks:
+        assert mac in macs, f"extra interface {mac} missing from the guest: {macs}"
+
+    record = scenario.record
+    record["networks"] = [{"switch": switch, "mac": mac} for switch, mac in networks]
+    record["macs"] = macs
+    record["identity"] = identity(NETWORK_VM)
+    assert multipass("stop", NETWORK_VM)
+
+
+@pytest.mark.verify
+@pytest.mark.scenario(NETWORK_VM)
+def test_hyperv_migration_network_verify(scenario, daemon_session):
+    record = scenario.record
+    try:
+        assert current_driver() == "hyperv"
+        assert state(NETWORK_VM) == "Stopped"
+
+        assert_output(
+            switch_driver("hyperv_api", daemon_session),
+            "The following instances were successfully migrated",
+            f"  {NETWORK_VM}",
+        )
+
+        # The extra interfaces stay on their vSwitches (an external switch's adapter can't be
+        # bridged again) and keep their MACs.
+        target_interfaces = vm_records(target=True)[NETWORK_VM]["extra_interfaces"]
+        assert [(i["id"], i["mac_address"]) for i in target_interfaces] == [
+            (network["switch"], network["mac"]) for network in record["networks"]
+        ]
+
+        # The copy attaches to vSwitches Multipass didn't create.
+        assert multipass("start", NETWORK_VM, timeout=900)
+        assert guest_macs(NETWORK_VM) == record["macs"]
+        assert identity(NETWORK_VM) == record["identity"]
+        assert multipass("delete", NETWORK_VM, "--purge", timeout=300)
+
+        # The migration created the AZ networks, which share the Default Switch's vSwitch and
+        # also hand out leases to its instances. The retained original must still resolve its
+        # management IP on the Default Switch, rather than a stray AZ lease for its MAC.
+        switch_driver("hyperv", daemon_session)
+        assert multipass("start", NETWORK_VM, timeout=900)
+        assert management_ip(NETWORK_VM) in host_subnet(DEFAULT_SWITCH_HOST_VNIC)
+        assert identity(NETWORK_VM) == record["identity"]
+        assert multipass("delete", NETWORK_VM, "--purge", timeout=300)
+    finally:
+        # Best effort, without switching drivers (that would migrate other scenarios' VMs).
+        if vm_exists(NETWORK_VM):
+            multipass("delete", NETWORK_VM, "--purge", timeout=300)
+        for network in record.get("networks", []):
+            remove_switch(network["switch"])
