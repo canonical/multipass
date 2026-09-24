@@ -52,6 +52,17 @@ TEST_F(PowerShellTest, createsPsProcess)
     mp::PowerShell ps{"test"};
 }
 
+TEST_F(PowerShellTest, createsNonInteractivePsProcess)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    ps_helper.setup([](auto* process) {
+        EXPECT_EQ(process->arguments(),
+                  QStringList({"-NoProfile", "-NonInteractive", "-NoExit", "-Command", "-"}));
+    });
+
+    mp::PowerShell ps{"test"};
+}
+
 TEST_F(PowerShellTest, exitsPsProcess)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::info);
@@ -296,11 +307,24 @@ TEST_F(PowerShellTest, execRunsGivenCmd)
 
     ps_helper.setup(
         [&args](auto* process) {
-            EXPECT_EQ(process->arguments(), args);
+            EXPECT_EQ(process->arguments(), QStringList({"-NoProfile", "-NonInteractive"}) + args);
             EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
         },
         /* auto_exit = */ false);
     mp::PowerShell::exec(args, "Mitis");
+}
+
+TEST_F(PowerShellTest, execDoesNotDuplicateNonInteractiveFlags)
+{
+    const auto args = QStringList{"-noprofile", "-NonInteractive", "-Command", "Get-VM"};
+
+    ps_helper.setup(
+        [&args](auto* process) {
+            EXPECT_EQ(process->arguments(), args);
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+        },
+        /* auto_exit = */ false);
+    mp::PowerShell::exec(args, "Nerid");
 }
 
 TEST_F(PowerShellTest, execSucceedsWhenNoTimeoutAndProcessSuccessful)

@@ -32,7 +32,18 @@ namespace mpu = multipass::utils;
 namespace
 {
 constexpr auto ps_cmd = "powershell.exe";
-const auto default_args = QStringList{"-NoProfile", "-NoExit", "-Command", "-"};
+const auto default_args = QStringList{"-NoProfile", "-NonInteractive", "-NoExit", "-Command", "-"};
+
+// One-shot processes skip the user's profile, whose output would corrupt what we parse.
+QStringList with_non_interactive_flags(const QStringList& args)
+{
+    auto ret = args;
+    for (const auto& flag : QStringList{"-NonInteractive", "-NoProfile"})
+        if (!args.contains(flag, Qt::CaseInsensitive))
+            ret.prepend(flag);
+
+    return ret;
+}
 
 void setup_powershell(mp::Process* power_shell, const std::string& name)
 {
@@ -141,10 +152,7 @@ bool mp::PowerShell::run(const QStringList& args,
         mpl::trace(name,
                    "Dispatching through exec (reason: {})",
                    is_foreign_call ? "foreign thread" : "persistent process not running");
-        return exec(QStringList{"-NoProfile", "-NonInteractive", "-Command"} + args,
-                    name,
-                    output,
-                    output_err);
+        return exec(QStringList{"-Command"} + args, name, output, output_err);
     }
 
     // Discard leftovers from the previous transaction (e.g. late stderr)
@@ -231,7 +239,7 @@ bool mp::PowerShell::exec(const QStringList& args,
     output = output ? output : &default_output;
     output_err = output_err ? output_err : &default_output_err;
 
-    auto power_shell = MP_PROCFACTORY.create_process(ps_cmd, args);
+    auto power_shell = MP_PROCFACTORY.create_process(ps_cmd, with_non_interactive_flags(args));
     setup_powershell(power_shell.get(), name);
 
     QObject::connect(
