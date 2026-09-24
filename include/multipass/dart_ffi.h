@@ -1,9 +1,12 @@
 #pragma once
 
-// clang-format off
 extern "C"
 {
-// clang-format on
+
+// Ownership convention:
+// - `const char*` is borrowed and must not be freed by the recipient.
+// - `char*` transfers ownership to the recipient, which must free it when no longer needed.
+
 const char* multipass_version();
 
 char* generate_petname();
