@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
   <gresource prefix="/com/canonical/multipass_gui">
-    <file alias="icons/scalable/apps/multipass.gui.svg">../../../../data/multipass.gui.svg</file>
+    <file alias="icons/scalable/apps/multipass.gui.svg">@MULTIPASS_ICON@</file>
   </gresource>
 </gresources>

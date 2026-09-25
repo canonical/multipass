@@ -57,20 +57,23 @@ pkg_check_modules(GLIB2 REQUIRED IMPORTED_TARGET glib-2.0 gio-2.0)
 find_program(GLIB_COMPILE_RESOURCES NAMES glib-compile-resources REQUIRED)
 
 # Generate required GTK resources.
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/gen)
+set(GENERATED_DIR ${CMAKE_BINARY_DIR}/gen)
+file(MAKE_DIRECTORY ${GENERATED_DIR})
 
-set(GRESOURCE_XML ${CMAKE_CURRENT_LIST_DIR}/resources.gresource.xml)
-set(GRESOURCE_CC ${CMAKE_BINARY_DIR}/gen/multipass-resources.cc)
-set(GRESOURCE_DEPS ${GRESOURCE_XML} ${CMAKE_CURRENT_LIST_DIR}/../../../../data/multipass.gui.svg)
+set(GRESOURCE_XML_OUT ${GENERATED_DIR}/resources.gresource.xml)
+set(GRESOURCE_XML_IN ${CMAKE_CURRENT_SOURCE_DIR}/resources.gresource.xml.in)
+set(MULTIPASS_ICON ${CMAKE_CURRENT_SOURCE_DIR}/../../../../data/multipass.gui.svg)
+configure_file(${GRESOURCE_XML_IN} ${GRESOURCE_XML_OUT} @ONLY)
 
+set(GRESOURCE_CC ${GENERATED_DIR}/multipass-resources.cc)
 add_custom_command(
   OUTPUT ${GRESOURCE_CC}
   COMMAND ${GLIB_COMPILE_RESOURCES}
           --target=${GRESOURCE_CC}
           --generate-source
-          --sourcedir=${CMAKE_CURRENT_LIST_DIR}
-          ${GRESOURCE_XML}
-  DEPENDS ${GRESOURCE_DEPS}
+          --sourcedir=${CMAKE_CURRENT_SOURCE_DIR}
+          ${GRESOURCE_XML_OUT}
+  DEPENDS ${GRESOURCE_XML_IN} ${MULTIPASS_ICON}
 )
 
 add_definitions(-DAPPLICATION_ID="${APPLICATION_ID}")
