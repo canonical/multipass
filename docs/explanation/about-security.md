@@ -1,7 +1,7 @@
 (explanation-about-security)=
 # About security
 
-> See also: [Authentication](/explanation/authentication), [Reference architecture](/explanation/reference-architecture), [Mount](/explanation/mount), [Security policy on GitHub](https://github.com/canonical/multipass/blob/main/SECURITY.md)
+> See also: [Authentication](explanation-authentication), [Reference architecture](explanation-reference-architecture), [Mount](explanation-mount), [Security policy on GitHub](https://github.com/canonical/multipass/blob/main/SECURITY.md)
 
 This page explains how Multipass protects your host and your instances, where that protection ends, and what you are responsible for.
 
@@ -11,7 +11,7 @@ Multipass is intended for development, testing, and local environments. It is no
 
 ## Multipass architecture and trust boundaries
 
-Multipass has two parts: clients (the CLI and the GUI) that run as your user, and a daemon that runs with full privileges on the host and manages instances through a hypervisor. See [Reference architecture](/explanation/reference-architecture) for a description of each component.
+Multipass has two parts: clients (the CLI and the GUI) that run as your user, and a daemon that runs with full privileges on the host and manages instances through a hypervisor. See [Reference architecture](explanation-reference-architecture) for a description of each component.
 
 A trust boundary is a point where data or commands pass between parts of the system with different privileges or owners. Multipass has four:
 
@@ -32,7 +32,7 @@ Multipass is designed around the question of who can reach the daemon and what t
 
 Anyone who can talk to the daemon can fully control Multipass, including mounting host folders into instances and changing security settings for all instances. Multipass follows the principle of least privilege to make sure only trusted users get that access.
 
-On Linux and macOS, the daemon listens on a Unix socket. On Windows, it listens on a local TLS socket. At first, only members of the administrator group (`sudo`, `wheel`, or `admin`, depending on the system) can connect. The first administrator to connect has their TLS certificate accepted automatically. After that, every other user must [authenticate](/reference/command-line-interface/authenticate) with a [passphrase](/reference/settings/local-passphrase) set by an administrator before the daemon accepts their requests. See [Authentication](/explanation/authentication) for the details.
+On Linux and macOS, the daemon listens on a Unix socket. On Windows, it listens on a local TLS socket. At first, only members of the administrator group (`sudo`, `wheel`, or `admin`, depending on the system) can connect. The first administrator to connect has their TLS certificate accepted automatically. After that, every other user must [authenticate](reference-command-line-interface-authenticate) with a [passphrase](reference-settings-local-passphrase) set by an administrator before the daemon accepts their requests. See [Authentication](explanation-authentication) for the details.
 
 ### A compromised instance
 
@@ -42,7 +42,7 @@ Multipass uses defense in depth, so that the failure of one layer does not expos
 - On Linux, the Multipass snap runs under strict [snap confinement](https://snapcraft.io/docs/snap-confinement), which limits what the daemon can reach on the host, including where mounts can point.
 - On Windows, mounts are disabled by default.
 
-Mounts are the main way an instance can affect the host, because the daemon performs them with its own privileges. See {ref}`security-considerations-mount` for the implications on each platform.
+Mounts are the main way an instance can affect the host, because the daemon performs them with its own privileges. See [Security considerations](security-considerations-mount) on the Mount page for the implications on each platform.
 
 ### Network attackers
 
@@ -96,8 +96,8 @@ Multipass bundles these libraries with [vcpkg](https://vcpkg.io/), which builds 
 Multipass is secure by default. Each default below exists for a reason, and changing it has a cost:
 
 - **Only administrators can connect at first.** The daemon socket is limited to the administrator group until the first client is trusted.
-- **Other users need a passphrase.** No [passphrase](/reference/settings/local-passphrase) is set by default, so no other user can connect. When you set one, anyone who knows it can fully control Multipass. Choose a strong passphrase and share it only with trusted users. See [How to authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service).
-- **Mounts are disabled on Windows.** Enabling [`local.privileged-mounts`](/reference/settings/local-privileged-mounts) lets instances write to host folders with `SYSTEM` privileges.
+- **Other users need a passphrase.** No [passphrase](reference-settings-local-passphrase) is set by default, so no other user can connect. When you set one, anyone who knows it can fully control Multipass. Choose a strong passphrase and share it only with trusted users. See [How to authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service).
+- **Mounts are disabled on Windows.** Enabling [`local.privileged-mounts`](reference-settings-local-privileged-mounts) lets instances write to host folders with `SYSTEM` privileges.
 - **Instances use NAT networking.** [Bridged networking](how-to-guides-manage-instances-set-up-custom-networking) puts an instance directly on your local network, where other machines can reach it.
 - **The daemon accepts only local connections.** It cannot be reached from the network.
 - **Linux installs update automatically.** Holding updates delays security fixes. See [Security lifecycle](security-lifecycle).
@@ -116,7 +116,7 @@ Multipass does not follow a formal hardening benchmark, such as CIS or FIPS 140-
 
 ### Logging and monitoring
 
-Multipass logs to the platform's standard logging system: `systemd-journald` on Linux, `/Library/Logs/Multipass` on macOS, and the Event Viewer on Windows. See [Access logs](how-to-guides-troubleshoot-access-logs) and [Logging levels](/reference/logging-levels).
+Multipass logs to the platform's standard logging system: `systemd-journald` on Linux, `/Library/Logs/Multipass` on macOS, and the Event Viewer on Windows. See [Access logs](how-to-guides-troubleshoot-access-logs) and [Logging levels](reference-logging-levels).
 
 ## Decommissioning Multipass
 
