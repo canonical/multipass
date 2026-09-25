@@ -9,6 +9,7 @@ import logging
 import os
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -294,6 +295,20 @@ def assert_output(output, *messages):
         assert message in output.content
 
 
+def migrated_names(output):
+    """The instances listed as successfully migrated in a driver switch's output."""
+    lines = output.content.splitlines()
+    for index, line in enumerate(lines):
+        if "The following instances were successfully migrated" in line:
+            names = []
+            for entry in lines[index + 1 :]:
+                if not entry.startswith("  "):
+                    break
+                names.append(entry.strip())
+            return set(names)
+    return set()
+
+
 def create_switch(name, *switch_args):
     """Create a vSwitch through Hyper-V, replacing any leftover from an interrupted run."""
     remove_switch(name)
@@ -445,157 +460,6 @@ def test_hyperv_migration_seed(scenario):
     record["deleted"] = source_record(DELETED_VM, deleted_layout)
 
 
-@pytest.mark.verify
-@pytest.mark.snapshot
-@pytest.mark.scenario(STOPPED_VM)
-def test_hyperv_migration_verify(scenario, daemon_session):
-    record = scenario.record
-    assert current_driver() == "hyperv"
-    assert state(STOPPED_VM) == "Stopped"
-    assert state(RUNNING_VM) == "Stopped"
-    assert state(SUSPENDED_VM) == "Suspended"
-    assert state(DELETED_VM) == "Deleted"
-    for key in RECORD_KEY.values():
-        assert legacy_id_exists(record[key]["legacy_id"])
-
-    # Running state is intentionally established after the upgrade. A standalone
-    # daemon saves running VMs while it shuts down between seed and verify.
-    assert multipass("start", RUNNING_VM)
-    assert state(RUNNING_VM) == "Running"
-    assert_sentinel(RUNNING_VM, record["running"]["sentinel"])
-    assert identity(RUNNING_VM) == record["running"]["identity"]
-    pre_first_vm_records = vm_records()
-    pre_first_image_records = image_records()
-
-    # One explicit switch performs the primary bulk migration.
-    assert_output(
-        switch_driver("hcs", daemon_session),
-        "The following instances were successfully migrated",
-        f"  {STOPPED_VM}",
-        f"Cannot migrate {RUNNING_VM}: Hyper-V reports state 'Running'",
-        f"Cannot migrate {SUSPENDED_VM}: Hyper-V reports state 'Saved'",
-        f"Cannot migrate {DELETED_VM}: instance is deleted",
-        "Do not run an original and its hcs copy at the same time",
-    )
-
-    current_vm_records = vm_records()
-    current_image_records = image_records()
-    for name, key in RECORD_KEY.items():
-        assert vm_exists(name) == (name == STOPPED_VM)
-        assert legacy_id_exists(record[key]["legacy_id"])
-        assert current_vm_records[name] == pre_first_vm_records[name]
-        assert current_image_records[name] == pre_first_image_records[name]
-
-    for key in ("stopped", "deleted"):
-        assert_file_records_unchanged(
-            record[key]["disks"] + record[key]["metadata"]
-        )
-    assert_target_local(STOPPED_VM, record["stopped"]["disks"])
-    assert_target_records(
-        STOPPED_VM,
-        pre_first_vm_records[STOPPED_VM],
-        pre_first_image_records[STOPPED_VM],
-    )
-
-    # The migrated target retains guest identity and complete snapshot behavior.
-    assert multipass("start", STOPPED_VM, timeout=900)
-    assert_stopped_guest(record["stopped"])
-
-    assert multipass("stop", STOPPED_VM)
-    take_snapshot(STOPPED_VM, POST)
-    assert (
-        snapshot_count(STOPPED_VM) == record["stopped"]["snapshot_count"] + 1
-    )
-
-    for snapshot, key in ((BASE, "base"), (HEAD, "head")):
-        assert multipass(
-            "restore", f"{STOPPED_VM}.{snapshot}", "--destructive"
-        )
-        assert multipass("start", STOPPED_VM)
-        assert_sentinel(STOPPED_VM, record["stopped"][key])
-        if snapshot == BASE:
-            assert not path_exists(
-                STOPPED_VM, record["stopped"]["head"]["path"]
-            )
-        assert multipass("stop", STOPPED_VM)
-
-    # Switching back reveals the untouched originals. Stop the skipped instances and retry.
-    switch_driver("hyperv", daemon_session)
-    assert state(STOPPED_VM) == "Stopped"
-    assert multipass("start", STOPPED_VM)
-    assert_stopped_guest(record["stopped"])
-    assert multipass("stop", STOPPED_VM)
-
-    assert_sentinel(RUNNING_VM, record["running"]["sentinel"])
-    assert identity(RUNNING_VM) == record["running"]["identity"]
-    assert multipass("stop", RUNNING_VM)
-
-    assert state(SUSPENDED_VM) == "Suspended"
-    assert multipass("start", SUSPENDED_VM)
-    assert_sentinel(SUSPENDED_VM, record["suspended"]["sentinel"])
-    assert multipass("stop", SUSPENDED_VM)
-    assert state(DELETED_VM) == "Deleted"
-
-    pre_retry_disks = {
-        name: [file_record(path) for path in legacy_layout(name)["disks"]]
-        for name in (STOPPED_VM, RUNNING_VM, SUSPENDED_VM)
-    }
-    pre_retry_vm_records = vm_records()
-    pre_retry_image_records = image_records()
-
-    assert_output(
-        switch_driver("hcs", daemon_session),
-        f"Cannot migrate {STOPPED_VM}: name already taken",
-        RUNNING_VM,
-        SUSPENDED_VM,
-        f"Cannot migrate {DELETED_VM}: instance is deleted",
-    )
-
-    for records in pre_retry_disks.values():
-        assert_file_records_unchanged(records)
-    for name in (RUNNING_VM, SUSPENDED_VM):
-        assert vm_exists(name)
-        key = RECORD_KEY[name]
-        assert legacy_id_exists(record[key]["legacy_id"])
-        assert_target_local(name, pre_retry_disks[name])
-        assert_target_records(
-            name, pre_retry_vm_records[name], pre_retry_image_records[name]
-        )
-        assert multipass("start", name, timeout=900)
-        assert identity(name) == record[key]["identity"]
-        assert_sentinel(name, record[key]["sentinel"])
-        assert multipass("stop", name)
-
-    # Purging one HCS target leaves its source intact and allows explicit re-migration.
-    assert multipass("delete", STOPPED_VM, "--purge")
-    assert not vm_exists(STOPPED_VM)
-    assert legacy_id_exists(record["stopped"]["legacy_id"])
-
-    switch_driver("hyperv", daemon_session)
-    remigration = switch_driver("hcs", daemon_session)
-    assert STOPPED_VM in remigration.content
-    assert vm_exists(STOPPED_VM)
-    assert legacy_id_exists(record["stopped"]["legacy_id"])
-
-    # Purging the original is strictly scoped to the legacy backend.
-    switch_driver("hyperv", daemon_session)
-    assert multipass("delete", STOPPED_VM, "--purge")
-    assert not legacy_id_exists(record["stopped"]["legacy_id"])
-    switch_driver("hcs", daemon_session)
-    assert vm_exists(STOPPED_VM)
-
-    # Leave the upgrade host clean and on the requested legacy test driver.
-    assert multipass(
-        "delete", STOPPED_VM, RUNNING_VM, SUSPENDED_VM, "--purge", timeout=300
-    )
-    switch_driver("hyperv", daemon_session)
-    assert multipass(
-        "delete", RUNNING_VM, SUSPENDED_VM, DELETED_VM, "--purge", timeout=300
-    )
-    Path(record["stopped"]["mount"]["file"]).unlink()
-    Path(record["stopped"]["mount"]["source"]).rmdir()
-
-
 @pytest.mark.seed
 @pytest.mark.scenario(NETWORK_VM)
 def test_hyperv_migration_network_seed(scenario):
@@ -631,44 +495,248 @@ def test_hyperv_migration_network_seed(scenario):
     assert multipass("stop", NETWORK_VM)
 
 
-@pytest.mark.verify
-@pytest.mark.scenario(NETWORK_VM)
-def test_hyperv_migration_network_verify(scenario, daemon_session):
-    record = scenario.record
+@dataclass
+class Migration:
+    """The outcome of the one driver switch every verify test builds on."""
+
+    output: object
+    # The main scenario's record, and the network scenario's if it was seeded.
+    record: dict
+    network: dict | None
+    # The legacy records as they were right before the switch.
+    vm_records: dict
+    image_records: dict
+
+
+def purge_all(names):
+    for name in names:
+        if vm_exists(name):
+            multipass("delete", name, "--purge", timeout=300)
+
+
+def clean_up(record, network, governor):
+    """Best effort: purge every scenario instance from both drivers and remove the host
+    resources. Only switches towards hyperv, since switching to hcs would migrate."""
+    names = [*RECORD_KEY, *([NETWORK_VM] if network else [])]
+    try:
+        if current_driver() == "hcs":
+            purge_all(names)
+            switch_driver("hyperv", governor)
+        purge_all(names)
+    finally:
+        for switch in (network or {}).get("networks", []):
+            remove_switch(switch["switch"])
+        mount = record["stopped"]["mount"]
+        Path(mount["file"]).unlink(missing_ok=True)
+        if Path(mount["source"]).exists():
+            Path(mount["source"]).rmdir()
+
+
+@pytest.fixture(scope="module")
+def migration(verify_manifest, multipassd_session_scoped):
+    """The upgrade's single driver switch, shared by every verify test.
+
+    A real upgrade switches once and every eligible instance migrates together, so the
+    scenarios are verified against that one migration instead of each switching on its own
+    (which let one scenario's switch migrate another's instance).
+    """
+    if STOPPED_VM not in verify_manifest:
+        pytest.skip(f"Scenario `{STOPPED_VM}` was not seeded; nothing to verify.")
+    record = verify_manifest[STOPPED_VM]
+    network = verify_manifest.get(NETWORK_VM)
+
     try:
         assert current_driver() == "hyperv"
-        assert state(NETWORK_VM) == "Stopped"
+        assert state(STOPPED_VM) == "Stopped"
+        assert state(RUNNING_VM) == "Stopped"
+        assert state(SUSPENDED_VM) == "Suspended"
+        assert state(DELETED_VM) == "Deleted"
+        for key in RECORD_KEY.values():
+            assert legacy_id_exists(record[key]["legacy_id"])
+        if network:
+            assert state(NETWORK_VM) == "Stopped"
 
-        assert_output(
-            switch_driver("hcs", daemon_session),
-            "The following instances were successfully migrated",
-            f"  {NETWORK_VM}",
-        )
+        # Running state is intentionally established after the upgrade. A standalone
+        # daemon saves running VMs while it shuts down between seed and verify.
+        assert multipass("start", RUNNING_VM)
+        assert state(RUNNING_VM) == "Running"
+        assert_sentinel(RUNNING_VM, record["running"]["sentinel"])
+        assert identity(RUNNING_VM) == record["running"]["identity"]
 
-        # The extra interfaces stay on their vSwitches (an external switch's adapter can't be
-        # bridged again) and keep their MACs.
-        target_interfaces = vm_records(target=True)[NETWORK_VM]["extra_interfaces"]
-        assert [(i["id"], i["mac_address"]) for i in target_interfaces] == [
-            (network["switch"], network["mac"]) for network in record["networks"]
-        ]
+        pre_vm_records = vm_records()
+        pre_image_records = image_records()
+        output = switch_driver("hcs", multipassd_session_scoped)
 
-        # The copy attaches to vSwitches Multipass didn't create.
-        assert multipass("start", NETWORK_VM, timeout=900)
-        assert guest_macs(NETWORK_VM) == record["macs"]
-        assert identity(NETWORK_VM) == record["identity"]
-        assert multipass("delete", NETWORK_VM, "--purge", timeout=300)
+        yield Migration(output, record, network, pre_vm_records, pre_image_records)
+    finally:
+        clean_up(record, network, multipassd_session_scoped)
 
+
+@pytest.mark.verify
+def test_hyperv_migration_verify_output(migration):
+    """Exactly the eligible instances migrate; the others are refused with a reason."""
+    expected = {STOPPED_VM, *([NETWORK_VM] if migration.network else [])}
+    assert migrated_names(migration.output) == expected
+    assert_output(
+        migration.output,
+        f"Cannot migrate {RUNNING_VM}: Hyper-V reports state 'Running'",
+        f"Cannot migrate {SUSPENDED_VM}: Hyper-V reports state 'Saved'",
+        f"Cannot migrate {DELETED_VM}: instance is deleted",
+        "Do not run an original and its hcs copy at the same time",
+    )
+
+
+@pytest.mark.verify
+def test_hyperv_migration_verify_refused(migration):
+    """Refused instances are left untouched on the legacy side."""
+    record = migration.record
+    current_vm_records = vm_records()
+    current_image_records = image_records()
+    for name in (RUNNING_VM, SUSPENDED_VM, DELETED_VM):
+        assert not vm_exists(name)
+        assert legacy_id_exists(record[RECORD_KEY[name]]["legacy_id"])
+        assert current_vm_records[name] == migration.vm_records[name]
+        assert current_image_records[name] == migration.image_records[name]
+
+    assert_file_records_unchanged(record["deleted"]["disks"] + record["deleted"]["metadata"])
+
+
+@pytest.mark.verify
+@pytest.mark.snapshot
+def test_hyperv_migration_verify_stopped(migration):
+    """The stopped instance migrates with its disks, records, identity and snapshots."""
+    record = migration.record["stopped"]
+    assert vm_exists(STOPPED_VM)
+    assert legacy_id_exists(record["legacy_id"])
+    assert vm_records()[STOPPED_VM] == migration.vm_records[STOPPED_VM]
+    assert image_records()[STOPPED_VM] == migration.image_records[STOPPED_VM]
+
+    assert_file_records_unchanged(record["disks"] + record["metadata"])
+    assert_target_local(STOPPED_VM, record["disks"])
+    assert_target_records(
+        STOPPED_VM,
+        migration.vm_records[STOPPED_VM],
+        migration.image_records[STOPPED_VM],
+    )
+
+    # The migrated target retains guest identity and complete snapshot behavior.
+    assert multipass("start", STOPPED_VM, timeout=900)
+    assert_stopped_guest(record)
+
+    assert multipass("stop", STOPPED_VM)
+    take_snapshot(STOPPED_VM, POST)
+    assert snapshot_count(STOPPED_VM) == record["snapshot_count"] + 1
+
+    for snapshot, key in ((BASE, "base"), (HEAD, "head")):
+        assert multipass("restore", f"{STOPPED_VM}.{snapshot}", "--destructive")
+        assert multipass("start", STOPPED_VM)
+        assert_sentinel(STOPPED_VM, record[key])
+        if snapshot == BASE:
+            assert not path_exists(STOPPED_VM, record["head"]["path"])
+        assert multipass("stop", STOPPED_VM)
+
+
+@pytest.mark.verify
+def test_hyperv_migration_verify_network(migration):
+    """The network instance migrates with its extra interfaces on vSwitches Multipass
+    didn't create."""
+    network = migration.network
+    if network is None:
+        pytest.skip(f"Scenario `{NETWORK_VM}` was not seeded; nothing to verify.")
+
+    # The extra interfaces stay on their vSwitches (an external switch's adapter can't be
+    # bridged again) and keep their MACs.
+    assert vm_exists(NETWORK_VM)
+    target_interfaces = vm_records(target=True)[NETWORK_VM]["extra_interfaces"]
+    assert [(i["id"], i["mac_address"]) for i in target_interfaces] == [
+        (entry["switch"], entry["mac"]) for entry in network["networks"]
+    ]
+
+    assert multipass("start", NETWORK_VM, timeout=900)
+    assert guest_macs(NETWORK_VM) == network["macs"]
+    assert identity(NETWORK_VM) == network["identity"]
+    assert multipass("stop", NETWORK_VM)
+
+
+@pytest.mark.verify
+def test_hyperv_migration_verify_follow_up(migration, multipassd_session_scoped):
+    """What needs further driver switches, on top of the one migration. Runs last, as it
+    moves the instances the other verify tests check."""
+    record = migration.record
+    network = migration.network
+    governor = multipassd_session_scoped
+
+    # Switching back reveals the untouched originals. Stop the skipped instances and retry.
+    switch_driver("hyperv", governor)
+    assert state(STOPPED_VM) == "Stopped"
+    assert multipass("start", STOPPED_VM)
+    assert_stopped_guest(record["stopped"])
+    assert multipass("stop", STOPPED_VM)
+
+    assert_sentinel(RUNNING_VM, record["running"]["sentinel"])
+    assert identity(RUNNING_VM) == record["running"]["identity"]
+    assert multipass("stop", RUNNING_VM)
+
+    assert state(SUSPENDED_VM) == "Suspended"
+    assert multipass("start", SUSPENDED_VM)
+    assert_sentinel(SUSPENDED_VM, record["suspended"]["sentinel"])
+    assert multipass("stop", SUSPENDED_VM)
+    assert state(DELETED_VM) == "Deleted"
+
+    if network:
         # The migration created the AZ networks, which share the Default Switch's vSwitch and
         # also hand out leases to its instances. The retained original must still resolve its
         # management IP on the Default Switch, rather than a stray AZ lease for its MAC.
-        switch_driver("hyperv", daemon_session)
         assert multipass("start", NETWORK_VM, timeout=900)
         assert management_ip(NETWORK_VM) in host_subnet(DEFAULT_SWITCH_HOST_VNIC)
-        assert identity(NETWORK_VM) == record["identity"]
-        assert multipass("delete", NETWORK_VM, "--purge", timeout=300)
-    finally:
-        # Best effort, without switching drivers (that would migrate other scenarios' VMs).
-        if vm_exists(NETWORK_VM):
-            multipass("delete", NETWORK_VM, "--purge", timeout=300)
-        for network in record.get("networks", []):
-            remove_switch(network["switch"])
+        assert identity(NETWORK_VM) == network["identity"]
+        assert multipass("stop", NETWORK_VM)
+
+    pre_retry_disks = {
+        name: [file_record(path) for path in legacy_layout(name)["disks"]]
+        for name in (STOPPED_VM, RUNNING_VM, SUSPENDED_VM)
+    }
+    pre_retry_vm_records = vm_records()
+    pre_retry_image_records = image_records()
+
+    retry = switch_driver("hcs", governor)
+    assert migrated_names(retry) == {RUNNING_VM, SUSPENDED_VM}
+    assert_output(
+        retry,
+        f"Cannot migrate {STOPPED_VM}: name already taken",
+        f"Cannot migrate {DELETED_VM}: instance is deleted",
+        *([f"Cannot migrate {NETWORK_VM}: name already taken"] if network else []),
+    )
+
+    for records in pre_retry_disks.values():
+        assert_file_records_unchanged(records)
+    for name in (RUNNING_VM, SUSPENDED_VM):
+        assert vm_exists(name)
+        key = RECORD_KEY[name]
+        assert legacy_id_exists(record[key]["legacy_id"])
+        assert_target_local(name, pre_retry_disks[name])
+        assert_target_records(
+            name, pre_retry_vm_records[name], pre_retry_image_records[name]
+        )
+        assert multipass("start", name, timeout=900)
+        assert identity(name) == record[key]["identity"]
+        assert_sentinel(name, record[key]["sentinel"])
+        assert multipass("stop", name)
+
+    # Purging one HCS target leaves its source intact and allows explicit re-migration.
+    assert multipass("delete", STOPPED_VM, "--purge")
+    assert not vm_exists(STOPPED_VM)
+    assert legacy_id_exists(record["stopped"]["legacy_id"])
+
+    switch_driver("hyperv", governor)
+    remigration = switch_driver("hcs", governor)
+    assert migrated_names(remigration) == {STOPPED_VM}
+    assert vm_exists(STOPPED_VM)
+    assert legacy_id_exists(record["stopped"]["legacy_id"])
+
+    # Purging the original is strictly scoped to the legacy backend.
+    switch_driver("hyperv", governor)
+    assert multipass("delete", STOPPED_VM, "--purge")
+    assert not legacy_id_exists(record["stopped"]["legacy_id"])
+    switch_driver("hcs", governor)
+    assert vm_exists(STOPPED_VM)
