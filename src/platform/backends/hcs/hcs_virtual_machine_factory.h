@@ -24,7 +24,7 @@
 namespace multipass::hyperv
 {
 // TODO hyperv migration, revert: inline back into HCSVirtualMachineFactory::hypervisor_health_check
-void check_hyperv_api_support();
+void check_hcs_support();
 
 /**
  * Native Windows virtual machine implementation using HCS, HCN & virtdisk API's.

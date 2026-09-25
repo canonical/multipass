@@ -59,7 +59,7 @@ grpc::Status mhv::DriverTransition::prepare(const std::string& key, const std::s
 
     if (migrate_hyperv)
     {
-        check_hyperv_api_support();
+        check_hcs_support();
         migration_records = std::make_unique<HyperVMigrationTargetRecords>(
             context.config.data_directory);
         migration_records->preflight();

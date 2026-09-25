@@ -28,10 +28,9 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
-#include "backends/hyperv/hyperv_virtual_machine_factory.h"
 #include "backends/hcs/hcs_virtual_machine_factory.h"
+#include "backends/hyperv/hyperv_virtual_machine_factory.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
-#include "hcs/hyperv_api_string_conversion.h"
 #include "logger/win_event_logger.h"
 #include "shared/sshfs_server_process_spec.h"
 #include "shared/windows/powershell.h"
@@ -783,14 +782,12 @@ mp::platform::Platform::get_network_interfaces_info() const
     {
         if (netinfo.links.empty())
         {
-            constexpr static auto name_fmtstr = hyperv::string_literal<wchar_t>("vEthernet ({})");
-            const std::wstring search = name_fmtstr.format(netinfo.id);
+            const auto search = fmt::format("vEthernet ({})", netinfo.id);
             for (auto pitr = adapters.get(); pitr; pitr = pitr->Next)
             {
                 const auto& adapter = *pitr;
-                std::wstring name{adapter.FriendlyName};
 
-                if (name == search)
+                if (wchar_to_utf8(adapter.FriendlyName) == search)
                 {
                     netinfo.links = unicast_addrs_to_net_addrs(adapter.FirstUnicastAddress);
                     break;

@@ -17,15 +17,15 @@
 
 #include <hcs/hcs_virtual_machine_factory.h>
 
-#include <hcs/api/hcn/hyperv_hcn_create_network_params.h>
-#include <hcs/api/hcn/hyperv_hcn_endpoint_naming.h>
-#include <hcs/api/hcn/hyperv_hcn_wrapper.h>
-#include <hcs/api/hcs/hyperv_hcs_wrapper.h>
+#include <hcs/api/hcn/hcn_create_network_params.h>
+#include <hcs/api/hcn/hcn_endpoint_naming.h>
+#include <hcs/api/hcn/hcn_wrapper.h>
+#include <hcs/api/hcs/hcs_wrapper.h>
+#include <hcs/api/virtdisk/virtdisk_wrapper.h>
 #include <hcs/hcs_virtual_machine.h>
 #include <hcs/hcs_virtual_machine_exceptions.h>
 #include <hcs/hcs_virtual_machine_resources.h>
-#include <hcs/hyperv_api_string_conversion.h>
-#include <hcs/api/virtdisk/virtdisk_wrapper.h>
+#include <hcs/util/string_conversion.h>
 
 #include <multipass/constants.h>
 #include <multipass/platform.h>
@@ -312,11 +312,11 @@ std::vector<NetworkInterfaceInfo> HCSVirtualMachineFactory::networks() const
 
 void HCSVirtualMachineFactory::hypervisor_health_check()
 {
-    check_hyperv_api_support();
+    check_hcs_support();
 }
 
 // TODO hyperv migration, revert: inline back into hypervisor_health_check above
-void check_hyperv_api_support()
+void check_hcs_support()
 {
     if (auto state = get_windows_feature_state(L"VirtualMachinePlatform"))
     {

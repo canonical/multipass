@@ -45,8 +45,8 @@
 #include <unordered_set>
 
 #if defined(HCS_ENABLED)
-#include "hcs/mock_hyperv_hcn_wrapper.h"
-#include "hcs/mock_hyperv_hcs_wrapper.h"
+#include "hcs/mock_hcn_wrapper.h"
+#include "hcs/mock_hcs_wrapper.h"
 
 #include <daemon/hyperv_driver_transition.h>
 #include <hcs/hcs_virtual_machine_resources.h>

@@ -16,11 +16,11 @@
 
 #include "hcs_virtual_machine_resources.h"
 
-#include <hcs/api/hcn/hyperv_hcn_endpoint_naming.h>
-#include <hcs/api/hcn/hyperv_hcn_network_info.h>
-#include <hcs/api/hcn/hyperv_hcn_wrapper.h>
-#include <hcs/api/hcs/hyperv_hcs_wrapper.h>
-#include <hcs/hyperv_guid.h>
+#include <hcs/api/hcn/hcn_endpoint_naming.h>
+#include <hcs/api/hcn/hcn_network_info.h>
+#include <hcs/api/hcn/hcn_wrapper.h>
+#include <hcs/api/hcs/hcs_wrapper.h>
+#include <hcs/util/guid_utils.h>
 #include <shared/windows/net_io_api.h>
 #include <shared/windows/network_utils.h>
 
