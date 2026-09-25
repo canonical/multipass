@@ -101,6 +101,11 @@ struct MockDaemonRpc : public mp::DaemonRpc
                  (grpc::ServerReaderWriter<mp::ListReply, mp::ListRequest> * server)),
                 (override));
     MOCK_METHOD(grpc::Status,
+                snapshots,
+                (grpc::ServerContext * context,
+                 (grpc::ServerReaderWriter<mp::SnapshotsReply, mp::SnapshotsRequest> * server)),
+                (override));
+    MOCK_METHOD(grpc::Status,
                 mount,
                 (grpc::ServerContext * context,
                  (grpc::ServerReaderWriter<mp::MountReply, mp::MountRequest> * server)),
@@ -2165,6 +2170,28 @@ TEST_F(Client, listCmdFailsWithIpv4AndSnapshots)
 {
     EXPECT_THAT(send_command({"list", "--no-ipv4", "--snapshots"}),
                 Eq(mp::ReturnCode::CommandLineError));
+}
+
+// snapshots cli tests
+TEST_F(Client, snapshotsCmdOkNoArgs)
+{
+    mp::SnapshotsReply reply;
+    reply.mutable_snapshot_list();
+
+    EXPECT_CALL(mock_daemon, snapshots)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::SnapshotsReply, mp::SnapshotsRequest>(_, ok, reply)));
+    EXPECT_THAT(send_command({"snapshots"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, snapshotsCmdFailsWithArgs)
+{
+    EXPECT_THAT(send_command({"snapshots", "foo"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, snapshotsCmdHelpOk)
+{
+    EXPECT_THAT(send_command({"snapshots", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
 // mount cli tests
