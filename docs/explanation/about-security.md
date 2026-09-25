@@ -118,6 +118,18 @@ Multipass does not follow a formal hardening benchmark, such as CIS or FIPS 140-
 
 Multipass logs to the platform's standard logging system: `systemd-journald` on Linux, `/Library/Logs/Multipass` on macOS, and the Event Viewer on Windows. See [Access logs](how-to-guides-troubleshoot-access-logs) and [Logging levels](/reference/logging-levels).
 
+## Decommissioning Multipass
+
+Uninstalling Multipass removes the application, but it only removes your instances, images, certificates, and keys if you ask it to:
+
+- **Linux:** run `sudo snap remove --purge multipass`. Without `--purge`, snapd keeps a snapshot of all Multipass data, including instances and keys, for 31 days.
+- **macOS:** run the uninstall script and answer "Yes" when it asks whether to delete your VMs and daemon data.
+- **Windows:** answer "Yes" when the uninstaller asks whether to remove all data.
+
+Uninstalling never touches the host folders you mounted into instances. Files that you copied into an instance are deleted with the instance.
+
+See the Uninstall section of [Install Multipass](how-to-guides-install-multipass) for the full instructions.
+
 (security-lifecycle)=
 ## Security lifecycle
 
