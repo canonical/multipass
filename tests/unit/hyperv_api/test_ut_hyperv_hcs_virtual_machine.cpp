@@ -30,6 +30,7 @@
 #include "tests/unit/hyperv_api/mock_hyperv_hcs_wrapper.h"
 #include "tests/unit/hyperv_api/mock_hyperv_virtdisk_wrapper.h"
 #include "tests/unit/mock_file_ops.h"
+#include "tests/unit/mock_logger.h"
 #include "tests/unit/mock_status_monitor.h"
 #include "tests/unit/stub_availability_zone.h"
 #include "tests/unit/stub_ssh_key_provider.h"
@@ -44,6 +45,7 @@
 #include <fstream>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
@@ -1201,6 +1203,33 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_returns_empty_without_
 
     auto uut = construct_vm();
     expect_permanent_neighbor(false);
+
+    EXPECT_EQ(uut->management_ipv4(), std::nullopt);
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_is_quiet_without_endpoint)
+{
+    default_open_success();
+    auto uut = construct_vm();
+
+    // E.g. after restoring a snapshot, until the next start.
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    EXPECT_CALL(mock_hcn, query_endpoint(Eq("db4bdbf0-dc14-407f-9780-aabbccddeeff"), _))
+        .WillOnce(Return(hcs_op_result_t{HCN_E_ENDPOINT_NOT_FOUND, L"not found"}));
+
+    EXPECT_EQ(uut->management_ipv4(), std::nullopt);
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_logs_other_query_failures)
+{
+    default_open_success();
+    auto uut = construct_vm();
+
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "failed to query endpoint");
+    expect_endpoint_query_failure();
 
     EXPECT_EQ(uut->management_ipv4(), std::nullopt);
 }
