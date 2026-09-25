@@ -165,7 +165,7 @@ def assert_file_records_unchanged(records):
 
 
 def backend_dir(target=False):
-    return Path(cfg.data_dir) / ("hyperv_api" if target else "")
+    return Path(cfg.data_dir) / ("hcs" if target else "")
 
 
 def instance_dir(name, target=False):
@@ -469,13 +469,13 @@ def test_hyperv_migration_verify(scenario, daemon_session):
 
     # One explicit switch performs the primary bulk migration.
     assert_output(
-        switch_driver("hyperv_api", daemon_session),
+        switch_driver("hcs", daemon_session),
         "The following instances were successfully migrated",
         f"  {STOPPED_VM}",
         f"Cannot migrate {RUNNING_VM}: Hyper-V reports state 'Running'",
         f"Cannot migrate {SUSPENDED_VM}: Hyper-V reports state 'Saved'",
         f"Cannot migrate {DELETED_VM}: instance is deleted",
-        "Do not run an original and its hyperv_api copy at the same time",
+        "Do not run an original and its hcs copy at the same time",
     )
 
     current_vm_records = vm_records()
@@ -544,7 +544,7 @@ def test_hyperv_migration_verify(scenario, daemon_session):
     pre_retry_image_records = image_records()
 
     assert_output(
-        switch_driver("hyperv_api", daemon_session),
+        switch_driver("hcs", daemon_session),
         f"Cannot migrate {STOPPED_VM}: name already taken",
         RUNNING_VM,
         SUSPENDED_VM,
@@ -572,7 +572,7 @@ def test_hyperv_migration_verify(scenario, daemon_session):
     assert legacy_id_exists(record["stopped"]["legacy_id"])
 
     switch_driver("hyperv", daemon_session)
-    remigration = switch_driver("hyperv_api", daemon_session)
+    remigration = switch_driver("hcs", daemon_session)
     assert STOPPED_VM in remigration.content
     assert vm_exists(STOPPED_VM)
     assert legacy_id_exists(record["stopped"]["legacy_id"])
@@ -581,7 +581,7 @@ def test_hyperv_migration_verify(scenario, daemon_session):
     switch_driver("hyperv", daemon_session)
     assert multipass("delete", STOPPED_VM, "--purge")
     assert not legacy_id_exists(record["stopped"]["legacy_id"])
-    switch_driver("hyperv_api", daemon_session)
+    switch_driver("hcs", daemon_session)
     assert vm_exists(STOPPED_VM)
 
     # Leave the upgrade host clean and on the requested legacy test driver.
@@ -640,7 +640,7 @@ def test_hyperv_migration_network_verify(scenario, daemon_session):
         assert state(NETWORK_VM) == "Stopped"
 
         assert_output(
-            switch_driver("hyperv_api", daemon_session),
+            switch_driver("hcs", daemon_session),
             "The following instances were successfully migrated",
             f"  {NETWORK_VM}",
         )

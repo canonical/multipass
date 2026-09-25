@@ -372,8 +372,7 @@ TEST_F(TestDaemonMigrationGuard, driverChangeRejectsRunningHcsInstance)
 
     EXPECT_CALL(*mock_platform, is_backend_supported(QStringLiteral("hyperv")))
         .WillOnce(Return(true));
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-        .WillOnce(Return(QStringLiteral("hyperv_api")));
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
 
     mp::SetRequest request;
     request.set_key(mp::driver_key);
@@ -391,8 +390,7 @@ TEST_F(TestDaemonMigrationGuard, driverChangeHoldsGuardAcrossSettingsWrite)
     GuardTestDaemon daemon{config_builder.build()};
     EXPECT_CALL(*mock_platform, is_backend_supported(QStringLiteral("hyperv")))
         .WillOnce(Return(true));
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-        .WillOnce(Return(QStringLiteral("hyperv_api")));
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
     EXPECT_CALL(mock_settings, set(Eq(mp::driver_key), Eq("hyperv"), _)).WillOnce([&daemon] {
         EXPECT_TRUE(daemon.is_migrating());
     });
@@ -411,8 +409,7 @@ TEST_F(TestDaemonMigrationGuard, driverChangeReleasesGuardWhenSettingsWriteFails
     GuardTestDaemon daemon{config_builder.build()};
     EXPECT_CALL(*mock_platform, is_backend_supported(QStringLiteral("virtualbox")))
         .WillOnce(Return(true));
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-        .WillOnce(Return(QStringLiteral("hyperv_api")));
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
     EXPECT_CALL(mock_settings, set(Eq(mp::driver_key), Eq("virtualbox"), _)).WillOnce([&daemon] {
         EXPECT_TRUE(daemon.is_migrating());
         throw std::runtime_error{"settings write failed"};
@@ -440,8 +437,7 @@ TEST_F(TestDaemonMigrationGuard, driverChangeReleasesHcsResourcesBeforeSettingsW
     InSequence sequence;
     EXPECT_CALL(*mock_platform, is_backend_supported(QStringLiteral("hyperv")))
         .WillOnce(Return(true));
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-        .WillOnce(Return(QStringLiteral("hyperv_api")));
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
     EXPECT_CALL(*vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*hcs_mock.first, open_compute_system("stopped", _))
         .WillOnce(Return(mp::hyperv::OperationResult{HCS_E_SYSTEM_NOT_FOUND, L""}));
@@ -469,8 +465,7 @@ TEST_F(TestDaemonMigrationGuard, driverChangeDoesNotWriteSettingsWhenResourceCle
 
     EXPECT_CALL(*mock_platform, is_backend_supported(QStringLiteral("hyperv")))
         .WillOnce(Return(true));
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-        .WillOnce(Return(QStringLiteral("hyperv_api")));
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
     EXPECT_CALL(*vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*hcs_mock.first, open_compute_system("stopped", _))
         .WillOnce(Return(mp::hyperv::OperationResult{E_ACCESSDENIED, L"access denied"}));
@@ -482,7 +477,7 @@ TEST_F(TestDaemonMigrationGuard, driverChangeDoesNotWriteSettingsWhenResourceCle
 
     const auto status = call_daemon_slot(daemon, &mp::Daemon::set, request, server);
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
-    EXPECT_EQ(status.error_message(), "Could not release hyperv_api resources for 'stopped'");
+    EXPECT_EQ(status.error_message(), "Could not release hcs resources for 'stopped'");
     EXPECT_FALSE(daemon.is_migrating());
 }
 
@@ -531,10 +526,9 @@ TEST_F(TestHyperVDriverTransition, unchangedHcsDriverDoesNotAcquireGuard)
 {
     const auto config = config_builder.build();
     auto change = transition(*config);
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-        .WillOnce(Return(QStringLiteral("hyperv_api")));
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
 
-    EXPECT_TRUE(change.prepare(mp::driver_key, "hyperv_api").ok());
+    EXPECT_TRUE(change.prepare(mp::driver_key, "hcs").ok());
     EXPECT_FALSE(migrating);
     EXPECT_TRUE(change.complete(&server).ok());
 }
@@ -543,8 +537,7 @@ TEST_F(TestHyperVDriverTransition, conflictingTransitionDoesNotReleaseAnotherOwn
 {
     const auto config = config_builder.build();
     migrating = true;
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-        .WillOnce(Return(QStringLiteral("hyperv_api")));
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
     {
         auto change = transition(*config);
         const auto status = change.prepare(mp::driver_key, "hyperv");
@@ -559,8 +552,7 @@ TEST_F(TestHyperVDriverTransition, preparationConflictReleasesAcquiredGuard)
 {
     const auto config = config_builder.build();
     preparing.insert("vm");
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-        .WillOnce(Return(QStringLiteral("hyperv_api")));
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
     {
         auto change = transition(*config);
         const auto status = change.prepare(mp::driver_key, "hyperv");
@@ -576,8 +568,7 @@ TEST_F(TestHyperVDriverTransition, deletedHcsInstancesAreCheckedBeforeReleasingR
     const auto config = config_builder.build();
     auto vm = std::make_shared<StrictMock<mpt::MockVirtualMachine>>();
     deleted_instances.emplace("deleted", vm);
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-        .WillOnce(Return(QStringLiteral("hyperv_api")));
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
     EXPECT_CALL(*vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::running));
 
     {
@@ -600,8 +591,7 @@ TEST_F(TestHyperVDriverTransition, leavingHcsNamesEveryInstanceThatIsNotStopped)
         ON_CALL(*vm, current_state()).WillByDefault(Return(state));
         instances.emplace(name, vm);
     }
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-        .WillOnce(Return(QStringLiteral("hyperv_api")));
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
 
     auto change = transition(*config);
     const auto status = change.prepare(mp::driver_key, "hyperv");

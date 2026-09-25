@@ -321,7 +321,7 @@ TEST_F(RemoteSettingsTest, setDisplaysMigrationProgressDiagnosticsAndSummary)
 
     mp::RemoteSettingsHandler handler{"local.", mock_stub, &mock_term, 0};
     [[maybe_unused]] mp::UserMessages messages{};
-    handler.set("local.driver", "hyperv_api", messages);
+    handler.set("local.driver", "hcs", messages);
 
     EXPECT_THAT(fake_cerr.str(),
                 AllOf(HasSubstr("Copying disks: vm"),

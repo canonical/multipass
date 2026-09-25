@@ -52,9 +52,9 @@ grpc::Status mhv::DriverTransition::prepare(const std::string& key, const std::s
         return grpc::Status::OK;
 
     const auto current_driver = MP_SETTINGS.get(mp::driver_key).toStdString();
-    const auto migrate_hyperv = current_driver == "hyperv" && value == "hyperv_api";
-    const auto leave_hyperv_api = current_driver == "hyperv_api" && value != "hyperv_api";
-    if (!migrate_hyperv && !leave_hyperv_api)
+    const auto migrate_hyperv = current_driver == "hyperv" && value == "hcs";
+    const auto leave_hcs = current_driver == "hcs" && value != "hcs";
+    if (!migrate_hyperv && !leave_hcs)
         return grpc::Status::OK;
 
     if (migrate_hyperv)
@@ -106,8 +106,7 @@ grpc::Status mhv::DriverTransition::release_hcs_instances() const
     for (const auto& [name, spec] : context.specs)
     {
         if (!release_hcs_resources(name))
-            throw std::runtime_error{
-                fmt::format("Could not release hyperv_api resources for '{}'", name)};
+            throw std::runtime_error{fmt::format("Could not release HCS resources for '{}'", name)};
     }
 
     return grpc::Status::OK;

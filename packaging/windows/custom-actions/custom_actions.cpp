@@ -71,9 +71,8 @@ UINT __stdcall EnableHyperV(__in MSIHANDLE hInstall)
     customActionData = szBuf;
     uiLevel = _wtoi(customActionData.c_str());
     // TODO hyperv migration, revert: always enable VirtualMachinePlatform
-    feature = customActionData.find(L"|hyperv_api") == std::wstring::npos
-                ? L"Microsoft-Hyper-V"
-                : L"VirtualMachinePlatform";
+    feature = customActionData.find(L"|hcs") == std::wstring::npos ? L"Microsoft-Hyper-V"
+                                                                   : L"VirtualMachinePlatform";
     WcaLog(LOGMSG_STANDARD, std::to_string(uiLevel).c_str());
 
     hCancel_ = CreateEvent(nullptr, TRUE, FALSE, nullptr);

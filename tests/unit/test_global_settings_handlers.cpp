@@ -324,12 +324,12 @@ TEST_F(TestGlobalSettingsHandlers, driverInterpreterNormalizesCase)
 {
     mp::daemon::register_global_settings_handlers();
 
-    EXPECT_CALL(mock_platform, is_backend_supported(Eq("hyperv_api"))).WillOnce(Return(true));
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::driver_key), Eq("hyperv_api")));
+    EXPECT_CALL(mock_platform, is_backend_supported(Eq("hcs"))).WillOnce(Return(true));
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::driver_key), Eq("hcs")));
     inject_mock_qsettings();
 
     [[maybe_unused]] mp::UserMessages messages{};
-    ASSERT_NO_THROW(handler->set(mp::driver_key, "HYPERV_API", messages));
+    ASSERT_NO_THROW(handler->set(mp::driver_key, "HCS", messages));
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatRejectsInvalidBackend)
