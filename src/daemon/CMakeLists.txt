@@ -35,7 +35,6 @@ if(HCS_ENABLED)
 endif()
 
 include_directories(daemon
-  ${CMAKE_SOURCE_DIR}/src
   ${CMAKE_SOURCE_DIR}/src/platform/backends)
 
 target_link_libraries(daemon

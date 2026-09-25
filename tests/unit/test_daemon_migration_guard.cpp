@@ -477,7 +477,7 @@ TEST_F(TestDaemonMigrationGuard, driverChangeDoesNotWriteSettingsWhenResourceCle
 
     const auto status = call_daemon_slot(daemon, &mp::Daemon::set, request, server);
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
-    EXPECT_EQ(status.error_message(), "Could not release hcs resources for 'stopped'");
+    EXPECT_EQ(status.error_message(), "Could not release HCS resources for 'stopped'");
     EXPECT_FALSE(daemon.is_migrating());
 }
 

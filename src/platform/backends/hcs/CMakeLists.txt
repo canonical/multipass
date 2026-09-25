@@ -72,6 +72,13 @@ if(WIN32)
     util/guid_utils.cpp
   )
 
+  # The backend's headers include <hcs/...> and <shared/...>, and through the
+  # latter <daemon/...>, so consumers need these to include them.
+  target_include_directories(hcs_backend PUBLIC
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src/platform/backends
+  )
+
   target_link_libraries(hcs_backend PRIVATE
     fmt::fmt-header-only
     ztd::out_ptr
