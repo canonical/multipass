@@ -19,7 +19,6 @@
 #include "hyperv_driver_transition.h"
 #include "daemon_config.h"
 #include "hyperv_migration.h"
-#include "instance_settings_handler.h"
 
 #include <hyperv_api/hcs_virtual_machine_factory.h>
 #include <hyperv_api/hcs_virtual_machine_resources.h>
@@ -27,7 +26,12 @@
 #include <multipass/constants.h>
 #include <multipass/settings/settings.h>
 
+#include <fmt/ranges.h>
+
+#include <algorithm>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace mp = multipass;
 namespace mhv = multipass::hyperv;
@@ -69,16 +73,16 @@ grpc::Status mhv::DriverTransition::prepare(const std::string& key, const std::s
         return {grpc::StatusCode::FAILED_PRECONDITION,
                 "Cannot change driver while an instance is being prepared"};
 
-    if (migrate_hyperv)
-        migration_records->prepare();
-    else
-        release_hcs_instances();
+    if (!migrate_hyperv)
+        return release_hcs_instances();
 
+    migration_records->prepare();
     return grpc::Status::OK;
 }
 
-void mhv::DriverTransition::release_hcs_instances() const
+grpc::Status mhv::DriverTransition::release_hcs_instances() const
 {
+    std::vector<std::string> not_stopped;
     for (const auto* instances : {&context.operative_instances, &context.deleted_instances})
     {
         for (const auto& [name, vm] : *instances)
@@ -88,10 +92,15 @@ void mhv::DriverTransition::release_hcs_instances() const
 
             const auto state = vm->current_state();
             if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
-                throw mp::InstanceStateSettingsException{"Cannot change driver",
-                                                         name,
-                                                         "instance is not stopped"};
+                not_stopped.push_back(name);
         }
+    }
+
+    if (!not_stopped.empty())
+    {
+        std::ranges::sort(not_stopped);
+        return {grpc::StatusCode::FAILED_PRECONDITION,
+                fmt::format("{} must be stopped first", fmt::join(not_stopped, ", "))};
     }
 
     for (const auto& [name, spec] : context.specs)
@@ -100,6 +109,8 @@ void mhv::DriverTransition::release_hcs_instances() const
             throw std::runtime_error{
                 fmt::format("Could not release hyperv_api resources for '{}'", name)};
     }
+
+    return grpc::Status::OK;
 }
 
 grpc::Status mhv::DriverTransition::complete(
