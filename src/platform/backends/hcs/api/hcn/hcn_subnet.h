@@ -17,22 +17,32 @@
 
 #pragma once
 
-#include "../mock_singleton_helpers.h"
+#include <hcs/api/hcn/hcn_route.h>
 
-#include <hcs/api/hcs/hcs_schema_version.h>
+#include <fmt/xchar.h>
 
-namespace multipass::test
+#include <string>
+#include <vector>
+
+namespace multipass::hyperv::hcn
 {
-class MockSchemaUtils : public hyperv::hcs::SchemaUtils
+
+struct HcnSubnet
 {
-public:
-    using SchemaUtils::SchemaUtils;
-
-    MOCK_METHOD(hyperv::hcs::HcsSchemaVersion,
-                get_os_supported_schema_version,
-                (),
-                (const, override));
-
-    MP_MOCK_SINGLETON_BOILERPLATE(MockSchemaUtils, hyperv::hcs::SchemaUtils);
+    std::string ip_address_prefix{};
+    std::vector<HcnRoute> routes{};
 };
-} // namespace multipass::test
+
+} // namespace multipass::hyperv::hcn
+
+/**
+ * Formatter type specialization for HcnSubnet
+ */
+template <typename Char>
+struct fmt::formatter<multipass::hyperv::hcn::HcnSubnet, Char>
+    : formatter<basic_string_view<Char>, Char>
+{
+    template <typename FormatContext>
+    auto format(const multipass::hyperv::hcn::HcnSubnet& route, FormatContext& ctx) const
+        -> FormatContext::iterator;
+};

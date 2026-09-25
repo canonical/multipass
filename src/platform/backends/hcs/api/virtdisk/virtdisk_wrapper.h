@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <hcs/hyperv_api_operation_result.h>
+#include <hcs/api/operation_result.h>
 #include <hcs/api/virtdisk/virtdisk_create_virtual_disk_params.h>
 #include <hcs/api/virtdisk/virtdisk_disk_info.h>
 

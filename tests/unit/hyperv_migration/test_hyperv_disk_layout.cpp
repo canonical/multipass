@@ -18,7 +18,7 @@
 
 #include "tests/unit/common.h"
 #include "tests/unit/file_operations.h"
-#include "tests/unit/hcs/mock_hyperv_virtdisk_wrapper.h"
+#include "tests/unit/hcs/mock_virtdisk_wrapper.h"
 #include "tests/unit/mock_snapshot.h"
 #include "tests/unit/mock_virtual_machine.h"
 #include "tests/unit/windows/powershell_test_helper.h"

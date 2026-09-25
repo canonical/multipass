@@ -17,7 +17,7 @@
 // TODO hyperv migration, remove (whole file)
 
 #include "tests/unit/common.h"
-#include "tests/unit/hcs/mock_hyperv_virtdisk_wrapper.h"
+#include "tests/unit/hcs/mock_virtdisk_wrapper.h"
 #include "tests/unit/mock_file_ops.h"
 #include "tests/unit/mock_recursive_dir_iterator.h"
 #include "tests/unit/mock_virtual_machine.h"

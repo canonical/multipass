@@ -17,16 +17,16 @@
 
 #include <hcs/hcs_virtual_machine.h>
 
-#include <hcs/api/hcn/hyperv_hcn_create_endpoint_params.h>
-#include <hcs/api/hcn/hyperv_hcn_endpoint_naming.h>
-#include <hcs/api/hcn/hyperv_hcn_wrapper.h>
-#include <hcs/api/hcs/hyperv_hcs_compute_system_state.h>
-#include <hcs/api/hcs/hyperv_hcs_event_type.h>
-#include <hcs/api/hcs/hyperv_hcs_wrapper.h>
-#include <hcs/hcs_virtual_machine_exceptions.h>
-#include <hcs/hcs_virtual_machine_resources.h>
+#include <hcs/api/hcn/hcn_create_endpoint_params.h>
+#include <hcs/api/hcn/hcn_endpoint_naming.h>
+#include <hcs/api/hcn/hcn_wrapper.h>
+#include <hcs/api/hcs/hcs_compute_system_state.h>
+#include <hcs/api/hcs/hcs_event_type.h>
+#include <hcs/api/hcs/hcs_wrapper.h>
 #include <hcs/api/virtdisk/virtdisk_snapshot.h>
 #include <hcs/api/virtdisk/virtdisk_wrapper.h>
+#include <hcs/hcs_virtual_machine_exceptions.h>
+#include <hcs/hcs_virtual_machine_resources.h>
 
 #include <shared/windows/smb_mount_handler.h>
 

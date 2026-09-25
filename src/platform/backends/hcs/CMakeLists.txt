@@ -41,25 +41,25 @@ if(WIN32)
   endif()
 
   add_library(hcs_backend STATIC
-    api/hcn/hyperv_hcn_wrapper.cpp
-    api/hcn/hyperv_hcn_api.cpp
-    api/hcn/hyperv_hcn_endpoint_info.cpp
-    api/hcn/hyperv_hcn_route.cpp
-    api/hcn/hyperv_hcn_subnet.cpp
-    api/hcn/hyperv_hcn_ipam.cpp
-    api/hcn/hyperv_hcn_network_policy.cpp
-    api/hcn/hyperv_hcn_create_endpoint_params.cpp
-    api/hcn/hyperv_hcn_create_network_params.cpp
-    api/hcn/hyperv_hcn_endpoint_query.cpp
-    api/hcn/hyperv_hcn_network_info.cpp
-    api/hcs/hyperv_hcs_wrapper.cpp
-    api/hcs/hyperv_hcs_event_type.cpp
-    api/hcs/hyperv_hcs_scsi_device.cpp
-    api/hcs/hyperv_hcs_schema_version.cpp
-    api/hcs/hyperv_hcs_network_adapter.cpp
-    api/hcs/hyperv_hcs_create_compute_system_params.cpp
-    api/hcs/hyperv_hcs_request.cpp
-    api/hcs/hyperv_hcs_api.cpp
+    api/hcn/hcn_wrapper.cpp
+    api/hcn/hcn_api.cpp
+    api/hcn/hcn_endpoint_info.cpp
+    api/hcn/hcn_route.cpp
+    api/hcn/hcn_subnet.cpp
+    api/hcn/hcn_ipam.cpp
+    api/hcn/hcn_network_policy.cpp
+    api/hcn/hcn_create_endpoint_params.cpp
+    api/hcn/hcn_create_network_params.cpp
+    api/hcn/hcn_endpoint_query.cpp
+    api/hcn/hcn_network_info.cpp
+    api/hcs/hcs_wrapper.cpp
+    api/hcs/hcs_event_type.cpp
+    api/hcs/hcs_scsi_device.cpp
+    api/hcs/hcs_schema_version.cpp
+    api/hcs/hcs_network_adapter.cpp
+    api/hcs/hcs_create_compute_system_params.cpp
+    api/hcs/hcs_request.cpp
+    api/hcs/hcs_api.cpp
     api/virtdisk/virtdisk_wrapper.cpp
     api/virtdisk/virtdisk_snapshot.cpp
     api/virtdisk/virtdisk_api.cpp
@@ -69,7 +69,7 @@ if(WIN32)
     hcs_virtual_machine.cpp
     hcs_virtual_machine_factory.cpp
     hcs_virtual_machine_resources.cpp
-    hyperv_guid.cpp
+    util/guid_utils.cpp
   )
 
   target_link_libraries(hcs_backend PRIVATE

@@ -15,24 +15,22 @@
  *
  */
 
-#pragma once
+#include <hcs/api/hcs/hcs_event_type.h>
 
-#include "../mock_singleton_helpers.h"
+#include <windows.h>
+#include <ComputeDefs.h>
 
-#include <hcs/api/hcs/hcs_schema_version.h>
-
-namespace multipass::test
+namespace multipass::hyperv::hcs
 {
-class MockSchemaUtils : public hyperv::hcs::SchemaUtils
+
+HcsEventType parse_event(const HCS_EVENT* hcs_event)
 {
-public:
-    using SchemaUtils::SchemaUtils;
-
-    MOCK_METHOD(hyperv::hcs::HcsSchemaVersion,
-                get_os_supported_schema_version,
-                (),
-                (const, override));
-
-    MP_MOCK_SINGLETON_BOILERPLATE(MockSchemaUtils, hyperv::hcs::SchemaUtils);
-};
-} // namespace multipass::test
+    switch (hcs_event->Type)
+    {
+    case HcsEventSystemExited:
+        return HcsEventType::SystemExited;
+    default:
+        return HcsEventType::Unknown;
+    }
+}
+} // namespace multipass::hyperv::hcs

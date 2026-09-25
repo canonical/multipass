@@ -26,15 +26,15 @@
 
 #include <fmt/xchar.h>
 
-#include <src/platform/backends/hcs/api/hcn/hyperv_hcn_create_endpoint_params.h>
-#include <src/platform/backends/hcs/api/hcn/hyperv_hcn_create_network_params.h>
-#include <src/platform/backends/hcs/api/hcn/hyperv_hcn_endpoint_info.h>
-#include <src/platform/backends/hcs/api/hcn/hyperv_hcn_endpoint_naming.h>
-#include <src/platform/backends/hcs/api/hcn/hyperv_hcn_wrapper.h>
-#include <src/platform/backends/hcs/api/hcs/hyperv_hcs_wrapper.h>
+#include <src/platform/backends/hcs/api/hcn/hcn_create_endpoint_params.h>
+#include <src/platform/backends/hcs/api/hcn/hcn_create_network_params.h>
+#include <src/platform/backends/hcs/api/hcn/hcn_endpoint_info.h>
+#include <src/platform/backends/hcs/api/hcn/hcn_endpoint_naming.h>
+#include <src/platform/backends/hcs/api/hcn/hcn_wrapper.h>
+#include <src/platform/backends/hcs/api/hcs/hcs_wrapper.h>
+#include <src/platform/backends/hcs/api/virtdisk/virtdisk_wrapper.h>
 #include <src/platform/backends/hcs/hcs_virtual_machine.h>
 #include <src/platform/backends/hcs/hcs_virtual_machine_resources.h>
-#include <src/platform/backends/hcs/api/virtdisk/virtdisk_wrapper.h>
 
 #include <computecore.h>
 #include <multipass/ip_address.h>
