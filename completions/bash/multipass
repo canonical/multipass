@@ -20,7 +20,7 @@ _multipass_complete()
     {
         local state=$1 instances
 
-        instances=$(multipass list --format=csv --no-ipv4 | \tail -n +2)
+        instances=$(multipass list --format=csv --no-ipv4 2>/dev/null | \tail -n +2)
         [ -n "$state" ] && instances=$(awk -F',' "\$2 == \"$state\"" <<< "$instances")
         instances=$(echo "$instances" | \cut -d',' -f 1  | \tr '\r\n' ' ')
 
@@ -47,7 +47,7 @@ _multipass_complete()
     _multipass_restorable_snapshots()
     {
         local instances
-        instances=$( multipass info --no-runtime-information --format=csv \
+        instances=$( multipass info --no-runtime-information --format=csv 2>/dev/null \
                      | \tail -n +2 \
                      | \awk -F',|\r?\n' '$2 == "Stopped" && $16 > 0' \
                      | \cut -d',' -f 1 \
@@ -82,7 +82,7 @@ _multipass_complete()
     {
         local keys
 
-        keys=$( multipass get --keys | \tr '\r\n' ' ' )
+        keys=$( multipass get --keys 2>/dev/null | \tr '\r\n' ' ' )
 
         for key in ${keys}; do
             if [[ "${COMP_WORDS[*]}" == *"${key}"* ]]; then
