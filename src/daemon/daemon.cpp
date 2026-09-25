@@ -1293,36 +1293,45 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
         "release. ***";
     static constexpr auto* migrationless_template =
         "We recommend switching to the new {0} driver as soon as possible "
-        "(multipass set local.driver={0}). Your instances will not be destroyed but they will be "
+        "(multipass set local.driver={1}). Your instances will not be destroyed but they will be "
         "unreachable from the new driver. You can switch back to the old driver for now, but you "
         "will need to manually recreate any instances you want to keep in the next release.";
     static constexpr auto* migrationful_template =
         "When you are ready to have your instances migrated, please stop them "
         "(multipass stop --all) and switch to the new {0} driver "
-        "(multipass set local.driver={0}).";
-    static constexpr auto* recommended_driver =
+        "(multipass set local.driver={1}).";
+    static constexpr auto recommended_driver = std::pair{
 #ifdef MULTIPASS_PLATFORM_APPLE
+        "Apple Virtualization framework",
         "applevz"
 #else
+        "Host Compute System (HCS)",
         "hcs"
 #endif
-        ;
+    };
 
     // We know the driver doesn't change throughout a daemon run, so cache it and avoid the whole
     // settings call tree (which would run on every GUI poll)
     static const auto current_driver = MP_SETTINGS.get(mp::driver_key);
-    auto compose_warning = [](const auto& current, const auto& recommended, bool migrationful) {
+    auto compose_warning = [](const auto& current,
+                              const auto& recommended_name,
+                              const auto& recommended_setting,
+                              bool migrationful) {
         const auto deprecation_header = fmt::format(deprecation_warning_template, current);
         const auto* advice_template = migrationful ? migrationful_template : migrationless_template;
-        const auto deprecation_advice = fmt::format(fmt::runtime(advice_template), recommended);
+        const auto deprecation_advice = fmt::format(fmt::runtime(advice_template),
+                                                    recommended_name,
+                                                    recommended_setting);
 
         return fmt::format("{}\n\n{}\n\n", deprecation_header, deprecation_advice);
     };
 
     if (current_driver == "virtualbox" || current_driver == "hyperv")
     {
-        const auto deprecation_warning = compose_warning(current_driver,
-                                                         recommended_driver,
+        const auto current_name = current_driver == "hyperv" ? "Hyper-V" : "VirtualBox";
+        const auto deprecation_warning = compose_warning(current_name,
+                                                         recommended_driver.first,
+                                                         recommended_driver.second,
                                                          current_driver == "hyperv");
         W reply{};
         reply.set_log_line(std::move(deprecation_warning));
