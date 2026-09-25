@@ -26,12 +26,12 @@ add_library(daemon STATIC
   snapshot_settings_handler.cpp)
 
 # TODO hyperv migration, remove
-if(HYPERV_API_ENABLED)
-  target_compile_definitions(daemon PRIVATE HYPERV_API_ENABLED)
+if(HCS_ENABLED)
+  target_compile_definitions(daemon PRIVATE HCS_ENABLED)
   target_sources(daemon PRIVATE
     hyperv_driver_transition.cpp
     hyperv_migration.cpp)
-  target_link_libraries(daemon hyperv_migration hyperv_api_backend)
+  target_link_libraries(daemon hyperv_migration hcs_backend)
 endif()
 
 include_directories(daemon

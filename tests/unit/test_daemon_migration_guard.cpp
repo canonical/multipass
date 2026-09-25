@@ -44,12 +44,12 @@
 #include <tuple>
 #include <unordered_set>
 
-#if defined(HYPERV_API_ENABLED)
-#include "hyperv_api/mock_hyperv_hcn_wrapper.h"
-#include "hyperv_api/mock_hyperv_hcs_wrapper.h"
+#if defined(HCS_ENABLED)
+#include "hcs/mock_hyperv_hcn_wrapper.h"
+#include "hcs/mock_hyperv_hcs_wrapper.h"
 
 #include <daemon/hyperv_driver_transition.h>
-#include <hyperv_api/hcs_virtual_machine_resources.h>
+#include <hcs/hcs_virtual_machine_resources.h>
 #endif
 
 namespace mp = multipass;
@@ -362,7 +362,7 @@ TEST_F(TestDaemonRpcMigrationGuard, initiatingSettingCanAcquireMigrationGuard)
     EXPECT_TRUE(daemon->is_migrating());
 }
 
-#if defined(HYPERV_API_ENABLED)
+#if defined(HCS_ENABLED)
 TEST_F(TestDaemonMigrationGuard, driverChangeRejectsRunningHcsInstance)
 {
     GuardTestDaemon daemon{config_builder.build()};

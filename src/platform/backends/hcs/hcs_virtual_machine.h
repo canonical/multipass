@@ -1,0 +1,150 @@
+/*
+ * Copyright (C) Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#pragma once
+
+#include <hcs/api/hcn/hyperv_hcn_create_endpoint_params.h>
+#include <hcs/api/hcs/hyperv_hcs_compute_system_state.h>
+#include <hcs/api/hcs/hyperv_hcs_system_handle.h>
+
+#include <multipass/signal.h>
+#include <shared/base_virtual_machine.h>
+
+#include <multipass/virtual_machine_description.h>
+
+#include <memory>
+#include <optional>
+#include <system_error>
+
+struct HCS_EVENT;
+
+namespace multipass
+{
+class VMStatusMonitor;
+}
+
+namespace multipass::hyperv
+{
+
+namespace hcs
+{
+struct HcsScsiDevice;
+}
+
+/**
+ * Native Windows virtual machine implementation using HCS, HCN & virtdisk API's.
+ */
+struct HCSVirtualMachine : public BaseVirtualMachine
+{
+    HCSVirtualMachine(const std::string& network_guid,
+                      const VirtualMachineDescription& desc,
+                      VMStatusMonitor& monitor,
+                      const SSHKeyProvider& key_provider,
+                      AvailabilityZone& zone,
+                      const Path& instance_dir);
+
+    HCSVirtualMachine(const std::string& source_vm_name,
+                      const multipass::VMSpecs& src_vm_specs,
+                      const VirtualMachineDescription& desc,
+                      VMStatusMonitor& monitor,
+                      const SSHKeyProvider& key_provider,
+                      AvailabilityZone& zone,
+                      const Path& dest_instance_dir);
+
+    ~HCSVirtualMachine();
+
+    void start() override;
+    void shutdown(ShutdownPolicy shutdown_policy) override;
+    void suspend() override;
+    [[nodiscard]] State current_state() override;
+    int ssh_port() override;
+    [[nodiscard]] std::string ssh_hostname() override;
+    [[nodiscard]] std::string ssh_username() override;
+    [[nodiscard]] std::optional<IPAddress> management_ipv4() override;
+    void restore_snapshot(const std::string& name, VMSpecs& specs) override;
+
+    void handle_state_update() override;
+    void update_cpus(int num_cores) override;
+    void resize_memory(const MemorySize& new_size) override;
+    void add_network_interface(int index,
+                               const std::string& default_mac_addr,
+                               const NetworkInterface& extra_interface) override;
+    [[nodiscard]] std::unique_ptr<MountHandler>
+    make_native_mount_handler(const std::string& target, const VMMount& mount) override;
+
+protected:
+    [[nodiscard]] std::shared_ptr<Snapshot> make_specific_snapshot(
+        const QString& filename) override;
+    [[nodiscard]] std::shared_ptr<Snapshot> make_specific_snapshot(
+        const std::string& snapshot_name,
+        const std::string& comment,
+        const std::string& instance_id,
+        const VMSpecs& specs,
+        std::shared_ptr<Snapshot> parent) override;
+    void resize_disk_impl(const MemorySize& new_size) override;
+
+private:
+    VirtualMachineDescription description{};
+    const std::string primary_network_guid{};
+    VMStatusMonitor& monitor;
+    Signal termination_signal;
+
+    hcs::HcsSystemHandle hcs_system{nullptr};
+
+    [[nodiscard]] hcs::ComputeSystemState fetch_state_from_api() const;
+    void set_state(hcs::ComputeSystemState state);
+    void set_state(State state);
+    void update_current_state();
+
+    /**
+     * Open the compute system if it's present.
+     *
+     * @return true The compute system was opened
+     * @return false HCS confirmed the compute system is absent
+     */
+    [[nodiscard]] bool maybe_open_compute_system() noexcept(false);
+
+    /**
+     * Create the compute system if it's not already present.
+     *
+     * @return true The compute system was absent and created
+     * @return false The compute system is already present
+     */
+    [[nodiscard]] bool maybe_create_compute_system() noexcept(false);
+
+    /**
+     * Retrieve path to the primary disk symbolic link
+     */
+    [[nodiscard]] std::filesystem::path get_primary_disk_path() const noexcept(false);
+
+    [[nodiscard]] std::filesystem::path get_guest_state_file_path() const;
+    [[nodiscard]] std::filesystem::path get_runtime_state_file_path() const;
+    [[nodiscard]] std::filesystem::path get_saved_state_file_path() const;
+    [[nodiscard]] bool has_saved_state_file() const;
+    std::error_code remove_saved_state_file_if_exists();
+    void recover_from_failed_save();
+
+    void grant_access_to_scsi_device(const hcs::HcsScsiDevice& device) const;
+    void grant_access_to_paths(std::list<std::filesystem::path> paths) const;
+
+    static void compute_system_event_callback(HCS_EVENT* event, void* context);
+
+    void set_compute_system_callback_handler();
+
+    std::vector<hcn::CreateEndpointParameters> make_endpoint_parameters() const;
+};
+} // namespace multipass::hyperv

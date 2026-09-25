@@ -1,0 +1,479 @@
+/*
+ * Copyright (C) Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include <hcs/api/hcn/hyperv_hcn_api.h>
+#include <hcs/api/hcn/hyperv_hcn_create_endpoint_params.h>
+#include <hcs/api/hcn/hyperv_hcn_create_network_params.h>
+#include <hcs/api/hcn/hyperv_hcn_endpoint_query.h>
+#include <hcs/api/hcn/hyperv_hcn_wrapper.h>
+#include <hcs/hyperv_guid.h>
+
+#include <multipass/exceptions/formatted_exception_base.h>
+#include <multipass/logging/log.h>
+#include <multipass/utils.h>
+
+#include <shared/windows/wchar_conversion.h>
+
+#include <windows.h>
+#include <computecore.h>
+#include <computedefs.h>
+#include <computenetwork.h>
+#include <computestorage.h>
+#include <objbase.h>
+
+#include <boost/json.hpp>
+#include <fmt/xchar.h>
+#include <ztd/out_ptr.hpp>
+
+#include <cassert>
+#include <exception>
+#include <optional>
+#include <string>
+#include <type_traits>
+
+using ztd::out_ptr::out_ptr;
+
+namespace multipass::hyperv::hcn
+{
+
+namespace
+{
+inline const HCNAPI& API()
+{
+    return HCNAPI::instance();
+}
+
+struct HcnNetworkCloser
+{
+    void operator()(HCN_NETWORK p) const noexcept
+    {
+        (void)API().HcnCloseNetwork(p);
+    }
+};
+
+using UniqueHcnNetwork = std::unique_ptr<std::remove_pointer_t<HCN_NETWORK>, HcnNetworkCloser>;
+
+struct HcnEndpointCloser
+{
+    void operator()(HCN_ENDPOINT p) const noexcept
+    {
+        (void)API().HcnCloseEndpoint(p);
+    }
+};
+
+using UniqueHcnEndpoint = std::unique_ptr<std::remove_pointer_t<HCN_ENDPOINT>, HcnEndpointCloser>;
+
+struct CotaskmemStringDeleter
+{
+    void operator()(void* p) const noexcept
+    {
+        API().CoTaskMemFree(p);
+    }
+};
+using UniqueCotaskmemString = std::unique_ptr<wchar_t, CotaskmemStringDeleter>;
+
+namespace mpl = logging;
+using lvl = mpl::Level;
+
+// ---------------------------------------------------------
+
+constexpr auto log_category = "HyperV-HCN-Wrapper";
+
+// ---------------------------------------------------------
+
+/**
+ * Find the interface GUID of the network's host vNIC in the network properties.
+ *
+ * @param network Network properties, as returned by HcnQueryNetworkProperties
+ *
+ * @return The InterfaceGuid of the "Host Vnic" allocator, if present
+ */
+std::optional<std::string> host_interface_guid_of(const boost::json::value& network)
+{
+    boost::system::error_code ec;
+    const auto* allocators = network.find_pointer("/Resources/Allocators", ec);
+    if (!allocators || !allocators->is_array())
+        return std::nullopt;
+
+    for (const auto& allocator : allocators->as_array())
+    {
+        const auto* tag = allocator.find_pointer("/Tag", ec);
+        const auto* guid = allocator.find_pointer("/InterfaceGuid", ec);
+        if (tag && guid && guid->is_string() && *tag == "Host Vnic")
+            return std::string{guid->as_string()};
+    }
+
+    return std::nullopt;
+}
+
+// ---------------------------------------------------------
+
+template <typename FnType>
+OperationResult perform_hcn_operation(const FnType& fn)
+{
+    UniqueCotaskmemString result_msgbuf{};
+
+    // Perform the operation. The last argument of the all HCN operations (except HcnClose*) is
+    // ErrorRecord, which is a JSON-formatted document emitted by the API describing the error, if
+    // it occurred. Therefore, we can streamline all API calls through perform_hcn_operation.
+    const auto result = ResultCode{fn(out_ptr(result_msgbuf))};
+
+    mpl::trace(log_category, "perform_hcn_operation(...) > result: {}", result.success());
+
+    // Avoid null to be forward-compatible with C++23
+    return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+}
+
+// ---------------------------------------------------------
+
+std::pair<OperationResult, UniqueHcnNetwork> open_network(const std::string& network_guid)
+{
+    mpl::trace(log_category, "open_network(...) > network_guid: {} ", network_guid);
+
+    UniqueHcnNetwork network{};
+    const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
+        return API().HcnOpenNetwork(guid_from_string(network_guid), out_ptr(network), rmsgbuf);
+    });
+
+    return std::make_pair(result, std::move(network));
+}
+
+std::pair<OperationResult, UniqueHcnEndpoint> open_endpoint(const std::string& endpoint_guid)
+{
+    mpl::trace(log_category, "open_endpoint(...) > endpoint_guid: {} ", endpoint_guid);
+
+    UniqueHcnEndpoint endpoint{};
+    const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
+        return API().HcnOpenEndpoint(guid_from_string(endpoint_guid), out_ptr(endpoint), rmsgbuf);
+    });
+
+    return std::make_pair(result, std::move(endpoint));
+}
+
+} // namespace
+
+// ---------------------------------------------------------
+
+HCNWrapper::HCNWrapper(const Singleton<HCNWrapper>::PrivatePass& pass) noexcept
+    : Singleton<HCNWrapper>::Singleton{pass}
+{
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params) const
+{
+    mpl::trace(log_category, "HCNWrapper::create_network(...) > params: {} ", params);
+
+    UniqueHcnNetwork network{};
+    const auto network_settings = fmt::to_wstring(params);
+
+    return perform_hcn_operation([&](auto&& rmsgbuf) {
+        return API().HcnCreateNetwork(guid_from_string(params.guid),
+                                      network_settings.c_str(),
+                                      out_ptr(network),
+                                      rmsgbuf);
+    });
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCNWrapper::delete_network(const std::string& network_guid) const
+{
+    mpl::trace(log_category, "HCNWrapper::delete_network(...) > network_guid: {}", network_guid);
+
+    return perform_hcn_operation([&](auto&& rmsgbuf) {
+        return API().HcnDeleteNetwork(guid_from_string(network_guid), rmsgbuf);
+    });
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& params) const
+{
+    mpl::trace(log_category, "HCNWrapper::create_endpoint(...) > params: {} ", params);
+
+    const auto& [open_network_result, network] = open_network(params.network_guid);
+
+    if (nullptr == network)
+    {
+        return open_network_result;
+    }
+
+    UniqueHcnEndpoint endpoint{};
+    const auto params_json = fmt::to_wstring(params);
+
+    return perform_hcn_operation([&](auto&& rmsgbuf) {
+        return API().HcnCreateEndpoint(network.get(),
+                                       guid_from_string(params.endpoint_guid),
+                                       params_json.c_str(),
+                                       out_ptr(endpoint),
+                                       rmsgbuf);
+    });
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCNWrapper::delete_endpoint(const std::string& endpoint_guid) const
+{
+    mpl::trace(log_category,
+               "HCNWrapper::delete_endpoint(...) > endpoint_guid: {} ",
+               endpoint_guid);
+
+    return perform_hcn_operation([&](auto&& rmsgbuf) {
+        return API().HcnDeleteEndpoint(guid_from_string(endpoint_guid), rmsgbuf);
+    });
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
+                                           HcnEndpointInfo& out_info) const
+{
+    mpl::trace(log_category, "HCNWrapper::query_endpoint(...) > endpoint_guid: {}", endpoint_guid);
+
+    out_info = {};
+
+    const auto& [open_result, endpoint] = open_endpoint(endpoint_guid);
+    if (!open_result)
+        return open_result;
+
+    UniqueCotaskmemString properties{};
+    constexpr auto query = LR"({"SchemaVersion":{"Major":2,"Minor":0}})";
+    const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
+        return API().HcnQueryEndpointProperties(endpoint.get(),
+                                                query,
+                                                out_ptr(properties),
+                                                rmsgbuf);
+    });
+    if (!result)
+        return result;
+
+    if (!properties)
+        return {E_UNEXPECTED, L"HCN returned no endpoint properties"};
+
+    const auto properties_as_str = wchar_to_utf8(properties.get());
+    mpl::trace(log_category, "query_endpoint result: {}", properties_as_str);
+
+    try
+    {
+        out_info = boost::json::value_to<HcnEndpointInfo>(boost::json::parse(properties_as_str));
+    }
+    catch (const std::exception& e)
+    {
+        mpl::error(log_category, "query_endpoint(...): failed to parse JSON: {}", e.what());
+        return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
+    }
+
+    return result;
+}
+
+// ---------------------------------------------------------
+
+OperationResult HCNWrapper::enumerate_attached_endpoints(
+    const std::string& vm_guid,
+    std::vector<std::string>& endpoint_guids) const
+{
+    mpl::trace(log_category,
+               "HCNWrapper::enumerate_attached_endpoints(...) > vm_guid: {} ",
+               vm_guid);
+
+    const auto query = EndpointQuery{.vm_guid = vm_guid};
+    const auto query_wstring = fmt::to_wstring(query);
+
+    UniqueCotaskmemString json_output{}, result_msgbuf{};
+
+    const auto result = API().HcnEnumerateEndpoints(query_wstring.c_str(),
+                                                    out_ptr(json_output),
+                                                    out_ptr(result_msgbuf));
+
+    if (json_output)
+    {
+        const auto endpoints_as_str = wchar_to_utf8(json_output.get());
+        std::error_code ec;
+        const auto as_json = boost::json::parse(endpoints_as_str, ec);
+        if (!ec)
+        {
+            const auto& as_array = as_json.as_array();
+            for (const auto& elem : as_array)
+            {
+                endpoint_guids.emplace_back(elem.as_string());
+            }
+        }
+    }
+
+    return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+}
+
+OperationResult HCNWrapper::find_endpoints_by_name(const std::string& name,
+                                                   std::vector<std::string>& endpoint_guids) const
+{
+    mpl::trace(log_category, "HCNWrapper::find_endpoints_by_name(...) > name: {} ", name);
+
+    UniqueCotaskmemString json_output{}, result_msgbuf{};
+
+    // No filter -- enumerate every endpoint known to HCN, then inspect each one's `Name`
+    // individually. This does not require the owning compute system to be open/alive.
+    const auto result = API().HcnEnumerateEndpoints(L"{}",
+                                                    out_ptr(json_output),
+                                                    out_ptr(result_msgbuf));
+
+    if (FAILED(result) || !json_output)
+    {
+        return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+    }
+
+    const auto endpoints_as_str = wchar_to_utf8(json_output.get());
+    std::error_code ec;
+    const auto as_json = boost::json::parse(endpoints_as_str, ec);
+    if (ec)
+    {
+        return {E_FAIL, L"Json parse error"};
+    }
+
+    for (const auto& elem : as_json.as_array())
+    {
+        const std::string endpoint_guid{elem.as_string()};
+
+        const auto& [open_result, endpoint] = open_endpoint(endpoint_guid);
+        if (!endpoint)
+        {
+            mpl::warn(log_category,
+                      "find_endpoints_by_name(...) > could not open endpoint {}: {}",
+                      endpoint_guid,
+                      open_result);
+            continue;
+        }
+
+        UniqueCotaskmemString query_result{}, query_error{};
+        const auto query_status = API().HcnQueryEndpointProperties(endpoint.get(),
+                                                                   L"{}",
+                                                                   out_ptr(query_result),
+                                                                   out_ptr(query_error));
+        if (FAILED(query_status) || !query_result)
+        {
+            mpl::warn(log_category,
+                      "find_endpoints_by_name(...) > could not query endpoint {}: {}",
+                      endpoint_guid,
+                      query_status);
+            continue;
+        }
+
+        std::error_code query_ec;
+        const auto endpoint_json_str = wchar_to_utf8(query_result.get());
+        const auto endpoint_json = boost::json::parse(endpoint_json_str, query_ec);
+        if (query_ec)
+        {
+            continue;
+        }
+
+        const auto& endpoint_obj = endpoint_json.as_object();
+        if (const auto* endpoint_name = endpoint_obj.if_contains("Name");
+            endpoint_name != nullptr && endpoint_name->is_string() &&
+            endpoint_name->as_string() == name)
+        {
+            endpoint_guids.push_back(endpoint_guid);
+        }
+    }
+
+    return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+}
+
+OperationResult HCNWrapper::query_network(const std::string& network_guid,
+                                          HcnNetworkInfo& out_info) const
+{
+    mpl::trace(log_category, "HCNWrapper::query_network(...) > network_guid: {}", network_guid);
+
+    if (const auto& [open_network_result, network] = open_network(network_guid);
+        open_network_result)
+    {
+        UniqueCotaskmemString query_result{}, result_msgbuf{};
+        const auto result = API().HcnQueryNetworkProperties(network.get(),
+                                                            L"{}",
+                                                            out_ptr(query_result),
+                                                            out_ptr(result_msgbuf));
+        if (query_result)
+        {
+            try
+            {
+                const auto json_as_str = wchar_to_utf8(query_result.get());
+                mpl::trace(log_category, "query_network result: {}", json_as_str);
+                const auto as_json = boost::json::parse(json_as_str);
+
+                const auto& obj = as_json.as_object();
+                out_info.guid = network_guid;
+                out_info.name = obj.at("Name").as_string();
+
+                if (const auto* value = obj.if_contains("NetworkAdapterName"))
+                    out_info.network_adapter_name = value->as_string();
+
+                out_info.host_interface_guid = host_interface_guid_of(as_json);
+
+                if (const auto* value = obj.if_contains("Type"))
+                    out_info.type = value->as_string();
+                else
+                {
+                    // Quoting hcsshim:
+                    // "If HNS sets the network type to NAT (i.e. '0' in
+                    // HNS.Schema.Network.NetworkMode),the value will be omitted from the JSON
+                    // blob. We therefore need to initializeNAT here before unmarshaling the
+                    // JSON blob."
+                    out_info.type = "NAT";
+                }
+            }
+            catch (const std::exception& ex)
+            {
+                mpl::error(log_category,
+                           "Could not process network info for `{}`: `{}`, skipping!",
+                           network_guid,
+                           ex.what());
+                return {E_UNEXPECTED, {L"Failed to process JSON returned from the API"}};
+            }
+        }
+        return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+    }
+    else
+        return open_network_result;
+}
+
+OperationResult HCNWrapper::enumerate_networks(std::vector<std::string>& out_network_guids) const
+{
+    mpl::trace(log_category, "HCNWrapper::enumerate_networks(...)");
+
+    UniqueCotaskmemString enumerate_result{}, result_msgbuf{};
+
+    // List all HCN network GUIDs
+    const auto result = API().HcnEnumerateNetworks(L"{}",
+                                                   out_ptr(enumerate_result),
+                                                   out_ptr(result_msgbuf));
+    if (enumerate_result)
+    {
+        // json_output would contain the network GUIDs.
+        const auto json_as_str = wchar_to_utf8(enumerate_result.get());
+        std::error_code ec;
+        const auto as_json = boost::json::parse(json_as_str, ec);
+        if (!ec)
+        {
+            for (const auto& network_guid : as_json.as_array())
+            {
+                out_network_guids.emplace_back(std::string{network_guid.as_string()});
+            }
+        }
+    }
+    return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+}
+} // namespace multipass::hyperv::hcn

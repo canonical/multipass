@@ -19,7 +19,7 @@
 #include "hyperv_disk_layout.h"
 #include "hyperv_migration_utils.h"
 
-#include <hyperv_api/virtdisk/virtdisk_wrapper.h>
+#include <hcs/api/virtdisk/virtdisk_wrapper.h>
 
 #include <multipass/file_ops.h>
 #include <multipass/json_utils.h>

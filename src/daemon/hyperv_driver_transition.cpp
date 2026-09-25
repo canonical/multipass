@@ -20,8 +20,8 @@
 #include "daemon_config.h"
 #include "hyperv_migration.h"
 
-#include <hyperv_api/hcs_virtual_machine_factory.h>
-#include <hyperv_api/hcs_virtual_machine_resources.h>
+#include <hcs/hcs_virtual_machine_factory.h>
+#include <hcs/hcs_virtual_machine_resources.h>
 
 #include <multipass/constants.h>
 #include <multipass/settings/settings.h>
