@@ -86,7 +86,7 @@ public:
         grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server);
 
 private:
-    void release_hcs_instances() const;
+    [[nodiscard]] grpc::Status release_hcs_instances() const;
 
     DriverTransitionContext context;
     bool migration_flag_acquired{false};

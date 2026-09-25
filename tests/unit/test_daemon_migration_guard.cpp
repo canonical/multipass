@@ -382,7 +382,7 @@ TEST_F(TestDaemonMigrationGuard, driverChangeRejectsRunningHcsInstance)
 
     const auto status = call_daemon_slot(daemon, &mp::Daemon::set, request, server);
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
-    EXPECT_THAT(status.error_message(), HasSubstr("instance is not stopped"));
+    EXPECT_EQ(status.error_message(), "running must be stopped first");
     EXPECT_FALSE(daemon.is_migrating());
 }
 
@@ -580,13 +580,32 @@ TEST_F(TestHyperVDriverTransition, deletedHcsInstancesAreCheckedBeforeReleasingR
         .WillOnce(Return(QStringLiteral("hyperv_api")));
     EXPECT_CALL(*vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::running));
 
-    MP_EXPECT_THROW_THAT(
-        {
-            auto change = transition(*config);
-            (void)change.prepare(mp::driver_key, "hyperv");
-        },
-        std::exception,
-        Property(&std::exception::what, HasSubstr("instance is not stopped")));
+    {
+        auto change = transition(*config);
+        const auto status = change.prepare(mp::driver_key, "hyperv");
+        EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+        EXPECT_EQ(status.error_message(), "deleted must be stopped first");
+    }
     EXPECT_FALSE(migrating);
+}
+
+TEST_F(TestHyperVDriverTransition, leavingHcsNamesEveryInstanceThatIsNotStopped)
+{
+    const auto config = config_builder.build();
+    for (const auto& [name, state] : {std::pair{"zeta", mp::VirtualMachine::State::running},
+                                      std::pair{"alpha", mp::VirtualMachine::State::suspended},
+                                      std::pair{"idle", mp::VirtualMachine::State::stopped}})
+    {
+        auto vm = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
+        ON_CALL(*vm, current_state()).WillByDefault(Return(state));
+        instances.emplace(name, vm);
+    }
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
+        .WillOnce(Return(QStringLiteral("hyperv_api")));
+
+    auto change = transition(*config);
+    const auto status = change.prepare(mp::driver_key, "hyperv");
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+    EXPECT_EQ(status.error_message(), "alpha, zeta must be stopped first");
 }
 #endif
