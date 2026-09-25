@@ -31,7 +31,7 @@ _multipass_complete()
     {
         local instance=$1 snapshots
 
-        snapshots=$(multipass list --snapshots --format=csv 2>/dev/null | \tail -n +2)
+        snapshots=$(multipass snapshots --format=csv 2>/dev/null | \tail -n +2)
         [ -n "$instance" ] && snapshots=$(awk -F',' "\$1 == \"$instance\"" <<< "$snapshots")
         snapshots=$(echo "$snapshots" | \cut -d',' -f 1,2 | \tr ',' '.' | \tr '\r\n' ' ')
 
@@ -246,7 +246,7 @@ _multipass_complete()
             _add_nonrepeating_args "--format --snapshots"
         ;;
         "list"|"ls")
-            _add_nonrepeating_args "--format --snapshots"
+            _add_nonrepeating_args "--format"
         ;;
         "networks"|"aliases"|"snapshots")
             _add_nonrepeating_args "--format"
