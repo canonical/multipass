@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dropdown.dart';
 import '../l10n/app_localizations.dart';
+import '../notifications/driver_migration_notification.dart';
 import '../notifications/notifications_provider.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
@@ -10,6 +11,17 @@ import 'constants.dart';
 
 final driverProvider = daemonSettingProvider(driverKey);
 final bridgedNetworkProvider = daemonSettingProvider(bridgedNetworkKey);
+
+// TODO hyperv migration, remove
+// Switching from hyperv migrates the instances, which is reported as the change
+// progresses.
+void migrateToHypervApi(WidgetRef ref) {
+  final replies =
+      ref.read(grpcClientProvider).setStreaming(driverKey, 'hyperv_api');
+  ref.read(notificationsProvider.notifier).add(
+        DriverMigrationNotification(progress: migrationProgress(replies)),
+      );
+}
 
 class VirtualizationSettings extends ConsumerWidget {
   const VirtualizationSettings({super.key});
@@ -48,6 +60,11 @@ class VirtualizationSettings extends ConsumerWidget {
           items: {if (driver != null) driver: driver, ...mpPlatform.drivers},
           onChanged: (value) {
             if (value == driver) return;
+            // TODO hyperv migration, remove
+            if (driver == 'hyperv' && value == 'hyperv_api') {
+              migrateToHypervApi(ref);
+              return;
+            }
             ref.read(driverProvider.notifier).set(value as String).onError(
                 ref.notifyError((e) => l10n.virtualizationDriverError('$e')));
           },
