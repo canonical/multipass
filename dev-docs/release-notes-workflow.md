@@ -5,7 +5,7 @@ inside VS Code, using Copilot Chat and the repository's own agent definition.
 
 The goal is to produce release notes for a specific release by:
 
-1. setting the previous tag and target tag (both v-prefixed, e.g. `v1.16.3` →
+1. setting the previous tag and target tag (both v-prefixed, e.g. `v1.16.0` →
    `v1.17.0`),
 2. letting Copilot use the local agent definition,
 3. generating the enriched commit data,
@@ -37,10 +37,35 @@ git fetch --tags
 Contributor detection is release-aware and stateless. The generator uses the
 GitHub PR author, not the Git commit author, and marks a contributor as new
 only when none of their PRs shipped in a published release before the target.
-This is computed on the fly from GitHub's published releases plus local git
-reachability, so a contributor first shipped in a maintenance release is not
-acknowledged again by the next feature release. Nothing needs to be committed or
-run after publication.
+This is computed on the fly from local published release tags plus authoritative
+GitHub PR authors, so a contributor first shipped in a maintenance release is
+not acknowledged again by the next feature release. Nothing needs to be
+committed or run after publication.
+
+### Feature releases
+
+Use the previous feature-release tag and the new feature target, for example:
+
+```text
+PREVIOUS_TAG=v1.16.0 TARGET_TAG=v1.17.0
+```
+
+The raw `v1.16.0..v1.17.0` range may include maintenance backports that were
+later merged back to `main`. The generator marks those PRs with
+`already_shipped: true`; exclude them from validation, ranking, and rendering.
+
+### Maintenance releases
+
+Use consecutive tags on the maintenance line, for example:
+
+```text
+PREVIOUS_TAG=v1.16.1 TARGET_TAG=v1.16.2
+```
+
+This limits the notes to commits introduced between those two maintenance
+tags. Do not use `v1.16.0` as the baseline for `v1.16.2`: that would include
+older feature-release history. PRs already shipped before the range remain
+excluded, while fixes introduced by the maintenance range remain eligible.
 
 If you are working from a fork, set:
 

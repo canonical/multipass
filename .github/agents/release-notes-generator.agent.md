@@ -33,16 +33,16 @@ that directory only if you want a guaranteed clean slate.
 When invoked from a "Generate release notes" issue (see
 `.github/ISSUE_TEMPLATE/release-notes.md`), the issue provides two inputs:
 
-- **`PREVIOUS_TAG`** — the last released tag to diff against (e.g. `v1.16.3`).
+- **`PREVIOUS_TAG`** — the last released tag to diff against (e.g. `v1.16.0`).
 - **`TARGET_TAG`** — the tag being released, i.e. the end of the range
-  (e.g. `v1.17.0`).
+  (e.g. `v1.16.1`, `v1.17.0`, `origin/main`).
 
 Export both from the issue body before running anything, so every command and
 validation query below picks them up. Also derive the bare version (no `v`)
 for the document filename and heading:
 
 ```bash
-export PREVIOUS_TAG=<value from issue>            # e.g. v1.16.3
+export PREVIOUS_TAG=<value from issue>            # e.g. v1.16.0
 export TARGET_TAG=<value from issue>              # e.g. v1.17.0
 export TARGET_VERSION="${TARGET_TAG#v}"           # e.g. 1.17.0 (docs only)
 ```
@@ -62,9 +62,10 @@ Then, end to end:
    exist yet, the release hasn't been cut — stop and report):
    `./tools/release-notes/get-commits-since-release.sh --json --tag "$PREVIOUS_TAG" --to "$TARGET_TAG" > /tmp/commits-data.json`
   Inspect `.metadata.contributor_detection.complete`. Do not publish the
-  contributor section unless it is `true` (every PR author was resolved against
-  GitHub's published releases). Detection is stateless and release-aware: it
-  accounts for PR authors from feature and maintenance releases automatically.
+  contributor section unless it is `true`. Detection is stateless and
+  release-aware: it uses the local published `vMAJOR.MINOR.PATCH` tags and
+  authoritative GitHub PR authors, accounting for feature and maintenance
+  releases automatically.
    Before trusting the range, confirm `PREVIOUS_TAG` is actually an ancestor of
    `TARGET_TAG`: `git merge-base --is-ancestor "$PREVIOUS_TAG" "$TARGET_TAG"`.
    If it is NOT (e.g. `PREVIOUS_TAG` is a patch cut from a diverged release
@@ -83,7 +84,7 @@ Then, end to end:
 
 ```bash
 # Generate commits JSON WITH PR context (title, body, labels, diffstat, changed dirs)
-# Both tags come from the issue (see Operating procedure); e.g. v1.16.3 to v1.17.0.
+# Both tags come from the issue (see Operating procedure); e.g. v1.16.0 to v1.17.0.
 ./tools/release-notes/get-commits-since-release.sh --json --tag "$PREVIOUS_TAG" --to "$TARGET_TAG" > /tmp/commits-data.json
 
 # Fill template using commits-data.json
@@ -91,10 +92,23 @@ Then, end to end:
 
 Contributor detection is stateless: the script marks a PR author as new only
 when none of their PRs shipped in a published release before the target,
-computed from GitHub's published releases plus local git reachability. A
-contributor first shipped in a maintenance release is therefore not credited
-again by a later feature release, and nothing needs to be recorded or committed
-after publication.
+computed from local published release tags plus authoritative GitHub PR
+authors. A contributor first shipped in a maintenance release is therefore not
+credited again by a later feature release, and nothing needs to be recorded or
+committed after publication.
+
+**Release-type rules:**
+
+- **Feature release:** use the previous feature-release tag as `PREVIOUS_TAG`
+  and the feature target as `TARGET_TAG`. The raw Git range may contain
+  maintenance backports later merged to `main`; records marked
+  `already_shipped: true` are excluded from validation, ranking, and rendering.
+- **Maintenance release:** use the immediately previous release on that
+  maintenance branch as `PREVIOUS_TAG` and the maintenance target as
+  `TARGET_TAG`. The range is only that branch's incremental history; do not
+  substitute the previous feature-release tag. PRs already shipped before the
+  maintenance range remain excluded, while PRs introduced by this maintenance
+  range remain eligible.
 
 ## Input Data Format
 
@@ -103,7 +117,7 @@ The `tools/release-notes/get-commits-since-release.sh --json` script outputs:
 ```json
 {
   "metadata": {
-    "release_tag": "v1.16.3",
+    "release_tag": "v1.16.0",
     "range_end": "v1.17.0",
     "total_commits": 3736,
     "generated_at": "2026-07-17T18:00:34Z"
@@ -118,6 +132,7 @@ The `tools/release-notes/get-commits-since-release.sh --json` script outputs:
       "pr_number": 5078,
       "is_new_author": false,
       "contributor_status": "true|false|bot|unresolved|not-applicable",
+      "already_shipped": false,
       "pr_author_login": "github-username",
       "pr_author_type": "User",
       // Legacy identity, retained only for backwards-compatible PR-less data:
@@ -139,6 +154,14 @@ The `tools/release-notes/get-commits-since-release.sh --json` script outputs:
   ]
 }
 ```
+
+`already_shipped` is true when the PR number is present in commits reachable
+from an earlier published release tag. Keep those records for auditability,
+but exclude them from validation, ranking, and template rendering. This is
+especially important for feature releases, whose `FROM_TAG..TARGET_TAG` range
+can include maintenance backports later merged back to `main`. For a
+maintenance range, it also prevents PRs from earlier releases from being
+reintroduced through branch history.
 
 **The enriched fields are the whole point.** `type` is now classified using the
 PR body (not just the subject), and `pr_body` / `labels` / `top_dirs` /
@@ -179,15 +202,15 @@ the jq filter, and any `[bot]` login by hand).
 
 ```bash
 # All git-based queries span $PREVIOUS_TAG..$TARGET_TAG (export both from the
-# issue inputs first, e.g. PREVIOUS_TAG=v1.16.3 TARGET_TAG=v1.17.0).
+# issue inputs first, e.g. PREVIOUS_TAG=v1.16.0 TARGET_TAG=v1.17.0).
 
 # 1. Get full view of user-facing PRs with real titles + churn (noise excluded)
-jq -r '.commits[] | select(.pr_number != null and (.skip | not))
+jq -r '.commits[] | select(.pr_number != null and (.skip | not) and (.already_shipped | not))
   | "[\(.category)] \(.pr_title // .subject) (#\(.pr_number))  +\(.additions // 0)/-\(.deletions // 0)"' \
   /tmp/commits-data.json | sort -u
 
 # 1b. Surface high-churn PRs (substantial work that terse titles may undersell)
-jq -r '.commits[] | select(.pr_number != null and (.skip | not))
+jq -r '.commits[] | select(.pr_number != null and (.skip | not) and (.already_shipped | not))
   | "\(((.additions // 0) + (.deletions // 0)))\t#\(.pr_number)\t\(.pr_title // .subject)"' \
   /tmp/commits-data.json | sort -rn | head -30
 
@@ -200,7 +223,7 @@ jq -r '[.commits[] | select(.skip) | .skip_reason]
 git diff "$PREVIOUS_TAG".."$TARGET_TAG" --name-only | cut -d'/' -f1-2 | sort | uniq -c | sort -rn | head -20
 
 # 3. Get category distribution (noise excluded) to understand where effort was concentrated
-jq -r '[.commits[] | select(.pr_number != null and (.skip | not)) | .category] | group_by(.) | map({category: .[0], count: length}) | sort_by(-.count) | .[] | "\(.category): \(.count)"' /tmp/commits-data.json
+jq -r '[.commits[] | select(.pr_number != null and (.skip | not) and (.already_shipped | not)) | .category] | group_by(.) | map({category: .[0], count: length}) | sort_by(-.count) | .[] | "\(.category): \(.count)"' /tmp/commits-data.json
 
 # 4. List commits with larger diffs (more substantial changes)
 git log "$PREVIOUS_TAG".."$TARGET_TAG" --oneline --stat | grep -E "^ [a-f0-9]+|^ Author|^ Date|files? changed" | head -50
@@ -230,7 +253,7 @@ several signals so important PRs can't be filtered out before evaluation:
 #     image vault/catalogue, rpc/proto, networking)
 jq '
   [.commits[]
-    | select(.pr_number != null and (.skip | not))   # drop pre-filtered noise
+    | select(.pr_number != null and (.skip | not) and (.already_shipped | not))   # drop noise and intermediate-release PRs
     | . as $c
     | ((.additions // 0) + (.deletions // 0)) as $churn
     | (([.top_dirs[]?.dir] | join(" ")) ) as $dirs
@@ -264,7 +287,7 @@ Two rules make the difference:
    jq -c --slurpfile candidates /tmp/candidate-prs.json '
      ($candidates[0] | map(.pr_number | tostring) | INDEX(.[]; .pr_number | tostring)) as $candidate_prs
      | [.commits[]
-     | select(.pr_number != null and (.skip | not) and ($candidate_prs[.pr_number | tostring] != null))
+    | select(.pr_number != null and (.skip | not) and (.already_shipped | not) and ($candidate_prs[.pr_number | tostring] != null))
      | {pr_number, pr_title, category, type, labels,
         additions, deletions, changed_files, top_dirs,
         pr_body: (.pr_body // .subject)}]' /tmp/commits-data.json > /tmp/eval-input.json
@@ -354,8 +377,9 @@ Use the tiers to:
 Transform ranked PRs to template-compatible structure with jq. Every release-note
 entry must be present in `/tmp/ranked-prs.json` with a final tier other than
 `skip`; unranked classified commits are intermediate data only. The base
-selection still requires `.pr_number != null and (.skip | not)` so noise and
-PR-less commits (which lack enriched fields) never reach the template:
+selection must require `.pr_number != null and (.skip | not) and
+(.already_shipped | not)` so noise, PR-less commits, and changes already
+shipped by an earlier release never reach the template:
 
 ```bash
 jq --slurpfile ranked /tmp/ranked-prs.json '
@@ -392,7 +416,7 @@ jq --slurpfile ranked /tmp/ranked-prs.json '
   . as $data
   # One PR can map to several in-range commits (cherry-picks, backports, re-merges);
   # dedupe by PR so each ranked PR renders exactly once across all sections.
-  | ([$data.commits[] | select(.pr_number != null and (.skip | not))] | unique_by(.pr_number)) as $commits
+  | ([$data.commits[] | select(.pr_number != null and (.skip | not) and (.already_shipped | not))] | unique_by(.pr_number)) as $commits
   | [$commits[] | select(.type == "breaking") | selected | del(.labels, .hash)] | sort_by(.rank) as $breaking_items
   | [$commits[] | select(.type == "docs") | selected | del(.category, .labels, .hash)] | sort_by(.rank) as $doc_items
   |
@@ -467,10 +491,11 @@ The template renders each entry as
 where #N is that earliest in-range PR. Exclude bot actors from this section.
 
 **`contributor_status` is authoritative and stateless.** It is computed from
-the authoritative PR author against GitHub's published releases plus local git
-reachability: `true` = first shipped in this release, `false` = already shipped
-in an earlier published release, `bot` = automation, `unresolved` = a GitHub
-history query failed. A contributor already shipped in a maintenance release is
-`false` even if their feature-branch PR merged earlier. `unresolved` marks the
-run incomplete (`.metadata.contributor_detection.complete == false`) and blocks
-publication rather than becoming a new contributor by fallback.
+the authoritative PR author against local published release tags plus local git
+reachability and GitHub PR history when needed: `true` = first shipped in this
+release, `false` = already shipped in an earlier published release, `bot` =
+automation, `unresolved` = a GitHub history query failed. A contributor already
+shipped in a maintenance release is `false` even if their feature-branch PR
+merged earlier. `unresolved` marks the run incomplete
+(`.metadata.contributor_detection.complete == false`) and blocks publication
+rather than becoming a new contributor by fallback.
