@@ -213,6 +213,70 @@ auto construct_multiple_snapshots_list_reply()
     return list_reply;
 }
 
+mp::SnapshotsReply construct_empty_snapshots_reply()
+{
+    mp::SnapshotsReply reply;
+    reply.mutable_snapshot_list();
+    return reply;
+}
+
+mp::SnapshotsReply construct_single_snapshots_reply()
+{
+    mp::SnapshotsReply reply;
+
+    auto entry = reply.mutable_snapshot_list()->add_snapshots();
+    entry->set_name("foo");
+    auto fundamentals = entry->mutable_fundamentals();
+    fundamentals->set_snapshot_name("snapshot1");
+    fundamentals->set_comment("This is a sample comment");
+
+    return reply;
+}
+
+mp::SnapshotsReply construct_multiple_snapshots_reply()
+{
+    mp::SnapshotsReply reply;
+    auto snapshot_list = reply.mutable_snapshot_list();
+
+    // Snapshots with the same instance name are sorted by creation timestamp, so the timestamps
+    // here determine the expected output order.
+    auto entry = snapshot_list->add_snapshots();
+    entry->set_name("prosperous-spadefish");
+    entry->mutable_fundamentals()->set_snapshot_name("snapshot10");
+    entry->mutable_fundamentals()->set_parent("snapshot2");
+    entry->mutable_fundamentals()->mutable_creation_timestamp()->set_seconds(1672531200);
+
+    entry = snapshot_list->add_snapshots();
+    entry->set_name("hale-roller");
+    entry->mutable_fundamentals()->set_snapshot_name("rolling");
+    entry->mutable_fundamentals()->set_parent("pristine");
+    entry->mutable_fundamentals()->set_comment("Loaded with stuff");
+    entry->mutable_fundamentals()->mutable_creation_timestamp()->set_seconds(25425952800);
+
+    entry = snapshot_list->add_snapshots();
+    entry->set_name("hale-roller");
+    entry->mutable_fundamentals()->set_snapshot_name("rocking");
+    entry->mutable_fundamentals()->set_parent("pristine");
+    entry->mutable_fundamentals()->set_comment(
+        "A very long comment that should be truncated by the table formatter");
+    entry->mutable_fundamentals()->mutable_creation_timestamp()->set_seconds(2209234259);
+
+    entry = snapshot_list->add_snapshots();
+    entry->set_name("hale-roller");
+    entry->mutable_fundamentals()->set_snapshot_name("pristine");
+    entry->mutable_fundamentals()->set_comment("A first snapshot");
+    entry->mutable_fundamentals()->mutable_creation_timestamp()->set_seconds(409298914);
+
+    entry = snapshot_list->add_snapshots();
+    entry->set_name("prosperous-spadefish");
+    entry->mutable_fundamentals()->set_snapshot_name("snapshot2");
+    entry->mutable_fundamentals()->set_comment(
+        "Before restoring snap1\nContains a newline that\r\nshould be truncated");
+    entry->mutable_fundamentals()->mutable_creation_timestamp()->set_seconds(1671840000);
+
+    return reply;
+}
+
 auto add_petenv_to_reply(mp::ListReply& reply)
 {
     if (reply.has_instance_list())
@@ -851,6 +915,10 @@ const auto unsorted_list_reply = construct_unsorted_list_reply();
 const auto single_snapshot_list_reply = construct_single_snapshot_list_reply();
 const auto multiple_snapshots_list_reply = construct_multiple_snapshots_list_reply();
 
+const auto empty_snapshots_reply = construct_empty_snapshots_reply();
+const auto single_snapshots_reply = construct_single_snapshots_reply();
+const auto multiple_snapshots_reply = construct_multiple_snapshots_reply();
+
 const auto empty_networks_reply = mp::NetworksReply();
 const auto one_short_line_networks_reply = construct_one_short_line_networks_reply();
 const auto one_long_line_networks_reply = construct_one_long_line_networks_reply();
@@ -1088,6 +1156,52 @@ const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
          .toStdString(),
      "json_info_multiple_mixed_instances_and_snapshots"}};
 
+const std::vector<FormatterParamType> snapshots_formatter_outputs{
+    {&table_formatter,
+     &empty_snapshots_reply,
+     mpt::load_test_file("formatters/table/empty_snapshots_reply.txt").toStdString(),
+     "table_snapshots_empty"},
+    {&table_formatter,
+     &single_snapshots_reply,
+     mpt::load_test_file("formatters/table/single_snapshots_reply.txt").toStdString(),
+     "table_snapshots_single"},
+    {&table_formatter,
+     &multiple_snapshots_reply,
+     mpt::load_test_file("formatters/table/multiple_snapshots_reply.txt").toStdString(),
+     "table_snapshots_multiple"},
+
+    {&csv_formatter,
+     &empty_snapshots_reply,
+     mpt::load_test_file("formatters/csv/empty_snapshots_reply.csv").toStdString(),
+     "csv_snapshots_empty"},
+    {&csv_formatter,
+     &single_snapshots_reply,
+     mpt::load_test_file("formatters/csv/single_snapshots_reply.csv").toStdString(),
+     "csv_snapshots_single"},
+    {&csv_formatter,
+     &multiple_snapshots_reply,
+     mpt::load_test_file("formatters/csv/multiple_snapshots_reply.csv").toStdString(),
+     "csv_snapshots_multiple"},
+
+    {&yaml_formatter, &empty_snapshots_reply, "\n", "yaml_snapshots_empty"},
+    {&yaml_formatter,
+     &single_snapshots_reply,
+     mpt::load_test_file("formatters/yaml/single_snapshots_reply.yaml").toStdString(),
+     "yaml_snapshots_single"},
+    {&yaml_formatter,
+     &multiple_snapshots_reply,
+     mpt::load_test_file("formatters/yaml/multiple_snapshots_reply.yaml").toStdString(),
+     "yaml_snapshots_multiple"},
+
+    {&json_formatter,
+     &single_snapshots_reply,
+     mpt::load_test_file("formatters/json/single_snapshots_reply.json").toStdString(),
+     "json_snapshots_single"},
+    {&json_formatter,
+     &multiple_snapshots_reply,
+     mpt::load_test_file("formatters/json/multiple_snapshots_reply.json").toStdString(),
+     "json_snapshots_multiple"}};
+
 const std::vector<FormatterParamType> non_orderable_networks_formatter_outputs{
     {&table_formatter,
      &empty_networks_reply,
@@ -1298,6 +1412,8 @@ TEST_P(FormatterSuite, properlyFormatsOutput)
 
     if (auto input = dynamic_cast<const mp::ListReply*>(reply))
         output = formatter->format(*input);
+    else if (auto input = dynamic_cast<const mp::SnapshotsReply*>(reply))
+        output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::NetworksReply*>(reply))
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::InfoReply*>(reply))
@@ -1319,6 +1435,10 @@ INSTANTIATE_TEST_SUITE_P(OrderableListInfoOutputFormatter,
 INSTANTIATE_TEST_SUITE_P(NonOrderableListInfoOutputFormatter,
                          FormatterSuite,
                          ValuesIn(non_orderable_list_info_formatter_outputs),
+                         print_param_name);
+INSTANTIATE_TEST_SUITE_P(SnapshotsOutputFormatter,
+                         FormatterSuite,
+                         ValuesIn(snapshots_formatter_outputs),
                          print_param_name);
 INSTANTIATE_TEST_SUITE_P(FindOutputFormatter,
                          FormatterSuite,

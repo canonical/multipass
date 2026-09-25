@@ -203,6 +203,11 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
     return output;
 }
 
+std::string mp::CSVFormatter::format(const SnapshotsReply& reply) const
+{
+    return generate_snapshots_list(reply.snapshot_list());
+}
+
 std::string mp::CSVFormatter::format(const NetworksReply& reply) const
 {
     fmt::memory_buffer buf;

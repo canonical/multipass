@@ -15,7 +15,7 @@
  *
  */
 
-#include "list.h"
+#include "snapshots.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
@@ -24,7 +24,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCodeVariant cmd::List::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Snapshots::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -32,11 +32,8 @@ mp::ReturnCodeVariant cmd::List::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [this](ListReply& reply) -> ReturnCodeVariant {
+    auto on_success = [this](SnapshotsReply& reply) -> ReturnCodeVariant {
         cout << chosen_formatter->format(reply);
-
-        if (term->is_live() && update_available(reply.update_info()))
-            cout << update_notice(reply.update_info());
 
         return ReturnCode::Ok;
     };
@@ -46,42 +43,33 @@ mp::ReturnCodeVariant cmd::List::run(mp::ArgParser* parser)
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
-    return dispatch(&RpcMethod::list, request, on_success, on_failure);
+    return dispatch(&RpcMethod::snapshots, request, on_success, on_failure);
 }
 
-std::string cmd::List::name() const
+std::string cmd::Snapshots::name() const
 {
-    return "list";
+    return "snapshots";
 }
 
-std::vector<std::string> cmd::List::aliases() const
+QString cmd::Snapshots::short_help() const
 {
-    return {name(), "ls"};
+    return QStringLiteral("List all available snapshots");
 }
 
-QString cmd::List::short_help() const
+QString cmd::Snapshots::description() const
 {
-    return QStringLiteral("List all available instances");
+    return QStringLiteral("List all snapshots which have been created.");
 }
 
-QString cmd::List::description() const
+mp::ParseCode cmd::Snapshots::parse_args(mp::ArgParser* parser)
 {
-    return QStringLiteral("List all instances which have been created.");
-}
-
-mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
-{
-    QCommandLineOption snapshotsOption("snapshots", "List all available snapshots");
     QCommandLineOption formatOption("format",
                                     "Output list in the requested format.\nValid formats are: "
                                     "table (default), json, csv and yaml",
                                     "format",
                                     "table");
-    QCommandLineOption noIpv4Option("no-ipv4",
-                                    "Do not query the instances for the IPv4's they are using");
-    noIpv4Option.setFlags(QCommandLineOption::HiddenFromHelp);
 
-    parser->addOptions({snapshotsOption, formatOption, noIpv4Option});
+    parser->addOptions({formatOption});
 
     auto status = parser->commandParse(this);
 
@@ -95,19 +83,6 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
         cerr << "This command takes no arguments\n";
         return ParseCode::CommandLineError;
     }
-
-    if (parser->isSet(snapshotsOption) && parser->isSet(noIpv4Option))
-    {
-        cerr << "IP addresses are not applicable in conjunction with listing snapshots\n";
-        return ParseCode::CommandLineError;
-    }
-
-    if (parser->isSet(snapshotsOption))
-        cerr << "Warning: `multipass list --snapshots` is deprecated. Use `multipass snapshots` "
-                "instead.\n";
-
-    request.set_snapshots(parser->isSet(snapshotsOption));
-    request.set_request_ipv4(!parser->isSet(noIpv4Option));
 
     status = handle_format_option(parser, &chosen_formatter, cerr);
 

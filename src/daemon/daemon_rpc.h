@@ -80,6 +80,9 @@ signals:
     void on_list(const ListRequest* request,
                  grpc::ServerReaderWriter<ListReply, ListRequest>* server,
                  DaemonRpcContext* context);
+    void on_snapshots(const SnapshotsRequest* request,
+                      grpc::ServerReaderWriter<SnapshotsReply, SnapshotsRequest>* server,
+                      DaemonRpcContext* context);
     void on_clone(const CloneRequest* request,
                   grpc::ServerReaderWriter<CloneReply, CloneRequest>* server,
                   DaemonRpcContext* context);
@@ -173,6 +176,9 @@ protected:
                       grpc::ServerReaderWriter<InfoReply, InfoRequest>* server) override;
     grpc::Status list(grpc::ServerContext* context,
                       grpc::ServerReaderWriter<ListReply, ListRequest>* server) override;
+    grpc::Status snapshots(
+        grpc::ServerContext* context,
+        grpc::ServerReaderWriter<SnapshotsReply, SnapshotsRequest>* server) override;
     grpc::Status clone(grpc::ServerContext* context,
                        grpc::ServerReaderWriter<CloneReply, CloneRequest>* server) override;
     grpc::Status networks(

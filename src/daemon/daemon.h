@@ -90,6 +90,11 @@ public slots:
                       grpc::ServerReaderWriterInterface<ListReply, ListRequest>* server,
                       DaemonRpcContext* context);
 
+    virtual void snapshots(
+        const SnapshotsRequest* request,
+        grpc::ServerReaderWriterInterface<SnapshotsReply, SnapshotsRequest>* server,
+        DaemonRpcContext* context);
+
     virtual void networks(const NetworksRequest* request,
                           grpc::ServerReaderWriterInterface<NetworksReply, NetworksRequest>* server,
                           DaemonRpcContext* context);

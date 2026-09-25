@@ -35,6 +35,7 @@ public:
     virtual ~Formatter() = default;
     virtual std::string format(const InfoReply& reply) const = 0;
     virtual std::string format(const ListReply& reply) const = 0;
+    virtual std::string format(const SnapshotsReply& reply) const = 0;
     virtual std::string format(const NetworksReply& reply) const = 0;
     virtual std::string format(const FindReply& reply) const = 0;
     virtual std::string format(const VersionReply& reply,
