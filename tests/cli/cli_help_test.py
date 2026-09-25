@@ -56,7 +56,7 @@ ALL_COMMANDS = [
     ("help", "Display help about a command"),
     ("info", "Display information about instances or snapshots"),
     ("launch", "Create and start .* instance"),
-    ("list", "List all available instances or snapshots"),
+    ("list", "List all available instances"),
     ("mount", "Mount a local directory in the instance"),
     ("networks", "List available network interfaces"),
     ("prefer", "Switch the current alias context"),
