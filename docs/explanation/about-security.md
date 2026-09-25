@@ -91,6 +91,33 @@ Multipass bundles these libraries with [vcpkg](https://vcpkg.io/), which builds 
 
 **At rest.** Multipass does not encrypt instance disks, cached images, or snapshots. To protect them, use full-disk encryption on the host, such as BitLocker on Windows, FileVault on macOS, or LUKS on Linux. See [Configure where Multipass stores external data](how-to-guides-customise-multipass-configure-where-multipass-stores-external-data) and [Mount an encrypted home folder](how-to-guides-troubleshoot-mount-an-encrypted-home-folder).
 
+## Configuring and operating Multipass securely
+
+Multipass is secure by default. Each default below exists for a reason, and changing it has a cost:
+
+- **Only administrators can connect at first.** The daemon socket is limited to the administrator group until the first client is trusted.
+- **Other users need a passphrase.** No [passphrase](/reference/settings/local-passphrase) is set by default, so no other user can connect. When you set one, anyone who knows it can fully control Multipass. Choose a strong passphrase and share it only with trusted users. See [How to authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service).
+- **Mounts are disabled on Windows.** Enabling [`local.privileged-mounts`](/reference/settings/local-privileged-mounts) lets instances write to host folders with `SYSTEM` privileges.
+- **Instances use NAT networking.** [Bridged networking](how-to-guides-manage-instances-set-up-custom-networking) puts an instance directly on your local network, where other machines can reach it.
+- **The daemon accepts only local connections.** It cannot be reached from the network.
+- **Linux installs update automatically.** Holding updates delays security fixes. See [Security lifecycle](security-lifecycle).
+
+### Risks you should be aware of
+
+Some risks come with what Multipass does and cannot be removed by Multipass itself:
+
+- **Control of the daemon means control of the host.** Only give Multipass access to people you would trust with administrator rights.
+- **Mounts give instances write access to host files.** Mount only the folders an instance needs, and unmount them when you are done.
+- **Bridged instances are on your network.** Treat a bridged instance like any other machine on your network and keep it updated.
+
+### Hardening benchmarks
+
+Multipass does not follow a formal hardening benchmark, such as CIS or FIPS 140-3.
+
+### Logging and monitoring
+
+Multipass logs to the platform's standard logging system: `systemd-journald` on Linux, `/Library/Logs/Multipass` on macOS, and the Event Viewer on Windows. See [Access logs](how-to-guides-troubleshoot-access-logs) and [Logging levels](/reference/logging-levels).
+
 (security-lifecycle)=
 ## Security lifecycle
 
