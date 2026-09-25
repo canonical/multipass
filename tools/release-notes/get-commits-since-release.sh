@@ -718,7 +718,13 @@ elif [[ $JSON_OUTPUT == true ]]; then
   # never new contributors; an unresolved GitHub history marks the run
   # incomplete rather than guessing "new".
   STATUS_MAP=$(mktemp)
+  SHIPPED_MAP=$(mktemp)
   echo '{}' > "$STATUS_MAP"
+  echo '{}' > "$SHIPPED_MAP"
+  for _pr in "${!SHIPPED_PR[@]}"; do
+    jq -c --arg p "$_pr" '.[$p] = true' "$SHIPPED_MAP" > "${SHIPPED_MAP}.tmp" \
+      && mv "${SHIPPED_MAP}.tmp" "$SHIPPED_MAP"
+  done
   for _login in "${!AUTHOR_INRANGE_PRS[@]}"; do
     if [[ -n ${AUTHOR_IS_BOT[$_login]:-} ]]; then
       _st="bot"
@@ -730,15 +736,20 @@ elif [[ $JSON_OUTPUT == true ]]; then
       && mv "${STATUS_MAP}.tmp" "$STATUS_MAP"
   done
 
-  jq -c --slurpfile smap "$STATUS_MAP" '
+  jq -c --slurpfile smap "$STATUS_MAP" --slurpfile shipped "$SHIPPED_MAP" '
     ($smap[0]) as $status
+    | ($shipped[0]) as $shipped_prs
     | (.pr_author_login // null) as $login
     | .contributor_status = (if $login == null then "not-applicable"
                              else ($status[$login] // "not-applicable") end)
     | .is_new_author = (.contributor_status == "true")
+    | .already_shipped = (if .pr_number == null then false
+                          else ($shipped_prs[(.pr_number | tostring)] == true)
+                          end)
   ' "$RECORDS_FILE" > "${RECORDS_FILE}.classified" \
     && mv "${RECORDS_FILE}.classified" "$RECORDS_FILE"
   rm -f "$STATUS_MAP"
+  rm -f "$SHIPPED_MAP"
 
   jq -n \
     --arg tag "$FROM_TAG" \
@@ -746,6 +757,7 @@ elif [[ $JSON_OUTPUT == true ]]; then
     --argjson count "$COMMIT_COUNT" \
     --arg gen "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --argjson prior_releases "$PRIOR_RELEASE_COUNT" \
+    --argjson prior_shipped_prs "${#SHIPPED_PR[@]}" \
     --argjson contributor_unresolved "$CONTRIBUTOR_UNRESOLVED" \
     --slurpfile commits "$RECORDS_FILE" \
     '{
@@ -757,6 +769,7 @@ elif [[ $JSON_OUTPUT == true ]]; then
         contributor_detection: {
           method: "first-shipped-release",
           prior_releases: $prior_releases,
+          prior_shipped_prs: $prior_shipped_prs,
           unresolved: $contributor_unresolved,
           complete: ($prior_releases > 0 and $contributor_unresolved == 0)
         }

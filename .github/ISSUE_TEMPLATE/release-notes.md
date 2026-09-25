@@ -17,9 +17,15 @@ The Release Notes Generator agent
   3. write docs/reference/release-notes/<VERSION>.md (bare version, no "v") from
      docs/reference/release-notes/RELEASE_NOTES_TEMPLATE.md and update docs/reference/release-notes/index.md
   4. open a draft PR linked back to this issue
+
+For a feature release, PREVIOUS_TAG is the previous feature-release tag;
+maintenance backports already shipped by an intermediate patch release are
+automatically excluded from the feature notes. For a maintenance release,
+PREVIOUS_TAG is the immediately previous tag on that maintenance line, so the
+range contains only that release's incremental changes.
 -->
 
-**PREVIOUS_TAG:** <!-- add last released tag to diff against, e.g. **PREVIOUS_TAG:v1.16.3** -->
+**PREVIOUS_TAG:** <!-- add last released tag to diff against, e.g. **PREVIOUS_TAG:v1.16.0** -->
 
 **TARGET_TAG:** <!-- add tag being released, e.g. **TARGET_TAG:v1.17.0** -->
 
@@ -45,3 +51,9 @@ Contributor detection is release-aware and stateless: a contributor is listed
 as new only when none of their PRs shipped in a published release before the
 target, so a contributor first shipped in a maintenance release is not
 acknowledged again by a later feature release. No manual step is required.
+
+The generated data also marks prior-release PRs with `already_shipped: true`.
+These records remain available for auditability but must be excluded from
+validation, ranking, and the published notes. This is particularly important
+for feature-release ranges that include maintenance commits merged back to
+`main`.
