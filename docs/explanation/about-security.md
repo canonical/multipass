@@ -143,3 +143,7 @@ How you get updates depends on your platform:
 To check that an update has been applied, run `multipass version`.
 
 See [Upgrade](how-to-guides-install-multipass-upgrade) for the full instructions and the [security policy on GitHub](https://github.com/canonical/multipass/blob/main/SECURITY.md) for how security fixes are released.
+
+## Reporting vulnerabilities
+
+To report a vulnerability, follow the private reporting process in the [security policy on GitHub](https://github.com/canonical/multipass/blob/main/SECURITY.md). Published vulnerabilities are listed on the [Multipass security advisories page on GitHub](https://github.com/canonical/multipass/security/advisories) and mentioned in the [release notes](reference-release-notes).
