@@ -19,8 +19,8 @@
 #include "hyperv_target_transaction.h"
 #include "hyperv_migration_utils.h"
 
-#include <hyperv_api/virtdisk/virtdisk_utils.h>
-#include <hyperv_api/virtdisk/virtdisk_wrapper.h>
+#include <hcs/api/virtdisk/virtdisk_utils.h>
+#include <hcs/api/virtdisk/virtdisk_wrapper.h>
 
 #include <QString>
 #include <QUuid>

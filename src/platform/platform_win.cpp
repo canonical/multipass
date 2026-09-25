@@ -29,9 +29,9 @@
 #include <multipass/virtual_machine_factory.h>
 
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
-#include "backends/hyperv_api/hcs_virtual_machine_factory.h"
+#include "backends/hcs/hcs_virtual_machine_factory.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
-#include "hyperv_api/hyperv_api_string_conversion.h"
+#include "hcs/hyperv_api_string_conversion.h"
 #include "logger/win_event_logger.h"
 #include "shared/sshfs_server_process_spec.h"
 #include "shared/windows/powershell.h"

@@ -2648,7 +2648,7 @@ try
     std::string bridge_name;
 
 // TODO hyperv migration, remove
-#if defined(HYPERV_API_ENABLED)
+#if defined(HCS_ENABLED)
     mp::hyperv::DriverTransition transition{{*config,
                                              vm_instance_specs,
                                              operative_instances,
@@ -2682,7 +2682,7 @@ try
     mpl::debug(category, "Succeeded setting {}={}", key, val);
 
 // TODO hyperv migration, revert: context->set_value(grpc::Status::OK);
-#if defined(HYPERV_API_ENABLED)
+#if defined(HCS_ENABLED)
     // Runs the Hyper-V to HCS migration only if prepare() started one; otherwise returns OK.
     context->set_value(transition.complete(server));
 #else

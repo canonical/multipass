@@ -25,7 +25,7 @@ target_link_libraries(hyperv_migration
     Boost::json
     fmt::fmt-header-only
   PRIVATE
-    hyperv_api_backend
+    hcs_backend
     logger
     shared_win
     utils

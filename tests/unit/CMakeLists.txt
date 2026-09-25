@@ -152,7 +152,7 @@ add_executable(multipass_cpp_tests
 )
 
 # TODO hyperv migration, remove
-if(HYPERV_API_ENABLED)
+if(HCS_ENABLED)
   target_sources(multipass_cpp_tests PRIVATE test_hyperv_migration_records.cpp)
 endif()
 
@@ -305,7 +305,7 @@ foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
 endforeach()
 
 # TODO hyperv migration, remove
-if(HYPERV_API_ENABLED)
+if(HCS_ENABLED)
   add_subdirectory(hyperv_migration)
 endif()
 
