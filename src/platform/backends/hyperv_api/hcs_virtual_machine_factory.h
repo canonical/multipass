@@ -50,7 +50,7 @@ struct HCSVirtualMachineFactory final : public BaseVirtualMachineFactory
 
     [[nodiscard]] QString get_backend_directory_name() const override
     {
-        return "hyperv_api";
+        return "hcs";
     }
 
     [[nodiscard]] std::vector<NetworkInterfaceInfo> networks() const override;

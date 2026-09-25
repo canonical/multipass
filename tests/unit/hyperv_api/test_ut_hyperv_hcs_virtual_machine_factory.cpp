@@ -101,9 +101,9 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, usesDedicatedBackendDirectory)
 {
     const auto factory = construct_factory();
 
-    EXPECT_EQ(factory->get_backend_directory_name(), "hyperv_api");
+    EXPECT_EQ(factory->get_backend_directory_name(), "hcs");
     EXPECT_EQ(QDir::cleanPath(factory->get_instance_directory("test-vm")),
-              QDir::cleanPath(dummy_data_dir.filePath("hyperv_api/vault/instances/test-vm")));
+              QDir::cleanPath(dummy_data_dir.filePath("hcs/vault/instances/test-vm")));
 }
 
 // ---------------------------------------------------------

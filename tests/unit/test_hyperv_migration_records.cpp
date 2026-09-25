@@ -115,7 +115,7 @@ struct HyperVMigrationTargetRecords : Test
 {
     mpt::TempDir data;
     const fs::path data_dir{data.path().toStdWString()};
-    const fs::path target_root{data_dir / "hyperv_api"};
+    const fs::path target_root{data_dir / "hcs"};
     const fs::path instances_root{target_root / "vault" / "instances"};
     const fs::path target_dir{instances_root / "vm"};
     const fs::path vm_db{target_root / "multipassd-vm-instances.json"};
@@ -302,7 +302,7 @@ struct HyperVMigrationEligibility : Test
         const auto data_dir = fs::path{data.path().toStdString()};
         write_source_record(data_dir, "vm");
         MP_FILEOPS.write_transactionally(
-            data_dir / "hyperv_api" / "multipassd-vm-instances.json",
+            data_dir / "hcs" / "multipassd-vm-instances.json",
             mp::pretty_print(boost::json::object{{"vm", boost::json::value_from(vm_spec())}}));
 
         vm->state = mp::VirtualMachine::State::stopped;
@@ -363,7 +363,7 @@ TEST_F(HyperVMigrationEligibility, confirmsStoppedStateBeforeCheckingTargetColli
 {
     mock_query("Off\r\n");
 
-    EXPECT_EQ(migrate(), "name already taken by a hyperv_api instance");
+    EXPECT_EQ(migrate(), "name already taken by a hcs instance");
     EXPECT_TRUE(ps_helper.was_ps_run());
 }
 
@@ -372,7 +372,7 @@ TEST_F(HyperVMigrationEligibility, acceptsHostStoppedStateDespiteStaleRunningSta
     vm->state = mp::VirtualMachine::State::running;
     mock_query("Off");
 
-    EXPECT_EQ(migrate(), "name already taken by a hyperv_api instance");
+    EXPECT_EQ(migrate(), "name already taken by a hcs instance");
 }
 
 TEST_F(HyperVMigrationEligibility, skipsNonStoppedHostDespiteCachedStoppedState)
@@ -434,12 +434,12 @@ std::string migration_summary(std::initializer_list<std::string> names)
 
     return summary +
            "\n\nThe original hyperv instances were retained. Do not run an original and its "
-           "hyperv_api copy at the same time because they share guest identity and MAC "
+           "hcs copy at the same time because they share guest identity and MAC "
            "addresses.\n\n"
            "After validating the migrated instances, remove the originals with:\n"
            "  multipass set local.driver=hyperv\n"
            "  multipass delete --purge <instance-name>\n"
-           "  multipass set local.driver=hyperv_api\n";
+           "  multipass set local.driver=hcs\n";
 }
 
 MigrationMessages successful_messages(std::initializer_list<std::string> names)
@@ -627,7 +627,7 @@ struct HyperVBulkMigration : Test
 
     mpt::TempDir data;
     const fs::path data_dir{data.path().toStdWString()};
-    const fs::path target_root{data_dir / "hyperv_api"};
+    const fs::path target_root{data_dir / "hcs"};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mpt::PowerShellTestHelper ps_helper;
     decltype(mpt::MockVirtDiskWrapper::inject<NiceMock>()) virtdisk{

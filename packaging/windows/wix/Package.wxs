@@ -17,10 +17,10 @@
                 Key='SOFTWARE\Microsoft\Windows NT\CurrentVersion' Name='CurrentBuildNumber' />
         </Property>
 
-        <Property Id="DRIVER" Value="hyperv_api" Secure="yes" />
+        <Property Id="DRIVER" Value="hcs" Secure="yes" />
         <!-- TODO hyperv migration, remove: DRIVER_FULL/DRIVER_LIMITED, the dialog sets DRIVER directly -->
-        <Property Id="DRIVER_FULL" Value="hyperv_api" />
-        <Property Id="DRIVER_LIMITED" Value="hyperv_api" />
+        <Property Id="DRIVER_FULL" Value="hcs" />
+        <Property Id="DRIVER_LIMITED" Value="hcs" />
 
         <Binary Id="CABinary" SourceFile="custom-actions.dll" />
 
@@ -95,7 +95,7 @@
 
         <!-- TODO hyperv migration, remove: LEGACY_HYPERV_AVAILABLE, and WINDOWS_EDITION above, which only feeds it -->
         <!--
-          The new Hyper-V/HCS driver (hyperv_api, backed by VirtualMachinePlatform) is the default
+          The new Hyper-V/HCS driver (hcs, backed by VirtualMachinePlatform) is the default
           on every supported edition. The legacy full Hyper-V driver (hyperv, backed by
           Microsoft-Hyper-V) is only offered on editions that support it: Home ("Core") editions do
           not, so the legacy option is hidden there. VirtualBox remains selectable everywhere.
@@ -158,9 +158,9 @@
 
             <!-- TODO hyperv migration, revert: drop DRIVER = "hyperv" from both conditions below -->
             <Custom Action="EnableHyperVAction.SetProperty" Before="EnableHyperVAction"
-                Condition="(DRIVER = &quot;hyperv&quot; OR DRIVER = &quot;hyperv_api&quot;) AND NOT Installed" />
+                Condition="(DRIVER = &quot;hyperv&quot; OR DRIVER = &quot;hcs&quot;) AND NOT Installed" />
             <Custom Action="EnableHyperVAction" After="InstallInitialize"
-                Condition="(DRIVER = &quot;hyperv&quot; OR DRIVER = &quot;hyperv_api&quot;) AND NOT Installed" />
+                Condition="(DRIVER = &quot;hyperv&quot; OR DRIVER = &quot;hcs&quot;) AND NOT Installed" />
 
             <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize"
                 Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA &lt;&gt; &quot;yes&quot; AND REMOVE_DATA &lt;&gt; &quot;no&quot;" />

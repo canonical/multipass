@@ -46,7 +46,7 @@ namespace mhv = multipass::hyperv;
 namespace mpl = multipass::logging;
 
 constexpr auto log_category = "Hyper-V migration records";
-constexpr auto target_backend = "hyperv_api";
+constexpr auto target_backend = "hcs";
 constexpr auto vm_db_filename = "multipassd-vm-instances.json";
 constexpr auto image_db_filename = "multipassd-instance-image-records.json";
 
@@ -468,7 +468,7 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
                                state_output.toStdString());
 
         if (target_records.target_exists(name))
-            return "name already taken by a hyperv_api instance";
+            return "name already taken by a hcs instance";
 
         const auto phase = [&report, &name](const std::string& message) {
             report(MigrationMessage::phase, fmt::format("{}: {}", message, name));
@@ -571,18 +571,18 @@ multipass::hyperv::MigrationOutcome multipass::hyperv::DaemonHyperVInstanceMigra
     else
     {
         constexpr auto separator = "\n  ";
-        report(MigrationMessage::summary,
-               fmt::format(
-                   "The following instances were successfully migrated:{}{}\n\n"
-                   "The original hyperv instances were retained. Do not run an original and its "
-                   "hyperv_api copy at the same time because they share guest identity and MAC "
-                   "addresses.\n\n"
-                   "After validating the migrated instances, remove the originals with:\n"
-                   "  multipass set local.driver=hyperv\n"
-                   "  multipass delete --purge <instance-name>\n"
-                   "  multipass set local.driver=hyperv_api\n",
-                   separator,
-                   fmt::join(migrated, separator)));
+        report(
+            MigrationMessage::summary,
+            fmt::format(
+                "The following instances were successfully migrated:{}{}\n\n"
+                "The original hyperv instances were retained. Do not run an original and its "
+                "hcs copy at the same time because they share guest identity and MAC addresses.\n\n"
+                "After validating the migrated instances, remove the originals with:\n"
+                "  multipass set local.driver=hyperv\n"
+                "  multipass delete --purge <instance-name>\n"
+                "  multipass set local.driver=hcs\n",
+                separator,
+                fmt::join(migrated, separator)));
     }
 
     return outcome;

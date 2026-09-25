@@ -17,7 +17,7 @@ final bridgedNetworkProvider = daemonSettingProvider(bridgedNetworkKey);
 // progresses.
 void migrateToHypervApi(WidgetRef ref) {
   final replies =
-      ref.read(grpcClientProvider).setStreaming(driverKey, 'hyperv_api');
+      ref.read(grpcClientProvider).setStreaming(driverKey, 'hcs');
   ref.read(notificationsProvider.notifier).add(
         DriverMigrationNotification(progress: migrationProgress(replies)),
       );
@@ -61,7 +61,7 @@ class VirtualizationSettings extends ConsumerWidget {
           onChanged: (value) {
             if (value == driver) return;
             // TODO hyperv migration, remove
-            if (driver == 'hyperv' && value == 'hyperv_api') {
+            if (driver == 'hyperv' && value == 'hcs') {
               migrateToHypervApi(ref);
               return;
             }
