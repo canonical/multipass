@@ -11,9 +11,11 @@ extension on ffi.Pointer<Utf8> {
     if (this == ffi.nullptr) {
       throw Exception("Couldn't retrieve data through FFI");
     }
-    final string = toDartString();
-    malloc.free(this);
-    return string;
+    try {
+      return toDartString();
+    } finally {
+      _freeFfiString(this);
+    }
   }
 }
 
@@ -142,6 +144,9 @@ final _getRootCert = _lib
   'get_root_cert',
 );
 
+final _freeFfiString = _lib.lookupFunction<ffi.Void Function(ffi.Pointer<Utf8>),
+    void Function(ffi.Pointer<Utf8>)>('free_ffi_string');
+
 String get multipassVersion => _multipassVersion().toDartString();
 
 String generatePetname([Iterable<String> existing = const []]) {
@@ -181,55 +186,63 @@ List<int> getRootCert() {
 String settingsFile() => _settingsFile().string;
 
 String getSetting(String key) {
-  final output = malloc<ffi.Pointer<Utf8>>();
-  switch (_getSetting(key.toNativeUtf8(), output).settingsResult) {
-    case _SettingsResult.ok:
-      final result = output.value.string;
-      malloc.free(output);
-      return result;
-    case _SettingsResult.keyNotFound:
-      malloc.free(output);
-      throw ArgumentError.value(key, 'key', 'client settings key not found');
-    case _SettingsResult.unexpectedError:
-      final result = output.value.string;
-      malloc.free(output);
-      throw Exception("failed retrieving client setting '$key': $result");
-    default:
-      malloc.free(output);
-      throw UnimplementedError();
-  }
+  return using((arena) {
+    final output = arena<ffi.Pointer<Utf8>>();
+    final result = _getSetting(
+      key.toNativeUtf8(allocator: arena),
+      output,
+    ).settingsResult;
+
+    switch (result) {
+      case _SettingsResult.ok:
+        return output.value.string;
+      case _SettingsResult.keyNotFound:
+        throw ArgumentError.value(key, 'key', 'client settings key not found');
+      case _SettingsResult.unexpectedError:
+        final message = output.value.string;
+        throw Exception("failed retrieving client setting '$key': $message");
+      default:
+        throw UnimplementedError();
+    }
+  });
 }
 
 void setSetting(String key, String value) {
-  final output = malloc<ffi.Pointer<Utf8>>();
-  switch (_setSetting(
-    key.toNativeUtf8(),
-    value.toNativeUtf8(),
-    output,
-  ).settingsResult) {
-    case _SettingsResult.ok:
-      malloc.free(output);
-    case _SettingsResult.keyNotFound:
-      malloc.free(output);
-      throw ArgumentError.value(key, 'key', 'client settings key not found');
-    case _SettingsResult.invalidValue:
-      final result = output.value.string;
-      malloc.free(output);
-      throw ArgumentError.value(value, 'value', result);
-    case _SettingsResult.unexpectedError:
-      final result = output.value.string;
-      malloc.free(output);
-      throw Exception("failed storing client setting '$key'='$value': $result");
-  }
+  using((arena) {
+    final output = arena<ffi.Pointer<Utf8>>();
+    final result = _setSetting(
+      key.toNativeUtf8(allocator: arena),
+      value.toNativeUtf8(allocator: arena),
+      output,
+    ).settingsResult;
+
+    switch (result) {
+      case _SettingsResult.ok:
+        return;
+      case _SettingsResult.keyNotFound:
+        throw ArgumentError.value(key, 'key', 'client settings key not found');
+      case _SettingsResult.invalidValue:
+        final message = output.value.string;
+        throw ArgumentError.value(value, 'value', message);
+      case _SettingsResult.unexpectedError:
+        final message = output.value.string;
+        throw Exception(
+          "failed storing client setting '$key'='$value': $message",
+        );
+    }
+  });
 }
 
 String humanReadableMemory(int bytes) => _humanReadableMemory(bytes).string;
 
 int? memoryInBytes(String value) {
-  final result = _memoryInBytes(value.toNativeUtf8());
-  return result == -1 ? null : result;
+  return using((arena) {
+    final result = _memoryInBytes(value.toNativeUtf8(allocator: arena));
+    return result == -1 ? null : result;
+  });
 }
 
 String defaultMountTarget({required String source}) {
-  return _defaultMountTarget(source.toNativeUtf8()).string;
+  return using((arena) =>
+      _defaultMountTarget(source.toNativeUtf8(allocator: arena)).string);
 }
