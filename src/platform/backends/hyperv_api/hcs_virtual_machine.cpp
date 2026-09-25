@@ -616,8 +616,8 @@ std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
         // Endpoints only exist along with the compute system, e.g. not after restoring a snapshot
         // until the next start.
         const auto level = static_cast<HRESULT>(query_result.code) == HCN_E_ENDPOINT_NOT_FOUND
-                               ? mpl::Level::debug
-                               : mpl::Level::error;
+                             ? mpl::Level::debug
+                             : mpl::Level::error;
         mpl::log(level,
                  get_name(),
                  "management_ipv4() > failed to query endpoint `{}`: {}",
