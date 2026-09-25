@@ -64,6 +64,7 @@ ALL_COMMANDS = [
     (("set",), "Set a configuration setting"),
     (("shell", "sh", "connect"), "Open a shell on an instance"),
     (("snapshot",), "Take a snapshot of an instance"),
+    (("snapshots",), "List all available snapshots"),
     (("start",), "Start instances"),
     (("stop",), "Stop running instances"),
     (("suspend",), "Suspend running instances"),

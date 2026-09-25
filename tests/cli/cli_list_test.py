@@ -39,3 +39,9 @@ class TestList:
         if not feat_snapshot:
             pytest.skip("Snapshot feature not supported.")
         assert "No snapshots found." in multipass("list", "--snapshots")
+
+    def test_snapshots_empty(self, feat_snapshot):
+        """Try to list snapshots whilst there are none."""
+        if not feat_snapshot:
+            pytest.skip("Snapshot feature not supported.")
+        assert "No snapshots found." in multipass("snapshots")
