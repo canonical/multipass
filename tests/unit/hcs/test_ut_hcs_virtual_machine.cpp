@@ -604,10 +604,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, compute_system_open_error_reports_unkn
     expect_failed_recreation();
     EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
 
-    // Once for the explicit query, once more from the destructor's state check.
+    // Only the explicit query: the destructor goes by the last known state.
     EXPECT_CALL(mock_hcs, open_compute_system(dummy_vm_name, _))
-        .Times(2)
-        .WillRepeatedly(Return(hcs_op_result_t{E_ACCESSDENIED, L"Access denied"}));
+        .WillOnce(Return(hcs_op_result_t{E_ACCESSDENIED, L"Access denied"}));
 
     mp::VirtualMachine::State state{};
     EXPECT_NO_THROW(state = uut->current_state());
@@ -852,10 +851,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_termination_failure_throws
     EXPECT_THROW(uut->shutdown(multipass::VirtualMachine::ShutdownPolicy::Poweroff),
                  mhv::ShutdownComputeSystemException);
 
-    // Change the state to stopped to prevent auto suspension
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
+    // Mark the VM stopped to prevent auto suspension on destruction
+    uut->state = multipass::VirtualMachine::State::stopped;
 }
 
 // ---------------------------------------------------------
@@ -902,10 +899,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_save_failure_resumes_and_th
 
     EXPECT_THROW(uut->suspend(), mhv::SaveComputeSystemException);
 
-    // Change the state to stopped to prevent auto suspension
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
+    // Mark the VM stopped to prevent auto suspension on destruction
+    uut->state = multipass::VirtualMachine::State::stopped;
 }
 
 // ---------------------------------------------------------
@@ -933,10 +928,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_save_and_resume_failure_ter
     EXPECT_THROW(uut->suspend(), mhv::SaveComputeSystemException);
     EXPECT_EQ(uut->state, multipass::VirtualMachine::State::stopped);
 
-    // Change the state to stopped to prevent auto suspension
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
+    // Mark the VM stopped to prevent auto suspension on destruction
+    uut->state = multipass::VirtualMachine::State::stopped;
 }
 
 // ---------------------------------------------------------
@@ -962,10 +955,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_save_resume_and_terminate_f
 
     EXPECT_THROW(uut->suspend(), mhv::SaveComputeSystemException);
 
-    // Change the state to stopped to prevent auto suspension
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
+    // Mark the VM stopped to prevent auto suspension on destruction
+    uut->state = multipass::VirtualMachine::State::stopped;
 }
 
 // ---------------------------------------------------------
@@ -989,10 +980,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_termination_failure_throws)
 
     EXPECT_THROW(uut->suspend(), mhv::ShutdownComputeSystemException);
 
-    // Change the state to stopped to prevent auto suspension
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
+    // Mark the VM stopped to prevent auto suspension on destruction
+    uut->state = multipass::VirtualMachine::State::stopped;
 }
 
 // ---------------------------------------------------------
@@ -1050,6 +1039,28 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_destruction_leaves_suspended_vm_sus
     }
 
     EXPECT_EQ(api_state, hcs_system_state_t::stopped);
+}
+
+TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_destruction_does_not_persist_state_of_stopped_vm)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    default_open_success();
+    api_state = hcs_system_state_t::created;
+
+    EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
+        .WillRepeatedly(Return(false));
+
+    // A purged instance is destroyed after its record is gone, so persisting anything from the
+    // destructor would bring the record back.
+    StrictMock<mpt::MockVMStatusMonitor> monitor;
+    EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::off))
+        .Times(AtMost(1));
+
+    {
+        auto uut = construct_vm(&monitor);
+        EXPECT_EQ(uut->state, mp::VirtualMachine::State::off);
+        api_state = hcs_system_state_t::stopped;
+    }
 }
 
 // ---------------------------------------------------------
