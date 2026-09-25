@@ -441,6 +441,11 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     return output;
 }
 
+std::string mp::TableFormatter::format(const SnapshotsReply& reply) const
+{
+    return generate_snapshots_list(reply.snapshot_list());
+}
+
 std::string mp::TableFormatter::format(const NetworksReply& reply) const
 {
     fmt::memory_buffer buf;

@@ -26,6 +26,7 @@ class TableFormatter final : public Formatter
 public:
     std::string format(const InfoReply& info) const override;
     std::string format(const ListReply& list) const override;
+    std::string format(const SnapshotsReply& reply) const override;
     std::string format(const NetworksReply& list) const override;
     std::string format(const FindReply& list) const override;
     std::string format(const VersionReply& list, const std::string& client_version) const override;
