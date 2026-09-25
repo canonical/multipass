@@ -344,6 +344,18 @@
             }
         }
     },
+    "migrationInProgress": "Migrating instances to Hyper-V (API)\n",
+    "@migrationInProgress": {
+        "description": "Bold heading in the notification shown while instances migrate to the hyperv_api driver"
+    },
+    "migrationDone": "Switched to Hyper-V (API)\n",
+    "@migrationDone": {
+        "description": "Bold heading in the notification shown when switching to the hyperv_api driver finished"
+    },
+    "migrationDoneWithProblems": "Switched to Hyper-V (API), but not every instance was migrated\n",
+    "@migrationDoneWithProblems": {
+        "description": "Bold heading in the notification shown when the hyperv_api driver is in effect but some instances failed to migrate"
+    },
     "virtualizationBridgedNetworkNone": "None",
     "@virtualizationBridgedNetworkNone": {
         "description": "Dropdown option representing no bridged network selected"

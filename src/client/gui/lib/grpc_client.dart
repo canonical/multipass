@@ -224,6 +224,15 @@ class GrpcClient {
     return doRpc(_client.set, SetRequest(key: key, val: value));
   }
 
+  // TODO hyperv migration, remove
+  // Like set, but exposes every reply, e.g. to report the progress of a driver
+  // migration.
+  Stream<SetReply> setStreaming(String key, String value) {
+    final request = SetRequest(key: key, val: value);
+    logger.i('Sent ${request.repr}');
+    return _client.set(Stream.value(request)).doOnEach(logGrpc(request));
+  }
+
   Future<SSHInfo?> sshInfo(String name) {
     return doRpc(
       _client.ssh_info,
