@@ -22,7 +22,7 @@ A trust boundary is a point where data or commands pass between parts of the sys
 1. **User and daemon.** Clients run as your user. The daemon runs as `root` on Linux and macOS, and as `SYSTEM` on Windows. Every request crosses from unprivileged to privileged here, so the daemon checks who is asking before it acts.
 2. **Host and internet.** The daemon downloads images from remote image servers. Nothing that arrives from the internet is trusted until it is verified.
 3. **Host and instances.** Each instance is a virtual machine, isolated from the host by the hypervisor. The daemon controls instances over SSH and cloud-init. Mounts deliberately cross this boundary to share host files with an instance.
-4. **Instances and network.** By default, instances sit behind NAT and the local network cannot reach them. Bridged networking removes that separation.
+4. **Instances and network.** Every instance has a default NAT network that it uses to reach the outside world. Bridged networking adds an interface on a host network, which puts the instance directly on your local network.
 
 ## Secure by design
 
@@ -44,17 +44,9 @@ Multipass uses defense in depth, so that the failure of one layer does not expos
 
 Mounts are the main way an instance can affect the host, because the daemon performs them with its own privileges. See [Security considerations](security-considerations-mount) on the Mount page for the implications on each platform.
 
-### Network attackers
-
-Multipass keeps its attack surface small:
-
-- The daemon accepts only local connections. It is not reachable from the network.
-- Instances use NAT by default, so other machines cannot connect to them.
-- Images are downloaded over HTTPS and checked against their published SHA-256 checksum before use.
-
 ### Secure development
 
-Multipass is open source, so its security does not depend on keeping the design secret. Every change goes through public review on GitHub. The code is scanned by static analysis every week, and automated tools track the bundled dependencies and Ubuntu Security Notices so that fixes can be picked up quickly.
+Multipass is open source, so its security does not depend on keeping the design secret. Changes are proposed and reviewed through pull requests on GitHub, and the code is scanned by static analysis every week. On Linux, a daily job checks the Multipass snap against Ubuntu Security Notices and rebuilds the candidate snap when a bundled package has a fix.
 
 ## Cryptography in Multipass
 
@@ -68,7 +60,7 @@ Multipass uses cryptography to protect the communication between its components,
 | Daemon and instances | Control commands, `multipass shell`, `exec`, and `transfer` | SSH with a 2048-bit RSA key that Multipass generates. Ciphers: ChaCha20-Poly1305, with AES-256-CTR as a fallback. |
 | Classic mounts | Files shared with an instance | SFTP over the same SSH connection. |
 | Image downloads | Images and image metadata | HTTPS with certificate validation. |
-| Image integrity | Downloaded images | SHA-256 checksum, when the image server publishes one. The image is discarded if it does not match. |
+| Image integrity | Downloaded images | SHA-256 or SHA-512 checksum, when the image source provides one. The image is discarded if it does not match. |
 
 [Native mounts](explanation-mount-native) use 9P on QEMU and SMB on Hyper-V. Multipass does not add encryption to these, but their traffic stays on the host machine.
 
@@ -98,8 +90,7 @@ Multipass is secure by default. Each default below exists for a reason, and chan
 - **Only administrators can connect at first.** The daemon socket is limited to the administrator group until the first client is trusted.
 - **Other users need a passphrase.** No [passphrase](reference-settings-local-passphrase) is set by default, so no other user can connect. When you set one, anyone who knows it can fully control Multipass. Choose a strong passphrase and share it only with trusted users. See [How to authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service).
 - **Mounts are disabled on Windows.** Enabling [`local.privileged-mounts`](reference-settings-local-privileged-mounts) lets instances write to host folders with `SYSTEM` privileges.
-- **Instances use NAT networking.** [Bridged networking](how-to-guides-manage-instances-set-up-custom-networking) puts an instance directly on your local network, where other machines can reach it.
-- **The daemon accepts only local connections.** It cannot be reached from the network.
+- **The daemon listens only locally by default.** It uses a Unix socket on Linux and macOS, and `localhost` on Windows.
 - **Linux installs update automatically.** Holding updates delays security fixes. See [Security lifecycle](security-lifecycle).
 
 ### Risks you should be aware of
