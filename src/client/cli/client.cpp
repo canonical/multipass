@@ -41,6 +41,7 @@
 #include "cmd/set.h"
 #include "cmd/shell.h"
 #include "cmd/snapshot.h"
+#include "cmd/snapshots.h"
 #include "cmd/start.h"
 #include "cmd/stop.h"
 #include "cmd/suspend.h"
@@ -105,6 +106,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Set>();
     add_command<cmd::Shell>();
     add_command<cmd::Snapshot>();
+    add_command<cmd::Snapshots>();
     add_command<cmd::Start>();
     add_command<cmd::Stop>();
     add_command<cmd::Suspend>();
