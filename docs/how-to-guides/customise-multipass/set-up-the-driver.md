@@ -26,7 +26,7 @@ By default, Multipass on macOS uses the `qemu` driver.
 ````{tab-item} Windows
 :sync: Windows
 
-By default, Multipass on Windows uses the `hyperv_api` driver.
+By default, Multipass on Windows uses the `hcs` driver.
 
 ````
 
@@ -79,7 +79,7 @@ You can change the hypervisor that Multipass uses to Hyper-V or VirtualBox.
 
 ```{note}
 The Hyper-V driver is deprecated as of Multipass version 1.17 (see
-[Migrate from Hyper-V to the new Hyper-V API driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hyperv-api-on-windows)).
+[Migrate from Hyper-V to the HCS driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows)).
 
 VirtualBox is deprecated as of Multipass 1.17 and will be removed in a future release, with no
 migration planned. See
@@ -145,7 +145,7 @@ Instances are tied to the driver they were created with; after switching, they w
 If you want to switch back to the default driver:
 
 ```{code-block} powershell
-multipass set local.driver=hyperv_api
+multipass set local.driver=hcs
 ```
 
 Instances are tied to the driver they were created with; after switching, they won't be visible until you switch back.

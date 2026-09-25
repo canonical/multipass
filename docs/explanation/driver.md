@@ -22,7 +22,7 @@ Different sets of drivers are available on different platforms:
 When Multipass is installed, the following drivers are selected by default:
 
 - On Linux and macOS, `qemu` is used.
-- On Windows, `hyperv_api` is the default.
+- On Windows, `hcs` is the default.
 
 ## Deprecated drivers
 
@@ -34,7 +34,7 @@ macOS:
 - As of Multipass version 1.17, VirtualBox is deprecated (see [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver)).
 
 Windows:
-- As of Multipass version 1.17, the `hyperv` driver is deprecated in favor of a new Hyper-V-based driver (see [Migrate from Hyper-V to the new Hyper-V API driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hyperv-api-on-windows))
+- As of Multipass version 1.17, the `hyperv` driver is deprecated in favor of the `hcs` driver (see [Migrate from Hyper-V to the HCS driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows))
 - Also as of Multipass version 1.17 VirtualBox is deprecated with no migration planned (see [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver)).
 
 ## Instance scopes
@@ -51,7 +51,7 @@ Nonetheless, instances are preserved across drivers. After switching back to a p
 There are two exceptions to the above:
 
   - On macOS, and only on Multipass version 1.12, stopped Hyperkit instances are automatically migrated to QEMU by Multipass's version 1.12 (see [How to migrate from Hyperkit to QEMU on macOS](/how-to-guides/customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)).
-  - On Windows, and only on Multipass version 1.17,  stopped `hyperv` instances are automatically migrated to the new Hyper-V-based driver by Multipass's version 1.17 (see [Migrate from Hyper-V to the new Hyper-V API driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hyperv-api-on-windows)).
+  - On Windows, and only on Multipass version 1.17,  stopped `hyperv` instances are automatically migrated to the `hcs` driver by Multipass's version 1.17 (see [Migrate from Hyper-V to the HCS driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows)).
 
 (driver-feature-disparities)=
 ## Feature disparities
