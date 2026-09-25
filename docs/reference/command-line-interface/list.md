@@ -1,7 +1,7 @@
 (reference-command-line-interface-list)=
 # list
 
-> See also: {ref}`info <reference-command-line-interface-info>`, {ref}`launch <reference-command-line-interface-launch>`, {ref}`snapshot <reference-command-line-interface-snapshot>`, {ref}`Availability zone <explanation-availability-zone>`
+> See also: {ref}`info <reference-command-line-interface-info>`, {ref}`launch <reference-command-line-interface-launch>`, {ref}`snapshot <reference-command-line-interface-snapshot>`, {ref}`snapshots <reference-command-line-interface-snapshots>`, {ref}`Availability zone <explanation-availability-zone>`
 
 The `multipass list` command lists available instances or snapshots. With no options, it presents a generic view of instances, with some of their properties, including the {ref}`availability zone <explanation-availability-zone>` each instance is in; for example:
 
@@ -19,6 +19,10 @@ You can also call it with the `--snapshots` flag to get an overview of available
 Instance        Snapshot    Parent      Comment
 calm-squirrel   snapshot1   --          --
 calm-squirrel   snapshot3   snapshot1   Before restoring snapshot2
+```
+
+```{note}
+The `--snapshots` flag is deprecated. Use the [`snapshots`](/reference/command-line-interface/snapshots) command instead.
 ```
 
 The `multipass list` command will truncate long snapshot comments, as well as those containing newlines. You can use [`info`](/reference/command-line-interface/info) to view them in full.
