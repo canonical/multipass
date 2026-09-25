@@ -90,3 +90,17 @@ Multipass bundles these libraries with [vcpkg](https://vcpkg.io/), which builds 
 **In transit.** Traffic between clients and the daemon, between the daemon and instances, and between the daemon and image servers is encrypted by default. If you run services inside a bridged instance, they are exposed to your local network, so protect them yourself, for example with TLS or SSH.
 
 **At rest.** Multipass does not encrypt instance disks, cached images, or snapshots. To protect them, use full-disk encryption on the host, such as BitLocker on Windows, FileVault on macOS, or LUKS on Linux. See [Configure where Multipass stores external data](how-to-guides-customise-multipass-configure-where-multipass-stores-external-data) and [Mount an encrypted home folder](how-to-guides-troubleshoot-mount-an-encrypted-home-folder).
+
+(security-lifecycle)=
+## Security lifecycle
+
+Only the latest stable release of Multipass is supported. Older releases do not receive security fixes, so running one leaves you exposed to known vulnerabilities. Security fixes ship in regular releases, which can be bug-fix, minor, or major releases, depending on what else they include.
+
+How you get updates depends on your platform:
+
+- **Linux:** the snap updates automatically. To update straight away, run `sudo snap refresh multipass`. You can postpone updates with `sudo snap refresh --hold=<duration> multipass`, but every day you postpone is a day you run without the latest security fixes.
+- **macOS and Windows:** Multipass checks for new releases every day and reminds you when one is available. Download and run the new installer to update.
+
+To check that an update has been applied, run `multipass version`.
+
+See [Upgrade](how-to-guides-install-multipass-upgrade) for the full instructions and the [security policy on GitHub](https://github.com/canonical/multipass/blob/main/SECURITY.md) for how security fixes are released.
