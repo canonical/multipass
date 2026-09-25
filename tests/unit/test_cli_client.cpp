@@ -2172,6 +2172,20 @@ TEST_F(Client, listCmdFailsWithIpv4AndSnapshots)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, listCmdSnapshotsDeprecationWarning)
+{
+    std::stringstream cerr_stream;
+    mp::ListReply reply;
+    reply.mutable_snapshot_list();
+
+    EXPECT_CALL(mock_daemon, list)
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::ListReply, mp::ListRequest>(_, ok, reply)));
+    EXPECT_THAT(send_command({"list", "--snapshots"}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("`multipass list --snapshots` is deprecated"));
+}
+
 // snapshots cli tests
 TEST_F(Client, snapshotsCmdOkNoArgs)
 {
