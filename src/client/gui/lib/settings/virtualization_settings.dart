@@ -16,8 +16,7 @@ final bridgedNetworkProvider = daemonSettingProvider(bridgedNetworkKey);
 // Switching from hyperv migrates the instances, which is reported as the change
 // progresses.
 void migrateToHypervApi(WidgetRef ref) {
-  final replies =
-      ref.read(grpcClientProvider).setStreaming(driverKey, 'hcs');
+  final replies = ref.read(driverProvider.notifier).setStreaming('hcs');
   ref.read(notificationsProvider.notifier).add(
         DriverMigrationNotification(progress: migrationProgress(replies)),
       );
