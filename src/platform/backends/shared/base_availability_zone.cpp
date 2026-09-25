@@ -71,60 +71,14 @@ void BaseAvailabilityZone::set_available(const bool new_available)
         return;
 
     m.available = new_available;
-    auto save_file_guard = sg::make_scope_guard([this]() noexcept {
-        try
-        {
-            save_file();
-        }
-        catch (const std::exception& e)
-        {
-            mpl::error(name, "Failed to serialize availability zone: {}", e.what());
-        }
-    });
-
     try
     {
-        for (auto& vm : vms)
-            vm.get().set_available(new_available);
+        save_file();
     }
-    catch (...)
+    catch (const std::exception& e)
     {
-        // if an error occurs fallback to available.
-        m.available = true;
-
-        // make sure nothing is still unavailable.
-        for (auto& vm : vms)
-        {
-            // setting the state here breaks encapsulation, but it's already broken.
-            std::unique_lock vm_lock{vm.get().state_mutex};
-            if (vm.get().current_state() == VirtualMachine::State::unavailable)
-            {
-                vm.get().state = VirtualMachine::State::off;
-                vm.get().handle_state_update();
-            }
-        }
-
-        // rethrow the error so something else can deal with it.
-        throw;
+        mpl::error(name, "Failed to serialize availability zone: {}", e.what());
     }
-}
-
-void BaseAvailabilityZone::add_vm(VirtualMachine& vm)
-{
-    mpl::debug(name, "adding vm '{}' to AZ", vm.get_name());
-    const std::unique_lock lock{mutex};
-    vms.emplace_back(vm);
-}
-
-void BaseAvailabilityZone::remove_vm(VirtualMachine& vm)
-{
-    mpl::debug(name, "removing vm '{}' from AZ", vm.get_name());
-    const std::unique_lock lock{mutex};
-    // as of now, we use vm names to uniquely identify vms, so we can do the same here
-    const auto to_remove = std::remove_if(vms.begin(), vms.end(), [&](const auto& some_vm) {
-        return some_vm.get().get_name() == vm.get_name();
-    });
-    vms.erase(to_remove, vms.end());
 }
 
 BaseAvailabilityZone::Data BaseAvailabilityZone::load_file(const std::string& name,

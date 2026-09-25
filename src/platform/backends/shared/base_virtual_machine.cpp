@@ -121,12 +121,10 @@ mp::BaseVirtualMachine::BaseVirtualMachine(State state,
       zone{zone},
       instance_dir{instance_dir}
 {
-    zone.add_vm(*this);
 }
 
 mp::BaseVirtualMachine::~BaseVirtualMachine()
 {
-    mp::top_catch_all(vm_name, [this] { zone.remove_vm(*this); });
 }
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
@@ -207,31 +205,23 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
     }
 }
 
-void mp::BaseVirtualMachine::set_available(bool available)
+bool mp::BaseVirtualMachine::set_available(bool available)
 {
     // Ignore idempotent calls
     if (available == (state != State::unavailable))
-        return;
+        return false;
 
     if (available)
     {
+        assert(state == State::unavailable);
         state = State::off;
-        handle_state_update();
-        if (was_running)
-        {
-            start();
-
-            // normally the daemon sets the state to running...
-            state = State::running;
-            handle_state_update();
-        }
-        return;
+        return was_running;
     }
 
     was_running = state == State::running || state == State::starting || state == State::restarting;
     shutdown(ShutdownPolicy::Poweroff);
     state = State::unavailable;
-    handle_state_update();
+    return false;
 }
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)

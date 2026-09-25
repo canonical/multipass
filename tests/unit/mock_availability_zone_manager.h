@@ -34,10 +34,8 @@ struct MockAvailabilityZoneManager : public mp::AvailabilityZoneManager
 {
     MOCK_METHOD(mp::AvailabilityZone&, get_zone, (const std::string&), (override));
     MOCK_METHOD(const mp::AvailabilityZone&, get_zone, (const std::string&), (const override));
-    MOCK_METHOD(std::vector<std::reference_wrapper<const mp::AvailabilityZone>>,
-                get_zones,
-                (),
-                (const override));
+    MOCK_METHOD(mp::AvailabilityZoneManager::Zones, get_zones, (), (override));
+    MOCK_METHOD(mp::AvailabilityZoneManager::ConstZones, get_zones, (), (const override));
     MOCK_METHOD(std::string, get_automatic_zone_name, (), (override));
     MOCK_METHOD(std::string, get_default_zone_name, (), (const, override));
 };

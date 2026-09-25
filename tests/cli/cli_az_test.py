@@ -19,13 +19,41 @@
 
 import pytest
 
-from cli.multipass import exec, info, launch, skip_if_feature_not_supported
+from cli.multipass import (
+    exec,
+    info,
+    launch,
+    multipass,
+    skip_if_feature_not_supported,
+    state,
+)
 
 
 @pytest.mark.az
 @pytest.mark.usefixtures("multipassd")
 class TestAvailabilityZones:
     """CLI availability-zone tests."""
+
+    def test_enable_disable_zone_states(self):
+        """Check that enabling/disabling zones updates the instance states."""
+
+        skip_if_feature_not_supported("az")
+
+        with (
+            launch({"zone": "zone1"}) as instance1,
+            launch({"zone": "zone1"}) as instance2,
+        ):
+            multipass("stop", f"{instance2}", "--force")
+            assert state(instance1) == "Running"
+            assert state(instance2) == "Stopped"
+
+            assert multipass("disable-zones", "zone1", "--force")
+            assert state(instance1) == "Unavailable"
+            assert state(instance2) == "Unavailable"
+
+            assert multipass("enable-zones", "zone1")
+            assert state(instance1) == "Starting"
+            assert state(instance2) == "Stopped"
 
     def test_instances_in_different_zones_can_communicate(self):
         """Check that instances can communicate across zone subnets."""

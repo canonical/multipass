@@ -61,18 +61,26 @@ struct StubAvailabilityZoneManager final : public AvailabilityZoneManager
         }
         throw AvailabilityZoneNotFound{name};
     }
-    std::string get_automatic_zone_name() override
+
+    Zones get_zones() override
     {
-        return zones[0]->get_name();
+        Zones zone_list;
+        for (auto& zone : zones)
+            zone_list.push_back(*zone);
+        return zone_list;
     }
-    std::vector<std::reference_wrapper<const AvailabilityZone>> get_zones() const override
+    ConstZones get_zones() const override
     {
-        std::vector<std::reference_wrapper<const AvailabilityZone>> zone_list;
+        ConstZones zone_list;
         for (auto& zone : zones)
             zone_list.push_back(*zone);
         return zone_list;
     }
 
+    std::string get_automatic_zone_name() override
+    {
+        return zones[0]->get_name();
+    }
     std::string get_default_zone_name() const override
     {
         return zones[0]->get_name();

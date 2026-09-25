@@ -92,7 +92,7 @@ HCSVirtualMachineFactory::HCSVirtualMachineFactory(const Path& data_dir,
                                         HCSVirtualMachineFactory::get_backend_directory_name(),
                                         instances_subdir),
           az_manager),
-      az_network_guids{create_az_bridges(az_manager.get_zones())}
+      az_network_guids{create_az_bridges(std::as_const(az_manager).get_zones())}
 {
 }
 
@@ -364,7 +364,7 @@ void HCSVirtualMachineFactory::hypervisor_health_check()
 }
 
 std::unordered_map<std::string, std::string> HCSVirtualMachineFactory::create_az_bridges(
-    const AvailabilityZoneManager::Zones& zones)
+    const AvailabilityZoneManager::ConstZones& zones)
 {
     std::unordered_map<std::string, std::string> az_mapping;
     for (const auto& i : zones)

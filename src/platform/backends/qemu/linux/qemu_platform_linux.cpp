@@ -131,7 +131,7 @@ mp::QemuPlatformLinux::Bridge::~Bridge()
 }
 
 [[nodiscard]] mp::QemuPlatformLinux::Bridges mp::QemuPlatformLinux::get_bridges(
-    const AvailabilityZoneManager::Zones& zones)
+    const AvailabilityZoneManager::ConstZones& zones)
 {
     Bridges bridges{};
     bridges.reserve(zones.size());
