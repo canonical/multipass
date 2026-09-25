@@ -515,6 +515,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find);
     QObject::connect(&rpc, &mp::DaemonRpc::on_info, &daemon, &mp::Daemon::info);
     QObject::connect(&rpc, &mp::DaemonRpc::on_list, &daemon, &mp::Daemon::list);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_snapshots, &daemon, &mp::Daemon::snapshots);
     QObject::connect(&rpc, &mp::DaemonRpc::on_clone, &daemon, &mp::Daemon::clone);
     QObject::connect(&rpc, &mp::DaemonRpc::on_networks, &daemon, &mp::Daemon::networks);
     QObject::connect(&rpc, &mp::DaemonRpc::on_mount, &daemon, &mp::Daemon::mount);
@@ -1966,6 +1967,22 @@ try
 
     server->Write(response);
     context->set_value(status);
+}
+catch (const std::exception& e)
+{
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::snapshots(
+    const SnapshotsRequest*,
+    grpc::ServerReaderWriterInterface<SnapshotsReply, SnapshotsRequest>* server,
+    DaemonRpcContext* context)
+try
+{
+    SnapshotsReply response;
+
+    server->Write(response);
+    context->set_value(grpc::Status::OK);
 }
 catch (const std::exception& e)
 {

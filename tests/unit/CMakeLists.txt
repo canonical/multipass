@@ -86,6 +86,7 @@ add_executable(multipass_cpp_tests
   test_daemon_mount.cpp
   test_daemon_restart.cpp
   test_daemon_snapshot_restore.cpp
+  test_daemon_snapshots.cpp
   test_daemon_start.cpp
   test_daemon_suspend.cpp
   test_daemon_umount.cpp

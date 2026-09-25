@@ -242,6 +242,19 @@ grpc::Status mp::DaemonRpc::list(grpc::ServerContext* context,
                                                 server);
 }
 
+grpc::Status mp::DaemonRpc::snapshots(
+    grpc::ServerContext* context,
+    grpc::ServerReaderWriter<SnapshotsReply, SnapshotsRequest>* server)
+{
+    return verify_client_and_dispatch_operation(std::bind(&DaemonRpc::on_snapshots,
+                                                          this,
+                                                          std::placeholders::_1,
+                                                          std::placeholders::_2,
+                                                          std::placeholders::_3),
+                                                client_cert_from(context),
+                                                server);
+}
+
 grpc::Status mp::DaemonRpc::clone(grpc::ServerContext* context,
                                   grpc::ServerReaderWriter<CloneReply, CloneRequest>* server)
 {

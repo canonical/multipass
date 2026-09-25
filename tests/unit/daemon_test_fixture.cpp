@@ -791,6 +791,11 @@ using Server = MockT<mpt::MockServerReaderWriter<Reply, Request>>;
 
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
+    DaemonSlotPtr<mp::SnapshotsReply, mp::SnapshotsRequest>,
+    const mp::SnapshotsRequest&,
+    Server<StrictMock, mp::SnapshotsReply, mp::SnapshotsRequest>&);
+template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
+    mp::Daemon&,
     DaemonSlotPtr<mp::ZonesReply, mp::ZonesRequest>,
     const mp::ZonesRequest&,
     Server<StrictMock, ZonesReply, ZonesRequest>&&);
