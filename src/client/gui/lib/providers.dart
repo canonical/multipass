@@ -290,7 +290,7 @@ class DaemonSettingNotifier extends AsyncNotifier<String> {
   }
 
   Future<void> set(String value) async {
-    state = AsyncValue.data(value);
+    if (arg != driverKey) state = AsyncValue.data(value);
     try {
       await ref.read(grpcClientProvider).set(arg, value);
     } catch (_) {
