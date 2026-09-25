@@ -1357,6 +1357,7 @@ void mp::Daemon::connect_rpc(DaemonRpc& rpc)
     connect(&DaemonRpc::on_images, &Daemon::images);
     connect(&DaemonRpc::on_info, &Daemon::info);
     connect(&DaemonRpc::on_list, &Daemon::list);
+    connect(&DaemonRpc::on_snapshots, &Daemon::snapshots);
     connect(&DaemonRpc::on_clone, &Daemon::clone);
     connect(&DaemonRpc::on_networks, &Daemon::networks);
     connect(&DaemonRpc::on_mount, &Daemon::mount);
@@ -2023,6 +2024,22 @@ try
 
     server->Write(response);
     context->set_value(status);
+}
+catch (const std::exception& e)
+{
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::snapshots(
+    const SnapshotsRequest*,
+    grpc::ServerReaderWriterInterface<SnapshotsReply, SnapshotsRequest>* server,
+    DaemonRpcContext* context)
+try
+{
+    SnapshotsReply response;
+
+    server->Write(response);
+    context->set_value(grpc::Status::OK);
 }
 catch (const std::exception& e)
 {
