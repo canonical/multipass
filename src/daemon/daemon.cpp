@@ -1980,9 +1980,37 @@ void mp::Daemon::snapshots(
 try
 {
     SnapshotsReply response;
+    response.mutable_snapshot_list();
+
+    auto selection = select_all(operative_instances);
+    const auto deleted_selection = select_all(deleted_instances);
+    selection.insert(selection.end(), deleted_selection.begin(), deleted_selection.end());
+
+    auto status = cmd_vms(selection, [&response](VirtualMachine& vm) {
+        fmt::memory_buffer errors;
+        const auto& name = vm.get_name();
+
+        try
+        {
+            for (const auto& snapshot : vm.view_snapshots())
+            {
+                auto entry = response.mutable_snapshot_list()->add_snapshots();
+                auto fundamentals = entry->mutable_fundamentals();
+
+                entry->set_name(name);
+                populate_snapshot_fundamentals(snapshot, fundamentals);
+            }
+        }
+        catch (const NoSuchSnapshotException& e)
+        {
+            add_fmt_to(errors, "{}", e.what());
+        }
+
+        return grpc_status_for(errors);
+    });
 
     server->Write(response);
-    context->set_value(grpc::Status::OK);
+    context->set_value(status);
 }
 catch (const std::exception& e)
 {
