@@ -14,6 +14,7 @@ This documentation section only refers to Multipass development related topics.
 ## Release and packaging
 
 - [Multipass release process](release-process.md)
+- [Generate release notes draft](release-notes-workflow.md)
 - [Windows MSI packaging](windows-msi-packaging.md)
 
 ## Flutter
