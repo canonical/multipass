@@ -53,7 +53,7 @@ ALL_COMMANDS = [
     (("images",), "Display available images to create instances from"),
     (("info",), "Display information about instances or snapshots"),
     (("launch",), "Create and start .* instance"),
-    (("list", "ls"), "List all available instances or snapshots"),
+    (("list", "ls"), "List all available instances"),
     (("mount",), "Mount a local directory in the instance"),
     (("networks",), "List available network interfaces"),
     (("prefer",), "Switch the current alias context"),

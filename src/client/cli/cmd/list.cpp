@@ -61,12 +61,12 @@ std::vector<std::string> cmd::List::aliases() const
 
 QString cmd::List::short_help() const
 {
-    return QStringLiteral("List all available instances or snapshots");
+    return QStringLiteral("List all available instances");
 }
 
 QString cmd::List::description() const
 {
-    return QStringLiteral("List all instances or snapshots which have been created.");
+    return QStringLiteral("List all instances which have been created.");
 }
 
 mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
@@ -101,6 +101,10 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
         cerr << "IP addresses are not applicable in conjunction with listing snapshots\n";
         return ParseCode::CommandLineError;
     }
+
+    if (parser->isSet(snapshotsOption))
+        cerr << "Warning: `multipass list --snapshots` is deprecated. Use `multipass snapshots` "
+                "instead.\n";
 
     request.set_snapshots(parser->isSet(snapshotsOption));
     request.set_request_ipv4(!parser->isSet(noIpv4Option));
