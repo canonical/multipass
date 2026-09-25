@@ -24,12 +24,34 @@ A trust boundary is a point where data or commands pass between parts of the sys
 3. **Host and instances.** Each instance is a virtual machine, isolated from the host by the hypervisor. The daemon controls instances over SSH and cloud-init. Mounts deliberately cross this boundary to share host files with an instance.
 4. **Instances and network.** By default, instances sit behind NAT and the local network cannot reach them. Bridged networking removes that separation.
 
-Multipass runs a daemon that is accessed locally via a Unix socket on Linux and macOS, and over a TLS socket on Windows. Anyone with access to the socket can fully control Multipass, which includes mounting host file systems or to tweaking the security features for all instances.
+## Secure by design
 
-Therefore, make sure to restrict access to the daemon to trusted users.
+Multipass is designed around the question of who can reach the daemon and what they can do with it. This section describes the threats Multipass is designed against and how it mitigates each one.
 
-## Local access to the Multipass daemon
+### Other users on the same host
 
-The Multipass daemon runs as root and provides a Unix socket for local communication. Access control for Multipass is initially based on group membership and later by the user's TLS certificate when accepted by providing a set passphrase.
+Anyone who can talk to the daemon can fully control Multipass, including mounting host folders into instances and changing security settings for all instances. Multipass follows the principle of least privilege to make sure only trusted users get that access.
 
-The first user to connect that is a member of the `sudo` group (or `wheel`/`adm`, depending on the OS) will automatically have their TLS certificate imported into the Multipass daemon and will be authenticated to connect. After this, any other user connecting will need to [`authenticate`](/reference/command-line-interface/authenticate) first by providing a [passphrase](/reference/settings/local-passphrase) set by the administrator.
+On Linux and macOS, the daemon listens on a Unix socket. On Windows, it listens on a local TLS socket. At first, only members of the administrator group (`sudo`, `wheel`, or `admin`, depending on the system) can connect. The first administrator to connect has their TLS certificate accepted automatically. After that, every other user must [authenticate](/reference/command-line-interface/authenticate) with a [passphrase](/reference/settings/local-passphrase) set by an administrator before the daemon accepts their requests. See [Authentication](/explanation/authentication) for the details.
+
+### A compromised instance
+
+Multipass uses defense in depth, so that the failure of one layer does not expose the whole host:
+
+- The hypervisor (QEMU, Hyper-V, Apple Virtualization, or VirtualBox) isolates each instance from the host.
+- On Linux, the Multipass snap runs under strict [snap confinement](https://snapcraft.io/docs/snap-confinement), which limits what the daemon can reach on the host, including where mounts can point.
+- On Windows, mounts are disabled by default.
+
+Mounts are the main way an instance can affect the host, because the daemon performs them with its own privileges. See {ref}`security-considerations-mount` for the implications on each platform.
+
+### Network attackers
+
+Multipass keeps its attack surface small:
+
+- The daemon accepts only local connections. It is not reachable from the network.
+- Instances use NAT by default, so other machines cannot connect to them.
+- Images are downloaded over HTTPS and checked against their published SHA-256 checksum before use.
+
+### Secure development
+
+Multipass is open source, so its security does not depend on keeping the design secret. Every change goes through public review on GitHub. The code is scanned by static analysis every week, and automated tools track the bundled dependencies and Ubuntu Security Notices so that fixes can be picked up quickly.
