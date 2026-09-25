@@ -131,7 +131,9 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
 HCSVirtualMachine::~HCSVirtualMachine()
 {
     top_catch_all(vm_name, [this]() {
-        if (current_state() != State::running)
+        // Use the last known state: querying HCS here would persist any state change, which
+        // resurrects the record of an instance that was just purged.
+        if (state != State::running)
             return;
 
         // Auto-suspend if running
