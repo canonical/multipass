@@ -41,6 +41,7 @@ def launch(cfg_override=None):
         "disk": cfg.vm.disk,
         "retry": getattr(cfg.retries, "launch", 0),
         "image": cfg.vm.image,
+        "extra_args": [],
         "autopurge": True,
         "assert": {"purge": True},
     }
@@ -70,8 +71,10 @@ def launch(cfg_override=None):
         "--timeout",
         getattr(cfg.timeouts, "launch", 300),
     ]
+
     if "zone" in vm_cfg:
         launch_args.extend(["--zone", vm_cfg["zone"]])
+    launch_args.extend(str(arg) for arg in vm_cfg["extra_args"])
     launch_args.append(vm_cfg["image"])
 
     with multipass(
