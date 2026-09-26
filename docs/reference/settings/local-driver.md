@@ -14,10 +14,14 @@ A string identifying the hypervisor back-end in use.
 ## Possible values
 
   - `qemu` on Linux
-  - `hyperv` and `virtualbox` on Windows
-  - `qemu` and `applevz` on macOS; `virtualbox` on macOS running on Intel/x86 only
+  - `hcs`, `hyperv` (deprecated) and `virtualbox` (deprecated) on Windows
+  - `qemu` and `applevz` on macOS; `virtualbox` (deprecated) on macOS running on Intel/x86 only
 
 ## Default values
 
   - `qemu` on macOS and Linux
-  - `hyperv` on Windows
+  - `hcs` on Windows
+
+```{note}
+As of Multipass 1.17, `hyperv` and `virtualbox` are deprecated. See [Migrate from Hyper-V to the HCS driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows) and [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver).
+```

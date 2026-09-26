@@ -80,8 +80,8 @@ release/1.15 $ git push --tags
 ```
 2. Restart the GHA run that got triggered by the release branch (`release/1.15` in this example), so that it picks up the new tag when deriving the version.
 3. Get win/mac packages from the run that is triggered by the _release branch_ (not the tag, which produces an incorrect version ATTOW).
-    1. Send the newly generated packages to IS for signing, likely using a Concordia ticket at https://concordia.canonical.com/tickets
-4. Move the final launchpad build into the beta channel, in https://snapcraft.io/multipass/releases
+    1. Send the newly generated packages to IS for signing, likely using a Concordia ticket at https://concordia.canonical.com/tickets.
+4. Move the final launchpad build into the beta channel, in https://snapcraft.io/multipass/releases.
     1. First kick the build in launchpad if necessary.
     2. Be sure to select a launchpad build and not a GH one. Launchpad builds should show with an "lp" suffix on that page, e.g. "1.15.0 | lp-91234567". The suffix is not part of the actual version (as confirmed by `snap info` and `multipass version`).
 5. When the signed packages are received from IS, verify their signature:
@@ -93,41 +93,40 @@ release/1.15 $ git push --tags
     1. Place the package in a public place, accessible with a no-redirect URL. For example https://people.canonical.com/~ricab/multipass-1.15.0+win-win64.msi.
     2. Go to https://partner.microsoft.com/en-us/dashboard/apps-and-games/overview, navigate to "Multipass > Packages" and upload the package.
     3. Run validation on the new package. This might take a few working days.
-8. Submit a draft PR to the website to update the latest-release.json
-9. Prepare release notes and release announcements for Discourse, Matrix, and Mattermost
-10. Submit a PR to `main` with
+8. Prepare release notes and release announcements for Discourse, Matrix, and Mattermost
+9. Submit a PR to `main` with
     1. The new release notes for this version in `docs/reference/release-notes`.
     2. Update the `index.md` file as well, adding a link to the release notes and changing/adding details about the release's contents.
     3. Follow the [template](https://github.com/canonical/multipass/blob/main/docs/reference/release-notes/release-notes-templates.md) and use these release notes in the GH draft release as well.
 
 ### Publicly release
 
-11. Promote the snap from beta to stable.
-12. Publish the release draft on GH
-13. Submit the update on the Microsoft Store
-14. Undraft the PR on the website (mark "ready for review")
+10. Promote the snap from beta to stable.
+11. Publish the release draft on GH.
+12. Submit the update on the Microsoft Store.
+13. Submit an issue to the [canonical.com](https://github.com/canonical/canonical.com) repository to change the `static/files/latest-multipass-releases.json` file, updating all links to the new version.
     1. Verify that the package links work after the release is published.
-    2. Follow up on the PR until it is merged.
-15. Set the `stable` branch to point to the release. This will allow Launchpad to generate updated snaps in the candidate channel (with updated deb dependencies): Launchpad checks daily if there are out of date dependencies in our snap; if there are, a new package gets built as candidate and if it's good we promote it to stable.
+    2. Follow up on the issue until it is closed.
+14. Set the `stable` branch to point to the release. This will allow Launchpad to generate updated snaps in the candidate channel (with updated deb dependencies): Launchpad checks daily if there are out of date dependencies in our snap; if there are, a new package gets built as candidate and if it's good we promote it to stable.
 ```shell
 stable $ git reset --hard release/1.15
 stable $ git push --force
 ```
-16. Merge the release notes documentation PR into `main`.
-17. Fast-forward the `stable-docs` branch to point to the release. This corresponds to the stable version shown in ReadTheDocs. Since the `stable-docs` were merged into `main`, there should be no conflicts. Then cherry-pick the release notes PR on the `stable-docs` branch.
-18. Merge the release branch into main. This is to keep track of the number of commits from one release to another.
+15. Merge the release notes documentation PR into `main`.
+16. Fast-forward the `stable-docs` branch to point to the release. This corresponds to the stable version shown in ReadTheDocs. Since the `stable-docs` were merged into `main`, there should be no conflicts. Then cherry-pick the release notes PR on the `stable-docs` branch.
+17. Merge the release branch into main. This is to keep track of the number of commits from one release to another.
 ```shell
 main $ git merge release/1.15
 main $ git push
 ```
-19. Make sure that the release branch (`release/1.15` in this example) remains in the remote. If there is a corresponding PR, GitHub is likely to automatically delete it. If this is the case, restore it. Our candidate build on launchpad relies on this to figure out the correct version.
-20. Announce the new release on Discourse, Matrix and Mattermost.
+18. Make sure that the release branch (`release/1.15` in this example) remains in the remote. If there is a corresponding PR, GitHub is likely to automatically delete it. If this is the case, restore it. Our candidate build on launchpad relies on this to figure out the correct version.
+19. Announce the new release on Discourse, Matrix and Mattermost.
 
 Steps to follow up on the following few days:
 
-21. Verify that the Microsoft store submission is approved (moves from "in review")
-22. Confirm that the PR for the latest version is merged into canonical.com
-23. Confirm that candidate snaps are built for the release
+20. Verify that the Microsoft store submission is approved (moves from "in review").
+21. Confirm that the links for the latest version are updated in <https://canonical.com/multipass/install>.
+22. Confirm that candidate snaps are built for the release.
 
 ## Note on `stable-docs` and release branches
 

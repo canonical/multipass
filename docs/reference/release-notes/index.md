@@ -11,6 +11,7 @@ Only the most recent release of Multipass is actively supported. Users are encou
 
 | Release date   |  Release notes  |
 |----|----|
+| September XX, 2026 | [Multipass 1.17.0](./1.17.0) |
 | September 8, 2026 | [Multipass 1.16.4](./1.16.4) |
 | May 29, 2026 | [Multipass 1.16.3](./1.16.3) |
 | May 2, 2026 | [Multipass 1.16.2](./1.16.2) |
@@ -18,19 +19,15 @@ Only the most recent release of Multipass is actively supported. Users are encou
 | July 10, 2025 | [Multipass 1.16.0](./1.16.0) |
 
 
-### What's new in 1.16.x?
+### What's new in 1.17.x?
 
-Along with bug fixes and general improvements, Multipass 1.16.x includes:
+Along with bug fixes and general improvements, Multipass 1.17.x includes:
 
-* Enhanced networking capabilities
-* Improved instance management
-* Performance optimizations
-* Updated cloud-init support
-* Bug fixes and stability improvements
-* Added LXD 6 API support
-* Patched vulnerabilities
-* Added core26 images
-
+* Local cloud simulation using Availability Zones
+* Integration of Debian and Fedora in redesigned image catalog
+* New Host Compute System (HCS) driver on Windows
+* New Apple Virtualization framework driver on macOS as preview
+* ppc64el and s390x architecture support
 
 ## Release and support policy
 

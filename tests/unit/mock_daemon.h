@@ -31,7 +31,6 @@ struct MockDaemon : public Daemon
 {
     using Daemon::Daemon;
 
-    MOCK_METHOD(void, shutdown_grpc_server, (), (override));
     MOCK_METHOD(void,
                 create,
                 (const CreateRequest*,

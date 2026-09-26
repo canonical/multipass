@@ -191,7 +191,7 @@ def multipass(*args, **kwargs):
                 self.pexpect_child = spawn_multipass(
                     args, timeout=timeout, echo=echo, env=env)
                 self.pexpect_child.expect(pexpect.EOF, timeout=timeout)
-                self.output_text = self.pexpect_child.before.decode("utf-8")
+                self.output_text = self.pexpect_child.before.decode("utf-8", errors="replace")
                 self.pexpect_child.wait()
             except Exception as ex:
                 print(ex)

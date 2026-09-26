@@ -58,10 +58,16 @@ final headers = <TableHeader<VmInfo>>[
     name: 'ZONE',
     width: 100,
     minWidth: 70,
-    sortKey: (info) => info.zone.name,
-    cellBuilder: (info) => Text(
-      info.zone.name.nonBreaking,
-      overflow: TextOverflow.ellipsis,
+    // Sorting is data-only and has no BuildContext, so this fallback is not user-visible.
+    sortKey: (info) => info.zone.name.isEmpty ? 'n/a' : info.zone.name,
+    cellBuilder: (info) => Builder(
+      builder: (context) => Text(
+        (info.zone.name.isEmpty
+                ? AppLocalizations.of(context)!.vmTableZoneUnsupported
+                : info.zone.name)
+            .nonBreaking,
+        overflow: TextOverflow.ellipsis,
+      ),
     ),
   ),
   TableHeader(

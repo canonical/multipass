@@ -448,9 +448,9 @@ TEST_F(SftpServer, throwsOnSshFailureReadExit)
 TEST_F(SftpServer, sshfsRestartsOnTimeout)
 {
     constexpr int total_calls{4};
-    // This test verifies that after a sshfs timeout, the sftp server correctly restarts. To do so,
-    // it simulates failure in the first non-sftp-init message. Intended execution order :
-    // msg(INIT)->msg(timeout)->msg(received)->nullptr(terminate server)
+    // This test verifies that after a null (dropped) sshfs message, the sftp server correctly
+    // restarts. To do so, it simulates failure in the first non-sftp-init message. Intended
+    // execution order: msg(INIT)->msg(null)->msg(received)->nullptr(terminate server)
 
     // TODO@rewiressh : Rectify test (#4984)
     int num_calls{0};
@@ -520,6 +520,78 @@ TEST_F(SftpServer, freesMessage)
     sftp.run();
 
     msg_free.expectCalled(1).withValues(msg.get());
+}
+
+TEST_F(SftpServer, sendsKeepaliveWhenIdleAndKeepsServing)
+{
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_BAD_MESSAGE);
+    REPLACE(sftp_get_client_message, make_msg_handler()); // INIT, msg, then nullptr
+
+    int polls{0};
+    int keepalives{0};
+    REPLACE(ssh_channel_poll_timeout, [&polls](auto...) {
+        return ++polls == 1 ? 0 : 1; // idle first, then data available
+    });
+    REPLACE(ssh_send_keepalive, [&keepalives](auto...) {
+        ++keepalives;
+        return SSH_OK;
+    });
+
+    auto sftp = make_sftpserver();
+    sftp.run();
+
+    EXPECT_EQ(keepalives, 1);
+    EXPECT_EQ(polls, 3);                            // idle, msg, nullptr
+    msg_free.expectCalled(1).withValues(msg.get()); // the loop survived the idle period
+}
+
+TEST_F(SftpServer, pollErrorSkipsMessageReadAndStops)
+{
+    auto init_msg = make_msg(SSH_FXP_INIT);
+
+    int reads{0};
+    auto counting_handler = [&reads, handler = make_msg_handler()](auto... args) {
+        ++reads;
+        return handler(args...);
+    };
+    REPLACE(sftp_get_client_message, counting_handler);
+    REPLACE(ssh_channel_poll_timeout, [](auto...) { return SSH_ERROR; });
+    int keepalives{0};
+    REPLACE(ssh_send_keepalive, [&keepalives](auto...) {
+        ++keepalives;
+        return SSH_OK;
+    });
+
+    auto sftp = make_sftpserver();
+    sftp.run(); // sshfs exit status is success by default, so the server stops
+
+    EXPECT_EQ(reads, 1); // only the INIT read during construction
+    EXPECT_EQ(keepalives, 0);
+}
+
+TEST_F(SftpServer, stopsOnIdlePollWithoutKeepaliveWhenStopRequested)
+{
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    int polls{0};
+    int keepalives{0};
+    REPLACE(ssh_channel_poll_timeout, [&polls](auto...) {
+        ++polls;
+        return 0;
+    });
+    REPLACE(ssh_send_keepalive, [&keepalives](auto...) {
+        ++keepalives;
+        return SSH_OK;
+    });
+
+    auto sftp = make_sftpserver();
+    sftp.stop();
+    sftp.run();
+
+    EXPECT_EQ(polls, 1);
+    EXPECT_EQ(keepalives, 0);
 }
 
 TEST_F(SftpServer, handlesRealpath)

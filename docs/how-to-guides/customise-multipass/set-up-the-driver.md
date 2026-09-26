@@ -26,7 +26,7 @@ By default, Multipass on macOS uses the `qemu` driver.
 ````{tab-item} Windows
 :sync: Windows
 
-By default, Multipass on Windows uses the `hyperv` driver.
+By default, Multipass on Windows uses the `hcs` driver.
 
 ````
 
@@ -48,7 +48,7 @@ On Linux, only the `qemu` driver is supported, so switching `local.driver` is no
 
 An alternative option is to use the Apple Virtualization framework.
 
-To switch the Multipass driver to AppleVZ, run this command:
+To switch the Multipass driver to the Apple Virtualization framework, run this command:
 
 ```{code-block} text
 multipass set local.driver=applevz
@@ -57,6 +57,10 @@ multipass set local.driver=applevz
 From now on, all instances started with `multipass launch` will use the Apple Virtualization framework behind the scenes.
 
 On Intel/x86 architectures, an additional option is to use VirtualBox.
+
+```{note}
+VirtualBox is deprecated as of Multipass 1.17 and will be removed in a future release, with no migration planned. See [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver).
+```
 
 To switch the Multipass driver to VirtualBox, run this command:
 
@@ -71,9 +75,27 @@ From now on, all instances started with `multipass launch` will use VirtualBox b
 ````{tab-item} Windows
 :sync: Windows
 
-You can change the hypervisor that Multipass uses to VirtualBox.
+You can change the hypervisor that Multipass uses to Hyper-V or VirtualBox.
 
-First, install VirtualBox. You may find that you need to <a href="https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658">run the VirtualBox installer as administrator</a>.
+```{note}
+The Hyper-V driver is deprecated as of Multipass version 1.17 (see
+[Migrate from Hyper-V to the HCS driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows)).
+
+VirtualBox is deprecated as of Multipass 1.17 and will be removed in a future release, with no
+migration planned. See
+[Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver).
+```
+
+To switch the Multipass driver to Hyper-V, run this command:
+
+```{code-block} powershell
+multipass set local.driver=hyperv
+```
+
+From then on, all instances started with multipass launch will use Hyper-V behind the scenes.
+
+To use VirtualBox, you first have to install VirtualBox. You may find that you need to
+<a href="https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658">run the VirtualBox installer as administrator</a>.
 
 <!-- Sphinx doesn't like the & character in the above link, the only way to make it work is using basic HTML syntax. The link was:
 [run the VirtualBox installer as administrator](https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658)
@@ -123,7 +145,7 @@ Instances are tied to the driver they were created with; after switching, they w
 If you want to switch back to the default driver:
 
 ```{code-block} powershell
-multipass set local.driver=hyperv
+multipass set local.driver=hcs
 ```
 
 Instances are tied to the driver they were created with; after switching, they won't be visible until you switch back.
@@ -133,6 +155,10 @@ Instances are tied to the driver they were created with; after switching, they w
 `````
 
 ## Use VirtualBox to view Multipass instances
+
+```{note}
+VirtualBox is deprecated as of Multipass 1.17 (see [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver)). This section, and the two below, remain useful for as long as you keep using it.
+```
 
 `````{tab-set}
 

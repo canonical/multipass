@@ -132,6 +132,7 @@ struct Daemon : public mpt::DaemonTestFixture
     {
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("senna"));
         EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return("pet-instance"));
         EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key)))
             .WillRepeatedly(Return("true")); /* TODO should probably add
@@ -490,7 +491,15 @@ TEST_F(Daemon, startsPreviouslyRunningVmsBack)
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
-    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce([vm = std::move(mock_vm)](
+                      const mp::VirtualMachineDescription& desc,
+                      const mp::SSHKeyProvider&,
+                      mp::VMStatusMonitor& monitor) mutable -> mp::VirtualMachine::UPtr {
+            // This will update the saved state on the VM spec
+            monitor.persist_state_for(desc.vm_name, mp::VirtualMachine::State::suspended);
+            return std::move(vm);
+        });
 
     mp::Daemon daemon{config_builder.build()};
 }
@@ -1195,8 +1204,8 @@ TEST_F(Daemon, readsMacAddressesFromJson)
         mp::NetworkInterface{"wlx60e3270f55fe", "52:54:00:bd:19:41", true},
         mp::NetworkInterface{"enp3s0", "01:23:45:67:89:ab", false}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
     EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine)
         .WillRepeatedly(WithArg<0>([](const auto& desc) {
@@ -1213,8 +1222,8 @@ TEST_F(Daemon, readsMacAddressesFromJson)
         StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
         mp::ListReply list_reply;
 
-        auto instance_matcher =
-            UnorderedElementsAre(Property(&mp::ListVMInstance::name, "real-zebraphant"));
+        auto instance_matcher = UnorderedElementsAre(
+            Property(&mp::ListVMInstance::name, "real-zebraphant"));
         EXPECT_CALL(mock_server, Write(_, _))
             .WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 
@@ -1276,8 +1285,8 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
         "target_3",
         mp::VMMount{temp_mount_3, uid_mappings_3, gid_mappings_3, mp::VMMount::MountType::Classic});
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
 
     EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine)
         .WillRepeatedly(WithArg<0>([](const auto& desc) {
@@ -1294,8 +1303,8 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
         StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
         mp::ListReply list_reply;
 
-        auto instance_matcher =
-            UnorderedElementsAre(Property(&mp::ListVMInstance::name, "real-zebraphant"));
+        auto instance_matcher = UnorderedElementsAre(
+            Property(&mp::ListVMInstance::name, "real-zebraphant"));
         EXPECT_CALL(mock_server, Write(_, _))
             .WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 
@@ -1523,8 +1532,8 @@ TEST_F(Daemon, skipsOverInstanceGhostsInDb)
 TEST_F(Daemon, ctorLetsExceptionsArisingFromVmCreationThrough)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents("ab:ab:ab:ab:ab:ab", {}));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents("ab:ab:ab:ab:ab:ab", {}));
     config_builder.data_directory = temp_dir->path();
 
     const std::string msg = "asdf";
@@ -1634,6 +1643,180 @@ INSTANTIATE_TEST_SUITE_P(Daemon,
                                                 std::vector<std::string>{"list", "--no-ipv4"},
                                                 std::vector<std::string>{"Stopped", "--"})));
 
+TEST_F(Daemon, listOmitsZoneWhenBackendDoesNotSupportAvailabilityZones)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(false));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+
+    send_command({"launch"});
+
+    StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
+    mp::ListReply list_reply;
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+    ASSERT_THAT(list_reply.instance_list().instances(), SizeIs(1));
+    EXPECT_FALSE(list_reply.instance_list().instances(0).has_zone());
+}
+
+TEST_F(Daemon, listIncludesZoneWhenBackendSupportsAvailabilityZones)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(true));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+
+    send_command({"launch"});
+
+    StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
+    mp::ListReply list_reply;
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+    ASSERT_THAT(list_reply.instance_list().instances(), SizeIs(1));
+    EXPECT_TRUE(list_reply.instance_list().instances(0).has_zone());
+    EXPECT_EQ(list_reply.instance_list().instances(0).zone().name(), zone.get_name());
+}
+
+TEST_F(Daemon, infoOmitsZoneWhenBackendDoesNotSupportAvailabilityZones)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(false));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+
+    send_command({"launch"});
+
+    StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server;
+    mp::InfoReply info_reply;
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&info_reply), Return(true)));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server).ok());
+    ASSERT_THAT(info_reply.details(), SizeIs(1));
+    EXPECT_FALSE(info_reply.details(0).has_zone());
+}
+
+TEST_F(Daemon, infoIncludesZoneWhenBackendSupportsAvailabilityZones)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(true));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+
+    send_command({"launch"});
+
+    StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server;
+    mp::InfoReply info_reply;
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&info_reply), Return(true)));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server).ok());
+    ASSERT_THAT(info_reply.details(), SizeIs(1));
+    EXPECT_TRUE(info_reply.details(0).has_zone());
+    EXPECT_EQ(info_reply.details(0).zone().name(), zone.get_name());
+}
+
+TEST_F(Daemon, launchPersistsRealZoneNameEvenWhenBackendDoesNotSupportAvailabilityZones)
+{
+    // Regression test: create_vm() used to force zone_name to "" for backends that don't
+    // support availability zones, defeating the purpose of naming the stub zone "zone1" and
+    // meaning such instances would be persisted with an empty zone forever. The zone name
+    // that ends up on disk should always be a real, non-empty name (e.g. "zone1"), regardless
+    // of whether the backend advertises AZ support; it's the client-facing surface (list/info
+    // replies, LaunchReply.zone) that is gated on supports_availability_zones(), not the
+    // internal/persisted zone name.
+    const std::string expected_name{"pied-piper-valley"};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(false));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillRepeatedly(WithArg<0>([](const auto& desc) {
+            return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
+        }));
+
+    mpt::TempDir temp_dir;
+    config_builder.data_directory = temp_dir.path();
+    config_builder.name_generator = std::make_unique<StubNameGenerator>(expected_name);
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"launch"});
+
+    const auto filename = temp_dir.path() + "/multipassd-vm-instances.json";
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+        .WillOnce(WithArg<1>([&expected_name](const QByteArrayView& data) {
+            auto obj = boost::json::parse({data.begin(), data.end()});
+            const auto instance_object = obj.at(expected_name).as_object();
+            EXPECT_EQ(value_to<std::string>(instance_object.at("zone")), "zone1");
+        }));
+
+    daemon.persist_instances();
+}
+
+struct RunningInstanceWithoutIP : public Daemon, public WithParamInterface<std::vector<std::string>>
+{
+};
+
+TEST_P(RunningInstanceWithoutIP, doesNotFailListOrInfo)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+
+    EXPECT_CALL(*instance_ptr, current_state())
+        .WillRepeatedly(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+    EXPECT_CALL(*instance_ptr, management_ipv4()).WillRepeatedly(Return(std::nullopt));
+    EXPECT_CALL(*instance_ptr, get_all_ipv4()).Times(0);
+    EXPECT_CALL(*instance_ptr, ssh_exec(_, _)).Times(0);
+
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, is_running, mp::Utils);
+
+    send_command({"launch"});
+
+    std::stringstream stream, err_stream;
+    send_command(GetParam(), stream, err_stream);
+
+    EXPECT_THAT(stream.str(), HasSubstr("Running"));
+    EXPECT_THAT(err_stream.str(), Not(HasSubstr("IP not available")));
+}
+
+INSTANTIATE_TEST_SUITE_P(Daemon,
+                         RunningInstanceWithoutIP,
+                         Values(std::vector<std::string>{"list"},
+                                std::vector<std::string>{"info"}));
+
 TEST_F(Daemon, preventsRepetitionOfLoadedMacAddresses)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -1660,8 +1843,8 @@ TEST_F(Daemon, doesNotHoldOnToRepeatedMacAddressesWhenLoading)
     std::vector<mp::NetworkInterface> extra_interfaces{
         mp::NetworkInterface{"eth0", mac_addr, true}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_factory = use_a_mock_vm_factory();
@@ -1676,8 +1859,8 @@ TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
     std::string mac1{"52:54:00:73:76:28"}, mac2{"52:54:00:bd:19:41"};
     std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"eth0", mac2, true}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac1, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac1, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -1857,11 +2040,11 @@ TEST_F(Daemon, keysReportsException)
     const auto e = std::runtime_error{"some error"};
     EXPECT_CALL(mock_settings, keys).WillOnce(Throw(e));
 
-    auto status =
-        call_daemon_slot(daemon,
-                         &mp::Daemon::keys,
-                         mp::KeysRequest{},
-                         StrictMock<mpt::MockServerReaderWriter<mp::KeysReply, mp::KeysRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::keys,
+        mp::KeysRequest{},
+        StrictMock<mpt::MockServerReaderWriter<mp::KeysReply, mp::KeysRequest>>{});
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_THAT(status.error_message(), HasSubstr(e.what()));
 }
@@ -1894,11 +2077,11 @@ TEST_F(Daemon, getHandlesEmptyKey)
     request.set_key(key);
 
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
-    auto status =
-        call_daemon_slot(daemon,
-                         &mp::Daemon::get,
-                         request,
-                         StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::get,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr("''")));
@@ -1913,11 +2096,11 @@ TEST_F(Daemon, getHandlesInvalidKey)
     request.set_key(key);
 
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
-    auto status =
-        call_daemon_slot(daemon,
-                         &mp::Daemon::get,
-                         request,
-                         StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::get,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr(request.key())));
@@ -1933,11 +2116,11 @@ TEST_F(Daemon, getReportsException)
 
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(std::runtime_error{"exception"}));
 
-    auto status =
-        call_daemon_slot(daemon,
-                         &mp::Daemon::get,
-                         request,
-                         StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::get,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_THAT(status.error_message(), HasSubstr("exception"));
@@ -1981,11 +2164,11 @@ TEST_P(DaemonSetExceptions, setHandlesSettingsException)
     })); /*
 lambda capture with initializer works around forbidden capture of structured binding */
 
-    auto status =
-        call_daemon_slot(daemon,
-                         &mp::Daemon::set,
-                         mp::SetRequest{},
-                         StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::set,
+        mp::SetRequest{},
+        StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{});
 
     EXPECT_EQ(status.error_code(), expected_code);
     EXPECT_THAT(status.error_message(), msg_matcher);
@@ -2321,8 +2504,8 @@ TEST_F(Daemon, requestsNetworks)
         return std::tie(proto_net.name(), proto_net.type(), proto_net.description()) ==
                std::tie(net_info.id, net_info.type, net_info.description);
     };
-    auto same_net_matcher =
-        Truly(mpt::with_arg_tuple(are_same_net)); // matches pairs (2-tuples) of equivalent nets
+    auto same_net_matcher = Truly(
+        mpt::with_arg_tuple(are_same_net)); // matches pairs (2-tuples) of equivalent nets
 
     EXPECT_CALL(mock_server,
                 Write(Property(&mp::NetworksReply::interfaces,
@@ -2383,8 +2566,9 @@ TEST_F(Daemon, infoAllReturnsAllInstances)
         deleted_instance_name{"deleted-instance"};
     const auto good_instance_json = fmt::format(valid_template, good_instance_name, "10");
     const auto deleted_instance_json = fmt::format(deleted_template, deleted_instance_name, "11");
-    const auto instances_json =
-        fmt::format("{{{}, {}}}", good_instance_json, deleted_instance_json);
+    const auto instances_json = fmt::format("{{{}, {}}}",
+                                            good_instance_json,
+                                            deleted_instance_json);
     const auto [temp_dir, __] = plant_instance_json(instances_json);
     config_builder.data_directory = temp_dir->path();
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -2394,9 +2578,9 @@ TEST_F(Daemon, infoAllReturnsAllInstances)
             return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
         }));
 
-    const auto names_matcher =
-        UnorderedElementsAre(Property(&mp::DetailedInfoItem::name, good_instance_name),
-                             Property(&mp::DetailedInfoItem::name, deleted_instance_name));
+    const auto names_matcher = UnorderedElementsAre(
+        Property(&mp::DetailedInfoItem::name, good_instance_name),
+        Property(&mp::DetailedInfoItem::name, deleted_instance_name));
 
     StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server{};
     EXPECT_CALL(mock_server, Write(Property(&mp::InfoReply::details, names_matcher), _))

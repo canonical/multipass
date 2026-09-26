@@ -17,6 +17,8 @@
 
 #include <multipass/ssh/libssh_wrapper.h>
 
+#include <libssh/server.h>
+
 extern "C"
 {
 int sftp_reply_version(sftp_client_message msg);
@@ -90,6 +92,11 @@ int mp::Libssh::ssh_userauth_publickey(ssh_session session,
     return ::ssh_userauth_publickey(session, username, privkey);
 }
 
+int mp::Libssh::ssh_send_keepalive(ssh_session session) const
+{
+    return ::ssh_send_keepalive(session);
+}
+
 // --- channel ----------------------------------------------------------------
 ssh_channel mp::Libssh::ssh_channel_new(ssh_session session) const
 {
@@ -141,6 +148,11 @@ int mp::Libssh::ssh_channel_read_nonblocking(ssh_channel channel,
                                              int is_stderr) const
 {
     return ::ssh_channel_read_nonblocking(channel, dest, count, is_stderr);
+}
+
+int mp::Libssh::ssh_channel_poll_timeout(ssh_channel channel, int timeout, int is_stderr) const
+{
+    return ::ssh_channel_poll_timeout(channel, timeout, is_stderr);
 }
 
 int mp::Libssh::ssh_channel_request_pty_size(ssh_channel channel,

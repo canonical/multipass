@@ -70,8 +70,7 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
                         "DevicePath": "Primary disk",
                         "DiskNumber": 0,
                         "DeviceType": "ScsiDrive"
-                    }},
-                    "Console": "ComPort1"
+                    }}
                 }}
             }},
             "ComputeTopology": {{
@@ -84,11 +83,6 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
                 }}
             }},
             "Devices": {{
-                "ComPorts": {{
-                    "0": {{
-                        "NamedPipe": "\\\\.\\pipe\\{2}"
-                    }}
-                }},
                 "Scsi": {{
                     {3}
                 }},

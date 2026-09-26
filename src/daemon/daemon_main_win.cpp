@@ -29,6 +29,7 @@
 #include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/standard_paths.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
 
@@ -142,11 +143,13 @@ int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
 
     mp::daemon::monitor_and_quit_on_settings_change();
     mp::Daemon daemon(std::move(config));
-    QObject::connect(&app,
-                     &QCoreApplication::aboutToQuit,
-                     &daemon,
-                     &mp::Daemon::shutdown_grpc_server,
-                     Qt::DirectConnection);
+
+    QObject::connect(
+        &app,
+        &QCoreApplication::aboutToQuit,
+        &daemon,
+        [&daemon] { mp::top_catch_all("daemon", [&daemon] { daemon.shutdown_grpc_server(); }); },
+        Qt::DirectConnection);
 
     mpl::info("daemon", "Daemon arguments: {}", app.arguments().join(" "));
     auto ret = QCoreApplication::exec();
@@ -188,6 +191,7 @@ try
 }
 catch (...)
 {
+    // TODO don't just swallow the exception to report a clean stop
     if (service_handle != nullptr)
     {
         auto status = make_status();
@@ -242,6 +246,7 @@ try
 }
 catch (const std::exception& e)
 {
+    // TODO move to a top_catch_all (see daemon_main.cpp)
     fmt::print(stderr, "error: {}\n", e.what());
     return EXIT_FAILURE;
 }

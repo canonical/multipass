@@ -297,3 +297,40 @@ TEST_F(TestDaemonZones, zonesCmdFailsOnException)
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.error_message(), HasSubstr("test_error"));
 }
+
+TEST_F(TestDaemonZones, zonesCmdFailsWhenBackendDoesNotSupportZones)
+{
+    auto* mock_factory = use_a_mock_vm_factory();
+    EXPECT_CALL(*mock_factory, supports_availability_zones()).WillRepeatedly(Return(false));
+
+    config_builder.az_manager = std::move(mock_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ZonesRequest request;
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesReply, mp::ZonesRequest>> mock_server;
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::zones, request, mock_server);
+
+    ASSERT_FALSE(status.ok());
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(), HasSubstr("Feature is not supported in this backend"));
+}
+
+TEST_F(TestDaemonZones, zonesStateCmdFailsWhenBackendDoesNotSupportZones)
+{
+    auto* mock_factory = use_a_mock_vm_factory();
+    EXPECT_CALL(*mock_factory, supports_availability_zones()).WillRepeatedly(Return(false));
+
+    config_builder.az_manager = std::move(mock_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ZonesStateRequest request;
+    request.set_available(false);
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>> mock_server;
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::zones_state, request, mock_server);
+
+    ASSERT_FALSE(status.ok());
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(), HasSubstr("Feature is not supported in this backend"));
+}

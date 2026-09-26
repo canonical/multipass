@@ -174,7 +174,7 @@ def pytest_addoption(parser):
             ("mount", 180),
             ("restart", 240),
             ("delete", 90),
-            ("exec", 90),
+            ("exec", 270),
             ("start", 180),
             ("umount", 45),
         ],
@@ -326,11 +326,26 @@ def pytest_collection_modifyitems(config, items):
                 )
             )
 
+    def maybe_skip_az_test(item):
+        if not item.get_closest_marker("az"):
+            return
+        # hcs is the successor of the deprecated `hyperv` backend and
+        # does support availability zones -- only the legacy `hyperv` and
+        # `virtualbox` backends are excluded here.
+        if cfg.driver in ("hyperv", "virtualbox"):
+            item.add_marker(
+                pytest.mark.skip(
+                    f"Skipped -- {cfg.driver} driver does not "
+                    "support availability zones."
+                )
+            )
+
     for item in items:
         maybe_skip_mount_test(item)
         maybe_skip_clone_test(item)
         maybe_skip_snapshot_test(item)
         maybe_skip_suspend_test(item)
+        maybe_skip_az_test(item)
 
 
 def pytest_runtest_setup(item):

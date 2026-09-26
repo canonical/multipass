@@ -345,7 +345,7 @@ struct VirtDiskSnapshotErase : public VirtDiskSnapshotTest
         ON_CALL(vm, view_snapshots(_)).WillByDefault(Return(VirtualMachine::SnapshotVista{}));
 
         ON_CALL(mock_virtdisk, list_virtual_disk_chain(_, _, _))
-            .WillByDefault([this](const fs::path& p,
+            .WillByDefault([this](const NativePath& p,
                                   std::vector<fs::path>& chain,
                                   std::optional<std::size_t>) {
                 chain.clear();
@@ -417,7 +417,7 @@ TEST_F(VirtDiskSnapshotErase, throws_when_live_disk_chain_cannot_be_inspected)
 {
     auto ss = take_captured();
 
-    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(live_disk(), _, _))
+    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(NativePath{live_disk()}, _, _))
         .WillOnce(Return(op_fail()));
     EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).Times(0);
 
@@ -434,10 +434,11 @@ TEST_F(VirtDiskSnapshotErase, commits_and_cleans_up)
 {
     auto ss = take_captured();
 
-    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(live_disk())).WillOnce([this] {
-        parent_of.erase(live_disk());
-        return op_ok();
-    });
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(NativePath{live_disk()}))
+        .WillOnce([this] {
+            parent_of.erase(live_disk());
+            return op_ok();
+        });
 
     EXPECT_NO_THROW(ss->erase());
 
@@ -452,7 +453,7 @@ TEST_F(VirtDiskSnapshotErase, rolls_back_when_disk_tree_does_not_match_model)
 {
     auto ss = take_captured();
 
-    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(live_disk()))
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(NativePath{live_disk()}))
         .WillOnce(Return(op_ok()));
 
     EXPECT_THROW(ss->erase(), VirtdiskSnapshotError);
@@ -566,14 +567,16 @@ TEST_F(VirtDiskSnapshotReparent, reparents_grandchild_onto_rebuilt_child)
     build_self_child_grandchildren();
 
     // The single direct child (s2) is merged into a rebuilt copy of self.
-    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(snapshot_path(2))).WillOnce([this] {
-        parent_of.erase(snapshot_path(2));
-        return op_ok();
-    });
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(NativePath{snapshot_path(2)}))
+        .WillOnce([this] {
+            parent_of.erase(snapshot_path(2));
+            return op_ok();
+        });
 
     // Only the grandchild (s3) is reparented, and only onto the rebuilt child (s2).
     EXPECT_CALL(mock_virtdisk, reparent_virtual_disk(_, _)).Times(0);
-    EXPECT_CALL(mock_virtdisk, reparent_virtual_disk(snapshot_path(3), snapshot_path(2)))
+    EXPECT_CALL(mock_virtdisk,
+                reparent_virtual_disk(NativePath{snapshot_path(3)}, NativePath{snapshot_path(2)}))
         .WillOnce(Return(op_ok()));
 
     EXPECT_NO_THROW(model.front()->erase());
@@ -591,7 +594,7 @@ TEST_F(VirtDiskSnapshotReparent, throws_when_snapshot_child_chain_cannot_be_insp
 {
     build_self_child_grandchildren();
 
-    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(snapshot_path(2), _, _))
+    EXPECT_CALL(mock_virtdisk, list_virtual_disk_chain(NativePath{snapshot_path(2)}, _, _))
         .WillOnce(Return(op_fail()));
     EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(_)).Times(0);
     EXPECT_CALL(mock_virtdisk, reparent_virtual_disk(_, _)).Times(0);
@@ -609,9 +612,10 @@ TEST_F(VirtDiskSnapshotReparent, rolls_back_when_reparent_fails)
 {
     build_self_child_grandchildren();
 
-    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(snapshot_path(2)))
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(NativePath{snapshot_path(2)}))
         .WillOnce(Return(op_ok()));
-    EXPECT_CALL(mock_virtdisk, reparent_virtual_disk(snapshot_path(3), snapshot_path(2)))
+    EXPECT_CALL(mock_virtdisk,
+                reparent_virtual_disk(NativePath{snapshot_path(3)}, NativePath{snapshot_path(2)}))
         .WillOnce(Return(op_fail()));
 
     EXPECT_THROW(model.front()->erase(), std::exception);
@@ -642,13 +646,15 @@ TEST_F(VirtDiskSnapshotReparent, rollback_relinks_already_reparented_grandchildr
     touch(snapshot_path(3));
     touch(snapshot_path(4));
 
-    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(snapshot_path(2)))
+    EXPECT_CALL(mock_virtdisk, merge_virtual_disk_into_parent(NativePath{snapshot_path(2)}))
         .WillOnce(Return(op_ok()));
     // s3 reparented twice (forward + rollback re-link); s4's forward reparent fails.
-    EXPECT_CALL(mock_virtdisk, reparent_virtual_disk(snapshot_path(3), snapshot_path(2)))
+    EXPECT_CALL(mock_virtdisk,
+                reparent_virtual_disk(NativePath{snapshot_path(3)}, NativePath{snapshot_path(2)}))
         .Times(2)
         .WillRepeatedly(Return(op_ok()));
-    EXPECT_CALL(mock_virtdisk, reparent_virtual_disk(snapshot_path(4), snapshot_path(2)))
+    EXPECT_CALL(mock_virtdisk,
+                reparent_virtual_disk(NativePath{snapshot_path(4)}, NativePath{snapshot_path(2)}))
         .WillOnce(Return(op_fail()));
 
     EXPECT_THROW(model.front()->erase(), std::exception);

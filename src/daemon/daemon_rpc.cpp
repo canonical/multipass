@@ -162,10 +162,12 @@ mp::DaemonRpc::DaemonRpc(const std::string& server_address,
     mpl::info(category, "gRPC listening on {}", server_address);
 }
 
-void mp::DaemonRpc::shutdown_and_wait()
+std::future<void> mp::DaemonRpc::shutdown()
 {
-    server->Shutdown();
-    server->Wait();
+    return std::async(std::launch::async, [this] {
+        server->Shutdown();
+        server->Wait();
+    });
 }
 
 grpc::Status mp::DaemonRpc::create(grpc::ServerContext* context,

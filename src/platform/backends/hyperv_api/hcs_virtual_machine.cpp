@@ -121,21 +121,37 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
       monitor(monitor)
 {
     const auto created_from_scratch = maybe_create_compute_system();
-    const auto state = fetch_state_from_api();
+    const auto compute_state = fetch_state_from_api();
 
     mpl::debug(get_name(),
                "HCSVirtualMachine() > created_from_scratch: {}, state: {}",
                created_from_scratch,
-               state);
+               compute_state);
 
     // Reflect compute system's state
-    set_state(state);
-    HCSVirtualMachine::handle_state_update();
+    const auto prev_state = state;
+    set_state(compute_state);
+
+    // Persist initial state even if unchanged
+    if (prev_state == this->state)
+        HCSVirtualMachine::handle_state_update();
+}
+
+HCSVirtualMachine::~HCSVirtualMachine()
+{
+    top_catch_all(vm_name, [this]() {
+        if (current_state() != State::running)
+            return;
+
+        // Auto-suspend if running
+        suspend();
+        // Persist previous VM state
+        set_state(State::running);
+    });
 }
 
 void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* context)
 {
-
     const auto type = hcs::parse_event(event);
     auto vm = static_cast<HCSVirtualMachine*>(context);
 
@@ -149,8 +165,8 @@ void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* co
     case hcs::HcsEventType::SystemExited:
     {
         mpl::info(vm->get_name(), "compute_system_event_callback() > SystemExited event received");
-        vm->state = State::off;
-        vm->handle_state_update();
+        vm->set_state(State::off);
+        vm->termination_signal.signal();
     }
     break;
     case hcs::HcsEventType::Unknown:
@@ -350,31 +366,36 @@ void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
         return;
     }
 
-    const auto prev_state = state;
     switch (compute_system_state)
     {
     case hcs::ComputeSystemState::created:
-        state = State::off;
+        set_state(State::off);
         break;
     case hcs::ComputeSystemState::paused:
-        state = State::suspended;
+        mpl::debug(vm_name, "VM is paused but not completely suspended");
+        set_state(State::suspended);
         break;
     case hcs::ComputeSystemState::running:
-        state = State::running;
+        set_state(State::running);
         break;
     case hcs::ComputeSystemState::saved_as_template:
     case hcs::ComputeSystemState::stopped:
-        state = has_saved_state_file() ? State::suspended : State::stopped;
+        set_state(has_saved_state_file() ? State::suspended : State::stopped);
         break;
     case hcs::ComputeSystemState::unknown:
-        state = State::unknown;
+        set_state(State::unknown);
         break;
     }
+}
 
-    if (state == prev_state)
+void HCSVirtualMachine::set_state(VirtualMachine::State new_state)
+{
+    if (state == new_state)
         return;
 
-    mpl::info(get_name(), "set_state() -> State changed from {} to {}", prev_state, state);
+    mpl::info(get_name(), "set_state() -> State changed from {} to {}", state, new_state);
+    state = new_state;
+    handle_state_update();
 }
 
 void HCSVirtualMachine::start()
@@ -386,8 +407,7 @@ void HCSVirtualMachine::start()
         mpl::debug(get_name(), "start() -> VM was not present, created from scratch");
 
     const auto prev_state = state;
-    state = VirtualMachine::State::starting;
-    handle_state_update();
+    set_state(VirtualMachine::State::starting);
     // Resume and start are the same thing in Multipass terms
     // Try to determine whether we need to resume or start here.
     const auto result = [&] {
@@ -412,8 +432,7 @@ void HCSVirtualMachine::start()
 
     if (!result)
     {
-        state = prev_state;
-        handle_state_update();
+        set_state(prev_state);
         throw StartComputeSystemException{"Could not start the VM: {}", result};
     }
     else if (has_saved_state_file())
@@ -430,10 +449,11 @@ void HCSVirtualMachine::start()
 
     mpl::debug(get_name(), "start() -> result `{}`", result);
 }
+
 void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     mpl::debug(get_name(), "shutdown() -> Shutting down, current state {}", state);
-
+    termination_signal.reset();
     try
     {
         check_state_for_shutdown(shutdown_policy);
@@ -443,6 +463,10 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         mpl::info(vm_name, "{}", e.what());
         return;
     }
+
+    // Ensure that the ssh session is dropped at the end of this function, even if shutdown
+    // fails, since it means that the VM is in some sort of error state.
+    auto drop_ssh_session_sg = sg::make_scope_guard([this]() noexcept { drop_ssh_session(); });
 
     switch (shutdown_policy)
     {
@@ -454,70 +478,78 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         {
             // Fall back to SSH shutdown.
             ssh_exec("sudo shutdown -h now");
-            drop_ssh_session();
         }
         break;
     case ShutdownPolicy::Halt:
     case ShutdownPolicy::Poweroff:
         mpl::debug(get_name(),
                    "shutdown() -> Requested halt/poweroff, initiating forceful shutdown");
+
+        // FIXME: There is a rare case where suspend fails, and fails to terminate
+        // the VM as well. In this case the VM will be "paused". This is not handled
+        // for now.
+        if (state == State::suspended)
+        {
+            if (const auto ec = remove_saved_state_file_if_exists(); ec)
+                throw ShutdownComputeSystemException("Could not remove state file '{}': {}",
+                                                     get_saved_state_file_path(),
+                                                     ec);
+            update_current_state();
+            return;
+        }
         // These are non-graceful variants. Just terminate the system immediately.
         const auto r = HCS().terminate_compute_system(hcs_system);
+        if (!r)
+            throw ShutdownComputeSystemException("Could not terminate VM `{}`: {}", get_name(), r);
         mpl::debug(get_name(), "shutdown -> terminate_compute_system result: {}", r.code);
-        drop_ssh_session();
         break;
     }
 
     // We need to wait here.
-    auto on_timeout = [] {
-        throw std::runtime_error("timed out waiting for VM shutdown to complete");
-    };
+    if (!termination_signal.wait_for(vm_shutdown_timeout))
+        throw ShutdownComputeSystemException("timed out waiting for VM shutdown to complete");
 
-    multipass::utils::try_action_for(on_timeout, vm_shutdown_timeout, [this]() {
-        switch (current_state())
-        {
-        case VirtualMachine::State::stopped:
-        case VirtualMachine::State::off:
-            return multipass::utils::TimeoutAction::done;
-        default:
-            return multipass::utils::TimeoutAction::retry;
-        }
-    });
+    switch (auto s = current_state())
+    {
+    case VirtualMachine::State::stopped:
+    case VirtualMachine::State::off:
+    case VirtualMachine::State::suspended:
+        break;
+    default:
+        throw ShutdownComputeSystemException("VM is not in stopped state after termination: {}", s);
+        break;
+    }
 }
 
 void HCSVirtualMachine::suspend()
 {
     mpl::debug(get_name(), "suspend() -> Suspending, current state {}", state);
-    if (const auto pause_result = HCS().pause_compute_system(hcs_system))
-    {
-        // Pause succeeded. We can suspend to disk now
-        if (const auto& r = HCS().save_compute_system(hcs_system, get_saved_state_file_path()); r)
-        {
-            // Save succeeded. Now, it's safe to terminate the system.
-            if (const auto& terminate_result = HCS().terminate_compute_system(hcs_system);
-                !terminate_result)
-                mpl::warn(get_name(),
-                          "VM suspended successfully but terminate failed, reason: {}",
-                          terminate_result);
-        }
-        else
-            throw SaveComputeSystemException{"Could not save the virtual machine state for VM `{}` "
-                                             "to the disk for suspend. Error details: {}",
-                                             get_name(),
-                                             r};
-    }
-    else
-    {
+
+    if (const auto pause_result = HCS().pause_compute_system(hcs_system); !pause_result)
         throw SaveComputeSystemException{"Could not pause VM for suspend: {}", pause_result};
+
+    if (const auto save_result = HCS().save_compute_system(hcs_system, get_saved_state_file_path());
+        !save_result)
+    {
+        recover_from_failed_save();
+        throw SaveComputeSystemException{"Failed to save suspended VM state to disk: {}",
+                                         save_result};
     }
-    set_state(fetch_state_from_api());
-    handle_state_update();
+
+    // NOTE: We intentionally keep the old state here because updating it would map "paused" to
+    // "suspended", causing shutdown to remove the newly saved state file.
+    shutdown(ShutdownPolicy::Poweroff);
+    return;
 }
 
 HCSVirtualMachine::State HCSVirtualMachine::current_state()
 {
-    set_state(fetch_state_from_api());
+    update_current_state();
     return state;
+}
+void HCSVirtualMachine::update_current_state()
+{
+    set_state(fetch_state_from_api());
 }
 int HCSVirtualMachine::ssh_port()
 {
@@ -582,7 +614,7 @@ void HCSVirtualMachine::handle_state_update()
 hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api() const
 {
     hcs::ComputeSystemState compute_system_state{hcs::ComputeSystemState::unknown};
-    const auto result = HCS().get_compute_system_state(hcs_system, compute_system_state);
+    const auto r = HCS().get_compute_system_state(hcs_system, compute_system_state);
     return compute_system_state;
 }
 
@@ -674,6 +706,48 @@ std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const QStrin
     return std::make_shared<virtdisk::VirtDiskSnapshot>(filename.toStdWString(),
                                                         *this,
                                                         description);
+}
+
+std::error_code HCSVirtualMachine::remove_saved_state_file_if_exists()
+{
+    if (has_saved_state_file())
+    {
+        mpl::trace(get_name(), "Saved state file exists, attempting to remove");
+        std::error_code ec{};
+        if (!MP_FILEOPS.remove(get_saved_state_file_path(), ec))
+        {
+            // FIXME: If the VM is stopped or terminated, it will still be reported as
+            // suspended because the saved-state file exists.
+            mpl::warn(get_name(), "Could not remove the saved state file, error: {}", ec);
+            return ec;
+        }
+    }
+
+    return {};
+}
+
+void HCSVirtualMachine::recover_from_failed_save()
+{
+    remove_saved_state_file_if_exists();
+
+    const auto resume_result = HCS().resume_compute_system(hcs_system);
+    if (resume_result)
+    {
+        update_current_state();
+        return;
+    }
+
+    mpl::error(get_name(),
+               "Could not resume after failed suspend ({}); powering off",
+               resume_result);
+    try
+    {
+        shutdown(ShutdownPolicy::Poweroff);
+    }
+    catch (const std::exception& e)
+    {
+        mpl::error(get_name(), "Power off after failed suspend also failed: {}", e.what());
+    }
 }
 
 } // namespace multipass::hyperv

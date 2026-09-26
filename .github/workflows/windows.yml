@@ -143,12 +143,53 @@ jobs:
       uses: mozilla-actions/sccache-action@v0.0.11
       continue-on-error: true
       with:
-        version: "v0.12.0"
+        version: "v0.18.0"
 
     - name: Install Windows ADK
-      uses: crazy-max/ghaction-chocolatey@v4
-      with:
-        args: install --yes windows-adk-deploy
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+
+        function Install-MicrosoftPackage {
+            param(
+                [string]$Url,
+                [string]$Path,
+                [string]$Arguments
+            )
+
+            Invoke-WebRequest -Uri $Url -OutFile $Path
+
+            $signature = Get-AuthenticodeSignature $Path
+
+            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+                throw "Invalid Authenticode signature for $Path`: $($signature.Status)"
+            }
+
+            if ($signature.SignerCertificate.Subject -notmatch '(^|,\s*)O=Microsoft Corporation(,|$)') {
+                throw "Unexpected signer for $Path`: $($signature.SignerCertificate.Subject)"
+            }
+
+            $process = Start-Process `
+                -FilePath $Path `
+                -ArgumentList $Arguments `
+                -Wait `
+                -PassThru `
+                -NoNewWindow
+
+            if ($process.ExitCode -ne 0) {
+                throw "$Path failed with exit code $($process.ExitCode)"
+            }
+        }
+
+        Install-MicrosoftPackage `
+            -Url "https://go.microsoft.com/fwlink/?linkid=2289980" `
+            -Path "$env:TEMP\adksetup.exe" `
+            -Arguments "/quiet /norestart /features OptionId.DeploymentTools"
+
+        Install-MicrosoftPackage `
+            -Url "https://go.microsoft.com/fwlink/?linkid=2289981" `
+            -Path "$env:TEMP\adkwinpesetup.exe" `
+            -Arguments "/quiet /norestart"
 
     - name: Install cmake
       uses: lukka/get-cmake@v4.4.2
@@ -357,7 +398,7 @@ jobs:
   #   uses: ./.github/workflows/cli-tests.yml
   #   with:
   #     windows-pkg-url: ${{ needs.PublishWindowsPackage.outputs.windows-pkg-url }}
-  #     backend-driver: hyperv_api
+  #     backend-driver: hcs
 
   Report-Workflow-Failure:
     needs: [BuildAndTest, PublishWindowsPackage]
