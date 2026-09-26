@@ -2675,6 +2675,14 @@ try
         });
     });
 
+// TODO hyperv migration, remove
+#if defined(HCS_ENABLED)
+    // Runs the Hyper-V to HCS migration only if prepare() started one; otherwise returns OK. The
+    // driver is only switched once it's done, so a daemon that stops mid-migration comes back on
+    // hyperv, where switching again cleans up and resumes it.
+    auto migration_status = transition.complete(server);
+#endif
+
     mpl::trace(category, "Trying to set {}={}", key, val);
     UserMessages messages{};
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val), messages);
@@ -2683,8 +2691,7 @@ try
 
 // TODO hyperv migration, revert: context->set_value(grpc::Status::OK);
 #if defined(HCS_ENABLED)
-    // Runs the Hyper-V to HCS migration only if prepare() started one; otherwise returns OK.
-    context->set_value(transition.complete(server));
+    context->set_value(std::move(migration_status));
 #else
     context->set_value(grpc::Status::OK);
 #endif
