@@ -2691,6 +2691,7 @@ try
 
 // TODO hyperv migration, revert: context->set_value(grpc::Status::OK);
 #if defined(HCS_ENABLED)
+    transition.hold_until_restart();
     context->set_value(std::move(migration_status));
 #else
     context->set_value(grpc::Status::OK);

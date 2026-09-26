@@ -42,8 +42,13 @@ mhv::DriverTransition::DriverTransition(DriverTransitionContext context) : conte
 
 mhv::DriverTransition::~DriverTransition()
 {
-    if (migration_flag_acquired)
+    if (migration_flag_acquired && !held_until_restart)
         context.migration_in_progress = false;
+}
+
+void mhv::DriverTransition::hold_until_restart()
+{
+    held_until_restart = migration_flag_acquired;
 }
 
 grpc::Status mhv::DriverTransition::prepare(const std::string& key, const std::string& value)
