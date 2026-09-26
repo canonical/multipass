@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright (C) Canonical, Ltd.
 #
@@ -19,7 +18,6 @@
 import sys
 
 from .threadutils import (
-    BooleanLatch,
     BackgroundEventLoop,
     AsyncSubprocess,
     SilentAsyncSubprocess,

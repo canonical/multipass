@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright (C) Canonical, Ltd.
 #
@@ -51,6 +50,7 @@ from .helpers import (
     get_mac_addr_of,
     get_cloudinit_instance_id,
     get_multipass_version,
+    parse_multipass_versions,
     vm_exists,
     get_boot_id
 )
