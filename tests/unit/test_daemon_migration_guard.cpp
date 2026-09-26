@@ -402,7 +402,44 @@ TEST_F(TestDaemonMigrationGuard, driverChangeHoldsGuardAcrossSettingsWrite)
     StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>> server;
 
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, server).ok());
-    EXPECT_FALSE(daemon.is_migrating());
+    // The daemon restarts on the new driver; until then the guard stays acquired.
+    EXPECT_TRUE(daemon.is_migrating());
+}
+
+TEST_F(TestDaemonMigrationGuard, requestAfterDriverChangeIsRejectedUntilRestart)
+{
+    auto config = config_builder.build();
+    const auto& rpc_config = *config;
+    GuardTestDaemon daemon{std::move(config)};
+    mp::DaemonRpc rpc{rpc_config.server_address,
+                      *rpc_config.cert_provider,
+                      rpc_config.client_cert_store.get(),
+                      rpc_config.logger};
+    daemon.connect_rpc(rpc);
+
+    EXPECT_CALL(*mock_platform, is_backend_supported(QStringLiteral("hyperv")))
+        .WillOnce(Return(true));
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
+    EXPECT_CALL(mock_settings, set(Eq(mp::driver_key), Eq("hyperv"), _));
+
+    mp::SetRequest request;
+    request.set_key(mp::driver_key);
+    request.set_val("hyperv");
+    StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>> server;
+    ASSERT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, server).ok());
+
+    // A request dispatched before the restart (such as one queued while the migration ran) would
+    // otherwise run against the old driver.
+    StrictMock<mpt::MockDaemonRpcContext> context;
+    bool completed = false;
+    EXPECT_CALL(context, set_value).WillOnce([&](const grpc::Status& status) {
+        EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+        completed = true;
+    });
+    std::thread{[&] { rpc.on_start(nullptr, nullptr, &context); }}.join();
+    QCoreApplication::sendPostedEvents(&daemon, QEvent::MetaCall);
+
+    EXPECT_TRUE(completed);
 }
 
 TEST_F(TestDaemonMigrationGuard, driverChangeReleasesGuardWhenSettingsWriteFails)
@@ -454,7 +491,8 @@ TEST_F(TestDaemonMigrationGuard, driverChangeReleasesHcsResourcesBeforeSettingsW
     StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>> server;
 
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, server).ok());
-    EXPECT_FALSE(daemon.is_migrating());
+    // The daemon restarts on the new driver; until then the guard stays acquired.
+    EXPECT_TRUE(daemon.is_migrating());
 }
 
 TEST_F(TestDaemonMigrationGuard, driverChangeDoesNotWriteSettingsWhenResourceCleanupFails)
@@ -508,7 +546,8 @@ TEST_F(TestDaemonMigrationGuard, migrationRunsBeforeDriverSettingIsWritten)
     request.set_val("hcs");
 
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, server).ok());
-    EXPECT_FALSE(daemon.is_migrating());
+    // The daemon restarts on the new driver; until then the guard stays acquired.
+    EXPECT_TRUE(daemon.is_migrating());
 }
 
 namespace

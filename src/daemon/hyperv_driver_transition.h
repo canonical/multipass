@@ -86,12 +86,17 @@ public:
     // done.
     [[nodiscard]] grpc::Status complete(
         grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server);
+    // Call once the driver setting is written. The daemon restarts on the new driver, and until it
+    // does, requests (including those queued during the migration) would still run against the old
+    // one, so the guard stays acquired rather than being released.
+    void hold_until_restart();
 
 private:
     [[nodiscard]] grpc::Status release_hcs_instances() const;
 
     DriverTransitionContext context;
     bool migration_flag_acquired{false};
+    bool held_until_restart{false};
     std::unique_ptr<HyperVMigrationTargetRecords> migration_records;
 };
 } // namespace multipass::hyperv
