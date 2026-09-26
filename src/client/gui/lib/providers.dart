@@ -290,12 +290,26 @@ class DaemonSettingNotifier extends AsyncNotifier<String> {
   }
 
   Future<void> set(String value) async {
-    state = AsyncValue.data(value);
+    // The driver is only reported once the daemon has actually switched, so it
+    // is refetched afterwards instead of being set optimistically.
+    if (arg != driverKey) state = AsyncValue.data(value);
     try {
       await ref.read(grpcClientProvider).set(arg, value);
+      if (arg == driverKey) ref.invalidateSelf();
     } catch (_) {
       Timer(100.milliseconds, ref.invalidateSelf);
       rethrow;
+    }
+  }
+
+  // TODO hyperv migration, remove
+  // Refetches the setting once the daemon is done, whatever the outcome, since
+  // a partially failed migration still switches the driver.
+  Stream<SetReply> setStreaming(String value) async* {
+    try {
+      yield* ref.read(grpcClientProvider).setStreaming(arg, value);
+    } finally {
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 

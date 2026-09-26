@@ -33,10 +33,15 @@ public:
                 ConvertInterfaceAliasToLuid,
                 (const WCHAR* InterfaceName, NET_LUID* InterfaceLuid),
                 (const override));
+    MOCK_METHOD(DWORD,
+                ConvertInterfaceGuidToLuid,
+                (const GUID* InterfaceGuid, NET_LUID* InterfaceLuid),
+                (const override));
     MOCK_METHOD(hyperv::IpNetTableResult,
                 GetIpNetTable2,
                 (ADDRESS_FAMILY Family),
                 (const override));
+    MOCK_METHOD(DWORD, DeleteIpNetEntry2, (const MIB_IPNET_ROW2* Row), (const override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockNetIOAPI, NetIOAPI);
 };

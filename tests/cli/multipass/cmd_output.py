@@ -20,16 +20,18 @@ import re
 
 from cli.multipass.cmd_json_output import JsonOutput
 from cli.utilities import strip_ansi_escape
-from cli.config import cfg
 
 
-def strip_lxd_deprecation_notice(text: str) -> str:
+def strip_driver_deprecation_notice(text: str) -> str:
     """
-    Strip LXD driver deprecation warning from text.
+    Strip the driver deprecation warning from text.
+
+    The daemon sends it on stderr, which is captured along with stdout, as a
+    header line and an advice paragraph, each followed by a blank line.
     """
 
     return re.sub(
-        r"\*\*\* Warning! The .*? driver is deprecated.*?remain in LXD\.(?:\r\n|\r|\n){2}",
+        r"\*\*\* Warning! The \S+ driver is deprecated[^\r\n]*(?:\r*\n){2}.*?(?:\r*\n){2}",
         "",
         text,
         flags=re.S,
@@ -40,10 +42,9 @@ class Output:
     """A type to store text command output."""
 
     def __init__(self, content, exitstatus):
-        if cfg.driver == "lxd":
-            content = strip_lxd_deprecation_notice(content)
         # Strip ansi escape codes.
-        self.content = strip_ansi_escape(content.strip())
+        content = strip_ansi_escape(content)
+        self.content = strip_driver_deprecation_notice(content).strip()
         self.exitstatus = exitstatus
 
     def __contains__(self, pattern):
