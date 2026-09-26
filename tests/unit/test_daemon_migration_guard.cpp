@@ -50,6 +50,7 @@
 
 #include <daemon/hyperv_driver_transition.h>
 #include <hcs/hcs_virtual_machine_resources.h>
+#include <shared/windows/windows_feature_status.h>
 #endif
 
 namespace mp = multipass;
@@ -478,6 +479,35 @@ TEST_F(TestDaemonMigrationGuard, driverChangeDoesNotWriteSettingsWhenResourceCle
     const auto status = call_daemon_slot(daemon, &mp::Daemon::set, request, server);
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_EQ(status.error_message(), "Could not release HCS resources for 'stopped'");
+    EXPECT_FALSE(daemon.is_migrating());
+}
+
+TEST_F(TestDaemonMigrationGuard, migrationRunsBeforeDriverSettingIsWritten)
+{
+    // Starting a migration checks the host feature, which can't be mocked.
+    if (const auto state = mp::get_windows_feature_state(L"VirtualMachinePlatform");
+        state && state != mp::WindowsFeatureState::Enabled)
+        GTEST_SKIP() << "Starting a migration needs the Virtual Machine Platform feature";
+
+    GuardTestDaemon daemon{config_builder.build()};
+    StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>> server;
+
+    // A daemon that stops mid-migration must come back on hyperv, so the migration (reporting its
+    // summary here, as there are no instances) has to finish before the driver is written.
+    InSequence sequence;
+    EXPECT_CALL(*mock_platform, is_backend_supported(QStringLiteral("hcs"))).WillOnce(Return(true));
+    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hyperv")));
+    EXPECT_CALL(server, Write(Property(&mp::SetReply::has_hcs_migration_report, true), _))
+        .WillOnce(Return(true));
+    EXPECT_CALL(mock_settings, set(Eq(mp::driver_key), Eq("hcs"), _)).WillOnce([&daemon] {
+        EXPECT_TRUE(daemon.is_migrating());
+    });
+
+    mp::SetRequest request;
+    request.set_key(mp::driver_key);
+    request.set_val("hcs");
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, server).ok());
     EXPECT_FALSE(daemon.is_migrating());
 }
 

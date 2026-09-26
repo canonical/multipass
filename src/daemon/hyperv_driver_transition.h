@@ -79,9 +79,11 @@ public:
     explicit DriverTransition(DriverTransitionContext context);
     ~DriverTransition();
 
-    // Keep this object alive across the settings write and completion, including error exits.
+    // Keep this object alive across completion and the settings write, including error exits.
     [[nodiscard]] grpc::Status prepare(const std::string& key, const std::string& value);
     // Migrates the instances if prepare() started a Hyper-V to HCS migration; otherwise returns OK.
+    // Call it before writing the driver setting, so the switch only happens once the migration is
+    // done.
     [[nodiscard]] grpc::Status complete(
         grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server);
 
