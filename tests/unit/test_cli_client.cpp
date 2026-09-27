@@ -897,6 +897,8 @@ TEST_F(Client, transferCmdStdoutGoodSourceOk)
 
     EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient)
         .WillOnce(Return(std::move(mocked_sftp_client)));
+    EXPECT_CALL(*mocked_sftp_client_p, expand_remote_path(fs::path{"foo"}))
+        .WillOnce(Return(std::vector<fs::path>{"foo"}));
     EXPECT_CALL(*mocked_sftp_client_p, to_cout);
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
@@ -907,6 +909,50 @@ TEST_F(Client, transferCmdStdoutGoodSourceOk)
         });
 
     EXPECT_EQ(send_command({"transfer", "test-vm1:foo", "-"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, transferCmdStdoutExpandsSingleWildcardMatch)
+{
+    auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
+    auto mocked_sftp_client = std::make_unique<mpt::MockSFTPClient>();
+    auto mocked_sftp_client_p = mocked_sftp_client.get();
+
+    EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient)
+        .WillOnce(Return(std::move(mocked_sftp_client)));
+    EXPECT_CALL(*mocked_sftp_client_p, expand_remote_path(fs::path{"foo/*.txt"}))
+        .WillOnce(Return(std::vector<fs::path>{"foo/only.txt"}));
+    EXPECT_CALL(*mocked_sftp_client_p, to_cout(fs::path{"foo/only.txt"}, _));
+    EXPECT_CALL(mock_daemon, ssh_info)
+        .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
+            mp::SSHInfoReply reply;
+            reply.mutable_ssh_info()->insert({"test-vm", mp::SSHInfo{}});
+            server->Write(reply);
+            return grpc::Status{};
+        });
+
+    EXPECT_EQ(send_command({"transfer", "test-vm1:foo/*.txt", "-"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, transferCmdStdoutRejectsMultipleWildcardMatches)
+{
+    auto [mocked_sftp_utils, mocked_sftp_utils_guard] = mpt::MockSFTPUtils::inject();
+    auto mocked_sftp_client = std::make_unique<mpt::MockSFTPClient>();
+    auto mocked_sftp_client_p = mocked_sftp_client.get();
+
+    EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient)
+        .WillOnce(Return(std::move(mocked_sftp_client)));
+    EXPECT_CALL(*mocked_sftp_client_p, expand_remote_path(fs::path{"foo/*.txt"}))
+        .WillOnce(Return(std::vector<fs::path>{"foo/first.txt", "foo/second.txt"}));
+    EXPECT_CALL(*mocked_sftp_client_p, to_cout).Times(0);
+    EXPECT_CALL(mock_daemon, ssh_info)
+        .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
+            mp::SSHInfoReply reply;
+            reply.mutable_ssh_info()->insert({"test-vm", mp::SSHInfo{}});
+            server->Write(reply);
+            return grpc::Status{};
+        });
+
+    EXPECT_EQ(send_command({"transfer", "test-vm1:foo/*.txt", "-"}), mp::ReturnCode::CommandFail);
 }
 
 TEST_F(Client, transferCmdStdoutBadSourceFails)

@@ -97,7 +97,14 @@ mp::ReturnCodeVariant cmd::Transfer::run(mp::ArgParser* parser)
                                           flags.testFlag(SFTPClient::Flag::MakeParent));
 
                 if (const auto args = std::get_if<ToCout>(&arguments); args)
-                    sftp_client->to_cout(args->source, term->cout());
+                {
+                    const auto matches = sftp_client->expand_remote_path(args->source);
+                    if (matches.size() != 1)
+                        throw std::runtime_error{
+                            fmt::format("Cannot write multiple matches to stdout for source {:?}",
+                                        args->source)};
+                    sftp_client->to_cout(matches.front(), term->cout());
+                }
             }
             catch (const std::exception& e)
             {
