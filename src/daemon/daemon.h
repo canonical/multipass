@@ -229,10 +229,17 @@ private:
         DaemonRpcContext* context;
     };
 
+    struct ReadinessResult
+    {
+        std::string instance_name;
+        ReadinessError::ErrorCode error;
+        std::string message;
+    };
+
     // These async_* methods need to operate on instance names and look up the VMs again, lest they
     // be gone or moved.
     template <typename Reply, typename Request>
-    std::string async_wait_for_ssh_and_start_mounts_for(
+    ReadinessResult async_wait_for_ssh_and_start_mounts_for(
         const std::string& name,
         const std::chrono::seconds& timeout,
         grpc::ServerReaderWriterInterface<Reply, Request>* server);
@@ -242,8 +249,7 @@ private:
                              const std::vector<std::string>& vms,
                              const std::chrono::seconds& timeout,
                              DaemonRpcContext* context,
-                             const std::string& errors,
-                             const std::string& start_warnings);
+                             const std::string& errors);
     void finish_async_operation(const std::string& async_future_key);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(
         std::function<void()> const& finished_op = []() {});
@@ -267,6 +273,10 @@ private:
     VMSpecs clone_spec(const VMSpecs& src_vm_spec,
                        const std::string& src_name,
                        const std::string& dest_name);
+
+    template <typename Reply>
+    grpc::Status grpc_status_for_readiness(const std::vector<ReadinessResult>& errors,
+                                           const std::string& start_errors);
 
     std::unique_ptr<const DaemonConfig> config;
 
@@ -300,7 +310,7 @@ private:
         false};
     std::unordered_map<std::string, std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>>
         async_future_watchers;
-    std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
+    std::unordered_map<std::string, QFuture<ReadinessResult>> async_running_futures;
     std::mutex start_mutex;
     std::unordered_set<std::string> preparing_instances;
     QFuture<void> image_update_future;
