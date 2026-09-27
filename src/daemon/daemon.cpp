@@ -38,6 +38,7 @@
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/ip_address.h>
@@ -96,8 +97,6 @@ namespace
 {
 
 using namespace std::chrono_literals;
-
-using error_string = std::string;
 
 constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
@@ -722,7 +721,7 @@ auto grpc_status_for_mount_error(const std::string& instance_name)
                         fmt::format(sshfs_error_template, instance_name));
 }
 
-auto grpc_status_for(fmt::memory_buffer& errors,
+auto grpc_status_for(const fmt::memory_buffer& errors,
                      grpc::StatusCode status_code = grpc::StatusCode::OK)
 {
     if (errors.size() && !status_code)
@@ -2278,7 +2277,7 @@ try
     std::vector<std::string> starting_vms{};
     starting_vms.reserve(instance_selection.operative_selection.size());
 
-    fmt::memory_buffer start_errors, start_warnings;
+    fmt::memory_buffer start_errors;
     for (auto& vm_it : instance_selection.operative_selection)
     {
         std::lock_guard lock{start_mutex};
@@ -2334,8 +2333,7 @@ try
                           starting_vms,
                           timeout,
                           context,
-                          fmt::to_string(start_errors),
-                          fmt::to_string(start_warnings)));
+                          fmt::to_string(start_errors)));
 }
 catch (const std::exception& e)
 {
@@ -2460,7 +2458,6 @@ try
                           names_from(instance_targets),
                           timeout,
                           context,
-                          std::string(),
                           std::string()));
 }
 catch (const std::exception& e)
@@ -3173,7 +3170,6 @@ try // clang-format on
                               starting_vms,
                               mp::default_timeout,
                               nullptr,
-                              std::string(),
                               std::string()));
 
         for (auto&& z : zones)
@@ -3244,7 +3240,6 @@ void mp::Daemon::on_restart(const std::string& name)
                           std::vector<std::string>{name},
                           mp::default_timeout,
                           nullptr,
-                          std::string(),
                           std::string()));
 }
 
@@ -3414,7 +3409,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                      std::vector<std::string>{name},
                                      timeout,
                                      context,
-                                     std::string(),
                                      std::string()));
                              }
                              else
@@ -3801,26 +3795,26 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
 }
 
 template <typename Reply, typename Request>
-error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
+mp::Daemon::ReadinessResult mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
     const std::string& name,
     const std::chrono::seconds& timeout,
     grpc::ServerReaderWriterInterface<Reply, Request>* server)
 {
-    fmt::memory_buffer errors;
     try
     {
         const auto& it = operative_instances.find(name);
         if (operative_instances.end() == it)
         {
-            fmt::format_to(std::back_inserter(errors),
-                           "Error starting mounts for VM `{}`, the VM is not in a operative state!",
-                           name);
-            return fmt::to_string(errors);
+            return {name,
+                    ReadinessError::NOT_OPERATIVE,
+                    fmt::format("Error starting mounts for VM `{}`, the VM is not in a operative "
+                                "state!",
+                                name)};
         }
         const auto vm = it->second;
         vm->wait_until_ssh_up(timeout);
 
-        if (std::is_same<Reply, LaunchReply>::value)
+        if constexpr (std::is_same_v<Reply, LaunchReply>)
         {
             if (server)
             {
@@ -3835,6 +3829,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
         {
             std::vector<std::string> invalid_mounts;
+            std::optional<ReadinessResult> mount_error;
             fmt::memory_buffer warnings;
             auto& vm_mounts = mounts[name];
             for (auto& [target, mount] : vm_mounts)
@@ -3844,7 +3839,9 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
-                    add_fmt_to(errors, sshfs_error_template, name);
+                    mount_error = {name,
+                                   ReadinessError::SSHFS_MISSING,
+                                   fmt::format(sshfs_error_template, name)};
                     break;
                 }
                 catch (const std::exception& e)
@@ -3873,21 +3870,32 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
             }
 
             persist_instances();
+
+            if (mount_error)
+                return *mount_error;
         }
     }
     catch (const StartException& e)
     {
         if (!std::is_same_v<Reply, LaunchReply> || !e.was_intentional())
         {
-            fmt::format_to(std::back_inserter(errors), "{}", e.what());
+            return {name, ReadinessError::UNPLUGGED, e.what()};
         }
+    }
+    catch (const SSHTimeoutException& e)
+    {
+        return {name, ReadinessError::SSH_TIMEOUT, e.what()};
+    }
+    catch (const CloudInitTimeoutException& e)
+    {
+        return {name, ReadinessError::CLOUD_INIT_TIMEOUT, e.what()};
     }
     catch (const std::exception& e)
     {
-        fmt::format_to(std::back_inserter(errors), "{}", e.what());
+        return {name, ReadinessError::OTHER, e.what()};
     }
 
-    return fmt::to_string(errors);
+    return {name, ReadinessError::OK, {}};
 }
 
 template <typename Reply, typename Request>
@@ -3896,10 +3904,9 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
                                      const std::vector<std::string>& vms,
                                      const std::chrono::seconds& timeout,
                                      DaemonRpcContext* context,
-                                     const std::string& start_errors,
-                                     const std::string& start_warnings)
+                                     const std::string& start_errors)
 {
-    QFutureSynchronizer<std::string> start_synchronizer;
+    QFutureSynchronizer<ReadinessResult> start_synchronizer;
     {
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
         for (const auto& name : vms)
@@ -3924,10 +3931,6 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
 
     start_synchronizer.waitForFinished();
 
-    fmt::memory_buffer warnings;
-
-    warnings.append(start_warnings);
-
     {
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
         for (const auto& name : vms)
@@ -3936,31 +3939,24 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
         }
     }
 
-    fmt::memory_buffer errors;
-    errors.append(start_errors);
+    std::vector<ReadinessResult> readiness_errors;
+    readiness_errors.reserve(vms.size());
 
     for (const auto& future : start_synchronizer.futures())
-        if (auto error = future.result(); !error.empty())
-            add_fmt_to(errors, "{}", error);
+        if (const auto result = future.result(); result.error != ReadinessError::OK)
+            readiness_errors.push_back(result);
 
     if constexpr (std::is_same_v<Reply, StartReply> || std::is_same_v<Reply, RestartReply>)
     {
         if (server)
         {
             Reply reply;
-
             config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
-
-            if (warnings.size() > 0)
-            {
-                reply.set_log_line(fmt::to_string(warnings));
-            }
-
             server->Write(reply);
         }
     }
 
-    return {grpc_status_for(errors), context};
+    return {grpc_status_for_readiness<Reply>(readiness_errors, start_errors), context};
 }
 
 void mp::Daemon::finish_async_operation(const std::string& async_future_key)
@@ -4228,4 +4224,45 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
                                          instance_name,
                                          preferred_net);
     }
+}
+
+template <typename Reply>
+grpc::Status mp::Daemon::grpc_status_for_readiness(const std::vector<ReadinessResult>& errors,
+                                                   const std::string& start_errors)
+{
+    if (start_errors.size() == 0 && errors.empty())
+        return grpc::Status::OK;
+
+    std::string error_details;
+    if constexpr (std::is_same_v<Reply, LaunchReply>)
+    {
+        assert(errors.size() <= 1);
+
+        LaunchError launch_error;
+        for (const auto& error : errors)
+            launch_error.set_readiness_error(error.error);
+
+        error_details = launch_error.SerializeAsString();
+    }
+    else if constexpr (std::is_same_v<Reply, StartReply>)
+    {
+        StartError start_error;
+        auto* readiness_errors = start_error.mutable_readiness_errors();
+        for (const auto& error : errors)
+            (*readiness_errors)[error.instance_name] = error.error;
+        error_details = start_error.SerializeAsString();
+    }
+
+    fmt::memory_buffer collective_errors;
+    add_fmt_to(collective_errors, "The following errors occurred:");
+
+    if (!start_errors.empty())
+        add_fmt_to(collective_errors, "{}", start_errors);
+
+    for (const auto& result : errors)
+        add_fmt_to(collective_errors, "{}", result.message);
+
+    return {grpc::StatusCode::INVALID_ARGUMENT,
+            fmt::to_string(collective_errors),
+            std::move(error_details)};
 }
