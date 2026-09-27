@@ -79,6 +79,18 @@ message LaunchRequest {
     string zone = 16;
 }
 
+message ReadinessError {
+    enum ErrorCode {
+        OK = 0;
+        NOT_OPERATIVE = 1;
+        UNPLUGGED = 2;
+        SSH_TIMEOUT = 3;
+        CLOUD_INIT_TIMEOUT = 4;
+        SSHFS_MISSING = 5;
+        OTHER = 6;
+    }
+}
+
 message LaunchError {
     enum ErrorCodes {
         OK = 0;
@@ -89,6 +101,7 @@ message LaunchError {
         ZONE_UNAVAILABLE = 5;
     }
     repeated ErrorCodes error_codes = 1;
+    ReadinessError.ErrorCode readiness_error = 2;
 }
 
 message LaunchProgress {
@@ -385,6 +398,7 @@ message StartError {
         OTHER = 3;
     }
     map<string, ErrorCode> instance_errors = 1;
+    map<string, ReadinessError.ErrorCode> readiness_errors = 2;
 }
 
 message StartRequest {
