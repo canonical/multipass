@@ -50,8 +50,10 @@ wildcards. Quote the source so that your host shell passes the pattern to Multip
 multipass transfer 'ample-pigeon:logs/*.txt' .
 ```
 
-If the pattern matches multiple files, the destination must be a directory. Wildcards in local
-source paths are expanded by the host shell as usual.
+Wildcard patterns do not match hidden entries unless the pattern component starts with `.` (for
+example, `logs/.*.txt`). When copying to a host directory, multiple matches require a directory
+destination; writing to `-` requires exactly one match. Wildcards in local source paths are expanded
+by the host shell as usual.
 
 ---
 

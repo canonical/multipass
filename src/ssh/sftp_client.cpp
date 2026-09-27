@@ -120,7 +120,8 @@ SFTPClient::SFTPClient(SSHSessionUPtr ssh_session)
 
 bool SFTPClient::is_remote_dir(const fs::path& path)
 {
-    auto attr = mp_sftp_stat(sftp.get(), path.string().c_str());
+    const auto remote_path = path.generic_string();
+    auto attr = mp_sftp_stat(sftp.get(), remote_path.c_str());
     return attr && attr->type == SSH_FILEXFER_TYPE_DIRECTORY;
 }
 
@@ -243,7 +244,7 @@ catch (const SFTPError& e)
 bool SFTPClient::pull(const fs::path& source_path, const fs::path& target_path, const Flags flags)
 try
 {
-    auto source = source_path.string();
+    auto source = source_path.generic_string();
     utils::trim_end(source,
                     [](char ch) { return ch == '/' || ch == fs::path::preferred_separator; });
 
@@ -303,7 +304,8 @@ void SFTPClient::pull_file(const fs::path& source_path, const fs::path& target_p
 
     do_pull_file(source_path, *local_file);
 
-    auto source_perms = mp_sftp_stat(sftp.get(), source_path.string().c_str())->permissions;
+    const auto remote_source = source_path.generic_string();
+    auto source_perms = mp_sftp_stat(sftp.get(), remote_source.c_str())->permissions;
     if (!MP_PLATFORM.set_permissions(target_path, static_cast<fs::perms>(source_perms)))
         throw SFTPError{"cannot set permissions for local file {}", target_path};
 
@@ -412,19 +414,19 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
 {
     auto success = true;
     std::error_code err;
+    const auto remote_source = source_path.generic_string();
 
     auto remote_iter = MP_SFTPUTILS.make_SFTPDirIterator(sftp.get(), source_path);
 
     std::vector<std::pair<fs::path, mode_t>> subdirectory_perms{
-        {target_path, mp_sftp_stat(sftp.get(), source_path.string().c_str())->permissions}};
+        {target_path, mp_sftp_stat(sftp.get(), remote_source.c_str())->permissions}};
 
     while (remote_iter->hasNext())
     {
         try
         {
             const auto entry = remote_iter->next();
-            const auto local_file_path =
-                target_path / (entry->name + source_path.string().size() + 1);
+            const auto local_file_path = target_path / (entry->name + remote_source.size() + 1);
 
             switch (entry->type)
             {
@@ -523,7 +525,8 @@ void SFTPClient::do_push_file(std::istream& source, const fs::path& target_path)
 
 void SFTPClient::do_pull_file(const fs::path& source_path, std::ostream& target)
 {
-    auto remote_file = mp_sftp_open(sftp.get(), source_path.string().c_str(), O_RDONLY, 0);
+    const auto remote_path = source_path.generic_string();
+    auto remote_file = mp_sftp_open(sftp.get(), remote_path.c_str(), O_RDONLY, 0);
     if (!remote_file)
         throw SFTPError{"cannot open remote file {}: {}",
                         source_path,

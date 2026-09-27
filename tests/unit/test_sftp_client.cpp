@@ -55,7 +55,7 @@ sftp_attributes get_dummy_sftp_attr(uint8_t type = SSH_FILEXFER_TYPE_REGULAR,
     auto attr =
         static_cast<sftp_attributes_struct*>(calloc(1, sizeof(struct sftp_attributes_struct)));
     attr->type = type;
-    attr->name = strdup(name.string().c_str());
+    attr->name = strdup(name.generic_string().c_str());
     attr->permissions = perms;
     return attr;
 }
@@ -72,7 +72,7 @@ auto make_unique_dummy_sftp_attr(uint8_t type = SSH_FILEXFER_TYPE_REGULAR,
 sftp_dir get_dummy_sftp_dir(const fs::path& name)
 {
     auto dir = static_cast<sftp_dir_struct*>(calloc(1, sizeof(struct sftp_dir_struct)));
-    dir->name = strdup(name.string().c_str());
+    dir->name = strdup(name.generic_string().c_str());
     return dir;
 }
 
@@ -481,6 +481,8 @@ TEST_F(SFTPClient, pushFileCannotSetPerms)
 TEST_F(SFTPClient, pullFileSuccess)
 {
     std::string test_data = "test_data";
+    std::string opened_remote_path;
+    std::vector<std::string> remote_stat_paths;
 
     REPLACE_SFTP_INIT();
     EXPECT_CALL(*mock_sftp_utils, get_local_file_target(source_path, target_path, _))
@@ -489,7 +491,10 @@ TEST_F(SFTPClient, pullFileSuccess)
     std::stringstream test_file;
     EXPECT_CALL(*mock_file_ops, open_write(target_path, _))
         .WillOnce(Return(std::make_unique<std::ostream>(test_file.rdbuf())));
-    REPLACE(sftp_open, [](auto sftp, auto...) { return get_dummy_sftp_file(sftp); });
+    REPLACE(sftp_open, [&](auto sftp, auto path, auto...) {
+        opened_remote_path = path;
+        return get_dummy_sftp_file(sftp);
+    });
 
     auto mocked_sftp_read = [&, read = false](auto, void* data, auto) mutable {
         strcpy((char*)data, test_data.c_str());
@@ -498,8 +503,10 @@ TEST_F(SFTPClient, pullFileSuccess)
     REPLACE(sftp_read, mocked_sftp_read);
 
     mode_t perms = 0777;
-    REPLACE(sftp_stat,
-            [&](auto...) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "", perms); });
+    REPLACE(sftp_stat, [&](auto, auto path) {
+        remote_stat_paths.emplace_back(path);
+        return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "", perms);
+    });
     std::filesystem::perms written_perms;
     EXPECT_CALL(mock_platform,
                 set_permissions(target_path, static_cast<std::filesystem::perms>(perms), _))
@@ -513,6 +520,9 @@ TEST_F(SFTPClient, pullFileSuccess)
     EXPECT_TRUE(sftp_client.pull(source_path, target_path));
     EXPECT_EQ(test_data, test_file.str());
     EXPECT_EQ(static_cast<std::filesystem::perms>(perms), written_perms);
+    EXPECT_EQ(source_path.generic_string(), opened_remote_path);
+    EXPECT_THAT(remote_stat_paths,
+                ElementsAre(source_path.generic_string(), source_path.generic_string()));
 }
 
 TEST_F(SFTPClient, pullFileCannotOpenSource)
