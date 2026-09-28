@@ -14,6 +14,7 @@
 
 add_library(client_common STATIC
   alias_dict.cpp
+  autocompleter.cpp
   client_common.cpp
   prompters.cpp)
 
