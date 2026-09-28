@@ -862,7 +862,7 @@ void mp::platform::sync_winterm_profiles()
 
 std::string mp::platform::default_server_address()
 {
-    return {"localhost:25051"};
+    return default_grpc_server_tcp_listen_address;
 }
 
 QString mp::platform::Platform::default_driver() const
