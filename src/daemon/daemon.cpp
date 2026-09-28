@@ -3062,27 +3062,48 @@ try // clang-format on
     }
 
     auto instances = select_instances_by_zones(operative_instances, zones);
+    std::vector<std::string> starting_vms;
+    starting_vms.reserve(instances.size());
 
     std::function<grpc::Status(VirtualMachine&)> operation;
     if (request->available())
-        operation = [this](VirtualMachine& vm) {
+        operation = [this, &starting_vms](VirtualMachine& vm) {
             std::unique_lock lock{start_mutex};
-            if (vm.set_available(true))
+            try
             {
-                vm.start();
-                lock.unlock();
-                on_restart(vm.get_name());
+                if (vm.set_available(true))
+                {
+                    vm.start();
+                    starting_vms.push_back(vm.get_name());
+                }
+                return grpc::Status::OK;
             }
-            return grpc::Status::OK;
+            catch (const std::exception& e)
+            {
+                return grpc::Status{grpc::StatusCode::ABORTED, e.what(), ""};
+            }
         };
     else
         operation = [this](VirtualMachine& vm) { return make_vm_unavailable(vm); };
 
-    try
+    auto status = cmd_vms(instances, operation);
+    if (status.ok())
     {
-        cmd_vms(instances, operation);
+        auto future_watcher = create_future_watcher();
+        future_watcher->setFuture(
+            QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
+                              this,
+                              nullptr,
+                              starting_vms,
+                              mp::default_timeout,
+                              nullptr,
+                              std::string(),
+                              std::string()));
+
+        for (auto&& z : zones)
+            z.get().set_available(request->available());
     }
-    catch (const std::exception&)
+    else
     {
         // If we failed to start/stop any instance, we need to make sure the zones are in a
         // consistent state. Since some may be started and some stopped, set the zones to
@@ -3097,15 +3118,9 @@ try // clang-format on
 
         for (auto&& z : zones)
             z.get().set_available(true);
-
-        // Rethrow the error so something else can deal with it.
-        throw;
     }
 
-    for (auto&& z : zones)
-        z.get().set_available(request->available());
-
-    context->set_value(grpc::Status{});
+    context->set_value(status);
 }
 catch (const AvailabilityZoneNotFound& e)
 {
@@ -3566,9 +3581,15 @@ grpc::Status mp::Daemon::make_vm_unavailable(VirtualMachine& vm)
     const auto& name = vm.get_name();
     delayed_shutdown_instances.erase(name);
 
-    vm.set_available(false);
-
-    return grpc::Status::OK;
+    try
+    {
+        vm.set_available(false);
+        return grpc::Status::OK;
+    }
+    catch (const std::exception& e)
+    {
+        return grpc::Status{grpc::StatusCode::ABORTED, e.what(), ""};
+    }
 }
 
 grpc::Status mp::Daemon::cancel_vm_shutdown(const VirtualMachine& vm)

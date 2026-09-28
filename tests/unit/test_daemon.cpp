@@ -1684,7 +1684,7 @@ TEST_F(Daemon, enableZonesRestoresRunningInstanceState)
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
     EXPECT_CALL(*mock_vm, get_zone).WillRepeatedly(ReturnRef(zone));
     EXPECT_CALL(*mock_vm, set_available(true)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(0);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, shutdown).Times(0);
