@@ -17,6 +17,13 @@ Every instance you work with starts with a launch or a clone. Removing an instan
 - [`recover`](reference-command-line-interface-recover)
 - [`purge`](reference-command-line-interface-purge)
 
+## Command-line access
+
+You can work inside an instance interactively or run one command at a time from a script. See [Multipass exec and shells](explanation-multipass-exec-and-shells) for how your host shell affects the commands you pass.
+
+- [`shell`](reference-command-line-interface-shell)
+- [`exec`](reference-command-line-interface-exec)
+
 ## Discovery and inspection
 
 These commands report information without changing anything. Use them to choose an image before you launch, or to check an instance's IP address, disk usage, and memory usage.
@@ -41,13 +48,6 @@ A snapshot records an instance at a point in time, so you can experiment and rol
 
 - [`snapshot`](reference-command-line-interface-snapshot)
 - [`restore`](reference-command-line-interface-restore)
-
-## Command-line access
-
-You can work inside an instance interactively or run one command at a time from a script. See [Multipass exec and shells](explanation-multipass-exec-and-shells) for how your host shell affects the commands you pass.
-
-- [`shell`](reference-command-line-interface-shell)
-- [`exec`](reference-command-line-interface-exec)
 
 ## File sharing
 
