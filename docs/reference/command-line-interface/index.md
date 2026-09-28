@@ -5,7 +5,7 @@
 
 The **`multipass`** CLI (command line interface) client is used to communicate with the Multipass service to create, manage, and interact with Multipass instances using various sub-commands.
 
-You can use `multipass help <command>` to display more information on the purpose and available options of each command.
+The commands below follow the life of an instance, from launching it to working inside it and removing it, followed by the commands that configure Multipass itself. You can use `multipass help <command>` to display more information on the purpose and available options of each command.
 
 ## Instance creation and removal
 
