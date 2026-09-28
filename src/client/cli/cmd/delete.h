@@ -20,6 +20,9 @@
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 
+#include <string>
+#include <vector>
+
 namespace multipass
 {
 namespace cmd
@@ -40,6 +43,9 @@ public:
     QString short_help() const override;
     QString description() const override;
 
+    std::vector<std::string> autocomplete(std::string_view prefix,
+                                          const std::vector<std::string>& previous) const override;
+
 private:
     AliasDict aliases;
     DeleteRequest request;
@@ -50,6 +56,8 @@ private:
     ParseCode parse_instances_snapshots(ArgParser* parser);
     std::string generate_snapshot_purge_msg() const;
     bool confirm_snapshot_purge() const;
+
+    std::vector<std::string> fetch_eligible_targets() const;
 };
 } // namespace cmd
 } // namespace multipass
