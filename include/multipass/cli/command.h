@@ -23,7 +23,6 @@
 #include <multipass/terminal.h>
 
 #include <string>
-#include <string_view>
 #include <vector>
 
 namespace multipass
@@ -59,8 +58,7 @@ public:
     virtual QString short_help() const = 0;
     virtual QString description() const = 0;
 
-    virtual std::vector<std::string> autocomplete(std::string_view prefix,
-                                                  const std::vector<std::string>& previous) const;
+    virtual std::vector<std::string> autocomplete(const std::vector<std::string>& previous) const;
 
 protected:
     template <typename RpcFunc,
@@ -105,8 +103,7 @@ protected:
     std::ostream& cerr;
 };
 
-inline std::vector<std::string> Command::autocomplete(std::string_view,
-                                                      const std::vector<std::string>&) const
+inline std::vector<std::string> Command::autocomplete(const std::vector<std::string>&) const
 {
     return {};
 }

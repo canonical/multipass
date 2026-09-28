@@ -36,19 +36,14 @@ TEST(AutoCompleter, autoCompletesPositionalParameters)
     completer.add_parameter({"carotte", "concombre", "courgette"});
     completer.add_parameter({"patate", "radis"});
 
-    EXPECT_THAT(completer.complete("", {}), ElementsAre("carotte", "concombre", "courgette"));
-    EXPECT_THAT(completer.complete("ca", {}), ElementsAre("carotte"));
-    EXPECT_THAT(completer.complete("co", {}), ElementsAre("concombre", "courgette"));
-    EXPECT_THAT(completer.complete("", {"first"}), ElementsAre("patate", "radis"));
-    EXPECT_THAT(completer.complete("pat", {"first"}), ElementsAre("patate"));
-    EXPECT_THAT(completer.complete("second", {"first"}), ElementsAre());
-    EXPECT_THAT(completer.complete("", {"first", "second"}), ElementsAre());
+    EXPECT_THAT(completer.complete({}), ElementsAre("carotte", "concombre", "courgette"));
+    EXPECT_THAT(completer.complete({"first"}), ElementsAre("patate", "radis"));
+    EXPECT_THAT(completer.complete({"first", "second"}), ElementsAre());
 
     completer.set_repeat_last_parameter(true);
-    EXPECT_THAT(completer.complete("", {"first", "second"}), ElementsAre("patate", "radis"));
-    EXPECT_THAT(completer.complete("pa", {"first", "second"}), ElementsAre("patate"));
-    EXPECT_THAT(completer.complete("", {"first", "patate"}), ElementsAre("radis"));
-    EXPECT_THAT(completer.complete("", {"first", "radis", "patate"}), ElementsAre());
+    EXPECT_THAT(completer.complete({"first", "second"}), ElementsAre("patate", "radis"));
+    EXPECT_THAT(completer.complete({"first", "patate"}), ElementsAre("radis"));
+    EXPECT_THAT(completer.complete({"first", "radis", "patate"}), ElementsAre());
 }
 
 TEST(AutoCompleter, autoCompletesOptions)
@@ -58,10 +53,9 @@ TEST(AutoCompleter, autoCompletesOptions)
     completer.add_option("opt2");
     completer.add_option("option3");
 
-    EXPECT_THAT(completer.complete("", {}), ElementsAre("--opt1", "--opt2", "--option3"));
-    EXPECT_THAT(completer.complete("something", {}), ElementsAre());
-    EXPECT_THAT(completer.complete("--opti", {}), ElementsAre("--option3"));
-    EXPECT_THAT(completer.complete("--op", {"--opt1"}), ElementsAre("--opt2", "--option3"));
+    EXPECT_THAT(completer.complete({}), ElementsAre("--opt1", "--opt2", "--option3"));
+    EXPECT_THAT(completer.complete({"--opt1"}), ElementsAre("--opt2", "--option3"));
+    EXPECT_THAT(completer.complete({"--opt1", "--option3"}), ElementsAre("--opt2"));
 }
 
 TEST(AutoCompleter, autoCompletesOptionParameters)
@@ -75,12 +69,11 @@ TEST(AutoCompleter, autoCompletesOptionParameters)
     completer.add_option_parameter(opt2,
                                    []() { return std::vector<std::string>{"b1", "b2", "b3"}; });
 
-    EXPECT_THAT(completer.complete("", {}), ElementsAre("--opt1", "--opt2"));
-    EXPECT_THAT(completer.complete("", {"--opt1"}), ElementsAre("a1", "a2"));
-    EXPECT_THAT(completer.complete("a2", {"--opt1"}), ElementsAre("a2"));
-    EXPECT_THAT(completer.complete("", {"--opt1", "a2"}), ElementsAre("--opt2"));
-    EXPECT_THAT(completer.complete("", {"--opt1", "a2", "a1"}), ElementsAre("--opt2"));
-    EXPECT_THAT(completer.complete("", {"--opt1", "a2", "--opt2"}), ElementsAre("b1", "b2", "b3"));
+    EXPECT_THAT(completer.complete({}), ElementsAre("--opt1", "--opt2"));
+    EXPECT_THAT(completer.complete({"--opt1"}), ElementsAre("a1", "a2"));
+    EXPECT_THAT(completer.complete({"--opt1", "a2"}), ElementsAre("--opt2"));
+    EXPECT_THAT(completer.complete({"--opt1", "a2", "a1"}), ElementsAre("--opt2"));
+    EXPECT_THAT(completer.complete({"--opt1", "a2", "--opt2"}), ElementsAre("b1", "b2", "b3"));
 }
 
 TEST(AutoCompleter, autoCompletesRepeatableOptions)
@@ -92,12 +85,12 @@ TEST(AutoCompleter, autoCompletesRepeatableOptions)
     const auto opt2 = completer.add_option("opt2", true);
     completer.add_option_parameter(opt2, []() { return std::vector<std::string>{"v1", "v2"}; });
 
-    EXPECT_THAT(completer.complete("", {}), ElementsAre("--opt1", "--opt2"));
-    EXPECT_THAT(completer.complete("", {"--opt1"}), ElementsAre("--opt1", "--opt2"));
-    EXPECT_THAT(completer.complete("", {"--opt1", "--opt1"}), ElementsAre("--opt1", "--opt2"));
-    EXPECT_THAT(completer.complete("", {"--opt2"}), ElementsAre("v1", "v2"));
-    EXPECT_THAT(completer.complete("", {"--opt2", "v1"}), ElementsAre("--opt1", "--opt2"));
-    EXPECT_THAT(completer.complete("", {"--opt2", "v1", "--opt2"}), ElementsAre("v1", "v2"));
+    EXPECT_THAT(completer.complete({}), ElementsAre("--opt1", "--opt2"));
+    EXPECT_THAT(completer.complete({"--opt1"}), ElementsAre("--opt1", "--opt2"));
+    EXPECT_THAT(completer.complete({"--opt1", "--opt1"}), ElementsAre("--opt1", "--opt2"));
+    EXPECT_THAT(completer.complete({"--opt2"}), ElementsAre("v1", "v2"));
+    EXPECT_THAT(completer.complete({"--opt2", "v1"}), ElementsAre("--opt1", "--opt2"));
+    EXPECT_THAT(completer.complete({"--opt2", "v1", "--opt2"}), ElementsAre("v1", "v2"));
 }
 
 TEST(AutoCompleter, canSetMutuallyExclusiveOptions)
@@ -110,9 +103,9 @@ TEST(AutoCompleter, canSetMutuallyExclusiveOptions)
 
     completer.set_mutual_exclusion(opt1, opt2);
 
-    EXPECT_THAT(completer.complete("", {}), ElementsAre("--opt1", "--opt2", "--opt3"));
-    EXPECT_THAT(completer.complete("", {"--opt1"}), ElementsAre("--opt3"));
-    EXPECT_THAT(completer.complete("", {"--opt2"}), ElementsAre("--opt3"));
+    EXPECT_THAT(completer.complete({}), ElementsAre("--opt1", "--opt2", "--opt3"));
+    EXPECT_THAT(completer.complete({"--opt1"}), ElementsAre("--opt3"));
+    EXPECT_THAT(completer.complete({"--opt2"}), ElementsAre("--opt3"));
 }
 
 TEST(AutoCompleter, canSetMutuallyExclusiveOptionAndParameter)
@@ -125,11 +118,10 @@ TEST(AutoCompleter, canSetMutuallyExclusiveOptionAndParameter)
 
     completer.set_mutual_exclusion(opt, param);
 
-    EXPECT_THAT(completer.complete("", {}), ElementsAre("--opt", "v1", "v2"));
-    EXPECT_THAT(completer.complete("v", {}), ElementsAre("v1", "v2"));
-    EXPECT_THAT(completer.complete("v", {"--opt"}), ElementsAre());
-    EXPECT_THAT(completer.complete("--", {"v1"}), ElementsAre());
-    EXPECT_THAT(completer.complete("--", {"v2"}), ElementsAre());
+    EXPECT_THAT(completer.complete({}), ElementsAre("--opt", "v1", "v2"));
+    EXPECT_THAT(completer.complete({"--opt"}), ElementsAre());
+    EXPECT_THAT(completer.complete({"v1"}), ElementsAre());
+    EXPECT_THAT(completer.complete({"v2"}), ElementsAre());
 }
 
 TEST(AutoCompleter, complexAutoComplete)
@@ -155,18 +147,18 @@ TEST(AutoCompleter, complexAutoComplete)
     completer.set_repeat_last_parameter(true);
 
     EXPECT_THAT(
-        completer.complete("", {}),
+        completer.complete({}),
         ElementsAre("--all", "--format", "--help", "--remotes", "--verbose", "vm1", "vm2", "vm3"));
 
-    EXPECT_THAT(completer.complete("", {"vm1", "--format"}), ElementsAre("csv", "json", "table"));
+    EXPECT_THAT(completer.complete({"vm1", "--format"}), ElementsAre("csv", "json", "table"));
 
-    EXPECT_THAT(completer.complete("", {"--all"}),
+    EXPECT_THAT(completer.complete({"--all"}),
                 ElementsAre("--format", "--help", "--verbose", "vm1", "vm2", "vm3"));
 
-    EXPECT_THAT(completer.complete("", {"--remotes", "--verbose"}),
+    EXPECT_THAT(completer.complete({"--remotes", "--verbose"}),
                 ElementsAre("--format", "--help", "--verbose"));
 
-    EXPECT_THAT(completer.complete("", {"--help", "vm1"}),
+    EXPECT_THAT(completer.complete({"--help", "vm1"}),
                 ElementsAre("--all", "--format", "--verbose", "vm2", "vm3"));
 }
 

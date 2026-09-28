@@ -24,13 +24,11 @@ namespace multipass
 {
 
 void AutoCompleter::Parameter::complete(std::vector<std::string>& completions,
-                                        std::string_view prefix,
                                         const std::vector<std::string>& previous) const
 {
     for (const auto& completion : provider())
     {
-        if (completion.starts_with(prefix) &&
-            std::ranges::find(previous, completion) == previous.end())
+        if (std::ranges::find(previous, completion) == previous.end())
         {
             completions.push_back(completion);
         }
@@ -38,12 +36,11 @@ void AutoCompleter::Parameter::complete(std::vector<std::string>& completions,
 }
 
 void AutoCompleter::Option::complete(std::vector<std::string>& completions,
-                                     std::string_view prefix,
                                      size_t next_parameters_idx) const
 {
     if (next_parameters_idx < parameters.size())
     {
-        parameters[next_parameters_idx].complete(completions, prefix, {});
+        parameters[next_parameters_idx].complete(completions, {});
     }
 }
 
@@ -100,29 +97,21 @@ void AutoCompleter::set_mutual_exclusion(std::string_view option, size_t paramet
 }
 
 void AutoCompleter::complete(std::vector<std::string>& completions,
-                             std::string_view prefix,
                              const std::vector<std::string>& previous) const
 {
     const auto [last_option, last_option_idx] = find_last_option(previous);
     if (last_option && last_option->parameters.size() > previous.size() - last_option_idx)
     {
-        last_option->complete(completions, prefix, previous.size() - last_option_idx);
+        last_option->complete(completions, previous.size() - last_option_idx);
         return;
     }
 
-    const auto skip_options = (prefix.size() > 1 && prefix[1] != '-') ||
-                              (prefix.size() > 0 && prefix[0] != '-');
-
-    if (!skip_options)
+    for (const auto& [key, option] : _options)
     {
-        for (const auto& [key, option] : _options)
+        if ((option.is_repeatable || std::ranges::find(previous, key) == previous.end()) &&
+            !is_excluded(key, previous))
         {
-            if (key.starts_with(prefix) &&
-                (option.is_repeatable || std::ranges::find(previous, key) == previous.end()) &&
-                !is_excluded(key, previous))
-            {
-                completions.push_back(key);
-            }
+            completions.push_back(key);
         }
     }
 
@@ -133,23 +122,22 @@ void AutoCompleter::complete(std::vector<std::string>& completions,
     {
         if (!is_excluded(next_parameter_idx, previous))
         {
-            _parameters[next_parameter_idx].complete(completions, prefix, previous);
+            _parameters[next_parameter_idx].complete(completions, previous);
         }
     }
     else if (_do_repeat_last && !_parameters.empty())
     {
         if (!is_excluded(_parameters.size() - 1, previous))
         {
-            _parameters.back().complete(completions, prefix, previous);
+            _parameters.back().complete(completions, previous);
         }
     }
 }
 
-std::vector<std::string> AutoCompleter::complete(std::string_view prefix,
-                                                 const std::vector<std::string>& previous) const
+std::vector<std::string> AutoCompleter::complete(const std::vector<std::string>& previous) const
 {
     std::vector<std::string> completions;
-    complete(completions, prefix, previous);
+    complete(completions, previous);
     return completions;
 }
 

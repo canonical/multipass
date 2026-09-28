@@ -18,7 +18,7 @@ _multipass_complete()
 {
     _multipass_autocomplete_proposals()
     {
-        opts="${opts} $(multipass __autocomplete --prefix -- "${WORDS[@]:1:CWORD}")"
+        opts="${opts} $(multipass __autocomplete -- "${WORDS[@]:1:CWORD-1}")"
     }
 
     _multipass_instances()

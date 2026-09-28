@@ -43,8 +43,7 @@ public:
     QString short_help() const override;
     QString description() const override;
 
-    std::vector<std::string> autocomplete(std::string_view prefix,
-                                          const std::vector<std::string>& previous) const override;
+    std::vector<std::string> autocomplete(const std::vector<std::string>& previous) const override;
 
 private:
     AliasDict aliases;

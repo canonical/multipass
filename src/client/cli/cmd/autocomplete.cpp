@@ -44,11 +44,6 @@ QString AutoComplete::description() const
 
 ReturnCodeVariant AutoComplete::run(ArgParser* parser)
 {
-    const auto prefix_option = QCommandLineOption{
-        "prefix",
-        "Whether the last given argument is the element to autocomplete"};
-    parser->addOption(prefix_option);
-
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
     {
@@ -68,17 +63,13 @@ ReturnCodeVariant AutoComplete::run(ArgParser* parser)
         return parser->returnCodeFrom(ParseCode::CommandLineError);
     }
 
-    const auto last_is_prefix = parser->isSet(prefix_option);
-    const auto prefix = last_is_prefix ? arguments.back().toStdString() : "";
-
-    const auto previous_end = last_is_prefix ? arguments.size() - 1 : arguments.size();
     auto previous = std::vector<std::string>{};
-    for (auto i = 1; i < previous_end; ++i)
+    for (auto i = 1; i < arguments.size(); ++i)
     {
         previous.emplace_back(arguments[i].toStdString());
     }
 
-    const auto proposals = command->autocomplete(prefix, previous);
+    const auto proposals = command->autocomplete(previous);
     for (const auto& proposal : proposals)
     {
         cout << proposal << " ";
