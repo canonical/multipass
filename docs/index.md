@@ -53,12 +53,12 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 ```{slice} Virtualization / Virtual machines
 
 {doc}`Host <explanation/index>`
-{doc}`Instance <explanation/instance>`
 {doc}`Platform <explanation/platform>`
 ```
 
 ```{slice} Instances
 
+{doc}`Instances overview <explanation/instance>`
 {doc}`Create an instance <how-to-guides/manage-instances/create-an-instance>` domain
 {doc}`Use an instance <how-to-guides/manage-instances/use-an-instance>` domain
 {doc}`Modify an instance <how-to-guides/manage-instances/modify-an-instance>` domain
