@@ -71,7 +71,7 @@ This usually means some networking configuration is incompatible, or there is in
 
 Work through these one at a time, trying to launch again after each:
 
-1. **Check your firewall.** Open **System Preferences > Security & Privacy > Firewall**. The firewall can be on, but it must **not** be set to "Block all incoming connections", which stops the local service that gives your instance an address. (It is fine to block incoming connections specifically to `multipassd`.)
+1. **Check your firewall.** In your macOS Firewall settings, ensure it is **not** set to "Block all incoming connections", which stops the local service that gives your instance an address. (It is fine to block incoming connections specifically to `multipassd`.)
 2. **Check your VPN.** If you use a VPN, disconnect it and try again. See [Apps that commonly interfere with Multipass](#networking-interfering-apps).
 3. **Check Little Snitch** (or any similar per-app firewall). Its defaults are usually fine, but make sure it allows `mDNSResponder` and `bootpd`. If image downloads fail or you see `Unknown error` when running `multipass launch -vvv`, Little Snitch may be blocking `multipassd`'s network access (see [issue #1169](https://github.com/canonical/multipass/issues/1169)).
 
