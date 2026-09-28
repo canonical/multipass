@@ -77,7 +77,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ```{slice} Images
 
-{doc}`Image <explanation/image>`
+{doc}`Images overview <explanation/image>`
 {doc}`Build Multipass images with Packer <how-to-guides/customise-multipass/build-multipass-images-with-packer>`
 ```
 
