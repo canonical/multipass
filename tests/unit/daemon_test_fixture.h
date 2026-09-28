@@ -115,7 +115,7 @@ struct DaemonTestFixture : public ::Test
 
     MockSSHTestFixture mock_ssh_test_fixture;
 #ifdef MULTIPASS_PLATFORM_WINDOWS
-    std::string server_address{"localhost:50051"};
+    std::string server_address{"localhost:25051"};
 #else
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
 #endif
