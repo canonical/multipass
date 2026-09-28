@@ -192,7 +192,7 @@ If this works, the instance can reach IP addresses, but **DNS resolution** is br
 
 **Step 2: Is name resolution broken?**
 
-Still inside the instance, ask the built-in resolver to look up a name:
+Still inside the instance, ask the zone gateway (for example, `192.168.252.1` for `zone1`) to look up a name:
 
 ```{code-block} text
 dig @192.168.64.1 google.ie
