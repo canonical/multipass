@@ -89,7 +89,7 @@ Your computer can't route traffic to the instance's network. This is most often 
 1. Add a route to the instance network by hand:
 
     ```{code-block} text
-    sudo route -nv add -net 192.168.64.0/24 -interface bridge100
+    sudo route -nv add -net 192.168.252.0/16 -interface bridge100
     ```
 
 2. If you get a `File exists` error, delete the existing route first and add it again:
