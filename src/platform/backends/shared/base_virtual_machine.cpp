@@ -215,12 +215,14 @@ bool mp::BaseVirtualMachine::set_available(bool available)
     {
         assert(state == State::unavailable);
         state = State::off;
+        handle_state_update();
         return was_running;
     }
 
     was_running = state == State::running || state == State::starting || state == State::restarting;
     shutdown(ShutdownPolicy::Poweroff);
     state = State::unavailable;
+    handle_state_update();
     return false;
 }
 
