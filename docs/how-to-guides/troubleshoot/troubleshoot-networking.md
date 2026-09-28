@@ -17,11 +17,11 @@ The following scenarios describe commonly encountered Multipass networking probl
 
 ### macOS
 
-- [An instance won't start, and you see `Unable to determine IP address`](#networking-macos-launch).
-- [`multipass shell` doesn't respond or fails to connect](#networking-macos-routing).
-- [Your instance can reach IP addresses, but not domain names](#networking-macos-dns).
-- [Extra IP addresses aren't reachable between instances](#networking-macos-extra-ips).
-- [Networking stopped working right after a macOS update](#networking-macos-update).
+- {ref}`An instance won't start, and you see "Unable to determine IP address" <networking-macos-launch>`.
+- {ref}`multipass shell doesn't respond or fails to connect <networking-macos-routing>`.
+- {ref}`Your instance can reach IP addresses, but not domain names <networking-macos-dns>`.
+- {ref}`Extra IP addresses aren't reachable between instances <networking-macos-extra-ips>`.
+- {ref}`Networking stopped working right after a macOS update <networking-macos-update>`.
 
 ### Windows
 
