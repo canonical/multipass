@@ -46,14 +46,12 @@ struct TestDaemonZones : public mpt::DaemonTestFixture
         ON_CALL(*zone2, get_name()).WillByDefault(ReturnRef(zone2_name));
 
         ON_CALL(*mock_az_manager, get_zone(_))
-            .WillByDefault(Throw(multipass::AvailabilityZoneNotFound{"test_error"}));
+            .WillByDefault(Throw(mp::AvailabilityZoneNotFound{"test_error"}));
         ON_CALL(*mock_az_manager, get_zone(zone1_name)).WillByDefault(ReturnRef(*zone1.get()));
         ON_CALL(*mock_az_manager, get_zone(zone2_name)).WillByDefault(ReturnRef(*zone2.get()));
 
         ON_CALL(*mock_az_manager, get_zones())
-            .WillByDefault(Return(
-                std::vector<std::reference_wrapper<const mp::AvailabilityZone>>{*zone1.get(),
-                                                                                *zone2.get()}));
+            .WillByDefault(Return(mp::AvailabilityZoneManager::Zones{*zone1.get(), *zone2.get()}));
     }
 
     const std::string zone1_name = "zone1";
@@ -261,7 +259,7 @@ TEST_F(TestDaemonZones, zonesCmdReturnsMultipleZones)
 TEST_F(TestDaemonZones, zonesCmdReturnsNoZones)
 {
     EXPECT_CALL(*mock_az_manager, get_zones())
-        .WillRepeatedly(Return(std::vector<std::reference_wrapper<const mp::AvailabilityZone>>{}));
+        .WillRepeatedly(Return(mp::AvailabilityZoneManager::Zones{}));
 
     config_builder.az_manager = std::move(mock_az_manager);
     mp::Daemon daemon{config_builder.build()};

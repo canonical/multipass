@@ -65,7 +65,7 @@ private:
     [[nodiscard]] static std::vector<NetworkInterfaceInfo> get_hyperv_vswitches();
 
     [[nodiscard]] static std::unordered_map<std::string, std::string> create_az_bridges(
-        const AvailabilityZoneManager::Zones& zones);
+        const AvailabilityZoneManager::ConstZones& zones);
 
     std::unordered_map<std::string, std::string> az_network_guids;
 };

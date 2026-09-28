@@ -644,6 +644,23 @@ InstanceSelectionReport select_instances(InstanceTable& operative_instances,
     return ret;
 }
 
+template <typename Zones>
+LinearInstanceSelection select_instances_by_zones(InstanceTable& instances, const Zones& zones)
+{
+    LinearInstanceSelection selection;
+    for (auto it = instances.begin(); it != instances.end(); ++it)
+    {
+        // TODO(C++23): Use `std::ranges::contains` instead of `std::ranges::find`.
+        const auto& name = it->second->get_zone().get_name();
+        if (std::ranges::find(zones, name, [](const auto& i) { return i.get().get_name(); }) !=
+            zones.end())
+        {
+            selection.push_back(it);
+        }
+    }
+    return selection;
+}
+
 struct SelectionReaction
 {
     struct ReactionComponent
@@ -3035,22 +3052,75 @@ try // clang-format on
         return context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
                                                "Feature is not supported in this backend"});
 
+    AvailabilityZoneManager::Zones zones;
     if (request->zones().empty())
+        zones = az_manager.get_zones();
+    else
     {
-        for (auto&& zone : az_manager.get_zones())
-        {
-            az_manager.get_zone(zone.get().get_name()).set_available(request->available());
-        }
+        for (const auto& i : request->zones())
+            zones.push_back(az_manager.get_zone(i));
+    }
+
+    auto instances = select_instances_by_zones(operative_instances, zones);
+    std::vector<std::string> starting_vms;
+    starting_vms.reserve(instances.size());
+
+    std::function<grpc::Status(VirtualMachine&)> operation;
+    if (request->available())
+        operation = [this, &starting_vms](VirtualMachine& vm) {
+            std::unique_lock lock{start_mutex};
+            try
+            {
+                if (vm.set_available(true))
+                {
+                    vm.start();
+                    starting_vms.push_back(vm.get_name());
+                }
+                return grpc::Status::OK;
+            }
+            catch (const std::exception& e)
+            {
+                return grpc::Status{grpc::StatusCode::ABORTED, e.what(), ""};
+            }
+        };
+    else
+        operation = [this](VirtualMachine& vm) { return make_vm_unavailable(vm); };
+
+    auto status = cmd_vms(instances, operation);
+    if (status.ok())
+    {
+        auto future_watcher = create_future_watcher();
+        future_watcher->setFuture(
+            QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
+                              this,
+                              nullptr,
+                              starting_vms,
+                              mp::default_timeout,
+                              nullptr,
+                              std::string(),
+                              std::string()));
+
+        for (auto&& z : zones)
+            z.get().set_available(request->available());
     }
     else
     {
-        for (const auto& zone_name : request->zones())
+        // If we failed to start/stop any instance, we need to make sure the zones are in a
+        // consistent state. Since some may be started and some stopped, set the zones to
+        // "available" and clear the "unavailable" state from all instances.
+
+        for (auto&& vm_it : instances)
         {
-            az_manager.get_zone(zone_name).set_available(request->available());
+            auto& vm = *vm_it->second;
+            std::unique_lock vm_lock{vm.state_mutex};
+            vm.set_available(true);
         }
+
+        for (auto&& z : zones)
+            z.get().set_available(true);
     }
 
-    context->set_value(grpc::Status{});
+    context->set_value(status);
 }
 catch (const AvailabilityZoneNotFound& e)
 {
@@ -3504,6 +3574,22 @@ grpc::Status mp::Daemon::switch_off_vm(VirtualMachine& vm)
     vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
 
     return grpc::Status::OK;
+}
+
+grpc::Status mp::Daemon::make_vm_unavailable(VirtualMachine& vm)
+{
+    const auto& name = vm.get_name();
+    delayed_shutdown_instances.erase(name);
+
+    try
+    {
+        vm.set_available(false);
+        return grpc::Status::OK;
+    }
+    catch (const std::exception& e)
+    {
+        return grpc::Status{grpc::StatusCode::ABORTED, e.what(), ""};
+    }
 }
 
 grpc::Status mp::Daemon::cancel_vm_shutdown(const VirtualMachine& vm)

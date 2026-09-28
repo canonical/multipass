@@ -420,6 +420,12 @@ void mp::HyperVVirtualMachine::suspend()
     monitor->on_suspend();
 }
 
+bool mp::HyperVVirtualMachine::set_available(bool /*available*/)
+{
+    assert(false && "Hyper-V driver doesn't support availability zones");
+    return false;
+}
+
 mp::VirtualMachine::State mp::HyperVVirtualMachine::current_state()
 {
     auto present_state = instance_state_for(power_shell.get(), name);
