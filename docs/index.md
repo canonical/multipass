@@ -46,7 +46,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ````
 
-### Core Concepts
+### Core concepts and functionality
 
 ````{domain}
 
@@ -57,18 +57,40 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 {doc}`Platform <explanation/platform>`
 ```
 
-```{slice} Manage instances
+```{slice} Instances
 
 {doc}`Create an instance <how-to-guides/manage-instances/create-an-instance>` domain
+{doc}`Use an instance <how-to-guides/manage-instances/use-an-instance>` domain
 {doc}`Modify an instance <how-to-guides/manage-instances/modify-an-instance>` domain
+{doc}`Use the primary instance <how-to-guides/manage-instances/use-the-primary-instance>` domain
+{doc}`Use instance command aliases <how-to-guides/manage-instances/use-instance-command-aliases>` domain
 {doc}`Remove an instance <how-to-guides/manage-instances/remove-an-instance>` domain
 {doc}`Instance states <reference/instance-states>`
+```
+
+```{slice} Instances: snapshots, cloning
+
+{doc}`Snapshot <explanation/snapshot>`
+{doc}`snapshot <reference/command-line-interface/snapshot>`
+{doc}`clone <reference/command-line-interface/clone>`
 ```
 
 ```{slice} Images
 
 {doc}`Image <explanation/image>`
 {doc}`Build Multipass images with Packer <how-to-guides/customise-multipass/build-multipass-images-with-packer>`
+```
+
+```{slice} Settings
+
+{doc}`Settings <reference/settings/index>`
+{doc}`Settings keys and values <explanation/settings-keys-values>`
+{doc}`Instance name format <reference/instance-name-format>`
+```
+
+```{slice} Uninstallation
+
+{doc}`Uninstall Multipass <how-to-guides/install-multipass>`
 ```
 
 ````
@@ -127,41 +149,6 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 ```{slice} Primary instance
 
 {doc}`Use the primary instance <how-to-guides/manage-instances/use-the-primary-instance>` domain
-```
-
-````
-
-### Lifecycle
-
-````{domain}
-
-```{slice} Manage instances
-
-{doc}`Create an instance <how-to-guides/manage-instances/create-an-instance>` domain
-{doc}`Use an instance <how-to-guides/manage-instances/use-an-instance>` domain
-{doc}`Modify an instance <how-to-guides/manage-instances/modify-an-instance>` domain
-{doc}`Use the primary instance <how-to-guides/manage-instances/use-the-primary-instance>` domain
-{doc}`Use instance command aliases <how-to-guides/manage-instances/use-instance-command-aliases>` domain
-{doc}`Remove an instance <how-to-guides/manage-instances/remove-an-instance>` domain
-```
-
-```{slice} Settings
-
-{doc}`Settings <reference/settings/index>`
-{doc}`Settings keys and values <explanation/settings-keys-values>`
-{doc}`Instance name format <reference/instance-name-format>`
-```
-
-```{slice} Instances: snapshots, cloning
-
-{doc}`Snapshot <explanation/snapshot>`
-{doc}`snapshot <reference/command-line-interface/snapshot>`
-{doc}`clone <reference/command-line-interface/clone>`
-```
-
-```{slice} Uninstallation
-
-{doc}`Uninstall Multipass <how-to-guides/install-multipass>`
 ```
 
 ````
