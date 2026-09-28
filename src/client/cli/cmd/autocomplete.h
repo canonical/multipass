@@ -26,7 +26,7 @@ namespace multipass::cmd
 
 /// Command for handling autocomplete functionality in the CLI.
 /// Can be used this way:
-///   multipass __autocomplete [--prefix] -- [cmd] [args...]
+///   multipass __autocomplete -- [cmd] [args...]
 ///
 /// For example:
 ///   $ multipass __autocomplete -- start

@@ -156,8 +156,7 @@ std::vector<std::string> cmd::Delete::fetch_eligible_targets() const
     return proposals;
 }
 
-std::vector<std::string> cmd::Delete::autocomplete(std::string_view prefix,
-                                                   const std::vector<std::string>& previous) const
+std::vector<std::string> cmd::Delete::autocomplete(const std::vector<std::string>& previous) const
 {
     auto completer = AutoCompleter{};
 
@@ -171,7 +170,7 @@ std::vector<std::string> cmd::Delete::autocomplete(std::string_view prefix,
 
     completer.set_repeat_last_parameter(true);
     completer.set_mutual_exclusion(all_option, target_param);
-    return completer.complete(prefix, previous);
+    return completer.complete(previous);
 }
 
 mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
