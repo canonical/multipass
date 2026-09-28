@@ -53,8 +53,9 @@ auto max_command_string_length(const std::vector<cmd::Command::UPtr>& commands)
         auto string_len_compare = [](const cmd::Command::UPtr& a, const cmd::Command::UPtr& b) {
             return a->name().length() < b->name().length();
         };
-        const auto& max_elem =
-            *std::max_element(commands.begin(), commands.end(), string_len_compare);
+        const auto& max_elem = *std::max_element(commands.begin(),
+                                                 commands.end(),
+                                                 string_len_compare);
         ret = max_elem->name().length();
     }
 
@@ -72,8 +73,13 @@ QString format_short_help_for(const std::vector<cmd::Command::UPtr>& commands)
     QString output;
     for (const auto& c : commands)
     {
-        output += QString::fromStdString(format_into_column(c->name(), column_size));
-        output += c->short_help() + "\n";
+        const auto& name = c->name();
+        const auto is_internal = name.starts_with("__");
+        if (!is_internal)
+        {
+            output += QString::fromStdString(format_into_column(c->name(), column_size));
+            output += c->short_help() + "\n";
+        }
     }
     return output;
 }
@@ -158,8 +164,8 @@ mp::ParseCode mp::ArgParser::parse(const std::optional<mp::AliasDict>& aliases)
     }
 
     const QString requested_command = parser.isSet(version_option)
-                                          ? QStringLiteral("version")
-                                          : parser.positionalArguments().first();
+                                        ? QStringLiteral("version")
+                                        : parser.positionalArguments().first();
 
     chosen_command = findCommand(requested_command);
 
