@@ -26,6 +26,7 @@
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_config.h>
 
+#include <multipass/constants.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
 #include <QEventLoop>
@@ -115,7 +116,7 @@ struct DaemonTestFixture : public ::Test
 
     MockSSHTestFixture mock_ssh_test_fixture;
 #ifdef MULTIPASS_PLATFORM_WINDOWS
-    std::string server_address{"localhost:50051"};
+    std::string server_address{default_grpc_server_tcp_listen_address};
 #else
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
 #endif
