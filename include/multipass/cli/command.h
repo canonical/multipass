@@ -58,6 +58,11 @@ public:
     virtual QString short_help() const = 0;
     virtual QString description() const = 0;
 
+    virtual bool is_hidden() const
+    {
+        return false;
+    }
+
     // TODO: Switch to pure virtual once all commands implement it.
     virtual std::vector<std::string> autocomplete(const std::vector<std::string>& previous) const;
 

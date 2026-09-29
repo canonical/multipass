@@ -27,9 +27,7 @@ namespace multipass::cmd
 
 std::string AutoComplete::name() const
 {
-    // Prefixing with '__' to exclude the command from the CLI help text.
-    // This is a hack until the ArgParser is properly reworked.
-    return "__autocomplete";
+    return "autocomplete";
 }
 
 QString AutoComplete::short_help() const
@@ -40,6 +38,11 @@ QString AutoComplete::short_help() const
 QString AutoComplete::description() const
 {
     return "";
+}
+
+bool AutoComplete::is_hidden() const
+{
+    return true;
 }
 
 ReturnCodeVariant AutoComplete::run(ArgParser* parser)
