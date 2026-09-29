@@ -21,7 +21,6 @@
 
 #include "cli.h"
 
-#include <multipass/auto_join_thread.h>
 #include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform_unix.h>
@@ -35,7 +34,10 @@
 
 #include <QCoreApplication>
 
+#include <atomic>
 #include <csignal>
+#include <signal.h>
+#include <thread>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -44,41 +46,95 @@ namespace mpp = multipass::platform;
 namespace
 {
 
+static_assert(std::atomic_int::is_always_lock_free,
+              "std::atomic_int must be lock-free to be safely used in signal handlers");
+
+static constexpr auto no_signal = -1;
+static std::atomic_int first_signal = no_signal;
+static mpp::AsyncSignalSafeNotification* signal_notif = nullptr;
+
+void signal_handler(int signo)
+{
+    const auto saved_errno = errno;
+    if (signo == SIGTERM || signo == SIGINT || signo == SIGUSR1)
+    {
+        auto expected = no_signal;
+        first_signal.compare_exchange_strong(expected, signo);
+        signal_notif->async_safe_notify();
+    }
+    errno = saved_errno;
+}
+
+void register_signal_handlers()
+{
+    // We are intentionally leaking the AsyncSignalSafeNotification object
+    // to prevent it from being destroyed, once used inside a signal handler.
+    // Not doing so could yield to undefined behavior.
+    signal_notif = new mpp::AsyncSignalSafeNotification();
+
+    struct sigaction sa = {};
+    sa.sa_handler = &signal_handler;
+    sigemptyset(&sa.sa_mask);
+    if (sigaction(SIGTERM, &sa, nullptr) < 0 || sigaction(SIGINT, &sa, nullptr) < 0 ||
+        sigaction(SIGUSR1, &sa, nullptr) < 0)
+    {
+        throw std::runtime_error(
+            fmt::format("Failed to register signal handlers for SIGTERM, SIGINT, or SIGUSR1: {}",
+                        strerror(errno)));
+    }
+}
+
 class UnixSignalHandler
 {
 public:
-    UnixSignalHandler(mp::Signal& app_ready_signal)
-        : app_ready_signal(app_ready_signal),
-          signal_handling_thread{
-              [this, sigs = mpp::make_and_block_signals({SIGTERM, SIGINT, SIGUSR1})] {
-                  monitor_signals(sigs);
-              }}
+    UnixSignalHandler(mp::Signal& app_ready_signal) : app_ready_signal(app_ready_signal)
     {
+        register_signal_handlers();
+        signal_handling_thread = std::jthread{[this] { monitor_signals(); }};
     }
 
     ~UnixSignalHandler()
     {
-        pthread_kill(signal_handling_thread.thread.native_handle(), SIGUSR1);
+        if (signal_notif != nullptr)
+        {
+            signal_notif->async_safe_notify();
+        }
     }
 
-    void monitor_signals(sigset_t sigset)
+    void monitor_signals()
     {
-        int sig = -1;
-        sigwait(&sigset, &sig);
-        if (sig != SIGUSR1)
-            mpl::info("daemon", "Received signal {} ({})", sig, strsignal(sig));
+        try
+        {
+            signal_notif->wait();
+        }
+        catch (const std::exception& error)
+        {
+            mpl::error("daemon", "Failed to wait for signal notification: {}", error.what());
+        }
+
+        auto signal = first_signal.load();
+        if (signal == no_signal)
+        {
+            return;
+        }
+
+        if (signal == SIGTERM || signal == SIGINT)
+        {
+            mpl::info("daemon", "Received signal {} ({})", signal, strsignal(signal));
+        }
 
         // In order to be able to gracefully end the application via QCoreApplication::quit()
         // the initialization (QT, Daemon) have to happen first. Otherwise, the application
-        // might not be in a state that the QT's event loop would pick up the signal and terminate.
-        // This happens when the daemon is started and being signaled in quick succession.
+        // might not be in a state that the QT's event loop would pick up the signal and
+        // terminate. This happens when the daemon is started and being signaled in quick
+        // succession.
         app_ready_signal.wait();
         QCoreApplication::quit();
     }
 
 private:
     mp::Signal& app_ready_signal;
-    mp::AutoJoinThread signal_handling_thread;
+    std::jthread signal_handling_thread;
 };
 
 int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
