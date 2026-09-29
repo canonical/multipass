@@ -4741,9 +4741,10 @@ TEST_F(ClientZone, disableZonesCmdNotLiveTermFails)
     std::stringstream cerr_stream;
     ON_CALL(term, cerr()).WillByDefault(ReturnRef(cerr_stream));
 
-    MP_EXPECT_THROW_THAT(setup_client_and_run({"disable-zones", "zone1"}, term),
-                         std::runtime_error,
-                         mpt::match_what(HasSubstr("--force")));
+    EXPECT_CALL(mock_daemon, zones_state).Times(0);
+
+    EXPECT_EQ(setup_client_and_run({"disable-zones", "zone1"}, term), mp::ReturnCode::CommandFail);
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("--force"));
 }
 
 TEST_F(ClientZone, disableZonesCmdConfirmsMultipleZones)
