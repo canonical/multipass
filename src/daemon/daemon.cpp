@@ -2506,11 +2506,19 @@ try
     }
 
     const auto& instance_targets = instance_selection.operative_selection;
-    status = cmd_vms(instance_targets, [this](auto& vm) {
-        stop_mounts(vm.get_name());
-
-        return reboot_vm(vm);
-    }); // 1st pass to reboot all targets
+    std::vector<std::string> starting_vms;
+    bool condition{};
+    status = cmd_vms(
+        instance_targets,
+        [this, &starting_vms, condition](VirtualMachine& vm) {
+            auto vm_name{vm.get_name()};
+            stop_mounts(vm_name);
+            auto status = condition ? this->reboot_running_vm(vm) : this->reboot_vm(vm);
+            if (status.ok())
+                starting_vms.push_back(vm_name);
+            return status;
+        },
+        /*fail_early=*/false); // 1st pass to reboot all targets
 
     if (!status.ok())
     {
@@ -2522,7 +2530,7 @@ try
         QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<RestartReply, RestartRequest>,
                           this,
                           server,
-                          names_from(instance_targets),
+                          starting_vms,
                           timeout,
                           context,
                           std::string()));
