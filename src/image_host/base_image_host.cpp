@@ -38,8 +38,7 @@ auto mp::BaseVMImageHost::info_for(const Query& query) const -> std::optional<VM
     return info_for_impl(query);
 }
 
-auto mp::BaseVMImageHost::all_info_for(const Query& query) const
-    -> std::vector<std::pair<std::string, VMImageInfo>>
+auto mp::BaseVMImageHost::all_info_for(const Query& query) const -> std::vector<VMImageInfo>
 {
     std::shared_lock lock{manifest_mutex};
     return all_info_for_impl(query);

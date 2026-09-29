@@ -37,8 +37,7 @@ public:
 
     virtual ~VMImageHost() = default;
     virtual std::optional<VMImageInfo> info_for(const Query& query) const = 0;
-    virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for(
-        const Query& query) const = 0;
+    virtual std::vector<VMImageInfo> all_info_for(const Query& query) const = 0;
     virtual VMImageInfo info_for_full_hash(const std::string& full_hash) const = 0;
     virtual std::vector<VMImageInfo> all_images_for(const std::string& remote_name,
                                                     bool allow_unsupported) const = 0;
