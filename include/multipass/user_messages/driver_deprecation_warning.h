@@ -20,10 +20,20 @@
 #include "deprecation_warning.h"
 
 #include <fmt/format.h>
+#include <regex>
 #include <string>
+#include <utility>
 
 namespace multipass
 {
+
+// TODO@deprecations remove
+inline bool is_repeated_driver_deprecation_warning(const std::string& log_line)
+{
+    static const std::regex warning{R"(^\*\*\* Warning: the \S+ driver is deprecated)"};
+    static bool warned = false;
+    return std::regex_search(log_line, warning) && std::exchange(warned, true);
+}
 
 template <typename DeprecatedDriverName,
           typename RecommendedDriverName,
