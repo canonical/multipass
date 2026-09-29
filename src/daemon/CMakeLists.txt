@@ -33,7 +33,6 @@ target_link_libraries(daemon
   delayed_shutdown
   fmt::fmt-header-only
   image_host
-  localization
   logger
   namegen
   platform
@@ -41,6 +40,7 @@ target_link_libraries(daemon
   settings
   ssh
   sshfs_mount
+  user_messages
   utils
   Qt6::Core
   Qt6::Network
