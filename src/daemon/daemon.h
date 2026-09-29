@@ -200,6 +200,7 @@ private:
                    bool start);
     bool delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response);
     grpc::Status reboot_vm(VirtualMachine& vm);
+    grpc::Status reboot_running_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status switch_off_vm(VirtualMachine& vm);
     grpc::Status make_vm_unavailable(VirtualMachine& vm);
