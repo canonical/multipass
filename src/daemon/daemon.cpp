@@ -2458,11 +2458,9 @@ try
     status = cmd_vms(
         instance_targets,
         [this, &starting_vms, running_only = request->running_only()](VirtualMachine& vm) {
-            auto vm_name{vm.get_name()};
-            stop_mounts(vm_name);
-            auto status = running_only ? this->reboot_running_vm(vm) : this->reboot_vm(vm);
+            auto status = this->reboot_vm(vm, running_only);
             if (status.ok())
-                starting_vms.push_back(vm_name);
+                starting_vms.push_back(vm.get_name());
             return status;
         },
         /*fail_early=*/false); // 1st pass to reboot all targets
@@ -3624,22 +3622,33 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
     return instances_dirty;
 }
 
-grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
+grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, bool running_only)
 {
-    switch (const auto st = vm.current_state(); st)
+    const auto st = vm.current_state();
+    if (running_only && !MP_UTILS.is_running(st))
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            fmt::format("Instance '{}' is not running", vm.get_name()),
+                            ""};
+    switch (st)
     {
     case VirtualMachine::State::delayed_shutdown:
         delayed_shutdown_instances.erase(vm.get_name());
         [[fallthrough]];
     case VirtualMachine::State::running:
         mpl::debug(category, "Rebooting {}", vm.get_name());
+        stop_mounts(vm.get_name());
         return ssh_reboot(vm);
 
     case VirtualMachine::State::off:
     case VirtualMachine::State::stopped:
     case VirtualMachine::State::suspended:
         mpl::debug(category, "Rebooting {}", vm.get_name());
-        vm.start();
+        {
+            std::lock_guard guard{start_mutex};
+            // Avoid concurrent calls to vm.start()
+            vm.start();
+        }
+        stop_mounts(vm.get_name());
         if (st == VirtualMachine::State::suspended)
             return ssh_reboot(vm);
         return grpc::Status::OK;
@@ -3654,29 +3663,14 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
     case VirtualMachine::State::restarting:
     case VirtualMachine::State::unknown:
     default:
-        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                            fmt::format("Instance '{}' is not reachable in {} state.\n"
-                                        "Try to stop and start it instead.",
-                                        vm.get_name(),
-                                        st),
-                            ""};
+        return grpc::Status{
+            grpc::StatusCode::FAILED_PRECONDITION,
+            fmt::format("The state of instance '{0}' is {1} and cannot be restarted.\nUse "
+                        "'multipass stop --force {0}' to force-stop it, then retry.",
+                        vm.get_name(),
+                        st),
+            ""};
     }
-}
-
-grpc::Status mp::Daemon::reboot_running_vm(VirtualMachine& vm)
-{
-    const auto st = vm.current_state();
-
-    if (st == VirtualMachine::State::delayed_shutdown)
-        delayed_shutdown_instances.erase(vm.get_name());
-    else if (st != VirtualMachine::State::running)
-        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
-                            fmt::format("Instance '{}' is not running", vm.get_name()),
-                            ""};
-
-    // Operation is possible: log and execute
-    mpl::debug(category, "Rebooting {}", vm.get_name());
-    return ssh_reboot(vm);
 }
 
 grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay)
