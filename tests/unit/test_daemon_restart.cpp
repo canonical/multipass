@@ -109,10 +109,11 @@ TEST_F(TestDaemonRestart, restartFailsOnMissingInstance)
                 AllOf(HasSubstr(missing_instance_name), HasSubstr("does not exist")));
 }
 
-TEST_F(TestDaemonRestart, restartFailsOnStoppedInstance)
+TEST_F(TestDaemonRestart, restartFailsOnStoppedInstanceWithRunningOnly)
 {
     mp::RestartRequest request{};
     request.mutable_instance_names()->add_instance_name(mock_instance_name);
+    request.set_running_only(true);
     auto [daemon, instance] = build_daemon_with_mock_instance(VMState::stopped);
 
     auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, ServerMock());
@@ -131,7 +132,68 @@ TEST_F(TestDaemonRestart, restartFailsOnUnknownInstanceState)
     auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, ServerMock());
 
     EXPECT_EQ(status.error_code(), grpc::FAILED_PRECONDITION);
-    EXPECT_THAT(status.error_message(),
-                AllOf(HasSubstr(mock_instance_name),
-                      HasSubstr("is already running, but in an unknown state")));
+    EXPECT_THAT(
+        status.error_message(),
+        AllOf(HasSubstr(mock_instance_name), HasSubstr("is unknown and cannot be restarted")));
 }
+
+namespace
+{
+using State = mp::VirtualMachine::State;
+using StateStatusPair = std::pair<State, grpc::Status>;
+struct TestRestartOnDifferentStates : public TestDaemonRestart,
+                                      public WithParamInterface<StateStatusPair>
+{
+};
+} // namespace
+
+TEST_P(TestRestartOnDifferentStates, restartOnStateWithoutRunningOnly)
+{
+    mp::RestartRequest request{};
+    request.mutable_instance_names()->add_instance_name(mock_instance_name);
+    request.set_running_only(false);
+    auto [state, expected_status] = GetParam();
+    auto [daemon, instance] = build_daemon_with_mock_instance(state);
+
+    ServerMock mock_server{};
+    if (expected_status.error_code() == grpc::StatusCode::OK)
+        EXPECT_CALL(mock_server, Write(_, _));
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, std::move(mock_server));
+
+    EXPECT_EQ(status.error_code(), expected_status.error_code());
+}
+
+TEST_P(TestRestartOnDifferentStates, restartOnStateWithRunningOnly)
+{
+    mp::RestartRequest request{};
+    request.mutable_instance_names()->add_instance_name(mock_instance_name);
+    request.set_running_only(true);
+    auto [state, expected_status] = GetParam();
+    bool is_not_running{state != State::running && state != State::delayed_shutdown};
+    auto [daemon, instance] = build_daemon_with_mock_instance(state);
+
+    ServerMock mock_server{};
+    if (!is_not_running)
+        EXPECT_CALL(mock_server, Write(_, _));
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, std::move(mock_server));
+
+    if (is_not_running)
+        expected_status = grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, "", ""};
+    EXPECT_EQ(status.error_code(), expected_status.error_code());
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    TestDaemonRestart,
+    TestRestartOnDifferentStates,
+    Values(StateStatusPair{State::running, grpc::Status::OK},
+           StateStatusPair{State::stopped, grpc::Status::OK},
+           StateStatusPair{State::off, grpc::Status::OK},
+           StateStatusPair{State::suspended, grpc::Status::OK},
+           StateStatusPair{State::delayed_shutdown, grpc::Status::OK},
+           StateStatusPair{State::restarting, grpc::Status(grpc::FAILED_PRECONDITION, "", "")},
+           StateStatusPair{State::starting, grpc::Status(grpc::FAILED_PRECONDITION, "", "")},
+           StateStatusPair{State::suspending, grpc::Status(grpc::FAILED_PRECONDITION, "", "")},
+           StateStatusPair{State::unavailable, grpc::Status(grpc::FAILED_PRECONDITION, "", "")},
+           StateStatusPair{State::unknown, grpc::Status(grpc::FAILED_PRECONDITION, "", "")}));
