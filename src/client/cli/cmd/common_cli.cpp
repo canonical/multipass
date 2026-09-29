@@ -29,6 +29,7 @@
 #include <QCommandLineOption>
 
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 
 namespace mp = multipass;
@@ -240,8 +241,10 @@ bool multipass::cmd::detail::do_normalize_zone_name(std::string& zone, const Zon
     auto zone_name = [](const auto& zone) { return zone.name(); };
     if (utils::has_only_digits(zone))
     {
-        auto zone_index = std::stoi(zone);
-        if (zone_index < 1 || zone_index > reply.zones().size())
+        // A number too large for an int can't be a valid zone index either
+        int zone_index{};
+        const auto ec = std::from_chars(zone.data(), zone.data() + zone.size(), zone_index).ec;
+        if (ec != std::errc{} || zone_index < 1 || zone_index > reply.zones().size())
             return false;
         zone = reply.zones()[zone_index - 1].name();
     }
