@@ -14,7 +14,7 @@ The Multipass [Command-line interface](/reference/command-line-interface/index) 
 
 When invoked without positional arguments, state transition commands — [`start`](/reference/command-line-interface/start), [`restart`](/reference/command-line-interface/restart), [`stop`](/reference/command-line-interface/stop), and [`suspend`](/reference/command-line-interface/suspend) — operate on this special instance. So does the [`shell`](/reference/command-line-interface/shell) command. Furthermore, `start` and `shell` create the primary instance if it does not yet exist.
 
-When creating the primary instance, the Multipass CLI client automatically mounts the user's home directory into it. As with any other mount, it can be unmounted with `multipass umount`. For instance, the command `multipass umount primary` will unmount all mounts made by Multipass inside the `primary` instance, including the auto-mounted `Home`.
+When creating the primary instance, the Multipass CLI client automatically mounts the user's home directory into it. As with any other mount, it can be unmounted with `multipass unmount`. For instance, the command `multipass unmount primary` will unmount all mounts made by Multipass inside the `primary` instance, including the auto-mounted `Home`.
 
 ```{note}
 On Windows, mounts are disabled by default for security reasons. For more details, see {ref}`security-considerations-mount`.
