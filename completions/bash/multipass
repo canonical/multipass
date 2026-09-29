@@ -229,8 +229,8 @@ _multipass_complete()
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
     multipass_cmds="authenticate transfer delete exec find help info launch list mount networks \
-                    purge recover restart restore shell snapshot start stop suspend umount version get set \
-                    clone alias aliases unalias"
+                    purge recover restart restore shell snapshot start stop suspend unmount \
+                    version get set clone alias aliases unalias"
 
     if [[ "${multipass_cmds}" =~ " ${cmd} " || "${multipass_cmds}" =~ ^${cmd} || "${multipass_cmds}" =~ \ ${cmd}$ ]];
     then
@@ -374,7 +374,7 @@ _multipass_complete()
                 _multipass_instances "Stopped"
                 _multipass_instances "Suspended"
             ;;
-            "umount"|"unmount")
+            "unmount"|"umount")
                 _multipass_instances
             ;;
             "delete"|"info")
