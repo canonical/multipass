@@ -94,9 +94,8 @@ TEST_F(DaemonImages, queryForDefaultReturnsExpectedData)
 
     EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce([](const mp::Query&) {
         mpt::MockImageHost mock_image_host;
-        std::vector<std::pair<std::string, mp::VMImageInfo>> info;
-        info.push_back(std::make_pair(mpt::release_remote, mock_image_host.mock_bionic_image_info));
-
+        std::vector<mp::VMImageInfo> info;
+        info.push_back(mock_image_host.mock_bionic_image_info);
         return info;
     });
 

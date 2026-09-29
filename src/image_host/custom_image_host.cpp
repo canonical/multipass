@@ -119,13 +119,12 @@ std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for_impl(const Query&
     return *it->second;
 }
 
-std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_info_for_impl(
-    const Query& query) const
+std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for_impl(const Query& query) const
 {
-    std::vector<std::pair<std::string, mp::VMImageInfo>> images;
+    std::vector<mp::VMImageInfo> images;
 
     if (auto image = info_for_impl(query))
-        images.emplace_back(query.remote_name, std::move(*image));
+        images.emplace_back(std::move(*image));
 
     return images;
 }

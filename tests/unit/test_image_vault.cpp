@@ -30,6 +30,7 @@
 
 #include <src/daemon/default_vm_image_vault.h>
 
+#include <multipass/constants.h>
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
@@ -949,23 +950,19 @@ TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)
                                   data_dir.path(),
                                   mp::days{0}};
 
-    const std::string remote_name{"release"};
     EXPECT_CALL(host, all_info_for(_))
-        .WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
-            {remote_name, host.mock_bionic_image_info},
-            {remote_name, host.mock_another_image_info}}));
+        .WillOnce(Return(std::vector<mp::VMImageInfo>{host.mock_bionic_image_info,
+                                                      host.mock_another_image_info}));
 
     auto images = vault.all_info_for({"", "e3", false, "", mp::Query::Type::Alias, true});
 
     EXPECT_EQ(images.size(), 2u);
 
-    const auto& [first_image_remote, first_image_info] = images[0];
-    EXPECT_EQ(first_image_remote, remote_name);
+    const auto& first_image_info = images[0];
     EXPECT_EQ(first_image_info.id, mpt::default_id);
     EXPECT_EQ(first_image_info.version, mpt::default_version);
 
-    const auto& [second_image_remote, second_image_info] = images[1];
-    EXPECT_EQ(second_image_remote, remote_name);
+    const auto& second_image_info = images[1];
     EXPECT_EQ(second_image_info.id, mpt::another_image_id);
     EXPECT_EQ(second_image_info.version, mpt::another_image_version);
 }
@@ -979,23 +976,20 @@ TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
                                   data_dir.path(),
                                   mp::days{0}};
 
-    const std::string remote_name{"release"};
     EXPECT_CALL(host, all_info_for(_))
-        .WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
-            {remote_name, host.mock_bionic_image_info},
-            {remote_name, host.mock_another_image_info}}));
+        .WillOnce(Return(std::vector<mp::VMImageInfo>{host.mock_bionic_image_info,
+                                                      host.mock_another_image_info}));
 
-    auto images = vault.all_info_for({"", "e3", false, remote_name, mp::Query::Type::Alias, true});
+    auto images = vault.all_info_for(
+        {"", "e3", false, mp::release_remote, mp::Query::Type::Alias, true});
 
     EXPECT_EQ(images.size(), 2u);
 
-    const auto& [first_image_remote, first_image_info] = images[0];
-    EXPECT_EQ(first_image_remote, remote_name);
+    const auto& first_image_info = images[0];
     EXPECT_EQ(first_image_info.id, mpt::default_id);
     EXPECT_EQ(first_image_info.version, mpt::default_version);
 
-    const auto& [second_image_remote, second_image_info] = images[1];
-    EXPECT_EQ(second_image_remote, remote_name);
+    const auto& second_image_info = images[1];
     EXPECT_EQ(second_image_info.id, mpt::another_image_id);
     EXPECT_EQ(second_image_info.version, mpt::another_image_version);
 }
@@ -1010,8 +1004,7 @@ TEST_F(ImageVault, allInfoForNoImagesReturnsEmpty)
                                   mp::days{0}};
 
     const std::string name{"foo"};
-    EXPECT_CALL(host, all_info_for(_))
-        .WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{}));
+    EXPECT_CALL(host, all_info_for(_)).WillOnce(Return(std::vector<mp::VMImageInfo>{}));
 
     EXPECT_TRUE(vault.all_info_for({"", name, false, "", mp::Query::Type::Alias, true}).empty());
 }
