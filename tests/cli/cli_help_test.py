@@ -71,8 +71,8 @@ ALL_COMMANDS = [
     ("stop", "Stop running instances"),
     ("suspend", "Suspend running instances"),
     ("transfer", "Transfer files between the host and instances"),
-    ("umount", "Unmount a directory from an instance"),
     ("unalias", "Remove aliases"),
+    ("unmount", "Unmount a directory from an instance"),
     ("version", "Show version details"),
 ]
 
