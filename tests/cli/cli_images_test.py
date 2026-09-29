@@ -175,3 +175,11 @@ class TestImages:
 
         assert {k: image[k] for k in expected_image} == expected_image
         assert image["release"]
+
+    def test_query_remotes(self, cmd):
+        (output, header) = multipass(cmd, "--remotes", "--format=json").json_with_header()
+        assert ("Warning:" in header) == (cmd == "find")
+
+        assert output
+        remotes = output["remotes"]
+        assert remotes == ["core", "daily", "release", "snapcraft"]

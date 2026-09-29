@@ -21,7 +21,7 @@ fedora                                        20260422         Fedora 44
 
 Launch aliases, version information and a brief description are shown next to each name in the command output.
 
-Launching an image using its name or its alias gives the same result. For example, `multipass launch 23.10`  and  `multipass launch mantic` will launch the same image.
+Launching an image using its name or its alias gives the same result. For example, `multipass launch 23.10` and `multipass launch mantic` will launch the same image.
 
 The aliases `lts` and `devel` are dynamic, that is, they change the image they alias from time to time, depending on the Ubuntu release.
 
@@ -45,6 +45,27 @@ daily:resolute                                20260720         Ubuntu 26.04 LTS
 resolute                                      20260720         Ubuntu 26.04 LTS
 ```
 
+To search images within a specific remote, `<remote>:` can be passed as parameter.
+For instance, `multipass images daily:` returns:
+
+```{code-block} text
+Image             Aliases                     Version          Description
+daily:22.04       jammy                       20260926         Ubuntu 22.04 LTS
+daily:24.04       noble                       20260926         Ubuntu 24.04 LTS
+daily:26.04       resolute,lts                20260927         Ubuntu 26.04 LTS
+daily:26.10       stonking,devel              20260919         Ubuntu 26.10
+```
+
+To list all available remotes, use `multipass images --remotes`:
+
+```{code-block} text
+Remote
+core
+daily
+release
+snapcraft
+```
+
 Like [`list`](/reference/command-line-interface/list), `images` supports the `--format` option to get machine-readable output (`json`, `csv` or `yaml`).
 
 ```{note}
@@ -56,8 +77,8 @@ The `json`, `csv` and `yaml` formats cover regular output only. Errors and log m
 The full `multipass help images` output explains the available options:
 
 ```{code-block} text
-Usage: multipass images [options] [<remote:>][<string>]
-Lists available images matching <string> for creating instances from.
+Usage: multipass images [options] [<remote>:][<filter>]
+Lists available images matching <filter> for creating instances from.
 With no search string, lists all aliases for supported releases.
 
 Options:
@@ -65,6 +86,7 @@ Options:
   -v, --verbose       Increase logging verbosity. Repeat the 'v' in the short
                       option for more detail. Maximum verbosity is obtained with
                       4 (or more) v's, i.e. -vvvv.
+  --remotes           List all available remotes.
   --show-unsupported  Show unsupported cloud images as well
   --format <format>   Output list in the requested format.
                       Valid formats are: table (default), json, csv and yaml.
@@ -75,10 +97,10 @@ Options:
   --force-update      Force the image information to update from the network
 
 Arguments:
-  string              An optional value to search for in [<remote:>]<string>
-                      format, where <remote> can be either ‘release’ or ‘daily’.
-                      If <remote> is omitted, it will search ‘release‘ first,
-                      and if no matches are found, it will then search ‘daily‘.
-                      <string> can be a partial image hash or a release version,
+  query               An optional value to search for in [<remote>:][<filter>]
+                      format, where <remote> is one of the available remotes. If
+                      <remote> is omitted, it will search ‘release‘ first, and
+                      if no matches are found, it will then search ‘daily‘.
+                      <filter> can be a partial image hash or a release version,
                       codename or alias.
 ```

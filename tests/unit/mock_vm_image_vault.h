@@ -75,6 +75,7 @@ public:
                 all_info_for,
                 (const Query&),
                 (const, override));
+    MOCK_METHOD((std::vector<std::string>), fetch_remotes, (), (const, override));
 
 private:
     TempFile dummy_image;

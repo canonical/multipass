@@ -38,10 +38,11 @@ public:
     std::vector<std::string> aliases() const override;
 
 private:
-    ParseCode parse_args(ArgParser* parser);
-
-    ImagesRequest request;
-    Formatter* chosen_formatter;
+    template <typename Reply, typename RpcFunc, typename Request>
+    ReturnCodeVariant dispatch_request(RpcFunc&& rpc_func,
+                                       const Request& request,
+                                       Formatter* formatter);
 };
+
 } // namespace cmd
 } // namespace multipass

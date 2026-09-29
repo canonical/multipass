@@ -37,6 +37,7 @@ public:
     virtual std::string format(const ListReply& reply) const = 0;
     virtual std::string format(const SnapshotsReply& reply) const = 0;
     virtual std::string format(const NetworksReply& reply) const = 0;
+    virtual std::string format(const RemotesReply& reply) const = 0;
     virtual std::string format(const ImagesReply& reply) const = 0;
     virtual std::string format(const VersionReply& reply,
                                const std::string& client_version) const = 0;

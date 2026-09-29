@@ -191,7 +191,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "codename or alias.\n"
         "<url> is a custom image URL that is in http://, https://, or file:// "
         "format.\n",
-        "[[<remote:>]<image> | <url>]");
+        "[[<remote>:]<image> | <url>]");
     QCommandLineOption cpusOption({"c", "cpus"},
                                   QString::fromStdString(fmt::format("Number of CPUs to allocate.\n"
                                                                      "Minimum: {}, default: {}.",

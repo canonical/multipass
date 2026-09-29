@@ -67,7 +67,17 @@ public:
                                           grab_imgs)); // intentional discard
 
         return images_info;
-    };
+    }
+
+    std::vector<std::string> fetch_remotes() const override
+    {
+        std::vector<std::string> remotes;
+        for (const auto& [name, host] : remote_image_host_map)
+        {
+            remotes.emplace_back(name);
+        }
+        return remotes;
+    }
 
 protected:
     virtual std::optional<VMImageInfo> info_for(const Query& query) const
