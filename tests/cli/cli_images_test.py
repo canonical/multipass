@@ -165,3 +165,9 @@ class TestImages:
 
             assert {k: image[k] for k in expected_image} == expected_image
             assert image["release"]
+
+    def test_query_remotes(self, cmd):
+        with multipass(cmd, "remotes", "--format=json").json() as output:
+            assert output
+            remotes = output["remotes"]
+            assert remotes == ["core", ""]

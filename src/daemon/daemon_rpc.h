@@ -71,6 +71,9 @@ signals:
     void on_purge(const PurgeRequest* request,
                   grpc::ServerReaderWriter<PurgeReply, PurgeRequest>* server,
                   DaemonRpcContext* context);
+    void on_remotes(const RemotesRequest* request,
+                    grpc::ServerReaderWriter<RemotesReply, RemotesRequest>* server,
+                    DaemonRpcContext* context);
     void on_images(const ImagesRequest* request,
                    grpc::ServerReaderWriter<ImagesReply, ImagesRequest>* server,
                    DaemonRpcContext* context);
@@ -167,6 +170,8 @@ protected:
                         grpc::ServerReaderWriter<LaunchReply, LaunchRequest>* server) override;
     grpc::Status purge(grpc::ServerContext* context,
                        grpc::ServerReaderWriter<PurgeReply, PurgeRequest>* server) override;
+    grpc::Status remotes(grpc::ServerContext* context,
+                         grpc::ServerReaderWriter<RemotesReply, RemotesRequest>* server) override;
     grpc::Status images(grpc::ServerContext* context,
                         grpc::ServerReaderWriter<ImagesReply, ImagesRequest>* server) override;
     grpc::Status info(grpc::ServerContext* context,

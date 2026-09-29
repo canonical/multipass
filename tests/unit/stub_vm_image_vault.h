@@ -70,6 +70,11 @@ struct StubVMImageVault final : public multipass::VMImageVault
                                                             true}}};
     }
 
+    std::vector<std::string> fetch_remotes() const override
+    {
+        return {"default"};
+    }
+
     void clone(const std::string& /*src*/, const std::string& /*dst*/) override
     {
     }
