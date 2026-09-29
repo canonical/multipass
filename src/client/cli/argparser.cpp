@@ -73,9 +73,7 @@ QString format_short_help_for(const std::vector<cmd::Command::UPtr>& commands)
     QString output;
     for (const auto& c : commands)
     {
-        const auto& name = c->name();
-        const auto is_internal = name.starts_with("__");
-        if (!is_internal)
+        if (!c->is_hidden())
         {
             output += QString::fromStdString(format_into_column(c->name(), column_size));
             output += c->short_help() + "\n";

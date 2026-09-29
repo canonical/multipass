@@ -26,10 +26,10 @@ namespace multipass::cmd
 
 /// Command for handling autocomplete functionality in the CLI.
 /// Can be used this way:
-///   multipass __autocomplete -- [cmd] [args...]
+///   multipass autocomplete -- [cmd] [args...]
 ///
 /// For example:
-///   $ multipass __autocomplete -- start
+///   $ multipass autocomplete -- start
 ///   --all --help --verbose loved-waxwing
 class AutoComplete final : public Command
 {
@@ -39,6 +39,7 @@ public:
     std::string name() const override;
     QString short_help() const override;
     QString description() const override;
+    bool is_hidden() const override;
 
     ReturnCodeVariant run(ArgParser* parser) override;
 
