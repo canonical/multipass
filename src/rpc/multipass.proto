@@ -147,6 +147,7 @@ message ImagesRequest {
     int32 verbosity_level = 3;
     bool allow_unsupported = 4;
     bool force_manifest_network_download = 5;
+    bool all_remotes = 6;
 }
 
 message ImagesReply {
@@ -157,9 +158,11 @@ message ImagesReply {
         repeated string aliases = 4;
         string codename = 5;
         string remote_name = 6;
+        bool is_default_remote = 7;
     }
     repeated ImageInfo images_info = 1;
     string log_line = 2;
+    bool all_remotes = 3;
 }
 
 message RemotesRequest {

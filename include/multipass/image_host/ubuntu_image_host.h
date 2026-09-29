@@ -62,8 +62,7 @@ public:
 
 private:
     std::optional<VMImageInfo> info_for_impl(const Query& query) const override;
-    std::vector<std::pair<std::string, VMImageInfo>> all_info_for_impl(
-        const Query& query) const override;
+    std::vector<VMImageInfo> all_info_for_impl(const Query& query) const override;
     std::vector<VMImageInfo> all_images_for_impl(const std::string& remote_name,
                                                  bool allow_unsupported) const override;
     void for_each_entry_do_impl(const Action& action) const override;

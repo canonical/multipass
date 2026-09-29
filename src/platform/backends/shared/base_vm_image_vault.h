@@ -51,22 +51,9 @@ public:
         return it->second;
     };
 
-    std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) const override
+    std::vector<VMImageInfo> all_info_for(const Query& query) const override
     {
-        std::vector<std::pair<std::string, VMImageInfo>> images_info;
-
-        auto grab_imgs = [&images_info, &query](auto* image_host) {
-            return !(images_info = image_host->all_info_for(query)).empty();
-        };
-
-        if (!query.remote_name.empty())
-            images_info = image_host_for(query.remote_name)->all_info_for(query);
-        else
-            static_cast<void>(std::any_of(image_hosts.begin(),
-                                          image_hosts.end(),
-                                          grab_imgs)); // intentional discard
-
-        return images_info;
+        return image_host_for(query.remote_name)->all_info_for(query);
     }
 
     std::vector<std::string> fetch_remotes() const override

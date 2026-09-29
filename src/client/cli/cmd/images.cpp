@@ -44,6 +44,10 @@ struct CommandOptions
     const QCommandLineOption list_remotes = QCommandLineOption{"remotes",
                                                                "List all available remotes."};
 
+    const QCommandLineOption all_remotes = QCommandLineOption{
+        "all",
+        "Images from all remotes will be shown."};
+
     const QCommandLineOption unsupported = QCommandLineOption{
         "show-unsupported",
         "Show unsupported cloud images as well"};
@@ -78,6 +82,12 @@ std::tuple<ParseCode, ImagesRequest> parse_images_request(ArgParser& parser,
         }
         else if (colon_count == 1)
         {
+            if (parser.isSet(options.all_remotes))
+            {
+                cerr << "Cannot specify a remote when using the --all option\n";
+                return {ParseCode::CommandLineError, request};
+            }
+
             request.set_remote_name(search_string.section(':', 0, 0).toStdString());
             request.set_search_string(search_string.section(':', 1).toStdString());
         }
@@ -88,6 +98,7 @@ std::tuple<ParseCode, ImagesRequest> parse_images_request(ArgParser& parser,
     }
 
     request.set_verbosity_level(parser.verbosityLevel());
+    request.set_all_remotes(parser.isSet(options.all_remotes));
     request.set_allow_unsupported(parser.isSet(options.unsupported));
     request.set_force_manifest_network_download(
         parser.isSet(options.force_manifest_network_download));
@@ -107,9 +118,10 @@ std::tuple<ParseCode, RemotesRequest> parse_remotes_request(ArgParser& parser,
                 "They will be ignored.\n";
     }
 
-    if (parser.isSet(options.force_manifest_network_download) || parser.isSet(options.unsupported))
+    if (parser.isSet(options.all_remotes) ||
+        parser.isSet(options.force_manifest_network_download) || parser.isSet(options.unsupported))
     {
-        cerr << "Options --force-manifest-network-download and --unsupported are not "
+        cerr << "Options --all, --force-manifest-network-download and --unsupported are not "
                 "compatible with --remotes. They will be ignored.\n";
     }
 
@@ -144,6 +156,7 @@ ReturnCodeVariant Images::run(ArgParser* parser)
     parser->addPositionalArgument("string", command_filter_help, "[<remote:>][<string>]");
     parser->addOptions({
         options.list_remotes,
+        options.all_remotes,
         options.unsupported,
         options.format,
         options.force_manifest_network_download,

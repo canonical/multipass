@@ -122,58 +122,42 @@ std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for_impl(const Query&
         return std::nullopt;
 
     auto key = key_from(query.release);
-    auto image_id = images.front().second.id;
+    auto image_id = images.front().id;
 
     // If a partial hash query matches more than once, throw an exception
     if (images.size() > 1 && key != image_id && image_id.starts_with(key))
         throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.release));
 
     // It's not a hash match, so choose the first one no matter what
-    return images.front().second;
+    return images.front();
 }
 
-std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_info_for_impl(
-    const Query& query) const
+std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for_impl(const Query& query) const
 {
     auto key = key_from(query.release);
 
-    std::vector<std::string> remotes_to_search;
+    std::vector<mp::VMImageInfo> images;
+    const auto& manifest = manifest_from(query.remote_name);
 
-    if (!query.remote_name.empty())
+    if (const auto* info = match_alias(key, manifest); info)
     {
-        remotes_to_search.push_back(query.remote_name);
+        if (!info->supported && !query.allow_unsupported)
+            throw mp::UnsupportedImageException(query.release);
+
+        images.emplace_back(*info);
     }
     else
     {
-        remotes_to_search = std::vector<std::string>{release_remote, daily_remote};
-    }
+        std::unordered_set<std::string> found_hashes;
 
-    std::vector<std::pair<std::string, mp::VMImageInfo>> images;
-
-    for (const auto& remote_name : remotes_to_search)
-    {
-        const auto& manifest = manifest_from(remote_name);
-
-        if (const auto* info = match_alias(key, manifest); info)
+        for (const auto& entry : manifest.products)
         {
-            if (!info->supported && !query.allow_unsupported)
-                throw mp::UnsupportedImageException(query.release);
-
-            images.emplace_back(remote_name, *info);
-        }
-        else
-        {
-            std::unordered_set<std::string> found_hashes;
-
-            for (const auto& entry : manifest.products)
+            const auto id = entry.id;
+            if (id.starts_with(key) && (entry.supported || query.allow_unsupported) &&
+                found_hashes.find(id) == found_hashes.end())
             {
-                const auto id = entry.id;
-                if (id.starts_with(key) && (entry.supported || query.allow_unsupported) &&
-                    found_hashes.find(id) == found_hashes.end())
-                {
-                    images.emplace_back(remote_name, entry);
-                    found_hashes.insert(id);
-                }
+                images.emplace_back(entry);
+                found_hashes.insert(id);
             }
         }
     }
@@ -252,8 +236,9 @@ void mp::UbuntuVMImageHost::fetch_manifests(bool force_update)
         try
         {
             auto official_site = remote_info.get_official_url();
-            auto manifest_bytes_from_official =
-                download_manifest(official_site, url_downloader, force_update);
+            auto manifest_bytes_from_official = download_manifest(official_site,
+                                                                  url_downloader,
+                                                                  force_update);
 
             auto mirror_site = remote_info.get_mirror_url();
             std::optional<QByteArray> manifest_bytes_from_mirror = std::nullopt;
