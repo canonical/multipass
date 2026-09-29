@@ -118,6 +118,7 @@ add_executable(multipass_cpp_tests
   test_qemuimg_process_spec.cpp
   test_recursive_dir_iter.cpp
   test_remote_settings_handler.cpp
+  test_runtime_instance_info_helper.cpp
   test_rust_integration.cpp
   test_setting_specs.cpp
   test_settings.cpp
