@@ -22,6 +22,8 @@
 
 #include <multipass/rpc/multipass.grpc.pb.h>
 
+#include <fmt/format.h>
+
 namespace multipass
 {
 namespace utils
@@ -36,6 +38,19 @@ void send_messages(grpc::ServerReaderWriterInterface<Reply, Request>* server,
         reply.set_reply_message(message);
         server->Write(reply);
     }
+}
+
+grpc::Status concatenate_status(const grpc::Status& s1, const grpc::Status& s2)
+{
+    if (s1.ok())
+        return s2;
+    if (s2.ok())
+        return s1;
+
+    auto code = s1.error_code();
+    auto msg = fmt::format("{}\n{}", s1.error_message(), s2.error_message());
+
+    return grpc::Status{code, msg};
 }
 } // namespace utils
 } // namespace multipass
