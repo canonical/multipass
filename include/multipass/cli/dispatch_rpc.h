@@ -21,6 +21,7 @@
 #include <multipass/cli/return_codes.h>
 #include <multipass/format.h>
 #include <multipass/reply_concepts.h>
+#include <multipass/user_messages/driver_deprecation_warning.h>
 #include <multipass/utils.h>
 
 #include <QLocalSocket>
@@ -81,14 +82,6 @@ auto adapt_failure_handler(FailureCallable& on_failure,
     };
 }
 
-// TODO@deprecations remove
-inline bool is_repeated_deprecation_warning(const std::string& log_line)
-{
-    static const std::regex warning{R"(^\*\*\* Warning! The \S+ driver is deprecated)"};
-    static bool warned = false;
-    return std::regex_search(log_line, warning) && std::exchange(warned, true);
-}
-
 } // namespace detail
 
 template <typename RpcFunc,
@@ -122,7 +115,7 @@ ReturnCodeVariant dispatch_rpc_stream(Rpc::StubInterface* stub,
     {
         // TODO@deprecations remove
         if constexpr (LogReply<ReplyType>)
-            if (detail::is_repeated_deprecation_warning(reply.log_line()))
+            if (is_repeated_driver_deprecation_warning(reply.log_line()))
                 reply.clear_log_line();
 
         streaming_callback(reply, client.get());
