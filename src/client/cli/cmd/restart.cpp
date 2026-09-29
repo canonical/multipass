@@ -111,7 +111,9 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
     parser->addPositionalArgument("name", description, syntax);
 
     QCommandLineOption all_option(all_option_name, "Restart all instances");
-    parser->addOption(all_option);
+    QCommandLineOption running_only_option("running-only",
+                                           "Avoid restarting non-running instances.");
+    parser->addOptions({all_option, running_only_option});
 
     mp::cmd::add_instance_timeout(parser);
 
@@ -141,6 +143,8 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
 
         return parse_code;
     }
+
+    request.set_running_only(parser->isSet(running_only_option));
 
     request.mutable_instance_names()->CopyFrom(
         add_instance_names(parser, /*default_name=*/petenv_name.toStdString()));

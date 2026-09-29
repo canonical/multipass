@@ -2454,13 +2454,12 @@ try
 
     const auto& instance_targets = instance_selection.operative_selection;
     std::vector<std::string> starting_vms;
-    bool condition{};
     status = cmd_vms(
         instance_targets,
-        [this, &starting_vms, condition](VirtualMachine& vm) {
+        [this, &starting_vms, running_only = request->running_only()](VirtualMachine& vm) {
             auto vm_name{vm.get_name()};
             stop_mounts(vm_name);
-            auto status = condition ? this->reboot_running_vm(vm) : this->reboot_vm(vm);
+            auto status = running_only ? this->reboot_running_vm(vm) : this->reboot_vm(vm);
             if (status.ok())
                 starting_vms.push_back(vm_name);
             return status;
