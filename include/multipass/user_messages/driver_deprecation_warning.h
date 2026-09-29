@@ -22,7 +22,7 @@
 #include <fmt/format.h>
 #include <string>
 
-namespace multipass::localization
+namespace multipass
 {
 
 template <typename DeprecatedDriverName,
@@ -55,4 +55,4 @@ std::string make_driver_deprecation_warning(DeprecatedDriverName&& deprecated_na
     return make_deprecation_warning(deprecated_feature, deprecation_advice);
 }
 
-} // namespace multipass::localization
+} // namespace multipass
