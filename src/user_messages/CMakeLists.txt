@@ -14,12 +14,12 @@
 #
 
 # For now, this library only contains headers.
-add_library(localization INTERFACE)
+add_library(user_messages INTERFACE)
 
-target_link_libraries(localization INTERFACE
+target_link_libraries(user_messages INTERFACE
   fmt::fmt-header-only
 )
 
-target_include_directories(localization
+target_include_directories(user_messages
     INTERFACE "${CMAKE_SOURCE_DIR}/include"
 )

@@ -42,7 +42,6 @@
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
-#include <multipass/localization/driver_deprecation_warning.h>
 #include <multipass/logging/client_logger.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
@@ -55,6 +54,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
+#include <multipass/user_messages/driver_deprecation_warning.h>
 #include <multipass/utils/grpc_utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine.h>
@@ -1287,16 +1287,14 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
 
     if (current_driver == "virtualbox" || current_driver == "hyperv")
     {
-        namespace mloc = multipass::localization;
-
         const auto [current_name, migrationful] = current_driver == "hyperv"
                                                     ? std::pair{"Hyper-V", true}
                                                     : std::pair{"VirtualBox", false};
 
-        auto deprecation_warning = mloc::make_driver_deprecation_warning(current_name,
-                                                                         recommended.first,
-                                                                         recommended.second,
-                                                                         migrationful);
+        auto deprecation_warning = mp::make_driver_deprecation_warning(current_name,
+                                                                       recommended.first,
+                                                                       recommended.second,
+                                                                       migrationful);
 
         W reply{};
         reply.set_log_line(std::move(deprecation_warning));

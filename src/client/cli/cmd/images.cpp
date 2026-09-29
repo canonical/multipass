@@ -20,7 +20,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/formatter.h>
-#include <multipass/localization/deprecation_warning.h>
+#include <multipass/user_messages/deprecation_warning.h>
 
 #include <string>
 
@@ -104,9 +104,8 @@ ParseCode Images::parse_args(ArgParser* parser)
 
     if (parser->commandName() == deprecated_name)
     {
-        cerr << localization::make_deprecation_warning(
-            fmt::format("‘multipass {}’ command", deprecated_name),
-            fmt::format("Use ‘multipass {}’ instead.", name()));
+        cerr << make_deprecation_warning(fmt::format("‘multipass {}’ command", deprecated_name),
+                                         fmt::format("Use ‘multipass {}’ instead.", name()));
     }
 
     if (parser->positionalArguments().count() > 1)
