@@ -312,13 +312,28 @@ std::string mp::YamlFormatter::format(const NetworksReply& reply) const
     return mpu::emit_yaml(list);
 }
 
+std::string mp::YamlFormatter::format(const RemotesReply& reply) const
+{
+    YAML::Node result;
+    result["remotes"] = std::vector<YAML::Node>{};
+
+    auto sorted_remotes = reply.remotes();
+    std::ranges::sort(sorted_remotes);
+    for (const auto& remote : sorted_remotes)
+    {
+        result["remotes"].push_back(remote);
+    }
+
+    return mpu::emit_yaml(result);
+}
+
 std::string mp::YamlFormatter::format(const ImagesReply& reply) const
 {
-    YAML::Node find;
-    find["errors"] = std::vector<YAML::Node>{};
-    find["images"] = format_images(reply.images_info());
+    YAML::Node result;
+    result["errors"] = std::vector<YAML::Node>{};
+    result["images"] = format_images(reply.images_info());
 
-    return mpu::emit_yaml(find);
+    return mpu::emit_yaml(result);
 }
 
 std::string mp::YamlFormatter::format(const VersionReply& reply,

@@ -22,6 +22,7 @@ service Rpc {
     rpc create (stream LaunchRequest) returns (stream LaunchReply);
     rpc launch (stream LaunchRequest) returns (stream LaunchReply);
     rpc purge (stream PurgeRequest) returns (stream PurgeReply);
+    rpc remotes (stream RemotesRequest) returns (stream RemotesReply);
     rpc images (stream ImagesRequest) returns (stream ImagesReply);
     rpc info (stream InfoRequest) returns (stream InfoReply);
     rpc list (stream ListRequest) returns (stream ListReply);
@@ -158,6 +159,15 @@ message ImagesReply {
         string remote_name = 6;
     }
     repeated ImageInfo images_info = 1;
+    string log_line = 2;
+}
+
+message RemotesRequest {
+    int32 verbosity_level = 1;
+}
+
+message RemotesReply {
+    repeated string remotes = 1;
     string log_line = 2;
 }
 

@@ -84,6 +84,10 @@ public slots:
                        grpc::ServerReaderWriterInterface<PurgeReply, PurgeRequest>* server,
                        DaemonRpcContext* context);
 
+    virtual void remotes(const RemotesRequest* request,
+                         grpc::ServerReaderWriterInterface<RemotesReply, RemotesRequest>* server,
+                         DaemonRpcContext* context);
+
     virtual void images(const ImagesRequest* request,
                         grpc::ServerReaderWriterInterface<ImagesReply, ImagesRequest>* server,
                         DaemonRpcContext* context);

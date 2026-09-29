@@ -45,6 +45,27 @@ daily:resolute                                20260720         Ubuntu 26.04 LTS
 resolute                                      20260720         Ubuntu 26.04 LTS
 ```
 
+To search images within a specific remote, `<remote_name>:` can be passed as parameter.
+For instance, `multipass images daily:` returns:
+
+```{code-block} text
+Image             Aliases                     Version          Description
+daily:22.04       jammy                       20260926         Ubuntu 22.04 LTS
+daily:24.04       noble                       20260926         Ubuntu 24.04 LTS
+daily:26.04       resolute,lts                20260927         Ubuntu 26.04 LTS
+daily:26.10       stonking,devel              20260919         Ubuntu 26.10
+```
+
+To list all available remotes, use `multipass images --remotes`:
+
+```{code-block} text
+Remote
+core
+daily
+release
+snapcraft
+```
+
 ---
 
 The full `multipass help images` output explains the available options:
@@ -59,6 +80,7 @@ Options:
   -v, --verbose       Increase logging verbosity. Repeat the 'v' in the short
                       option for more detail. Maximum verbosity is obtained with
                       4 (or more) v's, i.e. -vvvv.
+  --remotes           List all available remotes.
   --show-unsupported  Show unsupported cloud images as well
   --format <format>   Output list in the requested format.
                       Valid formats are: table (default), json, csv and yaml
@@ -66,9 +88,9 @@ Options:
 
 Arguments:
   string              An optional value to search for in [<remote:>]<string>
-                      format, where <remote> can be either ‘release’ or ‘daily’.
-                      If <remote> is omitted, it will search ‘release‘ first,
-                      and if no matches are found, it will then search ‘daily‘.
+                      format, where <remote> is one of the available remotes. If
+                      <remote> is omitted, it will search ‘release‘ first, and
+                      if no matches are found, it will then search ‘daily‘.
                       <string> can be a partial image hash or a release version,
                       codename or alias.
 ```
