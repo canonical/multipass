@@ -841,20 +841,25 @@ std::string make_start_error_details(const InstanceSelectionReport& instance_sel
 }
 
 using VMCommand = std::function<grpc::Status(mp::VirtualMachine&)>;
-grpc::Status cmd_vms(const LinearInstanceSelection& tgts, const VMCommand& cmd)
+grpc::Status cmd_vms(const LinearInstanceSelection& tgts,
+                     const VMCommand& cmd,
+                     bool fail_early = true)
 {
     // std::function involves some overhead, but it should be negligible here and
     // it gives clear error messages on type mismatch (!= templated callable).
+    auto global_st{grpc::Status::OK};
     for (const auto& tgt : tgts)
     {
         auto vm_ptr = tgt->second;
         assert(vm_ptr && "no nulls please");
-
-        if (auto st = cmd(*vm_ptr); !st.ok())
+        auto st = cmd(*vm_ptr);
+        if (fail_early && !st.ok())
             return st; // Fail early
+        else
+            global_st = mpu::concatenate_status(global_st, st);
     }
 
-    return grpc::Status::OK;
+    return global_st;
 }
 
 std::vector<std::string> names_from(const LinearInstanceSelection& instances)
