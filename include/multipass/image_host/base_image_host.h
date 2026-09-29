@@ -31,7 +31,7 @@ public:
     BaseVMImageHost(URLDownloader* downloader);
 
     std::optional<VMImageInfo> info_for(const Query& query) const final;
-    std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) const final;
+    std::vector<VMImageInfo> all_info_for(const Query& query) const final;
     VMImageInfo info_for_full_hash(const std::string& full_hash) const final;
     std::vector<VMImageInfo> all_images_for(const std::string& remote_name,
                                             bool allow_unsupported) const final;
@@ -43,8 +43,7 @@ protected:
     void on_manifest_empty(const std::string& details);
 
     virtual std::optional<VMImageInfo> info_for_impl(const Query& query) const = 0;
-    virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for_impl(
-        const Query& query) const = 0;
+    virtual std::vector<VMImageInfo> all_info_for_impl(const Query& query) const = 0;
     virtual VMImageInfo info_for_full_hash_impl(const std::string& full_hash) const = 0;
     virtual std::vector<VMImageInfo> all_images_for_impl(const std::string& remote_name,
                                                          bool allow_unsupported) const = 0;
