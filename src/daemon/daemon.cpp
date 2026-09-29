@@ -862,18 +862,6 @@ grpc::Status cmd_vms(const LinearInstanceSelection& tgts,
     return global_st;
 }
 
-std::vector<std::string> names_from(const LinearInstanceSelection& instances)
-{
-    std::vector<std::string> ret;
-    ret.reserve(instances.size());
-    std::transform(std::cbegin(instances),
-                   std::cend(instances),
-                   std::back_inserter(ret),
-                   [](const auto& item) { return item->first; });
-
-    return ret;
-}
-
 template <typename Instances>
 auto instances_running(const Instances& instances)
 {
