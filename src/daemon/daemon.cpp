@@ -840,6 +840,19 @@ std::string make_start_error_details(const InstanceSelectionReport& instance_sel
     return start_error.SerializeAsString();
 }
 
+grpc::Status grpc_concatenate_status(const grpc::Status& s1, const grpc::Status& s2)
+{
+    if (s1.ok())
+        return s2;
+    if (s2.ok())
+        return s1;
+
+    auto code = s1.error_code();
+    auto msg = fmt::format("{}\n{}", s1.error_message(), s2.error_message());
+
+    return grpc::Status{code, msg};
+}
+
 using VMCommand = std::function<grpc::Status(mp::VirtualMachine&)>;
 grpc::Status cmd_vms(const LinearInstanceSelection& tgts,
                      const VMCommand& cmd,
@@ -856,7 +869,7 @@ grpc::Status cmd_vms(const LinearInstanceSelection& tgts,
         if (fail_early && !st.ok())
             return st; // Fail early
         else
-            global_st = mpu::concatenate_status(global_st, st);
+            global_st = grpc_concatenate_status(global_st, st);
     }
 
     return global_st;
