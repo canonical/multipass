@@ -20,7 +20,7 @@
 #include <fmt/format.h>
 #include <string>
 
-namespace multipass::localization
+namespace multipass
 {
 
 template <typename DeprecatedFeature, typename AdviceMessage>
@@ -33,4 +33,4 @@ std::string make_deprecation_warning(DeprecatedFeature&& deprecated_feature, Adv
         std::forward<AdviceMessage>(advice));
 }
 
-} // namespace multipass::localization
+} // namespace multipass
