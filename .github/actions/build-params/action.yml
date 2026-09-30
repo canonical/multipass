@@ -7,7 +7,7 @@ inputs:
     default: ^refs/heads/release/[0-9\.]+$
   release-tag-re:
     description: "Release tag pattern"
-    default: ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$
+    default: ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?$
 
 outputs:
   label:
@@ -24,6 +24,14 @@ runs:
   - name: Determine build parameters
     id: build-params
     shell: bash
+      #prevent (shell) code injection
+    env:
+      EVENT_NAME: ${{ github.event_name }}
+      GIT_REF: ${{ github.ref }}
+      PR_NUMBER: ${{ github.event.number }}
+      RUN_NUMBER: ${{ github.run_number }}
+      RELEASE_BRANCH_RE: ${{ inputs.release-branch-re }}
+      RELEASE_TAG_RE: ${{ inputs.release-tag-re }}
     run: |
       # If it's a pull request or `trying` push, annotate with `pr#` and publish to `edge/pr#`.
       if [ ${{ github.event_name }} == "pull_request" ]; then
