@@ -75,10 +75,6 @@ ALL_COMMANDS = [
 ]
 
 
-def commands_to_test():
-    return [(x, y) for (z, y) in ALL_COMMANDS for x in z]
-
-
 def available_locales():
     locales = [loc for loc in LOCALES if is_locale_available(loc)]
     if not locales:
@@ -112,7 +108,7 @@ class TestHelp:
                     )
                 )
 
-                for cmd, desc_pattern in commands_to_test():
+                for (cmd, *_), desc_pattern in ALL_COMMANDS:
                     if cmd not in matches:
                         failures.append((loc, cmd, "not found in help output"))
                     elif not re.search(desc_pattern, matches[cmd]):
@@ -125,7 +121,7 @@ class TestHelp:
     def test_per_command_help(self):
         failures = []
         for loc in available_locales():
-            for cmd, _ in commands_to_test():
+            for cmd in (name for names, _ in ALL_COMMANDS for name in names):
                 with multipass(
                     "help",
                     cmd,
