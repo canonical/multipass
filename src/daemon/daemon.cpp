@@ -866,10 +866,12 @@ grpc::Status cmd_vms(const LinearInstanceSelection& tgts,
         auto vm_ptr = tgt->second;
         assert(vm_ptr && "no nulls please");
         auto st = cmd(*vm_ptr);
-        if (fail_early && !st.ok())
-            return st; // Fail early
-        else
+        if (!st.ok())
+        {
+            if (fail_early)
+                return st; // Fail early
             global_st = grpc_concatenate_status(global_st, st);
+        }
     }
 
     return global_st;
@@ -2465,6 +2467,8 @@ try
         },
         /*fail_early=*/false); // 1st pass to reboot all targets
 
+    if (starting_vms.empty())
+        return context->set_value(status);
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(
         QtConcurrent::run(&Daemon::async_wait_for_ready_all<RestartReply, RestartRequest>,
@@ -2473,7 +2477,7 @@ try
                           starting_vms,
                           timeout,
                           context,
-                          std::string(),
+                          status.error_message(),
                           std::string()));
 }
 catch (const std::exception& e)
@@ -3651,7 +3655,7 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm,
             // This will be blocking for each instance. Not ideal, but cannot be done async,
             // since we need to get on the train of the next async call afterwards as well
             vm.wait_until_ssh_up(timeout);
-            ssh_reboot(vm);
+            return ssh_reboot(vm);
         }
         return grpc::Status::OK;
 

@@ -156,8 +156,7 @@ TEST_P(TestRestartOnDifferentStates, restartOnStateWithoutRunningOnly)
     auto [daemon, instance] = build_daemon_with_mock_instance(state);
 
     ServerMock mock_server{};
-    if (expected_status.error_code() == grpc::StatusCode::OK)
-        EXPECT_CALL(mock_server, Write(_, _));
+    EXPECT_CALL(mock_server, Write(_, _)).WillRepeatedly(Return(true));
 
     auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, std::move(mock_server));
 
@@ -174,8 +173,7 @@ TEST_P(TestRestartOnDifferentStates, restartOnStateWithRunningOnly)
     auto [daemon, instance] = build_daemon_with_mock_instance(state);
 
     ServerMock mock_server{};
-    if (!is_not_running)
-        EXPECT_CALL(mock_server, Write(_, _));
+    EXPECT_CALL(mock_server, Write(_, _)).WillRepeatedly(Return(true));
 
     auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, std::move(mock_server));
 
