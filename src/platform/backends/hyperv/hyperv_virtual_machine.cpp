@@ -157,12 +157,12 @@ fs::path locate_vmcx_file(const fs::path& exported_vm_dir_path)
 }
 } // namespace
 
-mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
+mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& vm_desc,
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider,
                                                AvailabilityZone& zone,
                                                const mp::Path& instance_dir)
-    : HyperVVirtualMachine{desc, monitor, key_provider, zone, instance_dir, true}
+    : HyperVVirtualMachine{vm_desc, monitor, key_provider, zone, instance_dir, true}
 {
     if (!power_shell->run({"Get-VM", "-Name", name}))
     {

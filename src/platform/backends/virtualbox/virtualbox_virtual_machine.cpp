@@ -180,12 +180,12 @@ void update_mac_addresses_of_network_adapters(const mp::VirtualMachineDescriptio
 
 } // namespace
 
-mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
+mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& vm_desc,
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
                                                        AvailabilityZone& zone,
                                                        const mp::Path& instance_dir_qstr)
-    : VirtualBoxVirtualMachine(desc, monitor, key_provider, zone, instance_dir_qstr, true)
+    : VirtualBoxVirtualMachine(vm_desc, monitor, key_provider, zone, instance_dir_qstr, true)
 {
     if (desc.extra_interfaces.size() > 7)
     {
