@@ -3564,8 +3564,8 @@ grpc::Status mp::Daemon::switch_off_vm(VirtualMachine& vm)
     const auto& name = vm.get_name();
     delayed_shutdown_instances.erase(name);
 
-    stop_mounts(name);
     vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
+    stop_mounts(name);
 
     return grpc::Status::OK;
 }

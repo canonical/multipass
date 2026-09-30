@@ -77,16 +77,16 @@ struct TestDaemonStop : public mpt::DaemonTestFixture
 };
 } // namespace
 
-TEST_F(TestDaemonStop, forceStopStopsMountsBeforePoweringOff)
+TEST_F(TestDaemonStop, forceStopStopsMountsAfterPoweringOff)
 {
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(
         mp::VirtualMachine::State::running);
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
     {
         InSequence seq;
+        EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff));
         EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));
         EXPECT_CALL(*mock_mount_handler, deactivate_impl(true));
-        EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff));
     }
 
     plant_instance_with_mount(std::move(mock_vm), std::move(mock_mount_handler));
