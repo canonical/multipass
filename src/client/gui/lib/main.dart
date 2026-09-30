@@ -8,6 +8,7 @@ import 'package:window_manager/window_manager.dart';
 import 'before_quit_dialog.dart';
 import 'l10n/app_localizations.dart';
 import 'catalogue/catalogue.dart';
+import 'confirmation_dialog.dart';
 import 'daemon_unavailable.dart';
 import 'help.dart';
 import 'logger.dart';
@@ -15,6 +16,7 @@ import 'notifications.dart';
 import 'providers.dart';
 import 'settings/hotkey.dart';
 import 'settings/settings.dart';
+import 'settings/virtualization_settings.dart';
 import 'sidebar.dart';
 import 'tray_menu.dart';
 import 'update_available.dart';
@@ -199,6 +201,40 @@ class _AppState extends ConsumerState<App> with WindowListener {
   @override
   void onWindowClose() async {
     if (!await windowManager.isPreventClose()) return;
+
+    // TODO hyperv migration, remove
+    // Quitting drops the migration's stream, which makes the daemon stop migrating.
+    if (ref.read(migrationInProgressProvider)) {
+      if (beforeQuitDialogShowing) return;
+      beforeQuitDialogShowing = true;
+
+      if (!await windowManager.isVisible() ||
+          await windowManager.isMinimized() ||
+          !await windowManager.isFocused()) {
+        windowManager.showAndRestore();
+      }
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          final l10n = AppLocalizations.of(context)!;
+          return ConfirmationDialog(
+            title: l10n.migrationQuitTitle,
+            body: Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Text(l10n.migrationQuitMessage),
+            ),
+            actionText: l10n.migrationQuitAction,
+            onAction: windowManager.destroy,
+            inactionText: l10n.migrationQuitKeepAction,
+            onInaction: () => Navigator.pop(context),
+          );
+        },
+      ).whenComplete(() => beforeQuitDialogShowing = false);
+      return;
+    }
+
     final daemonAvailable = ref.read(daemonAvailableProvider);
     final vmsRunning =
         ref.read(vmStatusesProvider).values.contains(Status.RUNNING);
