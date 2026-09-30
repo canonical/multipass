@@ -344,15 +344,15 @@
             }
         }
     },
-    "migrationInProgress": "Migrating instances to Hyper-V (API)\n",
+    "migrationInProgress": "Migrating instances to Host Compute System (HCS)\n",
     "@migrationInProgress": {
         "description": "Bold heading in the notification shown while instances migrate to the hcs driver"
     },
-    "migrationDone": "Switched to Hyper-V (API)\n",
+    "migrationDone": "Switched to Host Compute System (HCS)\n",
     "@migrationDone": {
         "description": "Bold heading in the notification shown when switching to the hcs driver finished"
     },
-    "migrationDoneWithProblems": "Switched to Hyper-V (API), but not every instance was migrated\n",
+    "migrationDoneWithProblems": "Switched to Host Compute System (HCS), but not every instance was migrated\n",
     "@migrationDoneWithProblems": {
         "description": "Bold heading in the notification shown when the hcs driver is in effect but some instances failed to migrate"
     },
