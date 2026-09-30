@@ -689,22 +689,18 @@ hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api() const
     return compute_system_state;
 }
 
-void HCSVirtualMachine::update_cpus(int num_cores)
+void HCSVirtualMachine::update_cpus_impl(int num_cores)
 {
-    mpl::debug(get_name(), "update_cpus() -> num_cores `{}`", num_cores);
     description.num_cores = num_cores;
 }
 
-void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
+void HCSVirtualMachine::resize_memory_impl(const MemorySize& new_size)
 {
-    mpl::debug(get_name(), "resize_memory() -> new_size `{}` MiB", new_size.in_megabytes());
     description.mem_size = new_size;
 }
 
 void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
-    mpl::debug(get_name(), "resize_disk() -> new_size `{}` MiB", new_size.in_megabytes());
-
     if (get_num_snapshots() > 0)
     {
         throw ResizeDiskException{"Cannot resize the primary disk while there are "

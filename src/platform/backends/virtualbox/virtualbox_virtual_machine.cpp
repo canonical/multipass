@@ -528,20 +528,16 @@ std::vector<mp::IPAddress> mp::VirtualBoxVirtualMachine::get_all_ipv4()
     return all_ipv4;
 }
 
-void mp::VirtualBoxVirtualMachine::update_cpus(int num_cores)
+void mp::VirtualBoxVirtualMachine::update_cpus_impl(int num_cores)
 {
-    assert(num_cores > 0);
-
     mpu::process_throw_on_error("VBoxManage",
                                 {"modifyvm", name, "--cpus", QString::number(num_cores)},
                                 "Could not update CPUs: {}",
                                 name);
 }
 
-void mp::VirtualBoxVirtualMachine::resize_memory(const MemorySize& new_size)
+void mp::VirtualBoxVirtualMachine::resize_memory_impl(const MemorySize& new_size)
 {
-    assert(new_size.in_bytes() > 0);
-
     mpu::process_throw_on_error(
         "VBoxManage",
         {"modifyvm", name, "--memory", QString::number(new_size.in_megabytes())},
@@ -551,8 +547,6 @@ void mp::VirtualBoxVirtualMachine::resize_memory(const MemorySize& new_size)
 
 void mp::VirtualBoxVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
-    assert(new_size.in_bytes() > 0);
-
     mpu::process_throw_on_error("VBoxManage",
                                 {"modifyhd",
                                  MP_PLATFORM.path_to_qstr(desc.image.image_path),

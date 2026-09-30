@@ -60,8 +60,6 @@ public:
     std::optional<IPAddress> management_ipv4() override;
     std::vector<IPAddress> get_all_ipv4() override;
     void handle_state_update() override;
-    void update_cpus(int num_cores) override;
-    void resize_memory(const MemorySize& new_size) override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
@@ -73,6 +71,8 @@ protected:
                                                      const std::string& instance_id,
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
+    void update_cpus_impl(int num_cores) override;
+    void resize_memory_impl(const MemorySize& new_size) override;
     void resize_disk_impl(const MemorySize& new_size) override;
 
 private:

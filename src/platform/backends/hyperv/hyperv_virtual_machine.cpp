@@ -548,19 +548,15 @@ std::optional<std::uint64_t> mp::HyperVVirtualMachine::resolve_default_switch_in
     return luid.Value;
 }
 
-void mp::HyperVVirtualMachine::update_cpus(int num_cores)
+void mp::HyperVVirtualMachine::update_cpus_impl(int num_cores)
 {
-    assert(num_cores > 0);
-
     power_shell->easy_run(
         {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(num_cores)},
         "Could not update CPUs");
 }
 
-void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
+void mp::HyperVVirtualMachine::resize_memory_impl(const MemorySize& new_size)
 {
-    assert(new_size.in_bytes() > 0);
-
     QStringList resize_cmd = {"Set-VMMemory",
                               "-VMName",
                               name,
@@ -571,8 +567,6 @@ void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
 
 void mp::HyperVVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
-    assert(new_size.in_bytes() > 0);
-
     // Resize the current disk layer, which will differ from the original image if there are
     // snapshots
     // clang-format off

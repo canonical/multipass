@@ -713,23 +713,9 @@ void mp::QemuVirtualMachine::disconnect_vm_signals()
     vm_signals_connected = false;
 }
 
-void mp::QemuVirtualMachine::update_cpus(int num_cores)
-{
-    assert(num_cores > 0);
-    desc.num_cores = num_cores;
-}
-
-void mp::QemuVirtualMachine::resize_memory(const MemorySize& new_size)
-{
-    desc.mem_size = new_size;
-}
-
 void mp::QemuVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
-    assert(new_size > desc.disk_space);
-
     mp::backend::resize_instance_image(new_size, desc.image.image_path);
-    desc.disk_space = new_size;
 }
 
 void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backend */,

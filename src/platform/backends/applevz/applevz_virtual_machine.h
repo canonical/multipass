@@ -52,9 +52,6 @@ public:
 
     void handle_state_update() override;
 
-    void update_cpus(int num_cores) override;
-    void resize_memory(const MemorySize& new_size) override;
-
     std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& /*specs*/,
                                                   const std::string& /*snapshot_name*/,
                                                   const std::string& /*comment*/) override

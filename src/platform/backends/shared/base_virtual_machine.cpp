@@ -386,9 +386,32 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
     mpu::try_action_for(on_timeout, timeout, action);
 }
 
+void mp::BaseVirtualMachine::update_cpus(int num_cores)
+{
+    assert(num_cores > 0);
+    mpl::debug(vm_name, "update_cpus() -> num_cores `{}`", num_cores);
+
+    update_cpus_impl(num_cores);
+    desc.num_cores = num_cores;
+}
+
+void mp::BaseVirtualMachine::resize_memory(const MemorySize& new_size)
+{
+    assert(new_size.in_bytes() > 0);
+    mpl::debug(vm_name, "resize_memory() -> new_size `{}` MiB", new_size.in_megabytes());
+
+    resize_memory_impl(new_size);
+    desc.mem_size = new_size;
+}
+
 void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMessages& messages)
 {
+    assert(new_size > desc.disk_space);
+    mpl::debug(vm_name, "resize_disk() -> new_size `{}` MiB", new_size.in_megabytes());
+
     resize_disk_impl(new_size);
+    desc.disk_space = new_size;
+
     if (is_core())
         messages.add_message(core_image_disk_resize_message());
 }

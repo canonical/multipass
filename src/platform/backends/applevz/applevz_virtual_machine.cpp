@@ -281,23 +281,9 @@ void AppleVZVirtualMachine::handle_state_update()
         monitor->persist_state_for(vm_name, state);
 }
 
-void AppleVZVirtualMachine::update_cpus(int num_cores)
-{
-    assert(num_cores > 0);
-    desc.num_cores = num_cores;
-}
-
-void AppleVZVirtualMachine::resize_memory(const MemorySize& new_size)
-{
-    desc.mem_size = new_size;
-}
-
 void AppleVZVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
-    assert(new_size > desc.disk_space);
-
     MP_APPLEVZ_UTILS.resize_image(new_size, desc.image.image_path);
-    desc.disk_space = new_size;
 }
 
 void AppleVZVirtualMachine::set_state(applevz::AppleVMState vm_state)

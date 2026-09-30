@@ -102,6 +102,8 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                  const mp::VMSpecs& specs,
                  std::shared_ptr<mp::Snapshot> parent),
                 (override));
+    MOCK_METHOD(void, update_cpus_impl, (int), (override));
+    MOCK_METHOD(void, resize_memory_impl, (const mp::MemorySize&), (override));
     MOCK_METHOD(void, resize_disk_impl, (const mp::MemorySize&), (override));
 
     MOCK_METHOD(std::unique_ptr<mp::SSHProcess>,
@@ -204,14 +206,6 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     }
 
     void handle_state_update() override
-    {
-    }
-
-    void update_cpus(int /*num_cores*/) override
-    {
-    }
-
-    void resize_memory(const mp::MemorySize&) override
     {
     }
 
@@ -1629,7 +1623,7 @@ TEST_F(BaseVM, coreImageDiskResizeReturnsAMessage)
     StubBaseVirtualMachine vm{St::off, zone, std::make_unique<mpt::TempDir>(), desc};
     mp::UserMessages messages{};
     mp::UserMessages expected_messages{};
-    vm.resize_disk(mp::MemorySize{}, messages);
+    vm.resize_disk(mp::MemorySize{"1G"}, messages);
     expected_messages.add_message(vm.core_image_disk_resize_message());
     EXPECT_TRUE(std::equal(messages.begin(),
                            messages.end(),
