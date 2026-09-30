@@ -3345,41 +3345,41 @@ struct ImagesCmdClient : public Client, public WithParamInterface<std::string>
 
 INSTANTIATE_TEST_SUITE_P(Client, ImagesCmdClient, ImagesCmdClient::command_names);
 
-TEST_P(ImagesCmdClient, findCmdUnsupportedOptionOk)
+TEST_P(ImagesCmdClient, cmdUnsupportedOptionOk)
 {
     EXPECT_CALL(mock_daemon, images(_, _));
     EXPECT_THAT(send_command({GetParam(), "--show-unsupported"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_P(ImagesCmdClient, findCmdForceUpdateOk)
+TEST_P(ImagesCmdClient, cmdForceUpdateOk)
 {
     EXPECT_CALL(mock_daemon, images(_, _));
     EXPECT_EQ(send_command({GetParam(), "--force-update"}), mp::ReturnCode::Ok);
 }
 
-TEST_P(ImagesCmdClient, findCmdForceUpdateWithRemoteOk)
+TEST_P(ImagesCmdClient, cmdForceUpdateWithRemoteOk)
 {
     EXPECT_CALL(mock_daemon, images(_, _));
     EXPECT_EQ(send_command({GetParam(), "foo:", "--force-update"}), mp::ReturnCode::Ok);
 }
 
-TEST_P(ImagesCmdClient, findCmdForceUpdateWithRemoteAndSearchNameOk)
+TEST_P(ImagesCmdClient, cmdForceUpdateWithRemoteAndSearchNameOk)
 {
     EXPECT_CALL(mock_daemon, images(_, _));
     EXPECT_EQ(send_command({GetParam(), "foo:bar", "--force-update"}), mp::ReturnCode::Ok);
 }
 
-TEST_P(ImagesCmdClient, findCmdTooManyArgsFails)
+TEST_P(ImagesCmdClient, cmdTooManyArgsFails)
 {
     EXPECT_THAT(send_command({GetParam(), "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_P(ImagesCmdClient, findCmdMultipleColonsFails)
+TEST_P(ImagesCmdClient, cmdMultipleColonsFails)
 {
     EXPECT_THAT(send_command({GetParam(), "foo::bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_P(ImagesCmdClient, findCmdHelpOk)
+TEST_P(ImagesCmdClient, cmdHelpOk)
 {
     EXPECT_THAT(send_command({GetParam(), "-h"}), Eq(mp::ReturnCode::Ok));
 }

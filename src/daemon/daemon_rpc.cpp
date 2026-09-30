@@ -39,8 +39,8 @@ bool check_is_server_running(const std::string& address)
     auto stub = mp::Rpc::NewStub(channel);
 
     grpc::ClientContext context;
-    auto deadline =
-        std::chrono::system_clock::now() + std::chrono::milliseconds(100); // should be enough...
+    auto deadline = std::chrono::system_clock::now() +
+                    std::chrono::milliseconds(100); // should be enough...
     context.set_deadline(deadline);
 
     mp::PingRequest request;
@@ -198,6 +198,18 @@ grpc::Status mp::DaemonRpc::purge(grpc::ServerContext* context,
                                   grpc::ServerReaderWriter<PurgeReply, PurgeRequest>* server)
 {
     return verify_client_and_dispatch_operation(std::bind(&DaemonRpc::on_purge,
+                                                          this,
+                                                          std::placeholders::_1,
+                                                          std::placeholders::_2,
+                                                          std::placeholders::_3),
+                                                client_cert_from(context),
+                                                server);
+}
+
+grpc::Status mp::DaemonRpc::remotes(grpc::ServerContext* context,
+                                    grpc::ServerReaderWriter<RemotesReply, RemotesRequest>* server)
+{
+    return verify_client_and_dispatch_operation(std::bind(&DaemonRpc::on_remotes,
                                                           this,
                                                           std::placeholders::_1,
                                                           std::placeholders::_2,

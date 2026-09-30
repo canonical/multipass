@@ -287,6 +287,20 @@ std::string mp::JsonFormatter::format(const NetworksReply& reply) const
     return pretty_print({{"list", std::move(interfaces)}});
 }
 
+std::string mp::JsonFormatter::format(const RemotesReply& reply) const
+{
+    boost::json::array remotes;
+
+    auto sorted_remotes = reply.remotes();
+    std::ranges::sort(sorted_remotes);
+    for (const auto& remote : sorted_remotes)
+    {
+        remotes.push_back(boost::json::value_from(remote));
+    }
+
+    return pretty_print({{"remotes", std::move(remotes)}});
+}
+
 std::string mp::JsonFormatter::format(const ImagesReply& reply) const
 {
     return pretty_print(

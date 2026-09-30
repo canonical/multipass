@@ -513,6 +513,7 @@ auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
     QObject::connect(&rpc, &mp::DaemonRpc::on_create, &daemon, &mp::Daemon::create);
     QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch);
     QObject::connect(&rpc, &mp::DaemonRpc::on_purge, &daemon, &mp::Daemon::purge);
+    QObject::connect(&rpc, &mp::DaemonRpc::on_remotes, &daemon, &mp::Daemon::remotes);
     QObject::connect(&rpc, &mp::DaemonRpc::on_images, &daemon, &mp::Daemon::images);
     QObject::connect(&rpc, &mp::DaemonRpc::on_info, &daemon, &mp::Daemon::info);
     QObject::connect(&rpc, &mp::DaemonRpc::on_list, &daemon, &mp::Daemon::list);
@@ -1663,6 +1664,30 @@ try
 
     deleted_instances.clear();
     persist_instances();
+
+    server->Write(response);
+    context->set_value(grpc::Status::OK);
+}
+catch (const std::exception& e)
+{
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::remotes(const RemotesRequest*,
+                         grpc::ServerReaderWriterInterface<RemotesReply, RemotesRequest>* server,
+                         DaemonRpcContext* context)
+try
+{
+    RemotesReply response;
+
+    for (auto remote : config->vault->fetch_remotes())
+    {
+        const auto is_default_remote = remote.empty();
+        if (!is_default_remote)
+        {
+            response.add_remotes(std::move(remote));
+        }
+    }
 
     server->Write(response);
     context->set_value(grpc::Status::OK);
