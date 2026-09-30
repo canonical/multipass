@@ -133,16 +133,22 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
                       .format(*save_state);
               });
 
-    // append_if(optional_devices, !params.shares.empty(), [&shares = params.shares] {
-    //     // Had to extract it bc an empty shares array causes a vmwp.exe crash while saving the VM
-    //     return string_literal<Char>(R"json(
-    //             "Plan9": {{
-    //                 "Shares": [
-    //                     {0}
-    //                 ]
-    //             }})json")
-    //         .format(fmt::join(shares, string_literal<Char>(",")));
-    // });
+    // The Plan9 device must exist at creation for shares to be hot-added later. An empty
+    // "Shares" array crashes vmwp.exe while saving the VM, so omit the key when there are none.
+    append_if(optional_devices, true, [&shares = params.shares] {
+        if (shares.empty())
+            return string_literal<Char>(R"json(
+                "Plan9": {{}})json")
+                .format();
+
+        return string_literal<Char>(R"json(
+                "Plan9": {{
+                    "Shares": [
+                        {0}
+                    ]
+                }})json")
+            .format(fmt::join(shares, string_literal<Char>(",")));
+    });
 
     return json_template.format_to(ctx,
                                    params.memory_size_mb,
