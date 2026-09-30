@@ -85,7 +85,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
 
     def test_mount_to_specific_target(self, instance, mount_type):
@@ -118,7 +118,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
 
     def test_mount_same_src_again(self, instance, mount_type):
@@ -182,7 +182,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
 
     def test_mount_multiple(self, instance, mount_type):
@@ -220,7 +220,7 @@ class TestMount:
                 assert multipass("stop", instance)
 
             assert multipass(
-                "umount",
+                "unmount",
                 f"{instance}:{str(mount_dst1)}",
             )
 
@@ -233,7 +233,7 @@ class TestMount:
             }
 
             assert multipass(
-                "umount",
+                "unmount",
                 f"{instance}:{str(mount_dst2)}",
             )
 
@@ -313,7 +313,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
 
             assert mounts(instance) == {}
 
@@ -369,7 +369,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
             # NOTE: For some reason, this assert fails where it works fine
             # for other tests. The only difference I could tell is this test
@@ -431,7 +431,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
             # NOTE: For some reason, this assert fails where it works fine
             # for other tests. The only difference I could tell is this test
@@ -489,7 +489,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
             # NOTE: For some reason, this assert fails where it works fine
             # for other tests. The only difference I could tell is this test
