@@ -200,7 +200,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "localhost";
     }
 
-    std::string ssh_username() override
+    std::string ssh_username() const override
     {
         return "ubuntu";
     }

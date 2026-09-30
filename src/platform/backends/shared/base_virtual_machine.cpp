@@ -127,9 +127,7 @@ mp::BaseVirtualMachine::BaseVirtualMachine(State state,
 {
 }
 
-mp::BaseVirtualMachine::~BaseVirtualMachine()
-{
-}
+mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
     const std::string& default_mac_addr,
@@ -165,7 +163,7 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
     return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_path);
 }
 
-void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy)
+void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy) const
 {
     // A mutex should already be locked by the caller here
     if (state == State::off || state == State::stopped || state == State::unavailable)

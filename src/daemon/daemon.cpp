@@ -1091,7 +1091,7 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
                         snapshots_of_deleted_instances.push_back(
                             fmt::format("{}.{}", vm_it->first, snapshot_name));
 
-                    vm_it->second->get_snapshot(snapshot_name); // throws if missing
+                    std::ignore = vm_it->second->get_snapshot(snapshot_name); // throws if missing
                     any_snapshot = true;
                 }
             }
@@ -2902,7 +2902,7 @@ try
 
         // Only need to check if snapshots are supported and if the snapshot exists, so the result
         // is discarded
-        vm_ptr->get_snapshot(request->snapshot());
+        std::ignore = vm_ptr->get_snapshot(request->snapshot());
 
         using St = VirtualMachine::State;
         if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
