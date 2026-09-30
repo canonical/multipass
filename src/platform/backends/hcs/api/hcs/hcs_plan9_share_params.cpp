@@ -16,7 +16,7 @@
  */
 #include <hcs/api/hcs/hcs_plan9_share_params.h>
 
-#include <hcs/string_conversion.h>
+#include <hcs/util/string_conversion.h>
 
 #include <fmt/std.h>
 
