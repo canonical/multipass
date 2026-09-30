@@ -90,9 +90,6 @@ QString cmd::Restart::short_help() const
 
 QString cmd::Restart::description() const
 {
-    return QStringLiteral("Restart the named instances. Exits with return\n"
-                          "code 0 when the instances restart, or with an\n"
-                          "error code if any fail to restart.");
     return QStringLiteral(
         "Restart the named instances. If the instance is running, it will be rebooted. If the "
         "instance is suspended, it will be started and then rebooted. If the instance is stopped, "
