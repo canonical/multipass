@@ -21,6 +21,7 @@
 import pytest
 
 from cli.multipass import multipass, state, launch, get_boot_id
+from cli.config import cfg
 
 
 @pytest.mark.restart
@@ -29,25 +30,31 @@ class TestRestart:
     """`multipass restart` tests."""
 
     def test_restart_all_with_mixed_states(self):
-        """`multipass restart --all` succeeds across running and stopped instances."""
+        """`multipass restart` succeeds across running, stopped and suspended instances."""
         with (
             launch({"autopurge": False}) as running_name,
             launch({"autopurge": False}) as stopped_name,
+            launch({"autopurge": False}) as suspended_name,
         ):
             assert state(running_name) == "Running"
 
             assert multipass("stop", stopped_name)
             assert state(stopped_name) == "Stopped"
 
+            if cfg.driver != "applevz":
+                assert multipass("suspend", suspended_name)
+                assert state(suspended_name) == "Suspended"
+
             running_boot_id_before = get_boot_id(running_name)
 
-            assert multipass("restart", running_name, stopped_name)
+            assert multipass("restart", running_name, stopped_name, suspended_name)
 
             assert state(running_name) == "Running"
             assert state(stopped_name) == "Running"
+            assert state(suspended_name) == "Running"
 
             assert get_boot_id(running_name) != running_boot_id_before
 
-            assert multipass("delete", running_name, stopped_name)
-            assert state(running_name) == "Deleted" and state(stopped_name) == "Deleted"
+            assert multipass("delete", running_name, stopped_name,suspended_name)
+            assert state(running_name) == "Deleted" and state(stopped_name) == "Deleted" and state(suspended_name) == "Deleted"
             assert multipass("purge")
