@@ -114,7 +114,12 @@ std::optional<std::string> multipass::hyperv::network_guid_for_name(const std::s
     for (const auto& network_guid : network_guids)
     {
         hcn::HcnNetworkInfo info{};
-        if (hcn::HCN().query_network(network_guid, info) && info.name == name)
+        if (const auto result = hcn::HCN().query_network(network_guid, info); !result)
+        {
+            mpl::warn(log_category, "Could not query network `{}`: {}", network_guid, result);
+            continue;
+        }
+        if (info.name == name)
             matches.push_back(network_guid);
     }
 
