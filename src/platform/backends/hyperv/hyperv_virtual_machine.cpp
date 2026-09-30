@@ -480,11 +480,6 @@ std::string mp::HyperVVirtualMachine::ssh_hostname()
     return require_management_ipv4().as_string();
 }
 
-std::string mp::HyperVVirtualMachine::ssh_username()
-{
-    return desc.ssh_username;
-}
-
 std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
 {
     if (!default_switch_interface.load())

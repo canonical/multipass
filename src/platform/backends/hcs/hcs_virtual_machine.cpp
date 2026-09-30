@@ -604,10 +604,6 @@ std::string HCSVirtualMachine::ssh_hostname()
 {
     return require_management_ipv4().as_string();
 }
-std::string HCSVirtualMachine::ssh_username()
-{
-    return desc.ssh_username;
-}
 
 std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
 {

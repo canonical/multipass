@@ -64,7 +64,6 @@ struct HCSVirtualMachine : public BaseVirtualMachine
     [[nodiscard]] State current_state() override;
     int ssh_port() override;
     [[nodiscard]] std::string ssh_hostname() override;
-    [[nodiscard]] std::string ssh_username() override;
     [[nodiscard]] std::optional<IPAddress> management_ipv4() override;
     void restore_snapshot(const std::string& name, VMSpecs& specs) override;
 

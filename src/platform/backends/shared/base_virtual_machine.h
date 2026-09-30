@@ -59,6 +59,7 @@ public:
     std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
                                                  bool whisper = false) override;
     [[nodiscard]] std::unique_ptr<SSHSession> new_ssh_session() override;
+    std::string ssh_username() override;
 
     bool set_available(bool available) override;
 
@@ -251,6 +252,11 @@ inline QDir multipass::BaseVirtualMachine::instance_directory() const
 inline const std::string& multipass::BaseVirtualMachine::get_name() const
 {
     return vm_name;
+}
+
+inline std::string multipass::BaseVirtualMachine::ssh_username()
+{
+    return desc.ssh_username;
 }
 
 inline const multipass::AvailabilityZone& multipass::BaseVirtualMachine::get_zone() const
