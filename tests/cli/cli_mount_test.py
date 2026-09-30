@@ -63,7 +63,8 @@ def src_to_dst(src_path):
 class TestMount:
     """Virtual machine mount tests."""
 
-    def test_mount(self, instance, mount_type):
+    @pytest.mark.parametrize("unmount_cmd", ["unmount", "umount"])
+    def test_mount(self, instance, mount_type, unmount_cmd):
         with TempDirectory() as mount_src, src_to_dst(mount_src) as mount_dst:
             if mount_type == "native":
                 assert multipass("stop", instance)
@@ -85,7 +86,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("unmount", instance)
+            assert multipass(unmount_cmd, instance)
             assert mounts(instance) == {}
 
     def test_mount_to_specific_target(self, instance, mount_type):
