@@ -134,7 +134,7 @@ TEST_F(TestDaemonRestart, restartFailsOnUnknownInstanceState)
     EXPECT_EQ(status.error_code(), grpc::FAILED_PRECONDITION);
     EXPECT_THAT(
         status.error_message(),
-        AllOf(HasSubstr(mock_instance_name), HasSubstr("is unknown and cannot be restarted")));
+        AllOf(HasSubstr(mock_instance_name), HasSubstr("is 'unknown' and cannot be restarted")));
 }
 
 namespace
@@ -154,6 +154,13 @@ TEST_P(TestRestartOnDifferentStates, restartOnStateWithoutRunningOnly)
     request.set_running_only(false);
     auto [state, expected_status] = GetParam();
     auto [daemon, instance] = build_daemon_with_mock_instance(state);
+    instance->state = state;
+
+    EXPECT_CALL(*instance, current_state()).WillRepeatedly([instance] { return instance->state; });
+    if (state == mp::VirtualMachine::State::suspended)
+        EXPECT_CALL(*instance, wait_until_ssh_up(_)).Times(2).WillRepeatedly([instance](auto...) {
+            instance->state = mp::VirtualMachine::State::running;
+        });
 
     ServerMock mock_server{};
     EXPECT_CALL(mock_server, Write(_, _)).WillRepeatedly(Return(true));
