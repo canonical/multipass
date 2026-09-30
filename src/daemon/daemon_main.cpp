@@ -49,11 +49,15 @@ namespace
 static_assert(std::atomic_int::is_always_lock_free,
               "std::atomic_int must be lock-free to be safely used in signal handlers");
 
+static_assert(std::atomic<mpp::AsyncSignalSafeNotification*>::is_always_lock_free,
+              "std::atomic<mpp::AsyncSignalSafeNotification*> must be lock-free to be safely used "
+              "in signal handlers");
+
 static constexpr auto no_signal = -1;
 static constexpr auto abort_thread = -2;
 
 static std::atomic_int first_signal = no_signal;
-static mpp::AsyncSignalSafeNotification* signal_notif = nullptr;
+static std::atomic<mpp::AsyncSignalSafeNotification*> signal_notif = nullptr;
 
 void signal_handler(int signo)
 {
@@ -62,7 +66,7 @@ void signal_handler(int signo)
     {
         auto expected = no_signal;
         first_signal.compare_exchange_strong(expected, signo);
-        signal_notif->async_safe_notify();
+        signal_notif.load()->async_safe_notify();
     }
     errno = saved_errno;
 }
@@ -72,7 +76,7 @@ void register_signal_handlers()
     // We are intentionally leaking the AsyncSignalSafeNotification object
     // to prevent it from being destroyed, once used inside a signal handler.
     // Not doing so could yield to undefined behavior.
-    signal_notif = new mpp::AsyncSignalSafeNotification();
+    signal_notif.store(new mpp::AsyncSignalSafeNotification());
 
     struct sigaction sa = {};
     sa.sa_handler = &signal_handler;
@@ -97,24 +101,26 @@ public:
 
     ~UnixSignalHandler()
     {
-        if (signal_notif != nullptr)
+        auto notif = signal_notif.load();
+        if (notif != nullptr)
         {
             auto expected = no_signal;
             first_signal.compare_exchange_strong(expected, abort_thread);
 
-            signal_notif->async_safe_notify();
+            notif->async_safe_notify();
         }
     }
 
     void monitor_signals()
     {
         auto signal = first_signal.load();
+        auto notif = signal_notif.load();
 
         try
         {
             while (signal == no_signal)
             {
-                signal_notif->wait();
+                notif->wait();
                 signal = first_signal.load();
             }
         }
