@@ -122,9 +122,9 @@ std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_addres
     // This is looked up on every IP query (e.g. `list`), so stay quiet about duplicates.
     if (std::find_if(row + 1, end, matches) != end)
         logging::debug(log_category,
-                      "Multiple permanent IPv4 neighbors for `{}`, using {}",
-                      mac_address,
-                      ipv4_to_string(row->Address.Ipv4.sin_addr));
+                       "Multiple permanent IPv4 neighbors for `{}`, using {}",
+                       mac_address,
+                       ipv4_to_string(row->Address.Ipv4.sin_addr));
 
     return ipv4_to_string(row->Address.Ipv4.sin_addr);
 }

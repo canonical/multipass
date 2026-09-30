@@ -359,9 +359,8 @@ void mp::HyperVVirtualMachine::start()
     {
         default_switch_interface = resolve_default_switch_interface();
         const auto switch_interface = default_switch_interface.load();
-        if (!switch_interface ||
-            !remove_permanent_ipv4_neighbors(desc.default_mac_address,
-                                             to_net_luid(*switch_interface)))
+        if (!switch_interface || !remove_permanent_ipv4_neighbors(desc.default_mac_address,
+                                                                  to_net_luid(*switch_interface)))
             mpl::warn(vm_name, "Could not remove all stale management IP entries");
     }
 

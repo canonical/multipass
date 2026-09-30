@@ -40,8 +40,8 @@ void migrateToHcs(WidgetRef ref) {
   final replies = ref.read(driverProvider.notifier).setStreaming('hcs');
   ref.read(notificationsProvider.notifier).add(
         DriverMigrationNotification(
-          progress: migrationProgress(replies)
-              .doOnDone(() => inProgress.set(false)),
+          progress:
+              migrationProgress(replies).doOnDone(() => inProgress.set(false)),
         ),
       );
 }
