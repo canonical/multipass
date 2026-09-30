@@ -75,7 +75,7 @@ public:
                 return mock_bionic_image_info;
             }
         });
-        ON_CALL(*this, all_info_for(_)).WillByDefault(Return(empty_image_info_vector_pair));
+        ON_CALL(*this, all_info_for(_)).WillByDefault(Return(empty_image_info_vector));
         ON_CALL(*this, info_for_full_hash(_)).WillByDefault(Return(empty_vm_image_info));
         ON_CALL(*this, all_images_for(_, _)).WillByDefault(Return(empty_image_info_vector));
         ON_CALL(*this, for_each_entry_do(_)).WillByDefault([this](const Action& action) {
@@ -88,10 +88,7 @@ public:
     };
 
     MOCK_METHOD(std::optional<VMImageInfo>, info_for, (const Query&), (const, override));
-    MOCK_METHOD((std::vector<std::pair<std::string, VMImageInfo>>),
-                all_info_for,
-                (const Query&),
-                (const, override));
+    MOCK_METHOD((std::vector<VMImageInfo>), all_info_for, (const Query&), (const, override));
     MOCK_METHOD(VMImageInfo, info_for_full_hash, (const std::string&), (const, override));
     MOCK_METHOD(std::vector<VMImageInfo>,
                 all_images_for,
@@ -152,7 +149,6 @@ public:
                                         false};
 
 private:
-    std::vector<std::pair<std::string, VMImageInfo>> empty_image_info_vector_pair;
     std::vector<VMImageInfo> empty_image_info_vector;
     VMImageInfo empty_vm_image_info{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
     std::vector<std::string> remote{{"release"}};

@@ -34,21 +34,30 @@ const std::regex newline("(\r\n|\n)");
 
 template <typename Dest>
 void format_images(Dest&& dest,
-                   const google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>& images_info)
+                   const google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>& images_info,
+                   bool show_remotes)
 {
+    if (show_remotes)
+    {
+        fmt::format_to(dest, "{:<20}", "Remote");
+    }
+
     fmt::format_to(dest, "{:<18}{:<28}{:<17}{:<}\n", "Image", "Aliases", "Version", "Description");
 
     auto sorted_images = images_info;
     std::sort(sorted_images.begin(),
               sorted_images.end(),
               [](const mp::ImagesReply_ImageInfo& a, const mp::ImagesReply_ImageInfo& b) {
-                  if (a.remote_name() == b.remote_name())
-                  {
-                      return (!a.aliases().empty() && !b.aliases().empty()) &&
-                             a.aliases()[0] < b.aliases()[0];
-                  }
-
-                  return a.remote_name() > b.remote_name();
+                  return std::forward_as_tuple(!a.is_default_remote(),
+                                               a.remote_name().empty(),
+                                               a.remote_name(),
+                                               !a.aliases().empty(),
+                                               a.aliases().empty() ? "" : a.aliases()[0]) <
+                         std::forward_as_tuple(!b.is_default_remote(),
+                                               b.remote_name().empty(),
+                                               b.remote_name(),
+                                               !b.aliases().empty(),
+                                               b.aliases().empty() ? "" : b.aliases()[0]);
               });
 
     for (const auto& image : sorted_images)
@@ -56,14 +65,22 @@ void format_images(Dest&& dest,
         auto aliases = image.aliases();
         mp::format::filter_aliases(aliases);
 
+        if (show_remotes)
+        {
+            fmt::format_to(dest,
+                           "{:<20}",
+                           image.is_default_remote() ? "(default)" : image.remote_name());
+        }
+
         fmt::format_to(
             dest,
             "{:<18}{:<28}{:<17}{:<}\n",
-            mp::format::image_string_for(image.remote_name(), aliases[0]),
+            aliases[0],
             fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")),
             image.version(),
             fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
     }
+
     fmt::format_to(dest, "\n");
 }
 
@@ -122,9 +139,9 @@ void generate_snapshot_details(Dest&& dest, const mp::DetailedInfoItem& item)
         fmt::format_to(dest, "{}\n", *child);
     }
 
-    /* TODO split and align string if it extends onto several lines; but actually better implement
-       generic word-wrapping for all output, taking both terminal width and current indentation
-       level into account */
+    /* TODO split and align string if it extends onto several lines; but actually better
+       implement generic word-wrapping for all output, taking both terminal width and current
+       indentation level into account */
     fmt::format_to(
         dest,
         "{:<16}{}\n",
@@ -517,7 +534,7 @@ std::string mp::TableFormatter::format(const ImagesReply& reply) const
     }
     else
     {
-        format_images(std::back_inserter(buf), reply.images_info());
+        format_images(std::back_inserter(buf), reply.images_info(), reply.all_remotes());
     }
     return fmt::to_string(buf);
 }
