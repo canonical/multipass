@@ -91,10 +91,10 @@ QString cmd::Restart::short_help() const
 QString cmd::Restart::description() const
 {
     return QStringLiteral(
-        "Restart the named instances. If the instance is running, it will be rebooted. If the "
-        "instance is suspended, it will be started and then rebooted. If the instance is stopped, "
-        "it will be started. Exits with return code 0 when the instances restart, or with an error "
-        "code if any fail to restart.");
+        "Restart the named instances. If the instance is running, it will be rebooted.\n"
+        "If the instance is suspended, it will be started and then rebooted. If the\n"
+        "instance is stopped, it will be started. Exits with return code 0 when the \n"
+        "instances restart, or with an error code if any fail to restart.");
 }
 
 mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
