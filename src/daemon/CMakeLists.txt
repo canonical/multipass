@@ -40,6 +40,7 @@ target_link_libraries(daemon
   settings
   ssh
   sshfs_mount
+  user_messages
   utils
   Qt6::Core
   Qt6::Network

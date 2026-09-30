@@ -245,7 +245,7 @@ When successful, you should see Multipass's instances in VirtualBox
 
 This can be caused by a known Qt bug (see issue [#1714](https://github.com/canonical/multipass/issues/1714) on our GitHub).
 
-A workaround to resolve this issue is to run the command `multipass find --force-update`, which forces downloading the image information from the network. As a result, if the download is successful, the `network-cache` will be overwritten.
+A workaround to resolve this issue is to run the command `multipass images --force-update`, which forces downloading the image information from the network. As a result, if the download is successful, the `network-cache` will be overwritten.
 
 Alternatively, try deleting the `network-cache` folder and restart the Multipass service:
 
