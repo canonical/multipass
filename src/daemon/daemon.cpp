@@ -2457,18 +2457,13 @@ try
     std::vector<std::string> starting_vms;
     status = cmd_vms(
         instance_targets,
-        [this, &starting_vms, running_only = request->running_only()](VirtualMachine& vm) {
-            auto status = this->reboot_vm(vm, running_only);
+        [this, &starting_vms, running_only = request->running_only(), timeout](VirtualMachine& vm) {
+            auto status = this->reboot_vm(vm, running_only, timeout);
             if (status.ok())
                 starting_vms.push_back(vm.get_name());
             return status;
         },
         /*fail_early=*/false); // 1st pass to reboot all targets
-
-    if (!status.ok())
-    {
-        return context->set_value(status);
-    }
 
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(
@@ -3622,7 +3617,9 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
     return instances_dirty;
 }
 
-grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, bool running_only)
+grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm,
+                                   bool running_only,
+                                   std::chrono::seconds timeout)
 {
     const auto st = vm.current_state();
     if (running_only && !MP_UTILS.is_running(st))
@@ -3650,7 +3647,12 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, bool running_only)
         }
         stop_mounts(vm.get_name());
         if (st == VirtualMachine::State::suspended)
-            return ssh_reboot(vm);
+        {
+            // This will be blocking for each instance. Not ideal, but cannot be done async,
+            // since we need to get on the train of the next async call afterwards as well
+            vm.wait_until_ssh_up(timeout);
+            ssh_reboot(vm);
+        }
         return grpc::Status::OK;
 
     case VirtualMachine::State::unavailable:
