@@ -66,13 +66,16 @@ def get_boot_id(name):
 
 
 def restart_prologue(args, kwargs):
+    from .helpers import state
     logging.debug(f"restart_prologue: args: {args}, kwargs: {kwargs}")
     filtered_args = _restart_hook_common(args)
 
     boot_ids = {}
     for vm_name in filtered_args:
-        boot_ids[vm_name] = get_boot_id(vm_name)
-
+        if state(vm_name) == "Running":
+            boot_ids[vm_name] = get_boot_id(vm_name)
+        else:
+            boot_ids[vm_name] = None
     return boot_ids
 
 
