@@ -392,6 +392,31 @@ TEST_F(SFTPClient, pullFileKeepsExistingTargetPermissions)
     EXPECT_EQ(test_data, test_file.str());
 }
 
+TEST_F(SFTPClient, pullFileCannotDetermineTargetExists)
+{
+    REPLACE_SFTP_INIT();
+    REPLACE(sftp_stat, [](auto...) { return get_dummy_sftp_attr(); });
+    EXPECT_CALL(*mock_sftp_utils, get_local_file_target(source_path, target_path, _))
+        .WillOnce(Return(target_path));
+
+    // exists() reports an error (e.g. a permission problem walking the path); pull_file must
+    // bail out before ever opening the target for writing.
+    auto existed_err = std::make_error_code(std::errc::permission_denied);
+    EXPECT_CALL(*mock_file_ops, exists(target_path, _)).WillOnce([&](auto, std::error_code& e) {
+        e = existed_err;
+        return false;
+    });
+    EXPECT_CALL(*mock_file_ops, open_write(_, _)).Times(0);
+
+    auto sftp_client = make_sftp_client();
+
+    mock_logger->expect_log(mpl::Level::error,
+                            fmt::format("Cannot determine if local file {} exists: {}",
+                                        target_path,
+                                        existed_err.message()));
+    EXPECT_FALSE(sftp_client.pull(source_path, target_path));
+}
+
 TEST_F(SFTPClient, pullFileCannotOpenSource)
 {
     REPLACE_SFTP_INIT();
