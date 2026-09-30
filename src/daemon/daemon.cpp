@@ -632,6 +632,21 @@ LinearInstanceSelection select_instances_by_zones(InstanceTable& instances, cons
     return selection;
 }
 
+template <std::same_as<mp::VirtualMachine::State>... Args>
+LinearInstanceSelection filter_instances_by_state(const LinearInstanceSelection& instances,
+                                                  mp::VirtualMachine::State first_state,
+                                                  Args... args)
+{
+    LinearInstanceSelection selection;
+    for (auto instance : instances)
+    {
+        auto vm_state = instance->second->current_state();
+        if (vm_state == first_state || ((vm_state == args) || ...))
+            selection.push_back(instance);
+    }
+    return selection;
+}
+
 struct SelectionReaction
 {
     struct ReactionComponent
@@ -873,6 +888,22 @@ grpc::Status cmd_vms(const LinearInstanceSelection& tgts,
             global_st = grpc_concatenate_status(global_st, st);
         }
     }
+
+    return global_st;
+}
+
+grpc::Status parallel_cmd_vms(const LinearInstanceSelection& tgts, const VMCommand& cmd)
+{
+    auto global_st{grpc::Status::OK};
+    std::mutex status_mutex;
+    mpu::parallel_for_each(tgts,
+                           [cmd, &global_st, &status_mutex](const InstanceTable::iterator& it) {
+                               auto status = cmd(*it->second);
+                               {
+                                   std::lock_guard guard{status_mutex};
+                                   global_st = grpc_concatenate_status(global_st, status);
+                               }
+                           });
 
     return global_st;
 }
