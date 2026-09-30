@@ -358,9 +358,10 @@ void mp::HyperVVirtualMachine::start()
     if (present_state == State::off || present_state == State::stopped)
     {
         default_switch_interface = resolve_default_switch_interface();
-        if (!default_switch_interface ||
+        const auto switch_interface = default_switch_interface.load();
+        if (!switch_interface ||
             !remove_permanent_ipv4_neighbors(desc.default_mac_address,
-                                             to_net_luid(*default_switch_interface)))
+                                             to_net_luid(*switch_interface)))
             mpl::warn(vm_name, "Could not remove all stale management IP entries");
     }
 
@@ -488,13 +489,15 @@ std::string mp::HyperVVirtualMachine::ssh_username()
 
 std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
 {
-    if (!default_switch_interface)
+    if (!default_switch_interface.load())
         default_switch_interface = resolve_default_switch_interface();
-    if (!default_switch_interface)
+
+    const auto switch_interface = default_switch_interface.load();
+    if (!switch_interface)
         return std::nullopt;
 
     if (const auto ip_address = permanent_ipv4_neighbor(desc.default_mac_address,
-                                                        to_net_luid(*default_switch_interface)))
+                                                        to_net_luid(*switch_interface)))
     {
         IPAddress address{*ip_address};
         mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", address.as_string());
