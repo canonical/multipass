@@ -22,10 +22,7 @@ import re
 
 import pytest
 
-from cli.multipass import (
-    multipass,
-    multipass_version_has_feature
-)
+from cli.multipass import multipass
 
 from cli.utilities import(
     is_locale_available
@@ -74,18 +71,12 @@ ALL_COMMANDS = [
     (("unalias",), "Remove aliases"),
     (("unmount", "umount"), "Unmount a directory from an instance"),
     (("version",), "Show version details"),
+    (("wait-ready",), "Wait for the Multipass daemon to be ready"),
 ]
 
 
 def commands_to_test():
-    commands = []
-    commands += [(x, y) for (z, y) in ALL_COMMANDS for x in z]
-
-    if multipass_version_has_feature("wait_ready"):
-        commands += [
-            ("wait-ready", "Wait for the Multipass daemon to be ready")
-        ]
-    return commands
+    return [(x, y) for (z, y) in ALL_COMMANDS for x in z]
 
 
 def available_locales():
