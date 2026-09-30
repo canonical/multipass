@@ -62,4 +62,14 @@ install(DIRECTORY
   ${FLUTTER_INSTALL_BUNDLE}
   DESTINATION bin/
   COMPONENT multipass_gui
+  PATTERN "dart_ffi.dll" EXCLUDE
 )
+
+# Manually copy the dart_ffi library so it is available at compile time for local testing
+add_custom_target(libffi_copy ALL
+    WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:dart_ffi> ${MULTIPASS_GUI_PREFIX}/${MULTIPASS_GUI_BUNDLE_RELATIVE}/$<TARGET_FILE_NAME:dart_ffi>
+    DEPENDS ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH}
+)
+
+add_dependencies(libffi_copy ${MULTIPASS_GUI_EXECUTABLE} dart_ffi)
