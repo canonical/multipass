@@ -2474,32 +2474,24 @@ try
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
-    auto [instance_selection,
-          status] = select_instances_and_react(operative_instances,
-                                               deleted_instances,
-                                               request->instance_names().instance_name(),
-                                               InstanceGroup::Operative,
-                                               require_operative_instances_reaction);
-
-    if (!status.ok())
-    {
-        return context->set_value(status);
-    }
-
     auto resume_suspended_future_watcher = new QFutureWatcher<grpc::Status>;
     QObject::connect(resume_suspended_future_watcher,
                      &QFutureWatcher<grpc::Status>::finished,
-                     [this,
-                      resume_suspended_future_watcher,
-                      instance_selection,
-                      request,
-                      timeout,
-                      context,
-                      server] {
-                         auto status = resume_suspended_future_watcher->future().result();
+                     [this, resume_suspended_future_watcher, request, timeout, context, server] {
+                         auto [instance_selection, status] = select_instances_and_react(
+                             operative_instances,
+                             deleted_instances,
+                             request->instance_names().instance_name(),
+                             InstanceGroup::Operative,
+                             require_operative_instances_reaction);
+
+                         if (!status.ok())
+                             return context->set_value(status);
 
                          const auto& instance_targets = instance_selection.operative_selection;
                          std::vector<std::string> starting_vms;
+
+                         status = resume_suspended_future_watcher->future().result();
 
                          status = grpc_concatenate_status(
                              status,
@@ -2531,38 +2523,46 @@ try
                              std::string()));
                      });
 
-    auto start_suspended_instances = [this,
-                                      instance_selection,
-                                      timeout,
-                                      running_only = request->running_only()] {
-        const auto& instance_targets = instance_selection.operative_selection;
-        const auto& suspended_instances = filter_instances_by_state(
-            instance_targets,
-            mp::VirtualMachine::State::suspended);
-
-        if (running_only)
-            // Suspended instances do not need to be resumed if only running instances are
-            // restarted
-            return grpc::Status::OK;
-
-        auto status = parallel_cmd_vms(suspended_instances, [this, timeout](VirtualMachine& vm) {
-            try
-            {
-                {
-                    std::lock_guard start_guard{start_mutex};
-                    vm.start();
-                }
-                // We only need the instance to achieve an SSH session for restart
-                vm.wait_until_ssh_up(timeout);
+    auto start_suspended_instances =
+        [this, request, timeout, running_only = request->running_only()] {
+            if (running_only)
+                // Suspended instances do not need to be resumed if only running instances are
+                // restarted
                 return grpc::Status::OK;
-            }
-            catch (const std::runtime_error& e)
-            {
-                return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
-            }
-        });
-        return status;
-    };
+
+            auto [instance_selection,
+                  status] = select_instances_and_react(operative_instances,
+                                                       deleted_instances,
+                                                       request->instance_names().instance_name(),
+                                                       InstanceGroup::Operative,
+                                                       require_operative_instances_reaction);
+
+            if (!status.ok())
+                return status;
+
+            const auto& instance_targets = instance_selection.operative_selection;
+            const auto& suspended_instances = filter_instances_by_state(
+                instance_targets,
+                mp::VirtualMachine::State::suspended);
+
+            status = parallel_cmd_vms(suspended_instances, [this, timeout](VirtualMachine& vm) {
+                try
+                {
+                    {
+                        std::lock_guard start_guard{start_mutex};
+                        vm.start();
+                    }
+                    // We only need the instance to achieve an SSH session for restart
+                    vm.wait_until_ssh_up(timeout);
+                    return grpc::Status::OK;
+                }
+                catch (const std::runtime_error& e)
+                {
+                    return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
+                }
+            });
+            return status;
+        };
     resume_suspended_future_watcher->setFuture(QtConcurrent::run(start_suspended_instances));
 }
 catch (const std::exception& e)
