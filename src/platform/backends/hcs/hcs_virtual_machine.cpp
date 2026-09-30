@@ -596,15 +596,6 @@ void HCSVirtualMachine::update_current_state()
     set_state(fetch_state_from_api());
 }
 
-int HCSVirtualMachine::ssh_port()
-{
-    return default_ssh_port;
-}
-std::string HCSVirtualMachine::ssh_hostname()
-{
-    return require_management_ipv4().as_string();
-}
-
 std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
 {
     const auto endpoint_guid = endpoint_guid_for_mac(desc.default_mac_address);

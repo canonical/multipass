@@ -1136,7 +1136,7 @@ TEST_F(QemuBackend, sshHostnameThrowsImmediatelyWhenIPUnavailable)
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
-    EXPECT_THROW(machine.ssh_hostname(), mp::IPUnavailableException);
+    EXPECT_THROW((void)machine.ssh_hostname(), mp::IPUnavailableException);
     EXPECT_EQ(machine.state, mp::VirtualMachine::State::running);
 }
 

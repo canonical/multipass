@@ -59,7 +59,9 @@ public:
     std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
                                                  bool whisper = false) override;
     [[nodiscard]] std::unique_ptr<SSHSession> new_ssh_session() override;
-    std::string ssh_username() const override;
+    [[nodiscard]] int ssh_port() override;
+    [[nodiscard]] std::string ssh_hostname() override;
+    [[nodiscard]] std::string ssh_username() const override;
 
     bool set_available(bool available) override;
 

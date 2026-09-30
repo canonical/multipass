@@ -288,6 +288,16 @@ std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::make_ssh_process(const s
     return ssh_session->exec(cmd, whisper);
 }
 
+int mp::BaseVirtualMachine::ssh_port()
+{
+    return default_ssh_port;
+}
+
+std::string mp::BaseVirtualMachine::ssh_hostname()
+{
+    return require_management_ipv4().as_string();
+}
+
 void mp::BaseVirtualMachine::renew_ssh_session()
 {
     auto new_session = new_ssh_session();

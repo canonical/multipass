@@ -457,11 +457,6 @@ mp::VirtualMachine::State mp::HyperVVirtualMachine::current_state()
     return state;
 }
 
-int mp::HyperVVirtualMachine::ssh_port()
-{
-    return default_ssh_port;
-}
-
 void mp::HyperVVirtualMachine::handle_state_update()
 {
     // Invalidate the management IP address on state update.
@@ -473,11 +468,6 @@ void mp::HyperVVirtualMachine::handle_state_update()
         management_ip = std::nullopt;
     }
     monitor.persist_state_for(vm_name, state);
-}
-
-std::string mp::HyperVVirtualMachine::ssh_hostname()
-{
-    return require_management_ipv4().as_string();
 }
 
 std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()

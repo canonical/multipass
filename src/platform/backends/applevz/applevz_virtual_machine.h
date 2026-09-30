@@ -45,8 +45,6 @@ public:
 
     State current_state() override;
 
-    int ssh_port() override;
-    std::string ssh_hostname() override;
     std::optional<IPAddress> management_ipv4() override;
 
     void handle_state_update() override;

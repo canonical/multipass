@@ -429,11 +429,6 @@ mp::VirtualMachine::State mp::QemuVirtualMachine::current_state()
     return state;
 }
 
-int mp::QemuVirtualMachine::ssh_port()
-{
-    return default_ssh_port;
-}
-
 void mp::QemuVirtualMachine::handle_state_update()
 {
     monitor.persist_state_for(vm_name, state);
@@ -487,11 +482,6 @@ void mp::QemuVirtualMachine::on_restart()
     management_ip = std::nullopt;
 
     monitor.on_restart(vm_name);
-}
-
-std::string mp::QemuVirtualMachine::ssh_hostname()
-{
-    return require_management_ipv4().as_string();
 }
 
 std::optional<mp::IPAddress> mp::QemuVirtualMachine::management_ipv4()

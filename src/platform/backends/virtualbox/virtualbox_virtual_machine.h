@@ -54,8 +54,8 @@ public:
     void suspend() override;
     bool set_available(bool available) override;
     State current_state() override;
-    int ssh_port() override;
-    std::string ssh_hostname() override;
+    [[nodiscard]] int ssh_port() override;
+    [[nodiscard]] std::string ssh_hostname() override;
     std::optional<IPAddress> management_ipv4() override;
     std::vector<IPAddress> get_all_ipv4() override;
     void handle_state_update() override;

@@ -80,9 +80,9 @@ public:
     virtual void suspend() = 0;
     virtual bool set_available(bool available) = 0;
     virtual State current_state() = 0;
-    virtual int ssh_port() = 0;
-    virtual std::string ssh_hostname() = 0;
-    virtual std::string ssh_username() const = 0;
+    [[nodiscard]] virtual int ssh_port() = 0;
+    [[nodiscard]] virtual std::string ssh_hostname() = 0;
+    [[nodiscard]] virtual std::string ssh_username() const = 0;
     virtual std::optional<IPAddress> management_ipv4() = 0;
     [[nodiscard]] virtual std::vector<IPAddress> get_all_ipv4() = 0;
 
