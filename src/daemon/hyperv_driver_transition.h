@@ -1,0 +1,102 @@
+/*
+ * Copyright (C) Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+// TODO hyperv migration, remove (whole file)
+
+#pragma once
+
+#include <multipass/disabled_copy_move.h>
+#include <multipass/virtual_machine.h>
+#include <multipass/vm_specs.h>
+
+#include <fmt/format.h>
+#include <grpcpp/support/status.h>
+
+#include <atomic>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <unordered_set>
+
+namespace grpc
+{
+template <typename Write, typename Read>
+class ServerReaderWriterInterface;
+}
+
+namespace multipass
+{
+struct DaemonConfig;
+class SetRequest;
+class SetReply;
+} // namespace multipass
+
+namespace multipass::hyperv
+{
+inline grpc::Status migration_conflict_status(std::string_view rpc_name)
+{
+    return {grpc::StatusCode::FAILED_PRECONDITION,
+            fmt::format("Cannot {} while a Hyper-V instance migration is in progress. Please wait "
+                        "for the migration to finish and try again.",
+                        rpc_name)};
+}
+
+class HyperVMigrationTargetRecords;
+
+using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
+
+// Bundles the slice of Daemon state that a driver transition needs to read or mutate, so it
+// doesn't have to depend on (or be a friend of) the whole Daemon class.
+struct DriverTransitionContext
+{
+    const DaemonConfig& config;
+    const std::unordered_map<std::string, VMSpecs>& specs;
+    const InstanceTable& operative_instances;
+    const InstanceTable& deleted_instances;
+    std::atomic<bool>& migration_in_progress;
+    const std::unordered_set<std::string>& preparing_instances;
+};
+
+class DriverTransition : private DisabledCopyMove
+{
+public:
+    using InstanceTable = multipass::hyperv::InstanceTable;
+
+    explicit DriverTransition(DriverTransitionContext context);
+    ~DriverTransition();
+
+    // Keep this object alive across completion and the settings write, including error exits.
+    [[nodiscard]] grpc::Status prepare(const std::string& key, const std::string& value);
+    // Migrates the instances if prepare() started a Hyper-V to HCS migration; otherwise returns OK.
+    // Call it before writing the driver setting, so the switch only happens once the migration is
+    // done.
+    [[nodiscard]] grpc::Status complete(
+        grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server);
+    // Call once the driver setting is written. The daemon restarts on the new driver, and until it
+    // does, requests (including those queued during the migration) would still run against the old
+    // one, so the guard stays acquired rather than being released.
+    void hold_until_restart();
+
+private:
+    [[nodiscard]] grpc::Status release_hcs_instances() const;
+
+    DriverTransitionContext context;
+    bool migration_flag_acquired{false};
+    bool held_until_restart{false};
+    std::unique_ptr<HyperVMigrationTargetRecords> migration_records;
+};
+} // namespace multipass::hyperv
