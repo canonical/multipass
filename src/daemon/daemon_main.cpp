@@ -50,6 +50,8 @@ static_assert(std::atomic_int::is_always_lock_free,
               "std::atomic_int must be lock-free to be safely used in signal handlers");
 
 static constexpr auto no_signal = -1;
+static constexpr auto abort_thread = -2;
+
 static std::atomic_int first_signal = no_signal;
 static mpp::AsyncSignalSafeNotification* signal_notif = nullptr;
 
@@ -97,23 +99,31 @@ public:
     {
         if (signal_notif != nullptr)
         {
+            auto expected = no_signal;
+            first_signal.compare_exchange_strong(expected, abort_thread);
+
             signal_notif->async_safe_notify();
         }
     }
 
     void monitor_signals()
     {
+        auto signal = first_signal.load();
+
         try
         {
-            signal_notif->wait();
+            while (signal == no_signal)
+            {
+                signal_notif->wait();
+                signal = first_signal.load();
+            }
         }
         catch (const std::exception& error)
         {
             mpl::error("daemon", "Failed to wait for signal notification: {}", error.what());
         }
 
-        auto signal = first_signal.load();
-        if (signal == no_signal)
+        if (signal == abort_thread)
         {
             return;
         }
