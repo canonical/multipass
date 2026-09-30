@@ -73,16 +73,6 @@ signals:
     void on_synchronize_clock();
 
 protected:
-    // TODO remove this, the onus of composing a VM of stubs should be on the stub VMs
-    QemuVirtualMachine(const std::string& name,
-                       VMStatusMonitor& monitor,
-                       const SSHKeyProvider& key_provider,
-                       AvailabilityZone& zone,
-                       const Path& instance_dir)
-        : BaseVirtualMachine{name, {}, monitor, key_provider, zone, instance_dir}
-    {
-    }
-
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,

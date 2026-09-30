@@ -18,6 +18,7 @@
 #include "tests/unit/common.h"
 #include "tests/unit/mock_file_ops.h"
 #include "tests/unit/mock_logger.h"
+#include "tests/unit/mock_process_factory.h"
 #include "tests/unit/mock_server_reader_writer.h"
 #include "tests/unit/mock_ssh_process.h"
 #include "tests/unit/mock_ssh_session.h"
@@ -45,7 +46,8 @@ struct MockQemuVirtualMachine : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
 {
     explicit MockQemuVirtualMachine(const std::string& name, mp::AvailabilityZone& zone)
         : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>{
-              name,
+              mp::VirtualMachineDescription{.vm_name = name},
+              nullptr,
               stub_monitor,
               mpt::StubSSHKeyProvider{},
               zone,
@@ -157,6 +159,8 @@ struct QemuMountHandlerTest : public ::Test
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::debug);
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
     mpt::StubAvailabilityZone zone{};
+    std::unique_ptr<mpt::MockProcessFactory::Scope> process_factory_scope{
+        mpt::MockProcessFactory::Inject()};
     NiceMock<MockQemuVirtualMachine> vm{"my_instance", zone};
     mp::QemuVirtualMachine::MountArgs mount_args;
 };
