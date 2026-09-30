@@ -45,41 +45,41 @@ LOCALES = [
 
 
 ALL_COMMANDS = [
-    ("alias", "Create an alias"),
-    ("aliases", "List available aliases"),
-    ("authenticate", "Authenticate client"),
-    ("clone", "Clone an instance"),
-    ("delete", "Delete instances and snapshots"),
-    ("exec", "Run a command on an instance"),
-    ("find", "Display available images to create instances from"),
-    ("get", "Get a configuration setting"),
-    ("help", "Display help about a command"),
-    ("info", "Display information about instances or snapshots"),
-    ("launch", "Create and start .* instance"),
-    ("list", "List all available instances or snapshots"),
-    ("mount", "Mount a local directory in the instance"),
-    ("networks", "List available network interfaces"),
-    ("prefer", "Switch the current alias context"),
-    ("purge", "Purge all deleted instances permanently"),
-    ("recover", "Recover deleted instances"),
-    ("restart", "Restart instances"),
-    ("restore", "Restore an instance from a snapshot"),
-    ("set", "Set a configuration setting"),
-    ("shell", "Open a shell on an instance"),
-    ("snapshot", "Take a snapshot of an instance"),
-    ("start", "Start instances"),
-    ("stop", "Stop running instances"),
-    ("suspend", "Suspend running instances"),
-    ("transfer", "Transfer files between the host and instances"),
-    ("unalias", "Remove aliases"),
-    ("unmount", "Unmount a directory from an instance"),
-    ("version", "Show version details"),
+    (("alias",), "Create an alias"),
+    (("aliases",), "List available aliases"),
+    (("authenticate",), "Authenticate client"),
+    (("clone",), "Clone an instance"),
+    (("delete",), "Delete instances and snapshots"),
+    (("exec",), "Run a command on an instance"),
+    (("find",), "Display available images to create instances from"),
+    (("get",), "Get a configuration setting"),
+    (("help",), "Display help about a command"),
+    (("info",), "Display information about instances or snapshots"),
+    (("launch",), "Create and start .* instance"),
+    (("list",), "List all available instances or snapshots"),
+    (("mount",), "Mount a local directory in the instance"),
+    (("networks",), "List available network interfaces"),
+    (("prefer",), "Switch the current alias context"),
+    (("purge",), "Purge all deleted instances permanently"),
+    (("recover",), "Recover deleted instances"),
+    (("restart",), "Restart instances"),
+    (("restore",), "Restore an instance from a snapshot"),
+    (("set",), "Set a configuration setting"),
+    (("shell",), "Open a shell on an instance"),
+    (("snapshot",), "Take a snapshot of an instance"),
+    (("start",), "Start instances"),
+    (("stop",), "Stop running instances"),
+    (("suspend",), "Suspend running instances"),
+    (("transfer",), "Transfer files between the host and instances"),
+    (("unalias",), "Remove aliases"),
+    (("unmount",), "Unmount a directory from an instance"),
+    (("version",), "Show version details"),
 ]
 
 
 def commands_to_test():
     commands = []
-    commands += ALL_COMMANDS
+    commands += [(x, y) for (z, y) in ALL_COMMANDS for x in z]
 
     if multipass_version_has_feature("wait_ready"):
         commands += [
