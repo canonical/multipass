@@ -482,7 +482,7 @@ TEST_P(HyperVHCSVirtualMachine_UnresolvedNetwork, create_fails_before_creating_e
 
     MP_EXPECT_THROW_THAT(construct_vm(),
                          mhv::CreateEndpointException,
-                         mpt::match_what(HasSubstr("Could not find network `mpclitestsw0`")));
+                         mpt::match_what(HasSubstr("Could not resolve network `mpclitestsw0`")));
 }
 
 INSTANTIATE_TEST_SUITE_P(

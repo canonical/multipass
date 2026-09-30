@@ -273,7 +273,8 @@ std::vector<hcn::CreateEndpointParameters> HCSVirtualMachine::make_endpoint_para
     {
         const auto network_guid = network_guid_for_name(extra.id);
         if (!network_guid)
-            throw CreateEndpointException{"Could not find network `{}` for interface {}",
+            throw CreateEndpointException{"Could not resolve network `{}` for interface {}: it "
+                                          "is missing, ambiguous, or networks could not be listed",
                                           extra.id,
                                           extra.mac_address};
 
