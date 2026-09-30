@@ -41,7 +41,7 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              const SSHKeyProvider& key_provider,
                                              AvailabilityZone& zone,
                                              const Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir}, monitor{&monitor}
+    : BaseVirtualMachine{desc.vm_name, desc, monitor, key_provider, zone, instance_dir}
 {
     initialize_vm_handle();
 }
@@ -278,7 +278,7 @@ std::optional<IPAddress> AppleVZVirtualMachine::management_ipv4()
 void AppleVZVirtualMachine::handle_state_update()
 {
     if (update_shutdown_status)
-        monitor->persist_state_for(vm_name, state);
+        monitor.persist_state_for(vm_name, state);
 }
 
 void AppleVZVirtualMachine::resize_disk_impl(const MemorySize& new_size)

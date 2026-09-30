@@ -24,6 +24,7 @@
 #include "tests/unit/mock_virtual_machine.h"
 #include "tests/unit/stub_availability_zone.h"
 #include "tests/unit/stub_ssh_key_provider.h"
+#include "tests/unit/stub_status_monitor.h"
 
 #include "qemu_mount_handler.h"
 
@@ -38,11 +39,14 @@ using namespace testing;
 
 namespace
 {
+mpt::StubVMStatusMonitor stub_monitor{};
+
 struct MockQemuVirtualMachine : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
 {
     explicit MockQemuVirtualMachine(const std::string& name, mp::AvailabilityZone& zone)
         : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>{
               name,
+              stub_monitor,
               mpt::StubSSHKeyProvider{},
               zone,
           }

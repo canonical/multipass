@@ -262,12 +262,12 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
 }
 
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source_vm_name,
-                                                       const VirtualMachineDescription& desc,
+                                                       const VirtualMachineDescription& vm_desc,
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
                                                        AvailabilityZone& zone,
                                                        const Path& dest_instance_dir)
-    : VirtualBoxVirtualMachine(desc, monitor, key_provider, zone, dest_instance_dir, true)
+    : VirtualBoxVirtualMachine(vm_desc, monitor, key_provider, zone, dest_instance_dir, true)
 {
     const fs::path instances_dir = fs::path{dest_instance_dir.toStdString()}.parent_path();
 
@@ -335,9 +335,8 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                                        AvailabilityZone& zone,
                                                        const mp::Path& instance_dir_qstr,
                                                        bool /*is_internal*/)
-    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir_qstr},
-      name{QString::fromStdString(desc.vm_name)},
-      monitor{&monitor}
+    : BaseVirtualMachine{desc.vm_name, desc, monitor, key_provider, zone, instance_dir_qstr},
+      name{QString::fromStdString(desc.vm_name)}
 {
 }
 
@@ -443,7 +442,7 @@ void mp::VirtualBoxVirtualMachine::suspend()
         mpl::info(vm_name, "Ignoring suspend issued while stopped");
     }
 
-    monitor->on_suspend();
+    monitor.on_suspend();
 }
 
 bool mp::VirtualBoxVirtualMachine::set_available(bool /*available*/)
@@ -499,7 +498,7 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
 
 void mp::VirtualBoxVirtualMachine::handle_state_update()
 {
-    monitor->persist_state_for(vm_name, state);
+    monitor.persist_state_for(vm_name, state);
 }
 
 std::string mp::VirtualBoxVirtualMachine::ssh_hostname()

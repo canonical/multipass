@@ -106,9 +106,8 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
                                      const SSHKeyProvider& key_provider,
                                      AvailabilityZone& zone,
                                      const Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir},
-      primary_network_guid(network_guid),
-      monitor(monitor)
+    : BaseVirtualMachine{desc.vm_name, desc, monitor, key_provider, zone, instance_dir},
+      primary_network_guid(network_guid)
 {
     const auto created_from_scratch = maybe_create_compute_system();
     const auto compute_state = fetch_state_from_api();

@@ -233,11 +233,11 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                                     : State::off),
                          desc.vm_name,
                          desc,
+                         monitor,
                          key_provider,
                          zone,
                          instance_dir},
       qemu_platform{qemu_platform},
-      monitor{&monitor},
       mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
 {
     connect_vm_signals();
@@ -289,7 +289,7 @@ void mp::QemuVirtualMachine::start()
             for (const auto& arg : mount_data.second)
                 proc_args.removeOne(arg);
 
-        monitor->update_metadata_for(
+        monitor.update_metadata_for(
             vm_name,
             generate_metadata(qemu_platform->vmstate_platform_args(), proc_args, mount_args));
     }
@@ -420,7 +420,7 @@ void mp::QemuVirtualMachine::suspend()
     {
         // TODO: format state directly
         mpl::info(vm_name, "Ignoring suspend issued while stopped/suspended/unavailable");
-        monitor->on_suspend();
+        monitor.on_suspend();
     }
 }
 
@@ -436,14 +436,14 @@ int mp::QemuVirtualMachine::ssh_port()
 
 void mp::QemuVirtualMachine::handle_state_update()
 {
-    monitor->persist_state_for(vm_name, state);
+    monitor.persist_state_for(vm_name, state);
 }
 
 void mp::QemuVirtualMachine::on_started()
 {
     state = State::starting;
     handle_state_update();
-    monitor->on_resume();
+    monitor.on_resume();
 }
 
 void mp::QemuVirtualMachine::on_error()
@@ -468,14 +468,14 @@ void mp::QemuVirtualMachine::on_shutdown()
         vm_process.reset(nullptr);
     }
 
-    monitor->on_shutdown();
+    monitor.on_shutdown();
 }
 
 void mp::QemuVirtualMachine::on_suspend()
 {
     drop_ssh_session();
     state = State::suspended;
-    monitor->on_suspend();
+    monitor.on_suspend();
 }
 
 void mp::QemuVirtualMachine::on_restart()
@@ -486,7 +486,7 @@ void mp::QemuVirtualMachine::on_restart()
 
     management_ip = std::nullopt;
 
-    monitor->on_restart(vm_name);
+    monitor.on_restart(vm_name);
 }
 
 std::string mp::QemuVirtualMachine::ssh_hostname()
@@ -520,12 +520,12 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 
 void mp::QemuVirtualMachine::initialize_vm_process()
 {
-    vm_process = make_qemu_process(
-        desc,
-        ((state == State::suspended) ? std::make_optional(monitor->retrieve_metadata_for(vm_name))
-                                     : std::nullopt),
-        mount_args,
-        qemu_platform->vm_platform_args(desc));
+    vm_process = make_qemu_process(desc,
+                                   ((state == State::suspended)
+                                        ? std::make_optional(monitor.retrieve_metadata_for(vm_name))
+                                        : std::nullopt),
+                                   mount_args,
+                                   qemu_platform->vm_platform_args(desc));
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::info(vm_name, "process started");

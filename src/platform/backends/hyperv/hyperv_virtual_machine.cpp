@@ -283,10 +283,9 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                                                AvailabilityZone& zone,
                                                const Path& instance_dir,
                                                bool /*is_internal*/)
-    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir},
+    : BaseVirtualMachine{desc.vm_name, desc, monitor, key_provider, zone, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
-      power_shell{std::make_unique<PowerShell>(vm_name)},
-      monitor{&monitor}
+      power_shell{std::make_unique<PowerShell>(vm_name)}
 {
 }
 
@@ -437,7 +436,7 @@ void mp::HyperVVirtualMachine::suspend()
                   (present_state == State::unavailable) ? "unavailable" : "stopped");
     }
 
-    monitor->on_suspend();
+    monitor.on_suspend();
 }
 
 bool mp::HyperVVirtualMachine::set_available(bool /*available*/)
@@ -473,7 +472,7 @@ void mp::HyperVVirtualMachine::handle_state_update()
         mpl::debug(vm_name, "Invalidating cached mgmt IP address upon state update");
         management_ip = std::nullopt;
     }
-    monitor->persist_state_for(vm_name, state);
+    monitor.persist_state_for(vm_name, state);
 }
 
 std::string mp::HyperVVirtualMachine::ssh_hostname()

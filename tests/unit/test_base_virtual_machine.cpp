@@ -26,6 +26,7 @@
 #include "mock_virtual_machine.h"
 #include "multipass/virtual_machine_description.h"
 #include "stub_availability_zone.h"
+#include "stub_status_monitor.h"
 #include "temp_dir.h"
 
 #include <shared/base_virtual_machine.h>
@@ -50,6 +51,8 @@ using St = mp::VirtualMachine::State;
 
 namespace
 {
+mpt::StubVMStatusMonitor stub_monitor{};
+
 struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualMachine>
 {
     template <typename... Args>
@@ -156,7 +159,13 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
                            mp::AvailabilityZone& zone,
                            std::unique_ptr<mpt::TempDir> tmp_dir,
                            const mp::VirtualMachineDescription& desc = {})
-        : mp::BaseVirtualMachine{s, "stub", desc, mpt::StubSSHKeyProvider{}, zone, tmp_dir->path()},
+        : mp::BaseVirtualMachine{s,
+                                 "stub",
+                                 desc,
+                                 stub_monitor,
+                                 mpt::StubSSHKeyProvider{},
+                                 zone,
+                                 tmp_dir->path()},
           tmp_dir{std::move(tmp_dir)}
     {
     }
@@ -270,6 +279,7 @@ struct BaseVM : public Test
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
     NiceMock<MockBaseVirtualMachine> vm{"mock-vm",
                                         mp::VirtualMachineDescription{},
+                                        stub_monitor,
                                         key_provider,
                                         zone};
     std::vector<std::shared_ptr<mpt::MockSnapshot>> snapshot_album;

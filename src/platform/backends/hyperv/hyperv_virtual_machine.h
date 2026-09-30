@@ -99,7 +99,6 @@ private:
 
     const QString name;
     std::unique_ptr<PowerShell> power_shell;
-    VMStatusMonitor* monitor;
     bool update_suspend_status{true};
     // LUID of the Default Switch host vNIC, where the management IP's neighbor entry lives.
     // Resolved again on every start, since the host vNIC can be recreated in the meantime.

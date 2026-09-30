@@ -75,10 +75,11 @@ signals:
 protected:
     // TODO remove this, the onus of composing a VM of stubs should be on the stub VMs
     QemuVirtualMachine(const std::string& name,
+                       VMStatusMonitor& monitor,
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
                        const Path& instance_dir)
-        : BaseVirtualMachine{name, {}, key_provider, zone, instance_dir}
+        : BaseVirtualMachine{name, {}, monitor, key_provider, zone, instance_dir}
     {
     }
 
@@ -107,7 +108,6 @@ private:
 
     std::unique_ptr<Process> vm_process{nullptr};
     QemuPlatform* qemu_platform;
-    VMStatusMonitor* monitor;
     MountArgs mount_args;
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};

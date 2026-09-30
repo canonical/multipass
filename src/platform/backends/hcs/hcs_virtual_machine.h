@@ -97,7 +97,6 @@ protected:
 
 private:
     const std::string primary_network_guid{};
-    VMStatusMonitor& monitor;
     Signal termination_signal;
 
     hcs::HcsSystemHandle hcs_system{nullptr};

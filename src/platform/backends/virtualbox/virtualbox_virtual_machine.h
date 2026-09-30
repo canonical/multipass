@@ -86,7 +86,6 @@ private:
 
     const QString name;
     std::optional<int> port;
-    VMStatusMonitor* monitor;
     bool update_suspend_status{true};
 };
 } // namespace multipass

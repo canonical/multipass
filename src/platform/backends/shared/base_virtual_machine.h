@@ -35,6 +35,7 @@
 namespace multipass
 {
 class SSHKeyProvider;
+class VMStatusMonitor;
 
 class BaseVirtualMachine : public VirtualMachine
 {
@@ -42,11 +43,13 @@ public:
     BaseVirtualMachine(VirtualMachine::State state,
                        const std::string& vm_name,
                        const VirtualMachineDescription& vm_desc,
+                       VMStatusMonitor& monitor,
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
                        const Path& instance_dir);
     BaseVirtualMachine(const std::string& vm_name,
                        const VirtualMachineDescription& vm_desc,
+                       VMStatusMonitor& monitor,
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
                        const Path& instance_dir);
@@ -203,6 +206,7 @@ private:
 protected:
     const std::string vm_name;
     VirtualMachineDescription desc;
+    VMStatusMonitor& monitor;
     const SSHKeyProvider& key_provider;
     AvailabilityZone& zone;
     const QDir instance_dir;
