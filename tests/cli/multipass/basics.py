@@ -120,8 +120,15 @@ def get_multipass_env():
 
 
 def get_multipass_path():
-    """Resolve the 'multipass' binary."""
-    return shutil.which("multipass", path=cfg.bin_dir)
+    """Resolve the 'multipass' binary; raise if it cannot be found."""
+    path = shutil.which("multipass", path=cfg.bin_dir)
+    if path is None:
+        searched = cfg.bin_dir or "the system PATH"
+        raise FileNotFoundError(
+            f"Could not locate the `multipass` binary (searched {searched}). "
+            "Is Multipass installed and on PATH, or did you mean to pass `--bin-dir`?"
+        )
+    return path
 
 
 def get_multipassd_path():

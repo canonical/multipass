@@ -456,3 +456,20 @@ jobs:
     uses: ./.github/workflows/cli-tests.yml
     with:
       snap-channel: ${{ needs.BuildAndTest.outputs.channel }}
+
+  Dispatch-Version-Upgrade-Tests:
+    permissions:
+      contents: read
+      actions: read
+      checks:  write
+    secrets: inherit
+    needs:
+      - BuildAndTest
+      - Publish-Snap
+    uses: ./.github/workflows/version-upgrade-tests.yml
+    with:
+      # X (before): the latest released Multipass. Y (after): this branch's snap,
+      # published to its channel by Publish-Snap (which `needs` gates this on, so
+      # this only runs when a branch channel exists -- PR / merge_group / release).
+      from-snap-channel: stable
+      to-snap-channel: ${{ needs.BuildAndTest.outputs.channel }}
