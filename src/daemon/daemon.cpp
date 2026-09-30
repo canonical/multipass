@@ -3583,6 +3583,7 @@ grpc::Status mp::Daemon::make_vm_unavailable(VirtualMachine& vm)
 
     try
     {
+        stop_mounts(name);
         vm.set_available(false);
         return grpc::Status::OK;
     }
