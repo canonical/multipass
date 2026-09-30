@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright (C) Canonical, Ltd.
 #
@@ -22,6 +21,7 @@ import asyncio
 import logging
 import re
 import sys
+import threading
 import time
 from contextlib import suppress
 from typing import Optional
@@ -35,11 +35,11 @@ from cli.multipass import (
     get_client_cert_path,
     get_multipass_env,
     get_multipass_path,
+    parse_multipass_versions,
     TestSessionFailure,
     TestCaseFailure
 )
 from cli.utilities import (
-    BooleanLatch,
     SilentAsyncSubprocess,
     StdoutAsyncSubprocess,
     run_in_new_interpreter,
@@ -59,7 +59,8 @@ class MultipassdGovernor:
         self.asyncio_loop = asyncio_loop
         self.print_daemon_output = print_daemon_output
         self.controller = controller
-        self.daemon_ready_event = BooleanLatch()
+        self.daemon_ready_event = threading.Event()
+        self.daemon_stopped_event = threading.Event()
         self.monitor_task = None
         self._reset_state()
 
@@ -67,6 +68,7 @@ class MultipassdGovernor:
         self.monitor_task = None
         self.graceful_exit_initiated = False
         self.daemon_ready_event.clear()
+        self.daemon_stopped_event.set()
 
     def _get_error_patterns(self):
         return {
@@ -110,7 +112,11 @@ class MultipassdGovernor:
             if not stdout_task.done():
                 stdout_task.cancel()
 
-            error_reason = await stdout_task
+            try:
+                error_reason = await stdout_task
+            except asyncio.CancelledError:
+                error_reason = None
+
             if error_reason:
                 error_reasons.append(
                     f"\nReason: {error_reason}")
@@ -219,8 +225,7 @@ class MultipassdGovernor:
             await _drain(ready_task)
             try:
                 await monitor_task
-                asyncio.current_task().cancel()
-                await asyncio.sleep(0)
+                raise TestCaseFailure("daemon exited during startup")
             except TestSessionFailure as ex:
                 Session.shouldfail = str(ex)
                 raise
@@ -229,13 +234,15 @@ class MultipassdGovernor:
         if not await ready_task:
             logging.warning(
                 "⚠️ multipassd not ready, attempting graceful shutdown...")
-            await self.controller.stop()
+            self.monitor_task = monitor_task
+            await self.stop_async()
             pytest.exit(
                 "Tests cannot proceed, multipassd not responding in time.",
                 returncode=12,
             )
 
         self.monitor_task = monitor_task
+        self.daemon_stopped_event.clear()
         self.daemon_ready_event.set()
 
     async def stop_async(self):
@@ -274,10 +281,10 @@ class MultipassdGovernor:
         self.asyncio_loop.run(self.stop_async()).result(timeout=timeout)
 
     def wait_for_shutdown(self, timeout=60):
-        self.daemon_ready_event.wait_until(False, timeout=timeout)
+        self.daemon_stopped_event.wait(timeout=timeout)
 
     def wait_for_start(self, timeout=60):
-        self.daemon_ready_event.wait_until(True, timeout=timeout)
+        self.daemon_ready_event.wait(timeout=timeout)
 
     def wait_for_restart(self, timeout=60):
         # Restart events are opaque to us when the controller supports
@@ -330,12 +337,9 @@ class MultipassdGovernor:
                     env=get_multipass_env(),
                 ) as version_proc:
                     stdout, _ = await version_proc.communicate()
-                    version_lines = stdout.decode().strip().splitlines()
+                    cli_ver, daemon_ver = parse_multipass_versions(stdout.decode())
 
-                    if len(version_lines) >= 2:
-                        cli_ver = version_lines[0].split()[-1]
-                        daemon_ver = version_lines[1].split()[-1]
-
+                    if daemon_ver is not None:
                         if cli_ver == daemon_ver:
                             return True
 
@@ -351,6 +355,8 @@ class MultipassdGovernor:
                 # Try again.
                 continue
             except asyncio.CancelledError:
+                raise
+            except AssertionError:
                 raise
             except Exception as exc:
                 logging.error(exc)
