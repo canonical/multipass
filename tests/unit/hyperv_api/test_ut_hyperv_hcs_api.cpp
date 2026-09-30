@@ -137,6 +137,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
         "ShouldTerminateOnLastHandleClosed": false,
         "VirtualMachine": {
             "Chipset": {
+                "UseUtc": true,
                 "Uefi": {
                     "BootThis": {
                         "DevicePath": "Primary disk",
@@ -179,7 +180,8 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
             },
             "Services": {
                 "Shutdown": {},
-                "Heartbeat": {}
+                "Heartbeat": {},
+                "Timesync": {}
             },
             "GuestState": {
                 "GuestStateFilePath": "non-empty.vmgs",
@@ -341,6 +343,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
         "ShouldTerminateOnLastHandleClosed": false,
         "VirtualMachine": {
             "Chipset": {
+                "UseUtc": true,
                 "Uefi": {
                     "BootThis": {
                         "DevicePath": "Primary disk",
@@ -374,7 +377,8 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
             },
             "Services": {
                 "Shutdown": {},
-                "Heartbeat": {}
+                "Heartbeat": {},
+                "Timesync": {}
             }
         }
     })";
@@ -462,6 +466,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
         "ShouldTerminateOnLastHandleClosed": false,
         "VirtualMachine": {
             "Chipset": {
+                "UseUtc": true,
                 "Uefi": {
                     "BootThis": {
                         "DevicePath": "Primary disk",
@@ -495,7 +500,8 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
             },
             "Services": {
                 "Shutdown": {},
-                "Heartbeat": {}
+                "Heartbeat": {},
+                "Timesync": {}
             }
         }
     })";
@@ -583,6 +589,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
         "ShouldTerminateOnLastHandleClosed": false,
         "VirtualMachine": {
             "Chipset": {
+                "UseUtc": true,
                 "Uefi": {
                     "BootThis": {
                         "DevicePath": "Primary disk",
@@ -606,7 +613,116 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit_and_vhdx)
             },
             "Services": {
                 "Shutdown": {},
-                "Heartbeat": {}
+                "Heartbeat": {},
+                "Timesync": {}
+            }
+        }
+    })";
+
+    { // Verify that the dependencies are called with right data.
+        EXPECT_CALL(mock_hcs_api, HcsCreateOperation)
+            .WillOnce(DoAll(
+                [](const void* context, HCS_OPERATION_COMPLETION callback) {
+                    ASSERT_EQ(nullptr, context);
+                    ASSERT_EQ(nullptr, callback);
+                },
+                Return(mock_operation_object)));
+
+        EXPECT_CALL(mock_hcs_api, HcsCloseOperation).WillOnce([](HCS_OPERATION op) {
+            ASSERT_EQ(op, mock_operation_object);
+        });
+
+        EXPECT_CALL(mock_hcs_api, HcsWaitForOperationResult)
+            .WillOnce(DoAll(
+                [](HCS_OPERATION operation, DWORD timeoutMs, PWSTR* resultDocument) {
+                    ASSERT_EQ(operation, mock_operation_object);
+                    ASSERT_EQ(timeoutMs, 240000);
+                    ASSERT_NE(nullptr, resultDocument);
+                    ASSERT_EQ(nullptr, *resultDocument);
+                    *resultDocument = mock_success_msg;
+                },
+                Return(NOERROR)));
+
+        EXPECT_CALL(mock_hcs_api, HcsCreateComputeSystem)
+            .WillOnce(DoAll(
+                [](PCWSTR id,
+                   PCWSTR configuration,
+                   HCS_OPERATION operation,
+                   const SECURITY_DESCRIPTOR* securityDescriptor,
+                   HCS_SYSTEM* computeSystem) {
+                    ASSERT_STREQ(L"test_vm", id);
+
+                    const auto config_no_whitespace = trim_whitespace(configuration);
+                    const auto expected_no_whitespace = trim_whitespace(expected_vm_settings_json);
+
+                    ASSERT_STREQ(expected_no_whitespace.c_str(), config_no_whitespace.c_str());
+                    ASSERT_EQ(mock_operation_object, operation);
+                    ASSERT_EQ(nullptr, securityDescriptor);
+                    ASSERT_NE(nullptr, computeSystem);
+                    ASSERT_EQ(nullptr, *computeSystem);
+                    *computeSystem = mock_compute_system_object;
+                },
+                Return(NOERROR)));
+
+        EXPECT_CALL(mock_hcs_api, HcsCloseComputeSystem).WillOnce([](HCS_SYSTEM computeSystem) {
+            ASSERT_EQ(mock_compute_system_object, computeSystem);
+        });
+
+        EXPECT_CALL(mock_hcs_api, LocalFree)
+            .WillOnce(DoAll([](HLOCAL ptr) { ASSERT_EQ(ptr, mock_success_msg); }, Return(nullptr)));
+    }
+
+    { // Verify the expected outcome.
+        verify_create_compute_system_success({
+            .name = "test_vm",
+            .memory_size_mb = 16384,
+            .processor_count = 8,
+        });
+    }
+}
+
+// ---------------------------------------------------------
+
+/**
+ * Success scenario: Host supports a schema version older than v2.5, so the
+ * "Services" section (Shutdown, Heartbeat, Timesync) must be omitted.
+ */
+TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_schema_below_v25_omits_services)
+{
+    ON_CALL(*mock_schema_utils_injection.first, get_os_supported_schema_version())
+        .WillByDefault(Return(HcsSchemaVersion::v24));
+
+    constexpr auto expected_vm_settings_json = LR"(
+    {
+        "SchemaVersion": {
+            "Major": 2,
+            "Minor": 1
+        },
+        "Owner": "Multipass",
+        "ShouldTerminateOnLastHandleClosed": false,
+        "VirtualMachine": {
+            "Chipset": {
+                "UseUtc": true,
+                "Uefi": {
+                    "BootThis": {
+                        "DevicePath": "Primary disk",
+                        "DiskNumber": 0,
+                        "DeviceType": "ScsiDrive"
+                    }
+                }
+            },
+            "ComputeTopology": {
+                "Memory": {
+                    "Backing": "Virtual",
+                    "SizeInMB": 16384
+                },
+                "Processor": {
+                    "Count": 8
+                }
+            },
+            "Devices": {
+                "Scsi": {},
+                "NetworkAdapters": {}
             }
         }
     })";
@@ -728,6 +844,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
          "ShouldTerminateOnLastHandleClosed": false,
          "VirtualMachine": {
              "Chipset": {
+                 "UseUtc": true,
                  "Uefi": {
                      "BootThis": {
                          "DevicePath": "Primary disk",
@@ -770,7 +887,8 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
             },
             "Services": {
                 "Shutdown": {},
-                "Heartbeat": {}
+                "Heartbeat": {},
+                "Timesync": {}
             }
          }
      })";
@@ -847,6 +965,7 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
          "ShouldTerminateOnLastHandleClosed": false,
          "VirtualMachine": {
              "Chipset": {
+                 "UseUtc": true,
                  "Uefi": {
                      "BootThis": {
                          "DevicePath": "Primary disk",
@@ -889,7 +1008,8 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
             },
             "Services": {
                 "Shutdown": {},
-                "Heartbeat": {}
+                "Heartbeat": {},
+                "Timesync": {}
             }
          }
      })";
