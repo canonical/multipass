@@ -2539,29 +2539,79 @@ try
         return context->set_value(status);
     }
 
-    const auto& instance_targets = instance_selection.operative_selection;
-    std::vector<std::string> starting_vms;
-    status = cmd_vms(
-        instance_targets,
-        [this, &starting_vms, running_only = request->running_only(), timeout](VirtualMachine& vm) {
-            auto status = this->reboot_vm(vm, running_only, timeout);
-            if (status.ok())
-                starting_vms.push_back(vm.get_name());
-            return status;
-        },
-        /*fail_early=*/false); // 1st pass to reboot all targets
+    auto resume_suspended_future_watcher = new QFutureWatcher<grpc::Status>;
+    QObject::connect(resume_suspended_future_watcher,
+                     &QFutureWatcher<grpc::Status>::finished,
+                     [this,
+                      resume_suspended_future_watcher,
+                      instance_selection,
+                      request,
+                      timeout,
+                      context,
+                      server] {
+                         auto status = resume_suspended_future_watcher->future().result();
+                         const auto& instance_targets = instance_selection.operative_selection;
+                         std::vector<std::string> starting_vms;
 
-    if (starting_vms.empty())
-        return context->set_value(status);
-    auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<RestartReply, RestartRequest>,
-                          this,
-                          server,
-                          starting_vms,
-                          timeout,
-                          context,
-                          status.error_message()));
+                         status = grpc_concatenate_status(
+                             status,
+                             cmd_vms(
+                                 instance_targets,
+                                 [this, &starting_vms, running_only = request->running_only()](
+                                     VirtualMachine& vm) {
+                                     auto status = this->reboot_vm(vm, running_only);
+                                     if (status.ok())
+                                         starting_vms.push_back(vm.get_name());
+                                     return status;
+                                 },
+                                 /*fail_early=*/false)); // 1st pass to reboot all targets
+
+                         if (starting_vms.empty())
+                             return context->set_value(status);
+
+                         auto future_watcher = create_future_watcher();
+                         future_watcher->setFuture(QtConcurrent::run(
+                             &Daemon::async_wait_multiple_vms_ready<RestartReply, RestartRequest>,
+                             this,
+                             server,
+                             starting_vms,
+                             timeout,
+                             context,
+                             status.error_message()));
+
+                         resume_suspended_future_watcher->deleteLater();
+                     });
+
+    auto start_suspended_instances =
+        [this, instance_selection, timeout, running_only = request->running_only()] {
+            const auto& instance_targets = instance_selection.operative_selection;
+            const auto& suspended_instances = filter_instances_by_state(
+                instance_targets,
+                mp::VirtualMachine::State::suspended);
+
+            if (running_only)
+                // Suspended instances do not need to be resumed if only running instances are
+                // restarted
+                return grpc::Status::OK;
+
+            std::lock_guard start_guard{start_mutex};
+
+            auto status = parallel_cmd_vms(suspended_instances, [timeout](VirtualMachine& vm) {
+                try
+                {
+                    vm.start();
+                    // We only need the instance to achieve an SSH session for restart
+                    vm.wait_until_ssh_up(timeout);
+                    return grpc::Status::OK;
+                }
+                catch (const std::runtime_error& e)
+                {
+                    return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
+                }
+            });
+            return status;
+        };
+    resume_suspended_future_watcher->setFuture(QtConcurrent::run(start_suspended_instances));
 }
 catch (const std::exception& e)
 {
@@ -2808,9 +2858,9 @@ try
 
 // TODO hyperv migration, remove
 #if defined(HCS_ENABLED)
-    // Runs the Hyper-V to HCS migration only if prepare() started one; otherwise returns OK. The
-    // driver is only switched once it's done, so a daemon that stops mid-migration comes back on
-    // hyperv, where switching again cleans up and resumes it.
+    // Runs the Hyper-V to HCS migration only if prepare() started one; otherwise returns OK.
+    // The driver is only switched once it's done, so a daemon that stops mid-migration comes
+    // back on hyperv, where switching again cleans up and resumes it.
     auto migration_status = transition.complete(server);
 #endif
 
@@ -2918,7 +2968,8 @@ try
             "Incorrect passphrase. No passphrase is set.\n\n"
             "To authenticate, first ask an authenticated user to set a passphrase and share it "
             "with you, provided they trust you. To set a passphrase, use the command "
-            "'multipass set local.passphrase'. Note that only the user who installs Multipass is "
+            "'multipass set local.passphrase'. Note that only the user who installs Multipass "
+            "is "
             "automatically authenticated."));
     }
 
@@ -3004,8 +3055,8 @@ try
         auto* vm_ptr = std::get<0>(instance_trail)->second.get();
         assert(vm_ptr);
 
-        // Only need to check if snapshots are supported and if the snapshot exists, so the result
-        // is discarded
+        // Only need to check if snapshots are supported and if the snapshot exists, so the
+        // result is discarded
         std::ignore = vm_ptr->get_snapshot(request->snapshot());
 
         if (auto state = vm_ptr->current_state(); state != VirtualMachine::State::stopped)
@@ -3178,8 +3229,8 @@ try
 
     mpl::debug("daemon", "Checking connection to image servers...");
 
-    // We use wait_update_manifests_all_and_optionally_applied_force to check connectivity to image
-    // servers.
+    // We use wait_update_manifests_all_and_optionally_applied_force to check connectivity to
+    // image servers.
     try
     {
         wait_update_manifests_all_and_optionally_applied_force(
@@ -3618,8 +3669,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
             config->factory->prepare_networking(checked_args.extra_interfaces);
 
-            // This set stores the MAC's which need to be in the allocated_mac_addrs if everything
-            // goes well.
+            // This set stores the MAC's which need to be in the allocated_mac_addrs if
+            // everything goes well.
             auto new_macs = allocated_mac_addrs;
 
             // check for repetition of requested macs
@@ -3691,9 +3742,7 @@ void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, DeleteReply& response)
     mpl::debug(category, "Instance deleted: {}", name);
 }
 
-grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm,
-                                   bool running_only,
-                                   std::chrono::seconds timeout)
+grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, bool running_only)
 {
     const auto st = vm.current_state();
     if (running_only && !MP_UTILS.is_running(st))
@@ -3712,7 +3761,6 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm,
 
     case VirtualMachine::State::off:
     case VirtualMachine::State::stopped:
-    case VirtualMachine::State::suspended:
         mpl::debug(category, "Rebooting {}", vm.get_name());
         {
             std::lock_guard guard{start_mutex};
@@ -3720,13 +3768,6 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm,
             vm.start();
         }
         stop_mounts(vm.get_name());
-        if (st == VirtualMachine::State::suspended)
-        {
-            // This will be blocking for each instance. Not ideal, but cannot be done async,
-            // since we need to get on the train of the next async call afterwards as well
-            vm.wait_until_ssh_up(timeout);
-            return ssh_reboot(vm);
-        }
         return grpc::Status::OK;
 
     case VirtualMachine::State::unavailable:
@@ -3734,6 +3775,13 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm,
                             fmt::format("Instance '{}' is unavailable.", vm.get_name()),
                             ""};
 
+    case VirtualMachine::State::suspended:
+        // A suspended instance should have been resumed and set to running before this function
+        // is called. If the state is detected here, we cannot recover
+        return grpc::Status{
+            grpc::StatusCode::FAILED_PRECONDITION,
+            fmt::format("Suspended instance '{}' failed to resume and restart.", vm.get_name()),
+            ""};
     case VirtualMachine::State::suspending:
     case VirtualMachine::State::starting:
     case VirtualMachine::State::restarting:
@@ -3741,7 +3789,7 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm,
     default:
         return grpc::Status{
             grpc::StatusCode::FAILED_PRECONDITION,
-            fmt::format("The state of instance '{0}' is {1} and cannot be restarted.\nUse "
+            fmt::format("The state of instance '{0}' is '{1}' and cannot be restarted.\nUse "
                         "'multipass stop --force {0}' to force-stop it, then retry.",
                         vm.get_name(),
                         st),

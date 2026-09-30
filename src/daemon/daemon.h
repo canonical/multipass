@@ -208,7 +208,7 @@ private:
                    DaemonRpcContext* context,
                    bool start);
     void delete_vm(InstanceTable::iterator vm_it, DeleteReply& response);
-    grpc::Status reboot_vm(VirtualMachine& vm, bool running_only, std::chrono::seconds timeout);
+    grpc::Status reboot_vm(VirtualMachine& vm, bool running_only);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status switch_off_vm(VirtualMachine& vm);
     grpc::Status make_vm_unavailable(VirtualMachine& vm);
