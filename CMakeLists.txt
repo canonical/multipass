@@ -55,21 +55,29 @@ endif()
 
 if(NOT VCPKG_BUILD_DEFAULT)
   message(STATUS "Will build `vcpkg` dependencies in `release-only` mode.")
-
-  # Propagate macOS deployment target to vcpkg triplet
-  if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
-    set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-triplets")
-    configure_file(
-      "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx-release.cmake.in"
-      "${VCPKG_TRIPLETS_DIR}/${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake"
-      @ONLY
-    )
-    set(VCPKG_OVERLAY_TRIPLETS "${VCPKG_TRIPLETS_DIR}" CACHE STRING "Custom vcpkg triplets directory")
-    message(STATUS "Generated vcpkg triplet: ${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake with deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
-  endif()
-
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
+  set(VCPKG_BUILD_TYPE_SETTING "set(VCPKG_BUILD_TYPE release)")
+else()
+  set(VCPKG_BUILD_TYPE_SETTING "") # build both debug and release
+endif()
+
+# Propagate macOS deployment target and compiler flags to the vcpkg triplet. Generate it for both
+# build modes; in the default mode it overlays vcpkg's stock triplet of the same name.
+if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+  if(VCPKG_BUILD_DEFAULT)
+    set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
+    set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
+  endif()
+
+  set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-triplets")
+  configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx.cmake.in"
+    "${VCPKG_TRIPLETS_DIR}/${VCPKG_TARGET_TRIPLET}.cmake"
+    @ONLY
+  )
+  set(VCPKG_OVERLAY_TRIPLETS "${VCPKG_TRIPLETS_DIR}" CACHE STRING "Custom vcpkg triplets directory")
+  message(STATUS "Generated vcpkg triplet: ${VCPKG_TARGET_TRIPLET}.cmake with deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif()
 
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg/scripts/buildsystems/vcpkg.cmake"
