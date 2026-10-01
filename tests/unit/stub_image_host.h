@@ -27,8 +27,18 @@ struct StubVMImageHost final : public multipass::VMImageHost
 {
     std::optional<multipass::VMImageInfo> info_for(const multipass::Query&) const override
     {
-        return std::optional<multipass::VMImageInfo>{
-            VMImageInfo{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}}};
+        return std::optional<multipass::VMImageInfo>{VMImageInfo{.aliases = {},
+                                                                 .os = {},
+                                                                 .release = {},
+                                                                 .release_title = {},
+                                                                 .release_codename = {},
+                                                                 .supported = {},
+                                                                 .image_location = {},
+                                                                 .id = {},
+                                                                 .stream_location = {},
+                                                                 .version = {},
+                                                                 .size = -1,
+                                                                 .verify = {}}};
     };
 
     std::vector<std::pair<std::string, multipass::VMImageInfo>> all_info_for(
@@ -39,7 +49,18 @@ struct StubVMImageHost final : public multipass::VMImageHost
 
     multipass::VMImageInfo info_for_full_hash(const std::string& /*full_hash*/) const override
     {
-        return {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
+        return {.aliases = {},
+                .os = {},
+                .release = {},
+                .release_title = {},
+                .release_codename = {},
+                .supported = {},
+                .image_location = {},
+                .id = {},
+                .stream_location = {},
+                .version = {},
+                .size = -1,
+                .verify = {}};
     };
 
     std::vector<multipass::VMImageInfo> all_images_for(const std::string& /*remote_name*/,

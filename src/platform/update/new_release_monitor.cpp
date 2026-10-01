@@ -40,10 +40,10 @@ constexpr auto json_description = "description";
 mp::NewReleaseInfo mp::tag_invoke(const boost::json::value_to_tag<mp::NewReleaseInfo>&,
                                   const boost::json::value& json)
 {
-    return {value_to<std::string>(json.at(::json_tag_name)),
-            value_to<std::string>(json.at(::json_html_url)),
-            mp::lookup_or<std::string>(json, ::json_title, ""),
-            mp::lookup_or<std::string>(json, ::json_description, "")};
+    return {.version = value_to<std::string>(json.at(::json_tag_name)),
+            .url = value_to<std::string>(json.at(::json_html_url)),
+            .title = mp::lookup_or<std::string>(json, ::json_title, ""),
+            .description = mp::lookup_or<std::string>(json, ::json_description, "")};
 }
 
 class mp::LatestReleaseChecker : public QThread
@@ -111,8 +111,8 @@ void mp::NewReleaseMonitor::latest_release_found(const NewReleaseInfo& latest_re
 {
     try
     {
-        const multipass::opaque_semver current{current_version};
-        const multipass::opaque_semver latest{latest_release.version};
+        const multipass::opaque_semver current{.value = current_version};
+        const multipass::opaque_semver latest{.value = latest_release.version};
         // Deliberately keeping all version string parsing here. If any version string
         // not of correct form, throw.
         if (current < latest)

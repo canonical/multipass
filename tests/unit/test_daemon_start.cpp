@@ -99,7 +99,8 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     auto event_dopoll = [](auto...) { return SSH_ERROR; };
     REPLACE(ssh_event_dopoll, event_dopoll);
 
-    std::vector<mp::NetworkInterface> extra_interfaces{{"eth7", "52:54:00:99:99:99", true}};
+    std::vector<mp::NetworkInterface> extra_interfaces{
+        {.id = "eth7", .mac_address = "52:54:00:99:99:99", .auto_mode = true}};
 
     auto mock_factory = use_a_mock_vm_factory();
     const auto [temp_dir, filename] =

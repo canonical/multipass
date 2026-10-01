@@ -72,7 +72,7 @@ mp::AliasDict mp::AliasDict::load_file(mp::Terminal* term, const std::filesystem
         try
         {
             auto json = boost::json::parse(*filedata);
-            return value_to<AliasDict>(json, JSONContext{term, filename});
+            return value_to<AliasDict>(json, JSONContext{.term = term, .filename = filename});
         }
         catch (const boost::system::system_error& e)
         {
