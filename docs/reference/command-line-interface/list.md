@@ -53,14 +53,13 @@ The full `multipass help list` output explains the available options:
 
 ```{code-block} text
 Usage: multipass list [options]
-List all instances or snapshots which have been created.
+List all instances which have been created.
 
 Options:
   -h, --help         Displays help on commandline options
   -v, --verbose      Increase logging verbosity. Repeat the 'v' in the short
                      option for more detail. Maximum verbosity is obtained with
                      4 (or more) v's, i.e. -vvvv.
-  --snapshots        List all available snapshots
   --format <format>  Output list in the requested format.
                      Valid formats are: table (default), json, csv and yaml
 ```

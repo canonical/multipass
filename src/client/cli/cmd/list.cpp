@@ -72,6 +72,7 @@ QString cmd::List::description() const
 mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
 {
     QCommandLineOption snapshotsOption("snapshots", "List all available snapshots");
+    snapshotsOption.setFlags(QCommandLineOption::HiddenFromHelp);
     QCommandLineOption formatOption("format",
                                     "Output list in the requested format.\nValid formats are: "
                                     "table (default), json, csv and yaml",
