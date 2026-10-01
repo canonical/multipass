@@ -110,7 +110,7 @@ ReturnCodeVariant dispatch_rpc_stream(Rpc::StubInterface* stub,
     ReplyType reply;
     auto handle_failure = detail::adapt_failure_handler(on_failure, reply);
 
-    auto rpc_method = std::bind(rpc_func, stub, std::placeholders::_1);
+    auto rpc_method = std::bind_front(rpc_func, stub);
 
     grpc::ClientContext context;
     std::unique_ptr<grpc::ClientReaderWriterInterface<Request, ReplyType>> client = rpc_method(
