@@ -114,6 +114,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                 (const std::string& cmd, bool whisper),
                 (override));
 
+    using mp::BaseVirtualMachine::desc;
     using mp::BaseVirtualMachine::renew_ssh_session; // promote to public
 
     void simulate_state(St state)
@@ -1639,6 +1640,48 @@ TEST_F(BaseVM, coreImageDiskResizeReturnsAMessage)
                            messages.end(),
                            expected_messages.begin(),
                            expected_messages.end()));
+}
+
+TEST_F(BaseVM, updateCpusCallsImplAndUpdatesDescription)
+{
+    constexpr auto num_cores = 7;
+    EXPECT_CALL(vm, update_cpus_impl(num_cores));
+
+    vm.mp::BaseVirtualMachine::update_cpus(num_cores);
+
+    EXPECT_EQ(vm.desc.num_cores, num_cores);
+}
+
+TEST_F(BaseVM, updateCpusLeavesDescriptionWhenImplThrows)
+{
+    const auto orig_num_cores = vm.desc.num_cores;
+    EXPECT_CALL(vm, update_cpus_impl(7)).WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    EXPECT_THROW(vm.mp::BaseVirtualMachine::update_cpus(7), std::runtime_error);
+
+    EXPECT_EQ(vm.desc.num_cores, orig_num_cores);
+}
+
+TEST_F(BaseVM, resizeMemoryCallsImplAndUpdatesDescription)
+{
+    const auto new_size = mp::MemorySize{"3G"};
+    EXPECT_CALL(vm, resize_memory_impl(new_size));
+
+    vm.mp::BaseVirtualMachine::resize_memory(new_size);
+
+    EXPECT_EQ(vm.desc.mem_size, new_size);
+}
+
+TEST_F(BaseVM, resizeMemoryLeavesDescriptionWhenImplThrows)
+{
+    const auto orig_mem_size = vm.desc.mem_size;
+    const auto new_size = mp::MemorySize{"3G"};
+    EXPECT_CALL(vm, resize_memory_impl(new_size))
+        .WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    EXPECT_THROW(vm.mp::BaseVirtualMachine::resize_memory(new_size), std::runtime_error);
+
+    EXPECT_EQ(vm.desc.mem_size, orig_mem_size);
 }
 
 } // namespace
