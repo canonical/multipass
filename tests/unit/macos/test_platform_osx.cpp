@@ -172,14 +172,14 @@ QByteArray networksetup_output = QByteArrayLiteral(
     "\nTag: 1\n");
 
 std::unordered_map<std::string, mp::NetworkInterfaceInfo> expect_interfaces{
-    {"en0", {"en0", "ethernet", "Ethernet"}},
-    {"en1", {"en1", "wifi", "Wi-Fi"}},
-    {"en2", {"en2", "thunderbolt", "Thunderbolt 1"}},
-    {"en3", {"en3", "thunderbolt", "Thunderbolt 2"}},
-    {"en11", {"en11", "usb", "USB 10/100/1000 LAN"}},
-    {"en12", {"en12", "usb", "iPhone USB"}},
-    {"bridge0", {"bridge0", "bridge", "Network bridge with en2, en3"}},
-    {"bridge2", {"bridge2", "bridge", "Empty network bridge"}}};
+    {"en0", {.id = "en0", .type = "ethernet", .description = "Ethernet"}},
+    {"en1", {.id = "en1", .type = "wifi", .description = "Wi-Fi"}},
+    {"en2", {.id = "en2", .type = "thunderbolt", .description = "Thunderbolt 1"}},
+    {"en3", {.id = "en3", .type = "thunderbolt", .description = "Thunderbolt 2"}},
+    {"en11", {.id = "en11", .type = "usb", .description = "USB 10/100/1000 LAN"}},
+    {"en12", {.id = "en12", .type = "usb", .description = "iPhone USB"}},
+    {"bridge0", {.id = "bridge0", .type = "bridge", .description = "Network bridge with en2, en3"}},
+    {"bridge2", {.id = "bridge2", .type = "bridge", .description = "Empty network bridge"}}};
 
 void simulate_ifconfig(const mpt::MockProcess* process, const mp::ProcessState& exit_status)
 {
@@ -281,7 +281,7 @@ TEST(PlatformOSX, testNetworkInterfaces)
 {
     std::unique_ptr<mp::test::MockProcessFactory::Scope> mock_factory_scope =
         mpt::MockProcessFactory::Inject();
-    const mp::ProcessState success{0, std::nullopt};
+    const mp::ProcessState success{.exit_code = 0, .error = std::nullopt};
     mock_factory_scope->register_callback(
         [&](mpt::MockProcess* process) { simulate_environment(process, success, success); });
 
@@ -307,8 +307,9 @@ TEST(PlatformOSX, createAliasScriptWorks)
                 writableLocation(mp::StandardPaths::AppLocalDataLocation))
         .WillOnce(Return(tmp_dir.path()));
 
-    EXPECT_NO_THROW(
-        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}));
+    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script(
+        "alias_name",
+        mp::AliasDefinition{.instance = "instance", .command = "command"}));
 
     QFile checked_script(tmp_dir.path() + "/bin/alias_name");
     ASSERT_TRUE(checked_script.open(QFile::ReadOnly));
@@ -337,7 +338,7 @@ TEST(PlatformOSX, createAliasScriptOverwrites)
 
     EXPECT_NO_THROW(mock_platform->Platform::create_alias_script(
         "alias_name",
-        mp::AliasDefinition{"instance", "other_command"}));
+        mp::AliasDefinition{.instance = "instance", .command = "other_command"}));
 }
 
 TEST(PlatformOSX, createAliasScriptThrowsIfCannotCreatePath)
@@ -346,10 +347,11 @@ TEST(PlatformOSX, createAliasScriptThrowsIfCannotCreatePath)
 
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(
-        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-        std::runtime_error,
-        mpt::match_what(HasSubstr("failed to create dir '")));
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script(
+                             "alias_name",
+                             mp::AliasDefinition{.instance = "instance", .command = "command"}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("failed to create dir '")));
 }
 
 TEST(PlatformOSX, createAliasScriptThrowsIfCannotWriteScript)
@@ -360,10 +362,11 @@ TEST(PlatformOSX, createAliasScriptThrowsIfCannotWriteScript)
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, write(A<QIODevice&>(), _, _)).WillOnce(Return(747));
 
-    MP_EXPECT_THROW_THAT(
-        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-        std::runtime_error,
-        mpt::match_what(HasSubstr("failed to write to file '")));
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script(
+                             "alias_name",
+                             mp::AliasDefinition{.instance = "instance", .command = "command"}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("failed to write to file '")));
 }
 
 TEST(PlatformOSX, removeAliasScriptWorks)

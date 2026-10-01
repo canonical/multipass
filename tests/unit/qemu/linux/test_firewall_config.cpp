@@ -68,8 +68,9 @@ TEST_F(FirewallConfig, iptablesNftErrorLogsWarningUsesIptablesLegacyByDefault)
         if (process->program() == "iptables-nft")
         {
             mp::ProcessState exit_state{
-                1,
-                mp::ProcessState::Error{QProcess::FailedToStart, error_msg}};
+                .exit_code = 1,
+                .error = mp::ProcessState::Error{.state = QProcess::FailedToStart,
+                                                 .message = error_msg}};
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
         }
     };

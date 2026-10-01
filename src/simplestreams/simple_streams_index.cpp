@@ -37,8 +37,8 @@ mp::SimpleStreamsIndex mp::SimpleStreamsIndex::get_image_downloads(std::string_v
     {
         if (lookup_or<std::string>(value, "datatype", "") == "image-downloads")
         {
-            return {lookup_or<std::string>(value, "path", ""),
-                    lookup_or<std::string>(value, "updated", "")};
+            return {.manifest_path = lookup_or<std::string>(value, "path", ""),
+                    .updated_at = lookup_or<std::string>(value, "updated", "")};
         }
     }
 

@@ -159,7 +159,7 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     auto event_dopoll = [](auto...) { return SSH_ERROR; };
     REPLACE(ssh_event_dopoll, event_dopoll);
 
-    extra_interfaces = {{"eth7", "52:54:00:99:99:99", true}};
+    extra_interfaces = {{.id = "eth7", .mac_address = "52:54:00:99:99:99", .auto_mode = true}};
 
     auto mock_vm = make_mock_vm(VMState::stopped);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());

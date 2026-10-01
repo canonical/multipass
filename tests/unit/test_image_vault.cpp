@@ -177,7 +177,11 @@ struct ImageVault : public testing::Test
     mpt::TempDir save_dir;
     std::string instance_name{"valley-pied-piper"};
     QString instance_dir = save_dir.filePath("instances/" + QString::fromStdString(instance_name));
-    mp::Query default_query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
+    mp::Query default_query{.name = instance_name,
+                            .release = "xenial",
+                            .persistent = false,
+                            .remote_name = "",
+                            .query_type = mp::Query::Type::Alias};
 };
 } // namespace
 
@@ -275,7 +279,11 @@ TEST_F(ImageVault, invalidFileURLThrows)
                                   mp::days{0}};
 
     const std::string invalid_url{"file://path/to/image"};
-    const mp::Query query{"", invalid_url, false, "", mp::Query::Type::LocalFile};
+    const mp::Query query{.name = "",
+                          .release = invalid_url,
+                          .persistent = false,
+                          .remote_name = "",
+                          .query_type = mp::Query::Type::LocalFile};
 
     MP_EXPECT_THROW_THAT(
         vault.fetch_image(query, stub_prepare, stub_monitor, std::nullopt, save_dir.path()),
@@ -313,11 +321,11 @@ TEST_F(ImageVault, nonexistentLocalFileImageThrows)
                                   mp::days{0}};
 
     const std::string missing_file{"/foo"};
-    const mp::Query query{"",
-                          fmt::format("file://{}", missing_file),
-                          false,
-                          "",
-                          mp::Query::Type::LocalFile};
+    const mp::Query query{.name = "",
+                          .release = fmt::format("file://{}", missing_file),
+                          .persistent = false,
+                          .remote_name = "",
+                          .query_type = mp::Query::Type::LocalFile};
 
     MP_EXPECT_THROW_THAT(
         vault.fetch_image(query, stub_prepare, stub_monitor, std::nullopt, save_dir.path()),
@@ -337,7 +345,11 @@ TEST_F(ImageVault, DISABLE_ON_UNIX(imageFileNameWithDriveLetter))
                                   data_dir.path(),
                                   mp::days{0}};
 
-    const mp::Query query{"", file.url().toStdString(), false, "", mp::Query::Type::LocalFile};
+    const mp::Query query{.name = "",
+                          .release = file.url().toStdString(),
+                          .persistent = false,
+                          .remote_name = "",
+                          .query_type = mp::Query::Type::LocalFile};
 
     EXPECT_NO_THROW(
         vault.fetch_image(query, stub_prepare, stub_monitor, std::nullopt, save_dir.path()));
@@ -364,7 +376,11 @@ TEST_F(ImageVault, imageCloneFailOnAlreadyExistDestImage)
     vault.fetch_image(default_query, stub_prepare, stub_monitor, std::nullopt, instance_dir);
 
     const std::string dest_name = "valley-pied-piper-clone";
-    const mp::Query second_query{dest_name, "xenial", false, "", mp::Query::Type::Alias};
+    const mp::Query second_query{.name = dest_name,
+                                 .release = "xenial",
+                                 .persistent = false,
+                                 .remote_name = "",
+                                 .query_type = mp::Query::Type::Alias};
 
     vault.fetch_image(second_query,
                       stub_prepare,
@@ -612,7 +628,13 @@ TEST_F(ImageVault, usesImageFromPrepare)
     mpt::make_file_with_content(file_name, expected_data);
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
-        return {file_name.toStdString(), source_image.id, "", "", "", "", {}};
+        return {.image_path = file_name.toStdString(),
+                .id = source_image.id,
+                .original_release = "",
+                .current_release = "",
+                .release_date = "",
+                .os = "",
+                .aliases = {}};
     };
 
     mp::DefaultVMImageVault vault{hosts,
@@ -644,7 +666,13 @@ TEST_F(ImageVault, imagePurgedExpired)
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name.toStdString(), source_image.id, "", "", "", "", {}};
+        return {.image_path = file_name.toStdString(),
+                .id = source_image.id,
+                .original_release = "",
+                .current_release = "",
+                .release_date = "",
+                .os = "",
+                .aliases = {}};
     };
     auto vm_image = vault.fetch_image(default_query,
                                       prepare,
@@ -672,7 +700,13 @@ TEST_F(ImageVault, imageExistsNotExpired)
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name.toStdString(), source_image.id, "", "", "", "", {}};
+        return {.image_path = file_name.toStdString(),
+                .id = source_image.id,
+                .original_release = "",
+                .current_release = "",
+                .release_date = "",
+                .os = "",
+                .aliases = {}};
     };
     auto vm_image = vault.fetch_image(default_query,
                                       prepare,
@@ -883,7 +917,11 @@ TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(httpDownloadReturnsExpectedImage
                                   mp::days{0}};
 
     auto image_url{"http://www.foo.com/images/foo.img"};
-    mp::Query query{instance_name, image_url, false, "", mp::Query::Type::HttpDownload};
+    mp::Query query{.name = instance_name,
+                    .release = image_url,
+                    .persistent = false,
+                    .remote_name = "",
+                    .query_type = mp::Query::Type::HttpDownload};
 
     mp::VMImage image;
     EXPECT_NO_THROW(
@@ -1107,7 +1145,11 @@ TEST_F(ImageVault, fetchLocalImageThrowsOnEmptyVault)
 
 TEST_F(ImageVault, fetchRemoteImageThrowsOnMissingKernel)
 {
-    mp::Query query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
+    mp::Query query{.name = instance_name,
+                    .release = "xenial",
+                    .persistent = false,
+                    .remote_name = "",
+                    .query_type = mp::Query::Type::Alias};
     mp::DefaultVMImageVault vault{hosts,
                                   &url_downloader,
                                   cache_dir.path(),

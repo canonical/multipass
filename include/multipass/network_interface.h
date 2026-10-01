@@ -54,9 +54,9 @@ inline NetworkInterface tag_invoke(const boost::json::value_to_tag<NetworkInterf
     if (!multipass::utils::valid_mac_address(mac_address))
         throw std::runtime_error(fmt::format("Invalid MAC address {}", mac_address));
 
-    return {value_to<std::string>(json.at("id")),
-            mac_address,
-            value_to<bool>(json.at("auto_mode"))};
+    return {.id = value_to<std::string>(json.at("id")),
+            .mac_address = mac_address,
+            .auto_mode = value_to<bool>(json.at("auto_mode"))};
 }
 
 } // namespace multipass

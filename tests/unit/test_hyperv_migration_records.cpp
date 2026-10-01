@@ -341,7 +341,8 @@ struct HyperVMigrationEligibility : Test
                 EXPECT_CALL(*process, read_all_standard_error()).WillOnce(Return(error));
                 EXPECT_CALL(*process, wait_for_finished(60000)).WillOnce(Return(finished));
                 ON_CALL(*process, process_state())
-                    .WillByDefault(Return(mp::ProcessState{exit_code, std::nullopt}));
+                    .WillByDefault(
+                        Return(mp::ProcessState{.exit_code = exit_code, .error = std::nullopt}));
             },
             /* auto_exit = */ false);
     }
@@ -548,7 +549,8 @@ struct HyperVBulkMigration : Test
             EXPECT_CALL(*process, read_all_standard_error()).WillOnce(Return(error));
             EXPECT_CALL(*process, wait_for_finished(60000)).WillOnce(Return(true));
             ON_CALL(*process, process_state())
-                .WillByDefault(Return(mp::ProcessState{exit_code, std::nullopt}));
+                .WillByDefault(
+                    Return(mp::ProcessState{.exit_code = exit_code, .error = std::nullopt}));
         });
     }
 

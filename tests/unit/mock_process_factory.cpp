@@ -51,7 +51,7 @@ mpt::MockProcess::MockProcess(std::unique_ptr<mp::ProcessSpec>&& spec,
     ON_CALL(*this, execute(_)).WillByDefault(Return(success_exit_state));
     ON_CALL(*this, wait_for_started(_)).WillByDefault(Return(true));
 
-    mpt::MockProcessFactory::ProcessInfo p{program(), arguments()};
+    mpt::MockProcessFactory::ProcessInfo p{.command = program(), .arguments = arguments()};
     process_list.emplace_back(p);
 }
 

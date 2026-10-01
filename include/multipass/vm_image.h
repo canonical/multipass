@@ -61,12 +61,12 @@ inline VMImage tag_invoke(const boost::json::value_to_tag<VMImage>&, const boost
     for (const auto& entry : json.at("aliases").as_array())
         aliases.push_back(value_to<std::string>(entry.at("alias")));
 
-    return {value_to<std::filesystem::path>(json.at("path")),
-            value_to<std::string>(json.at("id")),
-            lookup_or<std::string>(json, "original_release", ""),
-            lookup_or<std::string>(json, "current_release", ""),
-            lookup_or<std::string>(json, "release_date", ""),
-            lookup_or<std::string>(json, "os", ""),
-            aliases};
+    return {.image_path = value_to<std::filesystem::path>(json.at("path")),
+            .id = value_to<std::string>(json.at("id")),
+            .original_release = lookup_or<std::string>(json, "original_release", ""),
+            .current_release = lookup_or<std::string>(json, "current_release", ""),
+            .release_date = lookup_or<std::string>(json, "release_date", ""),
+            .os = lookup_or<std::string>(json, "os", ""),
+            .aliases = aliases};
 }
 } // namespace multipass
