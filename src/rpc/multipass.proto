@@ -448,15 +448,12 @@ message RestartReply {
 
 message DeleteRequest {
     repeated InstanceSnapshotPair instance_snapshot_pairs = 1;
-    bool purge = 2;
-    int32 verbosity_level = 3;
-    bool purge_snapshots = 4;
+    int32 verbosity_level = 2;
 }
 
 message DeleteReply {
     string log_line = 1;
     repeated string purged_instances = 2;
-    bool confirm_snapshot_purging = 3;
 }
 
 message UmountRequest {
