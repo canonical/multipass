@@ -115,9 +115,9 @@ struct HyperVTargetTransaction : public Test
                  {.id = "target-switch", .mac_address = "52:54:00:12:34:56", .auto_mode = true}}}};
 
         ON_CALL(*virtdisk.first, list_virtual_disk_chain(_, _, _))
-            .WillByDefault(Invoke(chain_by_filename({{"active.avhdx", "base.vhdx"},
-                                                     {"snap1.avhdx", "base.vhdx"},
-                                                     {"1.avhdx", "base.vhdx"}})));
+            .WillByDefault(chain_by_filename({{"active.avhdx", "base.vhdx"},
+                                              {"snap1.avhdx", "base.vhdx"},
+                                              {"1.avhdx", "base.vhdx"}}));
         ON_CALL(*virtdisk.first, reparent_virtual_disk(_, _))
             .WillByDefault(Return(mhv::OperationResult::success()));
     }
@@ -153,7 +153,7 @@ TEST_F(HyperVTargetTransaction, planMapsEveryUniqueDiskTargetLocal)
 TEST_F(HyperVTargetTransaction, planRejectsSharedBackingOutsideGraph)
 {
     ON_CALL(*virtdisk.first, list_virtual_disk_chain(_, _, _))
-        .WillByDefault(Invoke(chain_by_filename({{"active.avhdx", "foreign-base.vhdx"}})));
+        .WillByDefault(chain_by_filename({{"active.avhdx", "foreign-base.vhdx"}}));
 
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
     EXPECT_THROW((void)transaction.plan(layout, target_instance_dir), std::runtime_error);
@@ -173,7 +173,7 @@ TEST_F(HyperVTargetTransaction, planReservesSnapshotNamesAndDisambiguatesDiskNam
     const auto duplicate = source_dir / "nested" / active.filename();
     layout.all_disks.insert(layout.all_disks.end(), {collision, duplicate});
     ON_CALL(*virtdisk.first, list_virtual_disk_chain(_, _, _))
-        .WillByDefault(Invoke(chain_by_filename({})));
+        .WillByDefault(chain_by_filename({}));
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
 
     const auto mapping = transaction.plan(layout, target_instance_dir);
@@ -190,7 +190,7 @@ TEST_F(HyperVTargetTransaction, planDisambiguatesDiskNamesCaseInsensitively)
     const auto active_collision = source_dir / "nested" / "ACTIVE.avhdx";
     layout.all_disks.insert(layout.all_disks.end(), {snapshot_collision, active_collision});
     ON_CALL(*virtdisk.first, list_virtual_disk_chain(_, _, _))
-        .WillByDefault(Invoke(chain_by_filename({})));
+        .WillByDefault(chain_by_filename({}));
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
 
     const auto mapping = transaction.plan(layout, target_instance_dir);
@@ -209,11 +209,11 @@ TEST_F(HyperVTargetTransaction, stageCopiesReparentsAndRewritesSnapshotsWithoutT
     // Every reparent must target a staged copy, never the source.
     EXPECT_CALL(*virtdisk.first, reparent_virtual_disk(_, _))
         .Times(2)
-        .WillRepeatedly(Invoke([&](const fs::path& child, const fs::path& parent) {
+        .WillRepeatedly([&](const fs::path& child, const fs::path& parent) {
             EXPECT_NE(child.parent_path(), source_dir);
             EXPECT_NE(parent.parent_path(), source_dir);
             return mhv::OperationResult::success();
-        }));
+        });
 
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
     const auto mapping = transaction.stage(layout, source_dir);
@@ -284,7 +284,7 @@ TEST_F(HyperVTargetTransaction, verifyRejectsNonTargetLocalParent)
 
     // Make the active head reopen onto a parent that lives outside the target root.
     ON_CALL(*virtdisk.first, list_virtual_disk_chain(_, _, _))
-        .WillByDefault(Invoke(
+        .WillByDefault(
             [&](const fs::path& disk, std::vector<fs::path>& chain, std::optional<std::size_t>) {
                 chain = {disk};
                 if (disk.filename() == "active.avhdx")
@@ -292,7 +292,7 @@ TEST_F(HyperVTargetTransaction, verifyRejectsNonTargetLocalParent)
                 else if (disk.filename() == "1.avhdx")
                     chain.push_back(disk.parent_path() / "base.vhdx");
                 return mhv::OperationResult::success();
-            }));
+            });
 
     EXPECT_THROW(transaction.verify(mapping), std::runtime_error);
 }

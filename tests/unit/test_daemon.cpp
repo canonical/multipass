@@ -1556,7 +1556,7 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
     EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
-        .WillRepeatedly(Invoke([](const auto& p) { return p.filename() != "nowhere"; }));
+        .WillRepeatedly([](const auto& p) { return p.filename() != "nowhere"; });
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     EXPECT_CALL(*mock_image_vault, fetch_image(Field(&mp::Query::name, stayed), _, _, _, _))
