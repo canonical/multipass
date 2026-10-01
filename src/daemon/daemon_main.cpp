@@ -34,124 +34,12 @@
 
 #include <QCoreApplication>
 
-#include <atomic>
-#include <csignal>
-#include <signal.h>
-#include <thread>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpp = multipass::platform;
 
 namespace
 {
-
-static_assert(std::atomic_int::is_always_lock_free,
-              "std::atomic_int must be lock-free to be safely used in signal handlers");
-
-static_assert(std::atomic<mpp::AsyncSignalSafeNotification*>::is_always_lock_free,
-              "std::atomic<mpp::AsyncSignalSafeNotification*> must be lock-free to be safely used "
-              "in signal handlers");
-
-static constexpr auto no_signal = -1;
-static constexpr auto abort_thread = -2;
-
-static std::atomic_int first_signal = no_signal;
-static std::atomic<mpp::AsyncSignalSafeNotification*> signal_notif = nullptr;
-
-void signal_handler(int signo)
-{
-    const auto saved_errno = errno;
-    if (signo == SIGTERM || signo == SIGINT || signo == SIGUSR1)
-    {
-        auto expected = no_signal;
-        first_signal.compare_exchange_strong(expected, signo);
-        signal_notif.load()->async_safe_notify();
-    }
-    errno = saved_errno;
-}
-
-void register_signal_handlers()
-{
-    // We are intentionally leaking the AsyncSignalSafeNotification object
-    // to prevent it from being destroyed, once used inside a signal handler.
-    // Not doing so could yield to undefined behavior.
-    signal_notif.store(new mpp::AsyncSignalSafeNotification());
-
-    struct sigaction sa = {};
-    sa.sa_handler = &signal_handler;
-    sigemptyset(&sa.sa_mask);
-    if (sigaction(SIGTERM, &sa, nullptr) < 0 || sigaction(SIGINT, &sa, nullptr) < 0 ||
-        sigaction(SIGUSR1, &sa, nullptr) < 0)
-    {
-        throw std::runtime_error(
-            fmt::format("Failed to register signal handlers for SIGTERM, SIGINT, or SIGUSR1: {}",
-                        strerror(errno)));
-    }
-}
-
-class UnixSignalHandler
-{
-public:
-    UnixSignalHandler(mp::Signal& app_ready_signal) : app_ready_signal(app_ready_signal)
-    {
-        register_signal_handlers();
-        signal_handling_thread = std::jthread{[this] { monitor_signals(); }};
-    }
-
-    ~UnixSignalHandler()
-    {
-        auto notif = signal_notif.load();
-        if (notif != nullptr)
-        {
-            auto expected = no_signal;
-            first_signal.compare_exchange_strong(expected, abort_thread);
-
-            notif->async_safe_notify();
-        }
-    }
-
-    void monitor_signals()
-    {
-        auto signal = first_signal.load();
-        auto notif = signal_notif.load();
-
-        try
-        {
-            while (signal == no_signal)
-            {
-                notif->wait();
-                signal = first_signal.load();
-            }
-        }
-        catch (const std::exception& error)
-        {
-            mpl::error("daemon", "Failed to wait for signal notification: {}", error.what());
-        }
-
-        if (signal == abort_thread)
-        {
-            return;
-        }
-
-        if (signal == SIGTERM || signal == SIGINT)
-        {
-            mpl::info("daemon", "Received signal {} ({})", signal, strsignal(signal));
-        }
-
-        // In order to be able to gracefully end the application via QCoreApplication::quit()
-        // the initialization (QT, Daemon) have to happen first. Otherwise, the application
-        // might not be in a state that the QT's event loop would pick up the signal and
-        // terminate. This happens when the daemon is started and being signaled in quick
-        // succession.
-        app_ready_signal.wait();
-        QCoreApplication::quit();
-    }
-
-private:
-    mp::Signal& app_ready_signal;
-    std::jthread signal_handling_thread;
-};
 
 int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
 {
@@ -191,6 +79,7 @@ int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
     mpl::info("daemon", "Goodbye!");
     return exit_code;
 }
+
 } // namespace
 
 int main(int argc, char* argv[])
@@ -209,7 +98,7 @@ int main(int argc, char* argv[])
     // The signal handler will not act upon signals until either the app initializes
     // successfully, or an error happens.
     //
-    UnixSignalHandler handler{app_ready_signal};
+    mpp::UnixSignalHandler handler{app_ready_signal};
     auto exit_code = mp::top_catch_all(
         "daemon",
         [&app_ready_signal] {

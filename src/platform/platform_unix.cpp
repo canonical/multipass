@@ -33,10 +33,7 @@
 
 #include <cerrno>
 #include <cstring>
-#include <fcntl.h>
-#include <stdexcept>
 #include <system_error>
-#include <unistd.h>
 
 namespace mp = multipass;
 
@@ -294,78 +291,3 @@ void mp::platform::Platform::shutdown_socket(mp::Socket socket) const
         if (auto err = errno; err != ENOTCONN)
             throw std::system_error(err, std::generic_category(), "Failed to shutdown socket");
 }
-
-namespace multipass::platform
-{
-
-AsyncSignalSafeNotification::AsyncSignalSafeNotification()
-{
-    if (pipe(sync_pipe) != 0)
-    {
-        const auto error = errno;
-        throw std::runtime_error(fmt::format("Failed to create sync pipe: {}", strerror(error)));
-    }
-
-    const auto set_flags = [](int fd, int flags, int get, int set) {
-        const auto prev = fcntl(fd, get);
-        return prev != -1 && fcntl(fd, set, prev | flags) != -1;
-    };
-
-    if (!set_flags(sync_pipe[1], O_NONBLOCK, F_GETFL, F_SETFL) ||
-        !set_flags(sync_pipe[0], FD_CLOEXEC, F_GETFD, F_SETFD) ||
-        !set_flags(sync_pipe[1], FD_CLOEXEC, F_GETFD, F_SETFD))
-    {
-        const auto error = errno;
-
-        close(sync_pipe[0]);
-        sync_pipe[0] = -1;
-
-        close(sync_pipe[1]);
-        sync_pipe[1] = -1;
-
-        throw std::runtime_error(fmt::format("Failed to configure sync pipe: {}", strerror(error)));
-    }
-}
-
-AsyncSignalSafeNotification::~AsyncSignalSafeNotification()
-{
-    if (sync_pipe[0] != -1)
-    {
-        close(sync_pipe[0]);
-    }
-
-    if (sync_pipe[1] != -1)
-    {
-        close(sync_pipe[1]);
-    }
-}
-
-void AsyncSignalSafeNotification::async_safe_notify()
-{
-    const auto byte = char{};
-    while (write(sync_pipe[1], &byte, 1) == -1 && errno == EINTR)
-    {
-    }
-}
-
-void AsyncSignalSafeNotification::wait()
-{
-    while (true)
-    {
-        auto byte = char{};
-        auto r = read(sync_pipe[0], &byte, 1);
-        if (r >= 1)
-        {
-            return;
-        }
-
-        if (r != 0 && errno != EINTR)
-        {
-            const auto error = errno;
-            throw std::runtime_error(
-                fmt::format("Failed to read from sync pipe: {}", strerror(error)));
-        }
-    }
-}
-
-} // namespace multipass::platform

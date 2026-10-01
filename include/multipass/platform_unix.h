@@ -17,17 +17,34 @@
 
 #pragma once
 
-#include <multipass/disabled_copy_move.h>
-
 #include <csignal>
+#include <thread>
 #include <vector>
 
 #include "singleton.h"
 
 #define MP_POSIX_SIGNAL multipass::platform::PosixSignal::instance()
 
+namespace multipass
+{
+struct Signal;
+}
+
 namespace multipass::platform
 {
+
+class UnixSignalHandler
+{
+public:
+    explicit UnixSignalHandler(Signal& app_ready_signal);
+    ~UnixSignalHandler();
+
+    void monitor_signals();
+
+private:
+    Signal& app_ready_signal;
+    std::jthread signal_handling_thread;
+};
 
 class PosixSignal : public Singleton<PosixSignal>
 {
@@ -41,28 +58,5 @@ public:
 
 sigset_t make_sigset(const std::vector<int>& sigs);
 sigset_t make_and_block_signals(const std::vector<int>& sigs);
-
-/**
- * A mechanism for sending a notification from a signal handler
- * to a single waiting thread of the main application.
- * This class guarantees that:
- * - async_safe_notify is async-signal safe.
- * - after the first call to async_safe_notify, at least one
- * invocation of wait will return.
- * Subsequent invocations of async_safe_notify may or may not cause
- * other calls to wait to return.
- */
-class AsyncSignalSafeNotification : public DisabledCopyMove
-{
-public:
-    AsyncSignalSafeNotification();
-    ~AsyncSignalSafeNotification();
-
-    void async_safe_notify();
-    void wait();
-
-private:
-    int sync_pipe[2] = {-1, -1};
-};
 
 } // namespace multipass::platform
