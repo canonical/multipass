@@ -60,7 +60,7 @@ std::vector<mp::VMImageInfo> fetch_image_info(const std::string& arch,
         auto manifest = boost::json::parse(std::string_view(data)).as_object();
         mpl::log(mpl::Level::debug, category, "Found {} items", manifest.size());
 
-        mp::ArchContext context{arch};
+        mp::ArchContext context{.arch = arch};
         std::vector<mp::VMImageInfo> result;
         for (const auto& [distro_name, value] : manifest)
         {

@@ -336,7 +336,7 @@ TEST_F(PowerShellTest, execSucceedsWhenNoTimeoutAndProcessSuccessful)
             EXPECT_CALL(*process, start);
             EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
             EXPECT_CALL(*process, process_state)
-                .WillOnce(Return(mp::ProcessState{0, std::nullopt}));
+                .WillOnce(Return(mp::ProcessState{.exit_code = 0, .error = std::nullopt}));
         },
         /* auto_exit = */ false);
 
@@ -376,7 +376,7 @@ TEST_F(PowerShellTest, execFailsWhenCmdReturnsBadExitCode)
             EXPECT_CALL(*process, start);
             EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
             EXPECT_CALL(*process, process_state)
-                .WillOnce(Return(mp::ProcessState{-1, std::nullopt}));
+                .WillOnce(Return(mp::ProcessState{.exit_code = -1, .error = std::nullopt}));
         },
         /* auto_exit = */ false);
 

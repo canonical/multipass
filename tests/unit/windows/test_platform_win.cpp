@@ -179,7 +179,8 @@ TEST_F(PermanentIpv4Neighbor, rejectsInvalidMac)
 TEST_F(PermanentIpv4Neighbor, findsEntryByPhysicalAddress)
 {
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{10, 123, 45, 67}, mgmt_luid}}))));
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table(
+            {{.address = {10, 123, 45, 67}, .interface_luid = mgmt_luid}}))));
 
     EXPECT_EQ(mp::permanent_ipv4_neighbor("AA-BB-CC-DD-EE-FF", mgmt_interface), "10.123.45.67");
 }
@@ -187,9 +188,10 @@ TEST_F(PermanentIpv4Neighbor, findsEntryByPhysicalAddress)
 TEST_F(PermanentIpv4Neighbor, ignoresEntriesOnOtherInterfaces)
 {
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{10, 97, 0, 75}, other_luid},
-                                                          {{172, 19, 154, 10}, mgmt_luid},
-                                                          {{10, 97, 1, 11}, other_luid}}))));
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table(
+            {{.address = {10, 97, 0, 75}, .interface_luid = other_luid},
+             {.address = {172, 19, 154, 10}, .interface_luid = mgmt_luid},
+             {.address = {10, 97, 1, 11}, .interface_luid = other_luid}}))));
 
     EXPECT_EQ(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff", mgmt_interface), "172.19.154.10");
 }
@@ -197,7 +199,8 @@ TEST_F(PermanentIpv4Neighbor, ignoresEntriesOnOtherInterfaces)
 TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenOnlyOtherInterfacesMatch)
 {
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{10, 97, 0, 75}, other_luid}}))));
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table(
+            {{.address = {10, 97, 0, 75}, .interface_luid = other_luid}}))));
 
     EXPECT_FALSE(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff", mgmt_interface));
 }
@@ -207,7 +210,8 @@ TEST_F(PermanentIpv4Neighbor, usesFirstOfMultipleEntries)
     auto logger_scope = expect_only_log(mpl::Level::debug, "Multiple permanent IPv4 neighbors");
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
         .WillOnce(Return(ByMove(mpt::make_neighbor_table(
-            {{{172, 19, 154, 10}, mgmt_luid}, {{172, 19, 154, 11}, mgmt_luid}}))));
+            {{.address = {172, 19, 154, 10}, .interface_luid = mgmt_luid},
+             {.address = {172, 19, 154, 11}, .interface_luid = mgmt_luid}}))));
 
     EXPECT_EQ(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff", mgmt_interface), "172.19.154.10");
 }
@@ -218,8 +222,8 @@ TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenGetIpNetTableFails)
                                         "GetIpNetTable2 failed with error code 5");
     auto table = mp::hyperv::IpNetTable{nullptr, [](MIB_IPNET_TABLE2*) {}};
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-        .WillOnce(
-            Return(ByMove(mp::hyperv::IpNetTableResult{ERROR_ACCESS_DENIED, std::move(table)})));
+        .WillOnce(Return(ByMove(mp::hyperv::IpNetTableResult{.error = ERROR_ACCESS_DENIED,
+                                                             .table = std::move(table)})));
 
     EXPECT_FALSE(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff", mgmt_interface));
 }
@@ -227,9 +231,10 @@ TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenGetIpNetTableFails)
 TEST_F(PermanentIpv4Neighbor, removesAllEntriesForMac)
 {
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{172, 19, 154, 10}, mgmt_luid},
-                                                          {{10, 97, 0, 75}, mgmt_luid},
-                                                          {{10, 97, 1, 11}, mgmt_luid}}))));
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table(
+            {{.address = {172, 19, 154, 10}, .interface_luid = mgmt_luid},
+             {.address = {10, 97, 0, 75}, .interface_luid = mgmt_luid},
+             {.address = {10, 97, 1, 11}, .interface_luid = mgmt_luid}}))));
     std::vector<std::string> removed_addresses;
     EXPECT_CALL(mock_net_io_api, DeleteIpNetEntry2(_))
         .Times(3)
@@ -247,9 +252,10 @@ TEST_F(PermanentIpv4Neighbor, removesAllEntriesForMac)
 TEST_F(PermanentIpv4Neighbor, removesOnlyEntriesOnInterface)
 {
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{10, 97, 0, 75}, other_luid},
-                                                          {{172, 19, 154, 10}, mgmt_luid},
-                                                          {{10, 97, 1, 11}, other_luid}}))));
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table(
+            {{.address = {10, 97, 0, 75}, .interface_luid = other_luid},
+             {.address = {172, 19, 154, 10}, .interface_luid = mgmt_luid},
+             {.address = {10, 97, 1, 11}, .interface_luid = other_luid}}))));
     EXPECT_CALL(mock_net_io_api,
                 DeleteIpNetEntry2(Pointee(
                     Field(&MIB_IPNET_ROW2::InterfaceLuid, Field(&NET_LUID::Value, mgmt_luid)))))
@@ -725,8 +731,9 @@ TEST(PlatformWin, createAliasScriptWorks)
                 writableLocation(mp::StandardPaths::HomeLocation))
         .WillOnce(Return(tmp_dir.path()));
 
-    EXPECT_NO_THROW(
-        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}));
+    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script(
+        "alias_name",
+        mp::AliasDefinition{.instance = "instance", .command = "command"}));
 
     QFile checked_script(tmp_dir.path() + "/AppData/local/multipass/bin/alias_name.bat");
     ASSERT_TRUE(checked_script.open(QFile::ReadOnly));
@@ -744,9 +751,9 @@ TEST(PlatformWin, createAliasScriptOverwrites)
 
     EXPECT_CALL(*mock_utils, make_file_with_content(_, _, true)).Times(1);
 
-    EXPECT_NO_THROW(
-        MP_PLATFORM.create_alias_script("alias_name",
-                                        mp::AliasDefinition{"instance", "other_command"}));
+    EXPECT_NO_THROW(MP_PLATFORM.create_alias_script(
+        "alias_name",
+        mp::AliasDefinition{.instance = "instance", .command = "other_command"}));
 }
 
 TEST(PlatformWin, createAliasScriptThrowsIfCannotCreatePath)
@@ -755,10 +762,11 @@ TEST(PlatformWin, createAliasScriptThrowsIfCannotCreatePath)
 
     EXPECT_CALL(*mock_file_ops, mkpath(_, _)).WillOnce(Return(false));
 
-    MP_EXPECT_THROW_THAT(
-        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-        std::runtime_error,
-        mpt::match_what(HasSubstr("failed to create dir '")));
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script(
+                             "alias_name",
+                             mp::AliasDefinition{.instance = "instance", .command = "command"}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("failed to create dir '")));
 }
 
 TEST(PlatformWin, createAliasScriptThrowsIfCannotWriteScript)
@@ -769,10 +777,11 @@ TEST(PlatformWin, createAliasScriptThrowsIfCannotWriteScript)
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, write(A<QIODevice&>(), _, _)).WillOnce(Return(747));
 
-    MP_EXPECT_THROW_THAT(
-        MP_PLATFORM.create_alias_script("alias_name", mp::AliasDefinition{"instance", "command"}),
-        std::runtime_error,
-        mpt::match_what(HasSubstr("failed to write to file '")));
+    MP_EXPECT_THROW_THAT(MP_PLATFORM.create_alias_script(
+                             "alias_name",
+                             mp::AliasDefinition{.instance = "instance", .command = "command"}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("failed to write to file '")));
 }
 
 TEST(PlatformWin, removeAliasScriptWorks)

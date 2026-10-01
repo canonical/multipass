@@ -63,10 +63,13 @@ struct TestGoodMemorySizeFormats
 
     static auto generate_unit_args()
     {
-        const UnitSpec byte_unit{{"", "b", "B"}, 1LL};
-        const UnitSpec kilo_unit{{"k", "kb", "kB", "Kb", "KB", "K", "KiB"}, kilo};
-        const UnitSpec mega_unit{{"m", "mb", "mB", "Mb", "MB", "M", "MiB"}, mega};
-        const UnitSpec giga_unit{{"g", "gb", "gB", "Gb", "GB", "G", "GiB"}, giga};
+        const UnitSpec byte_unit{.suffixes = {"", "b", "B"}, .factor = 1LL};
+        const UnitSpec kilo_unit{.suffixes = {"k", "kb", "kB", "Kb", "KB", "K", "KiB"},
+                                 .factor = kilo};
+        const UnitSpec mega_unit{.suffixes = {"m", "mb", "mB", "Mb", "MB", "M", "MiB"},
+                                 .factor = mega};
+        const UnitSpec giga_unit{.suffixes = {"g", "gb", "gB", "Gb", "GB", "G", "GiB"},
+                                 .factor = giga};
 
         auto args = byte_unit.gen_unit_args();
         const auto kilo_args = kilo_unit.gen_unit_args();

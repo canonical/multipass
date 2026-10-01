@@ -45,7 +45,7 @@ mp::Console::ConsoleGeometry get_console_size(HANDLE handle)
     SHORT columns = sb_info.srWindow.Right - sb_info.srWindow.Left + 1;
     SHORT rows = sb_info.srWindow.Bottom - sb_info.srWindow.Top + 1;
 
-    return {rows, columns}; // rows come before columns in ConsoleGeometry (unlike libssh)
+    return {.rows = rows, .columns = columns};
 }
 } // namespace
 

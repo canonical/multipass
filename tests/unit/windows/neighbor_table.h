@@ -46,14 +46,18 @@ inline hyperv::IpNetTableResult make_neighbor_table(std::initializer_list<Neighb
         auto& row = table->Table[index++];
         row.InterfaceLuid.Value = interface_luid;
         row.Address.Ipv4.sin_family = AF_INET;
-        row.Address.Ipv4.sin_addr.S_un.S_un_b = {address[0], address[1], address[2], address[3]};
+        row.Address.Ipv4.sin_addr.S_un.S_un_b = {.s_b1 = address[0],
+                                                 .s_b2 = address[1],
+                                                 .s_b3 = address[2],
+                                                 .s_b4 = address[3]};
         row.State = NlnsPermanent;
         row.PhysicalAddressLength = static_cast<ULONG>(mac.size());
         std::ranges::copy(mac, row.PhysicalAddress);
     }
 
-    return {NO_ERROR, hyperv::IpNetTable{table, [](MIB_IPNET_TABLE2* table) {
-                                             delete[] reinterpret_cast<std::byte*>(table);
-                                         }}};
+    return {.error = NO_ERROR,
+            .table = hyperv::IpNetTable{table, [](MIB_IPNET_TABLE2* table) {
+                                            delete[] reinterpret_cast<std::byte*>(table);
+                                        }}};
 }
 } // namespace multipass::test

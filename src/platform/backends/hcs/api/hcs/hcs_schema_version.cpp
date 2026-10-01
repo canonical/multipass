@@ -75,20 +75,27 @@ HcsSchemaVersion SchemaUtils::get_os_supported_schema_version() const
         {
 
             std::array schema_version_mappings{
-                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v20,
-                                                WindowsBuildNumbers::win10_1809},
-                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v21,
-                                                WindowsBuildNumbers::win10_1809},
-                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v22,
-                                                WindowsBuildNumbers::win10_19H1},
-                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v23,
-                                                WindowsBuildNumbers::win10_19H1},
-                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v24,
-                                                WindowsBuildNumbers::srv22_21H2},
-                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v25,
-                                                WindowsBuildNumbers::srv22_21H2},
-                SchemaVersionBuildNumberMapping{HcsSchemaVersion::v26,
-                                                WindowsBuildNumbers::win11_21H2}};
+                SchemaVersionBuildNumberMapping{
+                    .version = HcsSchemaVersion::v20,
+                    .required_build_number = WindowsBuildNumbers::win10_1809},
+                SchemaVersionBuildNumberMapping{
+                    .version = HcsSchemaVersion::v21,
+                    .required_build_number = WindowsBuildNumbers::win10_1809},
+                SchemaVersionBuildNumberMapping{
+                    .version = HcsSchemaVersion::v22,
+                    .required_build_number = WindowsBuildNumbers::win10_19H1},
+                SchemaVersionBuildNumberMapping{
+                    .version = HcsSchemaVersion::v23,
+                    .required_build_number = WindowsBuildNumbers::win10_19H1},
+                SchemaVersionBuildNumberMapping{
+                    .version = HcsSchemaVersion::v24,
+                    .required_build_number = WindowsBuildNumbers::srv22_21H2},
+                SchemaVersionBuildNumberMapping{
+                    .version = HcsSchemaVersion::v25,
+                    .required_build_number = WindowsBuildNumbers::srv22_21H2},
+                SchemaVersionBuildNumberMapping{
+                    .version = HcsSchemaVersion::v26,
+                    .required_build_number = WindowsBuildNumbers::win11_21H2}};
 
             // Sort descending, based on build number and version (when build number is equal)
             std::sort(schema_version_mappings.begin(),

@@ -56,8 +56,8 @@ auto make_server(const std::string& server_address,
 
     std::shared_ptr<grpc::ServerCredentials> creds;
     grpc::SslServerCredentialsOptions opts(GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY);
-    opts.pem_key_cert_pairs.push_back(
-        {cert_provider.PEM_signing_key(), cert_provider.PEM_certificate()});
+    opts.pem_key_cert_pairs.push_back({.private_key = cert_provider.PEM_signing_key(),
+                                       .cert_chain = cert_provider.PEM_certificate()});
     creds = grpc::SslServerCredentials(opts);
 
     builder.AddListeningPort(server_address, creds);

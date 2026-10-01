@@ -43,21 +43,27 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
     mpt::TempDir dummy_instances_dir;
     const std::string dummy_vm_name{"lord-of-the-pings"};
 
-    mp::VirtualMachineDescription desc{2,
-                                       mp::MemorySize{"3M"},
-                                       mp::MemorySize{}, // not used
-                                       dummy_vm_name,
-                                       "zone1",
-                                       "aa:bb:cc:dd:ee:ff",
-                                       {},
-                                       "",
-                                       {dummy_image.path(), "", "", "", {}, {}},
-                                       dummy_cloud_init_iso.name(),
-                                       {},
-                                       {},
-                                       0,
-                                       false,
-                                       {}};
+    mp::VirtualMachineDescription desc{.num_cores = 2,
+                                       .mem_size = mp::MemorySize{"3M"},
+                                       .disk_space = mp::MemorySize{}, // not used
+                                       .vm_name = dummy_vm_name,
+                                       .zone = "zone1",
+                                       .default_mac_address = "aa:bb:cc:dd:ee:ff",
+                                       .extra_interfaces = {},
+                                       .ssh_username = "",
+                                       .image = {.image_path = dummy_image.path(),
+                                                 .id = "",
+                                                 .original_release = "",
+                                                 .current_release = "",
+                                                 .release_date = {},
+                                                 .os = {},
+                                                 .aliases = {}},
+                                       .cloud_init_iso = dummy_cloud_init_iso.name(),
+                                       .metadata = {},
+                                       .state = {},
+                                       .clone_count = 0,
+                                       .deleted = false,
+                                       .mounts = {}};
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 
@@ -76,8 +82,8 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
 
     mpt::TempDir instance_dir;
 
-    inline static auto mock_handle_raw =
-        reinterpret_cast<mp::applevz::VirtualMachineHandle*>(0xbadf00d);
+    inline static auto mock_handle_raw = reinterpret_cast<mp::applevz::VirtualMachineHandle*>(
+        0xbadf00d);
     mp::applevz::VMHandle mock_handle{mock_handle_raw, [](mp::applevz::VirtualMachineHandle*) {}};
 
     auto construct_vm(applevz::AppleVMState initial_state = applevz::AppleVMState::stopped)

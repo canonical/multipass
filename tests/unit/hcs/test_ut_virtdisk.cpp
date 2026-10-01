@@ -272,7 +272,7 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_vhdx_with_source)
     const hyperv::virtdisk::CreateVirtualDiskParameters params{
         .size_in_bytes = 0,
         .path = "test.vhdx",
-        .predecessor = hyperv::virtdisk::SourcePathParameters{"source.vhdx"}};
+        .predecessor = hyperv::virtdisk::SourcePathParameters{.path = "source.vhdx"}};
 
     {
         const auto& [status, status_msg] = VirtDisk().create_virtual_disk(params);

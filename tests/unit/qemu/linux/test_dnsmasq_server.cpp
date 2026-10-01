@@ -442,7 +442,9 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasqThrowsWhenItDiesImmediately)
         EXPECT_CALL(*process, wait_for_started(_)).WillOnce(Return(true));
         EXPECT_CALL(*process, wait_for_finished(_)).WillOnce(Return(true));
 
-        mp::ProcessState state{2, mp::ProcessState::Error{QProcess::Crashed, msg}};
+        mp::ProcessState state{
+            .exit_code = 2,
+            .error = mp::ProcessState::Error{.state = QProcess::Crashed, .message = msg}};
         EXPECT_CALL(*process, process_state()).WillOnce(Return(state));
     });
 
@@ -469,7 +471,9 @@ TEST_F(DNSMasqServerMockedProcess, dnsmasqLogsErrorWhenItDies)
     auto dns = make_default_dnsmasq_server();
     ASSERT_TRUE(dnsmasq_proc);
 
-    mp::ProcessState state{-1, mp::ProcessState::Error{QProcess::Crashed, msg}};
+    mp::ProcessState state{
+        .exit_code = -1,
+        .error = mp::ProcessState::Error{.state = QProcess::Crashed, .message = msg}};
     emit dnsmasq_proc->finished(state);
 }
 

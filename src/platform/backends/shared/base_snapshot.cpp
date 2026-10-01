@@ -53,8 +53,9 @@ mp::SnapshotDescription read_snapshot_json(const std::filesystem::path& filename
         try
         {
             const auto json = boost::json::parse(*data);
-            return value_to<mp::SnapshotDescription>(json.at("snapshot"),
-                                                     mp::SnapshotContext{vm, vm_desc});
+            return value_to<mp::SnapshotDescription>(
+                json.at("snapshot"),
+                mp::SnapshotContext{.vm = vm, .vm_desc = vm_desc});
         }
         catch (const boost::system::system_error& e)
         {

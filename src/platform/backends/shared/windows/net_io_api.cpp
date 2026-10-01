@@ -57,7 +57,7 @@ IpNetTableResult NetIOAPI::GetIpNetTable2(ADDRESS_FAMILY Family) const
 {
     PMIB_IPNET_TABLE2 table{};
     const auto error = ::GetIpNetTable2(Family, &table);
-    return {error, IpNetTable{table, &free_mib_table}};
+    return {.error = error, .table = IpNetTable{table, &free_mib_table}};
 }
 
 DWORD NetIOAPI::DeleteIpNetEntry2(const MIB_IPNET_ROW2* Row) const

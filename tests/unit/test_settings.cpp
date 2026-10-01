@@ -456,17 +456,17 @@ std::vector<SettingValueRepresentation<T>> setting_val_reprs();
 template <>
 std::vector<SettingValueRepresentation<bool>> setting_val_reprs()
 {
-    return {{false, {"False", "false", "0", ""}},
-            {true, {"True", "true", "1", "no", "off", "anything else"}}};
+    return {{.val = false, .reprs = {"False", "false", "0", ""}},
+            {.val = true, .reprs = {"True", "true", "1", "no", "off", "anything else"}}};
 }
 
 template <>
 std::vector<SettingValueRepresentation<int>> setting_val_reprs()
 {
-    return {{0, {"0", "+0", "-0000"}},
-            {42, {"42", "+42"}},
-            {-2, {"-2"}},
-            {23, {"023"}}}; // no hex or octal
+    return {{.val = 0, .reprs = {"0", "+0", "-0000"}},
+            {.val = 42, .reprs = {"42", "+42"}},
+            {.val = -2, .reprs = {"-2"}},
+            {.val = 23, .reprs = {"023"}}}; // no hex or octal
 }
 
 template <typename T>
