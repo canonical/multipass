@@ -37,8 +37,10 @@ endif()
 
 ExternalProject_Add(qemu
   SOURCE_DIR ${QEMU_SOURCE_DIR}
+  # Configure also needs the deployment target, or its feature probes detect functions that are
+  # only available on the build machine's macOS
   CONFIGURE_COMMAND test -f <BINARY_DIR>/config-host.mak ||
-    <SOURCE_DIR>/configure
+    ${CMAKE_COMMAND} -E env ${MACOS_DEPLOYMENT_TARGET_FLAG} <SOURCE_DIR>/configure
       --prefix=${CMAKE_BINARY_DIR}
       --firmwarepath=${CMAKE_BINARY_DIR}/Resources/qemu/
       --ninja=ninja
@@ -69,6 +71,10 @@ ExternalProject_Add(qemu
       --disable-gnutls
       --disable-libvduse
       --disable-vduse-blk-export
+      # Fail instead of weak-linking APIs newer than the deployment target, which resolve to NULL
+      # and crash on older macOS. QEMU does not pass CFLAGS to its Objective-C sources.
+      --extra-cflags=-Werror=unguarded-availability-new
+      --extra-objcflags=-Werror=unguarded-availability-new
   BUILD_COMMAND
     ${CMAKE_COMMAND} -E env ${MACOS_DEPLOYMENT_TARGET_FLAG} ninja
   TEST_COMMAND ""
