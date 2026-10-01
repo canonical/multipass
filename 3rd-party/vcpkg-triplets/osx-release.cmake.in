@@ -5,3 +5,9 @@ set(VCPKG_CMAKE_SYSTEM_NAME Darwin)
 
 set(VCPKG_BUILD_TYPE release)
 set(VCPKG_OSX_DEPLOYMENT_TARGET "@CMAKE_OSX_DEPLOYMENT_TARGET@")
+
+
+# Fail any port that calls an API newer than the deployment target without an availability check,
+# rather than silently weak-linking it (it would resolve to NULL and crash on older macOS)
+set(VCPKG_C_FLAGS "-Werror=unguarded-availability-new")
+set(VCPKG_CXX_FLAGS "-Werror=unguarded-availability-new")
