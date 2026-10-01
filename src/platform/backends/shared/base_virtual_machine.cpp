@@ -653,7 +653,7 @@ void mp::BaseVirtualMachine::rename_snapshot(const std::string& old_name,
     if (old_it == snapshots.end())
         throw NoSuchSnapshotException{vm_name, old_name};
 
-    if (snapshots.find(new_name) != snapshots.end())
+    if (snapshots.contains(new_name))
         throw SnapshotNameTakenException{vm_name, new_name};
 
     auto snapshot_node = snapshots.extract(old_it);

@@ -46,7 +46,7 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm,
       tag{make_tag(target)}
 {
     auto state = vm->current_state();
-    if (state == VirtualMachine::State::suspended && vm_mount_args.find(tag) != vm_mount_args.end())
+    if (state == VirtualMachine::State::suspended && vm_mount_args.contains(tag))
     {
         mpl::info(category,
                   "Found native mount {} => {} in '{}' while suspended",

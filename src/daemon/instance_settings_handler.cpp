@@ -91,7 +91,7 @@ pick_instance(InstanceMap& instances,
     }
     catch (std::out_of_range&)
     {
-        const auto is_deleted = deleted.find(instance_name) != deleted.end();
+        const auto is_deleted = deleted.contains(instance_name);
         const auto reason = is_deleted ? "Instance is deleted" : "No such instance";
         assert(!is_deleted ||
                operation == Operation::Modify); // obtaining info from deleted instances is fine
@@ -261,7 +261,7 @@ void mp::InstanceSettingsHandler::set(const QString& key,
 {
     auto [instance_name, property] = parse_key(key);
 
-    if (preparing_instances.find(instance_name) != preparing_instances.end())
+    if (preparing_instances.contains(instance_name))
         throw InstanceSettingsException{operation_msg(Operation::Modify),
                                         instance_name,
                                         "instance is being prepared"};
