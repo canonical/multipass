@@ -84,11 +84,6 @@ private:
      * Owning VM.
      */
     const VirtualMachine& vm;
-
-    /**
-     * Owning VM description.
-     */
-    VirtualMachineDescription& desc;
 };
 
 } // namespace multipass::hyperv::virtdisk
