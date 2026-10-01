@@ -296,7 +296,7 @@ jobs:
     - name: Package
       id: cmake-package
       working-directory: ${{ env.BUILD_DIR }}
-      run: >
+      run: |
         cmake --build . --target package
 
         echo "name=$( basename *.pkg )" >> $GITHUB_OUTPUT
