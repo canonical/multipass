@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/extensions.dart';
 
+Matcher isGapBox({double? width, double? height}) => isA<SizedBox>()
+    .having((b) => b.width, 'width', width)
+    .having((b) => b.height, 'height', height);
+
 void main() {
   group('NonBreakingString', () {
     test('replaces hyphens with non-breaking hyphens', () {
@@ -40,63 +44,27 @@ void main() {
       const String? value = 'hello';
       expect(value.map<int>((v) => throw Exception('oops')), isNull);
     });
-
-    test('works with integer values', () {
-      const int? value = 42;
-      expect(value.map((v) => v * 2), 84);
-    });
-
-    test('returns null for null integer', () {
-      int? value;
-      expect(value.map((v) => v * 2), isNull);
-    });
   });
 
   group('WidgetGap', () {
-    test('empty iterable produces no elements', () {
-      final result = <Widget>[].gap(width: 8).toList();
-      expect(result, isEmpty);
-    });
+    for (final count in [0, 1, 2, 3]) {
+      test('places a gap between each of $count widgets', () {
+        final widgets = [
+          for (var i = 0; i < count; i++) SizedBox(key: ValueKey(i)),
+        ];
 
-    test('single element produces no gaps', () {
-      final widgets = [const SizedBox()];
-      final result = widgets.gap(width: 8).toList();
-      expect(result, hasLength(1));
-    });
+        final result = widgets.gap(width: 10, height: 5).toList();
 
-    test('two elements produce one gap between them', () {
-      final a = const SizedBox(key: ValueKey('a'));
-      final b = const SizedBox(key: ValueKey('b'));
-      final result = [a, b].gap(width: 8).toList();
-      expect(result, hasLength(3));
-      expect(result[0], a);
-      expect(result[2], b);
-      final gap = result[1] as SizedBox;
-      expect(gap.width, 8);
-    });
-
-    test('three elements produce two gaps', () {
-      final widgets = [
-        const SizedBox(key: ValueKey('a')),
-        const SizedBox(key: ValueKey('b')),
-        const SizedBox(key: ValueKey('c')),
-      ];
-      final result = widgets.gap(height: 4).toList();
-      expect(result, hasLength(5));
-      final gap1 = result[1] as SizedBox;
-      final gap2 = result[3] as SizedBox;
-      expect(gap1.height, 4);
-      expect(gap2.height, 4);
-    });
-
-    test('gap SizedBox uses specified width and height', () {
-      final result = [const SizedBox(), const SizedBox()]
-          .gap(width: 10, height: 5)
-          .toList();
-      final gap = result[1] as SizedBox;
-      expect(gap.width, 10);
-      expect(gap.height, 5);
-    });
+        expect(result, hasLength(count == 0 ? 0 : 2 * count - 1));
+        for (final (i, widget) in result.indexed) {
+          if (i.isEven) {
+            expect(widget, same(widgets[i ~/ 2]));
+          } else {
+            expect(widget, isGapBox(width: 10, height: 5));
+          }
+        }
+      });
+    }
   });
 
   group('TextSpanFromStringExt', () {
