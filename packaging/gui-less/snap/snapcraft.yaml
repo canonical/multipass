@@ -30,9 +30,6 @@ layout:
     bind: $SNAP/usr/share/icons
 
 environment:
-  # GDK pixbuf
-  GDK_PIXBUF_MODULEDIR: $SNAP/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/gdk-pixbuf-2.0/2.10.0/loaders
-  GDK_PIXBUF_MODULE_FILE: $SNAP_COMMON/loaders.cache
   ARCH_TRIPLET: ${CRAFT_ARCH_TRIPLET_BUILD_FOR}
 
 plugs:
