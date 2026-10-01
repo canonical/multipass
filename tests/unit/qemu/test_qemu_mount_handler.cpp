@@ -44,9 +44,9 @@ mpt::StubVMStatusMonitor stub_monitor{};
 
 struct MockQemuVirtualMachine : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
 {
-    explicit MockQemuVirtualMachine(const std::string& name, mp::AvailabilityZone& zone)
+    MockQemuVirtualMachine(const mp::VirtualMachineDescription& desc, mp::AvailabilityZone& zone)
         : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>{
-              mp::VirtualMachineDescription{.vm_name = name},
+              desc,
               nullptr,
               stub_monitor,
               mpt::StubSSHKeyProvider{},
@@ -161,7 +161,12 @@ struct QemuMountHandlerTest : public ::Test
     mpt::StubAvailabilityZone zone{};
     std::unique_ptr<mpt::MockProcessFactory::Scope> process_factory_scope{
         mpt::MockProcessFactory::Inject()};
-    NiceMock<MockQemuVirtualMachine> vm{"my_instance", zone};
+    mp::VirtualMachineDescription vm_desc = [] {
+        mp::VirtualMachineDescription ret{};
+        ret.vm_name = "my_instance";
+        return ret;
+    }();
+    NiceMock<MockQemuVirtualMachine> vm{vm_desc, zone};
     mp::QemuVirtualMachine::MountArgs mount_args;
 };
 
