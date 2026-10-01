@@ -68,7 +68,7 @@ TEST(TestVMImageInfo, parsesJsonIntoExpectedFields)
 {
     const auto json = boost::json::parse(distro_json);
 
-    const auto info = value_to<mp::VMImageInfo>(json, mp::ArchContext{"x86_64"});
+    const auto info = value_to<mp::VMImageInfo>(json, mp::ArchContext{.arch = "x86_64"});
 
     EXPECT_EQ(info.aliases, (std::vector<std::string>{"debian", "bookworm"}));
     EXPECT_EQ(info.os, os);

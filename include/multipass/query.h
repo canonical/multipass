@@ -56,11 +56,11 @@ inline void tag_invoke(const boost::json::value_from_tag&,
 inline Query tag_invoke(const boost::json::value_to_tag<Query>&, const boost::json::value& json)
 {
     return {
-        "",
-        value_to<std::string>(json.at("release")),
-        value_to<bool>(json.at("persistent")),
-        lookup_or<std::string>(json, "remote_name", ""),
-        static_cast<Query::Type>(lookup_or<int>(json, "query_type", 0)),
+        .name = "",
+        .release = value_to<std::string>(json.at("release")),
+        .persistent = value_to<bool>(json.at("persistent")),
+        .remote_name = lookup_or<std::string>(json, "remote_name", ""),
+        .query_type = static_cast<Query::Type>(lookup_or<int>(json, "query_type", 0)),
     };
 }
 } // namespace multipass

@@ -188,8 +188,9 @@ std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceI
         network_params.name = vswitch_name;
         network_params.type = hcn::HcnNetworkType::Transparent();
         network_params.guid = utils::make_uuid(network_params.name);
-        hcn::HcnNetworkPolicy policy{hcn::HcnNetworkPolicyType::NetAdapterName(),
-                                     hcn::HcnNetworkPolicyNetAdapterName{intf.id}};
+        hcn::HcnNetworkPolicy policy{
+            .type = hcn::HcnNetworkPolicyType::NetAdapterName(),
+            .settings = hcn::HcnNetworkPolicyNetAdapterName{.net_adapter_name = intf.id}};
         network_params.policies.push_back(policy);
         return network_params;
     }();
@@ -236,7 +237,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
     const hyperv::virtdisk::CreateVirtualDiskParameters clone_vhdx_params{
         .size_in_bytes = 0,
         .path = desc.image.image_path,
-        .predecessor = virtdisk::SourcePathParameters{src_vm_vhdx}};
+        .predecessor = virtdisk::SourcePathParameters{.path = src_vm_vhdx}};
 
     if (!VirtDisk().create_virtual_disk(clone_vhdx_params))
     {

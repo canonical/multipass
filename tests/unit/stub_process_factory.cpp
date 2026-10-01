@@ -30,7 +30,8 @@ public:
     StubProcess(std::unique_ptr<mp::ProcessSpec>&& spec,
                 std::vector<mpt::StubProcessFactory::ProcessInfo>& process_list)
     {
-        mpt::StubProcessFactory::ProcessInfo p{spec->program(), spec->arguments()};
+        mpt::StubProcessFactory::ProcessInfo p{.command = spec->program(),
+                                               .arguments = spec->arguments()};
         process_list.emplace_back(p);
     }
 
@@ -62,13 +63,15 @@ public:
     }
     void terminate() override
     {
-        mp::ProcessState exit_state{0, std::nullopt};
+        mp::ProcessState exit_state{.exit_code = 0, .error = std::nullopt};
         emit finished(exit_state);
     }
     void kill() override
     {
-        mp::ProcessState exit_state{std::nullopt,
-                                    mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
+        mp::ProcessState exit_state{
+            .exit_code = std::nullopt,
+            .error = mp::ProcessState::Error{.state = QProcess::Crashed,
+                                             .message = QStringLiteral("")}};
         emit finished(exit_state);
     }
 

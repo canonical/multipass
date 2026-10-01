@@ -144,13 +144,14 @@ RpcAdmissionCase rpc_case(const char* name,
                           Signal signal,
                           std::function<void(mpt::MockDaemon&)> expect_dispatch)
 {
-    return {name,
-            blocked_during_migration,
-            [signal](mp::DaemonRpc& rpc, mp::DaemonRpcContext* context) {
-                // Only mocked handlers receive these; neither request nor stream is accessed.
-                (rpc.*signal)(nullptr, nullptr, context);
-            },
-            std::move(expect_dispatch)};
+    return {.name = name,
+            .blocked_during_migration = blocked_during_migration,
+            .dispatch =
+                [signal](mp::DaemonRpc& rpc, mp::DaemonRpcContext* context) {
+                    // Only mocked handlers receive these; neither request nor stream is accessed.
+                    (rpc.*signal)(nullptr, nullptr, context);
+                },
+            .expect_dispatch = std::move(expect_dispatch)};
 }
 
 const auto rpc_cases = std::array{
@@ -478,9 +479,10 @@ TEST_F(TestDaemonMigrationGuard, driverChangeReleasesHcsResourcesBeforeSettingsW
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
     EXPECT_CALL(*vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*hcs_mock.first, open_compute_system("stopped", _))
-        .WillOnce(Return(mp::hyperv::OperationResult{HCS_E_SYSTEM_NOT_FOUND, L""}));
+        .WillOnce(
+            Return(mp::hyperv::OperationResult{.code = HCS_E_SYSTEM_NOT_FOUND, .status_msg = L""}));
     EXPECT_CALL(*hcn_mock.first, find_endpoints_by_name("multipass-stopped", _))
-        .WillOnce(Return(mp::hyperv::OperationResult{0, L""}));
+        .WillOnce(Return(mp::hyperv::OperationResult{.code = 0, .status_msg = L""}));
     EXPECT_CALL(mock_settings, set(Eq(mp::driver_key), Eq("hyperv"), _)).WillOnce([&daemon] {
         EXPECT_TRUE(daemon.is_migrating());
     });
@@ -507,7 +509,8 @@ TEST_F(TestDaemonMigrationGuard, driverChangeDoesNotWriteSettingsWhenResourceCle
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
     EXPECT_CALL(*vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*hcs_mock.first, open_compute_system("stopped", _))
-        .WillOnce(Return(mp::hyperv::OperationResult{E_ACCESSDENIED, L"access denied"}));
+        .WillOnce(Return(
+            mp::hyperv::OperationResult{.code = E_ACCESSDENIED, .status_msg = L"access denied"}));
 
     mp::SetRequest request;
     request.set_key(mp::driver_key);
@@ -556,8 +559,12 @@ struct TestHyperVDriverTransition : public TestDaemonMigrationGuard
 {
     mp::hyperv::DriverTransition transition(const mp::DaemonConfig& config)
     {
-        return mp::hyperv::DriverTransition{
-            {config, specs, instances, deleted_instances, migrating, preparing}};
+        return mp::hyperv::DriverTransition{{.config = config,
+                                             .specs = specs,
+                                             .operative_instances = instances,
+                                             .deleted_instances = deleted_instances,
+                                             .migration_in_progress = migrating,
+                                             .preparing_instances = preparing}};
     }
 
     std::unordered_map<std::string, mp::VMSpecs> specs;

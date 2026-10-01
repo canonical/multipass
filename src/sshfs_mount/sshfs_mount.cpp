@@ -105,7 +105,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
                        fuse_version_line);
         }
         // The option was made the default in libfuse 3.0
-        else if (multipass::opaque_semver{fuse_version_str} < "3.0.0"_semver)
+        else if (multipass::opaque_semver{.value = fuse_version_str} < "3.0.0"_semver)
         {
             sshfs_exec += " -o nonempty -o cache=no";
         }

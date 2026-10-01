@@ -207,7 +207,7 @@ INSTANTIATE_TEST_SUITE_P(
     SSLCertProviderParameterTests,
     testing::Values(
         SSLCertTestParam{// Valid server certificates
-                         R"cert(-----BEGIN CERTIFICATE-----
+                         .root_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIBrDCCAVOgAwIBAgIBATAKBggqhkjOPQQDAjA9MQswCQYDVQQGEwJVUzESMBAG
 A1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0aXBhc3MgUm9vdCBDQTAgFw0y
 NjEwMTIwMDAwMDBaGA8yMDUwMDEwMTAwMDAwMFowPTELMAkGA1UEBhMCVVMxEjAQ
@@ -218,7 +218,7 @@ HRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBBjAdBgNVHQ4EFgQUq/mbosuxsO6c
 +uoA6jxLEQe6+MEwCgYIKoZIzj0EAwIDRwAwRAIgC66W5+wcsTQ72g1QimTxd+mH
 pMSev7hSZfmceZprXv0CIE+HdpsVeW5MWSDRbcRgtqOyKCZbSu2w3WmR7rb+1MJN
 -----END CERTIFICATE-----)cert",
-                         R"cert(-----BEGIN CERTIFICATE-----
+                         .subordinate_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIB9jCCAZygAwIBAgIBAjAKBggqhkjOPQQDAjA9MQswCQYDVQQGEwJVUzESMBAG
 A1UECgwJQ2Fub25pY2FsMRowGAYDVQQDDBFNdWx0aXBhc3MgUm9vdCBDQTAgFw0y
 NjEwMTIwMDAwMDBaGA8yMDUwMDEwMTAwMDAwMFowNTELMAkGA1UEBhMCVVMxEjAQ
@@ -231,17 +231,19 @@ sc6UMB8GA1UdIwQYMBaAFKv5m6LLsbDunPrqAOo8SxEHuvjBMAoGCCqGSM49BAMC
 A0gAMEUCIDd/FCQHrX55owMiQzqHBTsmRtfvKHgU5p5lAimxozZmAiEA6fb7QBFW
 +b1k9oKI2GpN6rfUyRrJf49Ju4z7uIL6zjc=
 -----END CERTIFICATE-----)cert",
-                         R"cert(-----BEGIN PRIVATE KEY-----
+                         .subordinate_key = R"cert(-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgmxw/VnPxcBGPbYJr
 BU6FnQ9H4hvEu2KCGyAFc1q558ihRANCAARQd8ailNzkS2+3NxI1ySQ/lPbPbn6B
 xckcrA6RckxEoBoi1ZVFcgiAA5t9oirkN6ofGQO+UAEWIZdIh9CSKxBF
 -----END PRIVATE KEY-----)cert",
-                         {{mpl::Level::debug, "are valid X.509 files"},
-                          {mpl::Level::info, "Re-using existing certificates for the gRPC server"}},
-                         false},
-        SSLCertTestParam{// Missing root cert
-                         "",
-                         R"cert(-----BEGIN CERTIFICATE-----
+                         .expected_logs = {{mpl::Level::debug, "are valid X.509 files"},
+                                           {mpl::Level::info,
+                                            "Re-using existing certificates for the gRPC server"}},
+                         .regenerate = false},
+        SSLCertTestParam{
+            // Missing root cert
+            .root_cert = "",
+            .subordinate_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIB2jCCAYCgAwIBAgIUCl9D+5RERQiuLKYhDXnTHb+z2QYwCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
 dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMjYwNzEwMDg1OTM5WjA1
@@ -253,14 +255,15 @@ pJrcHJWugdvYMB8GA1UdIwQYMBaAFI4pJ9mO37tx9GymI5NTYjlro2ZWMAwGA1Ud
 EwEB/wQCMAAwCgYIKoZIzj0EAwIDSAAwRQIgelfVfOSRmfsEMxxgWuZw6uMQCdFV
 BZPeiPY0ZxjUPMcCIQChuXlX+ZuzLHPfv3KzCq11P3Y1dqNF4k7QQOl+Wrtl6w==
 -----END CERTIFICATE-----)cert",
-                         R"cert(-----BEGIN PRIVATE KEY-----
+            .subordinate_key = R"cert(-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgGNUltvugUGTeKVu1
 0txykTDHfS2nlRGuRUCEHw5KKJuhRANCAATlZbmi2M8q9SR+Cgd6C/pAAfuqGqzn
 WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
 -----END PRIVATE KEY-----)cert",
-                         {{mpl::Level::info, "Regenerating certificates for the gRPC server"}}},
-        SSLCertTestParam{// Missing subordinate cert
-                         R"cert(-----BEGIN CERTIFICATE-----
+            .expected_logs = {{mpl::Level::info, "Regenerating certificates for the gRPC server"}}},
+        SSLCertTestParam{
+            // Missing subordinate cert
+            .root_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIBzjCCAXWgAwIBAgIUFSHy1TV98cz/ZOvfMBXOdgH02oYwCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
 dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMzUwNzA4MDg1OTM5WjA9
@@ -272,11 +275,12 @@ HSMEGDAWgBSOKSfZjt+7cfRspiOTU2I5a6NmVjAPBgNVHRMBAf8EBTADAQH/MAoG
 CCqGSM49BAMCA0cAMEQCIChkSDoKa5iZqptHa9Ih7267WSYxx2h0nzOZxopZWUMx
 AiAr+aaVzBBXe31uTuGvjiv/KccZHp1Rn/vaCOgbDxFATw==
 -----END CERTIFICATE-----)cert",
-                         "",
-                         "",
-                         {{mpl::Level::info, "Regenerating certificates for the gRPC server"}}},
-        SSLCertTestParam{// Corrupt root cert
-                         R"cert(-----BEGIN CERTIFICATE-----
+            .subordinate_cert = "",
+            .subordinate_key = "",
+            .expected_logs = {{mpl::Level::info, "Regenerating certificates for the gRPC server"}}},
+        SSLCertTestParam{
+            // Corrupt root cert
+            .root_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIBzjCCAXWgAwIBAgIUFSHy1TV98cz/ZOvfMBXOdgH02oYwCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
 dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMzUwNzA4MDg1OTM5WjA9
@@ -288,7 +292,7 @@ HSMEGDAWgBSOKSfZjt+7cfRspiOTU2I5a6NmVjAPBgNVHRMBAf8EBTADAQH/MAoG
 CCqGSM49BAMCA0cAMEQCIChkSDoKa5iZqptHa9Ih7267WSYxx2h0nzOZxopZWUMx
 AiAr+aaVzBBXe31uTuGvjiv/KccZHp1Rn/vaCOgbDxFATw==
 -----END CERTIFICATE-----)cert",
-                         R"cert(-----BEGIN CERTIFICATE-----
+            .subordinate_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIB2jCCAYCgAwIBAgIUCl9D+5RERQiuLKYhDXnTHb+z2QYwCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
 dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMjYwNzEwMDg1OTM5WjA1
@@ -300,15 +304,16 @@ pJrcHJWugdvYMB8GA1UdIwQYMBaAFI4pJ9mO37tx9GymI5NTYjlro2ZWMAwGA1Ud
 EwEB/wQCMAAwCgYIKoZIzj0EAwIDSAAwRQIgelfVfOSRmfsEMxxgWuZw6uMQCdFV
 BZPeiPY0ZxjUPMcCIQChuXlX+ZuzLHPfv3KzCq11P3Y1dqNF4k7QQOl+Wrtl6w==
 -----END CERTIFICATE-----)cert",
-                         R"cert(-----BEGIN PRIVATE KEY-----
+            .subordinate_key = R"cert(-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgGNUltvugUGTeKVu1
 0txykTDHfS2nlRGuRUCEHw5KKJuhRANCAATlZbmi2M8q9SR+Cgd6C/pAAfuqGqzn
 WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
 -----END PRIVATE KEY-----)cert",
-                         {{mpl::Level::warning, "Could not load either of"},
-                          {mpl::Level::info, "Regenerating certificates for the gRPC server"}}},
-        SSLCertTestParam{// Corrupt subordinate cert
-                         R"cert(-----BEGIN CERTIFICATE-----
+            .expected_logs = {{mpl::Level::warning, "Could not load either of"},
+                              {mpl::Level::info, "Regenerating certificates for the gRPC server"}}},
+        SSLCertTestParam{
+            // Corrupt subordinate cert
+            .root_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIBzjCCAXWgAwIBAgIUFSHy1TV98cz/ZOvfMBXOdgH02oYwCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
 dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMzUwNzA4MDg1OTM5WjA9
@@ -320,7 +325,7 @@ HSMEGDAWgBSOKSfZjt+7cfRspiOTU2I5a6NmVjAPBgNVHRMBAf8EBTADAQH/MAoG
 CCqGSM49BAMCA0cAMEQCIChkSDoKa5iZqptHa9Ih7267WSYxx2h0nzOZxopZWUMx
 AiAr+aaVzBBXe31uTuGvjiv/KccZHp1Rn/vaCOgbDxFATw==
 -----END CERTIFICATE-----)cert",
-                         R"cert(-----BEGIN CERTIFICATE-----
+            .subordinate_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIB2jCCAYCgAwIBAgIUCl9D+5RERQiuLKYhDXnTHb+z2QYwCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
 dGlwYXNzIFJvb3QgQ0EwHhcNMjUwNzEwMDg1OTM5WhcNMjYwNzEwMDg1OTM5WjA1
@@ -332,15 +337,16 @@ pJrcHJWugdvYMB8GA1UdIwQYMBaAFI4pJ9mO37tx9GymI5NTYjlro2ZWMAwGA1Ud
 EwEB/wQCMAAwCgYIKoZIzj0EAwIDSAAwRQIgelfVfOSRmfsEMxxgWuZw6uMQCdFV
 BZPeiPY0ZxjUPMcCIQChuXlX+ZuzLHPfv3KzCq11P3Y1dqNF4k7QQOl+Wrtl6w==
 -----END CERTIFICATE-----)cert",
-                         R"cert(-----BEGIN PRIVATE KEY-----
+            .subordinate_key = R"cert(-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgGNUltvugUGTeKVu1
 0txykTDHfS2nlRGuRUCEHw5KKJuhRANCAATlZbmi2M8q9SR+Cgd6C/pAAfuqGqzn
 WizZyQgYv6Z/AosKpE6DcyIYXGuGn2U/Icpxsn/ZycRel2shM4dP5OBg
 -----END PRIVATE KEY-----)cert",
-                         {{mpl::Level::warning, "Could not load either of"},
-                          {mpl::Level::info, "Regenerating certificates for the gRPC server"}}},
-        SSLCertTestParam{// Root cert not the signer of server cert
-                         R"cert(-----BEGIN CERTIFICATE-----
+            .expected_logs = {{mpl::Level::warning, "Could not load either of"},
+                              {mpl::Level::info, "Regenerating certificates for the gRPC server"}}},
+        SSLCertTestParam{
+            // Root cert not the signer of server cert
+            .root_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIB0TCCAXegAwIBAgIUYJpTTkCvlm6CU8Ufy3bD01+uxnwwCgYIKoZIzj0EAwIw
 PjELMAkGA1UEBhMCVVMxEzARBgNVBAoMCnNoYXJkZXI5OTYxGjAYBgNVBAMMEU11
 bHRpcGFzcyBSb290IENBMB4XDTI1MTAxMTA0NTE1MloXDTM1MTAwOTA0NTE1Mlow
@@ -352,7 +358,7 @@ A1UdIwQYMBaAFKx9h895VsGvkmouH6o0tWDzW/RxMA8GA1UdEwEB/wQFMAMBAf8w
 CgYIKoZIzj0EAwIDSAAwRQIgCTY7PXLmD0zwV3IBOexi71gf6ZGSlItjXks1bRG8
 YiACIQDDe4jtIZTP7Kw06nr61PejvfWDnQhDskfqOkHpKpTvPA==
 -----END CERTIFICATE-----)cert",
-                         R"cert(-----BEGIN CERTIFICATE-----
+            .subordinate_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIB9jCCAZygAwIBAgIUVl/7R6Ps3Lpf5OT1bI/zBSu0ItwwCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
 dGlwYXNzIFJvb3QgQ0EwHhcNMjUxMDExMDQ1MTUyWhcNMjYxMDExMDQ1MTUyWjA1
@@ -365,16 +371,18 @@ ZMX8MB8GA1UdIwQYMBaAFMCy5nYv8B0fquwB2yhc0+tC0xOqMAoGCCqGSM49BAMC
 A0gAMEUCICJuye/aUH56WDt9f2iuFMyz7SdKLHFyYWUf81NPv7k5AiEA3MECztyW
 REjMJHprgc63THRbmW8S4ksD6q0x3pa4iGo=
 -----END CERTIFICATE-----)cert",
-                         R"cert(-----BEGIN PRIVATE KEY-----
+            .subordinate_key = R"cert(-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgoAanPdCFx78AskWe
 eUL60fl0qAuzjd1vrAR1Z2yEEA+hRANCAASm04ivEWfHpm28SJ2aVfactw+0p35v
 ItYs3p91rRPh5Etm4n/NTQbRBYTPXm08XwI+bmtVetrTCW5TfZ/USAhy
 -----END PRIVATE KEY-----)cert",
-                         {{mpl::Level::debug, "are valid X.509 files"},
-                          {mpl::Level::warning, "is not the signer of the gRPC server certificate"},
-                          {mpl::Level::info, "Regenerating certificates for the gRPC server"}}},
-        SSLCertTestParam{// Expired server cert
-                         R"cert(-----BEGIN CERTIFICATE-----
+            .expected_logs = {{mpl::Level::debug, "are valid X.509 files"},
+                              {mpl::Level::warning,
+                               "is not the signer of the gRPC server certificate"},
+                              {mpl::Level::info, "Regenerating certificates for the gRPC server"}}},
+        SSLCertTestParam{
+            // Expired server cert
+            .root_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIBzzCCAXWgAwIBAgIUTwg6yEhLKbaNOkPKptZjdA7nPfEwCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
 dGlwYXNzIFJvb3QgQ0EwHhcNMjUxMDExMDQ1MzEzWhcNMzUxMDA5MDQ1MzEzWjA9
@@ -386,7 +394,7 @@ HSMEGDAWgBRgm8a0EFMw7o4vSO5TBvVJX3wQ3zAPBgNVHRMBAf8EBTADAQH/MAoG
 CCqGSM49BAMCA0gAMEUCIFFxpHWbhmADPRqlJzd3UW8UuJ31X+svjvRNp96BV3As
 AiEAv5TNEYgDkbFZL+mdxkRpMcIqMKTeQ5XJAAUNSccpuMU=
 -----END CERTIFICATE-----)cert",
-                         R"cert(-----BEGIN CERTIFICATE-----
+            .subordinate_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIB9jCCAZygAwIBAgIUVl/7R6Ps3Lpf5OT1bI/zBSu0It0wCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
 dGlwYXNzIFJvb3QgQ0EwHhcNMjUxMDExMDQ1MzEzWhcNMjUxMDExMDQ1MzEzWjA1
@@ -399,16 +407,17 @@ KXAxMB8GA1UdIwQYMBaAFGCbxrQQUzDuji9I7lMG9UlffBDfMAoGCCqGSM49BAMC
 A0gAMEUCIQCEILD1lEMj8yyISgb1XCW7Jmj4GqjJAzOpw65tKYQ1HwIgWE0g+/vQ
 jJqg0xUWTVsNm6oyxqK+XL8/LaBYBMScrdY=
 -----END CERTIFICATE-----)cert",
-                         R"cert(-----BEGIN PRIVATE KEY-----
+            .subordinate_key = R"cert(-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgNZ1gdGGXXHECUjXV
 BmHhpWWYsdTK3cYOaqR0HDU9NuehRANCAAQ+RWFT7EsmiVjsmuNVHLSTVJts+tbI
 4TUAI+Glb6vEsgNaxcb5OEcWenpZ4lkVCVRM2+vUJEb0Ma595UtSp3y9
 -----END PRIVATE KEY-----)cert",
-                         {{mpl::Level::debug, "are valid X.509 files"},
-                          {mpl::Level::warning, "validity period is not valid"},
-                          {mpl::Level::info, "Regenerating certificates for the gRPC server"}}},
-        SSLCertTestParam{// Server cert missing serverAuth extension
-                         R"cert(-----BEGIN CERTIFICATE-----
+            .expected_logs = {{mpl::Level::debug, "are valid X.509 files"},
+                              {mpl::Level::warning, "validity period is not valid"},
+                              {mpl::Level::info, "Regenerating certificates for the gRPC server"}}},
+        SSLCertTestParam{
+            // Server cert missing serverAuth extension
+            .root_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIBzjCCAXWgAwIBAgIUO95PN/WButxgebA76W7ma7d+bP4wCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
 dGlwYXNzIFJvb3QgQ0EwHhcNMjUxMDExMDQyMTQ3WhcNMzUxMDA5MDQyMTQ3WjA9
@@ -420,7 +429,7 @@ HSMEGDAWgBS8Au0BSmlbWvBJZc9P0Z9YAji/ajAPBgNVHRMBAf8EBTADAQH/MAoG
 CCqGSM49BAMCA0cAMEQCIEyrRmyakaFNfsv7y93WSFu3kQiSvwhPQGyU5/rmvgAq
 AiA0b0p2vhWbgQ36xci+OAUimRERZc7xm6Kq/BstsohmBw==
 -----END CERTIFICATE-----)cert",
-                         R"cert(-----BEGIN CERTIFICATE-----
+            .subordinate_cert = R"cert(-----BEGIN CERTIFICATE-----
 MIIB4TCCAYagAwIBAgIUVl/7R6Ps3Lpf5OT1bI/zBSu0ItowCgYIKoZIzj0EAwIw
 PTELMAkGA1UEBhMCVVMxEjAQBgNVBAoMCUNhbm9uaWNhbDEaMBgGA1UEAwwRTXVs
 dGlwYXNzIFJvb3QgQ0EwHhcNMjUxMDExMDQyMTQ3WhcNMjYxMDExMDQyMTQ3WjA1
@@ -433,11 +442,12 @@ W1rwSWXPT9GfWAI4v2owCgYIKoZIzj0EAwIDSQAwRgIhAL5llYus/xGn7f5ibsmG
 vwYu01mkSZKHpMOCGCLYSqV8AiEAmDfgqgilMt2FkJ2LJLe+nTOShvqG6VWHQOxC
 uJiZkGQ=
 -----END CERTIFICATE-----)cert",
-                         R"cert(-----BEGIN PRIVATE KEY-----
+            .subordinate_key = R"cert(-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgWD5l1u681lEtS2s4
 lxScmmgQpHiVy2dRvF3Qy5UCwRihRANCAAQXxQohKM5ZXFPhydtPxvkvlfycEVRQ
 UwtxGnpEhj0D0h1M3tKVz3HkLh/yCS2b2jtZJRq3lzbfwHkOkFk64iqs
 -----END PRIVATE KEY-----)cert",
-                         {{mpl::Level::debug, "are valid X.509 files"},
-                          {mpl::Level::warning, "does not contain the correct extensions"},
-                          {mpl::Level::info, "Regenerating certificates for the gRPC server"}}}));
+            .expected_logs = {
+                {mpl::Level::debug, "are valid X.509 files"},
+                {mpl::Level::warning, "does not contain the correct extensions"},
+                {mpl::Level::info, "Regenerating certificates for the gRPC server"}}}));

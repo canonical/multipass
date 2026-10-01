@@ -135,7 +135,12 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     else if (QString::fromStdString(image).startsWith("http"))
         query_type = mp::Query::Type::HttpDownload;
 
-    return {name, image, false, request->remote_name(), query_type, true};
+    return {.name = name,
+            .release = image,
+            .persistent = false,
+            .remote_name = request->remote_name(),
+            .query_type = query_type,
+            .allow_unsupported = true};
 }
 
 constexpr auto base_vendor_data = "growpart:\n"
@@ -301,7 +306,11 @@ auto fetch_image_for(const std::string& name,
     auto stub_prepare = [](const mp::VMImage&) -> mp::VMImage { return {}; };
     auto stub_progress = [](int /*progress_type*/, int /*progress*/) { return true; };
 
-    mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
+    mp::Query query{.name = name,
+                    .release = "",
+                    .persistent = false,
+                    .remote_name = "",
+                    .query_type = mp::Query::Type::Alias};
 
     return vault.fetch_image(query,
                              stub_prepare,
@@ -429,9 +438,9 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
         if (const auto& mac = QString::fromStdString(net.mac_address()).toLower().toStdString();
             mac.empty() || mpu::valid_mac_address(mac))
             interfaces.push_back(mp::NetworkInterface{
-                net_id,
-                mac,
-                net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL});
+                .id = net_id,
+                .mac_address = mac,
+                .auto_mode = net.mode() != multipass::LaunchRequest_NetworkOptions_Mode_MANUAL});
         else
         {
             mpl::warn(category, "Invalid MAC address \"{}\"", mac);
@@ -516,13 +525,13 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
         std::vector<std::string> nets_need_bridging;
         mp::LaunchError option_errors;
     } ret{
-        std::move(mem_size),
-        std::move(disk_space),
-        std::move(instance_name),
-        std::move(zone_name),
-        std::move(extra_interfaces),
-        std::move(nets_need_bridging),
-        std::move(option_errors),
+        .mem_size = std::move(mem_size),
+        .disk_space = std::move(disk_space),
+        .instance_name = std::move(instance_name),
+        .zone_name = std::move(zone_name),
+        .extra_interfaces = std::move(extra_interfaces),
+        .nets_need_bridging = std::move(nets_need_bridging),
+        .option_errors = std::move(option_errors),
     };
     return ret;
 }
@@ -659,19 +668,24 @@ struct SelectionReaction
 };
 
 const SelectionReaction require_operative_instances_reaction{
-    {grpc::StatusCode::OK},
-    {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" is deleted"},
-    {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist"}};
+    .operative_reaction = {.status_code = grpc::StatusCode::OK},
+    .deleted_reaction = {.status_code = grpc::StatusCode::INVALID_ARGUMENT,
+                         .message_template = "instance \"{}\" is deleted"},
+    .missing_reaction = {.status_code = grpc::StatusCode::NOT_FOUND,
+                         .message_template = "instance \"{}\" does not exist"}};
 
 const SelectionReaction require_existing_instances_reaction{
-    {grpc::StatusCode::OK},
-    {grpc::StatusCode::OK},
-    {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist"}};
+    .operative_reaction = {.status_code = grpc::StatusCode::OK},
+    .deleted_reaction = {.status_code = grpc::StatusCode::OK},
+    .missing_reaction = {.status_code = grpc::StatusCode::NOT_FOUND,
+                         .message_template = "instance \"{}\" does not exist"}};
 
 const SelectionReaction require_missing_instances_reaction{
-    {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" already exists"},
-    {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" already exists"},
-    {grpc::StatusCode::OK}};
+    .operative_reaction = {.status_code = grpc::StatusCode::INVALID_ARGUMENT,
+                           .message_template = "instance \"{}\" already exists"},
+    .deleted_reaction = {.status_code = grpc::StatusCode::INVALID_ARGUMENT,
+                         .message_template = "instance \"{}\" already exists"},
+    .missing_reaction = {.status_code = grpc::StatusCode::OK}};
 
 // call only with InstanceTable::iterator or std::reference_wrapper<std::string>
 template <typename InstanceElem>
@@ -1475,16 +1489,16 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         const auto cloud_init_iso = MP_PLATFORM.path_to_qstr(
             cloud_init_iso_path(*config->factory, name));
-        mp::VirtualMachineDescription vm_desc{spec_copy.num_cores,
-                                              spec_copy.mem_size,
-                                              spec_copy.disk_space,
-                                              name,
-                                              spec_copy.zone,
-                                              spec_copy.default_mac_address,
-                                              spec_copy.extra_interfaces,
-                                              spec_copy.ssh_username,
-                                              vm_image,
-                                              cloud_init_iso};
+        mp::VirtualMachineDescription vm_desc{.num_cores = spec_copy.num_cores,
+                                              .mem_size = spec_copy.mem_size,
+                                              .disk_space = spec_copy.disk_space,
+                                              .vm_name = name,
+                                              .zone = spec_copy.zone,
+                                              .default_mac_address = spec_copy.default_mac_address,
+                                              .extra_interfaces = spec_copy.extra_interfaces,
+                                              .ssh_username = spec_copy.ssh_username,
+                                              .image = vm_image,
+                                              .cloud_init_iso = cloud_init_iso};
 
         auto& instance_records_table = spec_copy.deleted ? deleted_instances : operative_instances;
 
@@ -1791,12 +1805,13 @@ try
 
         try
         {
-            vm_images_info = config->vault->all_info_for({"",
-                                                          request->search_string(),
-                                                          false,
-                                                          request->remote_name(),
-                                                          Query::Type::Alias,
-                                                          request->allow_unsupported()});
+            vm_images_info = config->vault->all_info_for(
+                {.name = "",
+                 .release = request->search_string(),
+                 .persistent = false,
+                 .remote_name = request->remote_name(),
+                 .query_type = Query::Type::Alias,
+                 .allow_unsupported = request->allow_unsupported()});
         }
         catch (const std::exception& e)
         {
@@ -1901,8 +1916,9 @@ try
         const auto& name = vm.get_name();
 
         const auto& it = instance_snapshots_map.find(name);
-        const auto& snapshot_pick = it == instance_snapshots_map.end() ? SnapshotPick{{}, true}
-                                                                       : it->second;
+        const auto& snapshot_pick = it == instance_snapshots_map.end()
+                                      ? SnapshotPick{.pick = {}, .all_or_none = true}
+                                      : it->second;
 
         try
         {
@@ -2325,9 +2341,10 @@ try
     if (!instances_running(operative_instances))
         config->factory->hypervisor_health_check();
 
-    const SelectionReaction custom_reaction{{grpc::StatusCode::OK},
-                                            {grpc::StatusCode::ABORTED},
-                                            {grpc::StatusCode::ABORTED}};
+    const SelectionReaction custom_reaction{
+        .operative_reaction = {.status_code = grpc::StatusCode::OK},
+        .deleted_reaction = {.status_code = grpc::StatusCode::ABORTED},
+        .missing_reaction = {.status_code = grpc::StatusCode::ABORTED}};
     auto [instance_selection,
           status] = select_instances_and_react(operative_instances,
                                                deleted_instances,
@@ -2586,7 +2603,7 @@ try
 
                 auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
                 const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end()
-                                            ? SnapshotPick{{}, true}
+                                            ? SnapshotPick{.pick = {}, .all_or_none = true}
                                             : snapshot_pick_it->second;
 
                 if (!all || !purge) // if we're not purging the instance, we need to delete
@@ -2732,12 +2749,12 @@ try
 
 // TODO hyperv migration, remove
 #if defined(HCS_ENABLED)
-    mp::hyperv::DriverTransition transition{{*config,
-                                             vm_instance_specs,
-                                             operative_instances,
-                                             deleted_instances,
-                                             migration_in_progress,
-                                             preparing_instances}};
+    mp::hyperv::DriverTransition transition{{.config = *config,
+                                             .specs = vm_instance_specs,
+                                             .operative_instances = operative_instances,
+                                             .deleted_instances = deleted_instances,
+                                             .migration_in_progress = migration_in_progress,
+                                             .preparing_instances = preparing_instances}};
     if (auto status = transition.prepare(key, val); !status.ok())
     {
         context->set_value(std::move(status));
@@ -3427,18 +3444,18 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                              auto vm_desc = prepare_future_watcher->future().result();
 
                              vm_instance_specs[name] = {
-                                 vm_desc.num_cores,
-                                 vm_desc.mem_size,
-                                 vm_desc.disk_space,
-                                 vm_desc.default_mac_address,
-                                 vm_desc.extra_interfaces,
-                                 config->ssh_username,
-                                 VirtualMachine::State::stopped,
-                                 {},
-                                 false,
-                                 {},
-                                 0,
-                                 vm_desc.zone,
+                                 .num_cores = vm_desc.num_cores,
+                                 .mem_size = vm_desc.mem_size,
+                                 .disk_space = vm_desc.disk_space,
+                                 .default_mac_address = vm_desc.default_mac_address,
+                                 .extra_interfaces = vm_desc.extra_interfaces,
+                                 .ssh_username = config->ssh_username,
+                                 .state = VirtualMachine::State::stopped,
+                                 .mounts = {},
+                                 .deleted = false,
+                                 .metadata = {},
+                                 .clone_count = 0,
+                                 .zone = vm_desc.zone,
                              };
                              operative_instances[name] = config->factory->create_virtual_machine(
                                  vm_desc,
@@ -3510,16 +3527,17 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
             Query query;
             VirtualMachineDescription vm_desc{
-                request->num_cores(),
-                MemorySize{request->mem_size().empty() ? "0b" : request->mem_size()},
-                MemorySize{request->disk_space().empty() ? "0b" : request->disk_space()},
-                name,
-                zone_name,
-                "",
-                {},
-                config->ssh_username,
-                VMImage{},
-                ""};
+                .num_cores = request->num_cores(),
+                .mem_size = MemorySize{request->mem_size().empty() ? "0b" : request->mem_size()},
+                .disk_space = MemorySize{request->disk_space().empty() ? "0b"
+                                                                       : request->disk_space()},
+                .vm_name = name,
+                .zone = zone_name,
+                .default_mac_address = "",
+                .extra_interfaces = {},
+                .ssh_username = config->ssh_username,
+                .image = VMImage{},
+                .cloud_init_iso = ""};
 
             CloudInitConfig cloud_init{};
             cloud_init.vendor_data = make_cloud_init_vendor_config(
@@ -4021,7 +4039,8 @@ mp::Daemon::async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Repl
         }
     }
 
-    return {mp::grpc_status_for_readiness<Reply>(results, start_errors), context};
+    return {.status = mp::grpc_status_for_readiness<Reply>(results, start_errors),
+            .context = context};
 }
 
 void mp::Daemon::finish_async_operation(const std::string& async_future_key)
@@ -4252,9 +4271,9 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
                                                        preferred_net);
     }
 
-    mp::NetworkInterface new_if{preferred_net,
-                                generate_unused_mac_address(allocated_mac_addrs),
-                                true};
+    mp::NetworkInterface new_if{.id = preferred_net,
+                                .mac_address = generate_unused_mac_address(allocated_mac_addrs),
+                                .auto_mode = true};
     mpl::debug(category,
                "New interface {{\"{}\", \"{}\", {}}}",
                new_if.id,

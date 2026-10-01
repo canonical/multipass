@@ -138,8 +138,10 @@ TEST_F(HyperVHCSAPI_IntegrationTests, create_delete_compute_system)
     params.memory_size_mb = 1024;
     params.processor_count = 1;
     params.scsi_devices = {
-        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"},
-        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"}};
+        hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                   .name = "cloud-init"},
+        hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::VirtualDisk(),
+                                   .name = "primary"}};
 
     const auto c_result = HCS().create_compute_system(params, handle);
     ASSERT_TRUE(c_result);
@@ -157,8 +159,10 @@ TEST_F(HyperVHCSAPI_IntegrationTests, pause_resume_compute_system)
     params.memory_size_mb = 1024;
     params.processor_count = 1;
     params.scsi_devices = {
-        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"},
-        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"}};
+        hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                   .name = "cloud-init"},
+        hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::VirtualDisk(),
+                                   .name = "primary"}};
 
     hyperv::hcs::ComputeSystemState state{hyperv::hcs::ComputeSystemState::unknown};
     ASSERT_TRUE(HCS().create_compute_system(params, handle));
@@ -248,8 +252,10 @@ TEST_F(HyperVHCSAPI_IntegrationTests, enumerate_properties)
     params.memory_size_mb = 1024;
     params.processor_count = 1;
     params.scsi_devices = {
-        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"},
-        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"}};
+        hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                   .name = "cloud-init"},
+        hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::VirtualDisk(),
+                                   .name = "primary"}};
 
     const auto c_result = HCS().create_compute_system(params, handle);
 
@@ -274,8 +280,10 @@ TEST_F(HyperVHCSAPI_IntegrationTests, instance_with_snapshots)
     params.memory_size_mb = 1024;
     params.processor_count = 1;
     params.scsi_devices = {
-        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::Iso(), "cloud-init"},
-        hyperv::hcs::HcsScsiDevice{hyperv::hcs::HcsScsiDeviceType::VirtualDisk(), "primary"}};
+        hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::Iso(),
+                                   .name = "cloud-init"},
+        hyperv::hcs::HcsScsiDevice{.type = hyperv::hcs::HcsScsiDeviceType::VirtualDisk(),
+                                   .name = "primary"}};
 
     const auto c_result = HCS().create_compute_system(params, handle);
     ASSERT_TRUE(HCS().get_compute_system_state(handle, state));

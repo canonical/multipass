@@ -114,12 +114,12 @@ struct OperationResult
         const std::error_code ec{static_cast<HRESULT>(win32_as_hresult), std::system_category()};
         const std::wstring msg_as_wstring = to_wstring(ec.message());
         // https://learn.microsoft.com/en-us/windows/win32/api/winerror/nf-winerror-hresult_from_win32
-        return OperationResult(
-            win32_as_hresult,
-            fmt::format(L"{} : {} ({:#x})",
-                        status_msg,
-                        msg_as_wstring,
-                        static_cast<std::make_unsigned_t<HRESULT>>(win32_as_hresult)));
+        return OperationResult{.code = win32_as_hresult,
+                               .status_msg = fmt::format(
+                                   L"{} : {} ({:#x})",
+                                   status_msg,
+                                   msg_as_wstring,
+                                   static_cast<std::make_unsigned_t<HRESULT>>(win32_as_hresult))};
     }
 
     static OperationResult success()
