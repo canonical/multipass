@@ -60,7 +60,7 @@ mp::ReturnCodeVariant cmd::Start::run(mp::ArgParser* parser)
     auto on_success = [&spinner, this](mp::StartReply& reply) -> ReturnCodeVariant {
         spinner.stop();
         if (term->is_live() && update_available(reply.update_info()))
-            cout << update_notice(reply.update_info());
+            cerr << update_notice(reply.update_info());
         return ReturnCode::Ok;
     };
 
