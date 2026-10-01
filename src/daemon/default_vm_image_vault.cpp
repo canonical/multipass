@@ -426,9 +426,7 @@ void mp::DefaultVMImageVault::update_images(const PrepareAction& prepare,
     for (const auto& record : prepared_image_records)
     {
         if (record.second.query.query_type == Query::Type::Alias &&
-            record.first.compare(0,
-                                 record.second.query.release.length(),
-                                 record.second.query.release) != 0)
+            !record.first.starts_with(record.second.query.release))
         {
             try
             {

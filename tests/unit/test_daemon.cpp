@@ -746,7 +746,7 @@ MATCHER_P2(YAMLNodeContainsStringStartingWith, key, val, "")
     {
         return false;
     }
-    return arg[key].Scalar().find(val) == 0;
+    return arg[key].Scalar().starts_with(val);
 }
 
 MATCHER_P(YAMLNodeContainsSubString, val, "")
