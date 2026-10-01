@@ -309,6 +309,9 @@ else()
   add_compile_options(-Werror -Wall -pedantic -fPIC)
 
   if(APPLE)
+    # Calling an API newer than the deployment target without an availability check binds it as a
+    # weak import that resolves to NULL on older macOS, crashing at the call site
+    add_compile_options(-Werror=unguarded-availability-new)
     add_definitions(-DMULTIPASS_PLATFORM_APPLE)
     set(MULTIPASS_PLATFORM macos)
     add_definitions(-DMULTIPASS_COMPILER_APPLE_CLANG)
