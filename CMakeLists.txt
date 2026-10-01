@@ -83,25 +83,27 @@ endif()
 
 if(NOT MULTIPASS_VCPKG_BUILD_DEFAULT)
   message(STATUS "Will build `vcpkg` dependencies in `release-only` mode.")
-
-  # Propagate macOS deployment target to vcpkg triplet
-  if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
-    set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-triplets")
-    configure_file(
-      "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx-release.cmake.in"
-      "${VCPKG_TRIPLETS_DIR}/${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake"
-      @ONLY
-    )
-    set(VCPKG_OVERLAY_TRIPLETS "${VCPKG_TRIPLETS_DIR}" CACHE STRING "Custom vcpkg triplets directory")
-    message(STATUS "Generated vcpkg triplet: ${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake with deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
-  endif()
-
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
+  set(VCPKG_BUILD_TYPE_SETTING "set(VCPKG_BUILD_TYPE release)")
 else()
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
+  set(VCPKG_BUILD_TYPE_SETTING "") # build both debug and release
   message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take around twice the time to build the `vcpkg` deps.")
+endif()
+
+# Propagate macOS deployment target and compiler flags to the vcpkg triplet. Generate it for both
+# build modes; in the default mode it overlays vcpkg's stock triplet of the same name.
+if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+  set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-triplets")
+  configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx.cmake.in"
+    "${VCPKG_TRIPLETS_DIR}/${VCPKG_TARGET_TRIPLET}.cmake"
+    @ONLY
+  )
+  set(VCPKG_OVERLAY_TRIPLETS "${VCPKG_TRIPLETS_DIR}" CACHE STRING "Custom vcpkg triplets directory")
+  message(STATUS "Generated vcpkg triplet: ${VCPKG_TARGET_TRIPLET}.cmake with deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif()
 
 message(STATUS "Bootstrapping vcpkg...")
@@ -309,6 +311,9 @@ else()
   add_compile_options(-Werror -Wall -pedantic -fPIC)
 
   if(APPLE)
+    # Calling an API newer than the deployment target without an availability check binds it as a
+    # weak import that resolves to NULL on older macOS, crashing at the call site
+    add_compile_options(-Werror=unguarded-availability-new)
     add_definitions(-DMULTIPASS_PLATFORM_APPLE)
     set(MULTIPASS_PLATFORM macos)
     add_definitions(-DMULTIPASS_COMPILER_APPLE_CLANG)
