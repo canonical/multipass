@@ -43,11 +43,11 @@ class MappingSlider extends StatelessWidget {
 }
 
 extension NumToHumanString on num {
-  // prints decimals only if they exist, otherwise print as int
+  // Rounds to 2 decimal places, omitting them if they are both zero.
   String toNiceString() {
     if (this is int) return toString();
-    final asInt = toInt();
-    return asInt == this ? asInt.toString() : toStringAsFixed(2);
+    final fixed = toStringAsFixed(2);
+    return fixed.endsWith('.00') ? round().toString() : fixed;
   }
 }
 

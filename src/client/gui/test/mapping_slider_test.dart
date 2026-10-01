@@ -13,6 +13,8 @@ void main() {
       expect(1.5.toNiceString(), '1.50');
       expect(3.14.toNiceString(), '3.14');
       expect(0.1.toNiceString(), '0.10');
+      expect((0.101).toNiceString(), '0.10');
+      expect((0.100).toNiceString(), '0.10');
     });
 
     test('double equal to int returns int string', () {
@@ -20,73 +22,82 @@ void main() {
       expect(0.0.toNiceString(), '0');
       expect(10.0.toNiceString(), '10');
     });
+
+    test('double that rounds to an int returns int string', () {
+      expect(0.001.toNiceString(), '0');
+      expect(1.999.toNiceString(), '2');
+      expect((-0.001).toNiceString(), '0');
+    });
   });
 
   group('BytesFromUnits', () {
-    test('1.kibi equals 1024', () {
-      expect(1.kibi, 1024);
-    });
-
-    test('1.mebi equals 1048576', () {
-      expect(1.mebi, 1048576);
-    });
-
-    test('1.gibi equals 1073741824', () {
-      expect(1.gibi, 1073741824);
-    });
-
-    test('2.kibi equals 2048', () {
-      expect(2.kibi, 2048);
-    });
-
-    test('0.kibi equals 0', () {
-      expect(0.kibi, 0);
-    });
+    for (final (expression, actual, expected) in [
+      ('0.kibi', 0.kibi, 0),
+      ('1.kibi', 1.kibi, 1024),
+      ('2.kibi', 2.kibi, 2048),
+      ('1.mebi', 1.mebi, 1048576),
+      ('1.gibi', 1.gibi, 1073741824),
+    ]) {
+      test('$expression equals $expected', () {
+        expect(actual, expected);
+      });
+    }
   });
 
   group('Conversion functions', () {
-    test('bytesToKibi round-trip with kibiToBytes', () {
-      final value = 1.kibi;
-      expect(kibiToBytes(bytesToKibi(value)), closeTo(value, 1e-9));
-    });
-
-    test('bytesToGibi of 1.gibi is approximately 1.0', () {
-      expect(bytesToGibi(1.gibi), closeTo(1.0, 1e-9));
-    });
-
-    test('gibiToBytes(1) equals 1.gibi', () {
-      expect(gibiToBytes(1), 1.gibi);
-    });
-
-    test('bytesToMebi round-trip with mebiToBytes', () {
-      final value = 1.mebi;
-      expect(mebiToBytes(bytesToMebi(value)), closeTo(value, 1e-9));
-    });
-
-    test('bytesToBytes is identity', () {
-      expect(bytesToBytes(1.gibi), 1.gibi);
-    });
+    for (final (unit, fromBytes, toBytes, bytesPerUnit) in [
+      ('B', bytesToBytes, bytesToBytes, 1),
+      ('KiB', bytesToKibi, kibiToBytes, 1.kibi),
+      ('MiB', bytesToMebi, mebiToBytes, 1.mebi),
+      ('GiB', bytesToGibi, gibiToBytes, 1.gibi),
+    ]) {
+      test('converts between bytes and $unit', () {
+        expect(fromBytes(bytesPerUnit), 1);
+        expect(toBytes(1), bytesPerUnit);
+        expect(toBytes(1.5), 1.5 * bytesPerUnit);
+      });
+    }
   });
 
   group('nonLinearMapping and nonLinearInverseMapping', () {
-    test('round-trip for 1.gibi', () {
-      final value = 1.gibi;
-      expect(nonLinearInverseMapping(nonLinearMapping(value)), value);
+    for (final value in [
+      512,
+      1.mebi,
+      1.gibi,
+      1.5.gibi,
+      3.gibi,
+      8.gibi,
+      1024.gibi,
+    ]) {
+      test('round-trips $value bytes', () {
+        expect(nonLinearInverseMapping(nonLinearMapping(value)), value);
+      });
+    }
+
+    test('advances 8 positions each time the value doubles', () {
+      for (var value = 512; value <= 1024.gibi; value *= 2) {
+        expect(nonLinearMapping(2 * value), nonLinearMapping(value) + 8);
+      }
     });
 
-    test('round-trip for 4.gibi', () {
-      final value = 4.gibi;
-      expect(nonLinearInverseMapping(nonLinearMapping(value)), value);
+    test('spaces positions evenly between consecutive powers of two', () {
+      final start = nonLinearMapping(1.gibi);
+      for (var step = 0; step <= 8; step++) {
+        expect(nonLinearInverseMapping(start + step), 1.gibi + step * 128.mebi);
+      }
     });
 
-    test('round-trip for 8.gibi', () {
-      final value = 8.gibi;
-      expect(nonLinearInverseMapping(nonLinearMapping(value)), value);
+    test('rounds values between positions down to the lower position', () {
+      for (final value in [1.gibi + 1, 1.gibi + 128.mebi - 1]) {
+        expect(nonLinearInverseMapping(nonLinearMapping(value)), 1.gibi);
+      }
     });
 
-    test('larger mapped value for larger input', () {
-      expect(nonLinearMapping(4.gibi), greaterThan(nonLinearMapping(1.gibi)));
-      expect(nonLinearMapping(8.gibi), greaterThan(nonLinearMapping(4.gibi)));
+    test('maps each position back to itself', () {
+      // Below position 24, a doubling spans fewer than 8 sectors.
+      for (var position = 24; position < 8 * 40; position++) {
+        expect(nonLinearMapping(nonLinearInverseMapping(position)), position);
+      }
     });
 
     test('inverseMapping produces multiples of sector size', () {
