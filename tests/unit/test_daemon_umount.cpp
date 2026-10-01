@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "daemon_test_fixture.h"
+#include "json_test_utils.h"
 #include "mock_mount_handler.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
@@ -24,6 +25,8 @@
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
+
+#include <multipass/utils.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -44,6 +47,20 @@ struct TestDaemonUmount : public mpt::DaemonTestFixture
         mock_factory = use_a_mock_vm_factory();
     }
 
+    grpc::Status unmount(mp::Daemon& daemon, const std::string& target_path = {})
+    {
+        mp::UmountRequest request;
+        auto entry = request.add_target_paths();
+        entry->set_instance_name(mock_instance_name);
+        entry->set_target_path(target_path);
+
+        return call_daemon_slot(
+            daemon,
+            &mp::Daemon::umount,
+            request,
+            StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
+    }
+
     mpt::MockVirtualMachineFactory* mock_factory;
 
     const std::string mock_instance_name{"real-zebraphant"};
@@ -61,6 +78,10 @@ struct TestDaemonUmount : public mpt::DaemonTestFixture
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
     mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
+};
+
+struct TestDaemonUmountFailure : TestDaemonUmount, WithParamInterface<bool>
+{
 };
 } // namespace
 
@@ -123,6 +144,17 @@ TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
         StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
 
     EXPECT_TRUE(status.ok());
+    check_mounts_in_json(boost::json::parse(mp::utils::contents_of(filename)), {});
+
+    for (const auto& target : {fake_target_path, fake_target_path + "2"})
+    {
+        const auto retry_status = unmount(daemon, target);
+        EXPECT_EQ(retry_status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+        EXPECT_THAT(
+            retry_status.error_message(),
+            HasSubstr(
+                fmt::format("path \"{}\" is not mounted in '{}'", target, mock_instance_name)));
+    }
 }
 
 TEST_F(TestDaemonUmount, umountWithTargetOnlyStopsItsHandlers)
@@ -140,10 +172,10 @@ TEST_F(TestDaemonUmount, umountWithTargetOnlyStopsItsHandlers)
     auto mock_mount_handler2 = std::make_unique<mpt::MockMountHandler>();
     auto mock_mount_handler3 = std::make_unique<mpt::MockMountHandler>();
     EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));
-    EXPECT_CALL(*mock_mount_handler2, is_active).Times(0);
+    EXPECT_CALL(*mock_mount_handler2, is_active).WillOnce(Return(true));
     EXPECT_CALL(*mock_mount_handler3, is_active).WillOnce(Return(true));
     EXPECT_CALL(*mock_mount_handler, deactivate_impl(false));
-    EXPECT_CALL(*mock_mount_handler2, deactivate_impl(false)).Times(0);
+    EXPECT_CALL(*mock_mount_handler2, deactivate_impl(false));
     EXPECT_CALL(*mock_mount_handler3, deactivate_impl(false));
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
@@ -174,6 +206,21 @@ TEST_F(TestDaemonUmount, umountWithTargetOnlyStopsItsHandlers)
         StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
 
     EXPECT_TRUE(status.ok());
+    check_mounts_in_json(boost::json::parse(mp::utils::contents_of(filename)),
+                         {{fake_target_path + "2", mounts.at(fake_target_path + "2")}});
+
+    for (const auto& target : {fake_target_path, fake_target_path + "3"})
+    {
+        const auto retry_status = unmount(daemon, target);
+        EXPECT_EQ(retry_status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+        EXPECT_THAT(
+            retry_status.error_message(),
+            HasSubstr(
+                fmt::format("path \"{}\" is not mounted in '{}'", target, mock_instance_name)));
+    }
+
+    EXPECT_TRUE(unmount(daemon, fake_target_path + "2").ok());
+    check_mounts_in_json(boost::json::parse(mp::utils::contents_of(filename)), {});
 }
 
 TEST_F(TestDaemonUmount, mountNotFound)
@@ -206,7 +253,7 @@ TEST_F(TestDaemonUmount, mountNotFound)
                                       mock_instance_name)));
 }
 
-TEST_F(TestDaemonUmount, stoppingMountFails)
+TEST_P(TestDaemonUmountFailure, stoppingMountFailsAndCanBeRetried)
 {
     std::unordered_map<std::string, mp::VMMount> mounts{
         {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
@@ -217,9 +264,10 @@ TEST_F(TestDaemonUmount, stoppingMountFails)
 
     auto error = "device is busy";
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
-    EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));
+    EXPECT_CALL(*mock_mount_handler, is_active).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(*mock_mount_handler, deactivate_impl(false))
-        .WillOnce(Throw(std::runtime_error{error}));
+        .WillOnce(Throw(std::runtime_error{error}))
+        .WillOnce(Return());
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
@@ -230,15 +278,7 @@ TEST_F(TestDaemonUmount, stoppingMountFails)
 
     mp::Daemon daemon{config_builder.build()};
 
-    mp::UmountRequest request;
-    auto entry = request.add_target_paths();
-    entry->set_instance_name(mock_instance_name);
-
-    auto status = call_daemon_slot(
-        daemon,
-        &mp::Daemon::umount,
-        request,
-        StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
+    const auto status = unmount(daemon, GetParam() ? fake_target_path : std::string{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(),
@@ -246,4 +286,80 @@ TEST_F(TestDaemonUmount, stoppingMountFails)
                                       fake_target_path,
                                       mock_instance_name,
                                       error)));
+    check_mounts_in_json(boost::json::parse(mp::utils::contents_of(filename)), mounts);
+
+    EXPECT_TRUE(unmount(daemon, fake_target_path).ok());
+    check_mounts_in_json(boost::json::parse(mp::utils::contents_of(filename)), {});
+
+    const auto retry_status = unmount(daemon, fake_target_path);
+    EXPECT_EQ(retry_status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    EXPECT_THAT(retry_status.error_message(),
+                HasSubstr(fmt::format("path \"{}\" is not mounted in '{}'",
+                                      fake_target_path,
+                                      mock_instance_name)));
+}
+
+INSTANTIATE_TEST_SUITE_P(AllAndSingleTarget, TestDaemonUmountFailure, Values(false, true));
+
+TEST_F(TestDaemonUmount, failedMountDoesNotPreventUnmountingOtherTargets)
+{
+    std::unordered_map<std::string, mp::VMMount> mounts{
+        {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}},
+        {fake_target_path + "2", {"foo2", {}, {}, mp::VMMount::MountType::Native}},
+        {fake_target_path + "3", {"foo3", {}, {}, mp::VMMount::MountType::Native}}};
+
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
+    config_builder.data_directory = temp_dir->path();
+
+    const auto error = "device is busy";
+    std::string failed_target;
+    std::vector<std::string> attempted_targets;
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
+
+    for (const auto& [target, mount] : mounts)
+    {
+        auto handler = std::make_unique<mpt::MockMountHandler>();
+        EXPECT_CALL(*handler, is_active).Times(AtLeast(1)).WillRepeatedly(Return(true));
+        EXPECT_CALL(*handler, deactivate_impl(false))
+            .Times(AtLeast(1))
+            .WillRepeatedly([&, target](bool) {
+                attempted_targets.push_back(target);
+                if (failed_target.empty())
+                {
+                    failed_target = target;
+                    throw std::runtime_error{error};
+                }
+            });
+        EXPECT_CALL(*mock_vm, make_native_mount_handler(target, _))
+            .WillOnce(Return(std::move(handler)));
+    }
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto status = unmount(daemon);
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    ASSERT_FALSE(failed_target.empty());
+    EXPECT_THAT(status.error_message(),
+                HasSubstr(fmt::format("failed to unmount \"{}\" from '{}': {}",
+                                      failed_target,
+                                      mock_instance_name,
+                                      error)));
+    EXPECT_THAT(
+        attempted_targets,
+        UnorderedElementsAre(fake_target_path, fake_target_path + "2", fake_target_path + "3"));
+    check_mounts_in_json(boost::json::parse(mp::utils::contents_of(filename)),
+                         {{failed_target, mounts.at(failed_target)}});
+
+    EXPECT_TRUE(unmount(daemon, failed_target).ok());
+    EXPECT_THAT(attempted_targets,
+                UnorderedElementsAre(fake_target_path,
+                                     fake_target_path + "2",
+                                     fake_target_path + "3",
+                                     failed_target));
+    check_mounts_in_json(boost::json::parse(mp::utils::contents_of(filename)), {});
 }
