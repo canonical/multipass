@@ -65,33 +65,24 @@ inline auto unique_id_mappings(id_mappings& xid_mappings)
     std::unordered_map<int, std::unordered_set<int>> dup_id_map;
     std::unordered_map<int, std::unordered_set<int>> dup_rev_id_map;
 
-    for (auto it = xid_mappings.begin(); it != xid_mappings.end();)
-    {
-        bool duplicate = dup_id_map.find(it->first) != dup_id_map.end() ||
-                         dup_rev_id_map.find(it->second) != dup_rev_id_map.end();
+    std::erase_if(xid_mappings, [&](const auto& mapping) {
+        const bool duplicate = dup_id_map.find(mapping.first) != dup_id_map.end() ||
+                               dup_rev_id_map.find(mapping.second) != dup_rev_id_map.end();
 
-        dup_id_map[it->first].insert(it->second);
-        dup_rev_id_map[it->second].insert(it->first);
+        dup_id_map[mapping.first].insert(mapping.second);
+        dup_rev_id_map[mapping.second].insert(mapping.first);
 
         if (duplicate)
-        {
-            mpl::debug("id_mappings", "Dropping repeated mapping {}:{}", it->first, it->second);
-            it = xid_mappings.erase(it);
-        }
-        else
-        {
-            ++it;
-        }
-    }
+            mpl::debug("id_mappings",
+                       "Dropping repeated mapping {}:{}",
+                       mapping.first,
+                       mapping.second);
+
+        return duplicate;
+    });
 
     auto filter_non_repeating = [](auto& map) {
-        for (auto it = map.begin(); it != map.end();)
-        {
-            if (it->second.size() <= 1)
-                it = map.erase(it);
-            else
-                ++it;
-        }
+        std::erase_if(map, [](const auto& entry) { return entry.second.size() <= 1; });
     };
 
     filter_non_repeating(dup_id_map);
