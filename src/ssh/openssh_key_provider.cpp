@@ -32,8 +32,20 @@ namespace
 
 mp::OpenSSHKeyProvider::KeyUPtr create_priv_key(const QString& priv_key_path)
 {
-    ssh_key priv_key;
-    auto ret = MP_LIBSSH.ssh_pki_generate(SSH_KEYTYPE_RSA, 2048, &priv_key);
+    std::unique_ptr<ssh_pki_ctx_struct, void (*)(ssh_pki_ctx)> context{
+        MP_LIBSSH.ssh_pki_ctx_new(),
+        [](ssh_pki_ctx ctx) { MP_LIBSSH.ssh_pki_ctx_free(ctx); }};
+    if (!context)
+        throw std::runtime_error("unable to allocate ssh key generation context");
+
+    const int key_bits = 2048;
+    auto ret =
+        MP_LIBSSH.ssh_pki_ctx_options_set(context.get(), SSH_PKI_OPTION_RSA_KEY_SIZE, &key_bits);
+    if (ret != SSH_OK)
+        throw std::runtime_error("unable to set ssh key size");
+
+    ssh_key priv_key{nullptr};
+    ret = MP_LIBSSH.ssh_pki_generate_key(SSH_KEYTYPE_RSA, context.get(), &priv_key);
     if (ret != SSH_OK)
         throw std::runtime_error("unable to generate ssh key");
 
