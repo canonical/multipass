@@ -75,6 +75,11 @@ ExternalProject_Add(qemu
       # and crash on older macOS. QEMU does not pass CFLAGS to its Objective-C sources.
       --extra-cflags=-Werror=unguarded-availability-new
       --extra-objcflags=-Werror=unguarded-availability-new
+      # QEMU 8.2 checks for strchrnul (only available from macOS 15.4) without including string.h,
+      # so it finds the symbol in the SDK but can't see its availability. Forcing the header in makes
+      # meson's dummy prototype conflict with the real declaration, so the check fails and QEMU uses
+      # its own implementation. Fixed upstream in a5b30be534538dc6e44a68ce9734e45dd08f52ec.
+      "--extra-cflags=-include string.h"
   BUILD_COMMAND
     ${CMAKE_COMMAND} -E env ${MACOS_DEPLOYMENT_TARGET_FLAG} ninja
   TEST_COMMAND ""
