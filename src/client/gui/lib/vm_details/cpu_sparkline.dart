@@ -60,8 +60,8 @@ class CpuUsagesNotifier extends Notifier<Queue<double>> {
         .watch(vmInfoProvider(arg))
         .instanceInfo
         .cpuTimes
-        .split(' ')
-        .skip(2)
+        .split(RegExp(r'\s+'))
+        .skip(1)
         .take(8)
         .map(int.tryParse)
         .toList();
@@ -86,7 +86,8 @@ class CpuUsagesNotifier extends Notifier<Queue<double>> {
     lastTotal = total;
     lastIdle = idle;
 
-    // Guard against a zero or negative delta
+    // The total should monotonically increase over time, so if the diff <= 0,
+    // we probably didn't get a new sample. Ignore it.
     final usage = diffTotal <= 0
         ? 0.0
         : (100 * (diffTotal - diffIdle) / diffTotal).roundToDouble();

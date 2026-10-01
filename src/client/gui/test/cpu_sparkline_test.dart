@@ -48,7 +48,9 @@ void main() {
       final container = makeContainer();
       final initialLength = container.read(cpuUsagesProvider('test-vm')).length;
 
-      container.read(_cpuTimesProvider.notifier).set('h s 500 0 0 500 0 0 0 0');
+      container
+          .read(_cpuTimesProvider.notifier)
+          .set('cpu  500 0 0 500 0 0 0 0');
 
       expect(
         container.read(cpuUsagesProvider('test-vm')).length,
@@ -63,7 +65,7 @@ void main() {
         // A single interval where all elapsed time is idle.
         container
             .read(_cpuTimesProvider.notifier)
-            .set('h s 0 0 0 1000 0 0 0 0');
+            .set('cpu  0 0 0 1000 0 0 0 0');
 
         expect(container.read(cpuUsagesProvider('test-vm')).last, equals(0.0));
       });
@@ -74,7 +76,7 @@ void main() {
         // All elapsed time is non-idle.
         container
             .read(_cpuTimesProvider.notifier)
-            .set('a b 1000 0 0 0 0 0 0 0');
+            .set('cpu  1000 0 0 0 0 0 0 0');
 
         expect(
             container.read(cpuUsagesProvider('test-vm')).last, equals(100.0));
@@ -86,7 +88,7 @@ void main() {
         // Half of the elapsed time is idle, half is busy.
         container
             .read(_cpuTimesProvider.notifier)
-            .set('h s 500 0 0 500 0 0 0 0');
+            .set('cpu  500 0 0 500 0 0 0 0');
 
         expect(container.read(cpuUsagesProvider('test-vm')).last, equals(50.0));
       });
@@ -97,7 +99,7 @@ void main() {
         // 3000 busy out of 3500 total is 85.71%, expected to round to 86.
         container
             .read(_cpuTimesProvider.notifier)
-            .set('cpu 100 200 300 400 500 600 700 800');
+            .set('cpu  200 300 400 500 600 700 800');
 
         expect(container.read(cpuUsagesProvider('test-vm')).last, equals(86.0));
       });
@@ -110,14 +112,14 @@ void main() {
         // First sample establishes the baseline counters.
         container
             .read(_cpuTimesProvider.notifier)
-            .set('h s 500 0 0 500 0 0 0 0');
+            .set('cpu  500 0 0 500 0 0 0 0');
         container.read(cpuUsagesProvider('test-vm'));
 
         // Second sample: 1000 more total, none of it idle → 100% for this
         // interval, even though the cumulative counters are not fully busy.
         container
             .read(_cpuTimesProvider.notifier)
-            .set('h s 1500 0 0 500 0 0 0 0');
+            .set('cpu  1500 0 0 500 0 0 0 0');
 
         expect(
             container.read(cpuUsagesProvider('test-vm')).last, equals(100.0));
@@ -128,7 +130,7 @@ void main() {
 
         container
             .read(_cpuTimesProvider.notifier)
-            .set('h s 500 0 0 500 0 0 0 0');
+            .set('cpu  500 0 0 500 0 0 0 0');
         container.read(cpuUsagesProvider('test-vm'));
 
         container.read(_cpuTimesProvider.notifier).set('');
@@ -143,7 +145,7 @@ void main() {
 
         container
             .read(_cpuTimesProvider.notifier)
-            .set('a b 1000 0 0 0 0 0 0 0');
+            .set('cpu  1000 0 0 0 0 0 0 0');
 
         expect(
             container.read(cpuUsagesProvider('test-vm')).last, equals(100.0));
@@ -156,14 +158,14 @@ void main() {
           vmInfoProvider('vm-a').overrideWithBuild(
             (ref, notifier) => DetailedInfoItem(
               instanceInfo: InstanceDetails(
-                cpuTimes: 'h s 1000 0 0 0 0 0 0 0', // fully busy → 100%
+                cpuTimes: 'cpu  1000 0 0 0 0 0 0 0', // fully busy → 100%
               ),
             ),
           ),
           vmInfoProvider('vm-b').overrideWithBuild(
             (ref, notifier) => DetailedInfoItem(
               instanceInfo: InstanceDetails(
-                cpuTimes: 'h s 500 0 0 500 0 0 0 0', // half busy → 50%
+                cpuTimes: 'cpu  500 0 0 500 0 0 0 0', // half busy → 50%
               ),
             ),
           ),
@@ -183,15 +185,13 @@ void main() {
 
         container
             .read(_cpuTimesProvider.notifier)
-            .set('h s 500 0 0 500 0 0 0 0');
+            .set('cpu  500 0 0 500 0 0 0 0');
         container.read(cpuUsagesProvider('test-vm'));
 
         // A second sample with identical counters (e.g. a suspended VM or a
         // repeated reading) leaves the delta at zero. Usage should be 0%,
-        // not NaN..
-        container
-            .read(_cpuTimesProvider.notifier)
-            .set('x y 500 0 0 500 0 0 0 0');
+        // not NaN.
+        container.invalidate(cpuUsagesProvider('test-vm'));
 
         final usage = container.read(cpuUsagesProvider('test-vm')).last;
         expect(usage.isNaN, isFalse);
@@ -203,11 +203,11 @@ void main() {
 
         container
             .read(_cpuTimesProvider.notifier)
-            .set('h s 1000 0 0 0 0 0 0 0');
+            .set('cpu  1000 0 0 0 0 0 0 0');
         container.read(cpuUsagesProvider('test-vm'));
 
         // Counters going backwards
-        container.read(_cpuTimesProvider.notifier).set('h s 10 0 0 0 0 0 0 0');
+        container.read(_cpuTimesProvider.notifier).set('cpu  10 0 0 0 0 0 0 0');
 
         expect(
           container.read(cpuUsagesProvider('test-vm')).last,
@@ -218,7 +218,7 @@ void main() {
       test('records 0% usage for a malformed sample instead of throwing', () {
         final container = makeContainer();
 
-        container.read(_cpuTimesProvider.notifier).set('cpu 5 10');
+        container.read(_cpuTimesProvider.notifier).set('cpu  5 10');
 
         expect(
           () => container.read(cpuUsagesProvider('test-vm')),
@@ -227,13 +227,27 @@ void main() {
         expect(container.read(cpuUsagesProvider('test-vm')).last, equals(0.0));
       });
 
+      for (final sample in [
+        'cpu 500 0 0 500 0 0 0 0',
+        'cpu\t500  0 0 500 0 0 0 0',
+      ]) {
+        test('parses a sample regardless of field separators: $sample', () {
+          final container = makeContainer();
+
+          container.read(_cpuTimesProvider.notifier).set(sample);
+
+          expect(
+              container.read(cpuUsagesProvider('test-vm')).last, equals(50.0));
+        });
+      }
+
       test('emits a new history instance when a sample changes the usage', () {
         final container = makeContainer();
         final first = container.read(cpuUsagesProvider('test-vm'));
 
         container
             .read(_cpuTimesProvider.notifier)
-            .set('a b 1000 0 0 0 0 0 0 0');
+            .set('cpu  1000 0 0 0 0 0 0 0');
         final second = container.read(cpuUsagesProvider('test-vm'));
 
         expect(identical(first, second), isFalse);
