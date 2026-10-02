@@ -163,14 +163,9 @@ bool cmd::Delete::confirm() const
         subject = fmt::format("{}", fmt::join(parts, ", and "));
     }
 
-    const PlainPrompter prompter{term};
-    auto answer = prompter.prompt(
-        fmt::format("{} will be deleted permanently. Would you like to proceed? [y/N]", subject));
-    while (!answer.empty() && !std::regex_match(answer, mp::client::yes_answer) &&
-           !std::regex_match(answer, mp::client::no_answer))
-        answer = prompter.prompt("Please answer yes/No");
-
-    return std::regex_match(answer, mp::client::yes_answer);
+    return YesNoPrompter{term}.prompt(
+        fmt::format("{} will be deleted permanently. Would you like to proceed?", subject),
+        false);
 }
 
 void cmd::Delete::remove_aliases_for(const std::string& instance)

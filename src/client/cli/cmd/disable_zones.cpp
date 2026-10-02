@@ -140,14 +140,8 @@ bool DisableZones::confirm() const
             request.zones(last_zone));
     };
     const auto message = "This operation will forcefully stop the VMs in " + format_zones() +
-                         ". Are you sure you want to continue? (Yes/no)";
+                         ". Are you sure you want to continue?";
 
-    const PlainPrompter prompter{term};
-    auto answer = prompter.prompt(message);
-    while (!answer.empty() && !std::regex_match(answer, client::yes_answer) &&
-           !std::regex_match(answer, client::no_answer))
-        answer = prompter.prompt("Please answer (Yes/no)");
-
-    return answer.empty() || std::regex_match(answer, client::yes_answer);
+    return YesNoPrompter{term}.prompt(message, true);
 }
 } // namespace multipass::cmd
