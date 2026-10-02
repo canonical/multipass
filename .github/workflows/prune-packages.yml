@@ -13,7 +13,7 @@ jobs:
   list-packages:
     if: ${{ github.repository == 'canonical/multipass' }}
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     outputs:
       names: ${{ steps.collect.outputs.names }}
@@ -48,7 +48,7 @@ jobs:
 
   prune:
     needs: list-packages
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     permissions:
       packages: write
@@ -67,7 +67,7 @@ jobs:
           attempt_delay: 60000
 
   notify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     needs: [list-packages, prune]
     if: ${{ !success() }}
     steps:
