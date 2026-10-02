@@ -2563,10 +2563,6 @@ catch (const mp::NoSuchSnapshotException& e)
 {
     context->set_value(grpc::Status{grpc::StatusCode::NOT_FOUND, e.what(), ""});
 }
-catch (const mp::VMStateInvalidException& e)
-{
-    context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, e.what()});
-}
 catch (const std::exception& e)
 {
     context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
