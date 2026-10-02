@@ -317,10 +317,10 @@ single RELATIVE ranking of the whole batch and assign each PR a tier
 
 Anchors (calibrate every score against these):
 - User impact:
-    5 = new capability all users directly act on (new OS image family such as 
+    5 = new capability all users directly act on (new OS image family such as
         Debian/Fedora; new major feature like a new GUI subsystem;
         redesigned image catalogue changing what users can launch)
-    4 = new capability most users directly act on, e.g. limited to a 
+    4 = new capability most users directly act on, e.g. limited to a
         particular platform (new CPU architecture such as ppc64el/s390x; new backend);
     3 = notable improvement to an existing workflow (new launch/mount option)
     2 = minor improvement to an existing workflow (removed inconveniences,
