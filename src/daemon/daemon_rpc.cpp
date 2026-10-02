@@ -170,150 +170,47 @@ std::future<void> mp::DaemonRpc::shutdown()
     });
 }
 
-grpc::Status mp::DaemonRpc::create(grpc::ServerContext* context,
-                                   grpc::ServerReaderWriter<CreateReply, CreateRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_create, this),
-                                                client_cert_from(context),
-                                                server);
-}
+// Uniform RPC handlers: verify the client cert, then emit the matching on_* signal
+// and wait for the daemon slot's result. Relies on the <Msg>Reply / <Msg>Request naming.
+#define MP_DEFINE_RPC_HANDLER(rpc, signal, Msg)                                                    \
+    grpc::Status mp::DaemonRpc::rpc(grpc::ServerContext* context,                                  \
+                                    grpc::ServerReaderWriter<Msg##Reply, Msg##Request>* server)    \
+    {                                                                                              \
+        return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::signal, this),     \
+                                                    client_cert_from(context),                     \
+                                                    server);                                       \
+    }
 
-grpc::Status mp::DaemonRpc::launch(grpc::ServerContext* context,
-                                   grpc::ServerReaderWriter<LaunchReply, LaunchRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_launch, this),
-                                                client_cert_from(context),
-                                                server);
-}
+MP_DEFINE_RPC_HANDLER(create, on_create, Create)
+MP_DEFINE_RPC_HANDLER(launch, on_launch, Launch)
+MP_DEFINE_RPC_HANDLER(purge, on_purge, Purge)
+MP_DEFINE_RPC_HANDLER(find, on_find, Find)
+MP_DEFINE_RPC_HANDLER(info, on_info, Info)
+MP_DEFINE_RPC_HANDLER(list, on_list, List)
+MP_DEFINE_RPC_HANDLER(snapshots, on_snapshots, Snapshots)
+MP_DEFINE_RPC_HANDLER(clone, on_clone, Clone)
+MP_DEFINE_RPC_HANDLER(networks, on_networks, Networks)
+MP_DEFINE_RPC_HANDLER(mount, on_mount, Mount)
+MP_DEFINE_RPC_HANDLER(recover, on_recover, Recover)
+MP_DEFINE_RPC_HANDLER(ssh_info, on_ssh_info, SSHInfo)
+MP_DEFINE_RPC_HANDLER(start, on_start, Start)
+MP_DEFINE_RPC_HANDLER(stop, on_stop, Stop)
+MP_DEFINE_RPC_HANDLER(suspend, on_suspend, Suspend)
+MP_DEFINE_RPC_HANDLER(restart, on_restart, Restart)
+MP_DEFINE_RPC_HANDLER(delet, on_delete, Delete)
+MP_DEFINE_RPC_HANDLER(umount, on_umount, Umount)
+MP_DEFINE_RPC_HANDLER(version, on_version, Version)
+MP_DEFINE_RPC_HANDLER(get, on_get, Get)
+MP_DEFINE_RPC_HANDLER(set, on_set, Set)
+MP_DEFINE_RPC_HANDLER(keys, on_keys, Keys)
+MP_DEFINE_RPC_HANDLER(snapshot, on_snapshot, Snapshot)
+MP_DEFINE_RPC_HANDLER(restore, on_restore, Restore)
+MP_DEFINE_RPC_HANDLER(daemon_info, on_daemon_info, DaemonInfo)
+MP_DEFINE_RPC_HANDLER(wait_ready, on_wait_ready, WaitReady)
+MP_DEFINE_RPC_HANDLER(zones, on_zones, Zones)
+MP_DEFINE_RPC_HANDLER(zones_state, on_zones_state, ZonesState)
 
-grpc::Status mp::DaemonRpc::purge(grpc::ServerContext* context,
-                                  grpc::ServerReaderWriter<PurgeReply, PurgeRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_purge, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::find(grpc::ServerContext* context,
-                                 grpc::ServerReaderWriter<FindReply, FindRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_find, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::info(grpc::ServerContext* context,
-                                 grpc::ServerReaderWriter<InfoReply, InfoRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_info, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::list(grpc::ServerContext* context,
-                                 grpc::ServerReaderWriter<ListReply, ListRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_list, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::clone(grpc::ServerContext* context,
-                                  grpc::ServerReaderWriter<CloneReply, CloneRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_clone, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::networks(
-    grpc::ServerContext* context,
-    grpc::ServerReaderWriter<NetworksReply, NetworksRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_networks, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::mount(grpc::ServerContext* context,
-                                  grpc::ServerReaderWriter<MountReply, MountRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_mount, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::recover(grpc::ServerContext* context,
-                                    grpc::ServerReaderWriter<RecoverReply, RecoverRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_recover, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::ssh_info(grpc::ServerContext* context,
-                                     grpc::ServerReaderWriter<SSHInfoReply, SSHInfoRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_ssh_info, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::start(grpc::ServerContext* context,
-                                  grpc::ServerReaderWriter<StartReply, StartRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_start, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::stop(grpc::ServerContext* context,
-                                 grpc::ServerReaderWriter<StopReply, StopRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_stop, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::suspend(grpc::ServerContext* context,
-                                    grpc::ServerReaderWriter<SuspendReply, SuspendRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_suspend, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::restart(grpc::ServerContext* context,
-                                    grpc::ServerReaderWriter<RestartReply, RestartRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_restart, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::delet(grpc::ServerContext* context,
-                                  grpc::ServerReaderWriter<DeleteReply, DeleteRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_delete, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::umount(grpc::ServerContext* context,
-                                   grpc::ServerReaderWriter<UmountReply, UmountRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_umount, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::version(grpc::ServerContext* context,
-                                    grpc::ServerReaderWriter<VersionReply, VersionRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_version, this),
-                                                client_cert_from(context),
-                                                server);
-}
+#undef MP_DEFINE_RPC_HANDLER
 
 grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context,
                                  const PingRequest* /*request*/,
@@ -327,14 +224,6 @@ grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context,
     }
 
     return grpc::Status{grpc::StatusCode::UNAUTHENTICATED, ""};
-}
-
-grpc::Status mp::DaemonRpc::get(grpc::ServerContext* context,
-                                grpc::ServerReaderWriter<GetReply, GetRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_get, this),
-                                                client_cert_from(context),
-                                                server);
 }
 
 grpc::Status mp::DaemonRpc::authenticate(
@@ -363,74 +252,6 @@ grpc::Status mp::DaemonRpc::authenticate(
     }
 
     return status;
-}
-
-grpc::Status mp::DaemonRpc::set(grpc::ServerContext* context,
-                                grpc::ServerReaderWriter<SetReply, SetRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_set, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::keys(grpc::ServerContext* context,
-                                 grpc::ServerReaderWriter<KeysReply, KeysRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_keys, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::snapshot(
-    grpc::ServerContext* context,
-    grpc::ServerReaderWriter<SnapshotReply, SnapshotRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_snapshot, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::restore(grpc::ServerContext* context,
-                                    grpc::ServerReaderWriter<RestoreReply, RestoreRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_restore, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::daemon_info(
-    grpc::ServerContext* context,
-    grpc::ServerReaderWriter<DaemonInfoReply, DaemonInfoRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_daemon_info, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::wait_ready(
-    grpc::ServerContext* context,
-    grpc::ServerReaderWriter<WaitReadyReply, WaitReadyRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_wait_ready, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::zones(grpc::ServerContext* context,
-                                  grpc::ServerReaderWriter<ZonesReply, ZonesRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_zones, this),
-                                                client_cert_from(context),
-                                                server);
-}
-
-grpc::Status mp::DaemonRpc::zones_state(
-    grpc::ServerContext* context,
-    grpc::ServerReaderWriter<ZonesStateReply, ZonesStateRequest>* server)
-{
-    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_zones_state, this),
-                                                client_cert_from(context),
-                                                server);
 }
 
 template <typename T, typename U, typename OperationSignal>
