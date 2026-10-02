@@ -2701,4 +2701,47 @@ TEST_F(Daemon, setsUpPermissionInheritance)
     config_builder.build();
 }
 
+TEST_F(Daemon, deleteReportsAndPersistsInstancesDeletedBeforeAFailure)
+{
+    static constexpr auto* deleted_name = "real-zebraphant";
+    static constexpr auto* failing_name = "primary";
+
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    const auto [temp_dir, filename] = plant_instance_json(
+        make_instance_json(std::nullopt, {}, {failing_name}));
+    config_builder.data_directory = temp_dir->path();
+
+    EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine)
+        .WillRepeatedly(WithArg<0>([](const mp::VirtualMachineDescription& desc) {
+            auto vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+            if (desc.vm_name == failing_name)
+                ON_CALL(*vm, shutdown).WillByDefault(Throw(std::runtime_error{"stuck"}));
+            return vm;
+        }));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+        .WillOnce(WithArg<1>([](const QByteArrayView& data) {
+            const auto obj = boost::json::parse({data.begin(), data.end()}).as_object();
+            EXPECT_FALSE(obj.contains(deleted_name));
+            EXPECT_TRUE(obj.contains(failing_name));
+        }));
+
+    StrictMock<mpt::MockServerReaderWriter<mp::DeleteReply, mp::DeleteRequest>> server;
+    EXPECT_CALL(server,
+                Write(Property(&mp::DeleteReply::purged_instances, ElementsAre(deleted_name)), _))
+        .WillOnce(Return(true));
+
+    mp::DeleteRequest request;
+    for (const auto* name : {deleted_name, failing_name})
+        request.add_instance_snapshot_pairs()->set_instance_name(name);
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::delet, request, server);
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
+    EXPECT_THAT(status.error_message(), HasSubstr("stuck"));
+}
+
 } // namespace
