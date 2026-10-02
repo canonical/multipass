@@ -14,7 +14,7 @@ multipass disable-zones zone2
 Since this forcefully stops any running instances in the zone, Multipass asks for confirmation before proceeding:
 
 ```{code-block} text
-This operation will forcefully stop the VMs in zone2. Are you sure you want to continue? (Yes/no)
+This operation will forcefully stop the VMs in zone2. Are you sure you want to continue? [Y/n]:
 ```
 
 ```{code-block} text

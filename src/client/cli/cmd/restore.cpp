@@ -144,14 +144,7 @@ mp::ParseCode cmd::Restore::parse_args(mp::ArgParser* parser)
 bool cmd::Restore::confirm_destruction(const std::string& instance_name)
 {
     static constexpr auto prompt_text =
-        "Do you want to take a snapshot of {} before discarding its current state? (Yes/no)";
-    static constexpr auto invalid_input = "Please answer Yes/no";
-    mp::PlainPrompter prompter(term);
+        "Do you want to take a snapshot of {} before discarding its current state?";
 
-    auto answer = prompter.prompt(fmt::format(prompt_text, instance_name));
-    while (!answer.empty() && !std::regex_match(answer, mp::client::yes_answer) &&
-           !std::regex_match(answer, mp::client::no_answer))
-        answer = prompter.prompt(invalid_input);
-
-    return std::regex_match(answer, mp::client::no_answer);
+    return !mp::YesNoPrompter{term}.prompt(fmt::format(prompt_text, instance_name), true);
 }
