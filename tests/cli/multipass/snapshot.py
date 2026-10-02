@@ -54,6 +54,34 @@ def take_snapshot(vm_name, snapshot_name, expected_parent="", expected_comment="
         assert expected_parent == snapshot["parent"]
         assert expected_comment == snapshot["comment"]
 
+    assert_list_snapshots_matches_snapshots()
+
+
+# TODO@deprecations remove along with `list --snapshots`
+def assert_list_snapshots_matches_snapshots():
+    """Assert that the deprecated `list --snapshots` still behaves like `snapshots`."""
+
+    warning = "`multipass list --snapshots` is deprecated"
+    advice = "Use `multipass snapshots` instead."
+
+    for fmt in ("table", "csv", "yaml"):
+        snapshots = multipass("snapshots", f"--format={fmt}")
+        list_snapshots = multipass("list", "--snapshots", f"--format={fmt}")
+        assert snapshots.exitstatus == list_snapshots.exitstatus
+        header, _, body = str(list_snapshots).partition(advice)
+        assert warning in header
+        assert body.strip() == str(snapshots)
+
+    # The JSON formatter does not sort, so compare parsed content
+    snapshots = multipass("snapshots", "--format=json").json()
+    list_snapshots, header = multipass(
+        "list", "--snapshots", "--format=json"
+    ).json_with_header()
+
+    assert warning in header
+    assert snapshots.exitstatus == list_snapshots.exitstatus
+    assert snapshots == list_snapshots
+
 
 def build_snapshot_tree(vm_name, tree, parent=""):
     """
