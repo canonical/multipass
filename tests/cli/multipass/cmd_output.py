@@ -31,7 +31,7 @@ def strip_driver_deprecation_notice(text: str) -> str:
     """
 
     return re.sub(
-        r"\*\*\* Warning! The \S+ driver is deprecated[^\r\n]*(?:\r*\n){2}.*?(?:\r*\n){2}",
+        r"\*\*\* Warning: the \S+ driver is deprecated[^\r\n]*(?:\r*\n){2}.*?(?:\r*\n){2}",
         "",
         text,
         flags=re.S,
