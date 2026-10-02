@@ -33,11 +33,11 @@ are not migrated. If, for any reason, you want to repeat a migration, you can ac
 deleting the `hcs` counterpart first.
 
 To permanently delete original `hyperv` instances, you can temporarily move back to `hyperv` and use
-the `delete` (and purge) command before switching to `hcs` again:
+the `delete` command before switching to `hcs` again:
 
 ```{code-block} text
 multipass set local.driver=hyperv
-multipass delete [-p] <instance> [...]
+multipass delete [--force] <instance> [...]
 multipass set local.driver=hcs
 ```
 
