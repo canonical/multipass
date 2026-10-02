@@ -43,8 +43,7 @@ TEST(UniqueIdMappings, retainsConflictsFromDroppedMappings)
 
     const auto [duplicate_ids, duplicate_reverse_ids] = mp::unique_id_mappings(mappings);
 
-    EXPECT_THAT(mappings,
-                ElementsAre(std::make_pair(1, 10), std::make_pair(3, 30), std::make_pair(4, 40)));
+    EXPECT_THAT(mappings, ElementsAre(Pair(1, 10), Pair(3, 30), Pair(4, 40)));
     EXPECT_THAT(duplicate_ids,
                 UnorderedElementsAre(Pair(1, UnorderedElementsAre(10, 11)),
                                      Pair(3, UnorderedElementsAre(30, 31))));
