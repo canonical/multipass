@@ -25,7 +25,7 @@ class Formatter;
 
 namespace cmd
 {
-class Find final : public Command
+class Images final : public Command
 {
 public:
     using Command::Command;
@@ -35,11 +35,12 @@ public:
     QString short_help() const override;
     QString description() const override;
 
-private:
-    FindRequest request;
+    std::vector<std::string> aliases() const override;
 
+private:
     ParseCode parse_args(ArgParser* parser);
 
+    ImagesRequest request;
     Formatter* chosen_formatter;
 };
 } // namespace cmd

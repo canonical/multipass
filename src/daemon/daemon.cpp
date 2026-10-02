@@ -54,6 +54,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
+#include <multipass/user_messages/driver_deprecation_warning.h>
 #include <multipass/utils/grpc_utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine.h>
@@ -111,11 +112,11 @@ constexpr auto invalid_network_template =
     "{}=<name>` to correct. See `multipass networks` for valid names.";
 
 // Images which cannot be bridged with --network.
-const std::unordered_set<std::string> no_bridging_release =
-    { // images to check from release and daily remotes
-        "10.04",  "lucid", "11.10", "oneiric", "12.04",  "precise", "12.10",  "quantal", "13.04",
-        "raring", "13.10", "saucy", "14.04",   "trusty", "14.10",   "utopic", "15.04",   "vivid",
-        "15.10",  "wily",  "16.04", "xenial",  "16.10",  "yakkety", "17.04",  "zesty"};
+const std::unordered_set<std::string> no_bridging_release = {
+    // images to check from release and daily remotes
+    "10.04",  "lucid", "11.10", "oneiric", "12.04",  "precise", "12.10",  "quantal", "13.04",
+    "raring", "13.10", "saucy", "14.04",   "trusty", "14.10",   "utopic", "15.04",   "vivid",
+    "15.10",  "wily",  "16.04", "xenial",  "16.10",  "yakkety", "17.04",  "zesty"};
 const std::unordered_set<std::string> no_bridging_core = {"core16"};
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
@@ -1107,7 +1108,7 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
     return any_snapshot;
 }
 
-void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container,
+void add_aliases(google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>* container,
                  const std::string& remote_name,
                  const mp::VMImageInfo& info)
 {
@@ -1276,19 +1277,7 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 template <typename W, typename R>
 void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
 {
-    static constexpr auto* deprecation_warning_template =
-        "*** Warning! The {} driver is deprecated and will be removed in an upcoming "
-        "release. ***";
-    static constexpr auto* migrationless_template =
-        "We recommend switching to the new {0} driver as soon as possible "
-        "(multipass set local.driver={1}). Your instances will not be destroyed but they will be "
-        "unreachable from the new driver. You can switch back to the old driver for now, but you "
-        "will need to manually recreate any instances you want to keep in the next release.";
-    static constexpr auto* migrationful_template =
-        "When you are ready to have your instances migrated, please stop them "
-        "(multipass stop --all) and switch to the new {0} driver "
-        "(multipass set local.driver={1}).";
-    static constexpr auto recommended_driver = std::pair{
+    static constexpr auto recommended = std::pair{
 #ifdef MULTIPASS_PLATFORM_APPLE
         "Apple Virtualization framework",
         "applevz"
@@ -1300,27 +1289,19 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
 
     // We know the driver doesn't change throughout a daemon run, so cache it and avoid the whole
     // settings call tree (which would run on every GUI poll)
-    static const auto current_driver = MP_SETTINGS.get(mp::driver_key);
-    auto compose_warning = [](const auto& current,
-                              const auto& recommended_name,
-                              const auto& recommended_setting,
-                              bool migrationful) {
-        const auto deprecation_header = fmt::format(deprecation_warning_template, current);
-        const auto* advice_template = migrationful ? migrationful_template : migrationless_template;
-        const auto deprecation_advice = fmt::format(fmt::runtime(advice_template),
-                                                    recommended_name,
-                                                    recommended_setting);
-
-        return fmt::format("{}\n\n{}\n\n", deprecation_header, deprecation_advice);
-    };
+    static const auto current_driver = MP_SETTINGS.get(mp::driver_key).toStdString();
 
     if (current_driver == "virtualbox" || current_driver == "hyperv")
     {
-        const auto current_name = current_driver == "hyperv" ? "Hyper-V" : "VirtualBox";
-        const auto deprecation_warning = compose_warning(current_name,
-                                                         recommended_driver.first,
-                                                         recommended_driver.second,
-                                                         current_driver == "hyperv");
+        const auto [current_name, migrationful] = current_driver == "hyperv"
+                                                    ? std::pair{"Hyper-V", true}
+                                                    : std::pair{"VirtualBox", false};
+
+        auto deprecation_warning = mp::make_driver_deprecation_warning(current_name,
+                                                                       recommended.first,
+                                                                       recommended.second,
+                                                                       migrationful);
+
         W reply{};
         reply.set_log_line(std::move(deprecation_warning));
         server.Write(reply);
@@ -1335,7 +1316,7 @@ constexpr bool is_one_of_v = (std::is_same_v<T, Types> || ...);
 // Request types not listed here are blocked during migration.
 template <typename Request>
 constexpr bool allowed_during_migration = is_one_of_v<Request,
-                                                      mp::FindRequest,
+                                                      mp::ImagesRequest,
                                                       mp::InfoRequest,
                                                       mp::ListRequest,
                                                       mp::NetworksRequest,
@@ -1379,7 +1360,7 @@ void mp::Daemon::connect_rpc(DaemonRpc& rpc)
     connect(&DaemonRpc::on_create, &Daemon::create);
     connect(&DaemonRpc::on_launch, &Daemon::launch);
     connect(&DaemonRpc::on_purge, &Daemon::purge);
-    connect(&DaemonRpc::on_find, &Daemon::find);
+    connect(&DaemonRpc::on_images, &Daemon::images);
     connect(&DaemonRpc::on_info, &Daemon::info);
     connect(&DaemonRpc::on_list, &Daemon::list);
     connect(&DaemonRpc::on_clone, &Daemon::clone);
@@ -1749,14 +1730,14 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::find(const FindRequest* request,
-                      grpc::ServerReaderWriterInterface<FindReply, FindRequest>* server,
-                      DaemonRpcContext* context)
+void mp::Daemon::images(const ImagesRequest* request,
+                        grpc::ServerReaderWriterInterface<ImagesReply, ImagesRequest>* server,
+                        DaemonRpcContext* context)
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
 
-    FindReply response;
+    ImagesReply response;
 
     if (!request->search_string().empty())
     {

@@ -11,27 +11,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
-configure_file(
-  version.h.in
-  ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/version.h
-  @ONLY
+# For now, this library only contains headers.
+add_library(user_messages INTERFACE)
+
+target_link_libraries(user_messages INTERFACE
+  fmt::fmt-header-only
 )
 
-add_subdirectory(cert)
-add_subdirectory(client)
-add_subdirectory(daemon)
-add_subdirectory(image_host)
-add_subdirectory(iso)
-add_subdirectory(logging)
-add_subdirectory(network)
-add_subdirectory(platform)
-add_subdirectory(process)
-add_subdirectory(rpc)
-add_subdirectory(settings)
-add_subdirectory(simplestreams)
-add_subdirectory(ssh)
-add_subdirectory(sshfs_mount)
-add_subdirectory(user_messages)
-add_subdirectory(utils)
-add_subdirectory(xz_decoder)
+target_include_directories(user_messages
+    INTERFACE "${CMAKE_SOURCE_DIR}/include"
+)
