@@ -139,18 +139,28 @@ bool cmd::Delete::confirm() const
                 instances.push_back(item.instance_name());
         }
 
+        // joins items by comma with an 'and' for the last one e.g. "'a', 'b' and 'c'"
+        const auto format_list = [](const std::vector<std::string>& items) {
+            if (items.size() == 1)
+                return fmt::format("'{}'", items.front());
+
+            return fmt::format("'{}' and '{}'",
+                               fmt::join(items.begin(), items.end() - 1, "', '"),
+                               items.back());
+        };
+
         std::vector<std::string> parts;
         if (!instances.empty())
-            parts.push_back(fmt::format("Instance{} '{}'",
+            parts.push_back(fmt::format("Instance{} {}",
                                         instances.size() == 1 ? "" : "s",
-                                        fmt::join(instances, "', '")));
+                                        format_list(instances)));
         if (!snapshots.empty())
-            parts.push_back(fmt::format("{}napshot{} '{}'",
+            parts.push_back(fmt::format("{}napshot{} {}",
                                         instances.empty() ? "S" : "s",
                                         snapshots.size() == 1 ? "" : "s",
-                                        fmt::join(snapshots, "', '")));
+                                        format_list(snapshots)));
 
-        subject = fmt::format("{}", fmt::join(parts, " and "));
+        subject = fmt::format("{}", fmt::join(parts, ", and "));
     }
 
     const PlainPrompter prompter{term};
