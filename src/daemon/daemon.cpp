@@ -4090,7 +4090,7 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
     return future_watcher_p;
 }
 
-template <typename Reply, typename Request>
+template <typename LogMsgReply, typename Request>
 mp::ReadinessResult
 mp::Daemon::async_wait_vm_ready(const std::string& name,
                                 const std::chrono::seconds& timeout,
@@ -4110,17 +4110,18 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
         const auto vm = it->second;
         vm->wait_until_ssh_up(timeout);
 
-        if constexpr (std::is_same_v<Reply, LaunchReply>)
-        {
-            if (server)
+        if constexpr (std::is_same_v<LogMsgReply, LaunchReply>)
+            if (std::is_same<LogMsgReply, LaunchReply>::value)
             {
-                Reply reply;
-                reply.set_reply_message("Waiting for initialization to complete");
-                server->Write(reply);
-            }
+                if (server)
+                {
+                    LogMsgReply reply;
+                    reply.set_reply_message("Waiting for initialization to complete");
+                    server->Write(reply);
+                }
 
-            vm->wait_for_cloud_init(timeout);
-        }
+                vm->wait_for_cloud_init(timeout);
+            }
 
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
         {
@@ -4160,7 +4161,7 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
 
             if (server && warnings.size() > 0)
             {
-                Reply reply;
+                LogMsgReply reply;
                 reply.set_log_line(fmt::to_string(warnings));
                 server->Write(reply);
             }
