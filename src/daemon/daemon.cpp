@@ -2504,6 +2504,7 @@ void mp::Daemon::delet(const DeleteRequest* request,
 try
 {
     DeleteReply response;
+    auto instances_dirty = false;
 
     auto [instance_selection,
           status] = select_instances_and_react(operative_instances,
@@ -2512,44 +2513,50 @@ try
                                                InstanceGroup::All,
                                                require_existing_instances_reaction);
 
-    if (status.ok())
     {
-        auto instances_dirty = false;
+        // report and persist whatever was deleted, even if a later deletion throws
+        auto report_guard = sg::make_scope_guard(
+            [this, server, &response, &instances_dirty]() noexcept {
+                top_catch_all(category, [this, server, &response, &instances_dirty] {
+                    if (instances_dirty)
+                        persist_instances();
+                    server->Write(response);
+                });
+            });
 
-        auto instance_snapshots_map = map_snapshots_to_instances(
-            request->instance_snapshot_pairs());
-
-        // avoid deleting if any snapshot is missing
-        verify_snapshot_picks(instance_selection, instance_snapshots_map);
-
-        for (const auto* selection :
-             {&instance_selection.deleted_selection, &instance_selection.operative_selection})
+        if (status.ok())
         {
-            for (const auto& vm_it : *selection)
+            auto instance_snapshots_map = map_snapshots_to_instances(
+                request->instance_snapshot_pairs());
+
+            // avoid deleting if any snapshot is missing
+            verify_snapshot_picks(instance_selection, instance_snapshots_map);
+
+            for (const auto* selection :
+                 {&instance_selection.deleted_selection, &instance_selection.operative_selection})
             {
-                const auto& instance_name = vm_it->first;
-
-                auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
-                const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end()
-                                            ? SnapshotPick{{}, true}
-                                            : snapshot_pick_it->second;
-
-                if (!all) // snapshots of instances being deleted go away with them
-                    for (const auto& snapshot_name : pick)
-                        vm_it->second->delete_snapshot(snapshot_name);
-                else
+                for (const auto& vm_it : *selection)
                 {
-                    delete_vm(vm_it, response);
-                    instances_dirty = true;
+                    const auto& instance_name = vm_it->first;
+
+                    auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
+                    const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end()
+                                                ? SnapshotPick{{}, true}
+                                                : snapshot_pick_it->second;
+
+                    if (!all) // snapshots of instances being deleted go away with them
+                        for (const auto& snapshot_name : pick)
+                            vm_it->second->delete_snapshot(snapshot_name);
+                    else
+                    {
+                        delete_vm(vm_it, response);
+                        instances_dirty = true;
+                    }
                 }
             }
         }
-
-        if (instances_dirty)
-            persist_instances();
     }
 
-    server->Write(response);
     context->set_value(status);
 }
 catch (const mp::NoSuchSnapshotException& e)
