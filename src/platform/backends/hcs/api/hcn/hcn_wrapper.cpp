@@ -135,7 +135,7 @@ OperationResult perform_hcn_operation(const FnType& fn)
     mpl::trace(log_category, "perform_hcn_operation(...) > result: {}", result.success());
 
     // Avoid null to be forward-compatible with C++23
-    return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+    return {.code = result, .status_msg = {result_msgbuf ? result_msgbuf.get() : L""}};
 }
 
 // ---------------------------------------------------------
@@ -264,7 +264,7 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
         return result;
 
     if (!properties)
-        return {E_UNEXPECTED, L"HCN returned no endpoint properties"};
+        return {.code = E_UNEXPECTED, .status_msg = L"HCN returned no endpoint properties"};
 
     const auto properties_as_str = wchar_to_utf8(properties.get());
     mpl::trace(log_category, "query_endpoint result: {}", properties_as_str);
@@ -276,7 +276,8 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
     catch (const std::exception& e)
     {
         mpl::error(log_category, "query_endpoint(...): failed to parse JSON: {}", e.what());
-        return {E_UNEXPECTED, L"Failed to process JSON returned from the API"};
+        return {.code = E_UNEXPECTED,
+                .status_msg = L"Failed to process JSON returned from the API"};
     }
 
     return result;
@@ -316,7 +317,7 @@ OperationResult HCNWrapper::enumerate_attached_endpoints(
         }
     }
 
-    return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+    return {.code = result, .status_msg = {result_msgbuf ? result_msgbuf.get() : L""}};
 }
 
 OperationResult HCNWrapper::find_endpoints_by_name(const std::string& name,
@@ -334,7 +335,7 @@ OperationResult HCNWrapper::find_endpoints_by_name(const std::string& name,
 
     if (FAILED(result) || !json_output)
     {
-        return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+        return {.code = result, .status_msg = {result_msgbuf ? result_msgbuf.get() : L""}};
     }
 
     const auto endpoints_as_str = wchar_to_utf8(json_output.get());
@@ -342,7 +343,7 @@ OperationResult HCNWrapper::find_endpoints_by_name(const std::string& name,
     const auto as_json = boost::json::parse(endpoints_as_str, ec);
     if (ec)
     {
-        return {E_FAIL, L"Json parse error"};
+        return {.code = E_FAIL, .status_msg = L"Json parse error"};
     }
 
     for (const auto& elem : as_json.as_array())
@@ -390,7 +391,7 @@ OperationResult HCNWrapper::find_endpoints_by_name(const std::string& name,
         }
     }
 
-    return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+    return {.code = result, .status_msg = {result_msgbuf ? result_msgbuf.get() : L""}};
 }
 
 OperationResult HCNWrapper::query_network(const std::string& network_guid,
@@ -441,10 +442,11 @@ OperationResult HCNWrapper::query_network(const std::string& network_guid,
                            "Could not process network info for `{}`: `{}`, skipping!",
                            network_guid,
                            ex.what());
-                return {E_UNEXPECTED, {L"Failed to process JSON returned from the API"}};
+                return {.code = E_UNEXPECTED,
+                        .status_msg = {L"Failed to process JSON returned from the API"}};
             }
         }
-        return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+        return {.code = result, .status_msg = {result_msgbuf ? result_msgbuf.get() : L""}};
     }
     else
         return open_network_result;
@@ -474,6 +476,6 @@ OperationResult HCNWrapper::enumerate_networks(std::vector<std::string>& out_net
             }
         }
     }
-    return {result, {result_msgbuf ? result_msgbuf.get() : L""}};
+    return {.code = result, .status_msg = {result_msgbuf ? result_msgbuf.get() : L""}};
 }
 } // namespace multipass::hyperv::hcn

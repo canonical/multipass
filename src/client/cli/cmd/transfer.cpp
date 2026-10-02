@@ -225,7 +225,7 @@ std::optional<mp::ParseCode> multipass::cmd::Transfer::parse_streaming(
             return ParseCode::CommandLineError;
         }
 
-        arguments = ToCout{std::move(split_sources.front().second)};
+        arguments = ToCout{.source = std::move(split_sources.front().second)};
         return ParseCode::Ok;
     }
 
@@ -237,7 +237,7 @@ std::optional<mp::ParseCode> multipass::cmd::Transfer::parse_streaming(
             return ParseCode::CommandLineError;
         }
 
-        arguments = FromCin{std::move(split_target).second};
+        arguments = FromCin{.target = std::move(split_target).second};
         return ParseCode::Ok;
     }
 
@@ -252,8 +252,9 @@ mp::ParseCode cmd::Transfer::parse_non_streaming(
     {
         if (request.instance_name_size() == (int)split_sources.size())
         {
-            arguments = InstanceSourcesLocalTarget{{split_sources.begin(), split_sources.end()},
-                                                   std::move(split_target.second)};
+            arguments = InstanceSourcesLocalTarget{
+                .sources = {split_sources.begin(), split_sources.end()},
+                .target_path = std::move(split_target.second)};
             return ParseCode::Ok;
         }
 
@@ -275,6 +276,7 @@ mp::ParseCode cmd::Transfer::parse_non_streaming(
                    split_sources.end(),
                    std::back_inserter(source_paths),
                    [](auto& item) { return std::move(item.second); });
-    arguments = LocalSourcesInstanceTarget{std::move(source_paths), std::move(split_target.second)};
+    arguments = LocalSourcesInstanceTarget{.source_paths = std::move(source_paths),
+                                           .target = std::move(split_target.second)};
     return ParseCode::Ok;
 }

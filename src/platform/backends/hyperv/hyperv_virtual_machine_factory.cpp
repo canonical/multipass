@@ -447,7 +447,10 @@ auto mp::HyperVVirtualMachineFactory::get_switches(
 
             auto links = switch_links(adapters, terms.at(2));
             auto description = switch_description(terms.at(1), links, terms.at(3));
-            ret.push_back({terms.at(0).toStdString(), "switch", description, links});
+            ret.push_back({.id = terms.at(0).toStdString(),
+                           .type = "switch",
+                           .description = description,
+                           .links = links});
         }
 
         return ret;

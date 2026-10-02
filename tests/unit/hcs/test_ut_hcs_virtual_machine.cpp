@@ -78,20 +78,26 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
     mpt::StubAvailabilityZone dummy_zone{};
 
     mp::VirtualMachineDescription desc{
-        2,
-        mp::MemorySize{"3M"},
-        mp::MemorySize{}, // not used
-        dummy_vm_name,
-        dummy_zone.get_name(),
-        "aa:bb:cc:dd:ee:ff",
-        {},
-        "",
-        {dummy_instances_dir.filePath("base.vhdx").toStdString(), "", "", "", {}, {}},
-        dummy_cloud_init_iso.name(),
-        {},
-        {},
-        {},
-        {}};
+        .num_cores = 2,
+        .mem_size = mp::MemorySize{"3M"},
+        .disk_space = mp::MemorySize{}, // not used
+        .vm_name = dummy_vm_name,
+        .zone = dummy_zone.get_name(),
+        .default_mac_address = "aa:bb:cc:dd:ee:ff",
+        .extra_interfaces = {},
+        .ssh_username = "",
+        .image = {.image_path = dummy_instances_dir.filePath("base.vhdx").toStdString(),
+                  .id = "",
+                  .original_release = "",
+                  .current_release = "",
+                  .release_date = {},
+                  .os = {},
+                  .aliases = {}},
+        .cloud_init_iso = dummy_cloud_init_iso.name(),
+        .meta_data_config = {},
+        .user_data_config = {},
+        .vendor_data_config = {},
+        .network_data_config = {}};
 
     mpt::StubSSHKeyProvider stub_key_provider{};
     mpt::StubVMStatusMonitor stub_monitor{};
@@ -319,9 +325,10 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
     void expect_permanent_neighbor(bool present, ULONG64 interface_luid = host_interface_luid)
     {
         EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-            .WillOnce(Return(
-                ByMove(present ? mpt::make_neighbor_table({{{10, 123, 45, 67}, interface_luid}})
-                               : mpt::make_neighbor_table({}))));
+            .WillOnce(Return(ByMove(
+                present ? mpt::make_neighbor_table(
+                              {{.address = {10, 123, 45, 67}, .interface_luid = interface_luid}})
+                        : mpt::make_neighbor_table({}))));
     }
 
     template <typename T = uut_t>
@@ -384,7 +391,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, create_removes_stale_neighbors_for_man
     // The same MAC also has an entry on another network, which must be left alone.
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).WillOnce([] {
         return mpt::make_neighbor_table(
-            {{{10, 97, 1, 82}, other_interface_luid}, {{10, 97, 0, 82}, host_interface_luid}});
+            {{.address = {10, 97, 1, 82}, .interface_luid = other_interface_luid},
+             {.address = {10, 97, 0, 82}, .interface_luid = host_interface_luid}});
     });
     EXPECT_CALL(mock_net_io_api, DeleteIpNetEntry2(_)).WillOnce([](const MIB_IPNET_ROW2* row) {
         const auto& address = row->Address.Ipv4.sin_addr.S_un.S_un_b;
@@ -403,7 +411,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, create_continues_when_stale_neighbors_
     default_create_success();
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).WillOnce([] {
         auto table = mhv::IpNetTable{nullptr, [](MIB_IPNET_TABLE2*) {}};
-        return mhv::IpNetTableResult{ERROR_ACCESS_DENIED, std::move(table)};
+        return mhv::IpNetTableResult{.error = ERROR_ACCESS_DENIED, .table = std::move(table)};
     });
 
     EXPECT_NO_THROW(construct_vm());
@@ -426,7 +434,8 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, create_failure_removes_created_endpoin
 TEST_F(HyperVHCSVirtualMachine_UnitTests, create_attaches_extra_interface_to_network_found_by_name)
 {
     default_create_success();
-    desc.extra_interfaces = {{"mpclitestsw0", "52:54:00:4d:50:01", false}};
+    desc.extra_interfaces = {
+        {.id = "mpclitestsw0", .mac_address = "52:54:00:4d:50:01", .auto_mode = false}};
 
     // A vSwitch created through Hyper-V has a GUID unrelated to its name.
     expect_networks({{"guid-default-switch", "Default Switch"}, {"guid-private", "mpclitestsw0"}});
@@ -448,7 +457,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, create_attaches_extra_interface_to_net
 TEST_F(HyperVHCSVirtualMachine_UnitTests, create_attaches_extra_interface_to_multipass_network)
 {
     default_create_success();
-    desc.extra_interfaces = {{"Multipass vSwitch (Ethernet)", "52:54:00:4d:50:01", false}};
+    desc.extra_interfaces = {{.id = "Multipass vSwitch (Ethernet)",
+                              .mac_address = "52:54:00:4d:50:01",
+                              .auto_mode = false}};
 
     // Networks created by Multipass keep a GUID derived from their name.
     const auto network_guid = mp::utils::make_uuid("Multipass vSwitch (Ethernet)");
@@ -475,7 +486,8 @@ TEST_P(HyperVHCSVirtualMachine_UnresolvedNetwork, create_fails_before_creating_e
 {
     EXPECT_CALL(mock_hcs, open_compute_system(_, _))
         .WillRepeatedly(Return(hcs_op_result_t{HCS_E_SYSTEM_NOT_FOUND, L""}));
-    desc.extra_interfaces = {{"mpclitestsw0", "52:54:00:4d:50:01", false}};
+    desc.extra_interfaces = {
+        {.id = "mpclitestsw0", .mac_address = "52:54:00:4d:50:01", .auto_mode = false}};
     expect_networks(GetParam());
     EXPECT_CALL(mock_hcn, create_endpoint(_)).Times(0);
     EXPECT_CALL(mock_hcs, create_compute_system(_, _)).Times(0);

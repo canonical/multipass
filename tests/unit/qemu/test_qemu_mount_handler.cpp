@@ -345,12 +345,16 @@ TEST_P(QemuMountHandlerFailCommand, throwOnFail)
         std::string ok_output;
     };
     const std::vector<Step> sequence = {
-        {command_get_existing_parent("/home/ubuntu/target"), "P=\"/home/ubuntu/target\"", parent},
-        {"id -u", "id -u", "1000"},
-        {"id -g", "id -g", "1000"},
-        {command_mkdir(parent, missing), "mkdir", ""},
-        {command_chown(parent, missing, 1000, 1000), "chown", ""},
-        {command_mount("target"), "mount -t 9p", ""},
+        {.full_cmd = command_get_existing_parent("/home/ubuntu/target"),
+         .pattern = "P=\"/home/ubuntu/target\"",
+         .ok_output = parent},
+        {.full_cmd = "id -u", .pattern = "id -u", .ok_output = "1000"},
+        {.full_cmd = "id -g", .pattern = "id -g", .ok_output = "1000"},
+        {.full_cmd = command_mkdir(parent, missing), .pattern = "mkdir", .ok_output = ""},
+        {.full_cmd = command_chown(parent, missing, 1000, 1000),
+         .pattern = "chown",
+         .ok_output = ""},
+        {.full_cmd = command_mount("target"), .pattern = "mount -t 9p", .ok_output = ""},
     };
 
     for (const auto& [full_cmd, pattern, ok_output] : sequence)

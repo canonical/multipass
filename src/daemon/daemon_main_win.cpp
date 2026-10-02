@@ -236,7 +236,8 @@ try
         {
             logger->log(mpl::Level::info, "main", "calling service ctrl dispatcher");
             std::array<SERVICE_TABLE_ENTRY, 2> table{
-                {{const_cast<char*>(""), service_main}, {nullptr, nullptr}}};
+                {{.lpServiceName = const_cast<char*>(""), .lpServiceProc = service_main},
+                 {.lpServiceName = nullptr, .lpServiceProc = nullptr}}};
             // remove "/svc" from the list of arguments
             service_argv.erase(service_argv.begin() + 1);
             return StartServiceCtrlDispatcher(table.data());

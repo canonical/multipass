@@ -144,13 +144,13 @@ std::optional<mp::NetworkInterfaceInfo> get_network(const QDir& net_dir)
                        std::back_inserter(links),
                        [](const QString& interface) { return interface.toStdString(); });
 
-        return {{std::move(id),
-                 br_nomenclature,
-                 /*description=*/"",
-                 std::move(links)}}; // description needs updating with links
+        return {{.id = std::move(id),
+                 .type = br_nomenclature,
+                 /*description=*/.description = "",
+                 .links = std::move(links)}}; // description needs updating with links
     }
     else if (is_ethernet(net_dir))
-        return {{std::move(id), "ethernet", "Ethernet device"}};
+        return {{.id = std::move(id), .type = "ethernet", .description = "Ethernet device"}};
 
     return std::nullopt;
 }

@@ -35,7 +35,13 @@ struct StubVMImageVault final : public multipass::VMImageVault
                                    const std::optional<std::string>&,
                                    const multipass::Path&) override
     {
-        return prepare({dummy_image.path(), {}, {}, {}, {}, {}, {}});
+        return prepare({.image_path = dummy_image.path(),
+                        .id = {},
+                        .original_release = {},
+                        .current_release = {},
+                        .release_date = {},
+                        .os = {},
+                        .aliases = {}});
     };
 
     void remove(const std::string&) override {};
@@ -55,19 +61,20 @@ struct StubVMImageVault final : public multipass::VMImageVault
     std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query&) const override
     {
         return std::vector<std::pair<std::string, multipass::VMImageInfo>>{
-            std::pair<std::string, multipass::VMImageInfo>{"default",
-                                                           {{default_alias},
-                                                            "Ubuntu",
-                                                            "bionic",
-                                                            default_release_info,
-                                                            "Bionic Beaver",
-                                                            true,
-                                                            dummy_image.url().toStdString(),
-                                                            default_id,
-                                                            default_stream_location,
-                                                            default_version,
-                                                            1,
-                                                            true}}};
+            std::pair<std::string, multipass::VMImageInfo>{
+                "default",
+                {.aliases = {default_alias},
+                 .os = "Ubuntu",
+                 .release = "bionic",
+                 .release_title = default_release_info,
+                 .release_codename = "Bionic Beaver",
+                 .supported = true,
+                 .image_location = dummy_image.url().toStdString(),
+                 .id = default_id,
+                 .stream_location = default_stream_location,
+                 .version = default_version,
+                 .size = 1,
+                 .verify = true}}};
     }
 
     void clone(const std::string& /*src*/, const std::string& /*dst*/) override

@@ -108,14 +108,14 @@ struct TestQemuSnapshot : public Test
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
         mpt::MockCloudInitFileOps::inject<NiceMock>();
 
-    inline static const auto success = mp::ProcessState{0, std::nullopt};
-    inline static const auto failure = mp::ProcessState{1, std::nullopt};
+    inline static const auto success = mp::ProcessState{.exit_code = 0, .error = std::nullopt};
+    inline static const auto failure = mp::ProcessState{.exit_code = 1, .error = std::nullopt};
     inline static const auto specs = [] {
         const auto cpus = 3;
         const auto mem_size = mp::MemorySize{"1.23G"};
         const auto disk_space = mp::MemorySize{"3.21M"};
         const std::vector<mp::NetworkInterface> extra_interfaces{
-            {"eth15", "15:15:15:15:15:15", false}};
+            {.id = "eth15", .mac_address = "15:15:15:15:15:15", .auto_mode = false}};
         const auto state = mp::VirtualMachine::State::off;
         const auto mounts = std::unordered_map<std::string, mp::VMMount>{
             {"asdf", {"fdsa", {}, {}, mp::VMMount::MountType::Classic}}};
@@ -123,18 +123,18 @@ struct TestQemuSnapshot : public Test
         const auto zone = "zone1";
 
         return mp::VMSpecs{
-            cpus,
-            mem_size,
-            disk_space,
-            "mac",
-            extra_interfaces,
-            "",
-            state,
-            mounts,
-            false,
-            metadata,
-            0,
-            zone,
+            .num_cores = cpus,
+            .mem_size = mem_size,
+            .disk_space = disk_space,
+            .default_mac_address = "mac",
+            .extra_interfaces = extra_interfaces,
+            .ssh_username = "",
+            .state = state,
+            .mounts = mounts,
+            .deleted = false,
+            .metadata = metadata,
+            .clone_count = 0,
+            .zone = zone,
         };
     }();
 };
@@ -320,7 +320,8 @@ TEST_F(TestQemuSnapshot, appliesSnapshot)
     desc.num_cores = 8598;
     desc.mem_size = mp::MemorySize{"49"};
     desc.disk_space = mp::MemorySize{"328"};
-    desc.extra_interfaces = std::vector<mp::NetworkInterface>{{"eth16", "16:16:16:16:16:16", true}};
+    desc.extra_interfaces = std::vector<mp::NetworkInterface>{
+        {.id = "eth16", .mac_address = "16:16:16:16:16:16", .auto_mode = true}};
 
     snapshot.apply();
 
@@ -344,7 +345,8 @@ TEST_F(TestQemuSnapshot, keepsDescOnFailure)
     desc.num_cores = 123;
     desc.mem_size = mp::MemorySize{"321"};
     desc.disk_space = mp::MemorySize{"56K"};
-    desc.extra_interfaces = std::vector<mp::NetworkInterface>{{"eth17", "17:17:17:17:17:17", true}};
+    desc.extra_interfaces = std::vector<mp::NetworkInterface>{
+        {.id = "eth17", .mac_address = "17:17:17:17:17:17", .auto_mode = true}};
 
     const auto orig_desc = desc;
     MP_EXPECT_THROW_THAT(snapshot.apply(),

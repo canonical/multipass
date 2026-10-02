@@ -56,9 +56,9 @@ struct TestBaseSnapshot : public Test
         ret.num_cores = 3;
         ret.mem_size = mp::MemorySize{"1.5G"};
         ret.disk_space = mp::MemorySize{"10G"};
-        ret.extra_interfaces =
-            std::vector<mp::NetworkInterface>{{"eth13", "13:13:13:13:13:13", true},
-                                              {"eth14", "14:14:14:14:14:14", true}};
+        ret.extra_interfaces = std::vector<mp::NetworkInterface>{
+            {.id = "eth13", .mac_address = "13:13:13:13:13:13", .auto_mode = true},
+            {.id = "eth14", .mac_address = "14:14:14:14:14:14", .auto_mode = true}};
         ret.default_mac_address = "12:12:12:12:12:12";
 
         return ret;
@@ -67,10 +67,10 @@ struct TestBaseSnapshot : public Test
     static mp::VirtualMachineDescription stub_desc()
     {
         mp::VirtualMachineDescription desc{};
-        desc.extra_interfaces =
-            std::vector<mp::NetworkInterface>{{"eth13", "13:13:13:13:13:13", true},
-                                              {"eth14", "14:14:14:14:14:14", true},
-                                              {"eth15", "15:15:15:15:15:15", true}};
+        desc.extra_interfaces = std::vector<mp::NetworkInterface>{
+            {.id = "eth13", .mac_address = "13:13:13:13:13:13", .auto_mode = true},
+            {.id = "eth14", .mac_address = "14:14:14:14:14:14", .auto_mode = true},
+            {.id = "eth15", .mac_address = "15:15:15:15:15:15", .auto_mode = true}};
 
         return desc;
     }
@@ -390,7 +390,8 @@ TEST_F(TestBaseSnapshot, adoptsDiskSpaceFromJson)
 
 TEST_F(TestBaseSnapshot, adoptsExtraInterfacesFromJson)
 {
-    std::vector<mp::NetworkInterface> extra_interfaces{{"eth15", "15:15:15:15:15:15", false}};
+    std::vector<mp::NetworkInterface> extra_interfaces{
+        {.id = "eth15", .mac_address = "15:15:15:15:15:15", .auto_mode = false}};
     auto json = test_snapshot_json();
     mod_snapshot_json(json, "extra_interfaces", boost::json::value_from(extra_interfaces));
 

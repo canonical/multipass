@@ -113,7 +113,7 @@ OperationResult wait_for_operation_result(
                fmt::ptr(op.get()),
                hresult_code);
 
-    return OperationResult{hresult_code, result_msg ? result_msg.get() : L""};
+    return OperationResult{.code = hresult_code, .status_msg = result_msg ? result_msg.get() : L""};
 }
 
 // ---------------------------------------------------------
@@ -126,7 +126,7 @@ OperationResult perform_hcs_operation(const FnType& fn, const HcsSystemHandle& s
     {
         mpl::error(log_category,
                    "perform_hcs_operation(...) > Host Compute System handle is null!");
-        return OperationResult{E_POINTER, L"HcsCreateOperation failed!"};
+        return OperationResult{.code = E_POINTER, .status_msg = L"HcsCreateOperation failed!"};
     }
 
     auto operation = create_operation();
@@ -134,7 +134,7 @@ OperationResult perform_hcs_operation(const FnType& fn, const HcsSystemHandle& s
     if (nullptr == operation)
     {
         mpl::error(log_category, "perform_hcs_operation(...) > HcsCreateOperation failed!");
-        return OperationResult{E_POINTER, L"HcsCreateOperation failed!"};
+        return OperationResult{.code = E_POINTER, .status_msg = L"HcsCreateOperation failed!"};
     }
 
     // Perform the operation.
@@ -145,7 +145,7 @@ OperationResult perform_hcs_operation(const FnType& fn, const HcsSystemHandle& s
         mpl::error(log_category,
                    "perform_hcs_operation(...) > Operation failed! Result code {}",
                    result);
-        return OperationResult{result, L"HCS operation failed!"};
+        return OperationResult{.code = result, .status_msg = L"HCS operation failed!"};
     }
 
     mpl::debug(log_category, "perform_hcs_operation(...) > result: {}", result.success());
@@ -187,7 +187,7 @@ OperationResult HCSWrapper::open_compute_system(const std::string& name,
 
     out_hcs_system = std::move(system);
 
-    return {result, L""};
+    return {.code = result, .status_msg = L""};
 }
 
 // ---------------------------------------------------------
@@ -223,7 +223,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 
     if (nullptr == operation)
     {
-        return OperationResult{E_POINTER, L"HcsCreateOperation failed."};
+        return OperationResult{.code = E_POINTER, .status_msg = L"HcsCreateOperation failed."};
     }
 
     UniqueHcsSystem system{};
@@ -235,7 +235,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
 
     if (!result.success())
     {
-        return OperationResult{result, L"HcsCreateComputeSystem failed."};
+        return OperationResult{.code = result, .status_msg = L"HcsCreateComputeSystem failed."};
     }
 
     const auto op_result = wait_for_operation_result(std::move(operation),
@@ -385,7 +385,7 @@ OperationResult HCSWrapper::grant_vm_access(const std::string& compute_system_na
     const auto path_as_wstring = file_path.wstring();
     const std::wstring csname_as_wstring = to_wstring(compute_system_name);
     const auto result = API().HcsGrantVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
-    return {result, FAILED(result) ? L"GrantVmAccess failed!" : L""};
+    return {.code = result, .status_msg = FAILED(result) ? L"GrantVmAccess failed!" : L""};
 }
 
 // ---------------------------------------------------------
@@ -401,7 +401,7 @@ OperationResult HCSWrapper::revoke_vm_access(const std::string& compute_system_n
     const auto path_as_wstring = file_path.wstring();
     const std::wstring csname_as_wstring = to_wstring(compute_system_name);
     const auto result = API().HcsRevokeVmAccess(csname_as_wstring.c_str(), path_as_wstring.c_str());
-    return {result, FAILED(result) ? L"RevokeVmAccess failed!" : L""};
+    return {.code = result, .status_msg = FAILED(result) ? L"RevokeVmAccess failed!" : L""};
 }
 
 // ---------------------------------------------------------
@@ -443,7 +443,7 @@ OperationResult HCSWrapper::get_compute_system_state(const HcsSystemHandle& targ
         return ComputeSystemState::stopped;
     }();
 
-    return {result.code, L""};
+    return {.code = result.code, .status_msg = L""};
 }
 
 // ---------------------------------------------------------
@@ -472,7 +472,7 @@ OperationResult HCSWrapper::get_compute_system_guid(const HcsSystemHandle& targe
     const auto parsed = boost::json::parse(result_msg_str, ec);
     if (ec)
     {
-        return {E_FAIL, L"Json parse error"};
+        return {.code = E_FAIL, .status_msg = L"Json parse error"};
     }
 
     const auto json_object = parsed.as_object();
@@ -482,7 +482,7 @@ OperationResult HCSWrapper::get_compute_system_guid(const HcsSystemHandle& targe
         guid_out = it->value().as_string();
         return result;
     }
-    return {E_FAIL, L"GUID not found in compute system properties"};
+    return {.code = E_FAIL, .status_msg = L"GUID not found in compute system properties"};
 }
 
 // ---------------------------------------------------------
@@ -525,7 +525,7 @@ OperationResult HCSWrapper::set_compute_system_callback(const HcsSystemHandle& t
         HCS_EVENT_OPTIONS::HcsEventOptionNone,
         context,
         reinterpret_cast<HCS_EVENT_CALLBACK>(callback));
-    return {result, L""};
+    return {.code = result, .status_msg = L""};
 }
 
 // ---------------------------------------------------------
@@ -566,7 +566,7 @@ OperationResult HCSWrapper::create_empty_guest_state_file(const std::string& com
         return grant_vm_access(compute_system_name, vmgs_file_path);
     }
 
-    return {result, L""};
+    return {.code = result, .status_msg = L""};
 }
 
 // ---------------------------------------------------------
@@ -580,7 +580,7 @@ OperationResult HCSWrapper::create_empty_runtime_state_file(const std::string& c
     {
         return grant_vm_access(compute_system_name, vmrs_file_path);
     }
-    return {result, L""};
+    return {.code = result, .status_msg = L""};
 }
 
 } // namespace multipass::hyperv::hcs

@@ -73,8 +73,8 @@ TEST(LegacyDiskLayout, rejectsDuplicateCheckpointDiskPaths)
 
     mpt::PowerShellTestHelper powershell;
     powershell.setup_mocked_run_sequence(
-        {{"Get-VMHardDiskDrive",
-          discovery_json(active, {{"@s1", duplicate}, {"@s2", duplicate}})}});
+        {{.expect_cmdlet_substr = "Get-VMHardDiskDrive",
+          .will_output = discovery_json(active, {{"@s1", duplicate}, {"@s2", duplicate}})}});
 
     EXPECT_THROW((void)mhv::resolve_legacy_disk_layout("migration-test", vm), std::runtime_error);
 }
@@ -100,8 +100,8 @@ TEST(LegacyDiskLayout, rejectsSnapshotsOnDifferentBaseImages)
 
     mpt::PowerShellTestHelper powershell;
     powershell.setup_mocked_run_sequence(
-        {{"Get-VMHardDiskDrive",
-          discovery_json(active, {{"@s1", first_disk}, {"@s2", second_disk}})}});
+        {{.expect_cmdlet_substr = "Get-VMHardDiskDrive",
+          .will_output = discovery_json(active, {{"@s1", first_disk}, {"@s2", second_disk}})}});
 
     auto virtdisk = mpt::MockVirtDiskWrapper::inject<NiceMock>();
     ON_CALL(*virtdisk.first, list_virtual_disk_chain(mp::NativePath{active}, _, _))

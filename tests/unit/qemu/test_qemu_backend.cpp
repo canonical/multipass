@@ -79,20 +79,26 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
 
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
-    mp::VirtualMachineDescription default_description{2,
-                                                      mp::MemorySize{"3M"},
-                                                      mp::MemorySize{}, // not used
-                                                      "pied-piper-valley",
-                                                      "zone1",
-                                                      "",
-                                                      {},
-                                                      "",
-                                                      {dummy_image.path(), "", "", "", "", {}, {}},
-                                                      dummy_cloud_init_iso.name(),
-                                                      {},
-                                                      {},
-                                                      {},
-                                                      {}};
+    mp::VirtualMachineDescription default_description{.num_cores = 2,
+                                                      .mem_size = mp::MemorySize{"3M"},
+                                                      .disk_space = mp::MemorySize{}, // not used
+                                                      .vm_name = "pied-piper-valley",
+                                                      .zone = "zone1",
+                                                      .default_mac_address = "",
+                                                      .extra_interfaces = {},
+                                                      .ssh_username = "",
+                                                      .image = {.image_path = dummy_image.path(),
+                                                                .id = "",
+                                                                .original_release = "",
+                                                                .current_release = "",
+                                                                .release_date = "",
+                                                                .os = "",
+                                                                .aliases = {}},
+                                                      .cloud_init_iso = dummy_cloud_init_iso.name(),
+                                                      .meta_data_config = {},
+                                                      .user_data_config = {},
+                                                      .vendor_data_config = {},
+                                                      .network_data_config = {}};
     mpt::TempDir data_dir;
     mpt::TempDir instance_dir;
     const std::string tap_device{"tapfoo"};
@@ -141,7 +147,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                 if (execute == "system_powerdown")
                 {
                     EXPECT_CALL(*process, wait_for_finished(_)).WillOnce([process](auto...) {
-                        mp::ProcessState exit_state{0, std::nullopt};
+                        mp::ProcessState exit_state{.exit_code = 0, .error = std::nullopt};
                         emit process->finished(exit_state);
                         return true;
                     });
@@ -159,8 +165,9 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
 
                         EXPECT_CALL(*process, kill()).WillOnce([process] {
                             mp::ProcessState exit_state{
-                                std::nullopt,
-                                mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
+                                .exit_code = std::nullopt,
+                                .error = mp::ProcessState::Error{.state = QProcess::Crashed,
+                                                                 .message = QStringLiteral("")}};
                             emit process->error_occurred(QProcess::Crashed, "Crashed");
                             emit process->finished(exit_state);
                         });
@@ -631,8 +638,9 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
             vmproc = process; // save this to control later
             EXPECT_CALL(*process, kill()).WillOnce([process] {
                 mp::ProcessState exit_state{
-                    std::nullopt,
-                    mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("Force stopped")}};
+                    .exit_code = std::nullopt,
+                    .error = mp::ProcessState::Error{.state = QProcess::Crashed,
+                                                     .message = QStringLiteral("Force stopped")}};
                 emit process->error_occurred(QProcess::Crashed, "Killed");
                 emit process->finished(exit_state);
             });
@@ -1048,7 +1056,8 @@ TEST_F(QemuBackend, returnsVersionStringWhenExecFailed)
             process->arguments().contains("--version"))
         {
             mp::ProcessState exit_state;
-            exit_state.error = mp::ProcessState::Error{QProcess::Crashed, "Error message"};
+            exit_state.error = mp::ProcessState::Error{.state = QProcess::Crashed,
+                                                       .message = "Error message"};
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
             EXPECT_CALL(*process, read_all_standard_output()).Times(0);
         }
@@ -1168,18 +1177,20 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
     auto instance_id = "vm1";
 
     const mp::VMSpecs specs{
-        2,
-        mp::MemorySize{"3.21G"},
-        mp::MemorySize{"4.32M"},
-        "00:00:00:00:00:00",
-        {{"eth18", "18:18:18:18:18:18", true}},
-        "asdf",
-        mp::VirtualMachine::State::stopped,
-        {},
-        false,
-        {},
-        0,
-        "zone1",
+        .num_cores = 2,
+        .mem_size = mp::MemorySize{"3.21G"},
+        .disk_space = mp::MemorySize{"4.32M"},
+        .default_mac_address = "00:00:00:00:00:00",
+        .extra_interfaces = {{.id = "eth18",
+                              .mac_address = "18:18:18:18:18:18",
+                              .auto_mode = true}},
+        .ssh_username = "asdf",
+        .state = mp::VirtualMachine::State::stopped,
+        .mounts = {},
+        .deleted = false,
+        .metadata = {},
+        .clone_count = 0,
+        .zone = "zone1",
     };
     auto snapshot = machine.make_specific_snapshot(snapshot_name,
                                                    snapshot_comment,
@@ -1228,10 +1239,11 @@ TEST_F(QemuBackend, networksReturnsSupportedNetworks)
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     const std::map<std::string, mp::NetworkInterfaceInfo> networks{
-        {"mpbr0", {"mpbr0", "bridge", "gobbledygook"}},
-        {"virbr0", {"virbr0", "bridge", "gobbledygook"}},
-        {"mpqemubr0", {"mpqemubr0", "bridge", "gobbledygook"}},
-        {"enxe4b97a832426", {"enxe4b97a832426", "ethernet", "gobbledygook"}}};
+        {"mpbr0", {.id = "mpbr0", .type = "bridge", .description = "gobbledygook"}},
+        {"virbr0", {.id = "virbr0", .type = "bridge", .description = "gobbledygook"}},
+        {"mpqemubr0", {.id = "mpqemubr0", .type = "bridge", .description = "gobbledygook"}},
+        {"enxe4b97a832426",
+         {.id = "enxe4b97a832426", .type = "ethernet", .description = "gobbledygook"}}};
 
     auto [mock_platform, guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*mock_platform, get_network_interfaces_info).WillOnce(Return(networks));
@@ -1319,7 +1331,8 @@ TEST_F(QemuBackend, addNetworkInterface)
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
-    EXPECT_NO_THROW(machine->add_network_interface(0, "", {"", "", true}));
+    EXPECT_NO_THROW(
+        machine->add_network_interface(0, "", {.id = "", .mac_address = "", .auto_mode = true}));
 }
 
 TEST_F(QemuBackend, createBridgeWithChecksWithQemuPlatform)
@@ -1331,7 +1344,8 @@ TEST_F(QemuBackend, createBridgeWithChecksWithQemuPlatform)
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    std::vector<mp::NetworkInterface> extra_interfaces{{"eth1", "52:54:00:00:00:00", true}};
+    std::vector<mp::NetworkInterface> extra_interfaces{
+        {.id = "eth1", .mac_address = "52:54:00:00:00:00", .auto_mode = true}};
     EXPECT_NO_THROW(backend.prepare_networking(extra_interfaces));
 }
 

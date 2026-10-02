@@ -556,14 +556,18 @@ TEST_P(UtilsUuidStabilityTest, matchesExpected)
 
 static const auto kExpectedUuids = [] {
     std::vector<ExpectedUuid> v;
-    v.push_back({"a", "0531103a-d8fc-3dd4-b972-d98e4750994e"});
-    v.push_back({"test-seed", "3fae61b3-c9cd-3864-ae38-42d76ba1c945"});
-    v.push_back({std::string(1024, 'x'), "f6632ff7-4921-3ae9-b5c3-f00a6405fbe0"});
-    v.push_back({"", "4ae71336-e44b-39bf-b9d2-752e234818a5"});
-    v.push_back({" ", "afd59108-0604-321a-a47f-566712b593c7"});
-    v.push_back({"émojis-🎉-and-ünïcödé", "5f9e7aa4-3969-3b38-85d6-15e2b8571a7e"});
-    v.push_back({std::string("\0\0\0", 3), "0e6bce68-99fa-3841-b790-24afbdf7db1d"});
-    v.push_back({"seed/with\\special!@#$%^&*()chars", "7afd6117-1ac8-3bc3-9cb5-3a4d61067dab"});
+    v.push_back({.seed = "a", .expected = "0531103a-d8fc-3dd4-b972-d98e4750994e"});
+    v.push_back({.seed = "test-seed", .expected = "3fae61b3-c9cd-3864-ae38-42d76ba1c945"});
+    v.push_back(
+        {.seed = std::string(1024, 'x'), .expected = "f6632ff7-4921-3ae9-b5c3-f00a6405fbe0"});
+    v.push_back({.seed = "", .expected = "4ae71336-e44b-39bf-b9d2-752e234818a5"});
+    v.push_back({.seed = " ", .expected = "afd59108-0604-321a-a47f-566712b593c7"});
+    v.push_back(
+        {.seed = "émojis-🎉-and-ünïcödé", .expected = "5f9e7aa4-3969-3b38-85d6-15e2b8571a7e"});
+    v.push_back(
+        {.seed = std::string("\0\0\0", 3), .expected = "0e6bce68-99fa-3841-b790-24afbdf7db1d"});
+    v.push_back({.seed = "seed/with\\special!@#$%^&*()chars",
+                 .expected = "7afd6117-1ac8-3bc3-9cb5-3a4d61067dab"});
     return v;
 }();
 
