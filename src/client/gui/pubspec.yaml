@@ -53,6 +53,9 @@ dependencies:
     git:
       url: https://github.com/canonical/xterm.dart
       ref: 4.0.0+mp
+  re_editor: ^0.10.0
+  re_highlight: ^0.0.3
+  yaml: ^3.1.3
 
 dependency_overrides:
   hotkey_manager_linux:
