@@ -62,7 +62,7 @@ mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
         if (!reply.log_line().empty())
             cerr << reply.log_line();
 
-        for (const auto& instance : reply.purged_instances())
+        for (const auto& instance : reply.deleted_instances())
         {
             remove_aliases_for(instance);
             cout << fmt::format("{} is deleted.\n", instance);

@@ -438,7 +438,7 @@ std::string migration_summary(std::initializer_list<std::string> names)
            "addresses.\n\n"
            "After validating the migrated instances, remove the originals with:\n"
            "  multipass set local.driver=hyperv\n"
-           "  multipass delete --purge <instance-name>\n"
+           "  multipass delete --force <instance-name>\n"
            "  multipass set local.driver=hcs\n";
 }
 
