@@ -3493,86 +3493,86 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     auto prepare_future_watcher = new QFutureWatcher<mp::VirtualMachineDescription>();
 
-    QObject::connect(prepare_future_watcher,
-                     &QFutureWatcher<mp::VirtualMachineDescription>::finished,
-                     [this, server, context, name, timeout, start, prepare_future_watcher] {
-                         // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
+    QObject::connect(
+        prepare_future_watcher,
+        &QFutureWatcher<mp::VirtualMachineDescription>::finished,
+        [this, server, context, name, timeout, start, prepare_future_watcher] {
+            // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
 
-                         try
-                         {
-                             auto vm_desc = prepare_future_watcher->future().result();
+            try
+            {
+                auto vm_desc = prepare_future_watcher->future().result();
 
-                             vm_instance_specs[name] = {
-                                 vm_desc.num_cores,
-                                 vm_desc.mem_size,
-                                 vm_desc.disk_space,
-                                 vm_desc.default_mac_address,
-                                 vm_desc.extra_interfaces,
-                                 config->ssh_username,
-                                 VirtualMachine::State::stopped,
-                                 {},
-                                 false,
-                                 {},
-                                 0,
-                                 vm_desc.zone,
-                             };
-                             operative_instances[name] = config->factory->create_virtual_machine(
-                                 vm_desc,
-                                 *config->ssh_key_provider,
-                                 *this);
-                             preparing_instances.erase(name);
+                vm_instance_specs[name] = {
+                    vm_desc.num_cores,
+                    vm_desc.mem_size,
+                    vm_desc.disk_space,
+                    vm_desc.default_mac_address,
+                    vm_desc.extra_interfaces,
+                    config->ssh_username,
+                    VirtualMachine::State::stopped,
+                    {},
+                    false,
+                    {},
+                    0,
+                    vm_desc.zone,
+                };
+                operative_instances[name] = config->factory->create_virtual_machine(
+                    vm_desc,
+                    *config->ssh_key_provider,
+                    *this);
+                preparing_instances.erase(name);
 
-                             persist_instances();
+                persist_instances();
 
-                             if (start)
-                             {
-                                 LaunchReply reply;
-                                 reply.set_create_message("Starting " + name);
-                                 server->Write(reply);
+                if (start)
+                {
+                    LaunchReply reply;
+                    reply.set_create_message("Starting " + name);
+                    server->Write(reply);
 
-                                 operative_instances[name]->start();
+                    operative_instances[name]->start();
 
-                                 auto future_watcher = create_future_watcher(
-                                     [this, server, name, zone = vm_desc.zone] {
-                                         LaunchReply reply;
-                                         reply.set_vm_instance_name(name);
-                                         config->update_prompt->populate_if_time_to_show(
-                                             reply.mutable_update_info());
+                    auto future_watcher = create_future_watcher(
+                        [this, server, name, zone = vm_desc.zone] {
+                            LaunchReply reply;
+                            reply.set_vm_instance_name(name);
+                            config->update_prompt->populate_if_time_to_show(
+                                reply.mutable_update_info());
 
-                                         if (config->factory->supports_availability_zones())
-                                             reply.set_zone(zone);
-                                         server->Write(reply);
-                                     });
-                                 future_watcher->setFuture(QtConcurrent::run(
-                                     &Daemon::async_wait_multiple_vms_ready<LaunchReply,
-                                                                            LaunchRequest>,
-                                     this,
-                                     server,
-                                     std::vector<std::string>{name},
-                                     timeout,
-                                     context,
-                                     std::string()));
-                             }
-                             else
-                             {
-                                 context->set_value(grpc::Status::OK);
-                             }
-                         }
-                         catch (const std::exception& e)
-                         {
-                             mp::top_catch_all(category, [this, name]() {
-                                 preparing_instances.erase(name);
-                                 release_resources(name);
-                                 operative_instances.erase(name);
-                                 persist_instances();
-                             });
+                            if (config->factory->supports_availability_zones())
+                                reply.set_zone(zone);
+                            server->Write(reply);
+                        });
+                    future_watcher->setFuture(QtConcurrent::run(
+                        &Daemon::async_wait_multiple_vms_ready<LaunchReply, LaunchRequest>,
+                        this,
+                        server,
+                        std::vector<std::string>{name},
+                        timeout,
+                        context,
+                        std::string()));
+                }
+                else
+                {
+                    context->set_value(grpc::Status::OK);
+                }
+            }
+            catch (const std::exception& e)
+            {
+                mp::top_catch_all(category, [this, name]() {
+                    preparing_instances.erase(name);
+                    release_resources(name);
+                    operative_instances.erase(name);
+                    persist_instances();
+                });
 
-                             context->set_value(
-                                 grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
-                         }
+                context->set_value(
+                    grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+            }
 
-                         prepare_future_watcher->deleteLater();
-                     });
+            prepare_future_watcher->deleteLater();
+        });
 
     auto make_vm_description = [this, server, request, name, zone_name, checked_args]() mutable
         -> mp::VirtualMachineDescription {
@@ -3937,7 +3937,7 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
     return future_watcher_p;
 }
 
-template <typename Reply, typename Request>
+template <typename LogMsgReply, typename Request>
 mp::ReadinessResult
 mp::Daemon::async_wait_vm_ready(const std::string& name,
                                 const std::chrono::seconds& timeout,
@@ -3957,17 +3957,18 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
         const auto vm = it->second;
         vm->wait_until_ssh_up(timeout);
 
-        if constexpr (std::is_same_v<Reply, LaunchReply>)
-        {
-            if (server)
+        if constexpr (std::is_same_v<LogMsgReply, LaunchReply>)
+            if (std::is_same<LogMsgReply, LaunchReply>::value)
             {
-                Reply reply;
-                reply.set_reply_message("Waiting for initialization to complete");
-                server->Write(reply);
-            }
+                if (server)
+                {
+                    LogMsgReply reply;
+                    reply.set_reply_message("Waiting for initialization to complete");
+                    server->Write(reply);
+                }
 
-            vm->wait_for_cloud_init(timeout);
-        }
+                vm->wait_for_cloud_init(timeout);
+            }
 
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
         {
@@ -4007,7 +4008,7 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
 
             if (server && warnings.size() > 0)
             {
-                Reply reply;
+                LogMsgReply reply;
                 reply.set_log_line(fmt::to_string(warnings));
                 server->Write(reply);
             }
