@@ -43,13 +43,7 @@ mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
             return ReturnCode::CommandFail;
     }
 
-    auto on_success = [this](mp::DeleteReply& reply) -> ReturnCodeVariant {
-        for (const auto& instance : reply.purged_instances())
-        {
-            remove_aliases_for(instance);
-            cout << fmt::format("{} is deleted.\n", instance);
-        }
-
+    auto on_success = [this](mp::DeleteReply&) -> ReturnCodeVariant {
         for (const auto& item : request.instance_snapshot_pairs())
             if (item.has_snapshot_name())
                 cout << fmt::format("{}.{} is deleted.\n",
@@ -67,6 +61,12 @@ mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
     auto streaming_callback = [this](const mp::DeleteReply& reply, Client*) {
         if (!reply.log_line().empty())
             cerr << reply.log_line();
+
+        for (const auto& instance : reply.purged_instances())
+        {
+            remove_aliases_for(instance);
+            cout << fmt::format("{} is deleted.\n", instance);
+        }
     };
 
     return dispatch(&RpcMethod::delet, request, on_success, on_failure, streaming_callback);
