@@ -44,4 +44,5 @@ markers = [
     "find: Find tests",
     "exec: Exec tests",
     "az: Availability zone tests",
+    "restart: Restart tests",
 ]
