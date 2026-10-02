@@ -1184,12 +1184,6 @@ bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& m
         if (auto specs_it = mount_specs.find(target);
             specs_it == mount_specs.end() || handler->get_mount_spec() != specs_it->second)
         {
-            if (handler->is_mount_managed_by_backend())
-            {
-                assert(handler->is_active());
-                handler->deactivate();
-            }
-
             removed = true;
             return true;
         }
@@ -2151,8 +2145,7 @@ try
 
         VMMount vm_mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
         vm_mounts[target_path] = make_mount(vm.get(), target_path, vm_mount);
-        if (vm->current_state() == mp::VirtualMachine::State::running ||
-            vm_mounts[target_path]->is_mount_managed_by_backend())
+        if (vm->current_state() == mp::VirtualMachine::State::running)
         {
             try
             {
@@ -3656,6 +3649,7 @@ grpc::Status mp::Daemon::switch_off_vm(VirtualMachine& vm)
     delayed_shutdown_instances.erase(name);
 
     vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
+    stop_mounts(name);
 
     return grpc::Status::OK;
 }
@@ -3667,6 +3661,7 @@ grpc::Status mp::Daemon::make_vm_unavailable(VirtualMachine& vm)
 
     try
     {
+        stop_mounts(name);
         vm.set_available(false);
         return grpc::Status::OK;
     }
@@ -3729,12 +3724,7 @@ void mp::Daemon::init_mounts(const std::string& name)
 void mp::Daemon::stop_mounts(const std::string& name)
 {
     for (auto& [_, mount] : mounts[name])
-    {
-        if (!mount->is_mount_managed_by_backend())
-        {
-            mount->deactivate(/*force=*/true);
-        }
-    }
+        mount->deactivate(/*force=*/true);
 }
 
 bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
@@ -3851,10 +3841,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
             for (auto& [target, mount] : vm_mounts)
                 try
                 {
-                    if (!mount->is_mount_managed_by_backend())
-                    {
-                        mount->activate(server);
-                    }
+                    mount->activate(server);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
