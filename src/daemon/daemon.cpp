@@ -3584,7 +3584,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
 void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, DeleteReply& response)
 {
-    auto& [name, instance] = *vm_it;
+    const auto name = vm_it->first;
+    const auto& instance = vm_it->second;
     auto& erase_from = vm_instance_specs[name].deleted ? deleted_instances : operative_instances;
 
     if (&erase_from == &operative_instances)
@@ -3598,9 +3599,9 @@ void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, DeleteReply& response)
     else
         mpl::debug(category, "Instance `{}` is already deleted", name);
 
-    response.add_purged_instances(name);
     release_resources(name);
     erase_from.erase(vm_it);
+    response.add_purged_instances(name);
     mpl::debug(category, "Instance deleted: {}", name);
 }
 
