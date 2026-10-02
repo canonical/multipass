@@ -133,14 +133,16 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
                       .format(*save_state);
               });
 
+    static constexpr auto comma = fmt::basic_string_view<Char>(string_literal<Char>(","));
+
     return json_template.format_to(ctx,
                                    params.memory_size_mb,
                                    params.processor_count,
                                    params.name,
-                                   fmt::join(params.scsi_devices, string_literal<Char>(",")),
-                                   fmt::join(params.network_adapters, string_literal<Char>(",")),
-                                   fmt::join(optional_devices, string_literal<Char>(",")),
-                                   fmt::join(optional_sections, string_literal<Char>(",")));
+                                   fmt::join(params.scsi_devices, comma),
+                                   fmt::join(params.network_adapters, comma),
+                                   fmt::join(optional_devices, comma),
+                                   fmt::join(optional_sections, comma));
 }
 
 template auto fmt::formatter<CreateComputeSystemParameters, char>::format<fmt::format_context>(
