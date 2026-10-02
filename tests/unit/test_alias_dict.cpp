@@ -558,6 +558,38 @@ INSTANTIATE_TEST_SUITE_P(
                            std::vector<std::string>{},
                            std::vector<std::string>{"lsz", "lsp"})));
 
+TEST_F(DaemonAliasTestsuite, keepsAliasesOfInstancesThatFailedToDelete)
+{
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    EXPECT_CALL(*mock_image_vault, has_record_for(_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_image_vault, remove(_)).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_image_vault, remove("primary")).WillOnce(Throw(std::runtime_error{"stuck"}));
+
+    const auto [mock_utils, guard] = mpt::MockUtils::inject<NiceMock>();
+    EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(mpt::root_cert));
+
+    config_builder.vault = std::move(mock_image_vault);
+    use_a_mock_vm_factory();
+
+    populate_db_file(AliasesVector{{"lsp", {"primary", "ls", "map"}},
+                                   {"lsz", {"real-zebraphant", "ls", "map"}}});
+
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
+
+    mpt::TempDir temp_dir;
+    mpt::make_file_with_content(temp_dir.path() + "/multipassd-vm-instances.json",
+                                make_instance_json(std::nullopt, {}, {"primary"}));
+    config_builder.data_directory = temp_dir.path();
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream cout, cerr;
+    send_command({"delete", "--force", "real-zebraphant", "primary"}, trash_stream, cerr);
+    EXPECT_THAT(cerr.str(), HasSubstr("stuck"));
+
+    send_command({"aliases", "--format", "csv"}, cout);
+    EXPECT_EQ(cout.str(), csv_head + "lsp,primary,ls,map,default*\n");
+}
+
 TEST_F(AliasDictionary, unexistingActiveContextThrows)
 {
     auto file_contents =
