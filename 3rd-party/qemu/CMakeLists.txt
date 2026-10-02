@@ -37,8 +37,10 @@ endif()
 
 ExternalProject_Add(qemu
   SOURCE_DIR ${QEMU_SOURCE_DIR}
+  # Configure also needs the deployment target, or its feature probes detect functions that are
+  # only available on the build machine's macOS
   CONFIGURE_COMMAND test -f <BINARY_DIR>/config-host.mak ||
-    <SOURCE_DIR>/configure
+    ${CMAKE_COMMAND} -E env ${MACOS_DEPLOYMENT_TARGET_FLAG} <SOURCE_DIR>/configure
       --prefix=${CMAKE_BINARY_DIR}
       --firmwarepath=${CMAKE_BINARY_DIR}/Resources/qemu/
       --ninja=ninja
@@ -69,6 +71,15 @@ ExternalProject_Add(qemu
       --disable-gnutls
       --disable-libvduse
       --disable-vduse-blk-export
+      # Fail instead of weak-linking APIs newer than the deployment target, which resolve to NULL
+      # and crash on older macOS. QEMU does not pass CFLAGS to its Objective-C sources.
+      --extra-cflags=-Werror=unguarded-availability-new
+      --extra-objcflags=-Werror=unguarded-availability-new
+      # QEMU 8.2 checks for strchrnul (only available from macOS 15.4) without including string.h,
+      # so it finds the symbol in the SDK but can't see its availability. Forcing the header in makes
+      # meson's dummy prototype conflict with the real declaration, so the check fails and QEMU uses
+      # its own implementation. Fixed upstream in a5b30be534538dc6e44a68ce9734e45dd08f52ec.
+      "--extra-cflags=-include string.h"
   BUILD_COMMAND
     ${CMAKE_COMMAND} -E env ${MACOS_DEPLOYMENT_TARGET_FLAG} ninja
   TEST_COMMAND ""
