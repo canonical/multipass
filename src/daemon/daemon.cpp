@@ -2584,13 +2584,13 @@ try
         auto& vm_spec_mounts = vm_instance_specs[name].mounts;
         auto& vm_mounts = mounts[name];
 
-        auto do_unmount = [&](auto expiring_it) {
-            const auto& [target, mount] = *expiring_it;
+        auto do_unmount = [&](const auto& entry) {
+            const auto& [target, mount] = entry;
             try
             {
                 mount->deactivate();
                 vm_spec_mounts.erase(target);
-                vm_mounts.erase(expiring_it);
+                return true;
             }
             catch (const std::runtime_error& e)
             {
@@ -2600,19 +2600,18 @@ try
                            name,
                            e.what());
             }
+
+            return false;
         };
 
         // Empty target path indicates removing all mounts for the VM instance
         if (target_path.empty())
-            for (auto expiring_it = vm_mounts.begin(); expiring_it != vm_mounts.end();)
-            {
-                // iterator must be advanced before used in order to prevent iterator invalidation
-                // caused by deleting from the iterated map expiring_it will be invalidated by
-                // do_unmount, so it must not be used after this point
-                do_unmount(expiring_it++);
-            }
+            std::erase_if(vm_mounts, do_unmount);
         else if (auto it = vm_mounts.find(target_path); it != vm_mounts.end())
-            do_unmount(it);
+        {
+            if (do_unmount(*it))
+                vm_mounts.erase(it);
+        }
         else
             add_fmt_to(errors, "path \"{}\" is not mounted in '{}'", target_path, name);
     }
