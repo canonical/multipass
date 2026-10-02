@@ -33,14 +33,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Check if we're building a tagged commit
         id: check-tag
-        run: echo "is-tag=${{ startsWith(github.ref, 'refs/tags/') }}" >> "$GITHUB_OUTPUT"
+        run: |
+          tag="$( git tag --points-at HEAD )"
+          echo "is-tag=$( [ -n "$tag" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
 
       - name: Detect changed files
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        if: ${{ steps.check-tag.outputs.is-tag != 'true' }}
         id: filter
         uses: dorny/paths-filter@v4
         with:
