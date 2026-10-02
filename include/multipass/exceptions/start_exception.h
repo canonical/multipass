@@ -25,8 +25,8 @@ namespace multipass
 class StartException : public std::runtime_error
 {
 public:
-    StartException(const std::string& instance_name, const std::string& what)
-        : runtime_error(what), instance_name(instance_name)
+    StartException(const std::string& instance_name, const std::string& what, bool expected = false)
+        : runtime_error(what), instance_name(instance_name), expected{expected}
     {
     }
 
@@ -34,8 +34,13 @@ public:
     {
         return instance_name;
     }
+    bool was_intentional() const
+    {
+        return expected;
+    }
 
 private:
     const std::string instance_name;
+    bool expected;
 };
 } // namespace multipass
