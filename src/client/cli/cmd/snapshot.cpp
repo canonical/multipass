@@ -33,9 +33,43 @@ mp::ReturnCodeVariant cmd::Snapshot::run(mp::ArgParser* parser)
 
     AnimatedSpinner spinner{cout};
 
+    using Client = grpc::ClientReaderWriterInterface<SnapshotRequest, SnapshotReply>;
+    auto streaming_callback = [this, &spinner](const mp::SnapshotReply& reply, Client* client) {
+        if (!reply.log_line().empty())
+            spinner.print(cerr, reply.log_line());
+
+        if (const auto& msg = reply.reply_message(); !msg.empty())
+        {
+            spinner.stop();
+            spinner.start(msg);
+        }
+
+        if (reply.needs_prompt())
+        {
+            spinner.stop();
+
+            if (!term->is_live())
+            {
+                spinner.print(
+                    cerr,
+                    "Unable to query client for confirmation. Use '--restart' to automatically "
+                    "stop the running instance, take the snapshot and restart it.\n");
+                client->WritesDone();
+                return;
+            }
+
+            SnapshotRequest client_response;
+            client_response.set_restart(confirm_restart(request.instance()));
+            client->Write(client_response);
+            spinner.start();
+        }
+    };
+
     auto on_success = [this, &spinner](mp::SnapshotReply& reply) -> ReturnCodeVariant {
         spinner.stop();
-        fmt::print(cout, "Snapshot taken: {}.{}\n", request.instance(), reply.snapshot());
+        fmt::print(cout, "Snapshot '{}' of '{}' created.\n", reply.snapshot(), request.instance());
+        if (auto log_line = reply.log_line(); !log_line.empty())
+            fmt::print(cout, "warning: {}", log_line);
         return ReturnCode::Ok;
     };
 
@@ -45,11 +79,7 @@ mp::ReturnCodeVariant cmd::Snapshot::run(mp::ArgParser* parser)
     };
 
     spinner.start("Taking snapshot");
-    return dispatch(&RpcMethod::snapshot,
-                    request,
-                    on_success,
-                    on_failure,
-                    make_logging_spinner_callback<SnapshotRequest, SnapshotReply>(spinner, cerr));
+    return dispatch(&RpcMethod::snapshot, request, on_success, on_failure, streaming_callback);
 }
 
 std::string cmd::Snapshot::name() const
@@ -64,8 +94,9 @@ QString cmd::Snapshot::short_help() const
 
 QString cmd::Snapshot::description() const
 {
-    return QStringLiteral("Take a snapshot of a stopped instance that can later be restored to "
-                          "recover the current state.");
+    return QStringLiteral(
+        "Take a snapshot of a stopped instance that can later be restored to recover the current "
+        "state.\nInfo: the instance must be stopped before taking a snapshot. ");
 }
 
 mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
@@ -82,7 +113,11 @@ mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
         "An optional free comment to associate with the snapshot. (Hint: quote the text to "
         "avoid spaces being parsed by your shell)",
         "comment"};
-    parser->addOptions({name_opt, comment_opt});
+    QCommandLineOption restart_opt{
+        {"restart", "r"},
+        "Stop the instance if it is running before taking the snapshot and start it after the "
+        "snapshot has been taken without an interactive prompt."};
+    parser->addOptions({name_opt, comment_opt, restart_opt});
 
     if (auto status = parser->commandParse(this); status != ParseCode::Ok)
         return status;
@@ -105,6 +140,22 @@ mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
     request.set_comment(parser->value(comment_opt).toStdString());
     request.set_snapshot(parser->value(name_opt).toStdString());
     request.set_verbosity_level(parser->verbosityLevel());
+    request.set_restart(parser->isSet(restart_opt));
 
     return ParseCode::Ok;
+}
+
+bool cmd::Snapshot::confirm_restart(const std::string& instance_name)
+{
+    static constexpr auto prompt_text =
+        "Instance '{}' is running. Would you like to stop it, take a snapshot, and restart?[y/N]";
+    static constexpr auto invalid_input = "Please answer [y/N]";
+    mp::PlainPrompter prompter(term);
+
+    auto answer = prompter.prompt(fmt::format(prompt_text, instance_name));
+    while (!answer.empty() && !std::regex_match(answer, mp::client::yes_answer) &&
+           !std::regex_match(answer, mp::client::no_answer))
+        answer = prompter.prompt(invalid_input);
+
+    return std::regex_match(answer, mp::client::yes_answer);
 }
