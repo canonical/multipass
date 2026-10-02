@@ -68,19 +68,16 @@ public:
     std::vector<std::string> complete(const std::vector<std::string>& previous) const;
 
 private:
-    const Option* get_option(std::string_view key) const;
-
-    const std::pair<const Option*, size_t> find_last_option(
-        const std::vector<std::string>& previous) const;
-
-    bool is_excluded(std::string_view option, const std::vector<std::string>& previous) const;
+    bool is_excluded(std::string_view option,
+                     const std::vector<std::string>& previous,
+                     size_t parameters_count) const;
     bool is_excluded(size_t parameter, const std::vector<std::string>& previous) const;
 
     std::vector<Parameter> _parameters;
     std::map<std::string, Option, std::less<>> _options;
     bool _do_repeat_last = false;
 
-    std::map<int, std::set<std::string, std::less<>>> _exclusions_by_param;
+    std::vector<std::set<std::string, std::less<>>> _exclusions_by_param;
     std::map<std::string, std::set<std::string, std::less<>>> _exclusions_by_option;
 };
 

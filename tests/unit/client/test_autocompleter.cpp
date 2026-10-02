@@ -139,26 +139,31 @@ TEST(AutoCompleter, complexAutoComplete)
     completer.add_option("help");
     completer.add_option("verbose", true);
 
-    const auto param = completer.add_parameter(
+    const auto first_param = completer.add_parameter(
+        []() { return std::vector<std::string>{"vma", "vmb"}; });
+    const auto last_param = completer.add_parameter(
         []() { return std::vector<std::string>{"vm1", "vm2", "vm3"}; });
 
     completer.set_mutual_exclusion(remotes, all);
-    completer.set_mutual_exclusion(remotes, param);
+    completer.set_mutual_exclusion(remotes, first_param);
+    completer.set_mutual_exclusion(remotes, last_param);
     completer.set_repeat_last_parameter(true);
 
-    EXPECT_THAT(
-        completer.complete({}),
-        ElementsAre("--all", "--format", "--help", "--remotes", "--verbose", "vm1", "vm2", "vm3"));
+    EXPECT_THAT(completer.complete({}),
+                ElementsAre("--all", "--format", "--help", "--remotes", "--verbose", "vma", "vmb"));
 
-    EXPECT_THAT(completer.complete({"vm1", "--format"}), ElementsAre("csv", "json", "table"));
+    EXPECT_THAT(completer.complete({"vma", "--format"}), ElementsAre("csv", "json", "table"));
 
     EXPECT_THAT(completer.complete({"--all"}),
+                ElementsAre("--format", "--help", "--verbose", "vma", "vmb"));
+
+    EXPECT_THAT(completer.complete({"vma", "--all"}),
                 ElementsAre("--format", "--help", "--verbose", "vm1", "vm2", "vm3"));
 
     EXPECT_THAT(completer.complete({"--remotes", "--verbose"}),
                 ElementsAre("--format", "--help", "--verbose"));
 
-    EXPECT_THAT(completer.complete({"--help", "vm1"}),
+    EXPECT_THAT(completer.complete({"--help", "vma", "vm1"}),
                 ElementsAre("--all", "--format", "--verbose", "vm2", "vm3"));
 }
 
