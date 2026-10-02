@@ -2016,6 +2016,7 @@ try
         return grpc::Status::OK;
     };
 
+    // TODO:Remove this lambda when `list --snapshots` is removed.
     auto fetch_snapshot = [&response](VirtualMachine& vm) {
         fmt::memory_buffer errors;
         const auto& name = vm.get_name();
@@ -2040,6 +2041,7 @@ try
     };
 
     auto cmd = request->snapshots() ? std::function(fetch_snapshot) : std::function(fetch_instance);
+    // TODO:End `list --snapshots` removal
 
     auto status = cmd_vms(select_all(operative_instances), cmd);
     if (status.ok())
