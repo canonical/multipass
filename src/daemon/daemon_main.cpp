@@ -21,7 +21,6 @@
 
 #include "cli.h"
 
-#include <multipass/auto_join_thread.h>
 #include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform_unix.h>
@@ -35,51 +34,12 @@
 
 #include <QCoreApplication>
 
-#include <csignal>
-
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpp = multipass::platform;
 
 namespace
 {
-
-class UnixSignalHandler
-{
-public:
-    UnixSignalHandler(mp::Signal& app_ready_signal)
-        : app_ready_signal(app_ready_signal),
-          signal_handling_thread{
-              [this, sigs = mpp::make_and_block_signals({SIGTERM, SIGINT, SIGUSR1})] {
-                  monitor_signals(sigs);
-              }}
-    {
-    }
-
-    ~UnixSignalHandler()
-    {
-        pthread_kill(signal_handling_thread.thread.native_handle(), SIGUSR1);
-    }
-
-    void monitor_signals(sigset_t sigset)
-    {
-        int sig = -1;
-        sigwait(&sigset, &sig);
-        if (sig != SIGUSR1)
-            mpl::info("daemon", "Received signal {} ({})", sig, strsignal(sig));
-
-        // In order to be able to gracefully end the application via QCoreApplication::quit()
-        // the initialization (QT, Daemon) have to happen first. Otherwise, the application
-        // might not be in a state that the QT's event loop would pick up the signal and terminate.
-        // This happens when the daemon is started and being signaled in quick succession.
-        app_ready_signal.wait();
-        QCoreApplication::quit();
-    }
-
-private:
-    mp::Signal& app_ready_signal;
-    mp::AutoJoinThread signal_handling_thread;
-};
 
 int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
 {
@@ -119,6 +79,7 @@ int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
     mpl::info("daemon", "Goodbye!");
     return exit_code;
 }
+
 } // namespace
 
 int main(int argc, char* argv[])
@@ -137,7 +98,7 @@ int main(int argc, char* argv[])
     // The signal handler will not act upon signals until either the app initializes
     // successfully, or an error happens.
     //
-    UnixSignalHandler handler{app_ready_signal};
+    mpp::UnixSignalHandler handler{app_ready_signal};
     auto exit_code = mp::top_catch_all(
         "daemon",
         [&app_ready_signal] {
