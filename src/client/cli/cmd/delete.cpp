@@ -95,7 +95,7 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
                                   "<instance>[.snapshot] [<instance>[.snapshot] ...]");
 
     QCommandLineOption all_option(all_option_name, "Delete all instances and snapshots");
-    QCommandLineOption force_option{"force", "Do not ask for confirmation"};
+    QCommandLineOption force_option{force_option_name, "Do not ask for confirmation"};
     parser->addOptions({all_option, force_option});
 
     auto status = parser->commandParse(this);
