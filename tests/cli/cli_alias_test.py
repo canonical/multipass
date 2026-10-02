@@ -59,7 +59,7 @@ class TestAlias:
             },
         }
         # Purge the instance and verify that the alias is also removed
-        assert multipass("delete", instance, "--purge")
+        assert multipass("delete", instance, "--force")
         assert not multipass("wai")
         assert multipass("aliases", "--format=json").json() == {
             "active-context": "default",

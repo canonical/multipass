@@ -59,6 +59,7 @@ from .snapshot import (
     assert_list_snapshots_matches_snapshots,
     build_snapshot_tree,
     collapse_to_snapshot_tree,
+    delete_snapshot,
     take_snapshot,
 )
 from .validate import (

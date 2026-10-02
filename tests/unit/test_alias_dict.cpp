@@ -459,7 +459,7 @@ struct DaemonAliasTestsuite
         mpt::MockPermissionUtils::inject<NiceMock>();
 };
 
-TEST_P(DaemonAliasTestsuite, purgeRemovesPurgedInstanceAliasesAndScripts)
+TEST_P(DaemonAliasTestsuite, deleteRemovesDeletedInstanceAliasesAndScripts)
 {
     auto [commands, expected_output, expected_removed_aliases, expected_failed_removal] =
         GetParam();
@@ -515,7 +515,7 @@ TEST_P(DaemonAliasTestsuite, purgeRemovesPurgedInstanceAliasesAndScripts)
 
     std::stringstream cout, cerr;
     for (const auto& command : commands)
-        send_command(command, cout, cerr);
+        send_command(command, trash_stream, cerr);
 
     for (const auto& removed_alias : expected_failed_removal)
         EXPECT_THAT(
@@ -532,34 +532,28 @@ const std::string csv_head{"Alias,Instance,Command,Working directory,Context\n"}
 INSTANTIATE_TEST_SUITE_P(
     AliasDictionary,
     DaemonAliasTestsuite,
-    Values(std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
+    Values(std::make_tuple(CmdList{{"delete", "--force", "real-zebraphant"}},
                            csv_head + "lsp,primary,ls,map,default*\n",
                            std::vector<std::string>{"lsz"},
                            std::vector<std::string>{}),
-           std::make_tuple(CmdList{{"delete", "--purge", "real-zebraphant"}},
-                           csv_head + "lsp,primary,ls,map,default*\n",
-                           std::vector<std::string>{"lsz"},
-                           std::vector<std::string>{}),
-           std::make_tuple(CmdList{{"delete", "primary"},
-                                   {"delete", "primary", "real-zebraphant", "--purge"}},
+           std::make_tuple(CmdList{{"delete", "--force", "primary", "real-zebraphant"}},
                            csv_head,
                            std::vector<std::string>{"lsp", "lsz"},
                            std::vector<std::string>{}),
-           std::make_tuple(CmdList{{"delete", "primary"},
-                                   {"delete", "primary", "real-zebraphant", "--purge"}},
+           std::make_tuple(CmdList{{"delete", "--force", "primary"},
+                                   {"delete", "--force", "real-zebraphant"}},
                            csv_head,
                            std::vector<std::string>{},
                            std::vector<std::string>{"lsp", "lsz"}),
-           std::make_tuple(CmdList{{"delete", "primary"},
-                                   {"delete", "primary", "real-zebraphant", "--purge"}},
+           std::make_tuple(CmdList{{"delete", "--force", "primary", "real-zebraphant"}},
                            csv_head,
                            std::vector<std::string>{"lsp"},
                            std::vector<std::string>{"lsz"}),
-           std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
+           std::make_tuple(CmdList{{"delete", "--force", "real-zebraphant"}},
                            csv_head + "lsp,primary,ls,map,default*\n",
                            std::vector<std::string>{},
                            std::vector<std::string>{"lsz"}),
-           std::make_tuple(CmdList{{"delete", "real-zebraphant", "primary"}, {"purge"}},
+           std::make_tuple(CmdList{{"delete", "--force", "real-zebraphant", "primary"}},
                            csv_head,
                            std::vector<std::string>{},
                            std::vector<std::string>{"lsz", "lsp"})));

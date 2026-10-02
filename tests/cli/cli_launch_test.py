@@ -43,9 +43,9 @@ class TestLaunch:
     @pytest.mark.parametrize(
         "instance",
         [
-            {"image": "noble", "autopurge": False},
-            {"image": "jammy", "autopurge": False},
-            {"image": "focal", "autopurge": False},
+            {"image": "noble", "autodelete": False},
+            {"image": "jammy", "autodelete": False},
+            {"image": "focal", "autodelete": False},
         ],
         indirect=True,
     )
@@ -87,17 +87,14 @@ class TestLaunch:
         assert state(instance) == "Running"
 
         # Remove the instance.
-        assert multipass("delete", instance)
-        assert state(instance) == "Deleted"
-
-        assert multipass("purge")
+        assert multipass("delete", instance, "--force")
 
         assert not vm_exists(instance)
 
     @pytest.mark.parametrize(
         "instance",
         [
-            {"image": "debian", "autopurge": False},
+            {"image": "debian", "autodelete": False},
         ],
         indirect=True,
     )
@@ -141,17 +138,14 @@ class TestLaunch:
         assert state(instance) == "Running"
 
         # Remove the instance.
-        assert multipass("delete", instance)
-        assert state(instance) == "Deleted"
-
-        assert multipass("purge")
+        assert multipass("delete", instance, "--force")
 
         assert not vm_exists(instance)
 
     @pytest.mark.parametrize(
         "instance",
         [
-            {"image": "fedora", "autopurge": False},
+            {"image": "fedora", "autodelete": False},
         ],
         indirect=True,
     )
@@ -195,10 +189,7 @@ class TestLaunch:
         assert state(instance) == "Running"
 
         # Remove the instance.
-        assert multipass("delete", instance)
-        assert state(instance) == "Deleted"
-
-        assert multipass("purge")
+        assert multipass("delete", instance, "--force")
 
         assert not vm_exists(instance)
 
