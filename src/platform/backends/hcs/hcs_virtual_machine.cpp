@@ -27,6 +27,7 @@
 #include <hcs/api/virtdisk/virtdisk_wrapper.h>
 #include <hcs/hcs_virtual_machine_exceptions.h>
 #include <hcs/hcs_virtual_machine_resources.h>
+#include <hcs/hcs_plan9_mount_handler.h>
 
 #include <shared/windows/smb_mount_handler.h>
 
@@ -349,6 +350,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
                                       });
                 return std::vector(std::ranges::begin(view), std::ranges::end(view));
             }(),
+        .shares = {},
         .guest_state = {.guest_state_file_path = get_guest_state_file_path(),
                         .runtime_state_file_path = get_runtime_state_file_path(),
                         .save_state_file_path = has_saved_state_file()

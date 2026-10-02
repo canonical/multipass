@@ -17,28 +17,24 @@
 
 #pragma once
 
-#include "qemu_virtual_machine.h"
-
 #include <multipass/mount_handler.h>
 
-namespace multipass
+namespace multipass::hyperv::hcs
 {
-class QemuMountHandler : public MountHandler
+
+class Plan9MountHandler : public MountHandler
 {
 public:
-    QemuMountHandler(QemuVirtualMachine* vm,
-                     const SSHKeyProvider* ssh_key_provider,
-                     const std::string& target,
-                     VMMount mount_spec);
-    ~QemuMountHandler() override;
+    Plan9MountHandler(VirtualMachine* vm,
+                      const SSHKeyProvider* ssh_key_provider,
+                      VMMount mount_spec,
+                      const std::string& target);
 
-    void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
-    void deactivate_impl(bool force) override;
-    bool is_active() override;
+    ~Plan9MountHandler() override;
 
 private:
-    QemuVirtualMachine::MountArgs& vm_mount_args;
-    std::string tag;
+    void activate_impl(ServerVariant server, std::chrono::milliseconds timeout) override;
+    void deactivate_impl(bool force) override;
 };
 
-} // namespace multipass
+} // namespace multipass::hyperv::hcs
