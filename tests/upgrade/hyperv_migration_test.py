@@ -67,7 +67,7 @@ pytestmark = pytest.mark.skipif(
 def seeded_vm(name):
     if vm_exists(name):
         assert multipass("delete", name, "--purge")
-    return launch(cfg_override={"name": name, "autopurge": False})
+    return launch(cfg_override={"name": name, "autodelete": False})
 
 
 def powershell(script):

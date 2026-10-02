@@ -41,7 +41,7 @@ def launch(cfg_override=None):
         "disk": cfg.vm.disk,
         "retry": getattr(cfg.retries, "launch", 0),
         "image": cfg.vm.image,
-        "autopurge": True,
+        "autodelete": True,
         "assert": {"purge": True},
     }
 
@@ -107,7 +107,7 @@ def launch(cfg_override=None):
     try:
         yield VMHandle(vm_cfg)
     finally:
-        if vm_cfg["autopurge"]:
-            with multipass("delete", vm_cfg["name"], "--purge") as result:
+        if vm_cfg["autodelete"]:
+            with multipass("delete", vm_cfg["name"], "--force") as result:
                 if vm_cfg["assert"]["purge"]:
-                    assert result, f"Failed to purge VM `{vm_cfg['name']}`: {str(result)}"
+                    assert result, f"Failed to delete VM `{vm_cfg['name']}`: {str(result)}"

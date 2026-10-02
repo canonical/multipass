@@ -295,7 +295,7 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
         {"test_set", "foo", "bar"},
         {"test_create", "foo"},
         {"launch", "foo"},
-        {"delete", "foo"},
+        {"delete", "--force", "foo"},
         {"exec", "foo", "--no-map-working-directory", "--", "cmd"},
         {"info", "foo"},
         {"list"},
@@ -2095,7 +2095,7 @@ TEST_F(Daemon, startReportsErrorEvenWhenStartExceptionIsIntentional)
     EXPECT_THAT(status.error_message(), HasSubstr(error_msg));
 }
 
-TEST_F(Daemon, releasesMacsOfPurgedInstancesButKeepsTheRest)
+TEST_F(Daemon, releasesMacsOfDeletedInstancesButKeepsTheRest)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
@@ -2115,15 +2115,14 @@ TEST_F(Daemon, releasesMacsOfPurgedInstancesButKeepsTheRest)
     send_command({"launch", "--network", fmt::format("name=eth0,mac={}", mac2), "--name", "vm2"});
     send_command({"launch", "--network", fmt::format("name=eth0,mac={}", mac3), "--name", "vm3"});
 
-    send_command({"delete", "vm1"});
-    send_command({"delete", "--purge", "vm3"}); // so that mac3 can be reused
+    send_command({"delete", "--force", "vm3"}); // so that mac3 can be reused
 
     send_command(
         {"launch", "--network", fmt::format("name=eth0,mac={}", mac1)}); // repeated mac is rejected
     send_command({"launch", "--network", fmt::format("name=eth0,mac={}", mac2)}); // idem
     send_command({"launch",
                   "--network",
-                  fmt::format("name=eth0,mac={}", mac3)}); // mac is free after purge, so accepted
+                  fmt::format("name=eth0,mac={}", mac3)}); // mac is free after delete, so accepted
 }
 
 TEST_F(Daemon, deleteRemovesUnavailableInstances)
@@ -2149,7 +2148,7 @@ TEST_F(Daemon, deleteRemovesUnavailableInstances)
 
     mp::Daemon daemon{config_builder.build()};
 
-    send_command({"delete", "vm1"});
+    send_command({"delete", "--force", "vm1"});
 }
 
 TEST_F(Daemon, launchesWithBridged)

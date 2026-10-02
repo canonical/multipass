@@ -28,6 +28,7 @@ from cli.utilities import (
 from cli.multipass import (
     build_snapshot_tree,
     collapse_to_snapshot_tree,
+    delete_snapshot,
     get_core_count,
     get_ram_size,
     path_exists,
@@ -166,7 +167,7 @@ class TestSnapshot:
         take_snapshot(instance, "snapshot3", "snapshot2")
         assert snapshot_count(instance) == 3
 
-        assert multipass("delete", f"{instance}.snapshot1", "--purge")
+        delete_snapshot(instance, "snapshot1")
         assert snapshot_count(instance) == 2
 
         with multipass(
@@ -306,7 +307,7 @@ class TestSnapshot:
         assert snapshot_count(instance) == 9
 
         # Delete the common ancestor
-        assert multipass("delete", f"{instance}.snapshot1", "--purge")
+        delete_snapshot(instance, "snapshot1")
         assert snapshot_count(instance) == 8
 
         assert multipass("restore", f"{instance}.snapshot5b", "--destructive")
@@ -337,7 +338,7 @@ class TestSnapshot:
             }
             assert collapse_to_snapshot_tree(result) == expected_snapshot_tree
 
-        assert multipass("delete", f"{instance}.snapshot4b", "--purge")
+        delete_snapshot(instance, "snapshot4b")
         assert snapshot_count(instance) == 7
 
         with multipass(
@@ -357,7 +358,7 @@ class TestSnapshot:
             }
             assert collapse_to_snapshot_tree(result) == expected_snapshot_tree
 
-        assert multipass("delete", f"{instance}.snapshot2a", "--purge")
+        delete_snapshot(instance, "snapshot2a")
         assert snapshot_count(instance) == 6
 
         with multipass(
@@ -375,7 +376,7 @@ class TestSnapshot:
             }
             assert collapse_to_snapshot_tree(result) == expected_snapshot_tree
 
-        assert multipass("delete", f"{instance}.snapshot2b", "--purge")
+        delete_snapshot(instance, "snapshot2b")
         assert snapshot_count(instance) == 5
 
         with multipass(
@@ -420,7 +421,7 @@ class TestSnapshot:
 
         # Delete snapshot 2 so snapshot3 and 2b would be orphaned. We expect
         # snapshot 3 and 2b contain snapshot2's delta, and snapshot1 unaltered.
-        assert multipass("delete", f"{instance}.snapshot2", "--purge")
+        delete_snapshot(instance, "snapshot2")
 
         with multipass(
             "info", "--format=json", "--snapshots", f"{instance}"
