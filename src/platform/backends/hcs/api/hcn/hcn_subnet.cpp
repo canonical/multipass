@@ -38,9 +38,9 @@ auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatCont
             }}
         )json");
 
-    return json_template.format_to(ctx,
-                                   fmt::join(subnet.routes, string_literal<Char>(",")),
-                                   subnet.ip_address_prefix);
+    static constexpr auto comma = fmt::basic_string_view<Char>(string_literal<Char>(","));
+
+    return json_template.format_to(ctx, fmt::join(subnet.routes, comma), subnet.ip_address_prefix);
 }
 
 template auto fmt::formatter<HcnSubnet, char>::format<fmt::format_context>(
