@@ -36,6 +36,7 @@ markers = [
     "shell: VM shell tests",
     "launch: Launch tests",
     "list: List tests",
+    "snapshots: Snapshots tests",
     "alias: Alias tests",
     "transfer: Transfer tests",
     "authenticate: Authenticate tests",
