@@ -319,7 +319,10 @@ def pytest_collection_modifyitems(config, items):
             )
 
     def maybe_skip_snapshot_test(item):
-        if not item.get_closest_marker("snapshot"):
+        if not (
+            item.get_closest_marker("snapshot")
+            or item.get_closest_marker("snapshots")
+        ):
             return
         if config.getoption("--driver") == "lxd":
             item.add_marker(
