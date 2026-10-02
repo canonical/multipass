@@ -16,6 +16,8 @@
  */
 
 #include "delete.h"
+
+#include "autocomplete_from_rpc_provider.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
@@ -124,38 +126,6 @@ QString cmd::Delete::description() const
         "purged at once.");
 }
 
-std::vector<std::string> cmd::Delete::fetch_eligible_targets() const
-{
-    auto proposals = std::vector<std::string>{};
-
-    const auto fetch_snapshots = [&proposals](ListReply& reply) -> ReturnCodeVariant {
-        for (const auto& snapshot : reply.snapshot_list().snapshots())
-        {
-            proposals.push_back(snapshot.name());
-        }
-        return ReturnCode::Ok;
-    };
-
-    const auto fetch_instances = [&proposals](ListReply& reply) -> ReturnCodeVariant {
-        for (const auto& instance : reply.instance_list().instances())
-        {
-            proposals.push_back(instance.name());
-        }
-        return ReturnCode::Ok;
-    };
-
-    const auto ignore_errors = [](grpc::Status&) -> ReturnCodeVariant { return ReturnCode::Ok; };
-
-    auto request = ListRequest{};
-    request.set_snapshots(true);
-    dispatch(&RpcMethod::list, request, fetch_snapshots, ignore_errors);
-
-    request.set_snapshots(false);
-    dispatch(&RpcMethod::list, request, fetch_instances, ignore_errors);
-
-    return proposals;
-}
-
 std::vector<std::string> cmd::Delete::autocomplete(const std::vector<std::string>& previous) const
 {
     auto completer = AutoCompleter{};
@@ -165,8 +135,10 @@ std::vector<std::string> cmd::Delete::autocomplete(const std::vector<std::string
 
     const auto all_option = completer.add_option(all_option_name.toStdString());
 
-    const auto target_provider = [this]() { return fetch_eligible_targets(); };
-    const auto target_param = completer.add_parameter(target_provider);
+    const auto target_provider = AutoCompleteFromRpcProvider{stub};
+    const auto target_param = completer.add_parameter([&target_provider]() {
+        return target_provider.provide(make_snapshots_request(), make_instances_request());
+    });
 
     completer.set_repeat_last_parameter(true);
     completer.set_mutual_exclusion(all_option, target_param);

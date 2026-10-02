@@ -18,6 +18,7 @@ add_library(commands STATIC
   animated_spinner.cpp
   authenticate.cpp
   autocomplete.cpp
+  autocomplete_from_rpc_provider.cpp
   clone.cpp
   common_cli.cpp
   create_alias.cpp
