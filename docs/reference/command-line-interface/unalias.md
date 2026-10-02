@@ -12,7 +12,7 @@ multipass unalias name
 This will remove the given alias `name`, returning an error if the alias is not defined.
 
 ```{note}
-If an instance is deleted and purged, it is not necessary to run `unalias` for the aliases defined on that instance, as they are automatically removed.
+If an instance is deleted, it is not necessary to run `unalias` for the aliases defined on that instance, as they are automatically removed.
 ```
 
 You can remove multiple aliases in a single command:
