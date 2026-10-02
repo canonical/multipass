@@ -230,7 +230,7 @@ The defaults are listed below:
 | delete               | 90s                   |
 | exec                 | 90s                   |
 | start                | 90s                   |
-| umount               | 45s                   |
+| unmount / umount     | 45s                   |
 | <all other commands> | 30s                   |
 
 `--cmd-timeouts` parameter can be used to change the defaults as follows:

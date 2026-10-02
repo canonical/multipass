@@ -22,10 +22,7 @@ import re
 
 import pytest
 
-from cli.multipass import (
-    multipass,
-    multipass_version_has_feature
-)
+from cli.multipass import multipass
 
 from cli.utilities import(
     is_locale_available
@@ -45,47 +42,37 @@ LOCALES = [
 
 
 ALL_COMMANDS = [
-    ("alias", "Create an alias"),
-    ("aliases", "List available aliases"),
-    ("authenticate", "Authenticate client"),
-    ("clone", "Clone an instance"),
-    ("delete", "Delete instances and snapshots"),
-    ("exec", "Run a command on an instance"),
-    ("find", "Display available images to create instances from"),
-    ("get", "Get a configuration setting"),
-    ("help", "Display help about a command"),
-    ("info", "Display information about instances or snapshots"),
-    ("launch", "Create and start .* instance"),
-    ("list", "List all available instances or snapshots"),
-    ("mount", "Mount a local directory in the instance"),
-    ("networks", "List available network interfaces"),
-    ("prefer", "Switch the current alias context"),
-    ("purge", "Purge all deleted instances permanently"),
-    ("recover", "Recover deleted instances"),
-    ("restart", "Restart instances"),
-    ("restore", "Restore an instance from a snapshot"),
-    ("set", "Set a configuration setting"),
-    ("shell", "Open a shell on an instance"),
-    ("snapshot", "Take a snapshot of an instance"),
-    ("start", "Start instances"),
-    ("stop", "Stop running instances"),
-    ("suspend", "Suspend running instances"),
-    ("transfer", "Transfer files between the host and instances"),
-    ("umount", "Unmount a directory from an instance"),
-    ("unalias", "Remove aliases"),
-    ("version", "Show version details"),
+    (("alias",), "Create an alias"),
+    (("aliases",), "List available aliases"),
+    (("authenticate", "auth"), "Authenticate client"),
+    (("clone",), "Clone an instance"),
+    (("delete",), "Delete instances and snapshots"),
+    (("exec",), "Run a command on an instance"),
+    (("find",), "Display available images to create instances from"),
+    (("get",), "Get a configuration setting"),
+    (("help",), "Display help about a command"),
+    (("info",), "Display information about instances or snapshots"),
+    (("launch",), "Create and start .* instance"),
+    (("list", "ls"), "List all available instances or snapshots"),
+    (("mount",), "Mount a local directory in the instance"),
+    (("networks",), "List available network interfaces"),
+    (("prefer",), "Switch the current alias context"),
+    (("purge",), "Purge all deleted instances permanently"),
+    (("recover",), "Recover deleted instances"),
+    (("restart",), "Restart instances"),
+    (("restore",), "Restore an instance from a snapshot"),
+    (("set",), "Set a configuration setting"),
+    (("shell", "sh", "connect"), "Open a shell on an instance"),
+    (("snapshot",), "Take a snapshot of an instance"),
+    (("start",), "Start instances"),
+    (("stop",), "Stop running instances"),
+    (("suspend",), "Suspend running instances"),
+    (("transfer", "copy-files"), "Transfer files between the host and instances"),
+    (("unalias",), "Remove aliases"),
+    (("unmount", "umount"), "Unmount a directory from an instance"),
+    (("version",), "Show version details"),
+    (("wait-ready",), "Wait for the Multipass daemon to be ready"),
 ]
-
-
-def commands_to_test():
-    commands = []
-    commands += ALL_COMMANDS
-
-    if multipass_version_has_feature("wait_ready"):
-        commands += [
-            ("wait-ready", "Wait for the Multipass daemon to be ready")
-        ]
-    return commands
 
 
 def available_locales():
@@ -121,7 +108,7 @@ class TestHelp:
                     )
                 )
 
-                for cmd, desc_pattern in commands_to_test():
+                for (cmd, *_), desc_pattern in ALL_COMMANDS:
                     if cmd not in matches:
                         failures.append((loc, cmd, "not found in help output"))
                     elif not re.search(desc_pattern, matches[cmd]):
@@ -134,7 +121,7 @@ class TestHelp:
     def test_per_command_help(self):
         failures = []
         for loc in available_locales():
-            for cmd, _ in commands_to_test():
+            for cmd in (name for names, _ in ALL_COMMANDS for name in names):
                 with multipass(
                     "help",
                     cmd,

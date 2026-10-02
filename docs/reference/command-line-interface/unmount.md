@@ -1,18 +1,18 @@
-(reference-command-line-interface-umount)=
-# umount
+(reference-command-line-interface-unmount)=
+# unmount
 
 > See also: [`mount`](/reference/command-line-interface/mount), [Mount](/explanation/mount), [How to share data with an instance](/how-to-guides/manage-instances/share-data-with-an-instance).
 
-The `umount` command without any options unmounts all previously defined mappings of local directories from the host to an instance.
+The `unmount` command without any options unmounts all previously defined mappings of local directories from the host to an instance.
 
 You can also unmount only a specific mount if you specify the desired path.
 
 ---
 
-The full `multipass help umount` output explains the available options:
+The full `multipass help unmount` output explains the available options:
 
 ```{code-block} text
-Usage: multipass umount [options] <mount> [<mount> ...]
+Usage: multipass unmount [options] <mount> [<mount> ...]
 Unmount a directory from an instance.
 
 Options:

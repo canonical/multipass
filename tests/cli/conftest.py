@@ -176,6 +176,7 @@ def pytest_addoption(parser):
             ("delete", 90),
             ("exec", 270),
             ("start", 180),
+            ("unmount", 45),
             ("umount", 45),
         ],
         help="Per-command timeout override; may be given multiple times. "
