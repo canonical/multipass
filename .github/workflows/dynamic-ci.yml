@@ -67,8 +67,12 @@ jobs:
               - "vcpkg-configuration.json"
               - "vcpkg.json"
             slow-runners:
-              - "**/snapcraft.yaml"
               - "CMakeLists.txt"
+              - "**/CMakeLists.txt"
+              - "**/snapcraft.yaml"
+              - debian/control
+              - ".gitmodules"
+              - "3rd-party/**"
               - "vcpkg-configuration.json"
               - "vcpkg.json"
             hooks:
