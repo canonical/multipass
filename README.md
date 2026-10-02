@@ -60,7 +60,7 @@ Here are some pointers to get started with Multipass.
 | Connect to a running instance | `multipass shell <instance-name>` |
 | Run a command inside an instance | `multipass exec <instance-name> -- <command>` |
 | Stop an instance | `multipass stop <instance-name>` |
-| Delete an instance | `multipass delete <instance-name>` <br/> `multipass purge` |
+| Delete an instance | `multipass delete <instance-name>` |
 | Get help | `multipass help` <br/> `multipass help <command>` |
 
 For a more comprehensive learning experience, please check out the

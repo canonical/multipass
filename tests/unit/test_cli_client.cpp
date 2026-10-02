@@ -3382,7 +3382,7 @@ TEST_F(Client, deleteCmdNotLiveTermFailsWithoutForce)
 TEST_F(Client, deleteCmdPrintsDeletedInstances)
 {
     mp::DeleteReply reply;
-    reply.add_purged_instances("foo");
+    reply.add_deleted_instances("foo");
     EXPECT_CALL(mock_daemon, delet)
         .WillOnce(
             WithArg<1>(check_request_and_return<mp::DeleteReply, mp::DeleteRequest>(_, ok, reply)));
@@ -3396,7 +3396,7 @@ TEST_F(Client, deleteCmdPrintsDeletedInstances)
 TEST_F(Client, deleteCmdReportsDeletedInstancesOnPartialFailure)
 {
     mp::DeleteReply reply;
-    reply.add_purged_instances("foo");
+    reply.add_deleted_instances("foo");
     const grpc::Status failure{grpc::StatusCode::INTERNAL, "msg"};
     const auto any_request = A<const mp::DeleteRequest&>();
     EXPECT_CALL(mock_daemon, delet)
@@ -3438,7 +3438,7 @@ TEST_F(ClientDeleteConfirmation, defaultAnswerDoesNotDelete)
 TEST_F(ClientDeleteConfirmation, yesAnswerDeletes)
 {
     mp::DeleteReply reply;
-    reply.add_purged_instances("my-vm");
+    reply.add_deleted_instances("my-vm");
     EXPECT_CALL(mock_daemon, delet)
         .WillOnce(
             WithArg<1>(check_request_and_return<mp::DeleteReply, mp::DeleteRequest>(_, ok, reply)));

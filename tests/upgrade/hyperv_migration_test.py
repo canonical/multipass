@@ -66,7 +66,7 @@ pytestmark = pytest.mark.skipif(
 
 def seeded_vm(name):
     if vm_exists(name):
-        assert multipass("delete", name, "--purge")
+        assert multipass("delete", name, "--force")
     return launch(cfg_override={"name": name, "autodelete": False})
 
 
@@ -481,7 +481,7 @@ def test_hyperv_migration_network_seed(scenario):
         )
 
     if vm_exists(NETWORK_VM):
-        assert multipass("delete", NETWORK_VM, "--purge")
+        assert multipass("delete", NETWORK_VM, "--force")
     launch_with_networks(NETWORK_VM, networks)
 
     macs = guest_macs(NETWORK_VM)
@@ -508,10 +508,10 @@ class Migration:
     image_records: dict
 
 
-def purge_all(names):
+def delete_all(names):
     for name in names:
         if vm_exists(name):
-            multipass("delete", name, "--purge", timeout=300)
+            multipass("delete", name, "--force", timeout=300)
 
 
 def clean_up(record, network, governor):
@@ -520,9 +520,9 @@ def clean_up(record, network, governor):
     names = [*RECORD_KEY, *([NETWORK_VM] if network else [])]
     try:
         if current_driver() == "hcs":
-            purge_all(names)
+            delete_all(names)
             switch_driver("hyperv", governor)
-        purge_all(names)
+        delete_all(names)
     finally:
         for switch in (network or {}).get("networks", []):
             remove_switch(switch["switch"])
@@ -724,7 +724,7 @@ def test_hyperv_migration_verify_follow_up(migration, multipassd_session_scoped)
         assert multipass("stop", name)
 
     # Purging one HCS target leaves its source intact and allows explicit re-migration.
-    assert multipass("delete", STOPPED_VM, "--purge")
+    assert multipass("delete", STOPPED_VM, "--force")
     assert not vm_exists(STOPPED_VM)
     assert legacy_id_exists(record["stopped"]["legacy_id"])
 
@@ -736,7 +736,7 @@ def test_hyperv_migration_verify_follow_up(migration, multipassd_session_scoped)
 
     # Purging the original is strictly scoped to the legacy backend.
     switch_driver("hyperv", governor)
-    assert multipass("delete", STOPPED_VM, "--purge")
+    assert multipass("delete", STOPPED_VM, "--force")
     assert not legacy_id_exists(record["stopped"]["legacy_id"])
     switch_driver("hcs", governor)
     assert vm_exists(STOPPED_VM)

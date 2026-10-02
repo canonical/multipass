@@ -2731,7 +2731,7 @@ TEST_F(Daemon, deleteReportsAndPersistsInstancesDeletedBeforeAFailure)
 
     StrictMock<mpt::MockServerReaderWriter<mp::DeleteReply, mp::DeleteRequest>> server;
     EXPECT_CALL(server,
-                Write(Property(&mp::DeleteReply::purged_instances, ElementsAre(deleted_name)), _))
+                Write(Property(&mp::DeleteReply::deleted_instances, ElementsAre(deleted_name)), _))
         .WillOnce(Return(true));
 
     mp::DeleteRequest request;

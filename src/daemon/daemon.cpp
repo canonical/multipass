@@ -3597,7 +3597,7 @@ void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, DeleteReply& response)
 
     release_resources(name);
     erase_from.erase(vm_it);
-    response.add_purged_instances(name);
+    response.add_deleted_instances(name);
     mpl::debug(category, "Instance deleted: {}", name);
 }
 

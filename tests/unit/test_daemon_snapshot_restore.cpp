@@ -322,7 +322,7 @@ TEST_F(TestDaemonDeleteSnapshot, failsOnMissingSnapshotWithoutDeleting)
     EXPECT_CALL(*instance, delete_snapshot).Times(0);
 
     auto server = StrictMock<mpt::MockServerReaderWriter<mp::DeleteReply, mp::DeleteRequest>>{};
-    EXPECT_CALL(server, Write(Property(&mp::DeleteReply::purged_instances_size, 0), _))
+    EXPECT_CALL(server, Write(Property(&mp::DeleteReply::deleted_instances_size, 0), _))
         .WillOnce(Return(true));
 
     auto status = call_daemon_slot(*daemon, &mp::Daemon::delet, request, server);
