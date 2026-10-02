@@ -13,9 +13,17 @@ The output will be similar to the following:
 
 ```{code-block} text
 ...
-Snapshot taken: maximal-stag.snapshot1
+Snapshot 'snapshot1' of 'maximal-stag' created.
 ```
-The snapshot will record all the information that is required to later restore the instance to the same state. For the time being, the `snapshot` command can only operate on instances in `Stopped` status.
+The snapshot will record all the information that is required to later restore the instance to the same state.
+
+If the instance is running when you take a snapshot, Multipass needs to stop it first. In an interactive terminal, you will be prompted for confirmation:
+
+```{code-block} text
+Instance 'maximal-stag' is running. Would you like to stop it, take a snapshot, and restart?[y/N]
+```
+
+If you confirm, the instance is stopped, the snapshot is taken, and the instance is started again automatically. You can skip this prompt by passing the `--restart` (or `-r`) option, which stops, snapshots, and restarts the instance without asking. If the command is run non-interactively (i.e. with either standard input or standard output being redirected) and `--restart` is not given, the command fails, since there is no way to query the user for confirmation.
 
 You have the option to specify a snapshot name using the `--name` option, following the same format as the [instance name format](/reference/instance-name-format).
 
@@ -28,6 +36,8 @@ The full `multipass help snapshot` output explains the available options:
 ```{code-block} text
 Usage: multipass snapshot [options] instance
 Take a snapshot of an instance that can later be restored to recover the current state.
+Info: if the instance is running, you will be prompted to stop it before taking the
+snapshot, unless the '--restart' option is given.
 
 Options:
   -h, --help                   Displays help on commandline options
@@ -43,6 +53,9 @@ Options:
   --comment, -c, -m <comment>  An optional free comment to associate with the
                                snapshot. (Hint: quote the text to avoid spaces
                                being parsed by your shell)
+  --restart, -r                Stop the instance if it is running before taking
+                               the snapshot and start it after the snapshot has
+                               been taken without an interactive prompt.
 
 Arguments:
   instance                     The instance to take a snapshot of.
