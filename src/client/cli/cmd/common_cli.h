@@ -40,6 +40,7 @@ class SettingsException;
 namespace cmd
 {
 const QString all_option_name{"all"};
+const QString force_option_name{"force"};
 const QString format_option_name{"format"};
 
 ParseCode check_for_name_and_all_option_conflict(const ArgParser* parser,

@@ -100,7 +100,7 @@ ParseCode DisableZones::parse_args(ArgParser* parser)
                                   "<zone> [<zone> ...]");
 
     QCommandLineOption all_option(all_option_name, "Disable all zones");
-    QCommandLineOption forceOption{"force", "Do not ask for confirmation"};
+    QCommandLineOption forceOption{force_option_name, "Do not ask for confirmation"};
     parser->addOptions({all_option, forceOption});
 
     if (const auto status = parser->commandParse(this); status != ParseCode::Ok)
