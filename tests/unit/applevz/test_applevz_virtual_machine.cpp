@@ -241,10 +241,10 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownGracefulStopError)
         .WillRepeatedly(Return(applevz::AppleVMState::error));
 
     EXPECT_CALL(mock_applevz, can_request_stop(_)).WillRepeatedly(Return(true));
-    EXPECT_CALL(mock_applevz, stop_vm(_, false)).WillRepeatedly(Invoke([](auto&, bool) {
+    EXPECT_CALL(mock_applevz, stop_vm(_, false)).WillRepeatedly([](auto&, bool) {
         return applevz::CFError{
             CFErrorCreate(kCFAllocatorDefault, CFSTR("TestDomain"), 123, nullptr)};
-    }));
+    });
 
     MP_EXPECT_THROW_THAT(uut->shutdown(),
                          std::runtime_error,

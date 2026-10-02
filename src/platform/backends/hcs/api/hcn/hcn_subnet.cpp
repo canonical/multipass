@@ -38,8 +38,11 @@ auto fmt::formatter<HcnSubnet, Char>::format(const HcnSubnet& subnet, FormatCont
             }}
         )json");
 
+    static constexpr auto comma = string_literal<Char>(",");
+    static constexpr auto comma_view = static_cast<fmt::basic_string_view<Char>>(comma);
+
     return json_template.format_to(ctx,
-                                   fmt::join(subnet.routes, string_literal<Char>(",")),
+                                   fmt::join(subnet.routes, comma_view),
                                    subnet.ip_address_prefix);
 }
 
