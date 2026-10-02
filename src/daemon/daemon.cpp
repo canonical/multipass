@@ -1073,11 +1073,9 @@ InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& ins
     return instance_snapshots_map;
 }
 
-bool verify_snapshot_picks(const InstanceSelectionReport& report,
-                           const std::unordered_map<std::string, SnapshotPick>& snapshot_picks,
-                           bool purge)
+void verify_snapshot_picks(const InstanceSelectionReport& report,
+                           const std::unordered_map<std::string, SnapshotPick>& snapshot_picks)
 {
-    auto any_snapshot = false;
     std::vector<std::string> snapshots_of_deleted_instances{};
     for (const auto* selection : {&report.deleted_selection, &report.operative_selection})
     {
@@ -1087,13 +1085,11 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
             {
                 for (const auto& snapshot_name : pick_it->second.pick)
                 {
-                    if (selection == &report.deleted_selection &&
-                        !(pick_it->second.all_or_none && purge))
+                    if (selection == &report.deleted_selection && !pick_it->second.all_or_none)
                         snapshots_of_deleted_instances.push_back(
                             fmt::format("{}.{}", vm_it->first, snapshot_name));
 
                     std::ignore = vm_it->second->get_snapshot(snapshot_name); // throws if missing
-                    any_snapshot = true;
                 }
             }
         }
@@ -1104,8 +1100,6 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
                                                            snapshots_of_deleted_instances.end(),
                                                            ", "))};
     }
-
-    return any_snapshot;
 }
 
 void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container,
@@ -2520,34 +2514,14 @@ try
 
     if (status.ok())
     {
-        const bool purge = request->purge();
-        bool purge_snapshots = request->purge_snapshots();
         auto instances_dirty = false;
 
         auto instance_snapshots_map = map_snapshots_to_instances(
             request->instance_snapshot_pairs());
 
-        // avoid deleting if any snapshot is missing or if we don't get confirmation
-        auto any_snapshot_args = verify_snapshot_picks(instance_selection,
-                                                       instance_snapshots_map,
-                                                       purge);
-        if (any_snapshot_args && !purge && !purge_snapshots)
-        {
-            DeleteReply confirm_action{};
-            confirm_action.set_confirm_snapshot_purging(true);
+        // avoid deleting if any snapshot is missing
+        verify_snapshot_picks(instance_selection, instance_snapshots_map);
 
-            // TODO refactor with bridging and restore prompts
-            if (!server->Write(confirm_action))
-                throw std::runtime_error("Cannot request confirmation from client. Aborting...");
-            DeleteRequest client_response;
-            if (!server->Read(&client_response))
-                throw std::runtime_error("Cannot get confirmation from client. Aborting...");
-
-            if (!(purge_snapshots = client_response.purge_snapshots()))
-                return context->set_value(grpc::Status{grpc::CANCELLED, "Cancelled."});
-        }
-
-        // start with deleted instances, to avoid iterator invalidation when moving instances there
         for (const auto* selection :
              {&instance_selection.deleted_selection, &instance_selection.operative_selection})
         {
@@ -2560,13 +2534,14 @@ try
                                             ? SnapshotPick{{}, true}
                                             : snapshot_pick_it->second;
 
-                if (!all || !purge) // if we're not purging the instance, we need to delete
-                                    // specified snapshots
+                if (!all) // snapshots of instances being deleted go away with them
                     for (const auto& snapshot_name : pick)
                         vm_it->second->delete_snapshot(snapshot_name);
-
-                if (all) // we're asked to delete the VM
-                    instances_dirty |= delete_vm(vm_it, purge, response);
+                else
+                {
+                    delete_vm(vm_it, response);
+                    instances_dirty = true;
+                }
             }
         }
 
@@ -3596,48 +3571,26 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     prepare_future_watcher->setFuture(QtConcurrent::run(make_vm_description));
 }
 
-bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response)
+void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, DeleteReply& response)
 {
     auto& [name, instance] = *vm_it;
-    auto* erase_from = purge ? &deleted_instances : nullptr; // to begin with
-    auto instances_dirty = false;
+    auto& erase_from = vm_instance_specs[name].deleted ? deleted_instances : operative_instances;
 
-    if (!vm_instance_specs[name].deleted)
+    if (&erase_from == &operative_instances)
     {
-        mpl::debug(category, "Deleting instance: {}", name);
-        erase_from = &operative_instances;
         if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
             delayed_shutdown_instances.erase(name);
 
         mounts[name].clear();
-
-        instance->shutdown(purge == true ? VirtualMachine::ShutdownPolicy::Poweroff
-                                         : VirtualMachine::ShutdownPolicy::Halt);
-        if (!purge)
-        {
-            vm_instance_specs[name].deleted = true;
-            deleted_instances[name] = std::move(instance);
-
-            instances_dirty = true;
-            mpl::debug(category, "Instance deleted: {}", name);
-        }
+        instance->shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
     }
     else
-        mpl::debug(category, "Instance is already deleted: {}", name);
+        mpl::debug(category, "Instance `{}` is already deleted", name);
 
-    if (purge)
-    {
-        response.add_purged_instances(name);
-        release_resources(name);
-
-        instances_dirty = true;
-        mpl::debug(category, "Instance purged: {}", name);
-    }
-
-    if (erase_from)
-        erase_from->erase(vm_it);
-
-    return instances_dirty;
+    response.add_purged_instances(name);
+    release_resources(name);
+    erase_from.erase(vm_it);
+    mpl::debug(category, "Instance deleted: {}", name);
 }
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
