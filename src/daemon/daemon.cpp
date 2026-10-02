@@ -2552,6 +2552,10 @@ try
     server->Write(response);
     context->set_value(status);
 }
+catch (const mp::NoSuchSnapshotException& e)
+{
+    context->set_value(grpc::Status{grpc::StatusCode::NOT_FOUND, e.what(), ""});
+}
 catch (const mp::VMStateInvalidException& e)
 {
     context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, e.what()});
