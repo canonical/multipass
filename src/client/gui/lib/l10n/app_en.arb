@@ -1016,6 +1016,44 @@
     "@launchFormSelectedZoneUnavailableTooltip": {
         "description": "Launch button tooltip when selected zone is unavailable"
     },
+    "launchFormCloudInitTitle": "Cloud-init",
+    "@launchFormCloudInitTitle": {
+        "description": "Title of the cloud-init section in the launch form"
+    },
+    "launchFormCloudInitDescription": "Customize this instance at first boot by writing a cloud-init user data file.",
+    "@launchFormCloudInitDescription": {
+        "description": "Description of the cloud-init input in the launch form"
+    },
+    "launchFormCloudInitUserDataLabel": "User data",
+    "@launchFormCloudInitUserDataLabel": {
+        "description": "Label for the cloud-init user data editor"
+    },
+    "launchFormCloudInitLoadFile": "Load file",
+    "@launchFormCloudInitLoadFile": {
+        "description": "Button label for loading a cloud-init file"
+    },
+    "launchFormCloudInitReset": "Reset",
+    "@launchFormCloudInitReset": {
+        "description": "Button label for resetting cloud-init content"
+    },
+    "launchFormCloudInitInvalidYaml": "Invalid YAML: {error}",
+    "@launchFormCloudInitInvalidYaml": {
+        "description": "Validation error shown for malformed cloud-init YAML",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
+    "launchFormCloudInitFileError": "Could not read cloud-init file: {error}",
+    "@launchFormCloudInitFileError": {
+        "description": "Error shown when a selected cloud-init file cannot be read",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
+    },
     "trayToggleWindow": "Toggle window",
     "@trayToggleWindow": {
         "description": "Tray menu item label to show or hide the main window"
