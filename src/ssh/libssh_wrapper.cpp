@@ -285,15 +285,15 @@ void mp::Libssh::ssh_pki_ctx_free(ssh_pki_ctx context) const
 }
 
 int mp::Libssh::ssh_pki_ctx_options_set(ssh_pki_ctx context,
-                                      enum ssh_pki_options_e option,
-                                      const void* value) const
+                                        enum ssh_pki_options_e option,
+                                        const void* value) const
 {
     return ::ssh_pki_ctx_options_set(context, option, value);
 }
 
 int mp::Libssh::ssh_pki_generate_key(enum ssh_keytypes_e type,
-                                   ssh_pki_ctx context,
-                                   ssh_key* pkey) const
+                                     ssh_pki_ctx context,
+                                     ssh_key* pkey) const
 {
     return ::ssh_pki_generate_key(type, context, pkey);
 }

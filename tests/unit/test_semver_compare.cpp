@@ -40,19 +40,18 @@ TEST_P(SemverPrecedence, ordersVersions)
     EXPECT_GT(rhs, lhs);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    SemverCompare,
-    SemverPrecedence,
-    testing::Values(std::pair{"1.0.0", "2.0.0"},
-                    std::pair{"1.0.0", "1.1.0"},
-                    std::pair{"1.0.0", "1.0.1"},
-                    std::pair{"1.0.0-alpha", "1.0.0-alpha.1"},
-                    std::pair{"1.0.0-alpha.1", "1.0.0-alpha.beta"},
-                    std::pair{"1.0.0-alpha.beta", "1.0.0-beta"},
-                    std::pair{"1.0.0-beta", "1.0.0-beta.2"},
-                    std::pair{"1.0.0-beta.2", "1.0.0-beta.11"},
-                    std::pair{"1.0.0-beta.11", "1.0.0-rc.1"},
-                    std::pair{"1.0.0-rc.1", "1.0.0"}));
+INSTANTIATE_TEST_SUITE_P(SemverCompare,
+                         SemverPrecedence,
+                         testing::Values(std::pair{"1.0.0", "2.0.0"},
+                                         std::pair{"1.0.0", "1.1.0"},
+                                         std::pair{"1.0.0", "1.0.1"},
+                                         std::pair{"1.0.0-alpha", "1.0.0-alpha.1"},
+                                         std::pair{"1.0.0-alpha.1", "1.0.0-alpha.beta"},
+                                         std::pair{"1.0.0-alpha.beta", "1.0.0-beta"},
+                                         std::pair{"1.0.0-beta", "1.0.0-beta.2"},
+                                         std::pair{"1.0.0-beta.2", "1.0.0-beta.11"},
+                                         std::pair{"1.0.0-beta.11", "1.0.0-rc.1"},
+                                         std::pair{"1.0.0-rc.1", "1.0.0"}));
 
 TEST(SemverCompare, identicalVersionsAreEquivalent)
 {

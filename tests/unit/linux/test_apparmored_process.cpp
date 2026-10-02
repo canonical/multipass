@@ -205,8 +205,8 @@ TEST_F(ApparmoredProcessTest, executeGoodCommandWithZeroExitCode)
 TEST_F(ApparmoredProcessTest, processStateWhenRunsAndStopsOk)
 {
     const int exit_code = 7;
-    auto process =
-        process_factory->create_process("mock_process", {QString::number(exit_code), "stay-alive"});
+    auto process = process_factory->create_process("mock_process",
+                                                   {QString::number(exit_code), "stay-alive"});
     process->start();
 
     EXPECT_TRUE(process->wait_for_started());
@@ -228,8 +228,8 @@ TEST_F(ApparmoredProcessTest, processStateWhenRunsAndStopsOk)
 TEST_F(ApparmoredProcessTest, processStateWhenRunsButFailsToStop)
 {
     const int exit_code = 2;
-    auto process =
-        process_factory->create_process("mock_process", {QString::number(exit_code), "stay-alive"});
+    auto process = process_factory->create_process("mock_process",
+                                                   {QString::number(exit_code), "stay-alive"});
     process->start();
 
     EXPECT_TRUE(process->wait_for_started());
@@ -263,8 +263,8 @@ TEST_F(ApparmoredProcessTest, processStateWhenCrashesOnStart)
 
 TEST_F(ApparmoredProcessTest, processStateWhenCrashesWhileRunning)
 {
-    auto process =
-        process_factory->create_process("mock_process", {QString::number(0), "stay-alive"});
+    auto process = process_factory->create_process("mock_process",
+                                                   {QString::number(0), "stay-alive"});
     process->start();
 
     process->write("crash"); // will make mock_process crash
