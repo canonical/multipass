@@ -227,7 +227,7 @@ auto name_from(const std::string& requested_name,
         constexpr int num_retries = 100;
         for (int i = 0; i < num_retries; i++)
         {
-            if (currently_used_names.find(name) != currently_used_names.end())
+            if (currently_used_names.contains(name))
                 continue;
             return name;
         }
@@ -361,16 +361,16 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
     {
         specified_image = image;
 
-        dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
+        dont_allow_auto = no_bridging_release.contains(image);
     }
     else
     {
         specified_image = remote + ":" + image;
 
         if (remote == mp::release_remote || remote == mp::daily_remote)
-            dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
+            dont_allow_auto = no_bridging_release.contains(image);
         else if (remote == mp::core_remote)
-            dont_allow_auto = no_bridging_core.find(image) != no_bridging_core.end();
+            dont_allow_auto = no_bridging_core.contains(image);
     }
 
     for (const auto& net : request->network_options())
@@ -1820,7 +1820,7 @@ try
                                                               const mp::VMImageInfo& info) {
                 if (remote != mp::snapcraft_remote &&
                     (info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
-                    images_found.find(info.release_title) == images_found.end())
+                    !images_found.contains(info.release_title))
                 {
                     add_aliases(response.mutable_images_info(), remote, info);
                     images_found.insert(info.release_title);
@@ -2139,7 +2139,7 @@ try
         }
 
         auto& vm_mounts = mounts[name];
-        if (vm_mounts.find(target_path) != vm_mounts.end())
+        if (vm_mounts.contains(target_path))
         {
             add_fmt_to(errors, "\"{}\" is already mounted in '{}'", target_path, name);
             continue;
@@ -3351,7 +3351,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     if (!status.ok())
         return context->set_value(status);
 
-    if (preparing_instances.find(name) != preparing_instances.end())
+    if (preparing_instances.contains(name))
         return context->set_value({grpc::StatusCode::INVALID_ARGUMENT,
                                    fmt::format("instance \"{}\" is being prepared", name),
                                    ""});
@@ -3756,7 +3756,7 @@ bool mp::Daemon::create_missing_mounts(
     auto initial_mount_count = mount_specs.size();
     std::erase_if(mount_specs, [&](auto&& i) {
         const auto& [target, mount_spec] = i;
-        if (vm_mounts.find(target) == vm_mounts.end())
+        if (!vm_mounts.contains(target))
         {
             try
             {
@@ -3911,7 +3911,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
         for (const auto& name : vms)
         {
-            if (async_running_futures.find(name) != async_running_futures.end())
+            if (async_running_futures.contains(name))
             {
                 start_synchronizer.addFuture(async_running_futures[name]);
             }
@@ -3972,7 +3972,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
 
 void mp::Daemon::finish_async_operation(const std::string& async_future_key)
 {
-    if (async_future_watchers.find(async_future_key) == async_future_watchers.end())
+    if (!async_future_watchers.contains(async_future_key))
         return;
 
     auto async_op_result = async_future_watchers.at(async_future_key)->result();
@@ -4122,7 +4122,7 @@ grpc::Status mp::Daemon::validate_dest_name(const std::string& name)
     {
         return dest_vm_status;
     }
-    if (preparing_instances.find(name) != preparing_instances.end())
+    if (preparing_instances.contains(name))
     {
         return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
                             fmt::format("instance \"{}\" is being prepared", name),
@@ -4191,7 +4191,7 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
         throw std::runtime_error(
             fmt::format(invalid_network_template, preferred_net, mp::bridged_interface_key));
     }
-    else if (info->needs_authorization && !user_authorized_bridges.count(preferred_net))
+    else if (info->needs_authorization && !user_authorized_bridges.contains(preferred_net))
     {
         throw mp::NonAuthorizedBridgeSettingsException("Cannot update instance settings",
                                                        instance_name,

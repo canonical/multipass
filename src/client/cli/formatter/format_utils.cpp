@@ -114,7 +114,7 @@ void mp::format::filter_aliases(google::protobuf::RepeatedPtrField<std::string>&
             break;
         if (aliases[i].length() == 1)
             aliases.DeleteSubrange(i, 1);
-        else if (unwanted_aliases.find(aliases[i]) != unwanted_aliases.end())
+        else if (unwanted_aliases.contains(aliases[i]))
             aliases.DeleteSubrange(i, 1);
     }
 }
