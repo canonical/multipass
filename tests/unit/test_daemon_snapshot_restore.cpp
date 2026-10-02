@@ -94,6 +94,11 @@ struct TestDaemonRestore : public TestDaemonSnapshotRestoreBase
                                                 // use for test names
 };
 
+struct TestDaemonDeleteSnapshot : public TestDaemonSnapshotRestoreBase
+{
+    using TestDaemonSnapshotRestoreBase::SetUp;
+};
+
 struct SnapshotRPCTypes
 {
     using Request = mp::SnapshotRequest;
@@ -289,6 +294,38 @@ TEST_F(TestDaemonRestore, failsOnMissingSnapshotName)
         &mp::Daemon::restore,
         request,
         StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>>{});
+
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::NOT_FOUND);
+    EXPECT_THAT(status.error_message(),
+                AllOf(HasSubstr("No such snapshot"),
+                      HasSubstr(mock_instance_name),
+                      HasSubstr(missing_snapshot_name)));
+}
+
+TEST_F(TestDaemonDeleteSnapshot, failsOnMissingSnapshotWithoutDeleting)
+{
+    static constexpr auto* existing_snapshot_name = "pelican";
+    static constexpr auto* missing_snapshot_name = "albatross";
+    mp::DeleteRequest request{};
+    for (const auto* snapshot_name : {existing_snapshot_name, missing_snapshot_name})
+    {
+        auto* pair = request.add_instance_snapshot_pairs();
+        pair->set_instance_name(mock_instance_name);
+        pair->set_snapshot_name(snapshot_name);
+    }
+
+    auto [daemon, instance] = build_daemon_with_mock_instance();
+    EXPECT_CALL(*instance, get_snapshot(TypedEq<const std::string&>(existing_snapshot_name)))
+        .WillRepeatedly(Return(std::make_shared<NiceMock<mpt::MockSnapshot>>()));
+    EXPECT_CALL(*instance, get_snapshot(TypedEq<const std::string&>(missing_snapshot_name)))
+        .WillOnce(Throw(mp::NoSuchSnapshotException{mock_instance_name, missing_snapshot_name}));
+    EXPECT_CALL(*instance, delete_snapshot).Times(0);
+
+    auto server = StrictMock<mpt::MockServerReaderWriter<mp::DeleteReply, mp::DeleteRequest>>{};
+    EXPECT_CALL(server, Write(Property(&mp::DeleteReply::purged_instances_size, 0), _))
+        .WillOnce(Return(true));
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::delet, request, server);
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::NOT_FOUND);
     EXPECT_THAT(status.error_message(),
