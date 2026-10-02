@@ -172,8 +172,7 @@ TEST_F(HyperVTargetTransaction, planReservesSnapshotNamesAndDisambiguatesDiskNam
     const auto collision = source_dir / "1.avhdx";
     const auto duplicate = source_dir / "nested" / active.filename();
     layout.all_disks.insert(layout.all_disks.end(), {collision, duplicate});
-    ON_CALL(*virtdisk.first, list_virtual_disk_chain(_, _, _))
-        .WillByDefault(chain_by_filename({}));
+    ON_CALL(*virtdisk.first, list_virtual_disk_chain(_, _, _)).WillByDefault(chain_by_filename({}));
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
 
     const auto mapping = transaction.plan(layout, target_instance_dir);
@@ -189,8 +188,7 @@ TEST_F(HyperVTargetTransaction, planDisambiguatesDiskNamesCaseInsensitively)
     const auto snapshot_collision = source_dir / "other" / "1.AVHDX";
     const auto active_collision = source_dir / "nested" / "ACTIVE.avhdx";
     layout.all_disks.insert(layout.all_disks.end(), {snapshot_collision, active_collision});
-    ON_CALL(*virtdisk.first, list_virtual_disk_chain(_, _, _))
-        .WillByDefault(chain_by_filename({}));
+    ON_CALL(*virtdisk.first, list_virtual_disk_chain(_, _, _)).WillByDefault(chain_by_filename({}));
     mhv::TargetMigrationTransaction transaction{vm_name, target_instance_dir};
 
     const auto mapping = transaction.plan(layout, target_instance_dir);
