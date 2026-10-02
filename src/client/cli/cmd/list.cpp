@@ -20,6 +20,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/formatter.h>
+#include <multipass/user_messages/deprecation_warning.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -104,8 +105,8 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
     }
 
     if (parser->isSet(snapshotsOption))
-        cerr << "Warning: `multipass list --snapshots` is deprecated. Use `multipass snapshots` "
-                "instead.\n";
+        cerr << mp::make_deprecation_warning("`multipass list --snapshots`",
+                                             "Use `multipass snapshots` instead.");
 
     request.set_snapshots(parser->isSet(snapshotsOption));
     request.set_request_ipv4(!parser->isSet(noIpv4Option));
