@@ -2843,35 +2843,113 @@ try
                                                             instance_name,
                                                             require_operative_instances_reaction);
 
-    if (status.ok())
+    if (!status.ok())
+        return context->set_value(status);
+
+    assert(instance_trail.index() == 0);
+    auto* vm_ptr = std::get<0>(instance_trail)->second.get();
+    assert(vm_ptr);
+
+    auto snapshot_name = request->snapshot();
+    if (!snapshot_name.empty() && !mp::utils::valid_hostname(snapshot_name))
+        return context->set_value(
+            grpc::Status{grpc::INVALID_ARGUMENT,
+                         fmt::format(R"(Invalid snapshot name: "{}".)", snapshot_name)});
+
+    // Check VM state
+    bool restart{request->restart()};
+    auto state = vm_ptr->current_state();
+    using St = VirtualMachine::State;
+    switch (state)
     {
-        assert(instance_trail.index() == 0);
-        auto* vm_ptr = std::get<0>(instance_trail)->second.get();
-        assert(vm_ptr);
-
-        using St = VirtualMachine::State;
-        if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
+    case St::off:
+    case St::stopped:
+        break;
+    case St::running:
+    case St::delayed_shutdown:
+    {
+        if (restart)
+            break;
+        mp::SnapshotReply reply;
+        reply.set_needs_prompt(true);
+        if (!server->Write(reply))
+            throw std::runtime_error("Cannot request confirmation from client. Aborting...");
+        mp::SnapshotRequest request;
+        if (!server->Read(&request))
             return context->set_value(
-                grpc::Status{grpc::FAILED_PRECONDITION,
-                             "Multipass can only take snapshots of stopped instances."});
-
-        auto snapshot_name = request->snapshot();
-        if (!snapshot_name.empty() && !mp::utils::valid_hostname(snapshot_name))
-            return context->set_value(
-                grpc::Status{grpc::INVALID_ARGUMENT,
-                             fmt::format(R"(Invalid snapshot name: "{}".)", snapshot_name)});
-
-        const auto spec_it = vm_instance_specs.find(instance_name);
-        assert(spec_it != vm_instance_specs.end() && "missing instance specs");
-
-        SnapshotReply reply;
-        reply.set_snapshot(
-            vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment())->get_name());
-
-        server->Write(reply);
+                grpc::Status(grpc::StatusCode::CANCELLED,
+                             "Cannot get confirmation from client. Aborting..."));
+        if (request.restart())
+            break;
+    }
+        [[fallthrough]];
+    default:
+        return context->set_value(
+            grpc::Status{grpc::FAILED_PRECONDITION,
+                         "Multipass can only take snapshots of stopped instances."});
     }
 
-    context->set_value(status);
+    auto vm_name{vm_ptr->get_name()};
+    bool was_running{false};
+    // Stop running VMs
+    if (state == St::delayed_shutdown || state == St::running)
+    {
+        SnapshotReply temp_reply;
+        temp_reply.set_reply_message(fmt::format("Stopping {}", vm_name));
+        server->Write(temp_reply);
+
+        was_running = true;
+        auto status = shutdown_vm(*vm_ptr, std::chrono::minutes(0));
+        if (!status.ok())
+            return context->set_value(status);
+    }
+
+    // Take the snapshot
+    const auto spec_it = vm_instance_specs.find(instance_name);
+    assert(spec_it != vm_instance_specs.end() && "missing instance specs");
+
+    SnapshotReply final_reply;
+    final_reply.set_reply_message("Taking snapshot");
+    server->Write(final_reply);
+    final_reply.clear_reply_message();
+    final_reply.set_snapshot(
+        vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment())->get_name());
+
+    if (!was_running)
+    {
+        server->Write(final_reply);
+        return context->set_value(status);
+    }
+
+    // We start the VM back if it was stopped
+    try
+    {
+        SnapshotReply temp_reply;
+        temp_reply.set_reply_message(fmt::format("Starting {}", vm_name));
+        server->Write(temp_reply);
+        std::lock_guard guard{start_mutex};
+        vm_ptr->start();
+    }
+    catch (const std::exception& e)
+    {
+        final_reply.set_log_line(
+            fmt::format("Could not restart '{0}'. Run 'multipass start {0}' to restart manually.",
+                        vm_name));
+        server->Write(final_reply);
+        // The snapshot was successfully taken, the request is considered successful
+        return context->set_value(grpc::Status::OK);
+    }
+    auto future_watcher = create_future_watcher(
+        [server, final_reply]() { server->Write(final_reply); });
+    future_watcher->setFuture(
+        QtConcurrent::run(&Daemon::async_wait_for_ready_all<SnapshotReply, SnapshotRequest>,
+                          this,
+                          server,
+                          std::vector<std::string>{vm_name},
+                          mp::default_timeout,
+                          context,
+                          std::string(),
+                          std::string()));
 }
 catch (const SnapshotNameTakenException& e)
 {
