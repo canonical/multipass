@@ -78,7 +78,6 @@ mp::ReturnCodeVariant cmd::Snapshot::run(mp::ArgParser* parser)
         return standard_failure_handler_for(name(), cerr, status);
     };
 
-    spinner.start("Taking snapshot");
     return dispatch(&RpcMethod::snapshot, request, on_success, on_failure, streaming_callback);
 }
 
@@ -95,8 +94,9 @@ QString cmd::Snapshot::short_help() const
 QString cmd::Snapshot::description() const
 {
     return QStringLiteral(
-        "Take a snapshot of a stopped instance that can later be restored to recover the current "
-        "state.\nInfo: the instance must be stopped before taking a snapshot. ");
+        "Take a snapshot of an instance that can later be restored to recover the current "
+        "state.\nInfo: if the instance is running, you will be prompted to stop it before "
+        "taking the snapshot, unless the '--restart' option is given.");
 }
 
 mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
