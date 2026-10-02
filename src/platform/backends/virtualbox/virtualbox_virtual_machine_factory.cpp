@@ -102,9 +102,9 @@ mp::NetworkInterfaceInfo list_vbox_network(
             else
             {
                 // Get the information from the VBoxManage output.
-                iftype = wireless ? "wifi"
-                                  : (ifdescription.compare(0, 11, "Thunderbolt") ? iftype
-                                                                                 : "thunderbolt");
+                iftype = wireless
+                           ? "wifi"
+                           : (ifdescription.starts_with("Thunderbolt") ? "thunderbolt" : iftype);
 
                 return mp::NetworkInterfaceInfo{if_info.id, iftype, ifdescription};
             }
