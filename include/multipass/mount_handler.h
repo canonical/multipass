@@ -33,7 +33,8 @@ using ServerVariant =
     std::variant<grpc::ServerReaderWriterInterface<StartReply, StartRequest>*,
                  grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>*,
                  grpc::ServerReaderWriterInterface<MountReply, MountRequest>*,
-                 grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>*>;
+                 grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>*,
+                 grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>*>;
 
 class NativeMountNeedsStoppedVMException : public std::runtime_error
 {
