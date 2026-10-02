@@ -3889,11 +3889,11 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
     return future_watcher_p;
 }
 
-template <typename Reply, typename Request>
+template <typename LogMsgReply, typename Request>
 error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
     const std::string& name,
     const std::chrono::seconds& timeout,
-    grpc::ServerReaderWriterInterface<Reply, Request>* server)
+    grpc::ServerReaderWriterInterface<LogMsgReply, Request>* server)
 {
     fmt::memory_buffer errors;
     try
@@ -3909,11 +3909,11 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
         const auto vm = it->second;
         vm->wait_until_ssh_up(timeout);
 
-        if (std::is_same<Reply, LaunchReply>::value)
+        if (std::is_same<LogMsgReply, LaunchReply>::value)
         {
             if (server)
             {
-                Reply reply;
+                LogMsgReply reply;
                 reply.set_reply_message("Waiting for initialization to complete");
                 server->Write(reply);
             }
@@ -3959,7 +3959,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
 
             if (server && warnings.size() > 0)
             {
-                Reply reply;
+                LogMsgReply reply;
                 reply.set_log_line(fmt::to_string(warnings));
                 server->Write(reply);
             }
