@@ -3393,6 +3393,25 @@ TEST_F(Client, deleteCmdPrintsDeletedInstances)
     EXPECT_EQ(cout.str(), "foo is deleted.\nbar.snap is deleted.\n");
 }
 
+TEST_F(Client, deleteCmdReportsDeletedInstancesOnPartialFailure)
+{
+    mp::DeleteReply reply;
+    reply.add_purged_instances("foo");
+    const grpc::Status failure{grpc::StatusCode::INTERNAL, "msg"};
+    const auto any_request = A<const mp::DeleteRequest&>();
+    EXPECT_CALL(mock_daemon, delet)
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::DeleteReply, mp::DeleteRequest>(any_request,
+                                                                                    failure,
+                                                                                    reply)));
+
+    std::stringstream cout;
+    EXPECT_THAT(send_command({"delete", "--force", "foo", "bar"}, cout),
+                Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(cout.str(), HasSubstr("foo is deleted"));
+    EXPECT_THAT(cout.str(), Not(HasSubstr("bar is deleted")));
+}
+
 struct ClientDeleteConfirmation : public Client
 {
     ClientDeleteConfirmation()
