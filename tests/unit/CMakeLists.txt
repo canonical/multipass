@@ -298,6 +298,7 @@ target_include_directories(multipass_cpp_tests
     PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends/shared/${MULTIPASS_PLATFORM}
 )
 
+add_subdirectory(client)
 add_subdirectory(${MULTIPASS_PLATFORM})
 
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)

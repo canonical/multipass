@@ -16,6 +16,11 @@ set -o pipefail
 
 _multipass_complete()
 {
+    _multipass_autocomplete_proposals()
+    {
+        opts="${opts} $(multipass autocomplete -- "${WORDS[@]:1:CWORD-1}")"
+    }
+
     _multipass_instances()
     {
         local state=$1 instances
@@ -239,6 +244,9 @@ _multipass_complete()
     fi
 
     case "${cmd}" in
+        "delete")
+            _multipass_autocomplete_proposals
+        ;;
         "exec")
             opts="${opts} --working-directory --no-map-working-directory"
         ;;
@@ -250,9 +258,6 @@ _multipass_complete()
         ;;
         "networks"|"aliases")
             _add_nonrepeating_args "--format"
-        ;;
-        "delete")
-            _add_nonrepeating_args "--all --purge"
         ;;
         "launch")
             _add_nonrepeating_args "--cpus --disk --memory --name --cloud-init --bridged --mount"
@@ -377,7 +382,7 @@ _multipass_complete()
             "umount"|"unmount")
                 _multipass_instances
             ;;
-            "delete"|"info")
+            "info")
                 _multipass_instances_and_snapshots
             ;;
             "recover")

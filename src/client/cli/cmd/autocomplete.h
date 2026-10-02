@@ -17,46 +17,34 @@
 
 #pragma once
 
-#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 
-#include <string>
-#include <vector>
+#include <QString>
 
-namespace multipass
+namespace multipass::cmd
 {
-namespace cmd
-{
-class Delete final : public Command
+
+/// Command for handling autocomplete functionality in the CLI.
+/// Can be used this way:
+///   multipass autocomplete -- [cmd] [args...]
+///
+/// For example:
+///   $ multipass autocomplete -- start
+///   --all --help --verbose loved-waxwing
+class AutoComplete final : public Command
 {
 public:
     using Command::Command;
 
-    Delete(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
-        : Command(stub, term), aliases(dict)
-    {
-    }
-
-    ReturnCodeVariant run(ArgParser* parser) override;
-
     std::string name() const override;
     QString short_help() const override;
     QString description() const override;
+    bool is_hidden() const override;
 
-    std::vector<std::string> autocomplete(const std::vector<std::string>& previous) const override;
+    ReturnCodeVariant run(ArgParser* parser) override;
 
 private:
-    AliasDict aliases;
-    DeleteRequest request;
-    std::string instance_args;
-    std::string snapshot_args;
-
     ParseCode parse_args(ArgParser* parser);
-    ParseCode parse_instances_snapshots(ArgParser* parser);
-    std::string generate_snapshot_purge_msg() const;
-    bool confirm_snapshot_purge() const;
-
-    std::vector<std::string> fetch_eligible_targets() const;
 };
-} // namespace cmd
-} // namespace multipass
+
+} // namespace multipass::cmd
