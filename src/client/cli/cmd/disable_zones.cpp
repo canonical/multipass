@@ -139,9 +139,9 @@ bool DisableZones::confirm() const
             fmt::join(request.zones().begin(), request.zones().begin() + last_zone, ", "),
             request.zones(last_zone));
     };
-    const auto message = "This operation will forcefully stop the VMs in " + format_zones() +
-                         ". Are you sure you want to continue?";
+    static constexpr auto prompt_text =
+        "This operation will forcefully stop the VMs in {}. Are you sure you want to continue?";
 
-    return YesNoPrompter{term}.prompt(message, true);
+    return YesNoPrompter{term}.prompt(fmt::format(prompt_text, format_zones()), true);
 }
 } // namespace multipass::cmd

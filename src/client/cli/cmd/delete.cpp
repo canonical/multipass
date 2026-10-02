@@ -163,9 +163,10 @@ bool cmd::Delete::confirm() const
         subject = fmt::format("{}", fmt::join(parts, ", and "));
     }
 
-    return YesNoPrompter{term}.prompt(
-        fmt::format("{} will be deleted permanently. Would you like to proceed?", subject),
-        false);
+    static constexpr auto prompt_text =
+        "{} will be deleted permanently. Would you like to proceed?";
+
+    return YesNoPrompter{term}.prompt(fmt::format(prompt_text, subject), false);
 }
 
 void cmd::Delete::remove_aliases_for(const std::string& instance)
