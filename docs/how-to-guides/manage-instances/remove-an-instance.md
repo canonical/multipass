@@ -41,19 +41,18 @@ Name                    State             IPv4             Image
 keen-yak                Stopped           --               Ubuntu 26.04 LTS
 ```
 
-## Remove an instance permanently
+## Remove instances deleted by earlier versions
 
-> See also: [`delete`](reference-command-line-interface-delete), [`purge`](reference-command-line-interface-purge)
+> See also: [`recover`](reference-command-line-interface-recover)
 
-If you want to get rid of all instances in `Deleted` status for good, you can purge them:
+Earlier versions of Multipass only marked instances as `Deleted`, so they could be recovered later. If you still have instances in that state, you can recover them with `multipass recover`, or remove them for good with `multipass delete`:
 
 ```{code-block} text
 multipass delete keen-yak
-multipass purge
 ```
 
-```{caution}
-The `purge` command does not take an argument. It will permanently remove all instances marked as `Deleted`.
+```{note}
+The `purge` command is deprecated and will be removed in an upcoming release. Use `multipass delete <instance>` instead.
 ```
 
 You can also use the `--purge` option to permanently delete an instance in a single command; for example:
