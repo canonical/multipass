@@ -70,6 +70,6 @@ from .validate import (
 from .cmd_output import Output
 from .imageutils import image_name_to_version
 from .launch import launch
-from .fileutils import nuke_all_instances
+from .fileutils import flag_instance_deleted, nuke_all_instances
 from .nameutils import random_vm_name
 from .feature_versions import multipass_version_has_feature, skip_if_feature_not_supported, requires_multipass

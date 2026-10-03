@@ -17,6 +17,7 @@
 #
 #
 
+import json
 import shutil
 import contextlib
 import sys
@@ -59,3 +60,15 @@ def nuke_all_instances(data_dir, driver):
         with contextlib.suppress(FileNotFoundError):
             with open(instance_records_file, "r+", encoding="utf-8") as f:
                 f.truncate(0)
+
+
+def flag_instance_deleted(instance_db, name):
+    """Mark an instance as deleted in the daemon's instance database, the way `multipass delete`
+    did before it became permanent. The daemon must be stopped."""
+
+    with open(instance_db, "r+", encoding="utf-8") as f:  # r+ preserves permissions
+        records = json.load(f)
+        records[name]["deleted"] = True
+        f.seek(0)
+        json.dump(records, f, indent=4)
+        f.truncate()

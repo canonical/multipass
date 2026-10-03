@@ -17,6 +17,7 @@ import pytest
 from cli.config import cfg
 from cli.multipass import (
     exec,
+    flag_instance_deleted,
     get_cloudinit_instance_id,
     get_default_interface_name,
     get_mac_addr_of,
@@ -30,7 +31,7 @@ from cli.multipass import (
     vm_exists,
     write_file,
 )
-from cli.utilities import sudo, uuid4_str
+from cli.utilities import run_in_new_interpreter, sudo, uuid4_str
 
 STOPPED_VM = "upg-hcs-phase1-stopped"
 RUNNING_VM = "upg-hcs-phase1-running"
@@ -207,6 +208,21 @@ def switch_driver(driver, governor):
     governor.wait_for_restart(timeout=600)
     assert current_driver() == driver
     return result
+
+
+def soft_delete(name, governor):
+    # `multipass delete` is permanent now, so recreate an older release's soft delete on disk
+    governor.stop()
+    try:
+        run_in_new_interpreter(
+            flag_instance_deleted,
+            str(backend_dir() / "multipassd-vm-instances.json"),
+            name,
+            privileged=True,
+            check=True,
+        )
+    finally:
+        governor.start()
 
 
 def sentinel(name, label):
@@ -402,7 +418,7 @@ def assert_stopped_guest(source):
 @pytest.mark.seed
 @pytest.mark.snapshot
 @pytest.mark.scenario(STOPPED_VM)
-def test_hyperv_migration_seed(scenario):
+def test_hyperv_migration_seed(scenario, multipassd_session_scoped):
     assert current_driver() == "hyperv"
 
     mount_source = Path(cfg.storage_dir) / "hyperv-migration-mount"
@@ -456,7 +472,8 @@ def test_hyperv_migration_seed(scenario):
     with seeded_vm(DELETED_VM):
         assert multipass("stop", DELETED_VM)
     deleted_layout = legacy_layout(DELETED_VM)
-    assert multipass("delete", DELETED_VM)
+    soft_delete(DELETED_VM, multipassd_session_scoped)
+    assert state(DELETED_VM) == "Deleted"
     record["deleted"] = source_record(DELETED_VM, deleted_layout)
 
 
