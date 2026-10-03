@@ -326,6 +326,7 @@ std::filesystem::path multipass::hyperv::HyperVMigrationTargetRecords::instance_
 
 void multipass::hyperv::HyperVMigrationTargetRecords::commit(const std::string& name,
                                                              const VMSpecs& spec,
+                                                             const VirtualMachineDescription& desc,
                                                              VaultRecord image_record)
 {
     if (target_vm_records.contains(name) || target_image_records.contains(name))
@@ -368,7 +369,18 @@ void multipass::hyperv::HyperVMigrationTargetRecords::commit(const std::string& 
                                                   error.what())};
         }
     };
-    // The VM record makes the target visible, so its image record must be durable first.
+    // The VM record makes the target visible, so its description and image record must be durable
+    // first.
+    try
+    {
+        MP_FILEOPS.write_transactionally(target_dir / vm_description_file_name,
+                                         pretty_print(boost::json::value_from(desc)));
+    }
+    catch (const std::exception& error)
+    {
+        throw MigrationAbortError{
+            fmt::format("could not persist target description for '{}': {}", name, error.what())};
+    }
     persist(target_image_records, target_image_db, image_record, "image");
     persist(target_vm_records, target_vm_db, spec, "VM");
 
@@ -479,7 +491,8 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
         // Hyper-V reported the VM as off, so the cached state may be stale. A `running` record
         // would make the daemon auto-start the migrated instance on its next launch.
         target_spec.state = VirtualMachine::State::stopped;
-        target_spec.extra_interfaces = translated_interfaces(source_spec.extra_interfaces);
+        auto target_desc = vm_it->second->get_description();
+        target_desc.extra_interfaces = translated_interfaces(target_desc.extra_interfaces);
         auto image_record = target_records.source_image_record(name);
 
         phase("inspecting source disk layout");
@@ -499,7 +512,7 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
         image_record.image.image_path = mapping.active_disk;
 
         phase("Committing target records");
-        target_records.commit(name, target_spec, std::move(image_record));
+        target_records.commit(name, target_spec, target_desc, std::move(image_record));
         return std::nullopt;
     }
     catch (const MigrationAbortError&)

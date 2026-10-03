@@ -93,7 +93,7 @@ std::string AppleVZVirtualMachineFactory::create_bridge_with(const NetworkInterf
 
 VirtualMachine::UPtr AppleVZVirtualMachineFactory::clone_vm_impl(
     const std::string& /*source_vm_name*/,
-    const mp::VMSpecs& /*src_vm_specs*/,
+    const VirtualMachineDescription& /*src_desc*/,
     const VirtualMachineDescription& desc,
     VMStatusMonitor& monitor,
     const SSHKeyProvider& key_provider)

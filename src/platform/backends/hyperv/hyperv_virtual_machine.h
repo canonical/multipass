@@ -49,7 +49,7 @@ public:
                          const Path& instance_dir);
     // Contruct the vm based on the source virtual machine
     HyperVVirtualMachine(const std::string& source_vm_name,
-                         const multipass::VMSpecs& src_vm_specs,
+                         const VirtualMachineDescription& src_desc,
                          const VirtualMachineDescription& desc,
                          VMStatusMonitor& monitor,
                          const SSHKeyProvider& key_provider,
@@ -63,9 +63,9 @@ public:
     State current_state() override;
     std::optional<IPAddress> management_ipv4() override;
     void handle_state_update() override;
-    void add_network_interface(int index,
-                               const std::string& default_mac_addr,
-                               const NetworkInterface& extra_interface) override;
+    void add_network_interface_impl(int index,
+                                    const std::string& default_mac_addr,
+                                    const NetworkInterface& extra_interface) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
                                                             const VMMount& mount) override;
 
@@ -90,7 +90,7 @@ private:
                                             // with other constructors
 
     void setup_network_interfaces();
-    void update_network_interfaces(const VMSpecs& src_specs);
+    void update_network_interfaces(const VirtualMachineDescription& src_desc);
     void remove_snapshots_from_backend() const;
     std::optional<std::uint64_t> resolve_default_switch_interface();
 

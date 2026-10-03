@@ -76,10 +76,7 @@ public:
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size, UserMessages& messages) override;
     [[nodiscard]] std::vector<IPAddress> get_all_ipv4() override;
-    void add_network_interface(int, const std::string&, const NetworkInterface&) override
-    {
-        throw NotImplementedOnThisBackendException("networks");
-    }
+    void add_network_interface(const NetworkInterface& extra_interface) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string&,
                                                             const VMMount&) override
     {
@@ -135,6 +132,12 @@ protected:
     virtual void update_cpus_impl(int /*num_cores*/) {};
     virtual void resize_memory_impl(const MemorySize& /*new_size*/) {};
     virtual void resize_disk_impl(const MemorySize& new_size) = 0;
+    virtual void add_network_interface_impl(int /*index*/,
+                                            const std::string& /*default_mac_addr*/,
+                                            const NetworkInterface& /*extra_interface*/)
+    {
+        throw NotImplementedOnThisBackendException("networks");
+    }
 
     /**
      * Refresh the VM, if possible, when the startup appears stuck.

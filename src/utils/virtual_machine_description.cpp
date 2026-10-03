@@ -15,8 +15,11 @@
  *
  */
 
+#include <multipass/format.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <stdexcept>
 #include <string>
 
 namespace mp = multipass;
@@ -31,6 +34,8 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
         {"disk_space", std::to_string(desc.disk_space.in_bytes())},
         {"ssh_username", desc.ssh_username},
         {"zone", desc.zone},
+        {"mac_addr", desc.default_mac_address},
+        {"extra_interfaces", boost::json::value_from(desc.extra_interfaces)},
     };
 }
 
@@ -44,6 +49,11 @@ mp::VirtualMachineDescription mp::tag_invoke(
     desc.disk_space = MemorySize{value_to<std::string>(json.at("disk_space"))};
     desc.ssh_username = value_to<std::string>(json.at("ssh_username"));
     desc.zone = value_to<std::string>(json.at("zone"));
+    desc.default_mac_address = value_to<std::string>(json.at("mac_addr"));
+    desc.extra_interfaces = value_to<std::vector<NetworkInterface>>(json.at("extra_interfaces"));
+
+    if (!desc.default_mac_address.empty() && !utils::valid_mac_address(desc.default_mac_address))
+        throw std::runtime_error(fmt::format("Invalid MAC address {}", desc.default_mac_address));
 
     return desc;
 }

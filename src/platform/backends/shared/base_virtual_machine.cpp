@@ -443,6 +443,15 @@ void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMes
         messages.add_message(core_image_disk_resize_message());
 }
 
+void mp::BaseVirtualMachine::add_network_interface(const NetworkInterface& extra_interface)
+{
+    add_network_interface_impl(static_cast<int>(desc.extra_interfaces.size()),
+                               desc.default_mac_address,
+                               extra_interface);
+    desc.extra_interfaces.push_back(extra_interface);
+    persist_description();
+}
+
 auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
 {
     std::vector<IPAddress> all_ipv4;
@@ -909,9 +918,8 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
     auto rollback = make_restore_rollback(head_path, specs);
 
     specs.state = snapshot->get_state();
-    const bool are_extra_interfaces_different = specs.extra_interfaces !=
+    const bool are_extra_interfaces_different = desc.extra_interfaces !=
                                                 snapshot->get_extra_interfaces();
-    specs.extra_interfaces = snapshot->get_extra_interfaces();
     specs.mounts = snapshot->get_mounts();
     specs.metadata = snapshot->get_metadata();
 
@@ -928,7 +936,7 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
         // here we can use default_mac_address of the current state because it is an immutable
         // variable.
         apply_extra_interfaces_and_instance_id_to_cloud_init(
-            specs.default_mac_address,
+            desc.default_mac_address,
             snapshot->get_extra_interfaces(),
             snapshot->get_cloud_init_instance_id());
     }

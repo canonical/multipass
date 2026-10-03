@@ -23,6 +23,7 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/path.h>
 #include <multipass/virtual_machine.h>
+#include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 
 #include <boost/json.hpp>
@@ -100,7 +101,10 @@ public:
     [[nodiscard]] VaultRecord source_image_record(const std::string& name) const;
     [[nodiscard]] std::filesystem::path instance_dir(const std::string& name) const;
 
-    void commit(const std::string& name, const VMSpecs& spec, VaultRecord image_record);
+    void commit(const std::string& name,
+                const VMSpecs& spec,
+                const VirtualMachineDescription& desc,
+                VaultRecord image_record);
 
 private:
     static boost::json::object load_records(const std::filesystem::path& path);

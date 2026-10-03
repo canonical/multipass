@@ -550,9 +550,10 @@ void mp::VirtualBoxVirtualMachine::resize_disk_impl(const MemorySize& new_size)
                                 name);
 }
 
-void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
-                                                         const std::string& default_mac_addr,
-                                                         const NetworkInterface& extra_interface)
+void mp::VirtualBoxVirtualMachine::add_network_interface_impl(
+    int index,
+    const std::string& default_mac_addr,
+    const NetworkInterface& extra_interface)
 {
     auto arguments = QStringList{"modifyvm", name} + extra_net_args(index + 2, extra_interface);
 

@@ -30,13 +30,12 @@
 
 namespace multipass
 {
-struct VMSpecs;
+class VirtualMachineDescription;
 
-boost::json::object update_unique_identifiers_of_metadata(const boost::json::object& metadata,
-                                                          const multipass::VMSpecs& src_specs,
-                                                          const multipass::VMSpecs& dest_specs,
-                                                          const std::string& src_vm_name,
-                                                          const std::string& dest_vm_name);
+boost::json::object update_unique_identifiers_of_metadata(
+    const boost::json::object& metadata,
+    const multipass::VirtualMachineDescription& src_desc,
+    const multipass::VirtualMachineDescription& dest_desc);
 
 namespace detail
 {

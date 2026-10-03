@@ -207,11 +207,12 @@ std::string HCSVirtualMachineFactory::create_bridge_with(const NetworkInterfaceI
                                 create_network_result};
 }
 
-VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& source_vm_name,
-                                                             const multipass::VMSpecs& src_vm_specs,
-                                                             const VirtualMachineDescription& desc,
-                                                             VMStatusMonitor& monitor,
-                                                             const SSHKeyProvider& key_provider)
+VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(
+    const std::string& source_vm_name,
+    const VirtualMachineDescription& /*src_desc*/,
+    const VirtualMachineDescription& desc,
+    VMStatusMonitor& monitor,
+    const SSHKeyProvider& key_provider)
 {
 
     const fs::path src_vm_instance_dir{get_instance_directory(source_vm_name).toStdWString()};

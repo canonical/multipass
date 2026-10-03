@@ -66,9 +66,9 @@ struct HCSVirtualMachine : public BaseVirtualMachine
     void restore_snapshot(const std::string& name, VMSpecs& specs) override;
 
     void handle_state_update() override;
-    void add_network_interface(int index,
-                               const std::string& default_mac_addr,
-                               const NetworkInterface& extra_interface) override;
+    void add_network_interface_impl(int index,
+                                    const std::string& default_mac_addr,
+                                    const NetworkInterface& extra_interface) override;
     [[nodiscard]] std::unique_ptr<MountHandler>
     make_native_mount_handler(const std::string& target, const VMMount& mount) override;
 

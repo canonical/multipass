@@ -59,9 +59,9 @@ public:
     std::optional<IPAddress> management_ipv4() override;
     std::vector<IPAddress> get_all_ipv4() override;
     void handle_state_update() override;
-    void add_network_interface(int index,
-                               const std::string& default_mac_addr,
-                               const NetworkInterface& extra_interface) override;
+    void add_network_interface_impl(int index,
+                                    const std::string& default_mac_addr,
+                                    const NetworkInterface& extra_interface) override;
 
 protected:
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;

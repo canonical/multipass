@@ -100,39 +100,23 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
 
 mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
     const VirtualMachineDescription& src_desc,
-    const VMSpecs& src_spec,
-    const VMSpecs& dest_spec,
-    const std::string& src_name,
-    const std::string& dest_name,
-    const VMImage& dest_image,
+    const VirtualMachineDescription& dest_desc,
     const multipass::SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    const std::filesystem::path src_instance_dir{get_instance_directory(src_name).toStdString()};
-    const std::filesystem::path dest_instance_dir{get_instance_directory(dest_name).toStdString()};
+    const std::filesystem::path src_instance_dir{
+        get_instance_directory(src_desc.vm_name).toStdString()};
+    const std::filesystem::path dest_instance_dir{
+        get_instance_directory(dest_desc.vm_name).toStdString()};
 
     copy_instance_dir_with_essential_files(src_instance_dir, dest_instance_dir);
 
-    const fs::path cloud_init_path = dest_instance_dir / cloud_init_file_name;
+    MP_CLOUD_INIT_FILE_OPS.update_identifiers(dest_desc.default_mac_address,
+                                              dest_desc.extra_interfaces,
+                                              dest_desc.vm_name,
+                                              dest_instance_dir / cloud_init_file_name);
 
-    MP_CLOUD_INIT_FILE_OPS.update_identifiers(dest_spec.default_mac_address,
-                                              dest_spec.extra_interfaces,
-                                              dest_name,
-                                              cloud_init_path);
-
-    auto dest_vm_desc = src_desc;
-    dest_vm_desc.vm_name = dest_name;
-    dest_vm_desc.default_mac_address = dest_spec.default_mac_address;
-    dest_vm_desc.extra_interfaces = dest_spec.extra_interfaces;
-    dest_vm_desc.image = dest_image;
-    dest_vm_desc.cloud_init_iso = cloud_init_path.string().c_str();
-    // YAML::Node copies alias the source's nodes
-    dest_vm_desc.meta_data_config = YAML::Node{};
-    dest_vm_desc.user_data_config = YAML::Node{};
-    dest_vm_desc.vendor_data_config = YAML::Node{};
-    dest_vm_desc.network_data_config = YAML::Node{};
-
-    return clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
+    return clone_vm_impl(src_desc.vm_name, src_desc, dest_desc, monitor, key_provider);
 }
 
 void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(

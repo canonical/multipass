@@ -61,7 +61,7 @@ protected:
 
 private:
     [[nodiscard]] VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
-                                                     const multipass::VMSpecs& src_vm_specs,
+                                                     const VirtualMachineDescription& src_desc,
                                                      const VirtualMachineDescription& desc,
                                                      VMStatusMonitor& monitor,
                                                      const SSHKeyProvider& key_provider) override;

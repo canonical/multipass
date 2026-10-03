@@ -104,9 +104,7 @@ public:
     virtual void update_cpus(int num_cores) = 0;
     virtual void resize_memory(const MemorySize& new_size) = 0;
     virtual void resize_disk(const MemorySize& new_size, UserMessages& messages) = 0;
-    virtual void add_network_interface(int index,
-                                       const std::string& default_mac_addr,
-                                       const NetworkInterface& extra_interface) = 0;
+    virtual void add_network_interface(const NetworkInterface& extra_interface) = 0;
     virtual std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
                                                                     const VMMount& mount) = 0;
 

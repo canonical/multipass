@@ -689,9 +689,9 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
     }
 }
 
-void HCSVirtualMachine::add_network_interface(int index,
-                                              const std::string& default_mac_addr,
-                                              const NetworkInterface& extra_interface)
+void HCSVirtualMachine::add_network_interface_impl(int index,
+                                                   const std::string& default_mac_addr,
+                                                   const NetworkInterface& extra_interface)
 {
     mpl::debug(get_name(),
                "add_network_interface() -> index: {}, default_mac: {}, "

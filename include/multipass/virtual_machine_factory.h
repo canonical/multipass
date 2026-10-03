@@ -49,11 +49,7 @@ public:
                                                         const SSHKeyProvider& key_provider,
                                                         VMStatusMonitor& monitor) = 0;
     virtual VirtualMachine::UPtr clone_bare_vm(const VirtualMachineDescription& src_desc,
-                                               const VMSpecs& src_spec,
-                                               const VMSpecs& dest_spec,
-                                               const std::string& src_name,
-                                               const std::string& dest_name,
-                                               const VMImage& dest_image,
+                                               const VirtualMachineDescription& dest_desc,
                                                const SSHKeyProvider& key_provider,
                                                VMStatusMonitor& monitor) = 0;
 

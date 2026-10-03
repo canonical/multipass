@@ -32,12 +32,6 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
         {"state", static_cast<int>(specs.state)},
         {"deleted", specs.deleted},
         {"metadata", specs.metadata},
-
-        // Write the networking information. Write first a field "mac_addr" containing the MAC
-        // address of the default network interface. Then, write all the information about the
-        // rest of the interfaces.
-        {"mac_addr", specs.default_mac_address},
-        {"extra_interfaces", boost::json::value_from(specs.extra_interfaces)},
         {"mounts", boost::json::value_from(specs.mounts, MapAsJsonArray{"target_path"})},
         {"clone_count", specs.clone_count},
     };
@@ -46,7 +40,6 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
 mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
                            const boost::json::value& json)
 {
-    auto mac_addr = value_to<std::string>(json.at("mac_addr"));
     auto deleted = value_to<bool>(json.at("deleted"));
     auto metadata = json.at("metadata").as_object();
 
@@ -57,13 +50,8 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
         !MemorySize{lookup_or<std::string>(json, "disk_space", "")}.in_bytes())
         throw GhostInstanceException();
 
-    if (!mac_addr.empty() && !mpu::valid_mac_address(mac_addr))
-        throw std::runtime_error(fmt::format("Invalid MAC address {}", mac_addr));
-
     using mounts_t = std::unordered_map<std::string, VMMount>;
     return {
-        mac_addr,
-        lookup_or<std::vector<NetworkInterface>>(json, "extra_interfaces", {}),
         static_cast<mp::VirtualMachine::State>(value_to<int>(json.at("state"))),
         value_to<mounts_t>(json.at("mounts"), MapAsJsonArray{"target_path"}),
         deleted,

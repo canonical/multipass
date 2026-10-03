@@ -37,11 +37,7 @@ public:
     explicit BaseVirtualMachineFactory(const Path& instances_dir,
                                        AvailabilityZoneManager& az_manager);
     VirtualMachine::UPtr clone_bare_vm(const VirtualMachineDescription& src_desc,
-                                       const VMSpecs& src_spec,
-                                       const VMSpecs& dest_spec,
-                                       const std::string& src_name,
-                                       const std::string& dest_name,
-                                       const VMImage& dest_image,
+                                       const VirtualMachineDescription& dest_desc,
                                        const SSHKeyProvider& key_provider,
                                        VMStatusMonitor& monitor) override final;
 
@@ -104,7 +100,7 @@ protected:
 
 private:
     virtual VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
-                                               const multipass::VMSpecs& src_vm_specs,
+                                               const VirtualMachineDescription& src_desc,
                                                const VirtualMachineDescription& desc,
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider);
@@ -125,7 +121,7 @@ inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std
 
 inline multipass::VirtualMachine::UPtr multipass::BaseVirtualMachineFactory::clone_vm_impl(
     const std::string&,
-    const VMSpecs&,
+    const VirtualMachineDescription&,
     const VirtualMachineDescription&,
     VMStatusMonitor&,
     const SSHKeyProvider&)
