@@ -38,6 +38,7 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
         {"extra_interfaces", boost::json::value_from(desc.extra_interfaces)},
         {"metadata", desc.metadata},
         {"state", static_cast<int>(desc.state)},
+        {"clone_count", desc.clone_count},
     };
 }
 
@@ -55,6 +56,7 @@ mp::VirtualMachineDescription mp::tag_invoke(
     desc.extra_interfaces = value_to<std::vector<NetworkInterface>>(json.at("extra_interfaces"));
     desc.metadata = json.at("metadata").as_object();
     desc.state = static_cast<VirtualMachine::State>(value_to<int>(json.at("state")));
+    desc.clone_count = value_to<int>(json.at("clone_count"));
 
     if (!desc.default_mac_address.empty() && !utils::valid_mac_address(desc.default_mac_address))
         throw std::runtime_error(fmt::format("Invalid MAC address {}", desc.default_mac_address));

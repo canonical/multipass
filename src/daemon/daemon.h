@@ -263,7 +263,6 @@ private:
     grpc::Status validate_dest_name(const std::string& name);
     VirtualMachineDescription clone_description(const VirtualMachineDescription& src_desc,
                                                 const std::string& dest_name);
-    VMSpecs clone_spec(const VMSpecs& src_vm_spec);
 
     std::unique_ptr<const DaemonConfig> config;
 

@@ -145,6 +145,12 @@ void mp::BaseVirtualMachine::persist_state()
     persist_description();
 }
 
+void mp::BaseVirtualMachine::increment_clone_count()
+{
+    ++desc.clone_count;
+    persist_description();
+}
+
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
     const std::string& default_mac_addr,
     const std::vector<NetworkInterface>& extra_interfaces,

@@ -31,7 +31,6 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
     json = {
         {"deleted", specs.deleted},
         {"mounts", boost::json::value_from(specs.mounts, MapAsJsonArray{"target_path"})},
-        {"clone_count", specs.clone_count},
     };
 }
 
@@ -52,6 +51,5 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
     return {
         value_to<mounts_t>(json.at("mounts"), MapAsJsonArray{"target_path"}),
         deleted,
-        lookup_or<int>(json, "clone_count", 0),
     };
 }

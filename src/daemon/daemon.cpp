@@ -239,10 +239,23 @@ auto name_from(const std::string& requested_name,
 }
 
 // TODO remove once no supported upgrade path has these fields in the instance db
+constexpr std::array legacy_keys{"num_cores",
+                                 "mem_size",
+                                 "disk_space",
+                                 "ssh_username",
+                                 "zone",
+                                 "mac_addr",
+                                 "extra_interfaces",
+                                 "metadata",
+                                 "state",
+                                 "clone_count"};
+
 std::optional<mp::VirtualMachineDescription>
 legacy_description_from(const boost::json::value& record, const std::string& default_zone)
 {
-    if (!record.as_object().contains("state"))
+    const auto& object = record.as_object();
+    if (std::ranges::none_of(legacy_keys,
+                             [&object](const auto& key) { return object.contains(key); }))
         return std::nullopt;
 
     // keys already moved by earlier versions get defaults here, which never overwrite the file
@@ -261,7 +274,8 @@ legacy_description_from(const boost::json::value& record, const std::string& def
                                                                              "extra_interfaces",
                                                                              {});
     desc.metadata = mp::lookup_or<boost::json::object>(record, "metadata", {});
-    desc.state = static_cast<mp::VirtualMachine::State>(value_to<int>(record.at("state")));
+    desc.state = static_cast<mp::VirtualMachine::State>(mp::lookup_or<int>(record, "state", 0));
+    desc.clone_count = mp::lookup_or<int>(record, "clone_count", 0);
     return desc;
 }
 
@@ -3085,8 +3099,7 @@ try
                     allocated_mac_addrs.erase(mac);
             });
 
-        auto& src_spec = vm_instance_specs[source_name];
-        auto dest_spec = clone_spec(src_spec);
+        const auto dest_spec = vm_instance_specs.at(source_name);
 
         config->vault->clone(source_name, destination_name);
 
@@ -3100,7 +3113,7 @@ try
         operative_instances[destination_name] =
             config->factory->clone_bare_vm(src_desc, dest_desc, *config->ssh_key_provider, *this);
         release_dest_macs.dismiss();
-        ++src_spec.clone_count;
+        source_vm_ptr->increment_clone_count();
         // preparing instance is done
         preparing_instances.erase(destination_name);
         persist_instances();
@@ -3436,7 +3449,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                              vm_instance_specs[name] = {
                                  {},
                                  false,
-                                 0,
                              };
                              operative_instances[name] = config->factory->create_virtual_machine(
                                  vm_desc,
@@ -4151,8 +4163,9 @@ std::string mp::Daemon::dest_name_for_clone(const CloneRequest& request)
 {
     return request.has_destination_name()
              ? request.destination_name()
-             : generate_next_clone_name(vm_instance_specs.at(request.source_name()).clone_count,
-                                        request.source_name());
+             : generate_next_clone_name(
+                   operative_instances.at(request.source_name())->get_description().clone_count,
+                   request.source_name());
 };
 
 grpc::Status mp::Daemon::validate_dest_name(const std::string& name)
@@ -4189,6 +4202,7 @@ mp::VirtualMachineDescription mp::Daemon::clone_description(
 {
     auto dest_desc = src_desc;
     dest_desc.vm_name = dest_name;
+    dest_desc.clone_count = 0;
     dest_desc.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
     for (auto& extra_interface : dest_desc.extra_interfaces)
     {
@@ -4211,13 +4225,6 @@ mp::VirtualMachineDescription mp::Daemon::clone_description(
                                                                    dest_desc);
 
     return dest_desc;
-}
-
-mp::VMSpecs mp::Daemon::clone_spec(const VMSpecs& src_vm_spec)
-{
-    mp::VMSpecs dest_vm_spec{src_vm_spec};
-    dest_vm_spec.clone_count = 0;
-    return dest_vm_spec;
 }
 
 bool mp::Daemon::is_bridged(const std::string& instance_name) const

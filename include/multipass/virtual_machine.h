@@ -98,6 +98,7 @@ public:
     virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;
     virtual void handle_state_update() = 0;
     [[nodiscard]] virtual VirtualMachineDescription get_description() const = 0;
+    virtual void increment_clone_count() = 0;
     [[nodiscard]] virtual int get_num_cores() const = 0;
     [[nodiscard]] virtual MemorySize get_mem_size() const = 0;
     [[nodiscard]] virtual MemorySize get_disk_space() const = 0;

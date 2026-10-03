@@ -55,6 +55,7 @@ public:
     YAML::Node network_data_config;
     boost::json::object metadata;
     VirtualMachine::State state;
+    int clone_count; // tracks the number of clones made from this VM (regardless of deletes)
 };
 
 void tag_invoke(const boost::json::value_from_tag&,
