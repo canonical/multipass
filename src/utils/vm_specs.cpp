@@ -26,11 +26,9 @@ namespace mpu = multipass::utils;
 
 void mp::tag_invoke(const boost::json::value_from_tag&,
                     boost::json::value& json,
-                    const mp::VMSpecs& specs)
+                    const mp::VMSpecs&)
 {
-    json = {
-        {"mounts", boost::json::value_from(specs.mounts, MapAsJsonArray{"target_path"})},
-    };
+    json = boost::json::object{};
 }
 
 mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
@@ -45,8 +43,5 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
         !MemorySize{lookup_or<std::string>(json, "disk_space", "")}.in_bytes())
         throw GhostInstanceException();
 
-    using mounts_t = std::unordered_map<std::string, VMMount>;
-    return {
-        value_to<mounts_t>(json.at("mounts"), MapAsJsonArray{"target_path"}),
-    };
+    return {};
 }

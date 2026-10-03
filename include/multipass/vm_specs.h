@@ -33,8 +33,6 @@ namespace multipass
 {
 struct VMSpecs
 {
-    std::unordered_map<std::string, VMMount> mounts;
-
     friend inline bool operator==(const VMSpecs& a, const VMSpecs& b) = default;
 };
 

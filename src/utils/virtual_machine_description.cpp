@@ -16,6 +16,7 @@
  */
 
 #include <multipass/format.h>
+#include <multipass/json_utils.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 
@@ -40,6 +41,7 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
         {"state", static_cast<int>(desc.state)},
         {"clone_count", desc.clone_count},
         {"deleted", desc.deleted},
+        {"mounts", boost::json::value_from(desc.mounts, MapAsJsonArray{"target_path"})},
     };
 }
 
@@ -59,6 +61,8 @@ mp::VirtualMachineDescription mp::tag_invoke(
     desc.state = static_cast<VirtualMachine::State>(value_to<int>(json.at("state")));
     desc.clone_count = value_to<int>(json.at("clone_count"));
     desc.deleted = value_to<bool>(json.at("deleted"));
+    desc.mounts = value_to<std::unordered_map<std::string, VMMount>>(json.at("mounts"),
+                                                                     MapAsJsonArray{"target_path"});
 
     if (!desc.default_mac_address.empty() && !utils::valid_mac_address(desc.default_mac_address))
         throw std::runtime_error(fmt::format("Invalid MAC address {}", desc.default_mac_address));

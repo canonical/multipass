@@ -22,12 +22,14 @@
 #include <multipass/path.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_image.h>
+#include <multipass/vm_mount.h>
 
 #include <yaml-cpp/yaml.h>
 
 #include <boost/json.hpp>
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <QMetaType>
@@ -37,8 +39,6 @@ namespace multipass
 class VirtualMachineDescription
 {
 public:
-    using MBytes = size_t;
-
     int num_cores;
     MemorySize mem_size;
     MemorySize disk_space;
@@ -57,6 +57,7 @@ public:
     VirtualMachine::State state;
     int clone_count; // tracks the number of clones made from this VM (regardless of deletes)
     bool deleted;
+    std::unordered_map<std::string, VMMount> mounts;
 };
 
 void tag_invoke(const boost::json::value_from_tag&,

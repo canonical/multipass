@@ -249,7 +249,8 @@ constexpr std::array legacy_keys{"num_cores",
                                  "metadata",
                                  "state",
                                  "clone_count",
-                                 "deleted"};
+                                 "deleted",
+                                 "mounts"};
 
 std::optional<mp::VirtualMachineDescription>
 legacy_description_from(const boost::json::value& record, const std::string& default_zone)
@@ -278,6 +279,11 @@ legacy_description_from(const boost::json::value& record, const std::string& def
     desc.state = static_cast<mp::VirtualMachine::State>(mp::lookup_or<int>(record, "state", 0));
     desc.clone_count = mp::lookup_or<int>(record, "clone_count", 0);
     desc.deleted = mp::lookup_or<bool>(record, "deleted", false);
+    desc.mounts = mp::lookup_or<std::unordered_map<std::string, mp::VMMount>>(
+        record,
+        "mounts",
+        {},
+        mp::MapAsJsonArray{"target_path"});
     return desc;
 }
 
@@ -360,9 +366,6 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
     std::unordered_map<std::string, mp::VMSpecs> reconstructed_records;
     for (const auto& [key, record] : records.as_object())
     {
-        if (record.as_object().empty())
-            return {};
-
         try
         {
             reconstructed_records.emplace(key, value_to<mp::VMSpecs>(record));
@@ -2256,10 +2259,10 @@ try
             }
         }
 
-        vm_instance_specs[name].mounts[target_path] = vm_mount;
+        auto mount_specs = vm->get_description().mounts;
+        mount_specs[target_path] = vm_mount;
+        vm->set_mounts(mount_specs);
     }
-
-    persist_instances();
 
     context->set_value(grpc_status_for(errors));
 }
@@ -2406,7 +2409,7 @@ try
         case VirtualMachine::State::restarting:
             break;
         default:
-            if (complain_disabled_mounts && !vm_instance_specs[name].mounts.empty())
+            if (complain_disabled_mounts && !vm.get_description().mounts.empty())
             {
                 complain_disabled_mounts = false; // I shall say zis only once
                 mpl::error(category, "Mounts have been disabled on this instance of Multipass");
@@ -2666,7 +2669,7 @@ try
             continue;
         }
 
-        auto& vm_spec_mounts = vm_instance_specs[name].mounts;
+        auto vm_spec_mounts = vm->second->get_description().mounts;
         auto& vm_mounts = mounts[name];
 
         auto do_unmount = [&](auto expiring_it) {
@@ -2700,9 +2703,9 @@ try
             do_unmount(it);
         else
             add_fmt_to(errors, "path \"{}\" is not mounted in '{}'", target_path, name);
-    }
 
-    persist_instances();
+        vm->second->set_mounts(vm_spec_mounts);
+    }
 
     context->set_value(grpc_status_for(errors));
 }
@@ -3030,14 +3033,12 @@ try
 
         // Actually restore snapshot
         reply_msg(server, "Restoring snapshot");
-        auto old_specs = vm_specs;
         vm_ptr->restore_snapshot(request->snapshot(), vm_specs);
 
         auto mounts_it = mounts.find(instance_name);
         assert(mounts_it != mounts.end() && "uninitialized mounts");
 
-        if (update_mounts(vm_specs, mounts_it->second, vm_ptr) || vm_specs != old_specs)
-            persist_instances();
+        update_mounts(mounts_it->second, *vm_ptr);
 
         server->Write(reply);
     }
@@ -3779,11 +3780,11 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
 
 void mp::Daemon::init_mounts(const std::string& name)
 {
-    auto& vm_mounts = mounts[name];
-    auto& vm_spec_mounts = vm_instance_specs[name].mounts;
+    auto& vm = *operative_instances[name];
+    auto mount_specs = vm.get_description().mounts;
 
-    if (!create_missing_mounts(vm_spec_mounts, vm_mounts, operative_instances[name].get()))
-        persist_instances();
+    if (!create_missing_mounts(mount_specs, mounts[name], &vm))
+        vm.set_mounts(mount_specs);
 }
 
 void mp::Daemon::stop_mounts(const std::string& name)
@@ -3797,15 +3798,14 @@ void mp::Daemon::stop_mounts(const std::string& name)
     }
 }
 
-bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
-                               std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
-                               mp::VirtualMachine* vm)
+void mp::Daemon::update_mounts(std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
+                               mp::VirtualMachine& vm)
 {
-    auto& mount_specs = vm_specs.mounts;
-    const auto mounts_pruned = prune_obsolete_mounts(mount_specs, vm_mounts);
-    const auto all_mount_handlers_created = create_missing_mounts(mount_specs, vm_mounts, vm);
+    auto mount_specs = vm.get_description().mounts;
+    prune_obsolete_mounts(mount_specs, vm_mounts);
 
-    return mounts_pruned || !all_mount_handlers_created;
+    if (!create_missing_mounts(mount_specs, vm_mounts, &vm))
+        vm.set_mounts(mount_specs);
 }
 
 bool mp::Daemon::create_missing_mounts(
@@ -3838,7 +3838,7 @@ bool mp::Daemon::create_missing_mounts(
     });
 
     assert(mount_specs.size() <= initial_mount_count);
-    return mount_specs.size() != initial_mount_count;
+    return mount_specs.size() == initial_mount_count;
 }
 
 mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
@@ -3932,12 +3932,15 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
                     invalid_mounts.push_back(target);
                 }
 
-            auto& vm_spec_mounts = vm_instance_specs[name].mounts;
+            auto mount_specs = vm->get_description().mounts;
             for (const auto& target : invalid_mounts)
             {
                 vm_mounts.erase(target);
-                vm_spec_mounts.erase(target);
+                mount_specs.erase(target);
             }
+
+            if (!invalid_mounts.empty())
+                vm->set_mounts(mount_specs);
 
             if (server && warnings.size() > 0)
             {
@@ -3945,8 +3948,6 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
                 reply.set_log_line(fmt::to_string(warnings));
                 server->Write(reply);
             }
-
-            persist_instances();
         }
     }
     catch (const std::exception& e)
@@ -4137,10 +4138,8 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     instance_info->set_os(os);
     instance_info->set_id(vm_image.id);
 
-    auto vm_specs = vm_instance_specs[name];
-
     auto mount_info = info->mutable_mount_info();
-    populate_mount_info(vm_specs.mounts, mount_info, have_mounts);
+    populate_mount_info(vm.get_description().mounts, mount_info, have_mounts);
 
     const auto created_time = QFileInfo{vm.instance_directory().path()}.birthTime();
     auto timestamp = instance_info->mutable_creation_timestamp();

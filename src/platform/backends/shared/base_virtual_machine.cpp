@@ -157,6 +157,12 @@ void mp::BaseVirtualMachine::set_deleted(bool deleted)
     persist_description();
 }
 
+void mp::BaseVirtualMachine::set_mounts(const std::unordered_map<std::string, VMMount>& mounts)
+{
+    desc.mounts = mounts;
+    persist_description();
+}
+
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
     const std::string& default_mac_addr,
     const std::vector<NetworkInterface>& extra_interfaces,
@@ -935,7 +941,6 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
 
     const bool are_extra_interfaces_different = desc.extra_interfaces !=
                                                 snapshot->get_extra_interfaces();
-    specs.mounts = snapshot->get_mounts();
 
     if (head_snapshot != snapshot)
     {

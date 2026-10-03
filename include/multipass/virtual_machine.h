@@ -31,6 +31,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace multipass
@@ -100,6 +101,7 @@ public:
     [[nodiscard]] virtual VirtualMachineDescription get_description() const = 0;
     virtual void increment_clone_count() = 0;
     virtual void set_deleted(bool deleted) = 0;
+    virtual void set_mounts(const std::unordered_map<std::string, VMMount>& mounts) = 0;
     [[nodiscard]] virtual int get_num_cores() const = 0;
     [[nodiscard]] virtual MemorySize get_mem_size() const = 0;
     [[nodiscard]] virtual MemorySize get_disk_space() const = 0;
