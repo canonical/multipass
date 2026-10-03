@@ -146,8 +146,10 @@ void mp::BaseVirtualMachine::load_or_seed_description()
             desc.num_cores = stored.num_cores;
             desc.mem_size = stored.mem_size;
             desc.disk_space = stored.disk_space;
+            desc.ssh_username = stored.ssh_username;
         }
-        else if (desc.num_cores < 1 || !desc.mem_size.in_bytes() || !desc.disk_space.in_bytes())
+        else if (desc.num_cores < 1 || !desc.mem_size.in_bytes() || !desc.disk_space.in_bytes() ||
+                 desc.ssh_username.empty())
             throw std::runtime_error{"no file and no valid description to create it from"};
         else
             persist_description();

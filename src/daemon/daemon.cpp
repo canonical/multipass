@@ -81,6 +81,7 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <filesystem>
 #include <functional>
 #include <future>
 #include <optional>
@@ -237,35 +238,49 @@ auto name_from(const std::string& requested_name,
     }
 }
 
-// TODO remove once no supported upgrade path has resources in the instance db
-std::optional<mp::VirtualMachineDescription> legacy_description_from(
-    const boost::json::value& record)
+// TODO remove once no supported upgrade path has these fields in the instance db
+boost::json::object legacy_description_fields(const boost::json::object& record)
 {
-    if (!record.as_object().contains("num_cores"))
-        return std::nullopt;
-
+    mp::VirtualMachineDescription desc{};
     const auto mem_size = value_to<std::string>(record.at("mem_size"));
     const auto disk_space = value_to<std::string>(record.at("disk_space"));
 
-    mp::VirtualMachineDescription desc{};
     desc.num_cores = value_to<int>(record.at("num_cores"));
     desc.mem_size = mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size};
     desc.disk_space = mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space};
-    return desc;
+
+    const auto ssh_username = value_to<std::string>(record.at("ssh_username"));
+    desc.ssh_username = ssh_username.empty() ? "ubuntu" : ssh_username;
+
+    // the legacy db keys match the description's
+    boost::json::object fields;
+    for (const auto& [key, value] : boost::json::value_from(desc).as_object())
+        if (record.contains(key))
+            fields[key] = value;
+
+    return fields;
 }
 
 void migrate_vm_description(const std::string& name,
-                            const mp::VirtualMachineDescription& legacy_desc,
+                            const boost::json::object& legacy_fields,
                             const QDir& instance_dir)
 {
     const auto path = instance_dir.filePath(mp::vm_description_file_name);
-    if (MP_FILEOPS.exists(QFileInfo{path}))
-        return;
-
     try
     {
-        MP_FILEOPS.write_transactionally(path,
-                                         mp::pretty_print(boost::json::value_from(legacy_desc)));
+        boost::json::object stored;
+        if (const auto data = MP_FILEOPS.try_read_file(
+                std::filesystem::path{path.toStdU16String()}))
+            stored = boost::json::parse(*data).as_object();
+
+        auto changed = false;
+        for (const auto& [key, value] : legacy_fields)
+            changed |= stored.emplace(key, value).second;
+
+        if (!changed)
+            return;
+
+        MP_FILEOPS.write_transactionally(path, mp::pretty_print(stored));
     }
     catch (const std::exception& e)
     {
@@ -317,8 +332,8 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
             continue;
         }
 
-        if (auto legacy = legacy_description_from(record))
-            migrate_vm_description(key, *legacy, factory.get_instance_directory(key));
+        if (auto legacy = legacy_description_fields(record.as_object()); !legacy.empty())
+            migrate_vm_description(key, legacy, factory.get_instance_directory(key));
     }
     return reconstructed_records;
 }
@@ -1534,7 +1549,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               spec_copy.zone,
                                               spec_copy.default_mac_address,
                                               spec_copy.extra_interfaces,
-                                              spec_copy.ssh_username,
+                                              {},
                                               vm_image,
                                               cloud_init_iso,
                                               {},
@@ -3422,7 +3437,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                              vm_instance_specs[name] = {
                                  vm_desc.default_mac_address,
                                  vm_desc.extra_interfaces,
-                                 config->ssh_username,
                                  VirtualMachine::State::off,
                                  {},
                                  false,

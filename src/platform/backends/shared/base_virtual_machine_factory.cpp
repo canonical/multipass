@@ -125,7 +125,6 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
     dest_vm_desc.zone = dest_spec.zone;
     dest_vm_desc.default_mac_address = dest_spec.default_mac_address;
     dest_vm_desc.extra_interfaces = dest_spec.extra_interfaces;
-    dest_vm_desc.ssh_username = dest_spec.ssh_username;
     dest_vm_desc.image = dest_image;
     dest_vm_desc.cloud_init_iso = cloud_init_path.string().c_str();
     // YAML::Node copies alias the source's nodes
