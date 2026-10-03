@@ -134,15 +134,11 @@ mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
 
 void mp::BaseVirtualMachine::persist_description() const
 {
-    const boost::json::object json{{"num_cores", desc.num_cores},
-                                   {"mem_size", std::to_string(desc.mem_size.in_bytes())},
-                                   {"disk_space", std::to_string(desc.disk_space.in_bytes())}};
-
     // Not yet the source of truth, so failing to write must not interrupt the caller
     try
     {
         MP_FILEOPS.write_transactionally(instance_dir.filePath(description_filename),
-                                         pretty_print(json));
+                                         pretty_print(boost::json::value_from(desc)));
     }
     catch (const std::exception& e)
     {

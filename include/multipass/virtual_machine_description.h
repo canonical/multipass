@@ -24,6 +24,8 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <boost/json.hpp>
+
 #include <string>
 #include <vector>
 
@@ -51,6 +53,12 @@ public:
     YAML::Node vendor_data_config;
     YAML::Node network_data_config;
 };
+
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const VirtualMachineDescription& desc);
+VirtualMachineDescription tag_invoke(const boost::json::value_to_tag<VirtualMachineDescription>&,
+                                     const boost::json::value& json);
 } // namespace multipass
 
 Q_DECLARE_METATYPE(multipass::VirtualMachineDescription)
