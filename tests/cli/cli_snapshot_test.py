@@ -79,10 +79,33 @@ class TestSnapshot:
             assert output.exitstatus == 0
             # The full workflow is reflected in the progress messages: the
             # instance is stopped, the snapshot is taken, and then the
-            # instance is started back up.
+            # instance is restarted.
             assert f"Stopping {instance}" in output
             assert "Taking snapshot" in output
+            assert f"Restarting {instance}" in output
+            assert f"Snapshot 'snapshot1' of '{instance}' created." in output
+
+        assert snapshot_count(instance) == 1
+        assert state(instance) == "Running"
+
+    @pytest.mark.suspend
+    def test_take_snapshot_with_restart_on_suspended_instance(self, instance):
+        """Ensure that '--restart' snapshots a suspended instance by resuming
+        it, stopping it, taking the snapshot, and automatically starting it
+        back up."""
+
+        assert multipass("suspend", instance)
+        assert state(instance) == "Suspended"
+        assert snapshot_count(instance) == 0
+
+        with multipass("snapshot", "--restart", "--name", "snapshot1", instance) as output:
+            assert output.exitstatus == 0
+            # Resuming from suspend requires starting the instance before it
+            # can be stopped, snapshotted, and restarted.
             assert f"Starting {instance}" in output
+            assert f"Stopping {instance}" in output
+            assert "Taking snapshot" in output
+            assert f"Restarting {instance}" in output
             assert f"Snapshot 'snapshot1' of '{instance}' created." in output
 
         assert snapshot_count(instance) == 1
