@@ -506,11 +506,11 @@ You have created and deleted quite a few instances. It is time to run `multipass
 $ multipass list
 Name                    State             IPv4             Image
 primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
-coherent-trumpetfish    Deleted           --               Not Available
+welcome-hagfish         Deleted           --               Not Available
 ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
 ```
 
-The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "coherent-trumpetfish" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover coherent-trumpetfish`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
+The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. Another instance, "welcome-hagfish" is listed, but its state is "Deleted". You can recover this instance by running `multipass recover welcome-hagfish`. But for now, delete the instance permanently by running `multipass delete welcome-hagfish`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
 
 ```{code-block} text
 $ multipass list
@@ -530,11 +530,11 @@ You have created and deleted quite a few instances. It is time to run `multipass
 $ multipass list
 Name                    State             IPv4             Image
 primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
-coherent-trumpetfish    Deleted           --               Not Available
+welcome-hagfish         Deleted           --               Not Available
 ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
 ```
 
-The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "coherent-trumpetfish" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover coherent-trumpetfish`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
+The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. Another instance, "welcome-hagfish" is listed, but its state is "Deleted". You can recover this instance by running `multipass recover welcome-hagfish`. But for now, delete the instance permanently by running `multipass delete welcome-hagfish`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
 
 ```{code-block} text
 $ multipass list
@@ -554,11 +554,11 @@ You have created and deleted quite a few instances. It is time to run `multipass
 C:\WINDOWS\system32> multipass list
 Name                    State             IPv4             Image
 primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
-coherent-trumpetfish    Deleted           --               Not Available
+welcome-hagfish         Deleted           --               Not Available
 ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
 ```
 
-The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "coherent-trumpetfish" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover coherent-trumpetfish`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
+The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. Another instance, "welcome-hagfish" is listed, but its state is "Deleted". You can recover this instance by running `multipass recover welcome-hagfish`. But for now, delete the instance permanently by running `multipass delete welcome-hagfish`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
 
 ```{code-block} text
 C:\WINDOWS\system32> multipass list

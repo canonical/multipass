@@ -1752,6 +1752,15 @@ TEST_F(Client, purgeCmdHelpOk)
     EXPECT_THAT(send_command({"purge", "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, purgeCmdPrintsDeprecationWarning)
+{
+    EXPECT_CALL(mock_daemon, purge(_, _));
+
+    std::stringstream cerr_stream;
+    EXPECT_THAT(send_command({"purge"}, trash_stream, cerr_stream), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("`multipass purge` is deprecated"));
+}
+
 // exec cli tests
 TEST_F(Client, execCmdDoubleDashOkCmdArg)
 {
