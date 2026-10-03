@@ -129,10 +129,12 @@ public:
                 is_directory,
                 (const fs::path& path, std::error_code& err),
                 (override, const));
+    MOCK_METHOD(bool, create_directory, (const fs::path& path), (override, const));
     MOCK_METHOD(bool,
                 create_directory,
                 (const fs::path& path, std::error_code& err),
                 (override, const));
+    MOCK_METHOD(bool, create_directories, (const fs::path& path), (override, const));
     MOCK_METHOD(bool,
                 create_directories,
                 (const fs::path& path, std::error_code& err),
