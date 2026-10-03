@@ -40,7 +40,6 @@ public:
     static QString default_machine_type();
 
     explicit QemuVMProcessSpec(const VirtualMachineDescription& desc,
-                               const std::filesystem::path& cloud_init_iso,
                                const QStringList& platform_args,
                                const QemuVirtualMachine::MountArgs& mount_args,
                                const std::optional<ResumeData>& resume_data);
@@ -53,7 +52,6 @@ public:
 
 private:
     const VirtualMachineDescription desc;
-    const std::filesystem::path cloud_init_iso;
     const QStringList platform_args;
     const QemuVirtualMachine::MountArgs mount_args;
     const std::optional<ResumeData> resume_data;

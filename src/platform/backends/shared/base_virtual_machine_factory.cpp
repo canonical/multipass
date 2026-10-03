@@ -39,10 +39,7 @@ mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_d
 
 void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
 {
-    auto instance_dir{mpu::base_dir(MP_PLATFORM.path_to_qstr(vm_desc.image.image_path))};
-    const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
-
-    if (!QFile::exists(cloud_init_iso))
+    if (!QFile::exists(MP_PLATFORM.path_to_qstr(vm_desc.cloud_init_iso)))
     {
         mp::CloudInitIso iso;
         iso.add_file("meta-data", mpu::emit_cloud_config(vm_desc.meta_data_config));
@@ -51,7 +48,7 @@ void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc
         if (!vm_desc.network_data_config.IsNull())
             iso.add_file("network-config", mpu::emit_cloud_config(vm_desc.network_data_config));
 
-        iso.write_to(cloud_init_iso.toStdString());
+        iso.write_to(vm_desc.cloud_init_iso);
     }
 }
 
@@ -111,7 +108,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
     MP_CLOUD_INIT_FILE_OPS.update_identifiers(dest_desc.default_mac_address,
                                               dest_desc.extra_interfaces,
                                               dest_desc.vm_name,
-                                              dest_instance_dir / cloud_init_file_name);
+                                              dest_desc.cloud_init_iso);
 
     return clone_vm_impl(src_desc.vm_name, src_desc, dest_desc, monitor, key_provider);
 }

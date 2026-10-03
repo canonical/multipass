@@ -32,7 +32,6 @@ public:
     using Singleton<AppleVZ>::Singleton;
 
     virtual CFError create_vm(const VirtualMachineDescription& desc,
-                              const std::filesystem::path& cloud_init_iso,
                               const multipass::AvailabilityZone& zone,
                               VMHandle& out_handle) const;
 

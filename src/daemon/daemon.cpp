@@ -85,6 +85,7 @@
 #include <functional>
 #include <future>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -289,6 +290,7 @@ legacy_description_from(const boost::json::value& record, const std::string& def
 
 void migrate_vm_description(const std::string& name,
                             const mp::VirtualMachineDescription& legacy_desc,
+                            std::span<const char* const> keys,
                             const QDir& instance_dir)
 {
     const auto path = instance_dir.filePath(mp::vm_description_file_name);
@@ -301,8 +303,8 @@ void migrate_vm_description(const std::string& name,
 
         const auto legacy_fields = boost::json::value_from(legacy_desc);
         auto changed = false;
-        for (const auto& [key, value] : legacy_fields.as_object())
-            changed |= stored.emplace(key, value).second;
+        for (const auto* key : keys)
+            changed |= stored.emplace(key, legacy_fields.as_object().at(key)).second;
 
         if (!changed)
             return;
@@ -377,7 +379,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
         }
 
         if (const auto legacy = legacy_description_from(record, az_manager.get_default_zone_name()))
-            migrate_vm_description(key, *legacy, factory.get_instance_directory(key));
+            migrate_vm_description(key, *legacy, legacy_keys, factory.get_instance_directory(key));
     }
     return reconstructed_records;
 }
@@ -1551,20 +1553,29 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
-        if (!vm_image.image_path.empty() && !MP_FILEOPS.exists(vm_image.image_path))
+        const auto instance_dir = config->factory->get_instance_directory(name);
+
+        // TODO remove once no supported upgrade path lacks these in the description
+        mp::VirtualMachineDescription vault_desc{};
+        vault_desc.image = fetch_image_for(name, *config->factory, *config->vault);
+        vault_desc.cloud_init_iso = MP_PLATFORM.qstr_to_path(instance_dir) / cloud_init_file_name;
+        migrate_vm_description(name,
+                               vault_desc,
+                               std::array{"image", "cloud_init_iso"},
+                               instance_dir);
+
+        auto vm_desc = load_vm_description(name, instance_dir);
+        vm_desc.vm_name = name;
+
+        if (!MP_FILEOPS.exists(vm_desc.image.image_path))
         {
             mpl::warn(category,
                       "Could not find image for '{}'. Expected location: {}",
                       name,
-                      vm_image.image_path);
+                      vm_desc.image.image_path);
             invalid_specs.push_back(name);
             continue;
         }
-
-        auto vm_desc = load_vm_description(name, config->factory->get_instance_directory(name));
-        vm_desc.vm_name = name;
-        vm_desc.image = vm_image;
 
         // Check that all the interfaces in the instance have different MAC address, and that they
         // were not used in the other instances. String validity was already checked when loading
@@ -2058,7 +2069,7 @@ try
         else
             entry->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
-        auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
+        auto vm_image = vm.get_description().image;
         auto current_release = vm_image.original_release;
         auto os = vm_image.os;
 
@@ -3085,8 +3096,6 @@ try
 
         config->vault->clone(source_name, destination_name);
 
-        dest_desc.image = fetch_image_for(destination_name, *config->factory, *config->vault);
-
         // Specs need to be in place before the factory can create the VM
         // Notice that we are passing `this`, which can be used to retrieve further info
         vm_instance_specs.emplace(destination_name, dest_spec);
@@ -3507,6 +3516,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 {},
                 config->ssh_username,
                 VMImage{},
+                MP_PLATFORM.qstr_to_path(config->factory->get_instance_directory(name)) /
+                    cloud_init_file_name,
                 YAML::Node{},
                 YAML::Node{},
                 make_cloud_init_vendor_config(
@@ -4086,7 +4097,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     else
         info->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
-    auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
+    auto vm_image = vm.get_description().image;
     auto original_release = vm_image.original_release;
     auto os = vm_image.os;
 
@@ -4176,6 +4187,10 @@ mp::VirtualMachineDescription mp::Daemon::clone_description(
 {
     auto dest_desc = src_desc;
     dest_desc.vm_name = dest_name;
+    const auto dest_dir = MP_PLATFORM.qstr_to_path(
+        config->factory->get_instance_directory(dest_name));
+    dest_desc.image.image_path = dest_dir / src_desc.image.image_path.filename();
+    dest_desc.cloud_init_iso = dest_dir / src_desc.cloud_init_iso.filename();
     dest_desc.clone_count = 0;
     dest_desc.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
     for (auto& extra_interface : dest_desc.extra_interfaces)

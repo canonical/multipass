@@ -334,7 +334,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
                           .read_only = false},
                          {.type = hcs::HcsScsiDeviceType::Iso(),
                           .name = "cloud-init ISO file",
-                          .path = cloud_init_iso_path(),
+                          .path = desc.cloud_init_iso,
                           .read_only = true}},
         .network_adapters =
             [&] {

@@ -171,7 +171,7 @@ void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_ini
         default_mac_addr,
         extra_interfaces,
         new_instance_id,
-        cloud_init_iso_path());
+        desc.cloud_init_iso);
 }
 
 void mp::BaseVirtualMachine::add_extra_interface_to_instance_cloud_init(
@@ -180,17 +180,12 @@ void mp::BaseVirtualMachine::add_extra_interface_to_instance_cloud_init(
 {
     MP_CLOUD_INIT_FILE_OPS.add_extra_interface_to_cloud_init(default_mac_addr,
                                                              extra_interface,
-                                                             cloud_init_iso_path());
+                                                             desc.cloud_init_iso);
 }
 
 std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
 {
-    return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_iso_path());
-}
-
-std::filesystem::path mp::BaseVirtualMachine::cloud_init_iso_path() const
-{
-    return std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
+    return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(desc.cloud_init_iso);
 }
 
 void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy) const

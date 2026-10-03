@@ -196,7 +196,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                                "-VMName",
                                name,
                                "-Path",
-                               '"' + MP_PLATFORM.path_to_qstr(cloud_init_iso_path()) + '"'},
+                               '"' + MP_PLATFORM.path_to_qstr(desc.cloud_init_iso) + '"'},
                               "Could not setup cloud-init drive");
         power_shell->easy_run({"Set-VMMemory", "-VMName", name, "-DynamicMemoryEnabled", "$false"},
                               "Could not disable dynamic memory");
@@ -263,8 +263,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
         "Could not remove the cloud-init-config.iso file from the virtual machine");
     // 5. Add-VMDvdDrive -VMName vm1-clone1 -Path
     // 'C:\ProgramData\Multipass\data\vault\instances\vm1-clone1\cloud-init-config.iso'
-    const fs::path dest_cloud_init_path = fs::path{dest_instance_dir.toStdString()} /
-                                          cloud_init_file_name;
+    const fs::path dest_cloud_init_path = desc.cloud_init_iso;
     power_shell->easy_run({"Add-VMDvdDrive",
                            "-VMName",
                            name,

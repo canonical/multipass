@@ -34,6 +34,8 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
         {"mem_size", std::to_string(desc.mem_size.in_bytes())},
         {"disk_space", std::to_string(desc.disk_space.in_bytes())},
         {"ssh_username", desc.ssh_username},
+        {"image", boost::json::value_from(desc.image)},
+        {"cloud_init_iso", desc.cloud_init_iso.string()},
         {"zone", desc.zone},
         {"mac_addr", desc.default_mac_address},
         {"extra_interfaces", boost::json::value_from(desc.extra_interfaces)},
@@ -54,6 +56,8 @@ mp::VirtualMachineDescription mp::tag_invoke(
     desc.mem_size = MemorySize{value_to<std::string>(json.at("mem_size"))};
     desc.disk_space = MemorySize{value_to<std::string>(json.at("disk_space"))};
     desc.ssh_username = value_to<std::string>(json.at("ssh_username"));
+    desc.image = value_to<VMImage>(json.at("image"));
+    desc.cloud_init_iso = value_to<std::filesystem::path>(json.at("cloud_init_iso"));
     desc.zone = value_to<std::string>(json.at("zone"));
     desc.default_mac_address = value_to<std::string>(json.at("mac_addr"));
     desc.extra_interfaces = value_to<std::vector<NetworkInterface>>(json.at("extra_interfaces"));

@@ -501,6 +501,9 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
         phase("committing the migrated instance");
         transaction.commit(mapping);
         image_record.image.image_path = mapping.active_disk;
+        target_desc.image.image_path = mapping.active_disk;
+        target_desc.cloud_init_iso = target_records.instance_dir(name) /
+                                     target_desc.cloud_init_iso.filename();
 
         phase("Committing target records");
         target_records.commit(name, target_desc, std::move(image_record));

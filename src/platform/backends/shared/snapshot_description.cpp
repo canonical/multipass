@@ -35,14 +35,12 @@ constexpr auto max_snapshots = 9999;
 // value equals to the value at snapshot time because cloud_init_instance_id has been an immutable
 // variable up to this point.
 std::string choose_cloud_init_instance_id(const boost::json::value* id,
-                                          const mp::VirtualMachine& vm)
+                                          const mp::VirtualMachineDescription& vm_desc)
 {
     if (id)
         return value_to<std::string>(*id);
 
-    std::filesystem::path instance_dir{vm.instance_directory().absolutePath().toStdString()};
-    return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(instance_dir /
-                                                                  mp::cloud_init_file_name);
+    return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(vm_desc.cloud_init_iso);
 }
 } // namespace
 
@@ -127,7 +125,7 @@ mp::SnapshotDescription mp::tag_invoke(const boost::json::value_to_tag<mp::Snaps
         value_to<std::string>(json.at("name")),
         value_to<std::string>(json.at("comment")),
         value_to<int>(json.at("parent")),
-        choose_cloud_init_instance_id(json_obj.if_contains("cloud_init_instance_id"), ctx.vm),
+        choose_cloud_init_instance_id(json_obj.if_contains("cloud_init_instance_id"), ctx.vm_desc),
         value_to<int>(json.at("index")),
         QDateTime::fromString(value_to<QString>(json.at("creation_timestamp")), Qt::ISODateWithMs),
         value_to<int>(json.at("num_cores")),

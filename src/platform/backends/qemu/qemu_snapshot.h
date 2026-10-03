@@ -45,7 +45,7 @@ protected:
     void apply_impl() override;
 
 private:
-    const std::filesystem::path& image_path;
+    const std::filesystem::path image_path;
 };
 
 } // namespace multipass

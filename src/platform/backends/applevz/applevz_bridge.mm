@@ -105,7 +105,6 @@ auto query_on_vm_queue(const multipass::applevz::VMHandle& vm_handle, Callable c
 namespace multipass::applevz
 {
 CFError init_with_configuration(const multipass::VirtualMachineDescription& desc,
-                                const std::filesystem::path& cloud_init_iso,
                                 const multipass::AvailabilityZone& zone,
                                 VMHandle& out_handle)
 {
@@ -142,7 +141,7 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         [storageDevices addObject:disk];
 
         // Cloud-init ISO
-        NSString* cloudIsoPath = nsstring_from_stdstring(cloud_init_iso.string());
+        NSString* cloudIsoPath = nsstring_from_stdstring(desc.cloud_init_iso.string());
         NSURL* cloudIsoURL = [NSURL fileURLWithPath:cloudIsoPath];
         VZDiskImageStorageDeviceAttachment* cloudAttachment =
             [[VZDiskImageStorageDeviceAttachment alloc] initWithURL:cloudIsoURL

@@ -45,7 +45,6 @@ enum class AppleVMState
 };
 
 CFError init_with_configuration(const multipass::VirtualMachineDescription& desc,
-                                const std::filesystem::path& cloud_init_iso,
                                 const multipass::AvailabilityZone& zone,
                                 VMHandle& out_handle);
 
