@@ -28,7 +28,7 @@ done
 
 if [ $DELETE_VMS -eq 1 ]; then
     echo "Removing VMs:"
-    sudo -u "$(logname)" multipass delete -vv --purge --all || echo "Failed to delete multipass VMs from underlying driver" >&2
+    sudo -u "$(logname)" multipass delete -vv --all --force || echo "Failed to delete multipass VMs from underlying driver" >&2
 
 fi
 

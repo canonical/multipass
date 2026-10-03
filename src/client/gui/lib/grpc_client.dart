@@ -155,18 +155,6 @@ class GrpcClient {
     );
   }
 
-  Future<DeleteReply?> purge(Iterable<String> names) {
-    return doRpc(
-      _client.delet,
-      DeleteRequest(
-        purge: true,
-        instanceSnapshotPairs: names.map(
-          (name) => InstanceSnapshotPair(instanceName: name),
-        ),
-      ),
-    );
-  }
-
   Future<List<VmInfo>> info([Iterable<String> names = const []]) {
     return doRpc(
       _client.info,

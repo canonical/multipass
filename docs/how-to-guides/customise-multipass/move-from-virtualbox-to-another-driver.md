@@ -66,12 +66,12 @@ multipass mount <local-path> <instance>:<path>
 :sync: macOS
 
 Once you have (re-)created the instances you need on the new driver, you can permanently delete the
-original instances. For this, temporarily move back to `virtualbox` and use the `delete` (and purge)
-command before switching to the `applevz` driver again:
+original instances. For this, temporarily move back to `virtualbox` and use the `delete` command
+before switching to the `applevz` driver again:
 
 ```{code-block} text
 multipass set local.driver=virtualbox
-multipass delete [-p] <instance> [...]
+multipass delete [--force] <instance> [...]
 multipass set local.driver=applevz
 ```
 ````
@@ -81,11 +81,11 @@ multipass set local.driver=applevz
 
 Once you have (re-)created the instances you need on the new driver, you can permanently delete the
 original instances. For this, you can temporarily move back to `virtualbox` and use the `delete`
-(and purge) command before switching to the `hcs` driver again:
+command before switching to the `hcs` driver again:
 
 ```{code-block} text
 multipass set local.driver=virtualbox
-multipass delete [-p] <instance> [...]
+multipass delete [--force] <instance> [...]
 multipass set local.driver=hcs
 ```
 

@@ -32,7 +32,7 @@ from .helpers import mounts, multipass, state, vm_exists
 @contextmanager
 def launch(cfg_override=None):
     """Launch a VM with defaults (optionally overridden) and yield a
-    handle, purging on exit by default."""
+    handle, deleting on exit by default."""
 
     # Default configuration
     default_vm_cfg = {
@@ -41,8 +41,8 @@ def launch(cfg_override=None):
         "disk": cfg.vm.disk,
         "retry": getattr(cfg.retries, "launch", 0),
         "image": cfg.vm.image,
-        "autopurge": True,
-        "assert": {"purge": True},
+        "autodelete": True,
+        "assert": {"delete": True},
     }
 
     vm_cfg = deepcopy(default_vm_cfg)
@@ -107,7 +107,7 @@ def launch(cfg_override=None):
     try:
         yield VMHandle(vm_cfg)
     finally:
-        if vm_cfg["autopurge"]:
-            with multipass("delete", vm_cfg["name"], "--purge") as result:
-                if vm_cfg["assert"]["purge"]:
-                    assert result, f"Failed to purge VM `{vm_cfg['name']}`: {str(result)}"
+        if vm_cfg["autodelete"]:
+            with multipass("delete", vm_cfg["name"], "--force") as result:
+                if vm_cfg["assert"]["delete"]:
+                    assert result, f"Failed to delete VM `{vm_cfg['name']}`: {str(result)}"
