@@ -27,6 +27,7 @@
 #include "multipass/exceptions/snapshot_exceptions.h"
 #include "stub_mount_handler.h"
 
+#include <multipass/constants.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 
 namespace mp = multipass;
@@ -187,11 +188,11 @@ TEST_F(TestDaemonSnapshot, failsOnRepeatedSnapshotName)
     EXPECT_CALL(*instance, take_snapshot(_, Eq(snapshot_name), _))
         .WillOnce(Throw(mp::SnapshotNameTakenException{mock_instance_name, snapshot_name}));
 
-    auto status = call_daemon_slot(
-        *daemon,
-        &mp::Daemon::snapshot,
-        request,
-        StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{});
+    auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
+    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::reply_message, Eq("Taking snapshot")), _))
+        .WillOnce(Return(true));
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshot, request, server);
 
     EXPECT_EQ(status.error_code(), grpc::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(),
@@ -218,6 +219,8 @@ TEST_F(TestDaemonSnapshot, usesProvidedSnapshotProperties)
         .WillOnce(Return(snapshot));
 
     auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
+    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::reply_message, Eq("Taking snapshot")), _))
+        .WillOnce(Return(true));
     EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::snapshot, Eq(snapshot_name)), _))
         .WillOnce(Return(true));
 
@@ -241,7 +244,51 @@ TEST_F(TestDaemonSnapshot, acceptsEmptySnapshotName)
     EXPECT_CALL(*instance, take_snapshot(_, IsEmpty(), IsEmpty())).WillOnce(Return(snapshot));
 
     auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
+    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::reply_message, Eq("Taking snapshot")), _))
+        .WillOnce(Return(true));
     EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::snapshot, Eq(generated_name)), _))
+        .WillOnce(Return(true));
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshot, request, server);
+
+    EXPECT_EQ(status.error_code(), grpc::OK);
+}
+
+TEST_F(TestDaemonSnapshot, restartOptionOnAlreadyStoppedInstanceStartsItAfterSnapshot)
+{
+    // Passing `--restart` on an instance that is already stopped/off is not an error: the
+    // instance is not stopped again (it is already down), but it is still started back up after
+    // the snapshot is taken, since `--restart` always leaves the instance running at the end.
+    static constexpr auto* snapshot_name = "mongoose";
+
+    mp::SnapshotRequest request{};
+    request.set_instance(mock_instance_name);
+    request.set_snapshot(snapshot_name);
+    request.set_restart(true);
+
+    auto [daemon, instance] = build_daemon_with_mock_instance();
+    EXPECT_CALL(*instance, current_state)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, shutdown).Times(0); // already stopped, so no need to stop it again
+    EXPECT_CALL(*instance, start()).Times(1);
+    EXPECT_CALL(*instance, wait_until_ssh_up).WillRepeatedly(Return());
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+
+    auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
+    EXPECT_CALL(*snapshot, get_name).WillOnce(Return(snapshot_name));
+    EXPECT_CALL(*instance, take_snapshot(_, Eq(snapshot_name), _)).WillOnce(Return(snapshot));
+
+    auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
+    // No "Stopping" message is expected (the instance was already stopped), but "Taking
+    // snapshot", "Restarting", and the final reply are.
+    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::reply_message, Eq("Taking snapshot")), _))
+        .WillOnce(Return(true));
+    EXPECT_CALL(server,
+               Write(Property(&mp::SnapshotReply::reply_message,
+                              Eq(fmt::format("Restarting {}", mock_instance_name))),
+                     _))
+        .WillOnce(Return(true));
+    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::snapshot, Eq(snapshot_name)), _))
         .WillOnce(Return(true));
 
     auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshot, request, server);

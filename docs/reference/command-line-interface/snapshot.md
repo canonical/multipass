@@ -20,10 +20,16 @@ The snapshot will record all the information that is required to later restore t
 If the instance is running when you take a snapshot, Multipass needs to stop it first. In an interactive terminal, you will be prompted for confirmation:
 
 ```{code-block} text
-Instance 'maximal-stag' is running. Would you like to stop it, take a snapshot, and restart?[y/N]
+Instance 'maximal-stag' is running. Would you like to stop it, take a snapshot, and restart the instance?[y/N]
 ```
 
-If you confirm, the instance is stopped, the snapshot is taken, and the instance is started again automatically. You can skip this prompt by passing the `--restart` (or `-r`) option, which stops, snapshots, and restarts the instance without asking. If the command is run non-interactively (i.e. with either standard input or standard output being redirected) and `--restart` is not given, the command fails, since there is no way to query the user for confirmation.
+If the instance is suspended instead, you will be prompted to resume it first:
+
+```{code-block} text
+Instance 'maximal-stag' is suspended. Would you like to resume and stop it, take a snapshot, and then restart the instance?[y/N]
+```
+
+If you confirm, the instance is stopped (resuming it first if it was suspended), the snapshot is taken, and the instance is started again automatically. You can skip this prompt by passing the `--restart` (or `-r`) option, which stops, snapshots, and restarts the instance without asking. If the command is run non-interactively (i.e. with either standard input or standard output being redirected) and `--restart` is not given, the command fails, since there is no way to query the user for confirmation.
 
 You have the option to specify a snapshot name using the `--name` option, following the same format as the [instance name format](/reference/instance-name-format).
 

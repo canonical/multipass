@@ -530,6 +530,8 @@ message SnapshotReply {
     string log_line = 2;
     string reply_message = 3;
     bool needs_prompt = 4;
+    bool is_suspended = 5;
+    string warnings = 6;
 }
 
 message RestoreRequest {

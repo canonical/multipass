@@ -2865,12 +2865,14 @@ try
     case St::off:
     case St::stopped:
         break;
+    case St::suspended:
     case St::running:
     case St::delayed_shutdown:
     {
         if (restart)
             break;
         mp::SnapshotReply reply;
+        reply.set_is_suspended(state == St::suspended);
         reply.set_needs_prompt(true);
         if (!server->Write(reply))
             throw std::runtime_error("Cannot request confirmation from client. Aborting...");
@@ -2879,7 +2881,8 @@ try
             return context->set_value(
                 grpc::Status(grpc::StatusCode::CANCELLED,
                              "Cannot get confirmation from client. Aborting..."));
-        if (request.restart())
+        restart = request.restart();
+        if (restart)
             break;
     }
         [[fallthrough]];
@@ -2890,15 +2893,23 @@ try
     }
 
     auto vm_name{vm_ptr->get_name()};
-    bool was_running{false};
-    // Stop running VMs
-    if (state == St::delayed_shutdown || state == St::running)
+    // Do a normative restart (bool is true implicitly)
+    if (state == St::delayed_shutdown || state == St::running || state == St::suspended)
     {
+        assert(restart);
+        if (state == St::suspended)
+        {
+            SnapshotReply temp_reply;
+            temp_reply.set_reply_message(fmt::format("Starting {}", vm_name));
+            server->Write(temp_reply);
+            std::lock_guard guard{start_mutex};
+            vm_ptr->start();
+            vm_ptr->wait_until_ssh_up(mp::default_timeout);
+        }
         SnapshotReply temp_reply;
         temp_reply.set_reply_message(fmt::format("Stopping {}", vm_name));
         server->Write(temp_reply);
 
-        was_running = true;
         auto status = shutdown_vm(*vm_ptr, std::chrono::minutes(0));
         if (!status.ok())
             return context->set_value(status);
@@ -2915,24 +2926,24 @@ try
     final_reply.set_snapshot(
         vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment())->get_name());
 
-    if (!was_running)
+    if (!restart) // Only stopped VMs
     {
         server->Write(final_reply);
         return context->set_value(status);
     }
 
-    // We start the VM back if it was stopped
+    // We start the VM back if the flag was true
     try
     {
         SnapshotReply temp_reply;
-        temp_reply.set_reply_message(fmt::format("Starting {}", vm_name));
+        temp_reply.set_reply_message(fmt::format("Restarting {}", vm_name));
         server->Write(temp_reply);
         std::lock_guard guard{start_mutex};
         vm_ptr->start();
     }
     catch (const std::exception& e)
     {
-        final_reply.set_log_line(
+        final_reply.set_warnings(
             fmt::format("Could not restart '{0}'. Run 'multipass start {0}' to restart manually.",
                         vm_name));
         server->Write(final_reply);
