@@ -25,7 +25,6 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/utils/qemu_img_utils.h>
 #include <multipass/virtual_machine_description.h>
-#include <multipass/vm_specs.h>
 #include <multipass/yaml_node_utils.h>
 
 namespace mp = multipass;

@@ -32,7 +32,6 @@ public:
                        const std::string& cloud_init_instance_id,
                        std::shared_ptr<Snapshot> parent,
                        const std::string& vm_name,
-                       const VMSpecs& specs,
                        VirtualBoxVirtualMachine& vm,
                        VirtualMachineDescription& desc);
     VirtualBoxSnapshot(const std::filesystem::path& filename,

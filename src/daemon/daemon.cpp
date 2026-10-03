@@ -2949,12 +2949,8 @@ try
                 grpc::Status{grpc::INVALID_ARGUMENT,
                              fmt::format(R"(Invalid snapshot name: "{}".)", snapshot_name)});
 
-        const auto spec_it = vm_instance_specs.find(instance_name);
-        assert(spec_it != vm_instance_specs.end() && "missing instance specs");
-
         SnapshotReply reply;
-        reply.set_snapshot(
-            vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment())->get_name());
+        reply.set_snapshot(vm_ptr->take_snapshot(snapshot_name, request->comment())->get_name());
 
         server->Write(reply);
     }
@@ -2998,10 +2994,6 @@ try
                 grpc::Status{grpc::FAILED_PRECONDITION,
                              "Multipass can only restore snapshots of stopped instances."});
 
-        auto spec_it = vm_instance_specs.find(instance_name);
-        assert(spec_it != vm_instance_specs.end() && "missing instance specs");
-        auto& vm_specs = spec_it->second;
-
         if (!request->destructive())
         {
             RestoreReply confirm_action{};
@@ -3021,7 +3013,6 @@ try
                           fmt::format("Taking snapshot before restoring {}", instance_name));
 
                 const auto snapshot = vm_ptr->take_snapshot(
-                    vm_specs,
                     "",
                     fmt::format("Before restoring {}", request->snapshot()));
 
@@ -3033,7 +3024,7 @@ try
 
         // Actually restore snapshot
         reply_msg(server, "Restoring snapshot");
-        vm_ptr->restore_snapshot(request->snapshot(), vm_specs);
+        vm_ptr->restore_snapshot(request->snapshot());
 
         auto mounts_it = mounts.find(instance_name);
         assert(mounts_it != mounts.end() && "uninitialized mounts");

@@ -98,12 +98,11 @@ public:
 
     // TODO: the VM should know its directory, but that is true of everything in its VMDescription;
     // pulling that from derived classes is a big refactor
-    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
-                                                  const std::string& snapshot_name,
+    std::shared_ptr<const Snapshot> take_snapshot(const std::string& snapshot_name,
                                                   const std::string& comment) override;
     void rename_snapshot(const std::string& old_name, const std::string& new_name) override;
     void delete_snapshot(const std::string& name) override;
-    void restore_snapshot(const std::string& name, VMSpecs& specs) override;
+    void restore_snapshot(const std::string& name) override;
     void load_snapshots() override;
     [[nodiscard]] std::vector<std::string> get_childrens_names(
         const Snapshot* parent) const override;
@@ -118,7 +117,6 @@ protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                              const std::string& comment,
                                                              const std::string& instance_id,
-                                                             const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent);
 
     virtual void drop_ssh_session(); // virtual to allow mocking
@@ -195,11 +193,8 @@ private:
     template <typename NodeT>
     auto make_reinsert_guard(NodeT& snapshot_node);
 
-    auto make_restore_rollback(const Path& head_path, VMSpecs& specs);
-    void restore_rollback_helper(const Path& head_path,
-                                 const std::shared_ptr<Snapshot>& old_head,
-                                 const VMSpecs& old_specs,
-                                 VMSpecs& specs);
+    auto make_restore_rollback(const Path& head_path);
+    void restore_rollback_helper(const Path& head_path, const std::shared_ptr<Snapshot>& old_head);
 
     bool updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const Path& head_path);
     auto make_deleted_head_rollback(const Path& head_path, const bool& wrote_head);

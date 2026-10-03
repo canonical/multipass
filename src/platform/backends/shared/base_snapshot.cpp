@@ -23,7 +23,6 @@
 #include <multipass/platform.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_mount.h>
-#include <multipass/vm_specs.h>
 #include <scope_guard.hpp>
 
 #include <QFile>
@@ -123,7 +122,6 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                                const std::string& comment,
                                const std::string& cloud_init_instance_id,
                                std::shared_ptr<Snapshot> parent,
-                               const VMSpecs& specs,
                                const VirtualMachine& vm,
                                VirtualMachineDescription& vm_desc)
     : BaseSnapshot{{name,

@@ -45,10 +45,9 @@ VirtDiskSnapshot::VirtDiskSnapshot(const std::string& name,
                                    const std::string& comment,
                                    const std::string& instance_id,
                                    std::shared_ptr<Snapshot> parent,
-                                   const VMSpecs& specs,
                                    const VirtualMachine& vm,
                                    VirtualMachineDescription& desc)
-    : BaseSnapshot(name, comment, instance_id, std::move(parent), specs, vm, desc),
+    : BaseSnapshot(name, comment, instance_id, std::move(parent), vm, desc),
       live_disk_path{desc.image.image_path},
       vm{vm}
 {

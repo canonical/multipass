@@ -42,7 +42,6 @@ class MemorySize;
 class SSHProcess;
 class SSHSession;
 class VMMount;
-struct VMSpecs;
 class MountHandler;
 class Snapshot;
 struct VirtualMachineDescription;
@@ -125,14 +124,13 @@ public:
     [[nodiscard]] virtual std::shared_ptr<Snapshot> get_snapshot(const std::string& name) = 0;
     [[nodiscard]] virtual std::shared_ptr<Snapshot> get_snapshot(int index) = 0;
 
-    virtual std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
-                                                          const std::string& snapshot_name,
+    virtual std::shared_ptr<const Snapshot> take_snapshot(const std::string& snapshot_name,
                                                           const std::string& comment) = 0;
     virtual void rename_snapshot(
         const std::string& old_name,
         const std::string& new_name) = 0; // only VM can avoid repeated names
     virtual void delete_snapshot(const std::string& name) = 0;
-    virtual void restore_snapshot(const std::string& name, VMSpecs& specs) = 0;
+    virtual void restore_snapshot(const std::string& name) = 0;
     virtual void load_snapshots() = 0;
     [[nodiscard]] virtual std::vector<std::string> get_childrens_names(
         const Snapshot* parent) const = 0;

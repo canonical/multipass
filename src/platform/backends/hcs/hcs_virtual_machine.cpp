@@ -645,7 +645,7 @@ std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
     return std::nullopt;
 }
 
-void HCSVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs)
+void HCSVirtualMachine::restore_snapshot(const std::string& name)
 {
     // Restoring replaces the active VHD chain, so discard the system configured for the old chain.
     const auto resources_released = release_hcs_resources(get_name());
@@ -658,7 +658,7 @@ void HCSVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs
             name};
     }
 
-    BaseVirtualMachine::restore_snapshot(name, specs);
+    BaseVirtualMachine::restore_snapshot(name);
 }
 
 void HCSVirtualMachine::handle_state_update()
@@ -729,14 +729,12 @@ std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(
     const std::string& snapshot_name,
     const std::string& comment,
     const std::string& instance_id,
-    const VMSpecs& specs,
     std::shared_ptr<Snapshot> parent)
 {
     return std::make_shared<virtdisk::VirtDiskSnapshot>(snapshot_name,
                                                         comment,
                                                         instance_id,
                                                         parent,
-                                                        specs,
                                                         *this,
                                                         desc);
 }

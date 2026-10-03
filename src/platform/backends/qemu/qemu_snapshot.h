@@ -33,7 +33,6 @@ public:
                  const std::string& comment,
                  const std::string& cloud_init_instance_id,
                  std::shared_ptr<Snapshot> parent,
-                 const VMSpecs& specs,
                  QemuVirtualMachine& vm,
                  VirtualMachineDescription& desc);
     QemuSnapshot(const std::filesystem::path& filename,

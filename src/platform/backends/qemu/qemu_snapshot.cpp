@@ -70,10 +70,9 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name,
                                const std::string& comment,
                                const std::string& cloud_init_instance_id,
                                std::shared_ptr<Snapshot> parent,
-                               const VMSpecs& specs,
                                QemuVirtualMachine& vm,
                                VirtualMachineDescription& desc)
-    : BaseSnapshot{name, comment, cloud_init_instance_id, std::move(parent), specs, vm, desc},
+    : BaseSnapshot{name, comment, cloud_init_instance_id, std::move(parent), vm, desc},
       image_path{desc.image.image_path}
 {
 }

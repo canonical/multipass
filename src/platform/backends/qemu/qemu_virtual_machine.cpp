@@ -735,7 +735,6 @@ mp::QemuVirtualMachine::MountArgs& mp::QemuVirtualMachine::modifiable_mount_args
 auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
                                                     const std::string& comment,
                                                     const std::string& instance_id,
-                                                    const VMSpecs& specs,
                                                     std::shared_ptr<Snapshot> parent)
     -> std::shared_ptr<Snapshot>
 {
@@ -745,7 +744,6 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_
                                           comment,
                                           instance_id,
                                           std::move(parent),
-                                          specs,
                                           *this,
                                           desc);
 }

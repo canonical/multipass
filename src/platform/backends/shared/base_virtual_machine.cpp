@@ -34,7 +34,6 @@
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/top_catch_all.h>
-#include <multipass/vm_specs.h>
 #include <scope_guard.hpp>
 
 #include <QDir>
@@ -588,10 +587,8 @@ auto mp::BaseVirtualMachine::make_take_snapshot_rollback(SnapshotMap::iterator i
         });
 }
 
-std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
-    const VMSpecs& specs,
-    const std::string& snapshot_name,
-    const std::string& comment)
+std::shared_ptr<const mp::Snapshot>
+mp::BaseVirtualMachine::take_snapshot(const std::string& snapshot_name, const std::string& comment)
 {
     std::unique_lock lock{snapshot_mutex};
     assert_vm_stopped(state); // precondition
@@ -612,7 +609,6 @@ std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
         sname,
         comment,
         get_instance_id_from_the_cloud_init(),
-        specs,
         head_snapshot);
     ret->capture();
 
@@ -899,27 +895,21 @@ std::string mp::BaseVirtualMachine::generate_snapshot_name() const
     return fmt::format("snapshot{}", snapshot_count + 1);
 }
 
-auto mp::BaseVirtualMachine::make_restore_rollback(const Path& head_path, VMSpecs& specs)
+auto mp::BaseVirtualMachine::make_restore_rollback(const Path& head_path)
 {
-    return sg::make_scope_guard(
-        [this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
-            top_catch_all(vm_name,
-                          &BaseVirtualMachine::restore_rollback_helper,
-                          this,
-                          head_path,
-                          old_head,
-                          old_specs,
-                          specs);
-        });
+    return sg::make_scope_guard([this, &head_path, old_head = head_snapshot]() noexcept {
+        top_catch_all(vm_name,
+                      &BaseVirtualMachine::restore_rollback_helper,
+                      this,
+                      head_path,
+                      old_head);
+    });
 }
 
 void mp::BaseVirtualMachine::restore_rollback_helper(const Path& head_path,
-                                                     const std::shared_ptr<Snapshot>& old_head,
-                                                     const VMSpecs& old_specs,
-                                                     VMSpecs& specs)
+                                                     const std::shared_ptr<Snapshot>& old_head)
 {
     // best effort only
-    specs = old_specs;
     if (old_head != head_snapshot)
     {
         head_snapshot = old_head;
@@ -927,7 +917,7 @@ void mp::BaseVirtualMachine::restore_rollback_helper(const Path& head_path,
     }
 }
 
-void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs)
+void mp::BaseVirtualMachine::restore_snapshot(const std::string& name)
 {
     const std::unique_lock lock{snapshot_mutex};
 
@@ -937,7 +927,7 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
     assert_vm_stopped(snapshot->get_state()); // precondition
 
     const auto head_path = derive_head_path(instance_dir);
-    auto rollback = make_restore_rollback(head_path, specs);
+    auto rollback = make_restore_rollback(head_path);
 
     const bool are_extra_interfaces_different = desc.extra_interfaces !=
                                                 snapshot->get_extra_interfaces();
@@ -969,7 +959,6 @@ std::shared_ptr<mp::Snapshot> mp::BaseVirtualMachine::make_specific_snapshot(
     const std::string& /*snapshot_name*/,
     const std::string& /*comment*/,
     const std::string& /*instance_id*/,
-    const VMSpecs& /*specs*/,
     std::shared_ptr<Snapshot> /*parent*/)
 {
     throw NotImplementedOnThisBackendException{"snapshots"};

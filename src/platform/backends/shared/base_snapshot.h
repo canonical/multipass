@@ -31,8 +31,6 @@
 
 namespace multipass
 {
-struct VMSpecs;
-
 struct VirtualMachineDescription;
 
 class BaseSnapshot : public Snapshot
@@ -42,7 +40,6 @@ public:
                  const std::string& comment,
                  const std::string& cloud_init_instance_id,
                  std::shared_ptr<Snapshot> parent,
-                 const VMSpecs& specs,
                  const VirtualMachine& vm,
                  VirtualMachineDescription& vm_desc);
     BaseSnapshot(const std::filesystem::path& filename,

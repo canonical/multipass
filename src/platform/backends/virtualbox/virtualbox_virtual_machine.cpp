@@ -605,7 +605,6 @@ auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const QString& 
 auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
                                                                  const std::string& comment,
                                                                  const std::string& instance_id,
-                                                                 const multipass::VMSpecs& specs,
                                                                  std::shared_ptr<Snapshot> parent)
     -> std::shared_ptr<Snapshot>
 {
@@ -614,7 +613,6 @@ auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const std::stri
                                                 instance_id,
                                                 std::move(parent),
                                                 name.toStdString(),
-                                                specs,
                                                 *this,
                                                 desc);
 }

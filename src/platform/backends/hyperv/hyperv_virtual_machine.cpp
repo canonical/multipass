@@ -589,7 +589,6 @@ void mp::HyperVVirtualMachine::remove_snapshots_from_backend() const
 auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
                                                       const std::string& comment,
                                                       const std::string& instance_id,
-                                                      const VMSpecs& specs,
                                                       std::shared_ptr<Snapshot> parent)
     -> std::shared_ptr<Snapshot>
 {
@@ -597,7 +596,6 @@ auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapsho
     return std::make_shared<HyperVSnapshot>(snapshot_name,
                                             comment,
                                             instance_id,
-                                            specs,
                                             std::move(parent),
                                             name.toStdString(),
                                             *this,

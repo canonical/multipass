@@ -63,7 +63,7 @@ struct HCSVirtualMachine : public BaseVirtualMachine
     void suspend() override;
     [[nodiscard]] State current_state() override;
     [[nodiscard]] std::optional<IPAddress> management_ipv4() override;
-    void restore_snapshot(const std::string& name, VMSpecs& specs) override;
+    void restore_snapshot(const std::string& name) override;
 
     void handle_state_update() override;
     void add_network_interface_impl(int index,
@@ -79,7 +79,6 @@ protected:
         const std::string& snapshot_name,
         const std::string& comment,
         const std::string& instance_id,
-        const VMSpecs& specs,
         std::shared_ptr<Snapshot> parent) override;
     void resize_disk_impl(const MemorySize& new_size) override;
 
