@@ -20,6 +20,7 @@
 #include <multipass/cli/prompters.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
+#include <multipass/memory_size.h>
 #include <multipass/settings/bool_setting_spec.h>
 
 #include <QRegularExpression>
@@ -192,18 +193,14 @@ mp::InstanceSettingsException::InstanceSettingsException(const std::string& reas
 }
 
 mp::InstanceSettingsHandler::InstanceSettingsHandler(
-    std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
     std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
     const std::unordered_set<std::string>& preparing_instances,
-    std::function<void()> instance_persister,
     std::function<bool(const std::string&)> is_bridged,
     std::function<void(const std::string&)> add_interface)
-    : vm_instance_specs{vm_instance_specs},
-      operative_instances{operative_instances},
+    : operative_instances{operative_instances},
       deleted_instances{deleted_instances},
       preparing_instances{preparing_instances},
-      instance_persister{std::move(instance_persister)},
       is_bridged{is_bridged},
       add_interface{add_interface}
 {
@@ -214,9 +211,10 @@ std::set<QString> mp::InstanceSettingsHandler::keys() const
     static const auto key_template = QStringLiteral("%1.%2.%3").arg(daemon_settings_root);
 
     std::set<QString> ret;
-    for (const auto& item : vm_instance_specs)
-        for (const auto& suffix : {cpus_suffix, mem_suffix, disk_suffix, bridged_suffix})
-            ret.insert(key_template.arg(item.first.c_str()).arg(suffix));
+    for (const auto* instances : {&std::as_const(operative_instances), &deleted_instances})
+        for (const auto& item : *instances)
+            for (const auto& suffix : {cpus_suffix, mem_suffix, disk_suffix, bridged_suffix})
+                ret.insert(key_template.arg(item.first.c_str()).arg(suffix));
 
     return ret;
 }
@@ -273,8 +271,6 @@ void mp::InstanceSettingsHandler::set(const QString& key,
             update_disk(key, val, instance, size, messages);
         }
     }
-
-    instance_persister();
 }
 
 auto mp::InstanceSettingsHandler::modify_instance(const std::string& instance_name)

@@ -1239,20 +1239,16 @@ auto timeout_for(const int requested_timeout)
 }
 
 mp::SettingsHandler* register_instance_mod(
-    std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
     InstanceTable& operative_instances,
     const InstanceTable& deleted_instances,
     const std::unordered_set<std::string>& preparing_instances,
-    std::function<void()> instance_persister,
     std::function<bool(const std::string&)> is_bridged,
     std::function<void(const std::string&)> add_interface)
 {
     return MP_SETTINGS.register_handler(
-        std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
-                                                      operative_instances,
+        std::make_unique<mp::InstanceSettingsHandler>(operative_instances,
                                                       deleted_instances,
                                                       preparing_instances,
-                                                      std::move(instance_persister),
                                                       is_bridged,
                                                       add_interface));
 }
@@ -1523,11 +1519,9 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                  config->client_cert_store.get(),
                  config->logger},
       instance_mod_handler{register_instance_mod(
-          vm_instance_specs,
           operative_instances,
           deleted_instances,
           preparing_instances,
-          [this] { persist_instances(); },
           [this](const std::string& n) { return is_bridged(n); },
           [this](const std::string& n) { return add_bridged_interface(n); })},
       snapshot_mod_handler{

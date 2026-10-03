@@ -22,7 +22,6 @@
 #include <multipass/settings/settings_handler.h>
 #include <multipass/user_messages.h>
 #include <multipass/virtual_machine.h>
-#include <multipass/vm_specs.h>
 
 #include <QString>
 
@@ -38,11 +37,9 @@ class InstanceSettingsHandler : public SettingsHandler
 {
 public:
     InstanceSettingsHandler(
-        std::unordered_map<std::string, VMSpecs>& vm_instance_specs,
         std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances,
         const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances,
         const std::unordered_set<std::string>& preparing_instances,
-        std::function<void()> instance_persister,
         std::function<bool(const std::string&)> is_bridged,
         std::function<void(const std::string&)> add_interface);
 
@@ -56,11 +53,9 @@ private:
 
 private:
     // references, careful
-    std::unordered_map<std::string, VMSpecs>& vm_instance_specs;
     std::unordered_map<std::string, VirtualMachine::ShPtr>& operative_instances;
     const std::unordered_map<std::string, VirtualMachine::ShPtr>& deleted_instances;
     const std::unordered_set<std::string>& preparing_instances;
-    std::function<void()> instance_persister;
     std::function<bool(const std::string&)> is_bridged;
     std::function<void(const std::string&)> add_interface;
 };
