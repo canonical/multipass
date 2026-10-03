@@ -70,6 +70,7 @@ public:
 
     [[nodiscard]] VirtualMachineDescription get_description() const override;
     void increment_clone_count() override;
+    void set_deleted(bool deleted) override;
     [[nodiscard]] int get_num_cores() const override;
     [[nodiscard]] MemorySize get_mem_size() const override;
     [[nodiscard]] MemorySize get_disk_space() const override;

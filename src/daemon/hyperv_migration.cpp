@@ -450,7 +450,7 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
         throw InstanceMigrationError{fmt::format("source VM record for '{}' is missing", name)};
 
     const auto& source_spec = spec_it->second;
-    if (source_spec.deleted || deleted_instances.contains(name))
+    if (deleted_instances.contains(name))
         return "instance is deleted";
 
     const auto vm_it = operative_instances.find(name);

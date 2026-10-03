@@ -248,7 +248,8 @@ constexpr std::array legacy_keys{"num_cores",
                                  "extra_interfaces",
                                  "metadata",
                                  "state",
-                                 "clone_count"};
+                                 "clone_count",
+                                 "deleted"};
 
 std::optional<mp::VirtualMachineDescription>
 legacy_description_from(const boost::json::value& record, const std::string& default_zone)
@@ -276,6 +277,7 @@ legacy_description_from(const boost::json::value& record, const std::string& def
     desc.metadata = mp::lookup_or<boost::json::object>(record, "metadata", {});
     desc.state = static_cast<mp::VirtualMachine::State>(mp::lookup_or<int>(record, "state", 0));
     desc.clone_count = mp::lookup_or<int>(record, "clone_count", 0);
+    desc.deleted = mp::lookup_or<bool>(record, "deleted", false);
     return desc;
 }
 
@@ -1545,7 +1547,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     for (const auto& entry : vm_instance_specs)
     {
         const auto& name = entry.first;
-        const auto spec_copy = entry.second;
 
         if (!config->vault->has_record_for(name))
         {
@@ -1586,10 +1587,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        auto& instance_records_table = spec_copy.deleted ? deleted_instances : operative_instances;
+        auto& instance_records_table = vm_desc.deleted ? deleted_instances : operative_instances;
 
         // FIXME: somehow we're writing contradictory state to disk.
-        if (spec_copy.deleted && vm_desc.state != e_state::stopped && vm_desc.state != e_state::off)
+        if (vm_desc.deleted && vm_desc.state != e_state::stopped && vm_desc.state != e_state::off)
         {
             mpl::warn(
                 category,
@@ -1609,11 +1610,11 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         // Add the new macs to the daemon's list only if we got this far
         allocated_mac_addrs = std::move(new_macs);
 
-        if (spec_copy.deleted)
+        if (vm_desc.deleted)
             continue;
 
         // No deleted spec must cross this boundary.
-        assert(!spec_copy.deleted);
+        assert(!vm_desc.deleted);
         init_mounts(name);
 
         std::unique_lock lock{start_mutex};
@@ -2289,8 +2290,7 @@ try
         for (const auto& vm_it : instance_selection.deleted_selection)
         {
             const auto name = vm_it->first;
-            assert(vm_instance_specs[name].deleted);
-            vm_instance_specs[name].deleted = false;
+            vm_it->second->set_deleted(false);
             operative_instances[name] = std::move(vm_it->second);
             deleted_instances.erase(vm_it);
             init_mounts(name);
@@ -3446,10 +3446,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                          allocated_mac_addrs.erase(mac);
                                  });
 
-                             vm_instance_specs[name] = {
-                                 {},
-                                 false,
-                             };
+                             vm_instance_specs[name] = {};
                              operative_instances[name] = config->factory->create_virtual_machine(
                                  vm_desc,
                                  *config->ssh_key_provider,
@@ -3636,7 +3633,7 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
     auto* erase_from = purge ? &deleted_instances : nullptr; // to begin with
     auto instances_dirty = false;
 
-    if (!vm_instance_specs[name].deleted)
+    if (!instance->get_description().deleted)
     {
         mpl::debug(category, "Deleting instance: {}", name);
         erase_from = &operative_instances;
@@ -3649,7 +3646,7 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
                                          : VirtualMachine::ShutdownPolicy::Halt);
         if (!purge)
         {
-            vm_instance_specs[name].deleted = true;
+            instance->set_deleted(true);
             deleted_instances[name] = std::move(instance);
 
             instances_dirty = true;

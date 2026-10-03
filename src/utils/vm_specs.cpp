@@ -29,7 +29,6 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
                     const mp::VMSpecs& specs)
 {
     json = {
-        {"deleted", specs.deleted},
         {"mounts", boost::json::value_from(specs.mounts, MapAsJsonArray{"target_path"})},
     };
 }
@@ -37,11 +36,10 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
 mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
                            const boost::json::value& json)
 {
-    auto deleted = value_to<bool>(json.at("deleted"));
-
     // Ghost records predate vm-description.json, so only records with the legacy keys qualify
     if (json.as_object().contains("num_cores") && !value_to<int>(json.at("num_cores")) &&
-        !deleted && lookup_or<std::string>(json, "ssh_username", "").empty() &&
+        !lookup_or<bool>(json, "deleted", false) &&
+        lookup_or<std::string>(json, "ssh_username", "").empty() &&
         lookup_or<boost::json::object>(json, "metadata", {}).empty() &&
         !MemorySize{lookup_or<std::string>(json, "mem_size", "")}.in_bytes() &&
         !MemorySize{lookup_or<std::string>(json, "disk_space", "")}.in_bytes())
@@ -50,6 +48,5 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
     using mounts_t = std::unordered_map<std::string, VMMount>;
     return {
         value_to<mounts_t>(json.at("mounts"), MapAsJsonArray{"target_path"}),
-        deleted,
     };
 }
