@@ -38,6 +38,7 @@
 #include <scope_guard.hpp>
 
 #include <QDir>
+#include <QFileInfo>
 #include <QRegularExpression>
 #include <QString>
 
@@ -128,38 +129,11 @@ mp::BaseVirtualMachine::BaseVirtualMachine(State state,
       zone{zone},
       instance_dir{instance_dir}
 {
-    load_or_seed_description();
+    if (!MP_FILEOPS.exists(QFileInfo{this->instance_dir.filePath(vm_description_file_name)}))
+        persist_description();
 }
 
 mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
-
-void mp::BaseVirtualMachine::load_or_seed_description()
-{
-    const auto path = std::filesystem::path{
-        instance_dir.filePath(vm_description_file_name).toStdU16String()};
-    try
-    {
-        if (const auto data = MP_FILEOPS.try_read_file(path))
-        {
-            const auto stored = boost::json::value_to<VirtualMachineDescription>(
-                boost::json::parse(*data));
-            desc.num_cores = stored.num_cores;
-            desc.mem_size = stored.mem_size;
-            desc.disk_space = stored.disk_space;
-            desc.ssh_username = stored.ssh_username;
-        }
-        else if (desc.num_cores < 1 || !desc.mem_size.in_bytes() || !desc.disk_space.in_bytes() ||
-                 desc.ssh_username.empty())
-            throw std::runtime_error{"no file and no valid description to create it from"};
-        else
-            persist_description();
-    }
-    catch (const std::exception& e)
-    {
-        throw std::runtime_error{
-            fmt::format("Could not load the VM description from {}: {}", path, e.what())};
-    }
-}
 
 void mp::BaseVirtualMachine::persist_description() const
 {

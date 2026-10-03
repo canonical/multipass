@@ -122,7 +122,6 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
 
     auto dest_vm_desc = src_desc;
     dest_vm_desc.vm_name = dest_name;
-    dest_vm_desc.zone = dest_spec.zone;
     dest_vm_desc.default_mac_address = dest_spec.default_mac_address;
     dest_vm_desc.extra_interfaces = dest_spec.extra_interfaces;
     dest_vm_desc.image = dest_image;

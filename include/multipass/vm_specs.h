@@ -41,14 +41,11 @@ struct VMSpecs
     boost::json::object metadata;
     int clone_count =
         0; // tracks the number of cloned vm from this source vm (regardless of deletes)
-    std::string zone;
 
     friend inline bool operator==(const VMSpecs& a, const VMSpecs& b) = default;
 };
 
 void tag_invoke(const boost::json::value_from_tag&, boost::json::value& json, const VMSpecs& mount);
-VMSpecs tag_invoke(const boost::json::value_to_tag<VMSpecs>&,
-                   const boost::json::value& json,
-                   const AvailabilityZoneManager& az_manager);
+VMSpecs tag_invoke(const boost::json::value_to_tag<VMSpecs>&, const boost::json::value& json);
 
 } // namespace multipass

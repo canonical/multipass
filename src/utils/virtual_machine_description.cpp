@@ -30,6 +30,7 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
         {"mem_size", std::to_string(desc.mem_size.in_bytes())},
         {"disk_space", std::to_string(desc.disk_space.in_bytes())},
         {"ssh_username", desc.ssh_username},
+        {"zone", desc.zone},
     };
 }
 
@@ -42,6 +43,7 @@ mp::VirtualMachineDescription mp::tag_invoke(
     desc.mem_size = MemorySize{value_to<std::string>(json.at("mem_size"))};
     desc.disk_space = MemorySize{value_to<std::string>(json.at("disk_space"))};
     desc.ssh_username = value_to<std::string>(json.at("ssh_username"));
+    desc.zone = value_to<std::string>(json.at("zone"));
 
     return desc;
 }

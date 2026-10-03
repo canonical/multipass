@@ -239,7 +239,8 @@ auto name_from(const std::string& requested_name,
 }
 
 // TODO remove once no supported upgrade path has these fields in the instance db
-boost::json::object legacy_description_fields(const boost::json::object& record)
+boost::json::object legacy_description_fields(const boost::json::object& record,
+                                              const std::string& default_zone)
 {
     mp::VirtualMachineDescription desc{};
     if (record.contains("num_cores"))
@@ -258,11 +259,14 @@ boost::json::object legacy_description_fields(const boost::json::object& record)
         desc.ssh_username = ssh_username.empty() ? "ubuntu" : ssh_username;
     }
 
+    // records predating availability zones have no zone
+    desc.zone = record.contains("zone") ? value_to<std::string>(record.at("zone")) : default_zone;
+
     // the legacy db keys match the description's
     const auto all_fields = boost::json::value_from(desc);
     boost::json::object fields;
     for (const auto& [key, value] : all_fields.as_object())
-        if (record.contains(key))
+        if (record.contains(key) || key == "zone")
             fields[key] = value;
 
     return fields;
@@ -295,6 +299,26 @@ void migrate_vm_description(const std::string& name,
             fmt::format("Could not migrate the description of '{}': {}", name, e.what())};
     }
     mpl::info(category, "Migrated the description of {} to {}", name, path);
+}
+
+mp::VirtualMachineDescription load_vm_description(const std::string& name, const QDir& instance_dir)
+{
+    const auto path = instance_dir.filePath(mp::vm_description_file_name);
+    try
+    {
+        const auto data = MP_FILEOPS.try_read_file(std::filesystem::path{path.toStdU16String()});
+        if (!data)
+            throw std::runtime_error{"file not found"};
+
+        return value_to<mp::VirtualMachineDescription>(boost::json::parse(*data));
+    }
+    catch (const std::exception& e)
+    {
+        throw std::runtime_error{fmt::format("Could not load the description of '{}' from {}: {}",
+                                             name,
+                                             path,
+                                             e.what())};
+    }
 }
 
 std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
@@ -331,7 +355,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
 
         try
         {
-            reconstructed_records.emplace(key, value_to<mp::VMSpecs>(record, az_manager));
+            reconstructed_records.emplace(key, value_to<mp::VMSpecs>(record));
         }
         catch (mp::GhostInstanceException&)
         {
@@ -339,8 +363,10 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
             continue;
         }
 
-        if (auto legacy = legacy_description_fields(record.as_object()); !legacy.empty())
-            migrate_vm_description(key, legacy, factory.get_instance_directory(key));
+        migrate_vm_description(
+            key,
+            legacy_description_fields(record.as_object(), az_manager.get_default_zone_name()),
+            factory.get_instance_directory(key));
     }
     return reconstructed_records;
 }
@@ -1548,21 +1574,12 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         const auto instance_dir = mp::utils::base_dir(
             MP_PLATFORM.path_to_qstr(vm_image.image_path));
-        const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
-        mp::VirtualMachineDescription vm_desc{{},
-                                              {},
-                                              {},
-                                              name,
-                                              spec_copy.zone,
-                                              spec_copy.default_mac_address,
-                                              spec_copy.extra_interfaces,
-                                              {},
-                                              vm_image,
-                                              cloud_init_iso,
-                                              {},
-                                              {},
-                                              {},
-                                              {}};
+        auto vm_desc = load_vm_description(name, config->factory->get_instance_directory(name));
+        vm_desc.vm_name = name;
+        vm_desc.default_mac_address = spec_copy.default_mac_address;
+        vm_desc.extra_interfaces = spec_copy.extra_interfaces;
+        vm_desc.image = vm_image;
+        vm_desc.cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
 
         auto& instance_records_table = spec_copy.deleted ? deleted_instances : operative_instances;
 
@@ -3449,7 +3466,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                  false,
                                  {},
                                  0,
-                                 vm_desc.zone,
                              };
                              operative_instances[name] = config->factory->create_virtual_machine(
                                  vm_desc,
