@@ -44,6 +44,7 @@ class VMMount;
 struct VMSpecs;
 class MountHandler;
 class Snapshot;
+class VirtualMachineDescription;
 
 class VirtualMachine : private DisabledCopyMove
 {
@@ -96,6 +97,10 @@ public:
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;
     virtual void handle_state_update() = 0;
+    [[nodiscard]] virtual VirtualMachineDescription get_description() const = 0;
+    [[nodiscard]] virtual int get_num_cores() const = 0;
+    [[nodiscard]] virtual MemorySize get_mem_size() const = 0;
+    [[nodiscard]] virtual MemorySize get_disk_space() const = 0;
     virtual void update_cpus(int num_cores) = 0;
     virtual void resize_memory(const MemorySize& new_size) = 0;
     virtual void resize_disk(const MemorySize& new_size, UserMessages& messages) = 0;

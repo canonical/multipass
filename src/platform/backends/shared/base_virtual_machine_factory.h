@@ -36,7 +36,8 @@ class BaseVirtualMachineFactory : public VirtualMachineFactory
 public:
     explicit BaseVirtualMachineFactory(const Path& instances_dir,
                                        AvailabilityZoneManager& az_manager);
-    VirtualMachine::UPtr clone_bare_vm(const VMSpecs& src_spec,
+    VirtualMachine::UPtr clone_bare_vm(const VirtualMachineDescription& src_desc,
+                                       const VMSpecs& src_spec,
                                        const VMSpecs& dest_spec,
                                        const std::string& src_name,
                                        const std::string& dest_name,

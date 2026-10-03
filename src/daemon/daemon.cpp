@@ -237,9 +237,48 @@ auto name_from(const std::string& requested_name,
     }
 }
 
+// TODO remove once no supported upgrade path has resources in the instance db
+std::optional<mp::VirtualMachineDescription> legacy_description_from(
+    const boost::json::value& record)
+{
+    if (!record.as_object().contains("num_cores"))
+        return std::nullopt;
+
+    const auto mem_size = value_to<std::string>(record.at("mem_size"));
+    const auto disk_space = value_to<std::string>(record.at("disk_space"));
+
+    mp::VirtualMachineDescription desc{};
+    desc.num_cores = value_to<int>(record.at("num_cores"));
+    desc.mem_size = mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size};
+    desc.disk_space = mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space};
+    return desc;
+}
+
+void migrate_vm_description(const std::string& name,
+                            const mp::VirtualMachineDescription& legacy_desc,
+                            const QDir& instance_dir)
+{
+    const auto path = instance_dir.filePath(mp::vm_description_file_name);
+    if (MP_FILEOPS.exists(QFileInfo{path}))
+        return;
+
+    try
+    {
+        MP_FILEOPS.write_transactionally(path,
+                                         mp::pretty_print(boost::json::value_from(legacy_desc)));
+    }
+    catch (const std::exception& e)
+    {
+        throw std::runtime_error{
+            fmt::format("Could not migrate the description of '{}': {}", name, e.what())};
+    }
+    mpl::info(category, "Migrated the description of {} to {}", name, path);
+}
+
 std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
                                                      const mp::Path& cache_path,
-                                                     const mp::AvailabilityZoneManager& az_manager)
+                                                     const mp::AvailabilityZoneManager& az_manager,
+                                                     const mp::VirtualMachineFactory& factory)
 {
     QDir data_dir{data_path};
     QDir cache_dir{cache_path};
@@ -277,6 +316,9 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
             mpl::warn(category, "Ignoring ghost instance in database: {}", key);
             continue;
         }
+
+        if (auto legacy = legacy_description_from(record))
+            migrate_vm_description(key, *legacy, factory.get_instance_directory(key));
     }
     return reconstructed_records;
 }
@@ -300,32 +342,6 @@ auto fetch_image_for(const std::string& name,
                              stub_progress,
                              std::nullopt,
                              factory.get_instance_directory(name));
-}
-
-// Seeds the instance's description file from fields that used to live only in the daemon's db
-void migrate_vm_description(const std::string& name,
-                            const mp::VMSpecs& spec,
-                            const QDir& instance_dir)
-{
-    const auto path = instance_dir.filePath(mp::vm_description_file_name);
-    if (MP_FILEOPS.exists(QFileInfo{path}))
-        return;
-
-    mp::VirtualMachineDescription desc{};
-    desc.num_cores = spec.num_cores;
-    desc.mem_size = spec.mem_size;
-    desc.disk_space = spec.disk_space;
-
-    // Not yet the source of truth, so a failed migration must not stop the daemon
-    try
-    {
-        MP_FILEOPS.write_transactionally(path, mp::pretty_print(boost::json::value_from(desc)));
-        mpl::info(category, "Migrated the description of {} to {}", name, path);
-    }
-    catch (const std::exception& e)
-    {
-        mpl::warn(category, "Could not migrate the description of {}: {}", name, e.what());
-    }
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -1441,7 +1457,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                                     config->factory->get_backend_directory_name()),
                   mp::utils::backend_directory_path(config->cache_directory,
                                                     config->factory->get_backend_directory_name()),
-                  *config->az_manager)},
+                  *config->az_manager,
+                  *config->factory)},
       daemon_rpc{config->server_address,
                  *config->cert_provider,
                  config->client_cert_store.get(),
@@ -1509,11 +1526,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         const auto instance_dir = mp::utils::base_dir(
             MP_PLATFORM.path_to_qstr(vm_image.image_path));
-        migrate_vm_description(name, spec_copy, instance_dir);
         const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
-        mp::VirtualMachineDescription vm_desc{spec_copy.num_cores,
-                                              spec_copy.mem_size,
-                                              spec_copy.disk_space,
+        mp::VirtualMachineDescription vm_desc{{},
+                                              {},
+                                              {},
                                               name,
                                               spec_copy.zone,
                                               spec_copy.default_mac_address,
@@ -1603,8 +1619,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         config->vault->remove(bad_spec);
     }
 
-    if (!invalid_specs.empty())
-        persist_instances();
+    persist_instances(); // also drops any migrated resources from the db
 
     config->vault->prune_expired_images();
 
@@ -3048,6 +3063,7 @@ try
         // Notice that we are passing `this`, which can be used to retrieve further info
         vm_instance_specs.emplace(destination_name, dest_spec);
         operative_instances[destination_name] = config->factory->clone_bare_vm(
+            source_vm_ptr->get_description(),
             src_spec,
             dest_spec,
             source_name,
@@ -3404,9 +3420,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                              auto vm_desc = prepare_future_watcher->future().result();
 
                              vm_instance_specs[name] = {
-                                 vm_desc.num_cores,
-                                 vm_desc.mem_size,
-                                 vm_desc.disk_space,
                                  vm_desc.default_mac_address,
                                  vm_desc.extra_interfaces,
                                  config->ssh_username,
@@ -4122,7 +4135,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
                                                          info,
                                                          instance_info,
                                                          original_release,
-                                                         vm_specs.num_cores != 1);
+                                                         vm.get_num_cores() != 1);
 }
 
 std::string mp::Daemon::dest_name_for_clone(const CloneRequest& request)

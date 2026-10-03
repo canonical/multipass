@@ -33,9 +33,6 @@ namespace multipass
 {
 struct VMSpecs
 {
-    int num_cores;
-    MemorySize mem_size;
-    MemorySize disk_space;
     std::string default_mac_address;
     std::vector<NetworkInterface> extra_interfaces; // We want interfaces to be ordered.
     std::string ssh_username;

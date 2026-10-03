@@ -68,6 +68,10 @@ public:
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
+    [[nodiscard]] VirtualMachineDescription get_description() const override;
+    [[nodiscard]] int get_num_cores() const override;
+    [[nodiscard]] MemorySize get_mem_size() const override;
+    [[nodiscard]] MemorySize get_disk_space() const override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size, UserMessages& messages) override;
@@ -204,6 +208,7 @@ private:
 
     void delete_snapshot_helper(std::shared_ptr<Snapshot>& snapshot);
 
+    void load_or_seed_description();
     void persist_description() const;
 
     utils::TimeoutAction try_to_ssh();
@@ -236,6 +241,26 @@ inline int multipass::BaseVirtualMachine::get_num_snapshots() const
 {
     const std::unique_lock lock{snapshot_mutex};
     return static_cast<int>(snapshots.size());
+}
+
+inline multipass::VirtualMachineDescription multipass::BaseVirtualMachine::get_description() const
+{
+    return desc;
+}
+
+inline int multipass::BaseVirtualMachine::get_num_cores() const
+{
+    return desc.num_cores;
+}
+
+inline multipass::MemorySize multipass::BaseVirtualMachine::get_mem_size() const
+{
+    return desc.mem_size;
+}
+
+inline multipass::MemorySize multipass::BaseVirtualMachine::get_disk_space() const
+{
+    return desc.disk_space;
 }
 
 inline std::shared_ptr<const multipass::Snapshot>

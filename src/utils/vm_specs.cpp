@@ -29,9 +29,6 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
                     const mp::VMSpecs& specs)
 {
     json = {
-        {"num_cores", specs.num_cores},
-        {"mem_size", std::to_string(specs.mem_size.in_bytes())},
-        {"disk_space", std::to_string(specs.disk_space.in_bytes())},
         {"ssh_username", specs.ssh_username},
         {"state", static_cast<int>(specs.state)},
         {"deleted", specs.deleted},
@@ -52,16 +49,15 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
                            const boost::json::value& json,
                            const AvailabilityZoneManager& az_manager)
 {
-    auto num_cores = value_to<int>(json.at("num_cores"));
-    auto mem_size = value_to<std::string>(json.at("mem_size"));
-    auto disk_space = value_to<std::string>(json.at("disk_space"));
     auto mac_addr = value_to<std::string>(json.at("mac_addr"));
     auto ssh_username = value_to<std::string>(json.at("ssh_username"));
     auto deleted = value_to<bool>(json.at("deleted"));
     auto metadata = json.at("metadata").as_object();
 
-    if (!num_cores && !deleted && ssh_username.empty() && metadata.empty() &&
-        !MemorySize{mem_size}.in_bytes() && !MemorySize{disk_space}.in_bytes())
+    // Ghost records predate vm-description.json, so they still carry the legacy resource keys
+    if (!lookup_or<int>(json, "num_cores", 0) && !deleted && ssh_username.empty() &&
+        metadata.empty() && !MemorySize{lookup_or<std::string>(json, "mem_size", "")}.in_bytes() &&
+        !MemorySize{lookup_or<std::string>(json, "disk_space", "")}.in_bytes())
         throw GhostInstanceException();
 
     if (!mac_addr.empty() && !mpu::valid_mac_address(mac_addr))
@@ -71,9 +67,6 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
 
     using mounts_t = std::unordered_map<std::string, VMMount>;
     return {
-        num_cores,
-        MemorySize{mem_size.empty() ? default_memory_size : mem_size},
-        MemorySize{disk_space.empty() ? default_disk_size : disk_space},
         mac_addr,
         lookup_or<std::vector<NetworkInterface>>(json, "extra_interfaces", {}),
         ssh_username,

@@ -99,6 +99,7 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
 }
 
 mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
+    const VirtualMachineDescription& src_desc,
     const VMSpecs& src_spec,
     const VMSpecs& dest_spec,
     const std::string& src_name,
@@ -119,21 +120,19 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
                                               dest_name,
                                               cloud_init_path);
 
-    // start to construct VirtualMachineDescription
-    mp::VirtualMachineDescription dest_vm_desc{dest_spec.num_cores,
-                                               dest_spec.mem_size,
-                                               dest_spec.disk_space,
-                                               dest_name,
-                                               dest_spec.zone,
-                                               dest_spec.default_mac_address,
-                                               dest_spec.extra_interfaces,
-                                               dest_spec.ssh_username,
-                                               dest_image,
-                                               cloud_init_path.string().c_str(),
-                                               {},
-                                               {},
-                                               {},
-                                               {}};
+    auto dest_vm_desc = src_desc;
+    dest_vm_desc.vm_name = dest_name;
+    dest_vm_desc.zone = dest_spec.zone;
+    dest_vm_desc.default_mac_address = dest_spec.default_mac_address;
+    dest_vm_desc.extra_interfaces = dest_spec.extra_interfaces;
+    dest_vm_desc.ssh_username = dest_spec.ssh_username;
+    dest_vm_desc.image = dest_image;
+    dest_vm_desc.cloud_init_iso = cloud_init_path.string().c_str();
+    // YAML::Node copies alias the source's nodes
+    dest_vm_desc.meta_data_config = YAML::Node{};
+    dest_vm_desc.user_data_config = YAML::Node{};
+    dest_vm_desc.vendor_data_config = YAML::Node{};
+    dest_vm_desc.network_data_config = YAML::Node{};
 
     return clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
 }

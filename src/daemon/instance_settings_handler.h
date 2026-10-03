@@ -52,8 +52,7 @@ public:
 
 private:
     VirtualMachine& modify_instance(const std::string& instance_name);
-    VMSpecs& modify_spec(const std::string& instance_name);
-    const VMSpecs& find_spec(const std::string& instance_name) const;
+    const VirtualMachine& find_instance(const std::string& instance_name) const;
 
 private:
     // references, careful

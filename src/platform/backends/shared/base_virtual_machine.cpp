@@ -42,11 +42,13 @@
 #include <QString>
 
 #include <chrono>
+#include <filesystem>
 #include <functional>
 #include <mutex>
 #include <ranges>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -126,23 +128,41 @@ mp::BaseVirtualMachine::BaseVirtualMachine(State state,
       zone{zone},
       instance_dir{instance_dir}
 {
-    persist_description();
+    load_or_seed_description();
 }
 
 mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
 
-void mp::BaseVirtualMachine::persist_description() const
+void mp::BaseVirtualMachine::load_or_seed_description()
 {
-    // Not yet the source of truth, so failing to write must not interrupt the caller
+    const auto path = std::filesystem::path{
+        instance_dir.filePath(vm_description_file_name).toStdU16String()};
     try
     {
-        MP_FILEOPS.write_transactionally(instance_dir.filePath(vm_description_file_name),
-                                         pretty_print(boost::json::value_from(desc)));
+        if (const auto data = MP_FILEOPS.try_read_file(path))
+        {
+            const auto stored = boost::json::value_to<VirtualMachineDescription>(
+                boost::json::parse(*data));
+            desc.num_cores = stored.num_cores;
+            desc.mem_size = stored.mem_size;
+            desc.disk_space = stored.disk_space;
+        }
+        else if (desc.num_cores < 1 || !desc.mem_size.in_bytes() || !desc.disk_space.in_bytes())
+            throw std::runtime_error{"no file and no valid description to create it from"};
+        else
+            persist_description();
     }
     catch (const std::exception& e)
     {
-        mpl::warn(vm_name, "Could not persist the VM description: {}", e.what());
+        throw std::runtime_error{
+            fmt::format("Could not load the VM description from {}: {}", path, e.what())};
     }
+}
+
+void mp::BaseVirtualMachine::persist_description() const
+{
+    MP_FILEOPS.write_transactionally(instance_dir.filePath(vm_description_file_name),
+                                     pretty_print(boost::json::value_from(desc)));
 }
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
@@ -913,9 +933,6 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
     auto rollback = make_restore_rollback(head_path, specs);
 
     specs.state = snapshot->get_state();
-    specs.num_cores = snapshot->get_num_cores();
-    specs.mem_size = snapshot->get_mem_size();
-    specs.disk_space = snapshot->get_disk_space();
     const bool are_extra_interfaces_different = specs.extra_interfaces !=
                                                 snapshot->get_extra_interfaces();
     specs.extra_interfaces = snapshot->get_extra_interfaces();
