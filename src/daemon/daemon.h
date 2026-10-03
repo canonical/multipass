@@ -68,8 +68,6 @@ protected:
     void on_suspend() override;
     void on_restart(const std::string& name) override;
     void persist_state_for(const std::string& name, const VirtualMachine::State& state) override;
-    void update_metadata_for(const std::string& name, const boost::json::object& metadata) override;
-    boost::json::object retrieve_metadata_for(const std::string& name) override;
 
 public slots:
     virtual void create(const CreateRequest* request,
@@ -266,9 +264,7 @@ private:
     grpc::Status validate_dest_name(const std::string& name);
     VirtualMachineDescription clone_description(const VirtualMachineDescription& src_desc,
                                                 const std::string& dest_name);
-    VMSpecs clone_spec(const VMSpecs& src_vm_spec,
-                       const VirtualMachineDescription& src_desc,
-                       const VirtualMachineDescription& dest_desc);
+    VMSpecs clone_spec(const VMSpecs& src_vm_spec);
 
     std::unique_ptr<const DaemonConfig> config;
 

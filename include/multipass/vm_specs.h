@@ -36,7 +36,6 @@ struct VMSpecs
     VirtualMachine::State state;
     std::unordered_map<std::string, VMMount> mounts;
     bool deleted;
-    boost::json::object metadata;
     int clone_count =
         0; // tracks the number of cloned vm from this source vm (regardless of deletes)
 

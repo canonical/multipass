@@ -921,7 +921,6 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
     const bool are_extra_interfaces_different = desc.extra_interfaces !=
                                                 snapshot->get_extra_interfaces();
     specs.mounts = snapshot->get_mounts();
-    specs.metadata = snapshot->get_metadata();
 
     if (head_snapshot != snapshot)
     {

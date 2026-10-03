@@ -31,7 +31,6 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
     json = {
         {"state", static_cast<int>(specs.state)},
         {"deleted", specs.deleted},
-        {"metadata", specs.metadata},
         {"mounts", boost::json::value_from(specs.mounts, MapAsJsonArray{"target_path"})},
         {"clone_count", specs.clone_count},
     };
@@ -41,11 +40,11 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
                            const boost::json::value& json)
 {
     auto deleted = value_to<bool>(json.at("deleted"));
-    auto metadata = json.at("metadata").as_object();
 
-    // Ghost records predate vm-description.json, so they still carry the legacy keys
-    if (!lookup_or<int>(json, "num_cores", 0) && !deleted &&
-        lookup_or<std::string>(json, "ssh_username", "").empty() && metadata.empty() &&
+    // Ghost records predate vm-description.json, so only records with the legacy keys qualify
+    if (json.as_object().contains("num_cores") && !value_to<int>(json.at("num_cores")) &&
+        !deleted && lookup_or<std::string>(json, "ssh_username", "").empty() &&
+        lookup_or<boost::json::object>(json, "metadata", {}).empty() &&
         !MemorySize{lookup_or<std::string>(json, "mem_size", "")}.in_bytes() &&
         !MemorySize{lookup_or<std::string>(json, "disk_space", "")}.in_bytes())
         throw GhostInstanceException();
@@ -55,7 +54,6 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
         static_cast<mp::VirtualMachine::State>(value_to<int>(json.at("state"))),
         value_to<mounts_t>(json.at("mounts"), MapAsJsonArray{"target_path"}),
         deleted,
-        metadata,
         lookup_or<int>(json, "clone_count", 0),
     };
 }

@@ -52,6 +52,7 @@ public:
     YAML::Node user_data_config;
     YAML::Node vendor_data_config;
     YAML::Node network_data_config;
+    boost::json::object metadata;
 };
 
 void tag_invoke(const boost::json::value_from_tag&,

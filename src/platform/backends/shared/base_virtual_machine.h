@@ -211,13 +211,13 @@ private:
 
     void delete_snapshot_helper(std::shared_ptr<Snapshot>& snapshot);
 
-    void persist_description() const;
-
     utils::TimeoutAction try_to_ssh();
     void ssh_and_cross_to_running();
     void timeout_ssh();
 
 protected:
+    void persist_description() const;
+
     const std::string vm_name;
     VirtualMachineDescription desc;
     VMStatusMonitor& monitor;

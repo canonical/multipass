@@ -238,7 +238,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                          zone,
                          instance_dir},
       qemu_platform{qemu_platform},
-      mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
+      mount_args{mount_args_from_json(this->desc.metadata)}
 {
     connect_vm_signals();
 
@@ -289,9 +289,10 @@ void mp::QemuVirtualMachine::start()
             for (const auto& arg : mount_data.second)
                 proc_args.removeOne(arg);
 
-        monitor.update_metadata_for(
-            vm_name,
-            generate_metadata(qemu_platform->vmstate_platform_args(), proc_args, mount_args));
+        desc.metadata = generate_metadata(qemu_platform->vmstate_platform_args(),
+                                          proc_args,
+                                          mount_args);
+        persist_description();
     }
 
     vm_process->start();
@@ -505,12 +506,11 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 
 void mp::QemuVirtualMachine::initialize_vm_process()
 {
-    vm_process = make_qemu_process(desc,
-                                   ((state == State::suspended)
-                                        ? std::make_optional(monitor.retrieve_metadata_for(vm_name))
-                                        : std::nullopt),
-                                   mount_args,
-                                   qemu_platform->vm_platform_args(desc));
+    vm_process = make_qemu_process(
+        desc,
+        ((state == State::suspended) ? std::make_optional(desc.metadata) : std::nullopt),
+        mount_args,
+        qemu_platform->vm_platform_args(desc));
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::info(vm_name, "process started");

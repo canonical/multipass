@@ -242,7 +242,7 @@ auto name_from(const std::string& requested_name,
 std::optional<mp::VirtualMachineDescription>
 legacy_description_from(const boost::json::value& record, const std::string& default_zone)
 {
-    if (!record.as_object().contains("mac_addr"))
+    if (!record.as_object().contains("metadata"))
         return std::nullopt;
 
     // keys already moved by earlier versions get defaults here, which never overwrite the file
@@ -256,10 +256,11 @@ legacy_description_from(const boost::json::value& record, const std::string& def
     desc.disk_space = mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space};
     desc.ssh_username = ssh_username.empty() ? "ubuntu" : ssh_username;
     desc.zone = mp::lookup_or<std::string>(record, "zone", default_zone);
-    desc.default_mac_address = value_to<std::string>(record.at("mac_addr"));
+    desc.default_mac_address = mp::lookup_or<std::string>(record, "mac_addr", "");
     desc.extra_interfaces = mp::lookup_or<std::vector<mp::NetworkInterface>>(record,
                                                                              "extra_interfaces",
                                                                              {});
+    desc.metadata = record.at("metadata").as_object();
     return desc;
 }
 
@@ -3087,7 +3088,7 @@ try
             });
 
         auto& src_spec = vm_instance_specs[source_name];
-        auto dest_spec = clone_spec(src_spec, src_desc, dest_desc);
+        auto dest_spec = clone_spec(src_spec);
 
         config->vault->clone(source_name, destination_name);
 
@@ -3337,18 +3338,6 @@ void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine
     persist_instances();
 }
 
-void mp::Daemon::update_metadata_for(const std::string& name, const boost::json::object& metadata)
-{
-    vm_instance_specs[name].metadata = metadata;
-
-    persist_instances();
-}
-
-boost::json::object mp::Daemon::retrieve_metadata_for(const std::string& name)
-{
-    return vm_instance_specs[name].metadata;
-}
-
 void mp::Daemon::persist_instances()
 {
     auto instance_records_json = boost::json::value_from(vm_instance_specs);
@@ -3456,7 +3445,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                  VirtualMachine::State::off,
                                  {},
                                  false,
-                                 {},
                                  0,
                              };
                              operative_instances[name] = config->factory->create_virtual_machine(
@@ -4225,23 +4213,19 @@ mp::VirtualMachineDescription mp::Daemon::clone_description(
     dest_desc.vendor_data_config = YAML::Node{};
     dest_desc.network_data_config = YAML::Node{};
 
+    // non qemu snapshot files do not have metadata
+    if (!dest_desc.metadata.empty())
+        dest_desc.metadata = update_unique_identifiers_of_metadata(dest_desc.metadata,
+                                                                   src_desc,
+                                                                   dest_desc);
+
     return dest_desc;
 }
 
-mp::VMSpecs mp::Daemon::clone_spec(const VMSpecs& src_vm_spec,
-                                   const VirtualMachineDescription& src_desc,
-                                   const VirtualMachineDescription& dest_desc)
+mp::VMSpecs mp::Daemon::clone_spec(const VMSpecs& src_vm_spec)
 {
     mp::VMSpecs dest_vm_spec{src_vm_spec};
     dest_vm_spec.clone_count = 0;
-
-    // non qemu snapshot files do not have metadata
-    if (!dest_vm_spec.metadata.empty())
-    {
-        dest_vm_spec.metadata = update_unique_identifiers_of_metadata(dest_vm_spec.metadata,
-                                                                      src_desc,
-                                                                      dest_desc);
-    }
     return dest_vm_spec;
 }
 
