@@ -59,7 +59,7 @@ mp::ReturnCodeVariant cmd::Snapshot::run(mp::ArgParser* parser)
             }
 
             SnapshotRequest client_response;
-            client_response.set_restart(confirm_restart(request.instance()));
+            client_response.set_restart(confirm_restart(request.instance(), reply.is_suspended()));
             client->Write(client_response);
             spinner.start();
         }
@@ -68,8 +68,8 @@ mp::ReturnCodeVariant cmd::Snapshot::run(mp::ArgParser* parser)
     auto on_success = [this, &spinner](mp::SnapshotReply& reply) -> ReturnCodeVariant {
         spinner.stop();
         fmt::print(cout, "Snapshot '{}' of '{}' created.\n", reply.snapshot(), request.instance());
-        if (auto log_line = reply.log_line(); !log_line.empty())
-            fmt::print(cout, "warning: {}", log_line);
+        if (auto warnings = reply.warnings(); !warnings.empty())
+            fmt::print(cout, "warning: {}\n", warnings);
         return ReturnCode::Ok;
     };
 
@@ -145,14 +145,20 @@ mp::ParseCode cmd::Snapshot::parse_args(mp::ArgParser* parser)
     return ParseCode::Ok;
 }
 
-bool cmd::Snapshot::confirm_restart(const std::string& instance_name)
+bool cmd::Snapshot::confirm_restart(const std::string& instance_name, bool is_suspended)
 {
-    static constexpr auto prompt_text =
-        "Instance '{}' is running. Would you like to stop it, take a snapshot, and restart?[y/N]";
+    const auto running_prompt_text = fmt::format(
+        "Instance '{}' is running. Would you like to stop it, take a snapshot, and restart the "
+        "instance?[y/N]",
+        instance_name);
+    const auto suspended_prompt_text = fmt::format(
+        "Instance '{}' is suspended. Would you like to resume and stop it, take a snapshot, and "
+        "then restart the instance?[y/N]",
+        instance_name);
     static constexpr auto invalid_input = "Please answer [y/N]";
     mp::PlainPrompter prompter(term);
 
-    auto answer = prompter.prompt(fmt::format(prompt_text, instance_name));
+    auto answer = prompter.prompt(is_suspended ? suspended_prompt_text : running_prompt_text);
     while (!answer.empty() && !std::regex_match(answer, mp::client::yes_answer) &&
            !std::regex_match(answer, mp::client::no_answer))
         answer = prompter.prompt(invalid_input);
