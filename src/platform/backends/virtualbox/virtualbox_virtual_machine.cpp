@@ -249,7 +249,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                      "--type",
                                      "dvddrive",
                                      "--medium",
-                                     desc.cloud_init_iso},
+                                     MP_PLATFORM.path_to_qstr(cloud_init_iso_path())},
                                     "Could not storageattach DVD: {}",
                                     name);
 
@@ -321,7 +321,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                  "--type",
                                  "dvddrive",
                                  "--medium",
-                                 desc.cloud_init_iso},
+                                 MP_PLATFORM.path_to_qstr(cloud_init_iso_path())},
                                 "Could not attach the cloud-init file to: {}",
                                 name);
     // 4. reset the mac addresses of vm to the spec addres

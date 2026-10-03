@@ -32,10 +32,15 @@ namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
 
 mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc,
+                                         const std::filesystem::path& cloud_init_iso,
                                          const QStringList& platform_args,
                                          const mp::QemuVirtualMachine::MountArgs& mount_args,
                                          const std::optional<ResumeData>& resume_data)
-    : desc{desc}, platform_args{platform_args}, mount_args{mount_args}, resume_data{resume_data}
+    : desc{desc},
+      cloud_init_iso{cloud_init_iso},
+      platform_args{platform_args},
+      mount_args{mount_args},
+      resume_data{resume_data}
 {
 }
 
@@ -114,7 +119,7 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
              // TODO Add a debugging mode with access to console
              << "-nographic";
         // Cloud-init disk
-        args << "-cdrom" << desc.cloud_init_iso;
+        args << "-cdrom" << MP_PLATFORM.path_to_qstr(cloud_init_iso);
         // To make `/sys/class/dmi/id/product_uuid` present
         args << "-uuid" << vm_uuid;
         // clang-format on
@@ -248,7 +253,7 @@ profile %1 flags=(attach_disconnected) {
                                 root_dir,
                                 program(),
                                 QString::fromStdString(desc.image.image_path),
-                                desc.cloud_init_iso,
+                                MP_PLATFORM.path_to_qstr(cloud_init_iso),
                                 mount_dirs);
 }
 

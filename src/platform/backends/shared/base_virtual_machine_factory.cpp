@@ -53,8 +53,6 @@ void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc
 
         iso.write_to(cloud_init_iso.toStdString());
     }
-
-    vm_desc.cloud_init_iso = cloud_init_iso;
 }
 
 void mp::BaseVirtualMachineFactory::prepare_networking(

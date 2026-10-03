@@ -167,33 +167,30 @@ void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_ini
     const std::vector<NetworkInterface>& extra_interfaces,
     const std::string& new_instance_id) const
 {
-    const std::filesystem::path cloud_init_path =
-        std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
-
-    MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(default_mac_addr,
-                                                                                  extra_interfaces,
-                                                                                  new_instance_id,
-                                                                                  cloud_init_path);
+    MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(
+        default_mac_addr,
+        extra_interfaces,
+        new_instance_id,
+        cloud_init_iso_path());
 }
 
 void mp::BaseVirtualMachine::add_extra_interface_to_instance_cloud_init(
     const std::string& default_mac_addr,
     const NetworkInterface& extra_interface) const
 {
-    const std::filesystem::path cloud_init_path =
-        std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
-
     MP_CLOUD_INIT_FILE_OPS.add_extra_interface_to_cloud_init(default_mac_addr,
                                                              extra_interface,
-                                                             cloud_init_path);
+                                                             cloud_init_iso_path());
 }
 
 std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
 {
-    const std::filesystem::path cloud_init_path =
-        std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
+    return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_iso_path());
+}
 
-    return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_path);
+std::filesystem::path mp::BaseVirtualMachine::cloud_init_iso_path() const
+{
+    return std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
 }
 
 void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy) const

@@ -192,9 +192,12 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
         power_shell->easy_run(
             {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)},
             "Could not configure VM processor");
-        power_shell->easy_run(
-            {"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'},
-            "Could not setup cloud-init drive");
+        power_shell->easy_run({"Add-VMDvdDrive",
+                               "-VMName",
+                               name,
+                               "-Path",
+                               '"' + MP_PLATFORM.path_to_qstr(cloud_init_iso_path()) + '"'},
+                              "Could not setup cloud-init drive");
         power_shell->easy_run({"Set-VMMemory", "-VMName", name, "-DynamicMemoryEnabled", "$false"},
                               "Could not disable dynamic memory");
         power_shell->easy_run({"Set-VM", "-Name", name, "-AutomaticCheckpointsEnabled", "$false"},

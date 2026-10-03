@@ -19,7 +19,6 @@
 
 #include <multipass/memory_size.h>
 #include <multipass/network_interface.h>
-#include <multipass/path.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_image.h>
 #include <multipass/vm_mount.h>
@@ -47,7 +46,6 @@ struct VirtualMachineDescription
     std::vector<NetworkInterface> extra_interfaces;
     std::string ssh_username;
     VMImage image;
-    Path cloud_init_iso;
     YAML::Node meta_data_config;
     YAML::Node user_data_config;
     YAML::Node vendor_data_config;

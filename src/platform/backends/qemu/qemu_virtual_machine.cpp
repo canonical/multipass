@@ -96,11 +96,12 @@ auto mount_args_from_json(const boost::json::object& object)
 }
 
 auto make_qemu_process(const mp::VirtualMachineDescription& desc,
+                       const std::filesystem::path& cloud_init_iso,
                        const std::optional<boost::json::object>& resume_metadata,
                        const mp::QemuVirtualMachine::MountArgs& mount_args,
                        const QStringList& platform_args)
 {
-    if (!MP_FILEOPS.exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
+    if (!MP_FILEOPS.exists(desc.image.image_path) || !MP_FILEOPS.exists(cloud_init_iso))
     {
         throw std::runtime_error("cannot start VM without an image");
     }
@@ -114,8 +115,11 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
                                                         get_arguments(data)};
     }
 
-    auto process_spec =
-        std::make_unique<mp::QemuVMProcessSpec>(desc, platform_args, mount_args, resume_data);
+    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc,
+                                                                cloud_init_iso,
+                                                                platform_args,
+                                                                mount_args,
+                                                                resume_data);
     auto process = mp::platform::make_process(std::move(process_spec));
 
     mpl::debug(desc.vm_name, "process working dir '{}'", process->working_directory());
@@ -508,6 +512,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
 {
     vm_process = make_qemu_process(
         desc,
+        cloud_init_iso_path(),
         ((state == State::suspended) ? std::make_optional(desc.metadata) : std::nullopt),
         mount_args,
         qemu_platform->vm_platform_args(desc));

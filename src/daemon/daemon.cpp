@@ -1562,12 +1562,9 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        const auto instance_dir = mp::utils::base_dir(
-            MP_PLATFORM.path_to_qstr(vm_image.image_path));
         auto vm_desc = load_vm_description(name, config->factory->get_instance_directory(name));
         vm_desc.vm_name = name;
         vm_desc.image = vm_image;
-        vm_desc.cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
 
         // Check that all the interfaces in the instance have different MAC address, and that they
         // were not used in the other instances. String validity was already checked when loading
@@ -3089,8 +3086,6 @@ try
         config->vault->clone(source_name, destination_name);
 
         dest_desc.image = fetch_image_for(destination_name, *config->factory, *config->vault);
-        dest_desc.cloud_init_iso = QDir{config->factory->get_instance_directory(destination_name)}
-                                       .filePath(cloud_init_file_name);
 
         // Specs need to be in place before the factory can create the VM
         // Notice that we are passing `this`, which can be used to retrieve further info
@@ -3512,7 +3507,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 {},
                 config->ssh_username,
                 VMImage{},
-                "",
                 YAML::Node{},
                 YAML::Node{},
                 make_cloud_init_vendor_config(

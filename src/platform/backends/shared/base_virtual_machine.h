@@ -216,6 +216,7 @@ private:
 protected:
     void persist_description() const;
     void persist_state();
+    std::filesystem::path cloud_init_iso_path() const;
 
     const std::string vm_name;
     VirtualMachineDescription desc;
