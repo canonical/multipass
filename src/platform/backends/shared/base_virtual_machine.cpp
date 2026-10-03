@@ -27,6 +27,7 @@
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
+#include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
 #include <multipass/ssh/plain_ssh_process.h>
@@ -59,6 +60,7 @@ using St = mp::VirtualMachine::State;
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto head_filename = "snapshot-head";
 constexpr auto count_filename = "snapshot-count";
+constexpr auto description_filename = "vm-description.json";
 constexpr auto yes_overwrite = true;
 
 void assert_vm_stopped([[maybe_unused]] St state)
@@ -125,9 +127,28 @@ mp::BaseVirtualMachine::BaseVirtualMachine(State state,
       zone{zone},
       instance_dir{instance_dir}
 {
+    persist_description();
 }
 
 mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
+
+void mp::BaseVirtualMachine::persist_description() const
+{
+    const boost::json::object json{{"num_cores", desc.num_cores},
+                                   {"mem_size", std::to_string(desc.mem_size.in_bytes())},
+                                   {"disk_space", std::to_string(desc.disk_space.in_bytes())}};
+
+    // Not yet the source of truth, so failing to write must not interrupt the caller
+    try
+    {
+        MP_FILEOPS.write_transactionally(instance_dir.filePath(description_filename),
+                                         pretty_print(json));
+    }
+    catch (const std::exception& e)
+    {
+        mpl::warn(vm_name, "Could not persist the VM description: {}", e.what());
+    }
+}
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
     const std::string& default_mac_addr,
@@ -405,6 +426,7 @@ void mp::BaseVirtualMachine::update_cpus(int num_cores)
 
     update_cpus_impl(num_cores);
     desc.num_cores = num_cores;
+    persist_description();
 }
 
 void mp::BaseVirtualMachine::resize_memory(const MemorySize& new_size)
@@ -414,6 +436,7 @@ void mp::BaseVirtualMachine::resize_memory(const MemorySize& new_size)
 
     resize_memory_impl(new_size);
     desc.mem_size = new_size;
+    persist_description();
 }
 
 void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMessages& messages)
@@ -423,6 +446,7 @@ void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMes
 
     resize_disk_impl(new_size);
     desc.disk_space = new_size;
+    persist_description();
 
     if (is_core())
         messages.add_message(core_image_disk_resize_message());
@@ -920,6 +944,8 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
             snapshot->get_extra_interfaces(),
             snapshot->get_cloud_init_instance_id());
     }
+
+    persist_description();
 
     rollback.dismiss();
 }

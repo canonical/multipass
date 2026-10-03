@@ -204,6 +204,8 @@ private:
 
     void delete_snapshot_helper(std::shared_ptr<Snapshot>& snapshot);
 
+    void persist_description() const;
+
     utils::TimeoutAction try_to_ssh();
     void ssh_and_cross_to_running();
     void timeout_ssh();
