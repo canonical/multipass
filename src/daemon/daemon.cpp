@@ -39,6 +39,7 @@
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/file_ops.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
@@ -70,6 +71,7 @@
 
 #include <QDir>
 #include <QEventLoop>
+#include <QFileInfo>
 #include <QFutureSynchronizer>
 #include <QStorageInfo>
 #include <QString>
@@ -298,6 +300,32 @@ auto fetch_image_for(const std::string& name,
                              stub_progress,
                              std::nullopt,
                              factory.get_instance_directory(name));
+}
+
+// Seeds the instance's description file from fields that used to live only in the daemon's db
+void migrate_vm_description(const std::string& name,
+                            const mp::VMSpecs& spec,
+                            const QDir& instance_dir)
+{
+    const auto path = instance_dir.filePath(mp::vm_description_file_name);
+    if (MP_FILEOPS.exists(QFileInfo{path}))
+        return;
+
+    mp::VirtualMachineDescription desc{};
+    desc.num_cores = spec.num_cores;
+    desc.mem_size = spec.mem_size;
+    desc.disk_space = spec.disk_space;
+
+    // Not yet the source of truth, so a failed migration must not stop the daemon
+    try
+    {
+        MP_FILEOPS.write_transactionally(path, mp::pretty_print(boost::json::value_from(desc)));
+        mpl::info(category, "Migrated the description of {} to {}", name, path);
+    }
+    catch (const std::exception& e)
+    {
+        mpl::warn(category, "Could not migrate the description of {}: {}", name, e.what());
+    }
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -1481,6 +1509,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         const auto instance_dir = mp::utils::base_dir(
             MP_PLATFORM.path_to_qstr(vm_image.image_path));
+        migrate_vm_description(name, spec_copy, instance_dir);
         const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
         mp::VirtualMachineDescription vm_desc{spec_copy.num_cores,
                                               spec_copy.mem_size,

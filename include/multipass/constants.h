@@ -68,6 +68,7 @@ constexpr auto winterm_key = "client.apps.windows-terminal.profiles";
 constexpr auto mirror_key = "local.image.mirror"; // the mirror of simple streams
 
 constexpr auto cloud_init_file_name = "cloud-init-config.iso";
+constexpr auto vm_description_file_name = "vm-description.json";
 
 [[maybe_unused]] // hands off clang-format
 constexpr auto key_examples = {petenv_key, driver_key, mounts_key};

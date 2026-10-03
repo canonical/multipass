@@ -60,7 +60,6 @@ using St = mp::VirtualMachine::State;
 constexpr auto snapshot_extension = "snapshot.json";
 constexpr auto head_filename = "snapshot-head";
 constexpr auto count_filename = "snapshot-count";
-constexpr auto description_filename = "vm-description.json";
 constexpr auto yes_overwrite = true;
 
 void assert_vm_stopped([[maybe_unused]] St state)
@@ -137,7 +136,7 @@ void mp::BaseVirtualMachine::persist_description() const
     // Not yet the source of truth, so failing to write must not interrupt the caller
     try
     {
-        MP_FILEOPS.write_transactionally(instance_dir.filePath(description_filename),
+        MP_FILEOPS.write_transactionally(instance_dir.filePath(vm_description_file_name),
                                          pretty_print(boost::json::value_from(desc)));
     }
     catch (const std::exception& e)
