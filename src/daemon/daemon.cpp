@@ -242,19 +242,26 @@ auto name_from(const std::string& requested_name,
 boost::json::object legacy_description_fields(const boost::json::object& record)
 {
     mp::VirtualMachineDescription desc{};
-    const auto mem_size = value_to<std::string>(record.at("mem_size"));
-    const auto disk_space = value_to<std::string>(record.at("disk_space"));
+    if (record.contains("num_cores"))
+    {
+        const auto mem_size = value_to<std::string>(record.at("mem_size"));
+        const auto disk_space = value_to<std::string>(record.at("disk_space"));
 
-    desc.num_cores = value_to<int>(record.at("num_cores"));
-    desc.mem_size = mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size};
-    desc.disk_space = mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space};
+        desc.num_cores = value_to<int>(record.at("num_cores"));
+        desc.mem_size = mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size};
+        desc.disk_space = mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space};
+    }
 
-    const auto ssh_username = value_to<std::string>(record.at("ssh_username"));
-    desc.ssh_username = ssh_username.empty() ? "ubuntu" : ssh_username;
+    if (record.contains("ssh_username"))
+    {
+        const auto ssh_username = value_to<std::string>(record.at("ssh_username"));
+        desc.ssh_username = ssh_username.empty() ? "ubuntu" : ssh_username;
+    }
 
     // the legacy db keys match the description's
+    const auto all_fields = boost::json::value_from(desc);
     boost::json::object fields;
-    for (const auto& [key, value] : boost::json::value_from(desc).as_object())
+    for (const auto& [key, value] : all_fields.as_object())
         if (record.contains(key))
             fields[key] = value;
 
