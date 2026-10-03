@@ -24,7 +24,7 @@ runs:
   - name: Determine build parameters
     id: build-params
     shell: bash
-      #prevent (shell) code injection
+    #prevent (shell) code injection
     env:
       EVENT_NAME: ${{ github.event_name }}
       GIT_REF: ${{ github.ref }}

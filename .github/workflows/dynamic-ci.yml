@@ -38,6 +38,7 @@ jobs:
 
       - name: Check if we're building a tagged commit
         id: check-tag
+        # detect tags regardless of workflow trigger
         run: |
           tag="$( git tag --points-at HEAD )"
           echo "is-tag=$( [ -n "$tag" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
