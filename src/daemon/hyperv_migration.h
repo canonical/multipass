@@ -24,7 +24,6 @@
 #include <multipass/path.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
-#include <multipass/vm_specs.h>
 
 #include <boost/json.hpp>
 
@@ -102,7 +101,6 @@ public:
     [[nodiscard]] std::filesystem::path instance_dir(const std::string& name) const;
 
     void commit(const std::string& name,
-                const VMSpecs& spec,
                 const VirtualMachineDescription& desc,
                 VaultRecord image_record);
 
@@ -127,8 +125,7 @@ class DaemonHyperVInstanceMigrator final
 public:
     using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
 
-    DaemonHyperVInstanceMigrator(const std::unordered_map<std::string, VMSpecs>& specs,
-                                 const InstanceTable& operative_instances,
+    DaemonHyperVInstanceMigrator(const InstanceTable& operative_instances,
                                  const InstanceTable& deleted_instances,
                                  VirtualMachineFactory& source_factory,
                                  AvailabilityZoneManager& az_manager,
@@ -147,7 +144,6 @@ private:
         const std::vector<NetworkInterface>& source_interfaces);
     HCSVirtualMachineFactory& target_factory();
 
-    const std::unordered_map<std::string, VMSpecs>& specs;
     const InstanceTable& operative_instances;
     const InstanceTable& deleted_instances;
     VirtualMachineFactory& source_factory;

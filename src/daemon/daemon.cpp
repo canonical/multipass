@@ -2758,7 +2758,6 @@ try
 // TODO hyperv migration, remove
 #if defined(HCS_ENABLED)
     mp::hyperv::DriverTransition transition{{*config,
-                                             vm_instance_specs,
                                              operative_instances,
                                              deleted_instances,
                                              migration_in_progress,

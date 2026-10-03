@@ -325,7 +325,6 @@ std::filesystem::path multipass::hyperv::HyperVMigrationTargetRecords::instance_
 }
 
 void multipass::hyperv::HyperVMigrationTargetRecords::commit(const std::string& name,
-                                                             const VMSpecs& spec,
                                                              const VirtualMachineDescription& desc,
                                                              VaultRecord image_record)
 {
@@ -382,7 +381,7 @@ void multipass::hyperv::HyperVMigrationTargetRecords::commit(const std::string& 
             fmt::format("could not persist target description for '{}': {}", name, error.what())};
     }
     persist(target_image_records, target_image_db, image_record, "image");
-    persist(target_vm_records, target_vm_db, spec, "VM");
+    persist(target_vm_records, target_vm_db, boost::json::object{}, "VM");
 
     std::error_code remove_error;
     if (!MP_FILEOPS.remove(target_dir / MigrationTransactionManifest::filename, remove_error) ||
@@ -394,15 +393,13 @@ void multipass::hyperv::HyperVMigrationTargetRecords::commit(const std::string& 
 }
 
 multipass::hyperv::DaemonHyperVInstanceMigrator::DaemonHyperVInstanceMigrator(
-    const std::unordered_map<std::string, VMSpecs>& specs,
     const InstanceTable& operative_instances,
     const InstanceTable& deleted_instances,
     VirtualMachineFactory& source_factory,
     AvailabilityZoneManager& az_manager,
     const Path& data_dir,
     HyperVMigrationTargetRecords& target_records)
-    : specs{specs},
-      operative_instances{operative_instances},
+    : operative_instances{operative_instances},
       deleted_instances{deleted_instances},
       source_factory{source_factory},
       az_manager{az_manager},
@@ -445,11 +442,6 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
     const std::string& name,
     const MigrationReporter& report)
 {
-    const auto spec_it = specs.find(name);
-    if (spec_it == specs.end())
-        throw InstanceMigrationError{fmt::format("source VM record for '{}' is missing", name)};
-
-    const auto& source_spec = spec_it->second;
     if (deleted_instances.contains(name))
         return "instance is deleted";
 
@@ -487,7 +479,6 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
         };
 
         phase("Preparing networking");
-        auto target_spec = source_spec;
         auto target_desc = vm_it->second->get_description();
         // Hyper-V reported the VM as off, so the cached state may be stale. A `running` record
         // would make the daemon auto-start the migrated instance on its next launch.
@@ -512,7 +503,7 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
         image_record.image.image_path = mapping.active_disk;
 
         phase("Committing target records");
-        target_records.commit(name, target_spec, target_desc, std::move(image_record));
+        target_records.commit(name, target_desc, std::move(image_record));
         return std::nullopt;
     }
     catch (const MigrationAbortError&)
@@ -534,9 +525,9 @@ multipass::hyperv::MigrationOutcome multipass::hyperv::DaemonHyperVInstanceMigra
     std::vector<std::string> migrated;
 
     std::vector<std::string> names;
-    names.reserve(specs.size());
-    for (const auto& [name, _] : specs)
-        names.push_back(name);
+    for (const auto* instances : {&operative_instances, &deleted_instances})
+        for (const auto& [name, _] : *instances)
+            names.push_back(name);
     std::ranges::sort(names);
 
     for (const auto& name : names)
