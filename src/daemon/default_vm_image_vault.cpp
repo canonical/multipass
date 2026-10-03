@@ -37,7 +37,6 @@
 #include <QUrl>
 #include <QtConcurrent/QtConcurrent>
 
-#include <boost/algorithm/string/replace.hpp>
 #include <boost/json.hpp>
 
 #include <exception>
@@ -48,7 +47,6 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "image vault";
-constexpr auto instance_db_name = "multipassd-instance-image-records.json";
 constexpr auto image_db_name = "multipassd-image-records.json";
 
 std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
@@ -123,22 +121,18 @@ mp::VaultRecord mp::tag_invoke(const boost::json::value_to_tag<mp::VaultRecord>&
 mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hosts,
                                              URLDownloader* downloader,
                                              const mp::Path& cache_dir_path,
-                                             const mp::Path& data_dir_path,
                                              const mp::days& days_to_expire)
     : BaseVMImageVault{image_hosts},
       url_downloader{downloader},
       cache_dir{QDir(cache_dir_path).filePath("vault")},
-      data_dir{QDir(data_dir_path).filePath("vault")},
       images_dir(cache_dir.filePath("images")),
       days_to_expire{days_to_expire},
-      prepared_image_records{load_db(cache_dir.filePath(image_db_name))},
-      instance_image_records{load_db(data_dir.filePath(instance_db_name))}
+      prepared_image_records{load_db(cache_dir.filePath(image_db_name))}
 {
     // TODO: Remove after Multipass 1.17
     // The OS field will be unpopulated for existing images in the vault. As of 1.16, the only
     // images in the prepared image records are Ubuntu images. Therefore, we can safely assume that
-    // if the OS field is empty, it was a previously existing Ubuntu cloud image. The same can be
-    // said for instance image records with instances created with the Alias Query::Type.
+    // if the OS field is empty, it was a previously existing Ubuntu cloud image.
     amend_db();
 }
 
@@ -153,17 +147,6 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const Query& query,
                                                  const std::optional<std::string>& checksum,
                                                  const mp::Path& save_dir)
 {
-    {
-        std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
-        auto name_entry = instance_image_records.find(query.name);
-        if (name_entry != instance_image_records.end())
-        {
-            const auto& record = name_entry->second;
-
-            return record.image;
-        }
-    }
-
     if (query.query_type == Query::Type::LocalFile)
     {
         QUrl image_url(QString::fromStdString(query.release));
@@ -193,14 +176,6 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const Query& query,
         vm_image.id = MP_IMAGE_VAULT_UTILS.compute_file_hash(vm_image.image_path);
 
         remove_source_images(source_image, vm_image);
-
-        {
-            std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
-            instance_image_records[query.name] = {vm_image,
-                                                  query,
-                                                  std::chrono::system_clock::now()};
-            persist_instance_records();
-        }
 
         return vm_image;
     }
@@ -354,21 +329,6 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const Query& query,
     }
 }
 
-void mp::DefaultVMImageVault::remove(const std::string& name)
-{
-    const auto& name_entry = instance_image_records.find(name);
-    if (name_entry == instance_image_records.end())
-        return;
-
-    instance_image_records.erase(name);
-    persist_instance_records();
-}
-
-bool mp::DefaultVMImageVault::has_record_for(const std::string& name)
-{
-    return instance_image_records.contains(name);
-}
-
 void mp::DefaultVMImageVault::prune_expired_images()
 {
     std::vector<decltype(prepared_image_records)::key_type> expired_keys;
@@ -479,41 +439,6 @@ void mp::DefaultVMImageVault::update_images(const PrepareAction& prepare,
                       e.what());
         }
     }
-}
-
-void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
-                                    const std::string& destination_instance_name)
-{
-    const auto source_iter = instance_image_records.find(source_instance_name);
-
-    if (source_iter == instance_image_records.end())
-    {
-        throw std::runtime_error(source_instance_name + " does not exist in the image records");
-    }
-
-    if (instance_image_records.contains(destination_instance_name))
-    {
-        throw std::runtime_error(destination_instance_name +
-                                 " already exists in the image records");
-    }
-
-    auto dest_vault_record = instance_image_records[source_instance_name];
-
-    // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
-    // "<src_name>"->"<dest_name>", because the second one might match other substrings of the
-    // metadata.
-    // The path might have mixed slashes \\ / in Windows. Normalize it before replace.
-    auto image_path = dest_vault_record.image.image_path.generic_string();
-    dest_vault_record.image.image_path =
-        boost::replace_all_copy(image_path,
-                                "instances/" + source_instance_name,
-                                "instances/" + destination_instance_name);
-
-    if (dest_vault_record.image.image_path.generic_string() == image_path)
-        throw std::runtime_error{"Path replace for the cloned image failed!"};
-
-    instance_image_records[destination_instance_name] = dest_vault_record;
-    persist_instance_records();
 }
 
 mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
@@ -627,25 +552,16 @@ mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query,
     VMImage vm_image;
 
     if (!query.name.empty())
-    {
         vm_image = image_instance_from(prepared_image, dest_dir);
-        instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
-    }
 
     // Do not save the instance name for prepared images
     Query prepared_query{query};
     prepared_query.name = "";
     prepared_image_records[id] = {prepared_image, prepared_query, std::chrono::system_clock::now()};
 
-    persist_instance_records();
     persist_image_records();
 
     return vm_image;
-}
-
-void mp::DefaultVMImageVault::persist_instance_records()
-{
-    persist_records(instance_image_records, data_dir.filePath(instance_db_name));
 }
 
 void mp::DefaultVMImageVault::persist_image_records()
@@ -660,16 +576,6 @@ void mp::DefaultVMImageVault::amend_db()
         auto& record = instance_image_entry.second;
 
         if (record.image.os.empty())
-        {
-            record.image.os = "Ubuntu";
-        }
-    }
-
-    for (auto& instance_image_entry : instance_image_records)
-    {
-        auto& record = instance_image_entry.second;
-
-        if (record.query.query_type == Query::Type::Alias && record.image.os.empty())
         {
             record.image.os = "Ubuntu";
         }

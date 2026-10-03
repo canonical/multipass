@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include "default_vm_image_vault.h"
-
 #include <multipass/network_interface_info.h>
 #include <multipass/path.h>
 #include <multipass/virtual_machine.h>
@@ -97,12 +95,9 @@ public:
     void prepare();
 
     [[nodiscard]] bool target_exists(const std::string& name) const;
-    [[nodiscard]] VaultRecord source_image_record(const std::string& name) const;
     [[nodiscard]] std::filesystem::path instance_dir(const std::string& name) const;
 
-    void commit(const std::string& name,
-                const VirtualMachineDescription& desc,
-                VaultRecord image_record);
+    void commit(const std::string& name, const VirtualMachineDescription& desc);
 
 private:
     static boost::json::object load_records(const std::filesystem::path& path);
@@ -113,11 +108,8 @@ private:
 
     std::filesystem::path target_root;
     std::filesystem::path target_vm_db;
-    std::filesystem::path target_image_db;
     std::filesystem::path instances_root;
-    boost::json::object source_image_records;
     boost::json::object target_vm_records;
-    boost::json::object target_image_records;
 };
 
 class DaemonHyperVInstanceMigrator final

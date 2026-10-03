@@ -18,6 +18,7 @@
 #include "daemon.h"
 #include "base_cloud_init_config.h"
 #include "daemon_init_settings.h"
+#include "default_vm_image_vault.h"
 #include "hyperv_driver_transition.h"
 #include "instance_settings_handler.h"
 #include "runtime_instance_info_helper.h"
@@ -389,20 +390,31 @@ std::string generate_next_clone_name(int clone_count, const std::string& source_
     return fmt::format("{}-clone{}", source_name, clone_count + 1);
 }
 
-auto fetch_image_for(const std::string& name,
-                     mp::VirtualMachineFactory& factory,
-                     mp::VMImageVault& vault)
+// TODO remove once no supported upgrade path has instance records in the vault
+boost::json::object load_legacy_image_records(const mp::Path& data_path)
 {
-    auto stub_prepare = [](const mp::VMImage&) -> mp::VMImage { return {}; };
-    auto stub_progress = [](int /*progress_type*/, int /*progress*/) { return true; };
+    const auto path = QDir{data_path}.filePath("vault/multipassd-instance-image-records.json");
+    try
+    {
+        if (const auto data = MP_FILEOPS.try_read_file(
+                std::filesystem::path{path.toStdU16String()});
+            data && !data->empty())
+            return boost::json::parse(*data).as_object();
+    }
+    catch (const std::exception& e)
+    {
+        mpl::warn(category, "Could not read the image records in {}: {}", path, e.what());
+    }
+    return {};
+}
 
-    mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
-
-    return vault.fetch_image(query,
-                             stub_prepare,
-                             stub_progress,
-                             std::nullopt,
-                             factory.get_instance_directory(name));
+mp::VMImage legacy_image_from(const boost::json::value& record)
+{
+    auto vault_record = value_to<mp::VaultRecord>(record);
+    // instances launched from aliases before 1.16 have no OS in their records
+    if (vault_record.query.query_type == mp::Query::Type::Alias && vault_record.image.os.empty())
+        vault_record.image.os = "Ubuntu";
+    return vault_record.image;
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -1543,28 +1555,38 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         mpl::warn(category, "Hypervisor health check failed: {}", e.what());
     }
 
+    const auto legacy_image_records = load_legacy_image_records(
+        mp::utils::backend_directory_path(config->data_directory,
+                                          config->factory->get_backend_directory_name()));
+
     for (const auto& entry : vm_instance_specs)
     {
         const auto& name = entry.first;
+        const auto instance_dir = config->factory->get_instance_directory(name);
 
-        if (!config->vault->has_record_for(name))
+        VirtualMachineDescription vm_desc{};
+        try
         {
+            // TODO remove once no supported upgrade path lacks these in the description
+            VirtualMachineDescription legacy_desc{};
+            legacy_desc.cloud_init_iso = MP_PLATFORM.qstr_to_path(instance_dir) /
+                                         cloud_init_file_name;
+            std::vector<const char*> keys{"cloud_init_iso"};
+            if (const auto* record = legacy_image_records.if_contains(name))
+            {
+                legacy_desc.image = legacy_image_from(*record);
+                keys.push_back("image");
+            }
+            migrate_vm_description(name, legacy_desc, keys, instance_dir);
+
+            vm_desc = load_vm_description(name, instance_dir);
+        }
+        catch (const std::exception& e)
+        {
+            mpl::warn(category, "{}", e.what());
             invalid_specs.push_back(name);
             continue;
         }
-
-        const auto instance_dir = config->factory->get_instance_directory(name);
-
-        // TODO remove once no supported upgrade path lacks these in the description
-        mp::VirtualMachineDescription vault_desc{};
-        vault_desc.image = fetch_image_for(name, *config->factory, *config->vault);
-        vault_desc.cloud_init_iso = MP_PLATFORM.qstr_to_path(instance_dir) / cloud_init_file_name;
-        migrate_vm_description(name,
-                               vault_desc,
-                               std::array{"image", "cloud_init_iso"},
-                               instance_dir);
-
-        auto vm_desc = load_vm_description(name, instance_dir);
         vm_desc.vm_name = name;
 
         if (!MP_FILEOPS.exists(vm_desc.image.image_path))
@@ -1663,7 +1685,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     {
         mpl::warn(category, "Removing invalid instance: {}", bad_spec);
         vm_instance_specs.erase(bad_spec);
-        config->vault->remove(bad_spec);
     }
 
     persist_instances(); // also drops any migrated resources from the db
@@ -3094,8 +3115,6 @@ try
 
         const auto dest_spec = vm_instance_specs.at(source_name);
 
-        config->vault->clone(source_name, destination_name);
-
         // Specs need to be in place before the factory can create the VM
         // Notice that we are passing `this`, which can be used to retrieve further info
         vm_instance_specs.emplace(destination_name, dest_spec);
@@ -3343,7 +3362,6 @@ void mp::Daemon::persist_instances()
 
 void mp::Daemon::release_resources(const std::string& instance)
 {
-    config->vault->remove(instance);
     config->factory->remove_resources_for(instance);
 
     for (const auto* instances : {&operative_instances, &deleted_instances})

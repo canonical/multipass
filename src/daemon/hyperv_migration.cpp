@@ -48,7 +48,6 @@ namespace mpl = multipass::logging;
 constexpr auto log_category = "Hyper-V migration records";
 constexpr auto target_backend = "hcs";
 constexpr auto vm_db_filename = "multipassd-vm-instances.json";
-constexpr auto image_db_filename = "multipassd-instance-image-records.json";
 
 fs::path as_path(const multipass::Path& path)
 {
@@ -135,11 +134,8 @@ std::vector<multipass::NetworkInterface> multipass::hyperv::translate_extra_inte
 multipass::hyperv::HyperVMigrationTargetRecords::HyperVMigrationTargetRecords(const Path& data_dir)
     : target_root{as_path(data_dir) / target_backend},
       target_vm_db{target_root / vm_db_filename},
-      target_image_db{target_root / "vault" / image_db_filename},
       instances_root{target_root / "vault" / "instances"},
-      source_image_records{load_records(as_path(data_dir) / "vault" / image_db_filename)},
-      target_vm_records{load_records(target_vm_db)},
-      target_image_records{load_records(target_image_db)}
+      target_vm_records{load_records(target_vm_db)}
 {
 }
 
@@ -185,16 +181,13 @@ void multipass::hyperv::HyperVMigrationTargetRecords::preflight() const
 {
     require_writable_location(target_root);
 
-    for (const auto& database : {target_vm_db, target_image_db})
+    if (MP_FILEOPS.exists(target_vm_db))
     {
-        if (!MP_FILEOPS.exists(database))
-            continue;
-
-        const QFileInfo info{QString::fromStdWString(database.wstring())};
+        const QFileInfo info{QString::fromStdWString(target_vm_db.wstring())};
         if (!info.isReadable() || !info.isWritable())
             throw std::runtime_error{
                 fmt::format("Migration target database '{}' is not readable and writable",
-                            database)};
+                            target_vm_db)};
     }
 }
 
@@ -249,11 +242,10 @@ void multipass::hyperv::HyperVMigrationTargetRecords::recover()
 
         if (target_vm_records.contains(name))
         {
-            if (manifest->phase != MigrationTransactionManifest::prepared_phase_name ||
-                !target_image_records.contains(name))
+            if (manifest->phase != MigrationTransactionManifest::prepared_phase_name)
             {
                 mpl::warn(log_category,
-                          "Committed target '{}' has incomplete image or ownership state; leaving "
+                          "Committed target '{}' has incomplete ownership state; leaving "
                           "its migration manifest in place for inspection",
                           name);
                 continue;
@@ -268,27 +260,9 @@ void multipass::hyperv::HyperVMigrationTargetRecords::recover()
         }
         else
         {
-            if (target_image_records.erase(name) > 0)
-                persist_records(target_image_records, target_image_db);
-
             if (remove_tree(path))
                 mpl::info(log_category, "Removed pre-commit migration orphan '{}'", name);
         }
-    }
-
-    for (auto it = target_image_records.begin(); it != target_image_records.end();)
-    {
-        const std::string name{it->key()};
-        std::error_code exists_error;
-        if (!target_vm_records.contains(name) &&
-            !MP_FILEOPS.exists(instance_dir(name), exists_error) && !exists_error)
-        {
-            it = target_image_records.erase(it);
-            persist_records(target_image_records, target_image_db);
-            mpl::info(log_category, "Removed orphan migration image record '{}'", name);
-        }
-        else
-            ++it;
     }
 }
 
@@ -296,26 +270,7 @@ bool multipass::hyperv::HyperVMigrationTargetRecords::target_exists(const std::s
 {
     const auto target_dir = instance_dir(name);
     std::error_code error;
-    return (MP_FILEOPS.exists(target_dir, error) && !error) || target_vm_records.contains(name) ||
-           target_image_records.contains(name);
-}
-
-multipass::VaultRecord multipass::hyperv::HyperVMigrationTargetRecords::source_image_record(
-    const std::string& name) const
-{
-    const auto* record = source_image_records.if_contains(name);
-    if (!record)
-        throw InstanceMigrationError{fmt::format("source image record for '{}' is missing", name)};
-
-    try
-    {
-        return boost::json::value_to<VaultRecord>(*record);
-    }
-    catch (const std::exception& error)
-    {
-        throw InstanceMigrationError{
-            fmt::format("source image record for '{}' is invalid: {}", name, error.what())};
-    }
+    return (MP_FILEOPS.exists(target_dir, error) && !error) || target_vm_records.contains(name);
 }
 
 std::filesystem::path multipass::hyperv::HyperVMigrationTargetRecords::instance_dir(
@@ -325,10 +280,9 @@ std::filesystem::path multipass::hyperv::HyperVMigrationTargetRecords::instance_
 }
 
 void multipass::hyperv::HyperVMigrationTargetRecords::commit(const std::string& name,
-                                                             const VirtualMachineDescription& desc,
-                                                             VaultRecord image_record)
+                                                             const VirtualMachineDescription& desc)
 {
-    if (target_vm_records.contains(name) || target_image_records.contains(name))
+    if (target_vm_records.contains(name))
         throw MigrationAbortError{
             fmt::format("target records for '{}' appeared during migration", name)};
 
@@ -351,25 +305,7 @@ void multipass::hyperv::HyperVMigrationTargetRecords::commit(const std::string& 
         throw MigrationAbortError{
             fmt::format("prepared target '{}' has incomplete transaction metadata", name)};
 
-    const auto persist = [&name](auto& records,
-                                 const auto& path,
-                                 const auto& record,
-                                 const char* kind) {
-        records[name] = boost::json::value_from(record);
-        try
-        {
-            persist_records(records, path);
-        }
-        catch (const std::exception& error)
-        {
-            throw MigrationAbortError{fmt::format("could not persist target {} record for '{}': {}",
-                                                  kind,
-                                                  name,
-                                                  error.what())};
-        }
-    };
-    // The VM record makes the target visible, so its description and image record must be durable
-    // first.
+    // The VM record makes the target visible, so its description must be durable first.
     try
     {
         MP_FILEOPS.write_transactionally(target_dir / vm_description_file_name,
@@ -380,8 +316,17 @@ void multipass::hyperv::HyperVMigrationTargetRecords::commit(const std::string& 
         throw MigrationAbortError{
             fmt::format("could not persist target description for '{}': {}", name, error.what())};
     }
-    persist(target_image_records, target_image_db, image_record, "image");
-    persist(target_vm_records, target_vm_db, boost::json::object{}, "VM");
+
+    target_vm_records[name] = boost::json::object{};
+    try
+    {
+        persist_records(target_vm_records, target_vm_db);
+    }
+    catch (const std::exception& error)
+    {
+        throw MigrationAbortError{
+            fmt::format("could not persist target VM record for '{}': {}", name, error.what())};
+    }
 
     std::error_code remove_error;
     if (!MP_FILEOPS.remove(target_dir / MigrationTransactionManifest::filename, remove_error) ||
@@ -484,7 +429,6 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
         // would make the daemon auto-start the migrated instance on its next launch.
         target_desc.state = VirtualMachine::State::stopped;
         target_desc.extra_interfaces = translated_interfaces(target_desc.extra_interfaces);
-        auto image_record = target_records.source_image_record(name);
 
         phase("inspecting source disk layout");
         auto layout = resolve_legacy_disk_layout(name, *vm_it->second);
@@ -500,13 +444,12 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
         transaction.verify(mapping);
         phase("committing the migrated instance");
         transaction.commit(mapping);
-        image_record.image.image_path = mapping.active_disk;
         target_desc.image.image_path = mapping.active_disk;
         target_desc.cloud_init_iso = target_records.instance_dir(name) /
                                      target_desc.cloud_init_iso.filename();
 
         phase("Committing target records");
-        target_records.commit(name, target_desc, std::move(image_record));
+        target_records.commit(name, target_desc);
         return std::nullopt;
     }
     catch (const MigrationAbortError&)
