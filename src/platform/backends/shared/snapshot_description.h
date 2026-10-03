@@ -30,7 +30,7 @@
 
 namespace multipass
 {
-class VirtualMachineDescription;
+struct VirtualMachineDescription;
 
 struct SnapshotContext
 {

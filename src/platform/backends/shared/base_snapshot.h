@@ -33,7 +33,7 @@ namespace multipass
 {
 struct VMSpecs;
 
-class VirtualMachineDescription;
+struct VirtualMachineDescription;
 
 class BaseSnapshot : public Snapshot
 {

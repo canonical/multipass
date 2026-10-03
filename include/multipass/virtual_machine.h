@@ -45,7 +45,7 @@ class VMMount;
 struct VMSpecs;
 class MountHandler;
 class Snapshot;
-class VirtualMachineDescription;
+struct VirtualMachineDescription;
 
 class VirtualMachine : private DisabledCopyMove
 {

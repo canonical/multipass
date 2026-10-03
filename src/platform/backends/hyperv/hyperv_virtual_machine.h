@@ -36,7 +36,7 @@ struct NetworkInterface;
 struct VMSpecs;
 class PowerShell;
 class SSHKeyProvider;
-class VirtualMachineDescription;
+struct VirtualMachineDescription;
 class VMStatusMonitor;
 
 class HyperVVirtualMachine final : public BaseVirtualMachine

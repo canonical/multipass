@@ -33,7 +33,7 @@ namespace multipass
 {
 class SSHKeyProvider;
 class URLDownloader;
-class VirtualMachineDescription;
+struct VirtualMachineDescription;
 class VMImageHost;
 class VMStatusMonitor;
 class MemorySize;

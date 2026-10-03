@@ -29,7 +29,7 @@ namespace multipass
 {
 class PowerShell;
 class SSHKeyProvider;
-class VirtualMachineDescription;
+struct VirtualMachineDescription;
 class VMStatusMonitor;
 
 class VirtualBoxVirtualMachine final : public BaseVirtualMachine

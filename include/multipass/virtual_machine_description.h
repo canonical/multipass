@@ -36,9 +36,8 @@
 
 namespace multipass
 {
-class VirtualMachineDescription
+struct VirtualMachineDescription
 {
-public:
     int num_cores;
     MemorySize mem_size;
     MemorySize disk_space;

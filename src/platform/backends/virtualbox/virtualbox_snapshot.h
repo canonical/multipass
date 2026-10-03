@@ -22,7 +22,7 @@
 namespace multipass
 {
 class VirtualBoxVirtualMachine;
-class VirtualMachineDescription;
+struct VirtualMachineDescription;
 
 class VirtualBoxSnapshot : public BaseSnapshot
 {

@@ -24,7 +24,7 @@
 namespace multipass
 {
 class QemuVirtualMachine;
-class VirtualMachineDescription;
+struct VirtualMachineDescription;
 
 class QemuSnapshot : public BaseSnapshot
 {

@@ -30,7 +30,7 @@
 
 namespace multipass
 {
-class VirtualMachineDescription;
+struct VirtualMachineDescription;
 
 boost::json::object update_unique_identifiers_of_metadata(
     const boost::json::object& metadata,
