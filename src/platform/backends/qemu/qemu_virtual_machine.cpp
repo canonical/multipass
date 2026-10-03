@@ -432,7 +432,7 @@ mp::VirtualMachine::State mp::QemuVirtualMachine::current_state()
 
 void mp::QemuVirtualMachine::handle_state_update()
 {
-    monitor.persist_state_for(vm_name, state);
+    persist_state();
 }
 
 void mp::QemuVirtualMachine::on_started()

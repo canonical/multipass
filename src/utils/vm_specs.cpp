@@ -29,7 +29,6 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
                     const mp::VMSpecs& specs)
 {
     json = {
-        {"state", static_cast<int>(specs.state)},
         {"deleted", specs.deleted},
         {"mounts", boost::json::value_from(specs.mounts, MapAsJsonArray{"target_path"})},
         {"clone_count", specs.clone_count},
@@ -51,7 +50,6 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
 
     using mounts_t = std::unordered_map<std::string, VMMount>;
     return {
-        static_cast<mp::VirtualMachine::State>(value_to<int>(json.at("state"))),
         value_to<mounts_t>(json.at("mounts"), MapAsJsonArray{"target_path"}),
         deleted,
         lookup_or<int>(json, "clone_count", 0),

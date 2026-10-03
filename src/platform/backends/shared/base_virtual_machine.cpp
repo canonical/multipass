@@ -38,7 +38,6 @@
 #include <scope_guard.hpp>
 
 #include <QDir>
-#include <QFileInfo>
 #include <QRegularExpression>
 #include <QString>
 
@@ -129,8 +128,7 @@ mp::BaseVirtualMachine::BaseVirtualMachine(State state,
       zone{zone},
       instance_dir{instance_dir}
 {
-    if (!MP_FILEOPS.exists(QFileInfo{this->instance_dir.filePath(vm_description_file_name)}))
-        persist_description();
+    persist_description();
 }
 
 mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
@@ -139,6 +137,12 @@ void mp::BaseVirtualMachine::persist_description() const
 {
     MP_FILEOPS.write_transactionally(instance_dir.filePath(vm_description_file_name),
                                      pretty_print(boost::json::value_from(desc)));
+}
+
+void mp::BaseVirtualMachine::persist_state()
+{
+    desc.state = state;
+    persist_description();
 }
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
@@ -917,7 +921,6 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
     const auto head_path = derive_head_path(instance_dir);
     auto rollback = make_restore_rollback(head_path, specs);
 
-    specs.state = snapshot->get_state();
     const bool are_extra_interfaces_different = desc.extra_interfaces !=
                                                 snapshot->get_extra_interfaces();
     specs.mounts = snapshot->get_mounts();

@@ -20,6 +20,7 @@
 #include <multipass/memory_size.h>
 #include <multipass/network_interface.h>
 #include <multipass/path.h>
+#include <multipass/virtual_machine.h>
 #include <multipass/vm_image.h>
 
 #include <yaml-cpp/yaml.h>
@@ -53,6 +54,7 @@ public:
     YAML::Node vendor_data_config;
     YAML::Node network_data_config;
     boost::json::object metadata;
+    VirtualMachine::State state;
 };
 
 void tag_invoke(const boost::json::value_from_tag&,

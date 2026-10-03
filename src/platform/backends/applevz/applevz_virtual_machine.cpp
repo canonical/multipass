@@ -263,7 +263,7 @@ std::optional<IPAddress> AppleVZVirtualMachine::management_ipv4()
 void AppleVZVirtualMachine::handle_state_update()
 {
     if (update_shutdown_status)
-        monitor.persist_state_for(vm_name, state);
+        persist_state();
 }
 
 void AppleVZVirtualMachine::resize_disk_impl(const MemorySize& new_size)

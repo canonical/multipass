@@ -498,7 +498,7 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
 
 void mp::VirtualBoxVirtualMachine::handle_state_update()
 {
-    monitor.persist_state_for(vm_name, state);
+    persist_state();
 }
 
 std::string mp::VirtualBoxVirtualMachine::ssh_hostname()

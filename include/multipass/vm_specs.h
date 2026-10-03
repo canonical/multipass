@@ -33,7 +33,6 @@ namespace multipass
 {
 struct VMSpecs
 {
-    VirtualMachine::State state;
     std::unordered_map<std::string, VMMount> mounts;
     bool deleted;
     int clone_count =

@@ -217,6 +217,7 @@ private:
 
 protected:
     void persist_description() const;
+    void persist_state();
 
     const std::string vm_name;
     VirtualMachineDescription desc;

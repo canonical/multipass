@@ -136,7 +136,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                     vm.get_mem_size(),
                     vm.get_disk_space(),
                     vm_desc.extra_interfaces,
-                    specs.state,
+                    vm_desc.state,
                     specs.mounts,
                     vm_desc.metadata},
                    std::move(parent),
@@ -212,6 +212,7 @@ void mp::BaseSnapshot::apply()
     vm_desc.disk_space = desc.disk_space;
     vm_desc.extra_interfaces = std::move(extra_interfaces);
     vm_desc.metadata = std::move(metadata);
+    vm_desc.state = desc.state;
     // no need to persist here for the time being: only private fields of the base class are
     // persisted for now, and those cannot be affected by apply_impl (except by setters, which
     // already persist)

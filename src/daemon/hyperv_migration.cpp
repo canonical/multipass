@@ -488,10 +488,10 @@ multipass::hyperv::InstanceMigrationResult multipass::hyperv::DaemonHyperVInstan
 
         phase("Preparing networking");
         auto target_spec = source_spec;
+        auto target_desc = vm_it->second->get_description();
         // Hyper-V reported the VM as off, so the cached state may be stale. A `running` record
         // would make the daemon auto-start the migrated instance on its next launch.
-        target_spec.state = VirtualMachine::State::stopped;
-        auto target_desc = vm_it->second->get_description();
+        target_desc.state = VirtualMachine::State::stopped;
         target_desc.extra_interfaces = translated_interfaces(target_desc.extra_interfaces);
         auto image_record = target_records.source_image_record(name);
 

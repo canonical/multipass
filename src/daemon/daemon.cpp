@@ -242,7 +242,7 @@ auto name_from(const std::string& requested_name,
 std::optional<mp::VirtualMachineDescription>
 legacy_description_from(const boost::json::value& record, const std::string& default_zone)
 {
-    if (!record.as_object().contains("metadata"))
+    if (!record.as_object().contains("state"))
         return std::nullopt;
 
     // keys already moved by earlier versions get defaults here, which never overwrite the file
@@ -260,7 +260,8 @@ legacy_description_from(const boost::json::value& record, const std::string& def
     desc.extra_interfaces = mp::lookup_or<std::vector<mp::NetworkInterface>>(record,
                                                                              "extra_interfaces",
                                                                              {});
-    desc.metadata = record.at("metadata").as_object();
+    desc.metadata = mp::lookup_or<boost::json::object>(record, "metadata", {});
+    desc.state = static_cast<mp::VirtualMachine::State>(value_to<int>(record.at("state")));
     return desc;
 }
 
@@ -1573,6 +1574,18 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         auto& instance_records_table = spec_copy.deleted ? deleted_instances : operative_instances;
 
+        // FIXME: somehow we're writing contradictory state to disk.
+        if (spec_copy.deleted && vm_desc.state != e_state::stopped && vm_desc.state != e_state::off)
+        {
+            mpl::warn(
+                category,
+                "{} is deleted but has incompatible state {}, resetting state to {} (stopped)",
+                name,
+                static_cast<int>(vm_desc.state),
+                static_cast<int>(e_state::stopped));
+            vm_desc.state = e_state::stopped;
+        }
+
         auto instance = instance_records_table[name] = config->factory->create_virtual_machine(
             vm_desc,
             *config->ssh_key_provider,
@@ -1582,23 +1595,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         // Add the new macs to the daemon's list only if we got this far
         allocated_mac_addrs = std::move(new_macs);
 
-        // FIXME: somehow we're writing contradictory state to disk.
         if (spec_copy.deleted)
-        {
-            if (spec_copy.state != e_state::stopped && spec_copy.state != e_state::off)
-            {
-                mpl::warn(
-                    category,
-                    "{} is deleted but has incompatible state {}, resetting state to {} (stopped)",
-                    name,
-                    static_cast<int>(spec_copy.state),
-                    static_cast<int>(e_state::stopped));
-                assert(vm_instance_specs.contains(name));
-                auto& mutable_spec = vm_instance_specs[name];
-                mutable_spec.state = e_state::stopped;
-            }
             continue;
-        }
 
         // No deleted spec must cross this boundary.
         assert(!spec_copy.deleted);
@@ -1607,7 +1605,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         std::unique_lock lock{start_mutex};
 
         // Was running before shutdown?
-        if (spec_copy.state == e_state::running)
+        if (vm_desc.state == e_state::running)
         {
             assert(operative_instances.contains(name));
             // If the VM was in running state before, we need to do some additional
@@ -3332,12 +3330,6 @@ void mp::Daemon::on_restart(const std::string& name)
                           std::string()));
 }
 
-void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine::State& state)
-{
-    vm_instance_specs[name].state = state;
-    persist_instances();
-}
-
 void mp::Daemon::persist_instances()
 {
     auto instance_records_json = boost::json::value_from(vm_instance_specs);
@@ -3442,7 +3434,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                  });
 
                              vm_instance_specs[name] = {
-                                 VirtualMachine::State::off,
                                  {},
                                  false,
                                  0,

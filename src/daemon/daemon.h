@@ -67,7 +67,6 @@ protected:
     void on_shutdown() override;
     void on_suspend() override;
     void on_restart(const std::string& name) override;
-    void persist_state_for(const std::string& name, const VirtualMachine::State& state) override;
 
 public slots:
     virtual void create(const CreateRequest* request,

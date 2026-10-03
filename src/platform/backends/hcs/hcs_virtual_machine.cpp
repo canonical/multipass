@@ -663,7 +663,7 @@ void HCSVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs
 
 void HCSVirtualMachine::handle_state_update()
 {
-    monitor.persist_state_for(get_name(), state);
+    persist_state();
 }
 
 hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api() const

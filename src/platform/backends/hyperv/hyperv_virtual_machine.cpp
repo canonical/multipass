@@ -466,7 +466,7 @@ void mp::HyperVVirtualMachine::handle_state_update()
         mpl::debug(vm_name, "Invalidating cached mgmt IP address upon state update");
         management_ip = std::nullopt;
     }
-    monitor.persist_state_for(vm_name, state);
+    persist_state();
 }
 
 std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
