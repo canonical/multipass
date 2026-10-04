@@ -33,7 +33,6 @@
 #include <multipass/exceptions/availability_zone_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
-#include <multipass/exceptions/ghost_instance_exception.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
@@ -341,10 +340,22 @@ mp::VirtualMachineDescription load_vm_description(const std::string& name, const
     }
 }
 
-std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
-                                                     const mp::Path& cache_path,
-                                                     const mp::AvailabilityZoneManager& az_manager,
-                                                     const mp::VirtualMachineFactory& factory)
+// TODO remove once no supported upgrade path has these fields in the instance db
+bool is_ghost(const boost::json::value& record)
+{
+    // Ghost records predate vm-description.json, so only records with the legacy keys qualify
+    return record.as_object().contains("num_cores") && !value_to<int>(record.at("num_cores")) &&
+           !mp::lookup_or<bool>(record, "deleted", false) &&
+           mp::lookup_or<std::string>(record, "ssh_username", "").empty() &&
+           mp::lookup_or<boost::json::object>(record, "metadata", {}).empty() &&
+           !mp::MemorySize{mp::lookup_or<std::string>(record, "mem_size", "")}.in_bytes() &&
+           !mp::MemorySize{mp::lookup_or<std::string>(record, "disk_space", "")}.in_bytes();
+}
+
+std::set<std::string> load_db(const mp::Path& data_path,
+                              const mp::Path& cache_path,
+                              const mp::AvailabilityZoneManager& az_manager,
+                              const mp::VirtualMachineFactory& factory)
 {
     QDir data_dir{data_path};
     QDir cache_dir{cache_path};
@@ -367,23 +378,20 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
         return {};
     }
 
-    std::unordered_map<std::string, mp::VMSpecs> reconstructed_records;
+    std::set<std::string> names;
     for (const auto& [key, record] : records.as_object())
     {
-        try
-        {
-            reconstructed_records.emplace(key, value_to<mp::VMSpecs>(record));
-        }
-        catch (mp::GhostInstanceException&)
+        if (is_ghost(record))
         {
             mpl::warn(category, "Ignoring ghost instance in database: {}", key);
             continue;
         }
+        names.emplace(key);
 
         if (const auto legacy = legacy_description_from(record, az_manager.get_default_zone_name()))
             migrate_vm_description(key, *legacy, legacy_keys, factory.get_instance_directory(key));
     }
-    return reconstructed_records;
+    return names;
 }
 
 std::string generate_next_clone_name(int clone_count, const std::string& source_name)
@@ -1522,7 +1530,7 @@ void mp::Daemon::connect_rpc(DaemonRpc& rpc)
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
-      vm_instance_specs{
+      instance_names{
           load_db(mp::utils::backend_directory_path(config->data_directory,
                                                     config->factory->get_backend_directory_name()),
                   mp::utils::backend_directory_path(config->cache_directory,
@@ -1545,7 +1553,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     using e_state = VirtualMachine::State;
 
     connect_rpc(daemon_rpc);
-    std::vector<std::string> invalid_specs;
+    std::vector<std::string> invalid_instances;
 
     try
     {
@@ -1560,9 +1568,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         mp::utils::backend_directory_path(config->data_directory,
                                           config->factory->get_backend_directory_name()));
 
-    for (const auto& entry : vm_instance_specs)
+    for (const auto& name : instance_names)
     {
-        const auto& name = entry.first;
         const auto instance_dir = config->factory->get_instance_directory(name);
 
         VirtualMachineDescription vm_desc{};
@@ -1585,7 +1592,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         catch (const std::exception& e)
         {
             mpl::warn(category, "{}", e.what());
-            invalid_specs.push_back(name);
+            invalid_instances.push_back(name);
             continue;
         }
         vm_desc.vm_name = name;
@@ -1596,7 +1603,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                       "Could not find image for '{}'. Expected location: {}",
                       name,
                       vm_desc.image.image_path);
-            invalid_specs.push_back(name);
+            invalid_instances.push_back(name);
             continue;
         }
 
@@ -1611,7 +1618,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         {
             // There is at least one repeated address in new_macs.
             mpl::warn(category, "{} has repeated MAC addresses", name);
-            invalid_specs.push_back(name);
+            invalid_instances.push_back(name);
             continue;
         }
 
@@ -1682,10 +1689,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
     }
 
-    for (const auto& bad_spec : invalid_specs)
+    for (const auto& bad_instance : invalid_instances)
     {
-        mpl::warn(category, "Removing invalid instance: {}", bad_spec);
-        vm_instance_specs.erase(bad_spec);
+        mpl::warn(category, "Removing invalid instance: {}", bad_instance);
+        instance_names.erase(bad_instance);
     }
 
     persist_instances(); // also drops any migrated resources from the db
@@ -3114,11 +3121,7 @@ try
                     allocated_mac_addrs.erase(mac);
             });
 
-        const auto dest_spec = vm_instance_specs.at(source_name);
-
-        // Specs need to be in place before the factory can create the VM
-        // Notice that we are passing `this`, which can be used to retrieve further info
-        vm_instance_specs.emplace(destination_name, dest_spec);
+        instance_names.insert(destination_name);
         operative_instances[destination_name] =
             config->factory->clone_bare_vm(src_desc, dest_desc, *config->ssh_key_provider, *this);
         release_dest_macs.dismiss();
@@ -3354,11 +3357,13 @@ void mp::Daemon::on_restart(const std::string& name)
 
 void mp::Daemon::persist_instances()
 {
-    auto instance_records_json = boost::json::value_from(vm_instance_specs);
+    boost::json::object records;
+    for (const auto& name : instance_names)
+        records[name] = boost::json::object{};
+
     QDir data_dir{mp::utils::backend_directory_path(config->data_directory,
                                                     config->factory->get_backend_directory_name())};
-    MP_FILEOPS.write_transactionally(data_dir.filePath(instance_db_name),
-                                     pretty_print(instance_records_json));
+    MP_FILEOPS.write_transactionally(data_dir.filePath(instance_db_name), pretty_print(records));
 }
 
 void mp::Daemon::release_resources(const std::string& instance)
@@ -3370,7 +3375,7 @@ void mp::Daemon::release_resources(const std::string& instance)
             for (const auto& mac : mac_set_from(it->second->get_description()))
                 allocated_mac_addrs.erase(mac);
 
-    vm_instance_specs.erase(instance);
+    instance_names.erase(instance);
 }
 
 void mp::Daemon::create_vm(const CreateRequest* request,
@@ -3454,7 +3459,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                          allocated_mac_addrs.erase(mac);
                                  });
 
-                             vm_instance_specs[name] = {};
+                             instance_names.insert(name);
                              operative_instances[name] = config->factory->create_virtual_machine(
                                  vm_desc,
                                  *config->ssh_key_provider,

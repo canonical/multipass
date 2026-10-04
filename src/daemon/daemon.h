@@ -25,7 +25,6 @@
 #include <multipass/format.h>
 #include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
-#include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
 
 #include <atomic>
@@ -34,6 +33,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
@@ -265,7 +265,7 @@ private:
     std::unique_ptr<const DaemonConfig> config;
 
 protected:
-    std::unordered_map<std::string, VMSpecs> vm_instance_specs;
+    std::set<std::string> instance_names;
     InstanceTable operative_instances;
 
     // TODO hyperv migration, remove
