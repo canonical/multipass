@@ -291,10 +291,10 @@ void mp::QemuVirtualMachine::start()
             for (const auto& arg : mount_data.second)
                 proc_args.removeOne(arg);
 
-        desc.metadata = generate_metadata(qemu_platform->vmstate_platform_args(),
+        auto metadata = generate_metadata(qemu_platform->vmstate_platform_args(),
                                           proc_args,
                                           mount_args);
-        persist_description();
+        update_description([&metadata](auto& d) { d.metadata = std::move(metadata); });
     }
 
     vm_process->start();

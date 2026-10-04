@@ -140,26 +140,22 @@ void mp::BaseVirtualMachine::persist_description() const
 
 void mp::BaseVirtualMachine::persist_state()
 {
-    desc.state = state;
-    persist_description();
+    update_description([this](auto& d) { d.state = state; });
 }
 
 void mp::BaseVirtualMachine::increment_clone_count()
 {
-    ++desc.clone_count;
-    persist_description();
+    update_description([](auto& d) { ++d.clone_count; });
 }
 
 void mp::BaseVirtualMachine::set_deleted(bool deleted)
 {
-    desc.deleted = deleted;
-    persist_description();
+    update_description([deleted](auto& d) { d.deleted = deleted; });
 }
 
 void mp::BaseVirtualMachine::set_mounts(const std::unordered_map<std::string, VMMount>& mounts)
 {
-    desc.mounts = mounts;
-    persist_description();
+    update_description([&mounts](auto& d) { d.mounts = mounts; });
 }
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
@@ -429,8 +425,7 @@ void mp::BaseVirtualMachine::update_cpus(int num_cores)
     mpl::debug(vm_name, "update_cpus() -> num_cores `{}`", num_cores);
 
     update_cpus_impl(num_cores);
-    desc.num_cores = num_cores;
-    persist_description();
+    update_description([num_cores](auto& d) { d.num_cores = num_cores; });
 }
 
 void mp::BaseVirtualMachine::resize_memory(const MemorySize& new_size)
@@ -439,8 +434,7 @@ void mp::BaseVirtualMachine::resize_memory(const MemorySize& new_size)
     mpl::debug(vm_name, "resize_memory() -> new_size `{}` MiB", new_size.in_megabytes());
 
     resize_memory_impl(new_size);
-    desc.mem_size = new_size;
-    persist_description();
+    update_description([&new_size](auto& d) { d.mem_size = new_size; });
 }
 
 void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMessages& messages)
@@ -449,8 +443,7 @@ void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMes
     mpl::debug(vm_name, "resize_disk() -> new_size `{}` MiB", new_size.in_megabytes());
 
     resize_disk_impl(new_size);
-    desc.disk_space = new_size;
-    persist_description();
+    update_description([&new_size](auto& d) { d.disk_space = new_size; });
 
     if (is_core())
         messages.add_message(core_image_disk_resize_message());
@@ -461,8 +454,8 @@ void mp::BaseVirtualMachine::add_network_interface(const NetworkInterface& extra
     add_network_interface_impl(static_cast<int>(desc.extra_interfaces.size()),
                                desc.default_mac_address,
                                extra_interface);
-    desc.extra_interfaces.push_back(extra_interface);
-    persist_description();
+    update_description(
+        [&extra_interface](auto& d) { d.extra_interfaces.push_back(extra_interface); });
 }
 
 auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
@@ -930,19 +923,19 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name)
         persist_head_snapshot_index(head_path);
     }
 
-    snapshot->apply();
+    update_description([&](auto& d) {
+        snapshot->apply(); // writes d through the snapshot's reference
 
-    if (are_extra_interfaces_different)
-    {
-        // here we can use default_mac_address of the current state because it is an immutable
-        // variable.
-        apply_extra_interfaces_and_instance_id_to_cloud_init(
-            desc.default_mac_address,
-            snapshot->get_extra_interfaces(),
-            snapshot->get_cloud_init_instance_id());
-    }
-
-    persist_description();
+        if (are_extra_interfaces_different)
+        {
+            // here we can use default_mac_address of the current state because it is an immutable
+            // variable.
+            apply_extra_interfaces_and_instance_id_to_cloud_init(
+                d.default_mac_address,
+                snapshot->get_extra_interfaces(),
+                snapshot->get_cloud_init_instance_id());
+        }
+    });
 
     rollback.dismiss();
 }

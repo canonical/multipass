@@ -29,7 +29,6 @@
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
-#include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
 #include <shared/windows/net_io_api.h>
 #include <shared/windows/network_utils.h>

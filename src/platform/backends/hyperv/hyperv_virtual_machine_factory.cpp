@@ -24,7 +24,6 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
 #include <multipass/virtual_machine_description.h>
-#include <multipass/vm_specs.h>
 
 #include <shared/windows/powershell.h>
 

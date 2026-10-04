@@ -214,7 +214,8 @@ private:
     void timeout_ssh();
 
 protected:
-    void persist_description() const;
+    template <typename Mutate>
+    void update_description(Mutate&& mutate);
     void persist_state();
 
     const std::string vm_name;
@@ -227,16 +228,27 @@ protected:
     bool shutdown_while_starting = false;
 
 private:
+    void persist_description() const; // requires desc_mutex, except during construction
+
     std::string saved_error_msg = "";
     std::unique_ptr<SSHSession> ssh_session = nullptr;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
     int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless of deletes)
     mutable std::recursive_mutex snapshot_mutex;
+    mutable std::mutex desc_mutex; // acquire after snapshot_mutex and state_mutex
     bool was_running{false};
 };
 
 } // namespace multipass
+
+template <typename Mutate>
+void multipass::BaseVirtualMachine::update_description(Mutate&& mutate)
+{
+    const std::lock_guard lock{desc_mutex};
+    std::forward<Mutate>(mutate)(desc);
+    persist_description();
+}
 
 inline int multipass::BaseVirtualMachine::get_num_snapshots() const
 {
@@ -246,21 +258,25 @@ inline int multipass::BaseVirtualMachine::get_num_snapshots() const
 
 inline multipass::VirtualMachineDescription multipass::BaseVirtualMachine::get_description() const
 {
+    const std::lock_guard lock{desc_mutex};
     return desc;
 }
 
 inline int multipass::BaseVirtualMachine::get_num_cores() const
 {
+    const std::lock_guard lock{desc_mutex};
     return desc.num_cores;
 }
 
 inline multipass::MemorySize multipass::BaseVirtualMachine::get_mem_size() const
 {
+    const std::lock_guard lock{desc_mutex};
     return desc.mem_size;
 }
 
 inline multipass::MemorySize multipass::BaseVirtualMachine::get_disk_space() const
 {
+    const std::lock_guard lock{desc_mutex};
     return desc.disk_space;
 }
 
