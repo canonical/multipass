@@ -25,6 +25,7 @@
 #include "snapshot_settings_handler.h"
 
 #include <multipass/alias_definition.h>
+#include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 
@@ -3535,15 +3536,14 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 config->ssh_username,
                 VMImage{},
                 MP_PLATFORM.qstr_to_path(config->factory->get_instance_directory(name)) /
-                    cloud_init_file_name,
-                YAML::Node{},
-                YAML::Node{},
-                make_cloud_init_vendor_config(
-                    *config->ssh_key_provider,
-                    config->ssh_username,
-                    config->factory->get_backend_version_string().toStdString(),
-                    request),
-                YAML::Node{}};
+                    cloud_init_file_name};
+
+            CloudInitConfig cloud_init{};
+            cloud_init.vendor_data = make_cloud_init_vendor_config(
+                *config->ssh_key_provider,
+                config->ssh_username,
+                config->factory->get_backend_version_string().toStdString(),
+                request);
 
             query = query_from(request, name);
             vm_desc.mem_size = checked_args.mem_size;
@@ -3606,19 +3606,19 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
             vm_desc.extra_interfaces = checked_args.extra_interfaces;
 
-            vm_desc.meta_data_config = mpu::make_cloud_init_meta_config(name);
-            vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
-            prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
+            cloud_init.meta_data = mpu::make_cloud_init_meta_config(name);
+            cloud_init.user_data = YAML::Load(request->cloud_init_user_data());
+            prepare_user_data(cloud_init.user_data, cloud_init.vendor_data);
 
             if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
                 vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 
-            vm_desc.network_data_config = mpu::make_cloud_init_network_config(
+            cloud_init.network_data = mpu::make_cloud_init_network_config(
                 vm_desc.default_mac_address,
                 checked_args.extra_interfaces);
 
             vm_desc.image = vm_image;
-            config->factory->configure(vm_desc);
+            config->factory->configure(vm_desc, cloud_init);
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
             // Everything went well, add the MAC addresses used in this instance.
@@ -4218,12 +4218,6 @@ mp::VirtualMachineDescription mp::Daemon::clone_description(
             extra_interface.mac_address = generate_unused_mac_address(allocated_mac_addrs);
         }
     }
-
-    // YAML::Node copies alias the source's nodes
-    dest_desc.meta_data_config = YAML::Node{};
-    dest_desc.user_data_config = YAML::Node{};
-    dest_desc.vendor_data_config = YAML::Node{};
-    dest_desc.network_data_config = YAML::Node{};
 
     // non qemu snapshot files do not have metadata
     if (!dest_desc.metadata.empty())

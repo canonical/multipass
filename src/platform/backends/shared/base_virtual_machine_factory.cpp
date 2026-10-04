@@ -18,8 +18,10 @@
 #include "base_virtual_machine_factory.h"
 #include "multipass/platform.h"
 
+#include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
+#include <multipass/file_ops.h>
 #include <multipass/memory_size.h>
 #include <multipass/network_interface.h>
 #include <multipass/network_interface_info.h>
@@ -37,16 +39,17 @@ mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_d
                                                          AvailabilityZoneManager& az_manager)
     : az_manager{az_manager}, instances_dir{instances_dir} {};
 
-void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
+void mp::BaseVirtualMachineFactory::configure(const VirtualMachineDescription& vm_desc,
+                                              const CloudInitConfig& cloud_init)
 {
-    if (!QFile::exists(MP_PLATFORM.path_to_qstr(vm_desc.cloud_init_iso)))
+    if (!MP_FILEOPS.exists(vm_desc.cloud_init_iso))
     {
         mp::CloudInitIso iso;
-        iso.add_file("meta-data", mpu::emit_cloud_config(vm_desc.meta_data_config));
-        iso.add_file("vendor-data", mpu::emit_cloud_config(vm_desc.vendor_data_config));
-        iso.add_file("user-data", mpu::emit_cloud_config(vm_desc.user_data_config));
-        if (!vm_desc.network_data_config.IsNull())
-            iso.add_file("network-config", mpu::emit_cloud_config(vm_desc.network_data_config));
+        iso.add_file("meta-data", mpu::emit_cloud_config(cloud_init.meta_data));
+        iso.add_file("vendor-data", mpu::emit_cloud_config(cloud_init.vendor_data));
+        iso.add_file("user-data", mpu::emit_cloud_config(cloud_init.user_data));
+        if (!cloud_init.network_data.IsNull())
+            iso.add_file("network-config", mpu::emit_cloud_config(cloud_init.network_data));
 
         iso.write_to(vm_desc.cloud_init_iso);
     }

@@ -24,13 +24,9 @@
 #include "vm_image.h"
 #include "vm_image_vault.h"
 
-namespace YAML
-{
-class Node;
-}
-
 namespace multipass
 {
+struct CloudInitConfig;
 class SSHKeyProvider;
 class URLDownloader;
 struct VirtualMachineDescription;
@@ -74,7 +70,8 @@ public:
                                                   URLDownloader* downloader,
                                                   const Path& cache_dir_path,
                                                   const days& days_to_expire) = 0;
-    virtual void configure(VirtualMachineDescription& vm_desc) = 0;
+    virtual void configure(const VirtualMachineDescription& vm_desc,
+                           const CloudInitConfig& cloud_init) = 0;
 
     // List all the network interfaces seen by the backend.
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;

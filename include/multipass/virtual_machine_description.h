@@ -23,8 +23,6 @@
 #include <multipass/vm_image.h>
 #include <multipass/vm_mount.h>
 
-#include <yaml-cpp/yaml.h>
-
 #include <boost/json.hpp>
 
 #include <filesystem>
@@ -48,10 +46,6 @@ struct VirtualMachineDescription
     std::string ssh_username;
     VMImage image;
     std::filesystem::path cloud_init_iso;
-    YAML::Node meta_data_config;
-    YAML::Node user_data_config;
-    YAML::Node vendor_data_config;
-    YAML::Node network_data_config;
     boost::json::object metadata;
     VirtualMachine::State state;
     int clone_count; // tracks the number of clones made from this VM (regardless of deletes)
