@@ -28,7 +28,6 @@ function(add_target TARGET_NAME)
     vm_image_info.cpp
     vm_image_vault_utils.cpp
     vm_mount.cpp
-    vm_specs.cpp
     yaml_node_utils.cpp
     semver_compare.cpp)
 
