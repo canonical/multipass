@@ -1577,9 +1577,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         {
             // TODO remove once no supported upgrade path lacks these in the description
             VirtualMachineDescription legacy_desc{};
+            legacy_desc.vm_name = name;
             legacy_desc.cloud_init_iso = MP_PLATFORM.qstr_to_path(instance_dir) /
                                          cloud_init_file_name;
-            std::vector<const char*> keys{"cloud_init_iso"};
+            std::vector<const char*> keys{"vm_name", "cloud_init_iso"};
             if (const auto* record = legacy_image_records.if_contains(name))
             {
                 legacy_desc.image = legacy_image_from(*record);
@@ -1595,7 +1596,16 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             invalid_instances.push_back(name);
             continue;
         }
-        vm_desc.vm_name = name;
+
+        if (vm_desc.vm_name != name)
+        {
+            mpl::warn(category,
+                      "The description of '{}' names a different instance: '{}'",
+                      name,
+                      vm_desc.vm_name);
+            invalid_instances.push_back(name);
+            continue;
+        }
 
         if (!MP_FILEOPS.exists(vm_desc.image.image_path))
         {

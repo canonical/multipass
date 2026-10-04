@@ -30,6 +30,7 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
                     const VirtualMachineDescription& desc)
 {
     json = {
+        {"vm_name", desc.vm_name},
         {"num_cores", desc.num_cores},
         {"mem_size", std::to_string(desc.mem_size.in_bytes())},
         {"disk_space", std::to_string(desc.disk_space.in_bytes())},
@@ -52,6 +53,7 @@ mp::VirtualMachineDescription mp::tag_invoke(
     const boost::json::value& json)
 {
     VirtualMachineDescription desc{};
+    desc.vm_name = value_to<std::string>(json.at("vm_name"));
     desc.num_cores = value_to<int>(json.at("num_cores"));
     desc.mem_size = MemorySize{value_to<std::string>(json.at("mem_size"))};
     desc.disk_space = MemorySize{value_to<std::string>(json.at("disk_space"))};
