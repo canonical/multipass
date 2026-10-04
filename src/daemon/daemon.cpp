@@ -18,9 +18,9 @@
 #include "daemon.h"
 #include "base_cloud_init_config.h"
 #include "daemon_init_settings.h"
-#include "default_vm_image_vault.h"
 #include "hyperv_driver_transition.h"
 #include "instance_settings_handler.h"
+#include "legacy_instance_migration.h"
 #include "runtime_instance_info_helper.h"
 #include "snapshot_settings_handler.h"
 
@@ -86,7 +86,6 @@
 #include <functional>
 #include <future>
 #include <optional>
-#include <span>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -240,86 +239,6 @@ auto name_from(const std::string& requested_name,
     }
 }
 
-// TODO remove once no supported upgrade path has these fields in the instance db
-constexpr std::array legacy_keys{"num_cores",
-                                 "mem_size",
-                                 "disk_space",
-                                 "ssh_username",
-                                 "zone",
-                                 "mac_addr",
-                                 "extra_interfaces",
-                                 "metadata",
-                                 "state",
-                                 "clone_count",
-                                 "deleted",
-                                 "mounts"};
-
-std::optional<mp::VirtualMachineDescription>
-legacy_description_from(const boost::json::value& record, const std::string& default_zone)
-{
-    const auto& object = record.as_object();
-    if (std::ranges::none_of(legacy_keys,
-                             [&object](const auto& key) { return object.contains(key); }))
-        return std::nullopt;
-
-    // keys already moved by earlier versions get defaults here, which never overwrite the file
-    const auto mem_size = mp::lookup_or<std::string>(record, "mem_size", "");
-    const auto disk_space = mp::lookup_or<std::string>(record, "disk_space", "");
-    const auto ssh_username = mp::lookup_or<std::string>(record, "ssh_username", "");
-
-    mp::VirtualMachineDescription desc{};
-    desc.num_cores = mp::lookup_or<int>(record, "num_cores", 0);
-    desc.mem_size = mp::MemorySize{mem_size.empty() ? mp::default_memory_size : mem_size};
-    desc.disk_space = mp::MemorySize{disk_space.empty() ? mp::default_disk_size : disk_space};
-    desc.ssh_username = ssh_username.empty() ? "ubuntu" : ssh_username;
-    desc.zone = mp::lookup_or<std::string>(record, "zone", default_zone);
-    desc.default_mac_address = mp::lookup_or<std::string>(record, "mac_addr", "");
-    desc.extra_interfaces = mp::lookup_or<std::vector<mp::NetworkInterface>>(record,
-                                                                             "extra_interfaces",
-                                                                             {});
-    desc.metadata = mp::lookup_or<boost::json::object>(record, "metadata", {});
-    desc.state = static_cast<mp::VirtualMachine::State>(mp::lookup_or<int>(record, "state", 0));
-    desc.clone_count = mp::lookup_or<int>(record, "clone_count", 0);
-    desc.deleted = mp::lookup_or<bool>(record, "deleted", false);
-    desc.mounts = mp::lookup_or<std::unordered_map<std::string, mp::VMMount>>(
-        record,
-        "mounts",
-        {},
-        mp::MapAsJsonArray{"target_path"});
-    return desc;
-}
-
-void migrate_vm_description(const std::string& name,
-                            const mp::VirtualMachineDescription& legacy_desc,
-                            std::span<const char* const> keys,
-                            const QDir& instance_dir)
-{
-    const auto path = instance_dir.filePath(mp::vm_description_file_name);
-    try
-    {
-        boost::json::object stored;
-        if (const auto data = MP_FILEOPS.try_read_file(
-                std::filesystem::path{path.toStdU16String()}))
-            stored = boost::json::parse(*data).as_object();
-
-        const auto legacy_fields = boost::json::value_from(legacy_desc);
-        auto changed = false;
-        for (const auto* key : keys)
-            changed |= stored.emplace(key, legacy_fields.as_object().at(key)).second;
-
-        if (!changed)
-            return;
-
-        MP_FILEOPS.write_transactionally(path, mp::pretty_print(stored));
-    }
-    catch (const std::exception& e)
-    {
-        throw std::runtime_error{
-            fmt::format("Could not migrate the description of '{}': {}", name, e.what())};
-    }
-    mpl::info(category, "Migrated the description of {} to {}", name, path);
-}
-
 mp::VirtualMachineDescription load_vm_description(const std::string& name, const QDir& instance_dir)
 {
     const auto path = instance_dir.filePath(mp::vm_description_file_name);
@@ -338,18 +257,6 @@ mp::VirtualMachineDescription load_vm_description(const std::string& name, const
                                              path,
                                              e.what())};
     }
-}
-
-// TODO remove once no supported upgrade path has these fields in the instance db
-bool is_ghost(const boost::json::value& record)
-{
-    // Ghost records predate vm-description.json, so only records with the legacy keys qualify
-    return record.as_object().contains("num_cores") && !value_to<int>(record.at("num_cores")) &&
-           !mp::lookup_or<bool>(record, "deleted", false) &&
-           mp::lookup_or<std::string>(record, "ssh_username", "").empty() &&
-           mp::lookup_or<boost::json::object>(record, "metadata", {}).empty() &&
-           !mp::MemorySize{mp::lookup_or<std::string>(record, "mem_size", "")}.in_bytes() &&
-           !mp::MemorySize{mp::lookup_or<std::string>(record, "disk_space", "")}.in_bytes();
 }
 
 std::set<std::string> load_db(const mp::Path& data_path,
@@ -379,17 +286,25 @@ std::set<std::string> load_db(const mp::Path& data_path,
     }
 
     std::set<std::string> names;
+    const mp::LegacyInstanceMigrator legacy_migrator{data_path, az_manager.get_default_zone_name()};
     for (const auto& [key, record] : records.as_object())
     {
-        if (is_ghost(record))
+        if (legacy_migrator.is_ghost(record))
         {
             mpl::warn(category, "Ignoring ghost instance in database: {}", key);
             continue;
         }
-        names.emplace(key);
 
-        if (const auto legacy = legacy_description_from(record, az_manager.get_default_zone_name()))
-            migrate_vm_description(key, *legacy, legacy_keys, factory.get_instance_directory(key));
+        const std::string name{key};
+        try
+        {
+            legacy_migrator.migrate(name, record, factory.get_instance_directory(name));
+        }
+        catch (const std::exception& e)
+        {
+            mpl::warn(category, "{}", e.what());
+        }
+        names.insert(name);
     }
     return names;
 }
@@ -397,33 +312,6 @@ std::set<std::string> load_db(const mp::Path& data_path,
 std::string generate_next_clone_name(int clone_count, const std::string& source_name)
 {
     return fmt::format("{}-clone{}", source_name, clone_count + 1);
-}
-
-// TODO remove once no supported upgrade path has instance records in the vault
-boost::json::object load_legacy_image_records(const mp::Path& data_path)
-{
-    const auto path = QDir{data_path}.filePath("vault/multipassd-instance-image-records.json");
-    try
-    {
-        if (const auto data = MP_FILEOPS.try_read_file(
-                std::filesystem::path{path.toStdU16String()});
-            data && !data->empty())
-            return boost::json::parse(*data).as_object();
-    }
-    catch (const std::exception& e)
-    {
-        mpl::warn(category, "Could not read the image records in {}: {}", path, e.what());
-    }
-    return {};
-}
-
-mp::VMImage legacy_image_from(const boost::json::value& record)
-{
-    auto vault_record = value_to<mp::VaultRecord>(record);
-    // instances launched from aliases before 1.16 have no OS in their records
-    if (vault_record.query.query_type == mp::Query::Type::Alias && vault_record.image.os.empty())
-        vault_record.image.os = "Ubuntu";
-    return vault_record.image;
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -1564,10 +1452,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         mpl::warn(category, "Hypervisor health check failed: {}", e.what());
     }
 
-    const auto legacy_image_records = load_legacy_image_records(
-        mp::utils::backend_directory_path(config->data_directory,
-                                          config->factory->get_backend_directory_name()));
-
     for (const auto& name : instance_names)
     {
         const auto instance_dir = config->factory->get_instance_directory(name);
@@ -1575,19 +1459,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         VirtualMachineDescription vm_desc{};
         try
         {
-            // TODO remove once no supported upgrade path lacks these in the description
-            VirtualMachineDescription legacy_desc{};
-            legacy_desc.vm_name = name;
-            legacy_desc.cloud_init_iso = MP_PLATFORM.qstr_to_path(instance_dir) /
-                                         cloud_init_file_name;
-            std::vector<const char*> keys{"vm_name", "cloud_init_iso"};
-            if (const auto* record = legacy_image_records.if_contains(name))
-            {
-                legacy_desc.image = legacy_image_from(*record);
-                keys.push_back("image");
-            }
-            migrate_vm_description(name, legacy_desc, keys, instance_dir);
-
             vm_desc = load_vm_description(name, instance_dir);
         }
         catch (const std::exception& e)
