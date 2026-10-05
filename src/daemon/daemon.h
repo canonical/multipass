@@ -239,17 +239,16 @@ private:
     // These async_* methods need to operate on instance names and look up the VMs again, lest they
     // be gone or moved.
     template <typename Reply, typename Request>
-    ReadinessResult async_wait_for_ssh_and_start_mounts_for(
-        const std::string& name,
-        const std::chrono::seconds& timeout,
-        grpc::ServerReaderWriterInterface<Reply, Request>* server);
+    ReadinessResult async_wait_vm_ready(const std::string& name,
+                                        const std::chrono::seconds& timeout,
+                                        grpc::ServerReaderWriterInterface<Reply, Request>* server);
     template <typename Reply, typename Request>
     AsyncOperationStatus
-    async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                             const std::vector<std::string>& vms,
-                             const std::chrono::seconds& timeout,
-                             DaemonRpcContext* context,
-                             const std::string& errors);
+    async_wait_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                         const std::vector<std::string>& vms,
+                         const std::chrono::seconds& timeout,
+                         DaemonRpcContext* context,
+                         const std::string& errors);
     void finish_async_operation(const std::string& async_future_key);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(
         std::function<void()> const& finished_op = []() {});
