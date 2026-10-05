@@ -47,13 +47,13 @@ std::string make_driver_deprecation_warning(DeprecatedDriverName&& deprecated_na
         "the {} driver",
         std::forward<DeprecatedDriverName>(deprecated_name));
 
-    const auto migrationful_advice =
+    constexpr auto migrationless_advice =
         "We recommend switching to the new {0} driver as soon as possible (multipass set "
         "local.driver={1}). Your instances will not be destroyed but they will be unreachable from "
         "the new driver. You can switch back to the old driver for now, but you will need to "
         "manually recreate any instances you want to keep in the next release.";
 
-    const auto migrationless_advice =
+    constexpr auto migrationful_advice =
         "When you are ready to have your instances migrated, please stop them (multipass stop "
         "--all) and switch to the new {0} driver (multipass set local.driver={1}).";
 

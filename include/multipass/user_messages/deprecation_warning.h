@@ -19,6 +19,7 @@
 
 #include <fmt/format.h>
 #include <string>
+#include <utility>
 
 namespace multipass
 {
@@ -27,7 +28,7 @@ template <typename DeprecatedFeature, typename AdviceMessage>
 std::string make_deprecation_warning(DeprecatedFeature&& deprecated_feature, AdviceMessage&& advice)
 {
     return fmt::format(
-        "*** Warning: {} is deprecated and will be removed in an upcoming release.***\n\n"
+        "*** Warning: {} is deprecated and will be removed in an upcoming release. ***\n\n"
         "{}\n\n",
         std::forward<DeprecatedFeature>(deprecated_feature),
         std::forward<AdviceMessage>(advice));
