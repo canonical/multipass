@@ -46,15 +46,12 @@ auto fmt::formatter<CreateNetworkParameters, Char>::format(const CreateNetworkPa
     }}
     )json");
 
-    static constexpr auto comma = string_literal<Char>(",");
-    static constexpr auto comma_view = static_cast<fmt::basic_string_view<Char>>(comma);
-
     return json_template.format_to(ctx,
                                    params.name,
                                    params.type,
-                                   fmt::join(params.ipams, comma_view),
+                                   fmt::join(params.ipams, comma_view<Char>),
                                    fmt::underlying(params.flags),
-                                   fmt::join(params.policies, comma_view));
+                                   fmt::join(params.policies, comma_view<Char>));
 }
 
 template auto fmt::formatter<CreateNetworkParameters, char>::format<fmt::format_context>(

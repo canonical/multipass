@@ -36,10 +36,7 @@ auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam, FormatContext& c
         }}
     )json");
 
-    static constexpr auto comma = string_literal<Char>(",");
-    static constexpr auto comma_view = static_cast<fmt::basic_string_view<Char>>(comma);
-
-    return json_template.format_to(ctx, ipam.type, fmt::join(ipam.subnets, comma_view));
+    return json_template.format_to(ctx, ipam.type, fmt::join(ipam.subnets, comma_view<Char>));
 }
 
 template auto fmt::formatter<HcnIpam, char>::format<fmt::format_context>(const HcnIpam&,
