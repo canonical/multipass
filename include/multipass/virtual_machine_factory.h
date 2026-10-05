@@ -37,6 +37,7 @@ class VirtualMachineDescription;
 class VMImageHost;
 class VMStatusMonitor;
 class MemorySize;
+struct CloudInitConfig;
 struct NetworkInterface;
 struct NetworkInterfaceInfo;
 
@@ -78,7 +79,8 @@ public:
                                                   const Path& cache_dir_path,
                                                   const Path& data_dir_path,
                                                   const days& days_to_expire) = 0;
-    virtual void configure(VirtualMachineDescription& vm_desc) = 0;
+    virtual void configure(VirtualMachineDescription& vm_desc,
+                           const CloudInitConfig& cloud_init) = 0;
 
     // List all the network interfaces seen by the backend.
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;
