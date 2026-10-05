@@ -22,7 +22,11 @@ import logging
 
 import pytest
 
-from cli.multipass import multipass, multipass_version_has_feature, skip_if_feature_not_supported
+from cli.multipass import (
+    multipass,
+    multipass_version_has_feature,
+    skip_if_feature_not_supported,
+)
 
 supported_appliances = [
     "appliance:adguard-home",
@@ -53,56 +57,55 @@ class TestImages:
         # Run against both "images" and deprecated "find" alias.
         return request.param
 
-    @pytest.mark.parametrize("show", ["", "--only-images",
-                                      "--only-blueprints"])
+    @pytest.mark.parametrize(
+        "show",
+        ["", "--only-images", "--only-blueprints"],
+    )
     def test_find_all(self, cmd, show):
-
         if show in ["--only-images", "--only-blueprints"]:
             skip_if_feature_not_supported("blueprints")
 
         # Confirm that it shows at least 1 devel, 2 LTS releases
-        with multipass(cmd, "--format=json", show).json() as output:
-            assert "images" in output or (
-                show == "--only-blueprints")
+        (output, header) = multipass(cmd, "--format=json", show).json_with_header()
+        assert ("Warning:" in header) == (cmd == "find")
+        assert "images" in output or show == "--only-blueprints"
 
-            if multipass_version_has_feature("blueprints"):
+        if multipass_version_has_feature("blueprints"):
+            if show in ["", "--only-blueprints"]:
+                assert "blueprints (deprecated)" in output or (show == "--only-images")
+                # Check blueprints
+                blueprints = output.jq(
+                    '."blueprints (deprecated)" | keys[] ').all()
+                assert blueprints == supported_blueprints
 
-                if show in ["", "--only-blueprints"]:
-                    assert "blueprints (deprecated)" in output or (
-                        show == "--only-images")
-                    # Check blueprints
-                    blueprints = output.jq(
-                        '."blueprints (deprecated)" | keys[] ').all()
-                    assert blueprints == supported_blueprints
+        if show in ["", "--only-images"]:
+            assert "images" in output
+            # Verify that find has at least 2 LTS images
+            lts_images = output.jq(
+                '.images | with_entries(select(.value.release | contains("LTS")))'
+            ).first()
+            assert len(lts_images) >= 2
 
-            if show in ["", "--only-images"]:
-                assert "images" in output
-                # Verify that find has at least 2 LTS images
-                lts_images = output.jq(
-                    '.images | with_entries(select(.value.release | contains("LTS")))'
-                ).first()
-                assert len(lts_images) >= 2
+            # Verify that find has only one image aliased with "lts"
+            current_lts = output.jq(
+                '.images | with_entries(select(.value.aliases | index("lts")))'
+            ).first()
+            assert len(current_lts) == 1
+            logging.debug(f"Current LTS is {current_lts}")
 
-                # Verify that find has only one image aliased with "lts"
-                current_lts = output.jq(
-                    '.images | with_entries(select(.value.aliases | index("lts")))'
-                ).first()
-                assert len(current_lts) == 1
-                logging.debug(f"Current LTS is {current_lts}")
+            # Verify that find has only one image aliased with "devel"
+            current_devel = output.jq(
+                '.images | with_entries(select(.value.aliases | index("devel")))'
+            ).first()
+            assert len(current_devel) == 1
+            logging.debug(f"Current devel is {current_devel}")
 
-                # Verify that find has only one image aliased with "devel"
-                current_devel = output.jq(
-                    '.images | with_entries(select(.value.aliases | index("devel")))'
-                ).first()
-                assert len(current_devel) == 1
-                logging.debug(f"Current devel is {current_devel}")
-
-                if multipass_version_has_feature("appliances"):
-                    # Check appliances
-                    appliances = output.jq(
-                        '.images | keys[] | select(startswith("appliance:"))'
-                    ).all()
-                    assert appliances == supported_appliances
+            if multipass_version_has_feature("appliances"):
+                # Check appliances
+                appliances = output.jq(
+                    '.images | keys[] | select(startswith("appliance:"))'
+                ).all()
+                assert appliances == supported_appliances
 
     @pytest.mark.parametrize(
         "param",
@@ -114,54 +117,61 @@ class TestImages:
         ],
     )
     def test_query_image_ubuntu(self, cmd, param):
-        with multipass(
+        (output, header) = multipass(
             cmd,
             param["name"],
             "--format=json",
-            *(["--show-unsupported"] if param.get("unsupported") else []),
-        ).json() as output:
-            assert output
-            images = output["images"]
-            image = images[param["name"]]
+            *( ["--show-unsupported"] if param.get("unsupported") else []),
+        ).json_with_header()
 
-            expected_image = {
-                "aliases": [],
-                "os": "Ubuntu",
-                "release": param["expected_release"],
-                "remote": "",
-            }
+        assert ("Warning:" in header) == (cmd == "find")
 
-            # Pull the keys present in expected and do a comparison
-            assert {k: image[k] for k in expected_image} == expected_image
+        assert output
+        images = output["images"]
+        image = images[param["name"]]
+
+        expected_image = {
+            "aliases": [],
+            "os": "Ubuntu",
+            "release": param["expected_release"],
+            "remote": "",
+        }
+
+        # Pull the keys present in expected and do a comparison
+        assert {k: image[k] for k in expected_image} == expected_image
 
     def test_query_image_debian(self, cmd):
         skip_if_feature_not_supported("debian_images")
 
-        with multipass(cmd, "debian", "--format=json").json() as output:
-            assert output
-            image = output["images"]["debian"]
+        (output, header) = multipass(cmd, "debian", "--format=json").json_with_header()
+        assert ("Warning:" in header) == (cmd == "find")
 
-            expected_image = {
-                "aliases": [],
-                "os": "Debian",
-                "remote": "",
-            }
+        assert output
+        image = output["images"]["debian"]
 
-            assert {k: image[k] for k in expected_image} == expected_image
-            assert image["release"]
+        expected_image = {
+            "aliases": [],
+            "os": "Debian",
+            "remote": "",
+        }
+
+        assert {k: image[k] for k in expected_image} == expected_image
+        assert image["release"]
 
     def test_query_image_fedora(self, cmd):
         skip_if_feature_not_supported("fedora_images")
 
-        with multipass(cmd, "fedora", "--format=json").json() as output:
-            assert output
-            image = output["images"]["fedora"]
+        (output, header) = multipass(cmd, "fedora", "--format=json").json_with_header()
+        assert ("Warning:" in header) == (cmd == "find")
 
-            expected_image = {
-                "aliases": [],
-                "os": "Fedora",
-                "remote": "",
-            }
+        assert output
+        image = output["images"]["fedora"]
 
-            assert {k: image[k] for k in expected_image} == expected_image
-            assert image["release"]
+        expected_image = {
+            "aliases": [],
+            "os": "Fedora",
+            "remote": "",
+        }
+
+        assert {k: image[k] for k in expected_image} == expected_image
+        assert image["release"]
