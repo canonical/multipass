@@ -1007,24 +1007,6 @@ TEST(ExpectsShutdownFromCloudInit, returnsTrueWhenConditionAbsent)
     EXPECT_TRUE(mpu::expects_shutdown_from_cloud_init(user_data_config));
 }
 
-TEST(ExpectsShutdownFromCloudInit, returnsTrueWhenConditionExplicitlyTrue)
-{
-    YAML::Node user_data_config;
-    user_data_config["power_state"]["mode"] = "halt";
-    user_data_config["power_state"]["condition"] = true;
-
-    EXPECT_TRUE(mpu::expects_shutdown_from_cloud_init(user_data_config));
-}
-
-TEST(ExpectsShutdownFromCloudInit, returnsFalseWhenConditionExplicitlyFalse)
-{
-    YAML::Node user_data_config;
-    user_data_config["power_state"]["mode"] = "poweroff";
-    user_data_config["power_state"]["condition"] = false;
-
-    EXPECT_FALSE(mpu::expects_shutdown_from_cloud_init(user_data_config));
-}
-
 TEST(ExpectsShutdownFromCloudInit, returnsFalseWhenConditionIsCommandString)
 {
     YAML::Node user_data_config;

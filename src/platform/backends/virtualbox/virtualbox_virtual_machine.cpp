@@ -355,10 +355,18 @@ void mp::VirtualBoxVirtualMachine::start()
     state = State::starting;
     handle_state_update();
 
-    mpu::process_throw_on_error("VBoxManage",
-                                {"startvm", name, "--type", "headless"},
-                                "Could not start VM: {}",
-                                name);
+    try
+    {
+        mpu::process_throw_on_error("VBoxManage",
+                                    {"startvm", name, "--type", "headless"},
+                                    "Could not start VM: {}",
+                                    name);
+    }
+    catch (const std::exception& e)
+    {
+        save_error_msg(e.what());
+        throw;
+    }
 }
 
 void mp::VirtualBoxVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)

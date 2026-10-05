@@ -460,6 +460,7 @@ void HCSVirtualMachine::start()
     if (!result)
     {
         set_state(prev_state);
+        save_error_msg(fmt::format("Could not start the VM: {}", result));
         throw StartComputeSystemException{"Could not start the VM: {}", result};
     }
     else if (has_saved_state_file())
