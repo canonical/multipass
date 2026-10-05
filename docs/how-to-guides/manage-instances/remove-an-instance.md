@@ -40,14 +40,14 @@ multipass delete --force keen-yak
 
 ## Remove instances deleted by earlier versions
 
-> See also: [`recover`](reference-command-line-interface-recover), [`purge`](reference-command-line-interface-purge)
+> See also: [`recover`](reference-command-line-interface-recover)
 
-Earlier versions of Multipass only marked instances as `Deleted`, so they could be recovered later. If you still have instances in that state, you can recover them with `multipass recover`, or remove them for good with:
+Earlier versions of Multipass only marked instances as `Deleted`, so they could be recovered later. If you still have instances in that state, you can recover them with `multipass recover`, or remove them for good with `multipass delete`:
 
 ```{code-block} text
-multipass purge
+multipass delete keen-yak
 ```
 
-```{caution}
-The `purge` command does not take an argument. It will permanently remove all instances marked as `Deleted`.
+```{note}
+The `purge` command is deprecated and will be removed in an upcoming release. Use `multipass delete <instance>` instead.
 ```
