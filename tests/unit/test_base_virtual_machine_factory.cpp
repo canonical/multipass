@@ -26,6 +26,7 @@
 
 #include <shared/base_virtual_machine_factory.h>
 
+#include <multipass/cloud_init_config.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/utils/qemu_img_utils.h>
@@ -200,8 +201,8 @@ TEST_F(BaseFactory, createsCloudInitIsoImage)
 {
     MockBaseFactory factory{az_manager};
     const std::string name{"foo"};
-    const YAML::Node metadata{YAML::Load({fmt::format("name: {}", name)})}, vendor_data{metadata},
-        user_data{metadata}, network_data{metadata};
+    mp::CloudInitConfig cloud_init{};
+    cloud_init.meta_data = YAML::Load({fmt::format("name: {}", name)});
 
     mp::VMImage image;
     image.image_path = QString("%1/%2")
@@ -218,13 +219,9 @@ TEST_F(BaseFactory, createsCloudInitIsoImage)
                                           {},
                                           "yoda",
                                           image,
-                                          "",
-                                          metadata,
-                                          user_data,
-                                          vendor_data,
-                                          network_data};
+                                          ""};
 
-    factory.configure(vm_desc);
+    factory.configure(vm_desc, cloud_init);
 
     EXPECT_EQ(vm_desc.cloud_init_iso,
               QString("%1/cloud-init-config.iso").arg(factory.tmp_dir->path()));

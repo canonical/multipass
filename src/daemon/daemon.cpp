@@ -24,9 +24,9 @@
 #include "snapshot_settings_handler.h"
 
 #include <multipass/alias_definition.h>
+#include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
-
 #include <multipass/daemon_rpc_context.h>
 #include <multipass/exceptions/availability_zone_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
@@ -1491,11 +1491,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               spec_copy.extra_interfaces,
                                               spec_copy.ssh_username,
                                               vm_image,
-                                              cloud_init_iso,
-                                              {},
-                                              {},
-                                              {},
-                                              {}};
+                                              cloud_init_iso};
 
         auto& instance_records_table = spec_copy.deleted ? deleted_instances : operative_instances;
 
@@ -3467,15 +3463,14 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 {},
                 config->ssh_username,
                 VMImage{},
-                "",
-                YAML::Node{},
-                YAML::Node{},
-                make_cloud_init_vendor_config(
-                    *config->ssh_key_provider,
-                    config->ssh_username,
-                    config->factory->get_backend_version_string().toStdString(),
-                    request),
-                YAML::Node{}};
+                ""};
+
+            CloudInitConfig cloud_init{};
+            cloud_init.vendor_data = make_cloud_init_vendor_config(
+                *config->ssh_key_provider,
+                config->ssh_username,
+                config->factory->get_backend_version_string().toStdString(),
+                request);
 
             query = query_from(request, name);
             vm_desc.mem_size = checked_args.mem_size;
@@ -3538,19 +3533,19 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
             vm_desc.extra_interfaces = checked_args.extra_interfaces;
 
-            vm_desc.meta_data_config = mpu::make_cloud_init_meta_config(name);
-            vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
-            prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
+            cloud_init.meta_data = mpu::make_cloud_init_meta_config(name);
+            cloud_init.user_data = YAML::Load(request->cloud_init_user_data());
+            prepare_user_data(cloud_init.user_data, cloud_init.vendor_data);
 
             if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
                 vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 
-            vm_desc.network_data_config = mpu::make_cloud_init_network_config(
+            cloud_init.network_data = mpu::make_cloud_init_network_config(
                 vm_desc.default_mac_address,
                 checked_args.extra_interfaces);
 
             vm_desc.image = vm_image;
-            config->factory->configure(vm_desc);
+            config->factory->configure(vm_desc, cloud_init);
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
             // Everything went well, add the MAC addresses used in this instance.
