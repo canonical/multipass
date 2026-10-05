@@ -3577,8 +3577,8 @@ grpc::Status mp::Daemon::make_vm_unavailable(VirtualMachine& vm)
 
     try
     {
-        stop_mounts(name);
         vm.set_available(false);
+        stop_mounts(name);
         return grpc::Status::OK;
     }
     catch (const std::exception& e)

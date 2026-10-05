@@ -142,9 +142,9 @@ TEST_F(TestDaemonZones, zonesStateCmdDisableStopsMountsBeforeUnavailable)
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
     {
         InSequence seq;
+        EXPECT_CALL(*mock_vm, set_available(false)).WillOnce(Return(true));
         EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));
         EXPECT_CALL(*mock_mount_handler, deactivate_impl(true));
-        EXPECT_CALL(*mock_vm, set_available(false)).WillOnce(Return(true));
     }
 
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(instance_name));
