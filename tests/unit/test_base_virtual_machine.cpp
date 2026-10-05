@@ -35,6 +35,7 @@
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/exceptions/timeout_exception.h>
 #include <multipass/ip_address.h>
 #include <multipass/logging/level.h>
 #include <multipass/snapshot.h>
@@ -1375,7 +1376,7 @@ TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
     std::chrono::milliseconds timeout(1);
     MP_EXPECT_THROW_THAT(
         vm.wait_for_cloud_init(timeout),
-        std::runtime_error,
+        mp::CloudInitTimeoutException,
         mpt::match_what(StrEq("timed out waiting for initialization to complete")));
 }
 
