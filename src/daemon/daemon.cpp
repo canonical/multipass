@@ -892,18 +892,25 @@ grpc::Status cmd_vms(const LinearInstanceSelection& tgts,
     return global_st;
 }
 
-grpc::Status parallel_cmd_vms(const LinearInstanceSelection& tgts, const VMCommand& cmd)
+grpc::Status parallel_cmd_vms(const InstanceTable& instance_table,
+                              const std::vector<std::string>& vm_names,
+                              const VMCommand& cmd)
 {
     auto global_st{grpc::Status::OK};
     std::mutex status_mutex;
-    mpu::parallel_for_each(tgts,
-                           [cmd, &global_st, &status_mutex](const InstanceTable::iterator& it) {
-                               auto status = cmd(*it->second);
-                               {
-                                   std::lock_guard guard{status_mutex};
-                                   global_st = grpc_concatenate_status(global_st, status);
-                               }
-                           });
+    mpu::parallel_for_each(
+        vm_names,
+        [cmd, &global_st, &status_mutex, &instance_table](const std::string& vm_name) {
+            auto status = grpc::Status::OK;
+            const auto& it = instance_table.find(vm_name);
+            if (it != instance_table.end())
+                status = cmd(*it->second);
+            else
+                status = grpc::Status(grpc::FAILED_PRECONDITION,
+                                      fmt::format("Instance '{}' could not be found.", vm_name));
+            std::lock_guard guard{status_mutex};
+            global_st = grpc_concatenate_status(global_st, status);
+        });
 
     return global_st;
 }
@@ -2474,10 +2481,6 @@ try
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
-    // Validate the requested instances synchronously before scheduling any asynchronous work.
-    // Failures (e.g. non-existent instances) must be reported immediately via context->set_value,
-    // without relying on a Qt event loop to deliver the async QFutureWatcher::finished signal
-    // below, which may never run (or may run after this request's resources are gone).
     if (auto [instance_selection,
               status] = select_instances_and_react(operative_instances,
                                                    deleted_instances,
@@ -2489,20 +2492,34 @@ try
         return context->set_value(status);
     }
 
+    std::vector<std::string> instance_names{request->instance_names().instance_name().begin(),
+                                            request->instance_names().instance_name().end()};
+
     auto resume_suspended_future_watcher = new QFutureWatcher<grpc::Status>;
     QObject::connect(
         resume_suspended_future_watcher,
         &QFutureWatcher<grpc::Status>::finished,
-        [this, resume_suspended_future_watcher, request, timeout, context, server] {
+        [this,
+         resume_suspended_future_watcher,
+         instance_names,
+         timeout,
+         context,
+         server,
+         running_only = request->running_only()] {
             try
             {
-                auto [instance_selection, status] = select_instances_and_react(
-                    operative_instances,
-                    deleted_instances,
-                    request->instance_names().instance_name(),
-                    InstanceGroup::Operative,
-                    require_operative_instances_reaction);
-
+                auto sg = sg::make_scope_guard(
+                    [resume_suspended_future_watcher]() noexcept -> void {
+                        mp::top_catch_all(category, [resume_suspended_future_watcher]() {
+                            resume_suspended_future_watcher->deleteLater();
+                        });
+                    });
+                auto [instance_selection,
+                      status] = select_instances_and_react(operative_instances,
+                                                           deleted_instances,
+                                                           instance_names,
+                                                           InstanceGroup::Operative,
+                                                           require_operative_instances_reaction);
                 if (!status.ok())
                     return context->set_value(status);
 
@@ -2510,23 +2527,22 @@ try
                 std::vector<std::string> starting_vms;
 
                 status = resume_suspended_future_watcher->future().result();
-                auto sg = sg::make_scope_guard(
-                    [resume_suspended_future_watcher]() noexcept -> void {
-                        mp::top_catch_all(category, [resume_suspended_future_watcher]() {
-                            resume_suspended_future_watcher->deleteLater();
-                        });
-                    });
-
                 status = grpc_concatenate_status(
                     status,
                     cmd_vms(
                         instance_targets,
-                        [this, &starting_vms, running_only = request->running_only()](
-                            VirtualMachine& vm) {
-                            auto status = this->reboot_vm(vm, running_only);
-                            if (status.ok())
-                                starting_vms.push_back(vm.get_name());
-                            return status;
+                        [this, &starting_vms, running_only](VirtualMachine& vm) {
+                            try
+                            {
+                                auto status = this->reboot_vm(vm, running_only);
+                                if (status.ok())
+                                    starting_vms.push_back(vm.get_name());
+                                return status;
+                            }
+                            catch (const std::exception& e)
+                            {
+                                return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
+                            }
                         },
                         /*fail_early=*/false)); // 1st pass to reboot all targets
 
@@ -2551,7 +2567,7 @@ try
         });
 
     auto start_suspended_instances =
-        [this, request, timeout, running_only = request->running_only()] {
+        [this, instance_names, timeout, running_only = request->running_only()] {
             if (running_only)
                 // Suspended instances do not need to be resumed if only running instances are
                 // restarted
@@ -2560,12 +2576,12 @@ try
             try
             {
 
-                auto [instance_selection, status] = select_instances_and_react(
-                    operative_instances,
-                    deleted_instances,
-                    request->instance_names().instance_name(),
-                    InstanceGroup::Operative,
-                    require_operative_instances_reaction);
+                auto [instance_selection,
+                      status] = select_instances_and_react(operative_instances,
+                                                           deleted_instances,
+                                                           instance_names,
+                                                           InstanceGroup::Operative,
+                                                           require_operative_instances_reaction);
 
                 if (!status.ok())
                     return status;
@@ -2574,23 +2590,31 @@ try
                 const auto& suspended_instances = filter_instances_by_state(
                     instance_targets,
                     mp::VirtualMachine::State::suspended);
+                std::vector<std::string> suspended_vms;
+                std::transform(suspended_instances.begin(),
+                               suspended_instances.end(),
+                               std::back_inserter(suspended_vms),
+                               [](const auto it) { return it->first; });
 
-                status = parallel_cmd_vms(suspended_instances, [this, timeout](VirtualMachine& vm) {
-                    try
-                    {
+                status = parallel_cmd_vms(
+                    operative_instances,
+                    suspended_vms,
+                    [this, timeout](VirtualMachine& vm) {
+                        try
                         {
-                            std::lock_guard start_guard{start_mutex};
-                            vm.start();
+                            {
+                                std::lock_guard start_guard{start_mutex};
+                                vm.start();
+                            }
+                            // We only need the instance to achieve an SSH session for restart
+                            vm.wait_until_ssh_up(timeout);
+                            return grpc::Status::OK;
                         }
-                        // We only need the instance to achieve an SSH session for restart
-                        vm.wait_until_ssh_up(timeout);
-                        return grpc::Status::OK;
-                    }
-                    catch (const std::runtime_error& e)
-                    {
-                        return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
-                    }
-                });
+                        catch (const std::runtime_error& e)
+                        {
+                            return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
+                        }
+                    });
                 return status;
             }
             catch (const std::exception& e)
