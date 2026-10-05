@@ -46,6 +46,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/timeout_exception.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
@@ -659,6 +660,58 @@ struct DaemonLaunchTimeoutValueTestSuite : public Daemon,
                                            public WithParamInterface<std::tuple<int, int, int>>
 {
 };
+
+TEST_F(Daemon, launchReturnsStructuredSshTimeoutError)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
+        .WillOnce(Throw(mp::SSHTimeoutException{"ssh timeout"}));
+    EXPECT_CALL(*mock_vm, wait_for_cloud_init).Times(0);
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+    mp::LaunchRequest request;
+    request.set_instance_name("coherent-trumpetfish");
+
+    StrictMock<mpt::MockServerReaderWriter<mp::LaunchReply, mp::LaunchRequest>> server;
+    EXPECT_CALL(server, Write(_, _)).Times(AtLeast(1));
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::launch, request, server);
+
+    ASSERT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    mp::LaunchError launch_error;
+    ASSERT_TRUE(launch_error.ParseFromString(status.error_details()));
+    EXPECT_EQ(launch_error.readiness_error(), mp::ReadinessError::SSH_TIMEOUT);
+}
+
+TEST_F(Daemon, launchReturnsStructuredCloudInitTimeoutError)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillOnce(Return());
+    EXPECT_CALL(*mock_vm, wait_for_cloud_init)
+        .WillOnce(Throw(mp::CloudInitTimeoutException{"cloud-init timeout"}));
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+    mp::LaunchRequest request;
+    request.set_instance_name("coherent-trumpetfish");
+
+    StrictMock<mpt::MockServerReaderWriter<mp::LaunchReply, mp::LaunchRequest>> server;
+    EXPECT_CALL(server, Write(_, _)).Times(AtLeast(1));
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::launch, request, server);
+
+    ASSERT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    mp::LaunchError launch_error;
+    ASSERT_TRUE(launch_error.ParseFromString(status.error_details()));
+    EXPECT_EQ(launch_error.readiness_error(), mp::ReadinessError::CLOUD_INIT_TIMEOUT);
+}
 
 TEST_P(DaemonCreateLaunchTestSuite, createsVirtualMachines)
 {
