@@ -22,16 +22,16 @@ from cli.multipass.cmd_json_output import JsonOutput
 from cli.utilities import strip_ansi_escape
 
 
-def strip_driver_deprecation_notice(text: str) -> str:
+def strip_deprecation_notices(text: str) -> str:
     """
-    Strip the driver deprecation warning from text.
+    Strip deprecation warnings from text.
 
-    The daemon sends it on stderr, which is captured along with stdout, as a
+    They are written to stderr, which is captured along with stdout, as a
     header line and an advice paragraph, each followed by a blank line.
     """
 
     return re.sub(
-        r"\*\*\* Warning! The \S+ driver is deprecated[^\r\n]*(?:\r*\n){2}.*?(?:\r*\n){2}",
+        r"\*\*\* Warning: [^\r\n]*? is deprecated[^\r\n]*(?:\r*\n){2}.*?(?:\r*\n){2}",
         "",
         text,
         flags=re.S,
@@ -44,7 +44,7 @@ class Output:
     def __init__(self, content, exitstatus):
         # Strip ansi escape codes.
         content = strip_ansi_escape(content)
-        self.content = strip_driver_deprecation_notice(content).strip()
+        self.content = strip_deprecation_notices(content).strip()
         self.exitstatus = exitstatus
 
     def __contains__(self, pattern):

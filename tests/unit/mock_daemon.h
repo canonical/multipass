@@ -68,6 +68,12 @@ struct MockDaemon : public Daemon
                  DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
+                snapshots,
+                (const SnapshotsRequest*,
+                 (grpc::ServerReaderWriterInterface<SnapshotsReply, SnapshotsRequest>*),
+                 DaemonRpcContext*),
+                (override));
+    MOCK_METHOD(void,
                 mount,
                 (const MountRequest* request,
                  (grpc::ServerReaderWriterInterface<MountReply, MountRequest>*),

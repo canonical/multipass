@@ -41,6 +41,7 @@ add_library(commands STATIC
   set.cpp
   shell.cpp
   snapshot.cpp
+  snapshots.cpp
   start.cpp
   stop.cpp
   suspend.cpp
@@ -58,7 +59,8 @@ target_link_libraries(commands
   ssh_client
   rpc
   settings
+  user_messages
+  utils
   Qt6::Core
   Qt6::Network
-  utils
   yaml-cpp::yaml-cpp)

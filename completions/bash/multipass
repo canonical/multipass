@@ -31,7 +31,7 @@ _multipass_complete()
     {
         local instance=$1 snapshots
 
-        snapshots=$(multipass list --snapshots --format=csv 2>/dev/null | \tail -n +2)
+        snapshots=$(multipass snapshots --format=csv 2>/dev/null | \tail -n +2)
         [ -n "$instance" ] && snapshots=$(awk -F',' "\$1 == \"$instance\"" <<< "$snapshots")
         snapshots=$(echo "$snapshots" | \cut -d',' -f 1,2 | \tr ',' '.' | \tr '\r\n' ' ')
 
@@ -229,7 +229,7 @@ _multipass_complete()
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
     multipass_cmds="authenticate transfer delete exec find help info launch list mount networks \
-                    purge recover restart restore shell snapshot start stop suspend umount version get set \
+                    purge recover restart restore shell snapshot snapshots start stop suspend umount version get set \
                     clone alias aliases unalias"
 
     if [[ "${multipass_cmds}" =~ " ${cmd} " || "${multipass_cmds}" =~ ^${cmd} || "${multipass_cmds}" =~ \ ${cmd}$ ]];
@@ -246,9 +246,9 @@ _multipass_complete()
             _add_nonrepeating_args "--format --snapshots"
         ;;
         "list"|"ls")
-            _add_nonrepeating_args "--format --snapshots"
+            _add_nonrepeating_args "--format"
         ;;
-        "networks"|"aliases")
+        "networks"|"aliases"|"snapshots")
             _add_nonrepeating_args "--format"
         ;;
         "delete")
