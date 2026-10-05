@@ -31,7 +31,7 @@ class TestAlias:
     @pytest.mark.parametrize(
         "instance",
         [
-            {"assert": {"purge": False}},
+            {"assert": {"delete": False}},
         ],
         indirect=True,
     )
@@ -58,8 +58,8 @@ class TestAlias:
                 }
             },
         }
-        # Purge the instance and verify that the alias is also removed
-        assert multipass("delete", instance, "--purge")
+        # Delete the instance and verify that the alias is also removed
+        assert multipass("delete", instance, "--force")
         assert not multipass("wai")
         assert multipass("aliases", "--format=json").json() == {
             "active-context": "default",

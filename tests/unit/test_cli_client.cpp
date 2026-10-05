@@ -3338,13 +3338,13 @@ TEST_F(Client, deleteCmdFailsNoArgs)
 TEST_F(Client, deleteCmdOkWithOneArg)
 {
     EXPECT_CALL(mock_daemon, delet(_, _));
-    EXPECT_THAT(send_command({"delete", "foo"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"delete", "--force", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, deleteCmdSucceedsWithMultipleArgs)
 {
     EXPECT_CALL(mock_daemon, delet(_, _));
-    EXPECT_THAT(send_command({"delete", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"delete", "--force", "foo", "bar"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, deleteCmdHelpOk)
@@ -3355,7 +3355,7 @@ TEST_F(Client, deleteCmdHelpOk)
 TEST_F(Client, deleteCmdSucceedsWithAll)
 {
     EXPECT_CALL(mock_daemon, delet(_, _));
-    EXPECT_THAT(send_command({"delete", "--all"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({"delete", "--force", "--all"}), Eq(mp::ReturnCode::Ok));
 }
 
 TEST_F(Client, deleteCmdFailsWithNamesAndAll)
@@ -3364,18 +3364,118 @@ TEST_F(Client, deleteCmdFailsWithNamesAndAll)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, deleteCmdAcceptsPurgeOption)
-{
-    EXPECT_CALL(mock_daemon, delet(_, _)).Times(2);
-    EXPECT_THAT(send_command({"delete", "--purge", "foo"}), Eq(mp::ReturnCode::Ok));
-    EXPECT_THAT(send_command({"delete", "-p", "bar"}), Eq(mp::ReturnCode::Ok));
-}
-
 TEST_F(Client, deleteCmdWrongVmState)
 {
     const auto invalid_vm_state_failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "msg"};
     EXPECT_CALL(mock_daemon, delet(_, _)).WillOnce(Return(invalid_vm_state_failure));
-    EXPECT_THAT(send_command({"delete", "foo"}), Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"delete", "--force", "foo"}), Eq(mp::ReturnCode::CommandFail));
+}
+
+TEST_F(Client, deleteCmdNotLiveTermFailsWithoutForce)
+{
+    MP_EXPECT_THROW_THAT(
+        send_command({"delete", "foo"}),
+        std::runtime_error,
+        mpt::match_what(HasSubstr("Use '--force' to delete without confirmation")));
+}
+
+TEST_F(Client, deleteCmdPrintsDeletedInstances)
+{
+    mp::DeleteReply reply;
+    reply.add_deleted_instances("foo");
+    EXPECT_CALL(mock_daemon, delet)
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::DeleteReply, mp::DeleteRequest>(_, ok, reply)));
+
+    std::stringstream cout;
+    EXPECT_THAT(send_command({"delete", "--force", "foo", "bar.snap"}, cout),
+                Eq(mp::ReturnCode::Ok));
+    EXPECT_EQ(cout.str(), "foo is deleted.\nbar.snap is deleted.\n");
+}
+
+TEST_F(Client, deleteCmdReportsDeletedInstancesOnPartialFailure)
+{
+    mp::DeleteReply reply;
+    reply.add_deleted_instances("foo");
+    const grpc::Status failure{grpc::StatusCode::INTERNAL, "msg"};
+    const auto any_request = A<const mp::DeleteRequest&>();
+    EXPECT_CALL(mock_daemon, delet)
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::DeleteReply, mp::DeleteRequest>(any_request,
+                                                                                    failure,
+                                                                                    reply)));
+
+    std::stringstream cout;
+    EXPECT_THAT(send_command({"delete", "--force", "foo", "bar"}, cout),
+                Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(cout.str(), HasSubstr("foo is deleted"));
+    EXPECT_THAT(cout.str(), Not(HasSubstr("bar is deleted")));
+}
+
+struct ClientDeleteConfirmation : public Client
+{
+    ClientDeleteConfirmation()
+    {
+        ON_CALL(term, cin()).WillByDefault(ReturnRef(cin));
+        ON_CALL(term, cout()).WillByDefault(ReturnRef(cout));
+        ON_CALL(term, cerr()).WillByDefault(ReturnRef(cerr));
+        ON_CALL(term, cin_is_live()).WillByDefault(Return(true));
+        ON_CALL(term, cout_is_live()).WillByDefault(Return(true));
+    }
+
+    std::stringstream cin, cout, cerr;
+    NiceMock<mpt::MockTerminal> term;
+};
+
+TEST_F(ClientDeleteConfirmation, defaultAnswerDoesNotDelete)
+{
+    EXPECT_CALL(mock_daemon, delet).Times(0);
+
+    cin.str("\n");
+    EXPECT_EQ(setup_client_and_run({"delete", "my-vm"}, term), mp::ReturnCode::CommandFail);
+}
+
+TEST_F(ClientDeleteConfirmation, yesAnswerDeletes)
+{
+    mp::DeleteReply reply;
+    reply.add_deleted_instances("my-vm");
+    EXPECT_CALL(mock_daemon, delet)
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::DeleteReply, mp::DeleteRequest>(_, ok, reply)));
+
+    cin.str("y\n");
+    EXPECT_EQ(setup_client_and_run({"delete", "my-vm"}, term), mp::ReturnCode::Ok);
+    EXPECT_THAT(cout.str(), HasSubstr("my-vm is deleted"));
+}
+
+TEST_F(ClientDeleteConfirmation, noAnswerDoesNotDelete)
+{
+    EXPECT_CALL(mock_daemon, delet).Times(0);
+
+    cin.str("N\n");
+    EXPECT_EQ(setup_client_and_run({"delete", "my-vm"}, term), mp::ReturnCode::CommandFail);
+}
+
+TEST_F(ClientDeleteConfirmation, listsInstancesAndSnapshots)
+{
+    EXPECT_CALL(mock_daemon, delet);
+
+    cin.str("yes\n");
+    EXPECT_EQ(setup_client_and_run({"delete", "a", "b", "c.snap1"}, term), mp::ReturnCode::Ok);
+    EXPECT_THAT(cout.str(),
+                HasSubstr("Instances 'a' and 'b', and snapshot 'c.snap1' will be deleted "
+                          "permanently."));
+}
+
+TEST_F(ClientDeleteConfirmation, instanceOverridesItsSnapshots)
+{
+    EXPECT_CALL(mock_daemon, delet).Times(0);
+
+    cin.str("n\n");
+    EXPECT_EQ(setup_client_and_run({"delete", "foo", "foo.snap1", "bar.snap2"}, term),
+              mp::ReturnCode::CommandFail);
+    EXPECT_THAT(cout.str(),
+                HasSubstr("Instance 'foo', and snapshot 'bar.snap2' will be deleted permanently"));
 }
 
 // find cli tests
@@ -3956,7 +4056,7 @@ TEST_F(RestoreCommandClient, restoreCmdConfirmsDesruction)
 
     EXPECT_EQ(setup_client_and_run({"restore", "foo.snapshot1"}, mock_terminal),
               mp::ReturnCode::Ok);
-    EXPECT_TRUE(cout.str().find("Please answer yes/no"));
+    EXPECT_THAT(cout.str(), HasSubstr("Please answer [Y/n]"));
 }
 
 TEST_F(RestoreCommandClient, restoreCmdNotDestructiveNotLiveTermFails)
@@ -4815,7 +4915,7 @@ TEST_F(ClientZone, disableZonesCmdConfirmsMultipleZones)
     EXPECT_THAT(cout_stream.str(),
                 HasSubstr("This operation will forcefully stop the VMs in zone1, zone2 and zone3. "
                           "Are you sure you "
-                          "want to continue? (Yes/no)"));
+                          "want to continue? [Y/n]"));
 }
 
 TEST_F(ClientZone, disableZonesCmdReasksConfirmation)
@@ -4843,7 +4943,7 @@ TEST_F(ClientZone, disableZonesCmdReasksConfirmation)
                     An<grpc::ServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>*>()))
         .WillOnce(Return(grpc::Status::OK));
     EXPECT_EQ(setup_client_and_run({"disable-zones", "zone1"}, term), mp::ReturnCode::Ok);
-    EXPECT_THAT(cout_stream.str(), HasSubstr("Please answer (Yes/no):"));
+    EXPECT_THAT(cout_stream.str(), HasSubstr("Please answer [Y/n]:"));
 }
 
 TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)

@@ -32,16 +32,16 @@ class TestVmLifecycle:
     def test_lifecycle_ops_on_nonexistent(self):
         name = random_vm_name()
         ops = [
-            "start",
-            "suspend",
-            "stop",
-            "delete",
-            "recover",
-            "restart",
+            ["start"],
+            ["suspend"],
+            ["stop"],
+            ["delete", "--force"],
+            ["recover"],
+            ["restart"],
         ]
 
         for op in ops:
-            with multipass(op, f"{name}", disable_hooks=True) as output:
+            with multipass(*op, f"{name}", disable_hooks=True) as output:
                 assert not output
                 assert "does not exist" in output
 
@@ -74,44 +74,26 @@ class TestVmLifecycle:
     @pytest.mark.parametrize(
         "instance",
         [
-            {"autopurge": False},
+            {"autodelete": False},
         ],
         indirect=True,
     )
-    def test_launch_delete_recover_purge(self, instance):
+    def test_launch_delete(self, instance):
         assert state(f"{instance}") == "Running"
-        assert multipass("delete", f"{instance}")
-        assert state(f"{instance}") == "Deleted"
+        with multipass("delete", "--force", f"{instance}") as output:
+            assert output
+            assert f"{instance} is deleted." in output
 
-        with multipass("start", f"{instance}") as output:
-            assert not output
-            assert f"Instance '{instance}' is deleted." in output
-
-        assert multipass("recover", f"{instance}")
-        assert state(f"{instance}") == "Stopped"
-
-        assert multipass("start", f"{instance}")
-
-        assert multipass("delete", f"{instance}")
-        assert state(f"{instance}") == "Deleted"
-
-        assert multipass("delete", f"{instance}", "--purge")
         with multipass("info", f"{instance}") as output:
             assert not output
             assert "does not exist" in output
 
-    def test_delete_purge(self):
+    def test_delete_multiple(self):
         with (
-            launch({"autopurge": False}) as name1,
-            launch({"autopurge": False}) as name2,
+            launch({"autodelete": False}) as name1,
+            launch({"autodelete": False}) as name2,
         ):
-            assert multipass("delete", f"{name1}")
-            assert state(f"{name1}") == "Deleted"
-
-            assert multipass("delete", f"{name2}")
-            assert state(f"{name2}") == "Deleted"
-
-            assert multipass("purge")
+            assert multipass("delete", "--force", f"{name1}", f"{name2}")
 
             for instance in [name1, name2]:
                 with multipass("info", f"{instance}") as output:
@@ -120,8 +102,8 @@ class TestVmLifecycle:
 
     def test_lifecycle_multiple(self):
         with (
-            launch({"autopurge": False}) as name1,
-            launch({"autopurge": False}) as name2,
+            launch({"autodelete": False}) as name1,
+            launch({"autodelete": False}) as name2,
         ):
             assert multipass("stop", name1, name2)
             assert state(name1) == "Stopped" and state(name2) == "Stopped"
@@ -147,16 +129,7 @@ class TestVmLifecycle:
             assert vm1_boot_id_before_restart != vm1_boot_id_after_restart
             assert vm2_boot_id_before_restart != vm2_boot_id_after_restart
 
-            assert multipass("delete", name1, name2)
-            assert state(name1) == "Deleted" and state(name2) == "Deleted"
-
-            assert multipass("recover", name1, name2)
-            assert state(name1) == "Stopped" and state(name2) == "Stopped"
-
-            assert multipass("delete", name1, name2)
-            assert state(name1) == "Deleted" and state(name2) == "Deleted"
-
-            assert multipass("purge")
+            assert multipass("delete", "--force", name1, name2)
 
             with multipass("info", name1, name2) as output:
                 assert not output

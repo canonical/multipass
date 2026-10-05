@@ -43,13 +43,12 @@ public:
 private:
     AliasDict aliases;
     DeleteRequest request;
-    std::string instance_args;
-    std::string snapshot_args;
+    bool delete_all = false;
+    bool ask_for_confirmation = true;
 
     ParseCode parse_args(ArgParser* parser);
-    ParseCode parse_instances_snapshots(ArgParser* parser);
-    std::string generate_snapshot_purge_msg() const;
-    bool confirm_snapshot_purge() const;
+    bool confirm() const;
+    void remove_aliases_for(const std::string& instance);
 };
 } // namespace cmd
 } // namespace multipass
