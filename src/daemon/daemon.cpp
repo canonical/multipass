@@ -2950,8 +2950,22 @@ try
         // The snapshot was successfully taken, the request is considered successful
         return context->set_value(grpc::Status::OK);
     }
-    auto future_watcher = create_future_watcher(
-        [server, final_reply]() { server->Write(final_reply); });
+    auto future_watcher = new QFutureWatcher<AsyncOperationStatus>;
+    QObject::connect(future_watcher,
+                     &QFutureWatcher<AsyncOperationStatus>::finished,
+                     [future_watcher, server, snapshot_name = final_reply.snapshot()] {
+                         auto async_op_status = future_watcher->future().result();
+
+                         mp::SnapshotReply reply;
+                         if (!async_op_status.status.ok())
+                             reply.set_warnings(async_op_status.status.error_message());
+                         reply.set_snapshot(snapshot_name);
+
+                         server->Write(reply);
+
+                         future_watcher->deleteLater();
+                         async_op_status.context->set_value(grpc::Status::OK);
+                     });
     future_watcher->setFuture(
         QtConcurrent::run(&Daemon::async_wait_for_ready_all<SnapshotReply, SnapshotRequest>,
                           this,
