@@ -666,6 +666,22 @@ auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
     }
 }
 
+auto construct_empty_remotes_reply()
+{
+    auto reply = mp::RemotesReply();
+    return reply;
+}
+
+auto construct_multiple_remotes_reply()
+{
+    auto reply = mp::RemotesReply();
+    reply.add_remotes("core");
+    reply.add_remotes("daily");
+    reply.add_remotes("release");
+    reply.add_remotes("snapcraft");
+    return reply;
+}
+
 auto construct_empty_reply()
 {
     auto reply = mp::ImagesReply();
@@ -1157,12 +1173,49 @@ const std::vector<FormatterParamType> non_orderable_networks_formatter_outputs{
      mpt::load_test_file("formatters/json/multiple_lines_networks_reply.json").toStdString(),
      "json_networks_multiple_lines"}};
 
+const auto empty_remotes_reply = construct_empty_remotes_reply();
+const auto multiple_remotes_reply = construct_multiple_remotes_reply();
+
+const std::vector<FormatterParamType> remotes_formatter_outputs{
+    {&table_formatter,
+     &empty_remotes_reply,
+     mpt::load_test_file("formatters/table/empty_remotes_reply.txt").toStdString(),
+     "table_remotes_empty"},
+    {&table_formatter,
+     &multiple_remotes_reply,
+     mpt::load_test_file("formatters/table/multiple_remotes_reply.txt").toStdString(),
+     "table_remotes_multiple"},
+    {&json_formatter,
+     &empty_remotes_reply,
+     mpt::load_test_file("formatters/json/empty_remotes_reply.json").toStdString(),
+     "json_remotes_empty"},
+    {&json_formatter,
+     &multiple_remotes_reply,
+     mpt::load_test_file("formatters/json/multiple_remotes_reply.json").toStdString(),
+     "json_remotes_multiple"},
+    {&csv_formatter,
+     &empty_remotes_reply,
+     mpt::load_test_file("formatters/csv/empty_remotes_reply.csv").toStdString(),
+     "csv_remotes_empty"},
+    {&csv_formatter,
+     &multiple_remotes_reply,
+     mpt::load_test_file("formatters/csv/multiple_remotes_reply.csv").toStdString(),
+     "csv_remotes_multiple"},
+    {&yaml_formatter,
+     &empty_remotes_reply,
+     mpt::load_test_file("formatters/yaml/empty_remotes_reply.yaml").toStdString(),
+     "yaml_remotes_empty"},
+    {&yaml_formatter,
+     &multiple_remotes_reply,
+     mpt::load_test_file("formatters/yaml/multiple_remotes_reply.yaml").toStdString(),
+     "yaml_remotes_multiple"}};
+
 const auto empty_images_reply = construct_empty_reply();
 const auto images_one_reply = construct_images_one_reply();
 const auto images_multiple_reply = construct_images_multiple_reply();
 const auto images_one_reply_no_os = construct_images_one_reply_no_os();
 const auto images_multiple_reply_duplicate_image =
-construct_images_multiple_reply_duplicate_image();
+    construct_images_multiple_reply_duplicate_image();
 
 const std::vector<FormatterParamType> images_formatter_outputs{
     {&table_formatter,
@@ -1184,7 +1237,7 @@ const std::vector<FormatterParamType> images_formatter_outputs{
     {&table_formatter,
      &images_multiple_reply_duplicate_image,
      mpt::load_test_file("formatters/table/images_multiple_reply_duplicate_image.txt")
-.toStdString(),
+         .toStdString(),
      "table_images_multiple_duplicate_image"},
     {&json_formatter,
      &empty_images_reply,
@@ -1201,7 +1254,7 @@ const std::vector<FormatterParamType> images_formatter_outputs{
     {&json_formatter,
      &images_multiple_reply_duplicate_image,
      mpt::load_test_file("formatters/json/images_multiple_reply_duplicate_image.json")
-.toStdString(),
+         .toStdString(),
      "json_images_multiple_duplicate_image"},
     {&csv_formatter,
      &empty_images_reply,
@@ -1234,7 +1287,7 @@ const std::vector<FormatterParamType> images_formatter_outputs{
     {&yaml_formatter,
      &images_multiple_reply_duplicate_image,
      mpt::load_test_file("formatters/yaml/images_multiple_reply_duplicate_image.yaml")
-.toStdString(),
+         .toStdString(),
      "yaml_images_multiple_duplicate_image"}};
 
 const auto version_client_reply = mp::VersionReply();
@@ -1306,6 +1359,8 @@ TEST_P(FormatterSuite, properlyFormatsOutput)
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::InfoReply*>(reply))
         output = formatter->format(*input);
+    else if (auto input = dynamic_cast<const mp::RemotesReply*>(reply))
+        output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::ImagesReply*>(reply))
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::VersionReply*>(reply))
@@ -1323,6 +1378,10 @@ INSTANTIATE_TEST_SUITE_P(OrderableListInfoOutputFormatter,
 INSTANTIATE_TEST_SUITE_P(NonOrderableListInfoOutputFormatter,
                          FormatterSuite,
                          ValuesIn(non_orderable_list_info_formatter_outputs),
+                         print_param_name);
+INSTANTIATE_TEST_SUITE_P(RemotesOutputFormatter,
+                         FormatterSuite,
+                         ValuesIn(remotes_formatter_outputs),
                          print_param_name);
 INSTANTIATE_TEST_SUITE_P(ImagesOutputFormatter,
                          FormatterSuite,

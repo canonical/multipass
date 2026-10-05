@@ -1,0 +1,8 @@
+{
+    "remotes": [
+        "core",
+        "daily",
+        "release",
+        "snapcraft"
+    ]
+}
