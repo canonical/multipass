@@ -189,7 +189,8 @@ TEST_F(TestDaemonSnapshot, failsOnRepeatedSnapshotName)
         .WillOnce(Throw(mp::SnapshotNameTakenException{mock_instance_name, snapshot_name}));
 
     auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
-    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::reply_message, Eq("Taking snapshot")), _))
+    EXPECT_CALL(server,
+                Write(Property(&mp::SnapshotReply::reply_message, Eq("Taking snapshot")), _))
         .WillOnce(Return(true));
 
     auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshot, request, server);
@@ -219,7 +220,8 @@ TEST_F(TestDaemonSnapshot, usesProvidedSnapshotProperties)
         .WillOnce(Return(snapshot));
 
     auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
-    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::reply_message, Eq("Taking snapshot")), _))
+    EXPECT_CALL(server,
+                Write(Property(&mp::SnapshotReply::reply_message, Eq("Taking snapshot")), _))
         .WillOnce(Return(true));
     EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::snapshot, Eq(snapshot_name)), _))
         .WillOnce(Return(true));
@@ -244,7 +246,8 @@ TEST_F(TestDaemonSnapshot, acceptsEmptySnapshotName)
     EXPECT_CALL(*instance, take_snapshot(_, IsEmpty(), IsEmpty())).WillOnce(Return(snapshot));
 
     auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
-    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::reply_message, Eq("Taking snapshot")), _))
+    EXPECT_CALL(server,
+                Write(Property(&mp::SnapshotReply::reply_message, Eq("Taking snapshot")), _))
         .WillOnce(Return(true));
     EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::snapshot, Eq(generated_name)), _))
         .WillOnce(Return(true));
@@ -281,12 +284,13 @@ TEST_F(TestDaemonSnapshot, restartOptionOnAlreadyStoppedInstanceStartsItAfterSna
     auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
     // No "Stopping" message is expected (the instance was already stopped), but "Taking
     // snapshot", "Restarting", and the final reply are.
-    EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::reply_message, Eq("Taking snapshot")), _))
+    EXPECT_CALL(server,
+                Write(Property(&mp::SnapshotReply::reply_message, Eq("Taking snapshot")), _))
         .WillOnce(Return(true));
     EXPECT_CALL(server,
-               Write(Property(&mp::SnapshotReply::reply_message,
-                              Eq(fmt::format("Restarting {}", mock_instance_name))),
-                     _))
+                Write(Property(&mp::SnapshotReply::reply_message,
+                               Eq(fmt::format("Restarting {}", mock_instance_name))),
+                      _))
         .WillOnce(Return(true));
     EXPECT_CALL(server, Write(Property(&mp::SnapshotReply::snapshot, Eq(snapshot_name)), _))
         .WillOnce(Return(true));
