@@ -224,7 +224,7 @@ std::string mp::PlainSSHProcess::read_stream(StreamType type, int timeout)
 {
     mpl::trace_location(category, "(type = {}, timeout = {})", static_cast<int>(type), timeout);
 
-    // If the channel is closed there can still be stored output
+    // Do not check if the channel is closed, as there can still be stored output
     if (!channel) // TODO@sftp
     {
         mpl::trace_location(category, "null channel");
