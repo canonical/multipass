@@ -43,12 +43,12 @@ mp::ReturnCodeVariant cmd::Umount::run(mp::ArgParser* parser)
 
 std::string cmd::Umount::name() const
 {
-    return "umount";
+    return "unmount";
 }
 
 std::vector<std::string> cmd::Umount::aliases() const
 {
-    return {name(), "unmount"};
+    return {name(), "umount"};
 }
 
 QString cmd::Umount::short_help() const
