@@ -2931,8 +2931,10 @@ try
             SnapshotReply temp_reply;
             temp_reply.set_reply_message(fmt::format("Starting {}", vm_name));
             server->Write(temp_reply);
-            std::lock_guard guard{start_mutex};
-            vm_ptr->start();
+            {
+                std::lock_guard guard{start_mutex};
+                vm_ptr->start();
+            }
             vm_ptr->wait_until_ssh_up(mp::default_timeout);
         }
         SnapshotReply temp_reply;
@@ -3028,7 +3030,7 @@ try
 }
 catch (const std::exception& e)
 {
-    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
 void mp::Daemon::restore(const mp::RestoreRequest* request,
