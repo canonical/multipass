@@ -567,7 +567,16 @@ template <typename R>
 bool mpt::DaemonTestFixture::is_ready(std::future<R> const& f)
 {
     // 5 seconds should be plenty of time for the work to be complete
-    return f.wait_for(std::chrono::seconds(5)) == std::future_status::ready;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds{5};
+    do
+    {
+        if (f.wait_for(std::chrono::seconds{0}) == std::future_status::ready)
+            return true;
+
+        QCoreApplication::processEvents(QEventLoop::AllEvents | QEventLoop::WaitForMoreEvents, 10);
+    } while (std::chrono::steady_clock::now() < deadline);
+
+    return false;
 }
 
 template <typename DaemonSlotPtr, typename Request, typename Server>
@@ -584,19 +593,12 @@ grpc::Status mpt::DaemonTestFixture::call_daemon_slot(Daemon& daemon,
         status_promise.set_value(std::move(status));
     });
 
-    auto thread = QThread::create([&daemon, slot, &request, &server, &ctx] {
-        QEventLoop inner_loop;
-        (daemon.*slot)(&request, &server, &ctx);
-        inner_loop.exec();
-    });
-    QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
-
-    thread->start();
+    QMetaObject::invokeMethod(
+        &daemon,
+        [&daemon, slot, &request, &server, &ctx] { (daemon.*slot)(&request, &server, &ctx); },
+        Qt::QueuedConnection);
 
     EXPECT_TRUE(is_ready(status_future));
-
-    thread->quit();
-    thread->wait();
 
     return status_future.get();
 }

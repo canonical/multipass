@@ -211,15 +211,15 @@ private:
 
     // This returns whether any specs were updated (and need persisting)
     bool update_mounts(VMSpecs& vm_specs,
-                       std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
+                       std::unordered_map<std::string, MountHandler::SPtr>& vm_mounts,
                        VirtualMachine* vm);
 
     // This returns whether all required mount handlers were successfully created
     bool create_missing_mounts(std::unordered_map<std::string, VMMount>& mount_specs,
-                               std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
+                               std::unordered_map<std::string, MountHandler::SPtr>& vm_mounts,
                                VirtualMachine* vm);
 
-    MountHandler::UPtr make_mount(VirtualMachine* vm,
+    MountHandler::SPtr make_mount(VirtualMachine* vm,
                                   const std::string& target,
                                   const VMMount& mount);
 
@@ -236,22 +236,26 @@ private:
         std::string message;
     };
 
-    // These async_* methods need to operate on instance names and look up the VMs again, lest they
-    // be gone or moved.
     template <typename Reply, typename Request>
-    ReadinessResult async_wait_vm_ready(const std::string& name,
-                                        const std::chrono::seconds& timeout,
-                                        grpc::ServerReaderWriterInterface<Reply, Request>* server);
+    QFuture<ReadinessResult>
+    async_wait_vm_ready(const std::string& name,
+                        grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                        const std::chrono::seconds& timeout);
     template <typename Reply, typename Request>
-    AsyncOperationStatus
-    async_wait_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                         const std::vector<std::string>& vms,
-                         const std::chrono::seconds& timeout,
-                         DaemonRpcContext* context,
-                         const std::string& errors);
-    void finish_async_operation(const std::string& async_future_key);
-    QFutureWatcher<AsyncOperationStatus>* create_future_watcher(
-        std::function<void()> const& finished_op = []() {});
+    QFuture<ReadinessResult>
+    async_wait_vm_ready(const VirtualMachine::ShPtr& vm,
+                        grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                        const std::chrono::seconds& timeout);
+    template <typename Reply, typename Request>
+    QFuture<std::vector<ReadinessResult>>
+    async_wait_vms_ready(const std::vector<VirtualMachine::ShPtr>& vms,
+                         grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                         const std::chrono::seconds& timeout);
+    std::optional<QFuture<ReadinessResult>> get_cached_readiness_operation(const std::string& name);
+    QFuture<ReadinessResult> cache_readiness_operation(const std::string& name,
+                                                       const QFuture<ReadinessResult>& operation);
+
+    void finish_async_operation(const grpc::Status& status, DaemonRpcContext* context);
     void update_manifests_all(const bool force_update = false);
     void wait_update_manifests_all_and_optionally_applied_force(
         const bool force_manifest_network_download);
@@ -307,15 +311,13 @@ private:
         &Daemon::update_manifests_all,
         this,
         false};
-    std::unordered_map<std::string, std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>>
+    std::unordered_map<std::string, std::unique_ptr<QFutureWatcher<ReadinessResult>>>
         async_future_watchers;
-    std::unordered_map<std::string, QFuture<ReadinessResult>> async_running_futures;
-    std::mutex start_mutex;
     std::unordered_set<std::string> preparing_instances;
     QFuture<void> image_update_future;
     SettingsHandler* instance_mod_handler;
     SettingsHandler* snapshot_mod_handler;
-    std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
+    std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::SPtr>> mounts;
     std::unordered_set<std::string> user_authorized_bridges;
 };
 } // namespace multipass
