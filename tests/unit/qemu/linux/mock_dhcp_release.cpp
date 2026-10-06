@@ -22,8 +22,7 @@ namespace
 {
 bool should_fail(const std::string& name)
 {
-    std::string fail{".fail"};
-    return std::equal(fail.rbegin(), fail.rend(), name.rbegin());
+    return name.ends_with(".fail");
 }
 } // namespace
 

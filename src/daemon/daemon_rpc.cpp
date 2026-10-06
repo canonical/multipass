@@ -78,7 +78,7 @@ auto make_server(const std::string& server_address,
 
 auto server_socket_type_for(const std::string& server_address)
 {
-    if (server_address.find("unix") == 0)
+    if (server_address.starts_with("unix"))
     {
         return mp::ServerSocketType::unix;
     }
