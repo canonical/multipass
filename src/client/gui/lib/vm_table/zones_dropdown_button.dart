@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../switch.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../colors.dart';
 import '../l10n/app_localizations.dart';
 import '../providers.dart';
 
@@ -13,6 +14,7 @@ class ZonesDropdownButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final zones = ref.watch(zonesProvider);
+    if (!ref.watch(azSupportedProvider)) return const SizedBox.shrink();
     final unavailableZones = zones.where((z) => !z.available).length;
 
     return Row(
@@ -85,7 +87,7 @@ class ZonesDropdownButton extends ConsumerWidget {
         ),
         if (unavailableZones > 0) ...[
           const SizedBox(width: 8),
-          Icon(Icons.warning_rounded, color: Color(0xFFCC7701), size: 24),
+          Icon(Icons.warning_rounded, color: warningAmber, size: 24),
           const SizedBox(width: 4),
           Text(
             l10n.vmTableZonesUnavailableLabel(unavailableZones, zones.length),

@@ -52,6 +52,17 @@ TEST_F(PowerShellTest, createsPsProcess)
     mp::PowerShell ps{"test"};
 }
 
+TEST_F(PowerShellTest, createsNonInteractivePsProcess)
+{
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    ps_helper.setup([](auto* process) {
+        EXPECT_EQ(process->arguments(),
+                  QStringList({"-NoProfile", "-NonInteractive", "-NoExit", "-Command", "-"}));
+    });
+
+    mp::PowerShell ps{"test"};
+}
+
 TEST_F(PowerShellTest, exitsPsProcess)
 {
     logger_scope.mock_logger->screen_logs(mpl::Level::info);
@@ -213,6 +224,7 @@ TEST_P(TestPSStatusAndOutput, runReturnsCmdletStatusAndOutput)
     logger.expect_log(mpl::Level::debug, fmt::format("{}", GetParam()));
 
     ps_helper.setup([this](auto* process) {
+        InSequence seq;
         expect_writes(process);
         EXPECT_CALL(*process, read_all_standard_output)
             .WillOnce(Return(QByteArray{data}.append(end_marker())));
@@ -231,6 +243,7 @@ TEST_P(TestPSStatusAndOutput, runHandlesTricklingOutput)
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
 
     ps_helper.setup([this](auto* process) {
+        InSequence seq;
         expect_writes(process);
         EXPECT_CALL(*process, read_all_standard_output)
             .WillOnce(Return(""))
@@ -262,6 +275,7 @@ TEST_P(TestPSStatusAndOutput, runHandlesSplitEndMarker)
     logger_scope.mock_logger->screen_logs(mpl::Level::warning);
 
     ps_helper.setup([this](auto* process) {
+        InSequence seq;
         const auto marker_halves = halves(ps_helper.output_end_marker);
         const auto status_halves = halves(get_status());
 
@@ -293,11 +307,24 @@ TEST_F(PowerShellTest, execRunsGivenCmd)
 
     ps_helper.setup(
         [&args](auto* process) {
-            EXPECT_EQ(process->arguments(), args);
+            EXPECT_EQ(process->arguments(), QStringList({"-NoProfile", "-NonInteractive"}) + args);
             EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
         },
         /* auto_exit = */ false);
     mp::PowerShell::exec(args, "Mitis");
+}
+
+TEST_F(PowerShellTest, execDoesNotDuplicateNonInteractiveFlags)
+{
+    const auto args = QStringList{"-noprofile", "-NonInteractive", "-Command", "Get-VM"};
+
+    ps_helper.setup(
+        [&args](auto* process) {
+            EXPECT_EQ(process->arguments(), args);
+            EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+        },
+        /* auto_exit = */ false);
+    mp::PowerShell::exec(args, "Nerid");
 }
 
 TEST_F(PowerShellTest, execSucceedsWhenNoTimeoutAndProcessSuccessful)

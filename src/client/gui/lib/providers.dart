@@ -87,6 +87,9 @@ final pollingProvider = StreamProvider<({List<VmInfo> info, List<Zone> zones})>(
 );
 
 final daemonAvailableProvider = Provider((ref) {
+  if (!ref.watch(ffiAvailableProvider)) {
+    return false;
+  }
   final error = ref.watch(pollingProvider).error;
   if (error == null) return true;
   if (error case GrpcError grpcError) {
@@ -190,6 +193,16 @@ final zonesProvider = Provider<BuiltList<Zone>>((ref) {
       );
 });
 
+// Whether the active backend implements Availability Zones. Backends that don't
+// (VirtualBox, old Hyper-V) return no zones, so an empty list means unsupported.
+// TODO@backends: remove once deprecated backends are removed
+final azSupportedProvider = Provider<bool>((ref) {
+  return ref.watch(pollingProvider).maybeWhen(
+        data: (data) => data.zones.isNotEmpty,
+        orElse: () => true,
+      );
+});
+
 class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
   @override
   BuiltList<DetailedInfoItem> build() {
@@ -206,7 +219,9 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
         cpuCount: request.numCores.toString(),
         diskTotal: request.diskSpace,
         memoryTotal: request.memSize,
-        zone: Zone(name: request.zone),
+        zone: Zone(
+          name: ref.read(azSupportedProvider) ? request.zone : '',
+        ),
         instanceInfo: InstanceDetails(
           currentRelease: request.image,
         ),
@@ -286,12 +301,26 @@ class DaemonSettingNotifier extends AsyncNotifier<String> {
   }
 
   Future<void> set(String value) async {
-    state = AsyncValue.data(value);
+    // The driver is only reported once the daemon has actually switched, so it
+    // is refetched afterwards instead of being set optimistically.
+    if (arg != driverKey) state = AsyncValue.data(value);
     try {
       await ref.read(grpcClientProvider).set(arg, value);
+      if (arg == driverKey) ref.invalidateSelf();
     } catch (_) {
       Timer(100.milliseconds, ref.invalidateSelf);
       rethrow;
+    }
+  }
+
+  // TODO hyperv migration, remove
+  // Refetches the setting once the daemon is done, whatever the outcome, since
+  // a partially failed migration still switches the driver.
+  Stream<SetReply> setStreaming(String value) async* {
+    try {
+      yield* ref.read(grpcClientProvider).setStreaming(arg, value);
+    } finally {
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 

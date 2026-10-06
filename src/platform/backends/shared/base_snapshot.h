@@ -43,10 +43,11 @@ public:
                  const std::string& cloud_init_instance_id,
                  std::shared_ptr<Snapshot> parent,
                  const VMSpecs& specs,
-                 const VirtualMachine& vm);
+                 const VirtualMachine& vm,
+                 VirtualMachineDescription& vm_desc);
     BaseSnapshot(const std::filesystem::path& filename,
                  VirtualMachine& vm,
-                 const VirtualMachineDescription& desc);
+                 VirtualMachineDescription& vm_desc);
 
     int get_index() const noexcept override;
     std::string get_name() const override;
@@ -87,8 +88,12 @@ private:
     BaseSnapshot(SnapshotDescription desc,
                  std::shared_ptr<Snapshot> parent,
                  const VirtualMachine& vm,
+                 VirtualMachineDescription& vm_desc,
                  bool captured);
-    BaseSnapshot(SnapshotDescription desc, VirtualMachine& vm, bool captured);
+    BaseSnapshot(SnapshotDescription desc,
+                 VirtualMachine& vm,
+                 VirtualMachineDescription& vm_desc,
+                 bool captured);
 
     auto erase_helper();
     std::string derive_snapshot_filename() const;
@@ -102,6 +107,7 @@ private:
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::string id;
     const std::filesystem::path storage_dir;
+    VirtualMachineDescription& vm_desc;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     bool captured;
@@ -239,15 +245,6 @@ inline void multipass::BaseSnapshot::capture()
         capture_impl();
         persist();
     }
-}
-
-inline void multipass::BaseSnapshot::apply()
-{
-    const std::unique_lock lock{mutex};
-    apply_impl();
-    // no need to persist here for the time being: only private fields of the base class are
-    // persisted for now, and those cannot be affected by apply_impl (except by setters, which
-    // already persist)
 }
 
 inline const std::string& multipass::BaseSnapshot::get_id() const noexcept

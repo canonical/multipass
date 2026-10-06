@@ -35,6 +35,8 @@ struct MockSSHTestFixture // TODO@rewiressh remove
         userauth_publickey.returnValue(SSH_OK);
         request_exec.returnValue(SSH_OK);
         channel_read.returnValue(0);
+        channel_poll.returnValue(1); // data available, so reads proceed as before polling existed
+        send_keepalive.returnValue(SSH_OK);
         is_eof.returnValue(true);
         get_exit_state.returnValue(SSH_OK);
         channel_is_open.returnValue(true);
@@ -48,6 +50,8 @@ struct MockSSHTestFixture // TODO@rewiressh remove
     decltype(MOCK(ssh_userauth_publickey)) userauth_publickey{MOCK(ssh_userauth_publickey)};
     decltype(MOCK(ssh_channel_request_exec)) request_exec{MOCK(ssh_channel_request_exec)};
     decltype(MOCK(ssh_channel_read_timeout)) channel_read{MOCK(ssh_channel_read_timeout)};
+    decltype(MOCK(ssh_channel_poll_timeout)) channel_poll{MOCK(ssh_channel_poll_timeout)};
+    decltype(MOCK(ssh_send_keepalive)) send_keepalive{MOCK(ssh_send_keepalive)};
     decltype(MOCK(ssh_channel_is_eof)) is_eof{MOCK(ssh_channel_is_eof)};
     decltype(MOCK(ssh_channel_get_exit_state)) get_exit_state{MOCK(ssh_channel_get_exit_state)};
     decltype(MOCK(ssh_channel_is_open)) channel_is_open{MOCK(ssh_channel_is_open)};

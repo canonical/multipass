@@ -1406,8 +1406,8 @@ TEST_P(PetenvFormatterSuite, petEnvFirstInOutput)
                                 "(Snapshot[[:print:]]*\n[[:print:]]*,{0},.*)",
                                 petenv_name());
         else if (dynamic_cast<const mp::YamlFormatter*>(formatter))
-            regex =
-                fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", petenv_name());
+            regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*",
+                                petenv_name());
         else
             FAIL() << "Not a supported formatter.";
     }
@@ -1486,4 +1486,52 @@ TEST_F(BaseFormatterSuite, yaml_formatter_formats_zones_correctly)
                                         "  subnet: 192.168.2.0/24\n";
 
     EXPECT_EQ(yaml_formatter.format(zones_reply), expected_output);
+}
+
+// When the backend does not support availability zones, the instance's zone is
+// reported as unsupported and must be rendered as "n/a" (or a null value).
+TEST_F(BaseFormatterSuite, formatters_render_unsupported_zone_as_na_in_list)
+{
+    auto list_reply = construct_single_instance_list_reply();
+    list_reply.mutable_instance_list()->mutable_instances(0)->mutable_zone()->clear_name();
+
+    const auto table_output = table_formatter.format(list_reply);
+    EXPECT_THAT(table_output,
+                HasSubstr("foo                     Running           10.168.32.2      Ubuntu 16.04 "
+                          "LTS    n/a\n"));
+    EXPECT_THAT(table_output, Not(HasSubstr("zone1")));
+
+    const auto csv_output = csv_formatter.format(list_reply);
+    EXPECT_THAT(
+        csv_output,
+        HasSubstr("foo,Running,10.168.32.2,Ubuntu 16.04 LTS,\"10.168.32.2,200.3.123.30\",n/a,\n"));
+    EXPECT_THAT(csv_output, Not(HasSubstr("zone1")));
+
+    const auto json_output = json_formatter.format(list_reply);
+    EXPECT_THAT(json_output, HasSubstr("null"));
+    EXPECT_THAT(json_output, Not(HasSubstr("zone1")));
+
+    const auto yaml_output = yaml_formatter.format(list_reply);
+    EXPECT_THAT(yaml_output, Not(HasSubstr("zone1")));
+}
+
+TEST_F(BaseFormatterSuite, formatters_render_unsupported_zone_as_na_in_info)
+{
+    auto info_reply = construct_single_instance_info_reply();
+    info_reply.mutable_details(0)->mutable_zone()->clear_name();
+
+    const auto table_output = table_formatter.format(info_reply);
+    EXPECT_THAT(table_output, HasSubstr("Zone:           n/a\n"));
+    EXPECT_THAT(table_output, Not(HasSubstr("zone1")));
+
+    const auto csv_output = csv_formatter.format(info_reply);
+    EXPECT_THAT(csv_output, HasSubstr("foo,Running,n/a,,10.168.32.2,Ubuntu 16.04.3 LTS,"));
+    EXPECT_THAT(csv_output, Not(HasSubstr("zone1")));
+
+    const auto json_output = json_formatter.format(info_reply);
+    EXPECT_THAT(json_output, HasSubstr("null"));
+    EXPECT_THAT(json_output, Not(HasSubstr("zone1")));
+
+    const auto yaml_output = yaml_formatter.format(info_reply);
+    EXPECT_THAT(yaml_output, Not(HasSubstr("zone1")));
 }

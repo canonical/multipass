@@ -156,6 +156,10 @@ def multipass(*args, **kwargs):
 
         return retry_wrapper()
 
+    governor = getattr(cfg, "active_governor", None)
+    if governor is not None and cfg.daemon_health_check:
+        governor.check_health(cfg.health_check_timeout)
+
     if cfg.print_cli_output:
         # Move to the next line since the CLI modifies the current line for
         # updating progress message
@@ -191,7 +195,7 @@ def multipass(*args, **kwargs):
                 self.pexpect_child = spawn_multipass(
                     args, timeout=timeout, echo=echo, env=env)
                 self.pexpect_child.expect(pexpect.EOF, timeout=timeout)
-                self.output_text = self.pexpect_child.before.decode("utf-8")
+                self.output_text = self.pexpect_child.before.decode("utf-8", errors="replace")
                 self.pexpect_child.wait()
             except Exception as ex:
                 print(ex)

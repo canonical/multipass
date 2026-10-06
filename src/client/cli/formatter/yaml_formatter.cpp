@@ -66,8 +66,8 @@ YAML::Node generate_snapshot_details(const mp::DetailedInfoItem& item)
     const auto& fundamentals = snapshot_details.fundamentals();
     YAML::Node snapshot_node;
 
-    snapshot_node["size"] =
-        snapshot_details.size().empty() ? YAML::Node() : YAML::Node(snapshot_details.size());
+    snapshot_node["size"] = snapshot_details.size().empty() ? YAML::Node()
+                                                            : YAML::Node(snapshot_details.size());
     snapshot_node["cpu_count"] = item.cpu_count();
     snapshot_node["disk_space"] = item.disk_total();
     snapshot_node["memory_size"] = item.memory_total();
@@ -81,17 +81,17 @@ YAML::Node generate_snapshot_details(const mp::DetailedInfoItem& item)
     }
     snapshot_node["mounts"] = mounts;
 
-    snapshot_node["created"] =
-        MP_FORMAT_UTILS.convert_to_user_locale(fundamentals.creation_timestamp());
-    snapshot_node["parent"] =
-        fundamentals.parent().empty() ? YAML::Node() : YAML::Node(fundamentals.parent());
+    snapshot_node["created"] = MP_FORMAT_UTILS.convert_to_user_locale(
+        fundamentals.creation_timestamp());
+    snapshot_node["parent"] = fundamentals.parent().empty() ? YAML::Node()
+                                                            : YAML::Node(fundamentals.parent());
 
     snapshot_node["children"] = YAML::Node(YAML::NodeType::Sequence);
     for (const auto& child : snapshot_details.children())
         snapshot_node["children"].push_back(child);
 
-    snapshot_node["comment"] =
-        fundamentals.comment().empty() ? YAML::Node() : YAML::Node(fundamentals.comment());
+    snapshot_node["comment"] = fundamentals.comment().empty() ? YAML::Node()
+                                                              : YAML::Node(fundamentals.comment());
 
     return snapshot_node;
 }
@@ -102,9 +102,16 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
     YAML::Node instance_node;
 
     instance_node["state"] = mp::format::status_string_for(item.instance_status());
-    instance_node["zone"] = YAML::Node{};
-    instance_node["zone"]["name"] = item.zone().name();
-    instance_node["zone"]["available"] = item.zone().available();
+    if (!item.zone().name().empty())
+    {
+        instance_node["zone"] = YAML::Node{};
+        instance_node["zone"]["name"] = item.zone().name();
+        instance_node["zone"]["available"] = item.zone().available();
+    }
+    else
+    {
+        instance_node["zone"] = YAML::Node(YAML::NodeType::Null);
+    }
 
     if (instance_details.has_num_snapshots())
         instance_node["snapshot_count"] = instance_details.num_snapshots();
@@ -112,10 +119,10 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
     instance_node["image_hash"] = instance_details.id();
     instance_node["image_release"] = instance_details.image_release();
     instance_node["release"] = instance_details.current_release().empty()
-                                   ? YAML::Node()
-                                   : YAML::Node(instance_details.current_release());
-    instance_node["cpu_count"] =
-        item.cpu_count().empty() ? YAML::Node() : YAML::Node(item.cpu_count());
+                                 ? YAML::Node()
+                                 : YAML::Node(instance_details.current_release());
+    instance_node["cpu_count"] = item.cpu_count().empty() ? YAML::Node()
+                                                          : YAML::Node(item.cpu_count());
 
     if (!instance_details.load().empty())
     {
@@ -130,8 +137,8 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
 
     YAML::Node disk;
     disk["used"] = instance_details.disk_usage().empty()
-                       ? YAML::Node()
-                       : YAML::Node(instance_details.disk_usage());
+                     ? YAML::Node()
+                     : YAML::Node(instance_details.disk_usage());
     disk["total"] = item.disk_total().empty() ? YAML::Node() : YAML::Node(item.disk_total());
 
     // TODO: disk name should come from daemon
@@ -141,10 +148,10 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
 
     YAML::Node memory;
     memory["usage"] = instance_details.memory_usage().empty()
-                          ? YAML::Node()
-                          : YAML::Node(std::stoll(instance_details.memory_usage()));
-    memory["total"] =
-        item.memory_total().empty() ? YAML::Node() : YAML::Node(std::stoll(item.memory_total()));
+                        ? YAML::Node()
+                        : YAML::Node(std::stoll(instance_details.memory_usage()));
+    memory["total"] = item.memory_total().empty() ? YAML::Node()
+                                                  : YAML::Node(std::stoll(item.memory_total()));
     instance_node["memory"] = memory;
 
     instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
@@ -193,18 +200,26 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     {
         YAML::Node instance_node;
         instance_node["state"] = mp::format::status_string_for(instance.instance_status());
-        instance_node["zone"] = YAML::Node{};
-        instance_node["zone"]["name"] = instance.zone().name();
-        instance_node["zone"]["available"] = instance.zone().available();
+        if (!instance.zone().name().empty())
+        {
+            instance_node["zone"] = YAML::Node{};
+            instance_node["zone"]["name"] = instance.zone().name();
+            instance_node["zone"]["available"] = instance.zone().available();
+        }
+        else
+        {
+            instance_node["zone"] = YAML::Node(YAML::NodeType::Null);
+        }
 
         instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
         for (const auto& ip : instance.ipv4())
             instance_node["ipv4"].push_back(ip);
 
-        instance_node["release"] =
-            instance.current_release().empty()
-                ? "Not Available"
-                : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release()));
+        instance_node["release"] = instance.current_release().empty()
+                                     ? "Not Available"
+                                     : mp::utils::trim(fmt::format("{} {}",
+                                                                   instance.os(),
+                                                                   instance.current_release()));
 
         list[instance.name()].push_back(instance_node);
     }
@@ -222,10 +237,10 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
         YAML::Node instance_node;
         YAML::Node snapshot_node;
 
-        snapshot_node["parent"] =
-            snapshot.parent().empty() ? YAML::Node() : YAML::Node(snapshot.parent());
-        snapshot_node["comment"] =
-            snapshot.comment().empty() ? YAML::Node() : YAML::Node(snapshot.comment());
+        snapshot_node["parent"] = snapshot.parent().empty() ? YAML::Node()
+                                                            : YAML::Node(snapshot.parent());
+        snapshot_node["comment"] = snapshot.comment().empty() ? YAML::Node()
+                                                              : YAML::Node(snapshot.comment());
 
         instance_node[snapshot.snapshot_name()].push_back(snapshot_node);
         info_node[item.name()].push_back(instance_node);

@@ -11,6 +11,7 @@ import '../notifications/notifications_provider.dart';
 import '../providers.dart';
 import '../l10n/app_localizations.dart';
 import '../switch.dart';
+import 'constants.dart';
 import 'hotkey.dart';
 
 final primaryNameProvider = clientSettingProvider(primaryNameKey);
@@ -349,7 +350,7 @@ class SettingField extends StatelessWidget {
           ),
           const SizedBox(width: 12),
         ],
-        SizedBox(width: 260, child: child),
+        SizedBox(width: settingFieldWidth, child: child),
       ],
     );
   }

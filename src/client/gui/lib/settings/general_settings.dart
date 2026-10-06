@@ -9,6 +9,7 @@ import '../providers.dart';
 import '../switch.dart';
 import '../update_available.dart';
 import 'autostart_notifiers.dart';
+import 'constants.dart';
 
 final onAppCloseProvider = guiSettingProvider(onAppCloseKey);
 
@@ -51,7 +52,7 @@ class GeneralSettings extends ConsumerWidget {
         const SizedBox(height: 20),
         Dropdown(
           label: l10n.generalOnCloseLabel,
-          width: 260,
+          width: settingFieldWidth,
           value: onAppClose ?? 'ask',
           onChanged: (value) =>
               ref.read(onAppCloseProvider.notifier).set(value!),

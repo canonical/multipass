@@ -39,7 +39,6 @@ public:
             return VMImage{dummy_image.path(), {}, {}, {}, {}, {}, {}};
         });
         ON_CALL(*this, has_record_for(_)).WillByDefault(Return(true));
-        ON_CALL(*this, minimum_image_size_for(_)).WillByDefault(Return(MemorySize{"1048576"}));
 
         ON_CALL(*this, all_info_for(_))
             .WillByDefault(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
@@ -70,7 +69,6 @@ public:
     MOCK_METHOD(bool, has_record_for, (const std::string&), (override));
     MOCK_METHOD(void, prune_expired_images, (), (override));
     MOCK_METHOD(void, update_images, (const PrepareAction&, const ProgressMonitor&), (override));
-    MOCK_METHOD(MemorySize, minimum_image_size_for, (const std::string&), (override));
     MOCK_METHOD(void, clone, (const std::string&, const std::string&), (override));
     MOCK_METHOD(VMImageHost*, image_host_for, (const std::string&), (const, override));
     MOCK_METHOD((std::vector<std::pair<std::string, VMImageInfo>>),

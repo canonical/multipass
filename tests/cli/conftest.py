@@ -174,12 +174,26 @@ def pytest_addoption(parser):
             ("mount", 180),
             ("restart", 240),
             ("delete", 90),
-            ("exec", 90),
+            ("exec", 270),
             ("start", 180),
+            ("unmount", 45),
             ("umount", 45),
         ],
         help="Per-command timeout override; may be given multiple times. "
         "Example: --cmd-timeouts launch=180 start=60",
+    )
+
+    parser.addoption(
+        "--no-daemon-health-check",
+        action="store_true",
+        help="Disable the daemon health check that runs before each CLI command.",
+    )
+
+    parser.addoption(
+        "--health-check-timeout",
+        default=5,
+        type=int,
+        help="Timeout (seconds) for the per-step daemon health check.",
     )
 
 
@@ -225,6 +239,10 @@ def pytest_configure(config):
 
     for name, value in config.getoption("cmd_timeouts"):
         setattr(cfg.timeouts, name, value)
+
+    cfg.daemon_health_check = not config.getoption(
+        "--no-daemon-health-check")
+    cfg.health_check_timeout = config.getoption("--health-check-timeout")
 
     # If user gave --storage-dir, use it
     if not cfg.storage_dir:
@@ -326,11 +344,26 @@ def pytest_collection_modifyitems(config, items):
                 )
             )
 
+    def maybe_skip_az_test(item):
+        if not item.get_closest_marker("az"):
+            return
+        # hcs is the successor of the deprecated `hyperv` backend and
+        # does support availability zones -- only the legacy `hyperv` and
+        # `virtualbox` backends are excluded here.
+        if cfg.driver in ("hyperv", "virtualbox"):
+            item.add_marker(
+                pytest.mark.skip(
+                    f"Skipped -- {cfg.driver} driver does not "
+                    "support availability zones."
+                )
+            )
+
     for item in items:
         maybe_skip_mount_test(item)
         maybe_skip_clone_test(item)
         maybe_skip_snapshot_test(item)
         maybe_skip_suspend_test(item)
+        maybe_skip_az_test(item)
 
 
 def pytest_runtest_setup(item):
@@ -566,7 +599,11 @@ def multipassd_impl():
         # Ensure the right driver is set
         set_driver(governor)
 
-        yield governor
+        cfg.active_governor = governor
+        try:
+            yield governor
+        finally:
+            cfg.active_governor = None
 
 
 @pytest.fixture(scope="function")

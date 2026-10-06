@@ -13,18 +13,29 @@ On some platforms, it is possible to select a driver during installation. Until 
 
 Different sets of drivers are available on different platforms:
 
-- On Linux, Multipass can be configured to use QEMU. As of Multipass version 1.16, LXD and libvirt are no longer available.
-- On macOS, the options are QEMU, the Apple Virtualization framework (AppleVZ), and VirtualBox. As of Multipass version 1.13, Hyperkit is no longer available.
-- On Windows, Multipass uses Hyper-V (only available on Windows Pro) or VirtualBox.
+- On Linux, Multipass uses QEMU.
+- On macOS, the options are QEMU, the Apple Virtualization framework, and VirtualBox (deprecated).
+- On Windows, Multipass supports the Host Compute System API, Hyper-V (deprecated), and VirtualBox (deprecated).
 
 ## Default drivers
 
 When Multipass is installed, the following drivers are selected by default:
 
-- On Linux and macOS, QEMU is used.
-- On Windows, the default driver depends on the OS version:
-  + Hyper-V on Windows Pro
-  + VirtualBox on Windows Home
+- On Linux and macOS, `qemu` is used.
+- On Windows, `hcs` is the default.
+
+## Deprecated drivers
+
+Linux:
+- As of Multipass version 1.16, LXD and libvirt are no longer available.
+
+macOS:
+- As of Multipass version 1.13, Hyperkit is no longer available.
+- As of Multipass version 1.17, VirtualBox is deprecated (see [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver)).
+
+Windows:
+- As of Multipass version 1.17, the `hyperv` driver is deprecated in favor of the `hcs` driver (see [Migrate from Hyper-V to the HCS driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows))
+- Also as of Multipass version 1.17 VirtualBox is deprecated with no migration planned (see [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver)).
 
 ## Instance scopes
 
@@ -39,7 +50,8 @@ Nonetheless, instances are preserved across drivers. After switching back to a p
 
 There are two exceptions to the above:
 
-  - On macOS, stopped Hyperkit instances are automatically migrated to QEMU by Multipass's version 1.12 or later (see [How to migrate from Hyperkit to QEMU on macOS](/how-to-guides/customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)).
+  - On macOS, and only on Multipass version 1.12, stopped Hyperkit instances are automatically migrated to QEMU by Multipass's version 1.12 (see [How to migrate from Hyperkit to QEMU on macOS](/how-to-guides/customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)).
+  - On Windows, and only on Multipass version 1.17,  stopped `hyperv` instances are automatically migrated to the `hcs` driver by Multipass's version 1.17 (see [Migrate from Hyper-V to the HCS driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows)).
 
 (driver-feature-disparities)=
 ## Feature disparities
@@ -48,9 +60,9 @@ While we strive to offer a uniform interface across the board, not all features 
 
 | Feature | Not supported on... | Notes |
 |--- | --- | --- |
-| **Native mounts** | <ul><li>AppleVZ</li><li>VirtualBox</li></ul> | This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command). |
-| **Snapshots** | <ul><li>AppleVZ</li></ul> | This affects the [`snapshot`](/reference/command-line-interface/snapshot) command. |
-| **Suspend** | <ul><li>AppleVZ</li></ul> | This affects the [`suspend`](/reference/command-line-interface/suspend) command. |
+| **Native mounts** | <ul><li>Apple Virtualization framework</li><li>VirtualBox</li></ul> | This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command). |
+| **Snapshots** | <ul><li>Apple Virtualization framework</li></ul> | This affects the [`snapshot`](/reference/command-line-interface/snapshot) command. |
+| **Suspend** | <ul><li>Apple Virtualization framework</li></ul> | This affects the [`suspend`](/reference/command-line-interface/suspend) command. |
 
 <!-- old formatting
 - **Native mounts** are supported only on Hyper-V and QEMU. This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command).

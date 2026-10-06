@@ -59,6 +59,8 @@ public:
 private:
     friend class multipass::test::PowerShellTestHelper;
     bool write(const QByteArray& data);
+    // Drain all data in stdout/stderr
+    void drain();
 
     std::unique_ptr<Process> powershell_proc;
     const std::string name;

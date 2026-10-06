@@ -26,6 +26,7 @@
 #include "mock_virtual_machine.h"
 #include "multipass/virtual_machine_description.h"
 #include "stub_availability_zone.h"
+#include "stub_status_monitor.h"
 #include "temp_dir.h"
 
 #include <shared/base_virtual_machine.h>
@@ -50,6 +51,8 @@ using St = mp::VirtualMachine::State;
 
 namespace
 {
+mpt::StubVMStatusMonitor stub_monitor{};
+
 struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualMachine>
 {
     template <typename... Args>
@@ -102,6 +105,8 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                  const mp::VMSpecs& specs,
                  std::shared_ptr<mp::Snapshot> parent),
                 (override));
+    MOCK_METHOD(void, update_cpus_impl, (int), (override));
+    MOCK_METHOD(void, resize_memory_impl, (const mp::MemorySize&), (override));
     MOCK_METHOD(void, resize_disk_impl, (const mp::MemorySize&), (override));
 
     MOCK_METHOD(std::unique_ptr<mp::SSHProcess>,
@@ -109,6 +114,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                 (const std::string& cmd, bool whisper),
                 (override));
 
+    using mp::BaseVirtualMachine::desc;
     using mp::BaseVirtualMachine::renew_ssh_session; // promote to public
 
     void simulate_state(St state)
@@ -154,7 +160,13 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
                            mp::AvailabilityZone& zone,
                            std::unique_ptr<mpt::TempDir> tmp_dir,
                            const mp::VirtualMachineDescription& desc = {})
-        : mp::BaseVirtualMachine{s, "stub", desc, mpt::StubSSHKeyProvider{}, zone, tmp_dir->path()},
+        : mp::BaseVirtualMachine{s,
+                                 "stub",
+                                 desc,
+                                 stub_monitor,
+                                 mpt::StubSSHKeyProvider{},
+                                 zone,
+                                 tmp_dir->path()},
           tmp_dir{std::move(tmp_dir)}
     {
     }
@@ -189,7 +201,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
         return "localhost";
     }
 
-    std::string ssh_username() override
+    std::string ssh_username() const override
     {
         return "ubuntu";
     }
@@ -204,14 +216,6 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
     }
 
     void handle_state_update() override
-    {
-    }
-
-    void update_cpus(int /*num_cores*/) override
-    {
-    }
-
-    void resize_memory(const mp::MemorySize&) override
     {
     }
 
@@ -276,6 +280,7 @@ struct BaseVM : public Test
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
     NiceMock<MockBaseVirtualMachine> vm{"mock-vm",
                                         mp::VirtualMachineDescription{},
+                                        stub_monitor,
                                         key_provider,
                                         zone};
     std::vector<std::shared_ptr<mpt::MockSnapshot>> snapshot_album;
@@ -884,9 +889,9 @@ TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
     const auto& snapshot = *snapshot_album[0];
 
     mp::VMSpecs new_specs = original_specs;
-    new_specs.extra_interfaces =
-        std::vector<mp::NetworkInterface>{{"id", "52:54:00:56:78:91", true},
-                                          {"id", "52:54:00:56:78:92", true}};
+    new_specs.extra_interfaces = std::vector<mp::NetworkInterface>{
+        {"id", "52:54:00:56:78:91", true},
+        {"id", "52:54:00:56:78:92", true}};
 
     // the ref return functions can not use the default mock behavior, so they need to be specified
     EXPECT_CALL(snapshot, get_mounts).WillOnce(ReturnRef(original_specs.mounts));
@@ -1008,8 +1013,9 @@ TEST_F(BaseVM, loadsSnasphots)
     static const auto index_digits_regex = n_occurrences(digit_char_class, 4);
     static const auto file_regex = fmt::format(R"(.*{}\.snapshot\.json)", index_digits_regex);
 
-    auto& expectation =
-        EXPECT_CALL(vm, make_specific_snapshot(mpt::match_qstring(MatchesRegex(file_regex))));
+    auto& expectation = EXPECT_CALL(
+        vm,
+        make_specific_snapshot(mpt::match_qstring(MatchesRegex(file_regex))));
 
     using NiceMockSnapshot = NiceMock<mpt::MockSnapshot>;
     std::array<std::shared_ptr<NiceMockSnapshot>, num_snapshots> snapshot_bag{};
@@ -1434,12 +1440,31 @@ TEST_F(BaseVM, sshExecProcessRefusesToExecuteIfVMIsNotRunning)
                          mpt::match_what(HasSubstr("not running")));
 }
 
+TEST_F(BaseVM, sshExecProcessThrowsIfVMIsStopped)
+{
+    static constexpr auto* cmd = ":";
+
+    auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
+    EXPECT_CALL(*mock_utils_ptr, is_running)
+        .Times(2)
+        .WillOnce(Return(true))
+        .WillOnce(Return(false));
+
+    vm.simulate_ssh_exec_process();
+    vm.renew_ssh_session();
+
+    MP_EXPECT_THROW_THAT(
+        vm.ssh_exec_process(cmd),
+        mp::SSHException,
+        mpt::match_what(HasSubstr("SSH unavailable on instance mock-vm: not running")));
+}
+
 TEST_F(BaseVM, sshExecProcessRunsDirectlyIfConnected)
 {
     static constexpr auto* cmd = ":";
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, is_running).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(vm, make_ssh_process(cmd, _))
         .WillOnce(Return(std::make_unique<NiceMock<mpt::MockSSHProcess>>()));
 
@@ -1454,7 +1479,7 @@ TEST_F(BaseVM, sshExecProcessReconnectsIfDisconnected)
     static constexpr auto* cmd = ":";
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, is_running).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(vm, make_ssh_process(cmd, _))
         .WillOnce(Return(std::make_unique<NiceMock<mpt::MockSSHProcess>>()));
 
@@ -1486,7 +1511,7 @@ TEST_F(BaseVM, sshExecProcessRethrowsSSHExceptionsWhenConnected)
     static constexpr auto* cmd = ":";
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, is_running).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(vm, make_ssh_process(cmd, _)).WillOnce(Throw(mp::SSHException{"intentional"}));
 
     vm.simulate_ssh_exec_process();
@@ -1502,7 +1527,7 @@ TEST_F(BaseVM, sshExecProcessPropagatesNonSSHExceptions)
     static constexpr auto* cmd = "wrong";
 
     auto [mock_utils_ptr, guard] = mpt::MockUtils::inject();
-    EXPECT_CALL(*mock_utils_ptr, is_running).WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils_ptr, is_running).Times(2).WillRepeatedly(Return(true));
     EXPECT_CALL(vm, make_ssh_process(cmd, _)).WillOnce(Throw(std::runtime_error{"intentional"}));
 
     vm.simulate_ssh_exec_process();
@@ -1576,28 +1601,28 @@ TEST_F(BaseVM, setUnavailableShutsdownRunning)
     vm.set_available(false);
 }
 
-TEST_F(BaseVM, setAvailableRestartsRunning)
+TEST_F(BaseVM, setAvailableRemembersRunning)
 {
     StubBaseVirtualMachine base_vm(zone, St::running);
 
-    base_vm.set_available(false);
+    EXPECT_FALSE(base_vm.set_available(false));
     ASSERT_EQ(base_vm.current_state(), St::unavailable);
 
-    base_vm.set_available(false);
+    EXPECT_FALSE(base_vm.set_available(false));
     ASSERT_EQ(base_vm.current_state(), St::unavailable);
 
-    base_vm.set_available(true);
-    EXPECT_EQ(base_vm.current_state(), St::running);
+    EXPECT_TRUE(base_vm.set_available(true));
+    EXPECT_EQ(base_vm.current_state(), St::off);
 }
 
-TEST_F(BaseVM, setAvailableKeepsOffOff)
+TEST_F(BaseVM, setAvailableRemembersStopped)
 {
     StubBaseVirtualMachine base_vm(zone, St::off);
 
-    base_vm.set_available(false);
+    EXPECT_FALSE(base_vm.set_available(false));
     ASSERT_EQ(base_vm.current_state(), St::unavailable);
 
-    base_vm.set_available(true);
+    EXPECT_FALSE(base_vm.set_available(true));
     EXPECT_EQ(base_vm.current_state(), St::off);
 }
 
@@ -1609,12 +1634,54 @@ TEST_F(BaseVM, coreImageDiskResizeReturnsAMessage)
     StubBaseVirtualMachine vm{St::off, zone, std::make_unique<mpt::TempDir>(), desc};
     mp::UserMessages messages{};
     mp::UserMessages expected_messages{};
-    vm.resize_disk(mp::MemorySize{}, messages);
+    vm.resize_disk(mp::MemorySize{"1G"}, messages);
     expected_messages.add_message(vm.core_image_disk_resize_message());
     EXPECT_TRUE(std::equal(messages.begin(),
                            messages.end(),
                            expected_messages.begin(),
                            expected_messages.end()));
+}
+
+TEST_F(BaseVM, updateCpusCallsImplAndUpdatesDescription)
+{
+    constexpr auto num_cores = 7;
+    EXPECT_CALL(vm, update_cpus_impl(num_cores));
+
+    vm.mp::BaseVirtualMachine::update_cpus(num_cores);
+
+    EXPECT_EQ(vm.desc.num_cores, num_cores);
+}
+
+TEST_F(BaseVM, updateCpusLeavesDescriptionWhenImplThrows)
+{
+    const auto orig_num_cores = vm.desc.num_cores;
+    EXPECT_CALL(vm, update_cpus_impl(7)).WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    EXPECT_THROW(vm.mp::BaseVirtualMachine::update_cpus(7), std::runtime_error);
+
+    EXPECT_EQ(vm.desc.num_cores, orig_num_cores);
+}
+
+TEST_F(BaseVM, resizeMemoryCallsImplAndUpdatesDescription)
+{
+    const auto new_size = mp::MemorySize{"3G"};
+    EXPECT_CALL(vm, resize_memory_impl(new_size));
+
+    vm.mp::BaseVirtualMachine::resize_memory(new_size);
+
+    EXPECT_EQ(vm.desc.mem_size, new_size);
+}
+
+TEST_F(BaseVM, resizeMemoryLeavesDescriptionWhenImplThrows)
+{
+    const auto orig_mem_size = vm.desc.mem_size;
+    const auto new_size = mp::MemorySize{"3G"};
+    EXPECT_CALL(vm, resize_memory_impl(new_size))
+        .WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    EXPECT_THROW(vm.mp::BaseVirtualMachine::resize_memory(new_size), std::runtime_error);
+
+    EXPECT_EQ(vm.desc.mem_size, orig_mem_size);
 }
 
 } // namespace

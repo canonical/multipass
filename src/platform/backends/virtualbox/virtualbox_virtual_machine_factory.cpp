@@ -102,9 +102,9 @@ mp::NetworkInterfaceInfo list_vbox_network(
             else
             {
                 // Get the information from the VBoxManage output.
-                iftype = wireless ? "wifi"
-                                  : (ifdescription.compare(0, 11, "Thunderbolt") ? iftype
-                                                                                 : "thunderbolt");
+                iftype = wireless
+                           ? "wifi"
+                           : (ifdescription.starts_with("Thunderbolt") ? "thunderbolt" : iftype);
 
                 return mp::NetworkInterfaceInfo{if_info.id, iftype, ifdescription};
             }
@@ -133,11 +133,12 @@ auto mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor) -> mp::VirtualMachine::UPtr
 {
-    return std::make_unique<mp::VirtualBoxVirtualMachine>(desc,
-                                                          monitor,
-                                                          key_provider,
-                                                          az_manager.get_zone(desc.zone),
-                                                          get_instance_directory(desc.vm_name));
+    return std::make_unique<mp::VirtualBoxVirtualMachine>(
+        desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(az_manager.get_default_zone_name()),
+        get_instance_directory(desc.vm_name));
 }
 
 void mp::VirtualBoxVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -286,6 +287,6 @@ mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::clone_vm_impl(
         dest_vm_desc,
         monitor,
         key_provider,
-        az_manager.get_zone(dest_vm_desc.zone),
+        az_manager.get_zone(az_manager.get_default_zone_name()),
         get_instance_directory(dest_vm_desc.vm_name));
 }

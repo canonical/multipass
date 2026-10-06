@@ -1,7 +1,7 @@
 (reference-command-line-interface-mount)=
 # mount
 
-> See also: [How to share data with an instance](/how-to-guides/manage-instances/share-data-with-an-instance), [Mount](/explanation/mount), [`umount`](/reference/command-line-interface/umount)
+> See also: [How to share data with an instance](/how-to-guides/manage-instances/share-data-with-an-instance), [Mount](/explanation/mount), [`unmount`](/reference/command-line-interface/unmount)
 
 The `multipass mount` command maps a local directory from the host to an instance, with the possibility to specify the mount type (classic or native) and define group or user [ID mappings](/explanation/id-mapping).
 
@@ -11,7 +11,7 @@ For example, here's the syntax for mapping a local directory to your virtual mac
 multipass mount --type=classic /host/path <instance name>:/instance/path
 ```
 
-Use the `multipass umount` command to undo the mapping.
+Use the `multipass unmount` command to undo the mapping.
 
 See [Mount](/explanation/mount) to learn more on the difference between "classic" and "native" mounts.
 

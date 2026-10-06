@@ -23,6 +23,7 @@
 #include <multipass/base_availability_zone_manager.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/availability_zone_exceptions.h>
+#include <multipass/stub_availability_zone_manager.h>
 
 #include <QString>
 
@@ -74,8 +75,10 @@ TEST_F(BaseAvailabilityZoneManagerTest, CreatesDefaultZones)
 
     mp::BaseAvailabilityZoneManager manager{data_dir};
 
-    const auto zones = manager.get_zones();
+    auto zones = manager.get_zones();
     EXPECT_EQ(zones.size(), expected_zone_count);
+    const auto czones = manager.get_zones();
+    EXPECT_EQ(czones.size(), expected_zone_count);
 
     // First zone in default_zone_names should be our default
     EXPECT_EQ(manager.get_default_zone_name(), *mp::default_zone_names.begin());
@@ -206,4 +209,43 @@ TEST_F(BaseAvailabilityZoneManagerTest, PrefersZone1ThenZone2ThenZone3)
     manager.get_zone("zone3").set_available(false);
 
     EXPECT_THROW(manager.get_automatic_zone_name(), mp::NoAvailabilityZoneAvailable);
+}
+
+struct StubAvailabilityZoneManagerTest : public Test
+{
+    mp::StubAvailabilityZoneManager manager;
+};
+
+TEST_F(StubAvailabilityZoneManagerTest, hasNonEmptyDefaultAndAutomaticZoneName)
+{
+    EXPECT_EQ(manager.get_default_zone_name(), "zone1");
+    EXPECT_EQ(manager.get_automatic_zone_name(), "zone1");
+}
+
+TEST_F(StubAvailabilityZoneManagerTest, getZoneIgnoresRequestedNameAndIsAlwaysAvailable)
+{
+    for (const auto& name : {std::string{}, std::string{"zone1"}, std::string{"anything-else"}})
+    {
+        auto& zone = manager.get_zone(name);
+        EXPECT_EQ(zone.get_name(), "zone1");
+        EXPECT_TRUE(zone.is_available());
+    }
+}
+
+TEST_F(StubAvailabilityZoneManagerTest, getZonesReturnsTheSingleStubZone)
+{
+    auto zones = manager.get_zones();
+    ASSERT_EQ(zones.size(), 1u);
+    EXPECT_EQ(zones[0].get().get_name(), "zone1");
+
+    const auto czones = manager.get_zones();
+    ASSERT_EQ(czones.size(), 1u);
+    EXPECT_EQ(czones[0].get().get_name(), "zone1");
+}
+
+TEST_F(StubAvailabilityZoneManagerTest, setAvailableIsANoOp)
+{
+    auto& zone = manager.get_zone("zone1");
+    zone.set_available(false);
+    EXPECT_TRUE(zone.is_available());
 }

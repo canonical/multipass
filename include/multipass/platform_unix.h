@@ -18,14 +18,33 @@
 #pragma once
 
 #include <csignal>
+#include <thread>
 #include <vector>
 
 #include "singleton.h"
 
 #define MP_POSIX_SIGNAL multipass::platform::PosixSignal::instance()
 
+namespace multipass
+{
+struct Signal;
+}
+
 namespace multipass::platform
 {
+
+class UnixSignalHandler
+{
+public:
+    explicit UnixSignalHandler(Signal& app_ready_signal);
+    ~UnixSignalHandler();
+
+    void monitor_signals();
+
+private:
+    Signal& app_ready_signal;
+    std::jthread signal_handling_thread;
+};
 
 class PosixSignal : public Singleton<PosixSignal>
 {

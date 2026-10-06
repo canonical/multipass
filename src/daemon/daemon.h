@@ -28,10 +28,13 @@
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
 
+#include <atomic>
 #include <chrono>
 #include <future>
 #include <memory>
 #include <mutex>
+#include <optional>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -52,9 +55,13 @@ public:
     ~Daemon();
 
     void persist_instances();
+    void shutdown_grpc_server();
 
 protected:
     using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
+
+    // TODO hyperv migration, revert: back to a free function in daemon.cpp
+    void connect_rpc(DaemonRpc& rpc);
 
     void on_resume() override;
     void on_shutdown() override;
@@ -65,8 +72,6 @@ protected:
     boost::json::object retrieve_metadata_for(const std::string& name) override;
 
 public slots:
-    virtual void shutdown_grpc_server();
-
     virtual void create(const CreateRequest* request,
                         grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                         DaemonRpcContext* context);
@@ -183,6 +188,11 @@ public slots:
         DaemonRpcContext* context);
 
 private:
+    // TODO hyperv migration, remove
+    // Used at RPC dispatch.
+    [[nodiscard]] bool reject_if_migrating(std::string_view rpc_name,
+                                           DaemonRpcContext* context) const;
+
     void release_resources(const std::string& instance);
     void create_vm(const CreateRequest* request,
                    grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
@@ -192,6 +202,7 @@ private:
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status switch_off_vm(VirtualMachine& vm);
+    grpc::Status make_vm_unavailable(VirtualMachine& vm);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
 
@@ -262,6 +273,13 @@ private:
 protected:
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     InstanceTable operative_instances;
+
+    // TODO hyperv migration, remove
+    // Set only while a bulk Hyper-V -> HCS migration runs inside Daemon::set. It guards
+    // conflicting mutating RPCs without taking a lock, so it cannot deadlock against the
+    // long-running migration. Atomic because RPC slots and the migration run on different
+    // threads.
+    std::atomic<bool> migration_in_progress{false};
 
     bool is_bridged(const std::string& instance_name) const;
     void add_bridged_interface(const std::string& instance_name);

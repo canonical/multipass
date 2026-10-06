@@ -83,7 +83,7 @@ struct TestClientCommon : public mpt::DaemonTestFixture
     const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
         mpt::MockPermissionUtils::inject<NiceMock>();
 
-    const std::string server_address{"localhost:50052"};
+    const std::string server_address{"localhost:25052"};
     mpt::TempDir temp_dir;
 };
 } // namespace

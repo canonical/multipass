@@ -18,12 +18,14 @@
 #include "tests/unit/common.h"
 #include "tests/unit/mock_file_ops.h"
 #include "tests/unit/mock_logger.h"
+#include "tests/unit/mock_process_factory.h"
 #include "tests/unit/mock_server_reader_writer.h"
 #include "tests/unit/mock_ssh_process.h"
 #include "tests/unit/mock_ssh_session.h"
 #include "tests/unit/mock_virtual_machine.h"
 #include "tests/unit/stub_availability_zone.h"
 #include "tests/unit/stub_ssh_key_provider.h"
+#include "tests/unit/stub_status_monitor.h"
 
 #include "qemu_mount_handler.h"
 
@@ -38,11 +40,15 @@ using namespace testing;
 
 namespace
 {
+mpt::StubVMStatusMonitor stub_monitor{};
+
 struct MockQemuVirtualMachine : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
 {
-    explicit MockQemuVirtualMachine(const std::string& name, mp::AvailabilityZone& zone)
+    MockQemuVirtualMachine(const mp::VirtualMachineDescription& desc, mp::AvailabilityZone& zone)
         : mpt::MockVirtualMachineT<mp::QemuVirtualMachine>{
-              name,
+              desc,
+              nullptr,
+              stub_monitor,
               mpt::StubSSHKeyProvider{},
               zone,
           }
@@ -153,7 +159,14 @@ struct QemuMountHandlerTest : public ::Test
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::debug);
     mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest> server;
     mpt::StubAvailabilityZone zone{};
-    NiceMock<MockQemuVirtualMachine> vm{"my_instance", zone};
+    std::unique_ptr<mpt::MockProcessFactory::Scope> process_factory_scope{
+        mpt::MockProcessFactory::Inject()};
+    mp::VirtualMachineDescription vm_desc = [] {
+        mp::VirtualMachineDescription ret{};
+        ret.vm_name = "my_instance";
+        return ret;
+    }();
+    NiceMock<MockQemuVirtualMachine> vm{vm_desc, zone};
     mp::QemuVirtualMachine::MountArgs mount_args;
 };
 

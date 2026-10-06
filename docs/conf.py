@@ -203,7 +203,9 @@ templates_path = [".sphinx/_templates"]
 # NOTE: If undefined, set to None, or empty,
 #       the sphinx_reredirects extension will be disabled.
 
-redirects = {}
+redirects = {
+    "reference/command-line-interface/umount": "../unmount/",
+}
 
 
 ###########################
@@ -217,14 +219,15 @@ redirects = {}
 linkcheck_ignore = [
     r"https://app\.element\.io/",
     "https://localhost:8081",
-    r"https://github\.com/canonical/",
-    r"https://sourceforge\.net/projects/",
-    r"http://www\.straightrunning\.com/",
-    r"https://unix\.stackexchange\.com/",  # it seems stackexchange is now blocking bots
-    r"https://developer\.hashicorp\.com/",
-    r"https://www\.freedesktop\.org/",
-    r"https://asciinema\.org/",
-    r"https://askubuntu\.com/",
+    "https://github.com/canonical/*",
+    "https://sourceforge.net/projects/vcxsrv/",
+    "https://sourceforge.net/projects/xming/",
+    "http://www.straightrunning.com/XmingNotes/",
+    "https://unix.stackexchange.com",  # it seems stackexchange is now blocking bots
+    "https://developer.hashicorp.com/packer",
+    "https://www.freedesktop.org/*",
+    "https://asciinema.org/*",
+    "https://askubuntu.com/a/4404"
 ]
 
 linkcheck_retries = 3

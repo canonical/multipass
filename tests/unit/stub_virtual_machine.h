@@ -59,8 +59,9 @@ struct StubVirtualMachine final : public VirtualMachine
     {
     }
 
-    void set_available(bool) override
+    bool set_available(bool) override
     {
+        return false;
     }
 
     State current_state() override
@@ -78,7 +79,7 @@ struct StubVirtualMachine final : public VirtualMachine
         return "localhost";
     }
 
-    std::string ssh_username() override
+    std::string ssh_username() const override
     {
         return "ubuntu";
     }
@@ -211,17 +212,17 @@ struct StubVirtualMachine final : public VirtualMachine
         return 0;
     }
 
-    QDir instance_directory() const override
+    QDir instance_directory() const noexcept override
     {
         return tmp_dir->path();
     }
 
-    const std::string& get_name() const override
+    const std::string& get_name() const noexcept override
     {
         return name;
     }
 
-    const AvailabilityZone& get_zone() const override
+    const AvailabilityZone& get_zone() const noexcept override
     {
         return zone;
     }

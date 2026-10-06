@@ -45,6 +45,7 @@ TEST(IPAddress, throwsOnInvalidIpString)
     EXPECT_THROW(mp::IPAddress ip{"256.256.256.256"}, std::invalid_argument);
     EXPECT_THROW(mp::IPAddress ip{"-2.-3.-5.-6"}, std::invalid_argument);
     EXPECT_THROW(mp::IPAddress ip{"a.b.c.d"}, std::invalid_argument);
+    EXPECT_THROW(mp::IPAddress ip{"1:2:3:4:5:6:7:8"}, std::invalid_argument);
 }
 
 TEST(IPAddress, canBeConvertedToInteger)

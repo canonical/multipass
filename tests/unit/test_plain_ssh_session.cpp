@@ -23,6 +23,9 @@
 #include <multipass/socket.h>
 #include <multipass/ssh/plain_ssh_session.h>
 
+#include <limits>
+#include <vector>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
@@ -175,4 +178,28 @@ TEST_F(TestPlainSSHSession, dtorCallsShutdownSocket)
 
         mp::PlainSSHSession session = make_ssh_session();
     }
+}
+
+TEST_F(TestPlainSSHSession, setsConnectTimeoutBeforeConnectAndBoundedTimeoutAfter)
+{
+    std::vector<long> timeouts;
+    size_t timeouts_set_at_connect{0};
+
+    REPLACE(ssh_options_set, [&timeouts](ssh_session, ssh_options_e type, const void* value) {
+        if (type == SSH_OPTIONS_TIMEOUT)
+            timeouts.push_back(*static_cast<const long*>(value));
+        return SSH_OK;
+    });
+    REPLACE(ssh_connect, [&](auto...) {
+        timeouts_set_at_connect = timeouts.size();
+        return SSH_OK;
+    });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+
+    mp::PlainSSHSession session = make_ssh_session();
+
+    // a short timeout to connect, then a finite bound on any subsequent blocking call
+    EXPECT_THAT(timeouts, ElementsAre(5L, 10L));
+    EXPECT_EQ(timeouts_set_at_connect, 1u);
+    EXPECT_THAT(timeouts, Each(Lt(std::numeric_limits<long>::max())));
 }

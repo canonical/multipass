@@ -359,7 +359,11 @@ mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
 
     ON_CALL(*mock_factory_ptr, prepare_source_image(_)).WillByDefault(ReturnArg<0>());
 
+    ON_CALL(*mock_factory_ptr, virtual_size_for(_)).WillByDefault(Return(mp::MemorySize{}));
+
     ON_CALL(*mock_factory_ptr, get_backend_version_string()).WillByDefault(Return("mock-1234"));
+
+    ON_CALL(*mock_factory_ptr, supports_availability_zones()).WillByDefault(Return(true));
 
     ON_CALL(*mock_factory_ptr, networks())
         .WillByDefault(
@@ -734,6 +738,13 @@ template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
                          mp::DaemonRpcContext*),
     const mp::SuspendRequest&,
     StrictMock<mpt::MockServerReaderWriter<mp::SuspendReply, mp::SuspendRequest>>&&);
+template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
+    mp::Daemon&,
+    void (mp::Daemon::*)(const mp::StopRequest*,
+                         grpc::ServerReaderWriterInterface<mp::StopReply, mp::StopRequest>*,
+                         mp::DaemonRpcContext*),
+    const mp::StopRequest&,
+    StrictMock<mpt::MockServerReaderWriter<mp::StopReply, mp::StopRequest>>&&);
 template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(
     mp::Daemon&,
     void (mp::Daemon::*)(const mp::SnapshotRequest*,

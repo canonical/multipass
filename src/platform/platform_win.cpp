@@ -28,12 +28,9 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
+#include "backends/hcs/hcs_virtual_machine_factory.h"
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
-#if defined(HYPERV_HCS_ENABLED)
-#include "backends/hyperv_api/hcs_virtual_machine_factory.h"
-#endif
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
-#include "hyperv_api/hyperv_api_string_conversion.h"
 #include "logger/win_event_logger.h"
 #include "shared/sshfs_server_process_spec.h"
 #include "shared/windows/powershell.h"
@@ -785,14 +782,12 @@ mp::platform::Platform::get_network_interfaces_info() const
     {
         if (netinfo.links.empty())
         {
-            constexpr static auto name_fmtstr = hyperv::string_literal<wchar_t>("vEthernet ({})");
-            const std::wstring search = name_fmtstr.format(netinfo.id);
+            const auto search = fmt::format("vEthernet ({})", netinfo.id);
             for (auto pitr = adapters.get(); pitr; pitr = pitr->Next)
             {
                 const auto& adapter = *pitr;
-                std::wstring name{adapter.FriendlyName};
 
-                if (name == search)
+                if (wchar_to_utf8(adapter.FriendlyName) == search)
                 {
                     netinfo.links = unicast_addrs_to_net_addrs(adapter.FirstUnicastAddress);
                     break;
@@ -808,9 +803,7 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
     constexpr std::string_view supported_backends[] = {
         "hyperv",
         "virtualbox",
-#if defined(HYPERV_HCS_ENABLED)
-        "hyperv_api",
-#endif
+        "hcs",
     };
     return std::ranges::any_of(supported_backends,
                                [&](std::string_view b) { return backend == b; });
@@ -866,16 +859,12 @@ void mp::platform::sync_winterm_profiles()
 
 std::string mp::platform::default_server_address()
 {
-    return {"localhost:50051"};
+    return default_grpc_server_tcp_listen_address;
 }
 
 QString mp::platform::Platform::default_driver() const
 {
-#if defined(HYPERV_HCS_ENABLED)
-    return QStringLiteral("hyperv_api");
-#else
-    return QStringLiteral("hyperv");
-#endif
+    return QStringLiteral("hcs");
 }
 
 QString mp::platform::Platform::default_privileged_mounts() const
@@ -945,14 +934,18 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 
         return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
     }
-#if defined(HYPERV_HCS_ENABLED)
-    else if (driver == "hyperv_api")
+    else if (driver == "hcs")
     {
         return std::make_unique<hyperv::HCSVirtualMachineFactory>(data_dir, az_manager);
     }
-#endif
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
+}
+
+bool mp::platform::backend_supports_availability_zones()
+{
+    const auto driver = MP_SETTINGS.get(mp::driver_key);
+    return driver != QStringLiteral("hyperv") && driver != QStringLiteral("virtualbox");
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(

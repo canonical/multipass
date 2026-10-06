@@ -51,14 +51,6 @@ public:
     {
     }
 
-    void add_vm(VirtualMachine&) override
-    {
-    }
-
-    void remove_vm(VirtualMachine&) override
-    {
-    }
-
 private:
     std::string name;
     Subnet subnet;

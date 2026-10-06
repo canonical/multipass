@@ -114,6 +114,11 @@ char* get_root_cert()
     }
 }
 
+void free_ffi_string(char* string)
+{
+    free(string);
+}
+
 static std::once_flag initialize_settings_once_flag;
 
 char* settings_file()
@@ -136,11 +141,10 @@ char* settings_file()
     }
 }
 
-enum SettingResult get_setting(char* key, char** output)
+enum SettingResult get_setting(const char* key, char** output)
 {
     static constexpr auto error = "failed retrieving setting with key";
     const QString key_string{key};
-    free(key);
     try
     {
         std::call_once(initialize_settings_once_flag, mpc::register_global_settings_handlers);
@@ -168,13 +172,11 @@ enum SettingResult get_setting(char* key, char** output)
     }
 }
 
-enum SettingResult set_setting(char* key, char* value, char** output)
+enum SettingResult set_setting(const char* key, const char* value, char** output)
 {
     static constexpr auto error = "failed storing setting with key";
     const QString key_string{key};
-    free(key);
     const QString value_string{value};
-    free(value);
     try
     {
         std::call_once(initialize_settings_once_flag, mpc::register_global_settings_handlers);
@@ -224,13 +226,12 @@ int default_id()
     return mp::default_id;
 }
 
-long long memory_in_bytes(char* value)
+long long memory_in_bytes(const char* value)
 {
     static constexpr auto error = "failed converting memory to bytes";
     try
     {
         std::string string_value{value};
-        free(value);
         return mp::in_bytes(string_value);
     }
     catch (const std::exception& e)
@@ -245,7 +246,7 @@ long long memory_in_bytes(char* value)
     }
 }
 
-const char* human_readable_memory(long long bytes)
+char* human_readable_memory(long long bytes)
 {
     const auto string =
         mp::MemorySize::from_bytes(bytes).human_readable(/*precision=*/2, /*trim_zeros=*/true);
@@ -262,13 +263,12 @@ long long get_total_disk_size()
     return storageInfo.bytesTotal();
 }
 
-char* default_mount_target(char* source)
+char* default_mount_target(const char* source)
 {
     static constexpr auto error = "failed retrieving default mount target";
     try
     {
         const QString q_source{source};
-        free(source);
         const auto target = MP_UTILS.default_mount_target(q_source).toStdString();
         return strdup(target.c_str());
     }

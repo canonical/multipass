@@ -47,6 +47,12 @@ struct Signal
         cv.notify_one();
     }
 
+    void reset()
+    {
+        std::lock_guard<decltype(mutex)> lock{mutex};
+        signaled = false;
+    }
+
     std::mutex mutex;
     std::condition_variable cv;
     bool signaled{false};

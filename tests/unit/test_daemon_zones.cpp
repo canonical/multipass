@@ -18,10 +18,12 @@
 #include "daemon_test_fixture.h"
 #include "mock_availability_zone.h"
 #include "mock_availability_zone_manager.h"
+#include "mock_mount_handler.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
+#include "mock_virtual_machine.h"
 #include "mock_vm_image_vault.h"
 #include "multipass/exceptions/availability_zone_exceptions.h"
 
@@ -46,14 +48,12 @@ struct TestDaemonZones : public mpt::DaemonTestFixture
         ON_CALL(*zone2, get_name()).WillByDefault(ReturnRef(zone2_name));
 
         ON_CALL(*mock_az_manager, get_zone(_))
-            .WillByDefault(Throw(multipass::AvailabilityZoneNotFound{"test_error"}));
+            .WillByDefault(Throw(mp::AvailabilityZoneNotFound{"test_error"}));
         ON_CALL(*mock_az_manager, get_zone(zone1_name)).WillByDefault(ReturnRef(*zone1.get()));
         ON_CALL(*mock_az_manager, get_zone(zone2_name)).WillByDefault(ReturnRef(*zone2.get()));
 
         ON_CALL(*mock_az_manager, get_zones())
-            .WillByDefault(Return(
-                std::vector<std::reference_wrapper<const mp::AvailabilityZone>>{*zone1.get(),
-                                                                                *zone2.get()}));
+            .WillByDefault(Return(mp::AvailabilityZoneManager::Zones{*zone1.get(), *zone2.get()}));
     }
 
     const std::string zone1_name = "zone1";
@@ -118,6 +118,47 @@ TEST_F(TestDaemonZones, zonesStateCmdDisablesOne)
     request.set_available(false);
     request.add_zones(zone2_name);
 
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>> mock_server;
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::zones_state, request, mock_server);
+
+    EXPECT_TRUE(status.ok());
+}
+
+TEST_F(TestDaemonZones, zonesStateCmdDisableStopsMountsBeforeUnavailable)
+{
+    const std::string instance_name{"real-zebraphant"};
+    const std::string target_path{"/home/ubuntu/foo"};
+    std::unordered_map<std::string, mp::VMMount> mounts{
+        {target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
+
+    auto* mock_factory = use_a_mock_vm_factory();
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents("52:54:00:73:76:28", {}, mounts));
+    config_builder.data_directory = temp_dir->path();
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(
+        mp::VirtualMachine::State::running);
+    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
+    {
+        InSequence seq;
+        EXPECT_CALL(*mock_vm, set_available(false)).WillOnce(Return(true));
+        EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));
+        EXPECT_CALL(*mock_mount_handler, deactivate_impl(true));
+    }
+
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(instance_name));
+    ON_CALL(*mock_vm, get_zone).WillByDefault(ReturnRef(*zone1.get()));
+    EXPECT_CALL(*mock_vm, make_native_mount_handler(target_path, _))
+        .WillOnce(Return(std::move(mock_mount_handler)));
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    config_builder.az_manager = std::move(mock_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ZonesStateRequest request;
+    request.set_available(false);
+    request.add_zones(zone1_name);
     StrictMock<mpt::MockServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>> mock_server;
 
     const auto status = call_daemon_slot(daemon, &mp::Daemon::zones_state, request, mock_server);
@@ -261,7 +302,7 @@ TEST_F(TestDaemonZones, zonesCmdReturnsMultipleZones)
 TEST_F(TestDaemonZones, zonesCmdReturnsNoZones)
 {
     EXPECT_CALL(*mock_az_manager, get_zones())
-        .WillRepeatedly(Return(std::vector<std::reference_wrapper<const mp::AvailabilityZone>>{}));
+        .WillRepeatedly(Return(mp::AvailabilityZoneManager::Zones{}));
 
     config_builder.az_manager = std::move(mock_az_manager);
     mp::Daemon daemon{config_builder.build()};
@@ -296,4 +337,41 @@ TEST_F(TestDaemonZones, zonesCmdFailsOnException)
 
     ASSERT_FALSE(status.ok());
     EXPECT_THAT(status.error_message(), HasSubstr("test_error"));
+}
+
+TEST_F(TestDaemonZones, zonesCmdFailsWhenBackendDoesNotSupportZones)
+{
+    auto* mock_factory = use_a_mock_vm_factory();
+    EXPECT_CALL(*mock_factory, supports_availability_zones()).WillRepeatedly(Return(false));
+
+    config_builder.az_manager = std::move(mock_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ZonesRequest request;
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesReply, mp::ZonesRequest>> mock_server;
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::zones, request, mock_server);
+
+    ASSERT_FALSE(status.ok());
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(), HasSubstr("Feature is not supported in this backend"));
+}
+
+TEST_F(TestDaemonZones, zonesStateCmdFailsWhenBackendDoesNotSupportZones)
+{
+    auto* mock_factory = use_a_mock_vm_factory();
+    EXPECT_CALL(*mock_factory, supports_availability_zones()).WillRepeatedly(Return(false));
+
+    config_builder.az_manager = std::move(mock_az_manager);
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::ZonesStateRequest request;
+    request.set_available(false);
+    StrictMock<mpt::MockServerReaderWriter<mp::ZonesStateReply, mp::ZonesStateRequest>> mock_server;
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::zones_state, request, mock_server);
+
+    ASSERT_FALSE(status.ok());
+    EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(), HasSubstr("Feature is not supported in this backend"));
 }

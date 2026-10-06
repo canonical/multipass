@@ -13,6 +13,3 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 include(src/cmake/feature-flag.cmake)
-
-# The new Windows backend based on Hyper-V Host Compute System / Host Compute Networking APIs
-feature_flag(HYPERV_HCS_ENABLED "Hyper-V HCS backend" WIN32)

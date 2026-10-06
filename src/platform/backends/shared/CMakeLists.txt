@@ -20,6 +20,7 @@ add_library(shared STATIC
   base_virtual_machine_factory.cpp
   snapshot_description.cpp
   sshfs_server_process_spec.cpp
+  stub_availability_zone.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h
   ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h)
 

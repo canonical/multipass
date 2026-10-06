@@ -84,9 +84,11 @@ add_executable(multipass_cpp_tests
   test_daemon_clone.cpp
   test_daemon_find.cpp
   test_daemon_mount.cpp
+  test_daemon_migration_guard.cpp # TODO hyperv migration, remove
   test_daemon_restart.cpp
   test_daemon_snapshot_restore.cpp
   test_daemon_start.cpp
+  test_daemon_stop.cpp
   test_daemon_suspend.cpp
   test_daemon_umount.cpp
   test_daemon_wait_ready.cpp
@@ -143,11 +145,17 @@ add_executable(multipass_cpp_tests
   test_ubuntu_image_host.cpp
   test_url_downloader.cpp
   test_utils.cpp
+  test_vm_image_info.cpp
   test_vm_mount.cpp
   test_with_mocked_bin_path.cpp
   test_xz_image_decoder.cpp
   test_yaml_node_utils.cpp
 )
+
+# TODO hyperv migration, remove
+if(HCS_ENABLED)
+  target_sources(multipass_cpp_tests PRIVATE test_hyperv_migration_records.cpp)
+endif()
 
 target_include_directories(multipass_cpp_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
@@ -296,6 +304,11 @@ add_subdirectory(${MULTIPASS_PLATFORM})
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})
 endforeach()
+
+# TODO hyperv migration, remove
+if(HCS_ENABLED)
+  add_subdirectory(hyperv_migration)
+endif()
 
 if (UNIX)
   add_subdirectory(unix)

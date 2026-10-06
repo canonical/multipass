@@ -435,7 +435,7 @@ struct Client : public Test
     }
 
 #ifdef WIN32
-    std::string server_address{"localhost:50051"};
+    std::string server_address{multipass::default_grpc_server_tcp_listen_address};
 #else
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
 #endif

@@ -1136,7 +1136,7 @@ TEST_F(QemuBackend, sshHostnameThrowsImmediatelyWhenIPUnavailable)
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
-    EXPECT_THROW(machine.ssh_hostname(), mp::IPUnavailableException);
+    EXPECT_THROW((void)machine.ssh_hostname(), mp::IPUnavailableException);
     EXPECT_EQ(machine.state, mp::VirtualMachine::State::running);
 }
 
@@ -1150,7 +1150,11 @@ struct MockQemuVM : public mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
 
 TEST_F(QemuBackend, dropsSSHSessionWhenStopping)
 {
-    NiceMock<MockQemuVM> machine{"mock-qemu-vm", key_provider, zone};
+    NiceMock<MockQemuVM> machine{default_description,
+                                 mock_qemu_platform.get(),
+                                 stub_monitor,
+                                 key_provider,
+                                 zone};
     machine.state = multipass::VirtualMachine::State::running;
 
     EXPECT_CALL(machine, drop_ssh_session());
@@ -1161,7 +1165,11 @@ TEST_F(QemuBackend, dropsSSHSessionWhenStopping)
 
 TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
 {
-    MockQemuVM machine{"mock-qemu-vm", key_provider, zone};
+    MockQemuVM machine{default_description,
+                       mock_qemu_platform.get(),
+                       stub_monitor,
+                       key_provider,
+                       zone};
 
     auto snapshot_name = "elvis";
     auto snapshot_comment = "has left the building";
@@ -1198,7 +1206,11 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
 
 TEST_F(QemuBackend, createsQemuSnapshotsFromJsonFile)
 {
-    MockQemuVM machine{"mock-qemu-vm", key_provider, zone};
+    MockQemuVM machine{default_description,
+                       mock_qemu_platform.get(),
+                       stub_monitor,
+                       key_provider,
+                       zone};
 
     const auto parent = std::make_shared<mpt::MockSnapshot>();
     EXPECT_CALL(machine, get_snapshot(2)).WillOnce(Return(parent));

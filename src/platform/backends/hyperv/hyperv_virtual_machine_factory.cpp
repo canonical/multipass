@@ -256,8 +256,10 @@ void update_adapter_authorizations(std::vector<mp::NetworkInterfaceInfo>& adapte
                                    const std::vector<mp::NetworkInterfaceInfo>& switches)
 {
     for (auto& adapter : adapters)
-        adapter.needs_authorization =
-            std::none_of(switches.cbegin(), switches.cend(), [&adapter](const auto& switch_) {
+        adapter.needs_authorization = std::none_of(
+            switches.cbegin(),
+            switches.cend(),
+            [&adapter](const auto& switch_) {
                 return std::find(switch_.links.cbegin(), switch_.links.cend(), adapter.id) !=
                        switch_.links.cend();
             });
@@ -283,11 +285,12 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::HyperVVirtualMachine>(desc,
-                                                      monitor,
-                                                      key_provider,
-                                                      az_manager.get_zone(desc.zone),
-                                                      get_instance_directory(desc.vm_name));
+    return std::make_unique<mp::HyperVVirtualMachine>(
+        desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(az_manager.get_default_zone_name()),
+        get_instance_directory(desc.vm_name));
 }
 
 void mp::HyperVVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -382,7 +385,7 @@ auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInt
 std::string mp::HyperVVirtualMachineFactory::create_bridge_with(
     const NetworkInterfaceInfo& interface)
 {
-    assert(interface.type == "ethernet");
+    assert(interface.type == "Ethernet");
 
     const auto switch_name = QStringLiteral("ExtSwitch (%1)").arg(interface.id.c_str());
     auto quote = [](const auto& str) { return QStringLiteral("'%1'").arg(str); };
@@ -460,7 +463,7 @@ auto mp::HyperVVirtualMachineFactory::get_adapters() -> std::vector<NetworkInter
     for (auto& item : MP_PLATFORM.get_network_interfaces_info())
     {
         auto& net = item.second;
-        if (const auto& type = net.type; type == "ethernet")
+        if (const auto& type = net.type; type == "Ethernet")
         {
             net.needs_authorization = true;
             ret.emplace_back(std::move(net));
@@ -477,11 +480,12 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::clone_vm_impl(
     VMStatusMonitor& monitor,
     const SSHKeyProvider& key_provider)
 {
-    return std::make_unique<mp::HyperVVirtualMachine>(src_name,
-                                                      src_spec,
-                                                      dest_vm_desc,
-                                                      monitor,
-                                                      key_provider,
-                                                      az_manager.get_zone(dest_vm_desc.zone),
-                                                      get_instance_directory(dest_vm_desc.vm_name));
+    return std::make_unique<mp::HyperVVirtualMachine>(
+        src_name,
+        src_spec,
+        dest_vm_desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(az_manager.get_default_zone_name()),
+        get_instance_directory(dest_vm_desc.vm_name));
 }

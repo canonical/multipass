@@ -84,11 +84,6 @@ void delete_image_dir(const mp::Path& image_path)
     }
 }
 
-mp::MemorySize get_image_size(const std::filesystem::path& image_path)
-{
-    return mp::MemorySize(mp::backend::get_image_info(image_path, "virtual-size").toStdString());
-}
-
 void persist_records(const std::unordered_map<std::string, mp::VaultRecord>& records,
                      const QString& path)
 {
@@ -316,9 +311,17 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const Query& query,
             }
             else
             {
-                const auto image_dir =
-                    MP_UTILS.make_dir(images_dir,
-                                      QString("%1-%2").arg(info->release).arg(info->version));
+                const auto image_dir_name = info->release.empty()
+                                              ? QString("%1-%2-%3")
+                                                    .arg(
+                                                        QString::fromStdString(info->os),
+                                                        QString::fromStdString(info->release_title),
+                                                        QString::fromStdString(info->version))
+                                              : QString("%1-%2").arg(
+                                                    QString::fromStdString(info->release),
+                                                    QString::fromStdString(info->version));
+
+                const auto image_dir = MP_UTILS.make_dir(images_dir, image_dir_name);
 
                 // Had to use std::bind here to workaround the 5 allowable function arguments
                 // constraint of QtConcurrent::run()
@@ -363,7 +366,7 @@ void mp::DefaultVMImageVault::remove(const std::string& name)
 
 bool mp::DefaultVMImageVault::has_record_for(const std::string& name)
 {
-    return instance_image_records.find(name) != instance_image_records.end();
+    return instance_image_records.contains(name);
 }
 
 void mp::DefaultVMImageVault::prune_expired_images()
@@ -423,9 +426,7 @@ void mp::DefaultVMImageVault::update_images(const PrepareAction& prepare,
     for (const auto& record : prepared_image_records)
     {
         if (record.second.query.query_type == Query::Type::Alias &&
-            record.first.compare(0,
-                                 record.second.query.release.length(),
-                                 record.second.query.release) != 0)
+            !record.first.starts_with(record.second.query.release))
         {
             try
             {
@@ -478,28 +479,6 @@ void mp::DefaultVMImageVault::update_images(const PrepareAction& prepare,
     }
 }
 
-mp::MemorySize mp::DefaultVMImageVault::minimum_image_size_for(const std::string& id)
-{
-    auto prepared_image_entry = prepared_image_records.find(id);
-    if (prepared_image_entry != prepared_image_records.end())
-    {
-        const auto& record = prepared_image_entry->second;
-
-        return get_image_size(record.image.image_path);
-    }
-
-    for (const auto& instance_image_entry : instance_image_records)
-    {
-        const auto& record = instance_image_entry.second;
-
-        if (record.image.id == id)
-        {
-            return get_image_size(record.image.image_path);
-        }
-    }
-
-    throw std::runtime_error(fmt::format("Cannot determine minimum image size for id \'{}\'", id));
-}
 void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
                                     const std::string& destination_instance_name)
 {
@@ -510,7 +489,7 @@ void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
         throw std::runtime_error(source_instance_name + " does not exist in the image records");
     }
 
-    if (instance_image_records.find(destination_instance_name) != instance_image_records.end())
+    if (instance_image_records.contains(destination_instance_name))
     {
         throw std::runtime_error(destination_instance_name +
                                  " already exists in the image records");
