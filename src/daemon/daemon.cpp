@@ -856,14 +856,14 @@ grpc::Status cmd_vms(const LinearInstanceSelection& tgts, const VMCommand& cmd)
     return grpc::Status::OK;
 }
 
-std::vector<std::string> names_from(const LinearInstanceSelection& instances)
+std::vector<mp::VirtualMachine::ShPtr> vms_from(const LinearInstanceSelection& instances)
 {
-    std::vector<std::string> ret;
+    std::vector<mp::VirtualMachine::ShPtr> ret;
     ret.reserve(instances.size());
     std::transform(std::cbegin(instances),
                    std::cend(instances),
                    std::back_inserter(ret),
-                   [](const auto& item) { return item->first; });
+                   [](const auto& item) { return item->second; });
 
     return ret;
 }
@@ -1175,7 +1175,7 @@ mp::SettingsHandler* register_snapshot_mod(
 
 // Erase any outdated mount handlers for a given VM
 bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& mount_specs,
-                           std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts)
+                           std::unordered_map<std::string, mp::MountHandler::SPtr>& vm_mounts)
 {
     auto removed = false;
     std::erase_if(vm_mounts, [&](auto&& i) {
@@ -1324,6 +1324,18 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
         reply.set_log_line(std::move(deprecation_warning));
         server.Write(reply);
     }
+}
+
+template <typename T>
+QFuture<T> future_from(QFutureWatcher<T>* watcher)
+{
+    // This method should be called in the same thread as the one that created QFutureWatcher
+    // to ensure that there are no race conditions regarding the finished signal.
+    assert(QThread::currentThread() == watcher->thread());
+
+    return QtFuture::connect(watcher, &QFutureWatcher<T>::finished).then(watcher, [watcher] {
+        return watcher->result();
+    });
 }
 
 // TODO hyperv migration, remove
@@ -1529,8 +1541,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         assert(!spec_copy.deleted);
         init_mounts(name);
 
-        std::unique_lock lock{start_mutex};
-
         // Was running before shutdown?
         if (spec_copy.state == e_state::running)
         {
@@ -1545,19 +1555,15 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                 mpl::info(category, "{} needs syncing. Syncing now...", name);
                 // We don't need to start the instance, but we need to ensure that
                 // the daemon side resources for the VM are initialized.
-                multipass::top_catch_all(name, [this, name, &lock] {
-                    lock.unlock();
-                    on_restart(name);
-                });
+                multipass::top_catch_all(name, [this, name] { on_restart(name); });
             }
             break;
             default:
             {
                 mpl::info(category, "{} needs starting. Starting now...", name);
 
-                multipass::top_catch_all(name, [this, name, &lock]() {
+                multipass::top_catch_all(name, [this, name]() {
                     operative_instances[name]->start();
-                    lock.unlock();
                     on_restart(name);
                 });
             }
@@ -1636,9 +1642,9 @@ mp::Daemon::~Daemon()
          * associated with the futures are not going to be
          * executed.
          */
-        for (auto& [_, watcher] : async_future_watchers)
+        while (!async_future_watchers.empty())
         {
-            watcher->waitForFinished();
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
         }
 
         /**
@@ -1653,11 +1659,8 @@ mp::Daemon::~Daemon()
          */
         update_manifests_all_task.shutdown();
 
-        // waitForFinished() ensures that the futures are finished gracefully
-        // but there's a chance that the signals which are queued during their
-        // execution haven't got executed yet. So, process all the remaining events
-        // in the event loop immediately to ensure that all recipients are notified
-        // before the daemon object destructs.
+        // Process all the remaining events in the event loop immediately to ensure that all
+        // recipients are notified before the daemon object destructs.
         QCoreApplication::processEvents(QEventLoop::AllEvents);
     });
 }
@@ -2281,16 +2284,15 @@ try
 
     bool complain_disabled_mounts = !MP_SETTINGS.get_as<bool>(mp::mounts_key);
 
-    std::vector<std::string> starting_vms{};
+    std::vector<VirtualMachine::ShPtr> starting_vms{};
     starting_vms.reserve(instance_selection.operative_selection.size());
 
     fmt::memory_buffer start_errors;
     for (auto& vm_it : instance_selection.operative_selection)
     {
-        std::lock_guard lock{start_mutex};
         const auto& name = vm_it->first;
-        auto& vm = *vm_it->second;
-        switch (vm.current_state())
+        auto& vm = vm_it->second;
+        switch (vm->current_state())
         {
         case VirtualMachine::State::unknown:
         {
@@ -2308,8 +2310,9 @@ try
             fmt::format_to(std::back_inserter(start_errors),
                            "Cannot start the instance '{}' while {}.",
                            name,
-                           vm.current_state() == VirtualMachine::State::suspending ? "suspending"
-                                                                                   : "unavailable");
+                           vm->current_state() == VirtualMachine::State::suspending
+                               ? "suspending"
+                               : "unavailable");
             continue;
         case VirtualMachine::State::delayed_shutdown:
             delayed_shutdown_instances.erase(name);
@@ -2326,21 +2329,27 @@ try
                 mpl::error(category, "Mounts have been disabled on this instance of Multipass");
             }
 
-            vm.start();
+            vm->start();
         }
 
-        starting_vms.push_back(vm_it->first);
+        starting_vms.push_back(vm);
     }
 
-    auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_vms_ready<StartReply, StartRequest>,
-                          this,
-                          server,
-                          starting_vms,
-                          timeout,
-                          context,
-                          fmt::to_string(start_errors)));
+    async_wait_vms_ready<StartReply, StartRequest>(starting_vms, server, timeout)
+        .then(this,
+              [this, server, context, start_errors = fmt::to_string(start_errors)](
+                  const std::vector<ReadinessResult>& readiness_results) {
+                  if (server)
+                  {
+                      StartReply reply;
+                      config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
+                      server->Write(reply);
+                  }
+
+                  auto status = grpc_status_for_readiness<StartReply>(readiness_results,
+                                                                      start_errors);
+                  finish_async_operation(std::move(status), context);
+              });
 }
 catch (const std::exception& e)
 {
@@ -2457,15 +2466,18 @@ try
         return context->set_value(status);
     }
 
-    auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_vms_ready<RestartReply, RestartRequest>,
-                          this,
-                          server,
-                          names_from(instance_targets),
-                          timeout,
-                          context,
-                          std::string()));
+    async_wait_vms_ready<RestartReply, RestartRequest>(vms_from(instance_targets), server, timeout)
+        .then(this, [this, server, context](const std::vector<ReadinessResult>& readiness_results) {
+            if (server)
+            {
+                RestartReply reply;
+                config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
+                server->Write(reply);
+            }
+
+            auto status = grpc_status_for_readiness<RestartReply>(readiness_results, {});
+            finish_async_operation(std::move(status), context);
+        });
 }
 catch (const std::exception& e)
 {
@@ -3143,19 +3155,18 @@ try // clang-format on
     }
 
     auto instances = select_instances_by_zones(operative_instances, zones);
-    std::vector<std::string> starting_vms;
+    std::vector<VirtualMachine::ShPtr> starting_vms;
     starting_vms.reserve(instances.size());
 
     std::function<grpc::Status(VirtualMachine&)> operation;
     if (request->available())
         operation = [this, &starting_vms](VirtualMachine& vm) {
-            std::unique_lock lock{start_mutex};
             try
             {
                 if (vm.set_available(true))
                 {
                     vm.start();
-                    starting_vms.push_back(vm.get_name());
+                    starting_vms.push_back(operative_instances[vm.get_name()]);
                 }
                 return grpc::Status::OK;
             }
@@ -3170,15 +3181,11 @@ try // clang-format on
     auto status = cmd_vms(instances, operation);
     if (status.ok())
     {
-        auto future_watcher = create_future_watcher();
-        future_watcher->setFuture(
-            QtConcurrent::run(&Daemon::async_wait_vms_ready<StartReply, StartRequest>,
-                              this,
-                              nullptr,
-                              starting_vms,
-                              mp::default_timeout,
-                              nullptr,
-                              std::string()));
+        async_wait_vms_ready<StartReply, StartRequest>(starting_vms, nullptr, mp::default_timeout)
+            .then(this, [this](const std::vector<ReadinessResult>& readiness_results) {
+                auto status = grpc_status_for_readiness<StartReply>(readiness_results, {});
+                finish_async_operation(std::move(status), nullptr);
+            });
 
         for (auto&& z : zones)
             z.get().set_available(request->available());
@@ -3226,29 +3233,26 @@ void mp::Daemon::on_suspend()
 void mp::Daemon::on_restart(const std::string& name)
 {
     stop_mounts(name);
-    auto future_watcher = create_future_watcher([this, name]() {
-        try
-        {
-            auto virtual_machine = operative_instances.at(name);
 
-            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{
-                virtual_machine->state_mutex};
-            virtual_machine->state = VirtualMachine::State::running;
-            virtual_machine->handle_state_update();
-        }
-        catch (const std::out_of_range&)
-        {
-            // logging is dangerous since this thread is probably in a corrupt state
-        }
-    });
-    future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_vms_ready<StartReply, StartRequest>,
-                          this,
-                          nullptr,
-                          std::vector<std::string>{name},
-                          mp::default_timeout,
-                          nullptr,
-                          std::string()));
+    async_wait_vm_ready<StartReply, StartRequest>(name, nullptr, mp::default_timeout)
+        .then(this, [this, name](const ReadinessResult& result) {
+            try
+            {
+                auto virtual_machine = operative_instances.at(name);
+
+                std::lock_guard<decltype(virtual_machine->state_mutex)> lock{
+                    virtual_machine->state_mutex};
+                virtual_machine->state = VirtualMachine::State::running;
+                virtual_machine->handle_state_update();
+            }
+            catch (const std::out_of_range&)
+            {
+                // logging is dangerous since this thread is probably in a corrupt state
+            }
+
+            auto status = grpc_status_for_readiness<StartReply>({result}, {});
+            finish_async_operation(std::move(status), nullptr);
+        });
 }
 
 void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine::State& state)
@@ -3360,85 +3364,86 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     auto prepare_future_watcher = new QFutureWatcher<mp::VirtualMachineDescription>();
 
-    QObject::connect(prepare_future_watcher,
-                     &QFutureWatcher<mp::VirtualMachineDescription>::finished,
-                     [this, server, context, name, timeout, start, prepare_future_watcher] {
-                         // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
+    QObject::connect(
+        prepare_future_watcher,
+        &QFutureWatcher<mp::VirtualMachineDescription>::finished,
+        [this, server, context, name, timeout, start, prepare_future_watcher] {
+            // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
 
-                         try
-                         {
-                             auto vm_desc = prepare_future_watcher->future().result();
+            try
+            {
+                auto vm_desc = prepare_future_watcher->future().result();
 
-                             vm_instance_specs[name] = {
-                                 vm_desc.num_cores,
-                                 vm_desc.mem_size,
-                                 vm_desc.disk_space,
-                                 vm_desc.default_mac_address,
-                                 vm_desc.extra_interfaces,
-                                 config->ssh_username,
-                                 VirtualMachine::State::off,
-                                 {},
-                                 false,
-                                 {},
-                                 0,
-                                 vm_desc.zone,
-                             };
-                             operative_instances[name] = config->factory->create_virtual_machine(
-                                 vm_desc,
-                                 *config->ssh_key_provider,
-                                 *this);
-                             preparing_instances.erase(name);
+                vm_instance_specs[name] = {
+                    vm_desc.num_cores,
+                    vm_desc.mem_size,
+                    vm_desc.disk_space,
+                    vm_desc.default_mac_address,
+                    vm_desc.extra_interfaces,
+                    config->ssh_username,
+                    VirtualMachine::State::off,
+                    {},
+                    false,
+                    {},
+                    0,
+                    vm_desc.zone,
+                };
+                operative_instances[name] = config->factory->create_virtual_machine(
+                    vm_desc,
+                    *config->ssh_key_provider,
+                    *this);
+                preparing_instances.erase(name);
 
-                             persist_instances();
+                persist_instances();
 
-                             if (start)
-                             {
-                                 LaunchReply reply;
-                                 reply.set_create_message("Starting " + name);
-                                 server->Write(reply);
+                if (start)
+                {
+                    LaunchReply reply;
+                    reply.set_create_message("Starting " + name);
+                    server->Write(reply);
 
-                                 operative_instances[name]->start();
+                    operative_instances[name]->start();
 
-                                 auto future_watcher = create_future_watcher(
-                                     [this, server, name, zone = vm_desc.zone] {
-                                         LaunchReply reply;
-                                         reply.set_vm_instance_name(name);
-                                         config->update_prompt->populate_if_time_to_show(
-                                             reply.mutable_update_info());
+                    async_wait_vm_ready<LaunchReply, LaunchRequest>(operative_instances[name],
+                                                                    server,
+                                                                    timeout)
+                        .then(this,
+                              [this, server, context, name, zone = vm_desc.zone](
+                                  const ReadinessResult& result) {
+                                  LaunchReply reply;
+                                  reply.set_vm_instance_name(name);
+                                  config->update_prompt->populate_if_time_to_show(
+                                      reply.mutable_update_info());
 
-                                         if (config->factory->supports_availability_zones())
-                                             reply.set_zone(zone);
-                                         server->Write(reply);
-                                     });
-                                 future_watcher->setFuture(QtConcurrent::run(
-                                     &Daemon::async_wait_vms_ready<LaunchReply, LaunchRequest>,
-                                     this,
-                                     server,
-                                     std::vector<std::string>{name},
-                                     timeout,
-                                     context,
-                                     std::string()));
-                             }
-                             else
-                             {
-                                 context->set_value(grpc::Status::OK);
-                             }
-                         }
-                         catch (const std::exception& e)
-                         {
-                             mp::top_catch_all(category, [this, name]() {
-                                 preparing_instances.erase(name);
-                                 release_resources(name);
-                                 operative_instances.erase(name);
-                                 persist_instances();
-                             });
+                                  if (config->factory->supports_availability_zones())
+                                      reply.set_zone(zone);
+                                  server->Write(reply);
 
-                             context->set_value(
-                                 grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
-                         }
+                                  auto status = grpc_status_for_readiness<LaunchReply>({result},
+                                                                                       {});
+                                  finish_async_operation(std::move(status), context);
+                              });
+                }
+                else
+                {
+                    context->set_value(grpc::Status::OK);
+                }
+            }
+            catch (const std::exception& e)
+            {
+                mp::top_catch_all(category, [this, name]() {
+                    preparing_instances.erase(name);
+                    release_resources(name);
+                    operative_instances.erase(name);
+                    persist_instances();
+                });
 
-                         prepare_future_watcher->deleteLater();
-                     });
+                context->set_value(
+                    grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+            }
+
+            prepare_future_watcher->deleteLater();
+        });
 
     auto make_vm_description = [this, server, request, name, zone_name, checked_args]() mutable
         -> mp::VirtualMachineDescription {
@@ -3732,7 +3737,7 @@ void mp::Daemon::stop_mounts(const std::string& name)
 }
 
 bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
-                               std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
+                               std::unordered_map<std::string, mp::MountHandler::SPtr>& vm_mounts,
                                mp::VirtualMachine* vm)
 {
     auto& mount_specs = vm_specs.mounts;
@@ -3744,7 +3749,7 @@ bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
 
 bool mp::Daemon::create_missing_mounts(
     std::unordered_map<std::string, VMMount>& mount_specs,
-    std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
+    std::unordered_map<std::string, mp::MountHandler::SPtr>& vm_mounts,
     mp::VirtualMachine* vm)
 {
     auto initial_mount_count = mount_specs.size();
@@ -3775,7 +3780,7 @@ bool mp::Daemon::create_missing_mounts(
     return mount_specs.size() != initial_mount_count;
 }
 
-mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
+mp::MountHandler::SPtr mp::Daemon::make_mount(VirtualMachine* vm,
                                               const std::string& target,
                                               const VMMount& mount)
 {
@@ -3787,42 +3792,38 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
              : vm->make_native_mount_handler(target, mount);
 }
 
-QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watcher(
-    std::function<void()> const& finished_op)
+template <typename Reply, typename Request>
+QFuture<mp::Daemon::ReadinessResult>
+mp::Daemon::async_wait_vm_ready(const std::string& name,
+                                grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                                const std::chrono::seconds& timeout)
 {
-    auto uuid = mp::utils::make_uuid();
-    auto future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
-    auto future_watcher_p = future_watcher.get();
-    async_future_watchers.insert({uuid, std::move(future_watcher)});
 
-    QObject::connect(future_watcher_p,
-                     &QFutureWatcher<AsyncOperationStatus>::finished,
-                     [this, uuid, finished_op] {
-                         finished_op();
-                         finish_async_operation(uuid);
-                     });
-
-    return future_watcher_p;
+    const auto& it = operative_instances.find(name);
+    if (it == operative_instances.end())
+    {
+        return QtFuture::makeReadyValueFuture(ReadinessResult{
+            name,
+            ReadinessError::NOT_OPERATIVE,
+            fmt::format("Error starting mounts for VM `{}`, the VM is not in a operative state!",
+                        name)});
+    }
+    return async_wait_vm_ready(it->second, server, timeout);
 }
 
 template <typename Reply, typename Request>
-mp::Daemon::ReadinessResult
-mp::Daemon::async_wait_vm_ready(const std::string& name,
-                                const std::chrono::seconds& timeout,
-                                grpc::ServerReaderWriterInterface<Reply, Request>* server)
+QFuture<mp::Daemon::ReadinessResult>
+mp::Daemon::async_wait_vm_ready(const VirtualMachine::ShPtr& vm,
+                                grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                                const std::chrono::seconds& timeout)
 {
-    try
-    {
-        const auto& it = operative_instances.find(name);
-        if (operative_instances.end() == it)
-        {
-            return {name,
-                    ReadinessError::NOT_OPERATIVE,
-                    fmt::format("Error starting mounts for VM `{}`, the VM is not in a operative "
-                                "state!",
-                                name)};
-        }
-        const auto vm = it->second;
+    if (auto cached_op = get_cached_readiness_operation(vm->get_name()); cached_op.has_value())
+        return *cached_op;
+
+    const bool should_mount = MP_SETTINGS.get_as<bool>(mp::mounts_key);
+    std::string name = vm->get_name();
+
+    auto wait_for_ssh_and_cloud_init_and_mount = [=, vm_mounts = this->mounts[name]] {
         vm->wait_until_ssh_up(timeout);
 
         if constexpr (std::is_same_v<Reply, LaunchReply>)
@@ -3833,155 +3834,152 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
                 reply.set_reply_message("Waiting for initialization to complete");
                 server->Write(reply);
             }
-
             vm->wait_for_cloud_init(timeout);
         }
 
-        if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
+        std::vector<std::string> invalid_mounts;
+        fmt::memory_buffer warnings;
+
+        if (!should_mount)
+            return invalid_mounts;
+
+        for (auto& [target, mount] : vm_mounts)
+            try
+            {
+                if (!mount->is_mount_managed_by_backend())
+                    mount->activate(server);
+            }
+            catch (const mp::SSHFSMissingError&)
+            {
+                throw;
+            }
+            catch (const std::exception& e)
+            {
+                auto msg = fmt::format("Removing mount \"{}\" from '{}': {}\n",
+                                       target,
+                                       name,
+                                       e.what());
+                mpl::log_message(mpl::Level::warning, category, msg);
+                warnings.append(msg);
+                invalid_mounts.emplace_back(target);
+            }
+
+        if (server && warnings.size() > 0)
         {
-            std::vector<std::string> invalid_mounts;
-            std::optional<ReadinessResult> mount_error;
-            fmt::memory_buffer warnings;
-            auto& vm_mounts = mounts[name];
-            for (auto& [target, mount] : vm_mounts)
-                try
-                {
-                    if (!mount->is_mount_managed_by_backend())
-                    {
-                        mount->activate(server);
-                    }
-                }
-                catch (const mp::SSHFSMissingError&)
-                {
-                    mount_error = {name,
-                                   ReadinessError::SSHFS_MISSING,
-                                   fmt::format(sshfs_error_template, name)};
-                    break;
-                }
-                catch (const std::exception& e)
-                {
-                    auto msg = fmt::format("Removing mount \"{}\" from '{}': {}\n",
-                                           target,
-                                           name,
-                                           e.what());
-                    mpl::log_message(mpl::Level::warning, category, msg);
-                    warnings.append(msg);
-                    invalid_mounts.push_back(target);
-                }
-
-            auto& vm_spec_mounts = vm_instance_specs[name].mounts;
-            for (const auto& target : invalid_mounts)
-            {
-                vm_mounts.erase(target);
-                vm_spec_mounts.erase(target);
-            }
-
-            if (server && warnings.size() > 0)
-            {
-                Reply reply;
-                reply.set_log_line(fmt::to_string(warnings));
-                server->Write(reply);
-            }
-
-            persist_instances();
-
-            if (mount_error)
-                return *mount_error;
+            Reply reply;
+            reply.set_log_line(fmt::to_string(warnings));
+            server->Write(reply);
         }
-    }
-    catch (const StartException& e)
-    {
-        return {name, ReadinessError::UNPLUGGED, e.what()};
-    }
-    catch (const SSHTimeoutException& e)
-    {
-        return {name, ReadinessError::SSH_TIMEOUT, e.what()};
-    }
-    catch (const CloudInitTimeoutException& e)
-    {
-        return {name, ReadinessError::CLOUD_INIT_TIMEOUT, e.what()};
-    }
-    catch (const std::exception& e)
-    {
-        return {name, ReadinessError::OTHER, e.what()};
-    }
 
-    return {name, ReadinessError::OK, {}};
+        return invalid_mounts;
+    };
+
+    auto filter_mounts = [=, this](const std::vector<std::string>& invalid_mounts) {
+        auto& vm_mounts = mounts[name];
+        auto& vm_spec_mounts = vm_instance_specs[name].mounts;
+
+        for (const auto& target : invalid_mounts)
+        {
+            vm_mounts.erase(target);
+            vm_spec_mounts.erase(target);
+        }
+
+        persist_instances();
+    };
+
+    auto operation = //
+        QtConcurrent::run(wait_for_ssh_and_cloud_init_and_mount)
+            .then(this, filter_mounts)
+            .then([name] { return ReadinessResult{name, ReadinessError::OK, {}}; })
+            .onFailed([](const QUnhandledException& e) -> ReadinessResult {
+                std::rethrow_exception(e.exception());
+            })
+            .onFailed([name](const StartException& e) {
+                return ReadinessResult{name, ReadinessError::UNPLUGGED, e.what()};
+            })
+            .onFailed([name](const SSHTimeoutException& e) {
+                return ReadinessResult{name, ReadinessError::SSH_TIMEOUT, e.what()};
+            })
+            .onFailed([name](const CloudInitTimeoutException& e) {
+                return ReadinessResult{name, ReadinessError::CLOUD_INIT_TIMEOUT, e.what()};
+            })
+            .onFailed([name](const SSHFSMissingError&) {
+                return ReadinessResult{name,
+                                       ReadinessError::SSHFS_MISSING,
+                                       fmt::format(sshfs_error_template, name)};
+            })
+            .onFailed([name](const std::exception& e) {
+                return ReadinessResult{name, ReadinessError::OTHER, e.what()};
+            });
+
+    return cache_readiness_operation(name, operation);
 }
 
 template <typename Reply, typename Request>
-mp::Daemon::AsyncOperationStatus
-mp::Daemon::async_wait_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                                 const std::vector<std::string>& vms,
-                                 const std::chrono::seconds& timeout,
-                                 DaemonRpcContext* context,
-                                 const std::string& start_errors)
+QFuture<std::vector<mp::Daemon::ReadinessResult>>
+mp::Daemon::async_wait_vms_ready(const std::vector<VirtualMachine::ShPtr>& vms,
+                                 grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                                 const std::chrono::seconds& timeout)
 {
-    QFutureSynchronizer<ReadinessResult> start_synchronizer;
-    {
-        std::lock_guard<decltype(start_mutex)> lock{start_mutex};
-        for (const auto& name : vms)
-        {
-            if (async_running_futures.contains(name))
-            {
-                start_synchronizer.addFuture(async_running_futures[name]);
-            }
-            else
-            {
-                auto future = QtConcurrent::run(&Daemon::async_wait_vm_ready<Reply, Request>,
-                                                this,
-                                                name,
-                                                timeout,
-                                                server);
-                async_running_futures[name] = future;
-                start_synchronizer.addFuture(future);
-            }
-        }
-    }
+    std::vector<QFuture<ReadinessResult>> futures;
+    futures.reserve(vms.size());
+    for (const auto& vm : vms)
+        futures.push_back(async_wait_vm_ready<Reply, Request>(vm, server, timeout));
 
-    start_synchronizer.waitForFinished();
+    return QtFuture::whenAll(futures.begin(), futures.end())
+        .then([](const QList<QFuture<ReadinessResult>>& finished_futures) {
+            std::vector<ReadinessResult> results;
+            results.reserve(finished_futures.size());
 
-    {
-        std::lock_guard<decltype(start_mutex)> lock{start_mutex};
-        for (const auto& name : vms)
-        {
-            async_running_futures.erase(name);
-        }
-    }
+            for (const auto& future : finished_futures)
+                results.push_back(future.result());
 
-    std::vector<ReadinessResult> readiness_errors;
-    readiness_errors.reserve(vms.size());
-
-    for (const auto& future : start_synchronizer.futures())
-        if (const auto result = future.result(); result.error != ReadinessError::OK)
-            readiness_errors.push_back(result);
-
-    if constexpr (std::is_same_v<Reply, StartReply> || std::is_same_v<Reply, RestartReply>)
-    {
-        if (server)
-        {
-            Reply reply;
-            config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
-            server->Write(reply);
-        }
-    }
-
-    return {grpc_status_for_readiness<Reply>(readiness_errors, start_errors), context};
+            return results;
+        });
 }
 
-void mp::Daemon::finish_async_operation(const std::string& async_future_key)
+std::optional<QFuture<mp::Daemon::ReadinessResult>> mp::Daemon::get_cached_readiness_operation(
+    const std::string& name)
 {
-    if (!async_future_watchers.contains(async_future_key))
-        return;
+    // Check if this operation is already running
+    if (auto watcher_it = async_future_watchers.find(name);
+        watcher_it != async_future_watchers.end())
+    {
+        auto* watcher = watcher_it->second.get();
+        assert(QThread::currentThread() == watcher->thread());
+        // This should always be the case
+        if (!watcher->isFinished())
+            return future_from(watcher);
+    }
+    return {};
+}
 
-    auto async_op_result = async_future_watchers.at(async_future_key)->result();
-    async_future_watchers.erase(async_future_key);
+QFuture<mp::Daemon::ReadinessResult> mp::Daemon::cache_readiness_operation(
+    const std::string& name,
+    const QFuture<ReadinessResult>& operation)
+{
+    auto watcher = std::make_unique<QFutureWatcher<ReadinessResult>>();
+    auto* watcher_ptr = watcher.get();
+    async_future_watchers[name] = std::move(watcher);
 
-    if (!async_op_result.status.ok())
+    QObject::connect(
+        watcher_ptr,
+        &QFutureWatcher<ReadinessResult>::finished,
+        this,
+        [this, name] { async_future_watchers.erase(name); },
+        Qt::QueuedConnection);
+
+    watcher_ptr->setFuture(operation);
+    return future_from(watcher_ptr);
+}
+
+void mp::Daemon::finish_async_operation(const grpc::Status& status, DaemonRpcContext* context)
+{
+    if (!status.ok())
         persist_instances();
 
-    if (async_op_result.context)
-        async_op_result.context->set_value(async_op_result.status);
+    if (context)
+        context->set_value(status);
 }
 
 void mp::Daemon::update_manifests_all(const bool force_update)
@@ -4240,7 +4238,9 @@ template <typename Reply>
 grpc::Status mp::Daemon::grpc_status_for_readiness(const std::vector<ReadinessResult>& errors,
                                                    const std::string& start_errors)
 {
-    if (start_errors.size() == 0 && errors.empty())
+    const auto is_error = [](const auto& result) { return result.error != ReadinessError::OK; };
+
+    if (start_errors.empty() && std::ranges::none_of(errors, is_error))
         return grpc::Status::OK;
 
     std::string error_details;
@@ -4259,7 +4259,8 @@ grpc::Status mp::Daemon::grpc_status_for_readiness(const std::vector<ReadinessRe
         StartError start_error;
         auto* readiness_errors = start_error.mutable_readiness_errors();
         for (const auto& error : errors)
-            (*readiness_errors)[error.instance_name] = error.error;
+            if (is_error(error))
+                (*readiness_errors)[error.instance_name] = error.error;
         error_details = start_error.SerializeAsString();
     }
 
@@ -4270,7 +4271,8 @@ grpc::Status mp::Daemon::grpc_status_for_readiness(const std::vector<ReadinessRe
         add_fmt_to(collective_errors, "{}", start_errors);
 
     for (const auto& result : errors)
-        add_fmt_to(collective_errors, "{}", result.message);
+        if (is_error(result))
+            add_fmt_to(collective_errors, "{}", result.message);
 
     return {grpc::StatusCode::INVALID_ARGUMENT,
             fmt::to_string(collective_errors),
