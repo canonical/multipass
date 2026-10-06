@@ -31,9 +31,12 @@
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
+#include <shared/windows/net_io_api.h>
 #include <shared/windows/network_utils.h>
 #include <shared/windows/powershell.h>
 #include <shared/windows/smb_mount_handler.h>
+
+#include <QUuid>
 
 #include <fmt/format.h>
 
@@ -52,6 +55,13 @@ namespace fs = std::filesystem;
 QString quoted(const QString& str)
 {
     return '"' + str + '"';
+}
+
+NET_LUID to_net_luid(std::uint64_t value)
+{
+    NET_LUID luid{};
+    luid.Value = value;
+    return luid;
 }
 
 std::optional<mp::IPAddress> remote_ip(const std::string& host,
@@ -147,12 +157,12 @@ fs::path locate_vmcx_file(const fs::path& exported_vm_dir_path)
 }
 } // namespace
 
-mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
+mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& vm_desc,
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider,
                                                AvailabilityZone& zone,
                                                const mp::Path& instance_dir)
-    : HyperVVirtualMachine{desc, monitor, key_provider, zone, instance_dir, true}
+    : HyperVVirtualMachine{vm_desc, monitor, key_provider, zone, instance_dir, true}
 {
     if (!power_shell->run({"Get-VM", "-Name", name}))
     {
@@ -273,10 +283,9 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                                                AvailabilityZone& zone,
                                                const Path& instance_dir,
                                                bool /*is_internal*/)
-    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir},
+    : BaseVirtualMachine{desc.vm_name, desc, monitor, key_provider, zone, instance_dir},
       name{QString::fromStdString(desc.vm_name)},
-      power_shell{std::make_unique<PowerShell>(vm_name)},
-      monitor{&monitor}
+      power_shell{std::make_unique<PowerShell>(vm_name)}
 {
 }
 
@@ -344,6 +353,16 @@ mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 
 void mp::HyperVVirtualMachine::start()
 {
+    const auto present_state = current_state();
+    if (present_state == State::off || present_state == State::stopped)
+    {
+        default_switch_interface = resolve_default_switch_interface();
+        const auto switch_interface = default_switch_interface.load();
+        if (!switch_interface || !remove_permanent_ipv4_neighbors(desc.default_mac_address,
+                                                                  to_net_luid(*switch_interface)))
+            mpl::warn(vm_name, "Could not remove all stale management IP entries");
+    }
+
     state = State::starting;
     handle_state_update();
 
@@ -417,7 +436,7 @@ void mp::HyperVVirtualMachine::suspend()
                   (present_state == State::unavailable) ? "unavailable" : "stopped");
     }
 
-    monitor->on_suspend();
+    monitor.on_suspend();
 }
 
 bool mp::HyperVVirtualMachine::set_available(bool /*available*/)
@@ -438,11 +457,6 @@ mp::VirtualMachine::State mp::HyperVVirtualMachine::current_state()
     return state;
 }
 
-int mp::HyperVVirtualMachine::ssh_port()
-{
-    return default_ssh_port;
-}
-
 void mp::HyperVVirtualMachine::handle_state_update()
 {
     // Invalidate the management IP address on state update.
@@ -453,22 +467,20 @@ void mp::HyperVVirtualMachine::handle_state_update()
         mpl::debug(vm_name, "Invalidating cached mgmt IP address upon state update");
         management_ip = std::nullopt;
     }
-    monitor->persist_state_for(vm_name, state);
-}
-
-std::string mp::HyperVVirtualMachine::ssh_hostname()
-{
-    return require_management_ipv4().as_string();
-}
-
-std::string mp::HyperVVirtualMachine::ssh_username()
-{
-    return desc.ssh_username;
+    monitor.persist_state_for(vm_name, state);
 }
 
 std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
 {
-    if (const auto ip_address = permanent_ipv4_neighbor(desc.default_mac_address))
+    if (!default_switch_interface.load())
+        default_switch_interface = resolve_default_switch_interface();
+
+    const auto switch_interface = default_switch_interface.load();
+    if (!switch_interface)
+        return std::nullopt;
+
+    if (const auto ip_address = permanent_ipv4_neighbor(desc.default_mac_address,
+                                                        to_net_luid(*switch_interface)))
     {
         IPAddress address{*ip_address};
         mpl::trace(get_name(), "management_ipv4() > IP address is `{}`", address.as_string());
@@ -477,19 +489,58 @@ std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
     return std::nullopt;
 }
 
-void mp::HyperVVirtualMachine::update_cpus(int num_cores)
+std::optional<std::uint64_t> mp::HyperVVirtualMachine::resolve_default_switch_interface()
 {
-    assert(num_cores > 0);
+    // All AZ networks share the Default Switch's vSwitch, so the switch ID alone is ambiguous.
+    // HNS names each host vNIC after its network, and the Default Switch network has the same ID
+    // as the switch itself.
+    QString device_id;
+    if (!power_shell->run({"Get-VMNetworkAdapter",
+                           "-ManagementOS",
+                           "-Name",
+                           QStringLiteral("'Host Vnic %1'").arg(default_switch_guid),
+                           "|",
+                           "Select-Object",
+                           "-ExpandProperty",
+                           "DeviceId"},
+                          &device_id,
+                          nullptr,
+                          /* whisper = */ true))
+    {
+        mpl::warn(vm_name, "Could not find the Default Switch host interface");
+        return std::nullopt;
+    }
 
+    const QUuid interface_guid{device_id.trimmed()};
+    if (interface_guid.isNull())
+    {
+        mpl::warn(vm_name, "Unexpected Default Switch host interface ID: `{}`", device_id);
+        return std::nullopt;
+    }
+
+    const GUID guid = interface_guid;
+    NET_LUID luid{};
+    if (const auto error = MP_NETIOAPI.ConvertInterfaceGuidToLuid(&guid, &luid); error != NO_ERROR)
+    {
+        mpl::warn(vm_name,
+                  "Could not get the LUID of Default Switch host interface `{}`, error code {}",
+                  device_id,
+                  error);
+        return std::nullopt;
+    }
+
+    return luid.Value;
+}
+
+void mp::HyperVVirtualMachine::update_cpus_impl(int num_cores)
+{
     power_shell->easy_run(
         {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(num_cores)},
         "Could not update CPUs");
 }
 
-void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
+void mp::HyperVVirtualMachine::resize_memory_impl(const MemorySize& new_size)
 {
-    assert(new_size.in_bytes() > 0);
-
     QStringList resize_cmd = {"Set-VMMemory",
                               "-VMName",
                               name,
@@ -500,8 +551,6 @@ void mp::HyperVVirtualMachine::resize_memory(const MemorySize& new_size)
 
 void mp::HyperVVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
-    assert(new_size.in_bytes() > 0);
-
     // Resize the current disk layer, which will differ from the original image if there are
     // snapshots
     // clang-format off
@@ -554,6 +603,7 @@ auto mp::HyperVVirtualMachine::make_specific_snapshot(const std::string& snapsho
                                             std::move(parent),
                                             name.toStdString(),
                                             *this,
+                                            desc,
                                             *power_shell);
 }
 

@@ -53,6 +53,9 @@ def generate(input_path: Path, output_path: Path) -> None:
     # Remove the GUI app
     del data["apps"]["gui"]
 
+    # Remove the libraries only needed for the GUI.
+    multipass_part["stage-packages"].remove("librsvg2-common")
+
     # Change multipass part to use remote git source
     multipass_part["source"] = MULTIPASS_SOURCE
 

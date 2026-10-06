@@ -33,10 +33,11 @@ public:
                        std::shared_ptr<Snapshot> parent,
                        const std::string& vm_name,
                        const VMSpecs& specs,
-                       VirtualBoxVirtualMachine& vm);
+                       VirtualBoxVirtualMachine& vm,
+                       VirtualMachineDescription& desc);
     VirtualBoxSnapshot(const std::filesystem::path& filename,
                        VirtualBoxVirtualMachine& vm,
-                       const VirtualMachineDescription& desc);
+                       VirtualMachineDescription& desc);
 
 protected:
     void capture_impl() override;

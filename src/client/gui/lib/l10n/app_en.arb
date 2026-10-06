@@ -344,6 +344,34 @@
             }
         }
     },
+    "migrationInProgress": "Migrating instances to Host Compute System (HCS)\n",
+    "@migrationInProgress": {
+        "description": "Bold heading in the notification shown while instances migrate to the hcs driver"
+    },
+    "migrationDone": "Switched to Host Compute System (HCS)\n",
+    "@migrationDone": {
+        "description": "Bold heading in the notification shown when switching to the hcs driver finished"
+    },
+    "migrationDoneWithProblems": "Switched to Host Compute System (HCS), but not every instance was migrated\n",
+    "@migrationDoneWithProblems": {
+        "description": "Bold heading in the notification shown when the hcs driver is in effect but some instances failed to migrate"
+    },
+    "migrationQuitTitle": "Quit during migration?",
+    "@migrationQuitTitle": {
+        "description": "Title of the dialog shown when quitting the app while instances migrate to the hcs driver"
+    },
+    "migrationQuitMessage": "Instances are being migrated to Host Compute System (HCS). Quitting now stops the migration after the current instance: the driver is still switched, but the remaining instances are not migrated.",
+    "@migrationQuitMessage": {
+        "description": "Body of the dialog shown when quitting the app while instances migrate to the hcs driver"
+    },
+    "migrationQuitAction": "Quit anyway",
+    "@migrationQuitAction": {
+        "description": "Button that quits the app, stopping the ongoing migration"
+    },
+    "migrationQuitKeepAction": "Keep migrating",
+    "@migrationQuitKeepAction": {
+        "description": "Button that closes the dialog and lets the migration continue"
+    },
     "virtualizationBridgedNetworkNone": "None",
     "@virtualizationBridgedNetworkNone": {
         "description": "Dropdown option representing no bridged network selected"
@@ -574,6 +602,10 @@
     "vmDetailsStopToConfigure": "Stop instance to configure",
     "@vmDetailsStopToConfigure": {
         "description": "Tooltip shown on the Configure button when the instance is running"
+    },
+    "vmDetailsUnavailableToMount": "Instance is unavailable",
+    "@vmDetailsUnavailableToMount": {
+        "description": "Tooltip shown on the mounts Add mount/Configure buttons when the instance is unavailable"
     },
     "resourcesTitle": "Resources",
     "@resourcesTitle": {

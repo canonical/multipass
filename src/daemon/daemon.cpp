@@ -17,6 +17,8 @@
 
 #include "daemon.h"
 #include "base_cloud_init_config.h"
+#include "daemon_init_settings.h"
+#include "hyperv_driver_transition.h"
 #include "instance_settings_handler.h"
 #include "runtime_instance_info_helper.h"
 #include "snapshot_settings_handler.h"
@@ -63,6 +65,7 @@
 
 #include <scope_guard.hpp>
 
+#include <fmt/ranges.h>
 #include <yaml-cpp/yaml.h>
 
 #include <QDir>
@@ -224,7 +227,7 @@ auto name_from(const std::string& requested_name,
         constexpr int num_retries = 100;
         for (int i = 0; i < num_retries; i++)
         {
-            if (currently_used_names.find(name) != currently_used_names.end())
+            if (currently_used_names.contains(name))
                 continue;
             return name;
         }
@@ -358,16 +361,16 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
     {
         specified_image = image;
 
-        dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
+        dont_allow_auto = no_bridging_release.contains(image);
     }
     else
     {
         specified_image = remote + ":" + image;
 
         if (remote == mp::release_remote || remote == mp::daily_remote)
-            dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
+            dont_allow_auto = no_bridging_release.contains(image);
         else if (remote == mp::core_remote)
-            dont_allow_auto = no_bridging_core.find(image) != no_bridging_core.end();
+            dont_allow_auto = no_bridging_core.contains(image);
     }
 
     for (const auto& net : request->network_options())
@@ -505,38 +508,6 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
         std::move(option_errors),
     };
     return ret;
-}
-
-auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
-{
-    QObject::connect(&rpc, &mp::DaemonRpc::on_create, &daemon, &mp::Daemon::create);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_purge, &daemon, &mp::Daemon::purge);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_info, &daemon, &mp::Daemon::info);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_list, &daemon, &mp::Daemon::list);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_clone, &daemon, &mp::Daemon::clone);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_networks, &daemon, &mp::Daemon::networks);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_mount, &daemon, &mp::Daemon::mount);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_recover, &daemon, &mp::Daemon::recover);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_ssh_info, &daemon, &mp::Daemon::ssh_info);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_start, &daemon, &mp::Daemon::start);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_stop, &daemon, &mp::Daemon::stop);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_suspend, &daemon, &mp::Daemon::suspend);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_restart, &daemon, &mp::Daemon::restart);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_delete, &daemon, &mp::Daemon::delet);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_get, &daemon, &mp::Daemon::get);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_set, &daemon, &mp::Daemon::set);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_keys, &daemon, &mp::Daemon::keys);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_authenticate, &daemon, &mp::Daemon::authenticate);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_snapshot, &daemon, &mp::Daemon::snapshot);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_restore, &daemon, &mp::Daemon::restore);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_daemon_info, &daemon, &mp::Daemon::daemon_info);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_wait_ready, &daemon, &mp::Daemon::wait_ready);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_zones, &daemon, &mp::Daemon::zones);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_zones_state, &daemon, &mp::Daemon::zones_state);
 }
 
 enum class InstanceGroup
@@ -1120,7 +1091,7 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
                         snapshots_of_deleted_instances.push_back(
                             fmt::format("{}.{}", vm_it->first, snapshot_name));
 
-                    vm_it->second->get_snapshot(snapshot_name); // throws if missing
+                    std::ignore = vm_it->second->get_snapshot(snapshot_name); // throws if missing
                     any_snapshot = true;
                 }
             }
@@ -1356,7 +1327,84 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
     }
 }
 
+// TODO hyperv migration, remove
+template <typename T, typename... Types>
+constexpr bool is_one_of_v = (std::is_same_v<T, Types> || ...);
+
+// TODO hyperv migration, remove
+// Request types not listed here are blocked during migration.
+template <typename Request>
+constexpr bool allowed_during_migration = is_one_of_v<Request,
+                                                      mp::FindRequest,
+                                                      mp::InfoRequest,
+                                                      mp::ListRequest,
+                                                      mp::NetworksRequest,
+                                                      mp::SSHInfoRequest,
+                                                      mp::VersionRequest,
+                                                      mp::GetRequest,
+                                                      mp::KeysRequest,
+                                                      mp::AuthenticateRequest,
+                                                      mp::DaemonInfoRequest,
+                                                      mp::WaitReadyRequest,
+                                                      mp::ZonesRequest>;
+
 } // namespace
+
+// TODO hyperv migration, revert: back to the free function connect_rpc(rpc, daemon) with plain
+// QObject::connect(&rpc, &mp::DaemonRpc::on_x, &daemon, &mp::Daemon::x) calls
+void mp::Daemon::connect_rpc(DaemonRpc& rpc)
+{
+    const auto connect =
+        [this, &rpc]<typename Reply, typename Request>(
+            void (DaemonRpc::*signal)(const Request*,
+                                      grpc::ServerReaderWriter<Reply, Request>*,
+                                      DaemonRpcContext*),
+            void (Daemon::*slot)(const Request*,
+                                 grpc::ServerReaderWriterInterface<Reply, Request>*,
+                                 DaemonRpcContext*)) {
+            QObject::connect(&rpc,
+                             signal,
+                             this,
+                             [this, slot](const Request* request,
+                                          grpc::ServerReaderWriter<Reply, Request>* server,
+                                          DaemonRpcContext* context) {
+                                 if (!allowed_during_migration<Request> &&
+                                     reject_if_migrating("perform this operation", context))
+                                     return;
+
+                                 (this->*slot)(request, server, context);
+                             });
+        };
+
+    connect(&DaemonRpc::on_create, &Daemon::create);
+    connect(&DaemonRpc::on_launch, &Daemon::launch);
+    connect(&DaemonRpc::on_purge, &Daemon::purge);
+    connect(&DaemonRpc::on_find, &Daemon::find);
+    connect(&DaemonRpc::on_info, &Daemon::info);
+    connect(&DaemonRpc::on_list, &Daemon::list);
+    connect(&DaemonRpc::on_clone, &Daemon::clone);
+    connect(&DaemonRpc::on_networks, &Daemon::networks);
+    connect(&DaemonRpc::on_mount, &Daemon::mount);
+    connect(&DaemonRpc::on_recover, &Daemon::recover);
+    connect(&DaemonRpc::on_ssh_info, &Daemon::ssh_info);
+    connect(&DaemonRpc::on_start, &Daemon::start);
+    connect(&DaemonRpc::on_stop, &Daemon::stop);
+    connect(&DaemonRpc::on_suspend, &Daemon::suspend);
+    connect(&DaemonRpc::on_restart, &Daemon::restart);
+    connect(&DaemonRpc::on_delete, &Daemon::delet);
+    connect(&DaemonRpc::on_umount, &Daemon::umount);
+    connect(&DaemonRpc::on_version, &Daemon::version);
+    connect(&DaemonRpc::on_get, &Daemon::get);
+    connect(&DaemonRpc::on_set, &Daemon::set);
+    connect(&DaemonRpc::on_keys, &Daemon::keys);
+    connect(&DaemonRpc::on_authenticate, &Daemon::authenticate);
+    connect(&DaemonRpc::on_snapshot, &Daemon::snapshot);
+    connect(&DaemonRpc::on_restore, &Daemon::restore);
+    connect(&DaemonRpc::on_daemon_info, &Daemon::daemon_info);
+    connect(&DaemonRpc::on_wait_ready, &Daemon::wait_ready);
+    connect(&DaemonRpc::on_zones, &Daemon::zones);
+    connect(&DaemonRpc::on_zones_state, &Daemon::zones_state);
+}
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
@@ -1383,7 +1431,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 {
     using e_state = VirtualMachine::State;
 
-    connect_rpc(daemon_rpc, *this);
+    connect_rpc(daemon_rpc);
     std::vector<std::string> invalid_specs;
 
     try
@@ -1629,6 +1677,17 @@ void mp::Daemon::shutdown_grpc_server()
     shutdown.get(); // rethrows if there were exceptions
 }
 
+// TODO hyperv migration, remove
+bool mp::Daemon::reject_if_migrating(std::string_view rpc_name, DaemonRpcContext* context) const
+{
+    if (!migration_in_progress.load())
+        return false;
+
+    mpl::info(category, "Rejecting '{}' while a migration is in progress", rpc_name);
+    context->set_value(mp::hyperv::migration_conflict_status(rpc_name));
+    return true;
+}
+
 void mp::Daemon::create(const CreateRequest* request,
                         grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                         DaemonRpcContext* context)
@@ -1647,7 +1706,6 @@ void mp::Daemon::launch(const LaunchRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     return create_vm(request, server, context, /*start=*/true);
 }
 catch (const mp::StartException& e)
@@ -1762,7 +1820,7 @@ try
                                                               const mp::VMImageInfo& info) {
                 if (remote != mp::snapcraft_remote &&
                     (info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
-                    images_found.find(info.release_title) == images_found.end())
+                    !images_found.contains(info.release_title))
                 {
                     add_aliases(response.mutable_images_info(), remote, info);
                     images_found.insert(info.release_title);
@@ -1798,7 +1856,6 @@ void mp::Daemon::info(const InfoRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     InfoReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
     InstanceSnapshotsMap instance_snapshots_map;
@@ -1893,7 +1950,6 @@ void mp::Daemon::list(const ListRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
@@ -2083,7 +2139,7 @@ try
         }
 
         auto& vm_mounts = mounts[name];
-        if (vm_mounts.find(target_path) != vm_mounts.end())
+        if (vm_mounts.contains(target_path))
         {
             add_fmt_to(errors, "\"{}\" is already mounted in '{}'", target_path, name);
             continue;
@@ -2132,7 +2188,6 @@ void mp::Daemon::recover(const RecoverRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     auto recover_reaction = require_existing_instances_reaction;
     recover_reaction.operative_reaction.message_template =
         "instance \"{}\" does not need to be recovered";
@@ -2204,7 +2259,6 @@ void mp::Daemon::start(const StartRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
@@ -2341,7 +2395,6 @@ void mp::Daemon::suspend(const SuspendRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     auto [instance_selection,
           status] = select_instances_and_react(operative_instances,
                                                deleted_instances,
@@ -2615,7 +2668,25 @@ try
 {
     auto key = request->key();
     auto val = request->val();
+    // TODO hyperv migration, remove
+    if (key == mp::driver_key)
+        val = mp::daemon::interpret_driver(QString::fromStdString(val)).toStdString();
     std::string bridge_name;
+
+// TODO hyperv migration, remove
+#if defined(HCS_ENABLED)
+    mp::hyperv::DriverTransition transition{{*config,
+                                             vm_instance_specs,
+                                             operative_instances,
+                                             deleted_instances,
+                                             migration_in_progress,
+                                             preparing_instances}};
+    if (auto status = transition.prepare(key, val); !status.ok())
+    {
+        context->set_value(std::move(status));
+        return;
+    }
+#endif
 
     if (request->authorized() &&
         !(bridge_name = MP_SETTINGS.get(mp::bridged_interface_key).toStdString()).empty())
@@ -2630,13 +2701,27 @@ try
         });
     });
 
+// TODO hyperv migration, remove
+#if defined(HCS_ENABLED)
+    // Runs the Hyper-V to HCS migration only if prepare() started one; otherwise returns OK. The
+    // driver is only switched once it's done, so a daemon that stops mid-migration comes back on
+    // hyperv, where switching again cleans up and resumes it.
+    auto migration_status = transition.complete(server);
+#endif
+
     mpl::trace(category, "Trying to set {}={}", key, val);
     UserMessages messages{};
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val), messages);
     mpu::send_messages(server, messages);
     mpl::debug(category, "Succeeded setting {}={}", key, val);
 
+// TODO hyperv migration, revert: context->set_value(grpc::Status::OK);
+#if defined(HCS_ENABLED)
+    transition.hold_until_restart();
+    context->set_value(std::move(migration_status));
+#else
     context->set_value(grpc::Status::OK);
+#endif
 }
 catch (const mp::NonAuthorizedBridgeSettingsException& e)
 {
@@ -2817,7 +2902,7 @@ try
 
         // Only need to check if snapshots are supported and if the snapshot exists, so the result
         // is discarded
-        vm_ptr->get_snapshot(request->snapshot());
+        std::ignore = vm_ptr->get_snapshot(request->snapshot());
 
         using St = VirtualMachine::State;
         if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
@@ -2889,7 +2974,6 @@ void mp::Daemon::clone(const CloneRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     const auto& source_name = request->source_name();
     const auto [src_instance_trail,
                 src_vm_status] = find_instance_and_react(operative_instances,
@@ -3267,7 +3351,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     if (!status.ok())
         return context->set_value(status);
 
-    if (preparing_instances.find(name) != preparing_instances.end())
+    if (preparing_instances.contains(name))
         return context->set_value({grpc::StatusCode::INVALID_ARGUMENT,
                                    fmt::format("instance \"{}\" is being prepared", name),
                                    ""});
@@ -3672,7 +3756,7 @@ bool mp::Daemon::create_missing_mounts(
     auto initial_mount_count = mount_specs.size();
     std::erase_if(mount_specs, [&](auto&& i) {
         const auto& [target, mount_spec] = i;
-        if (vm_mounts.find(target) == vm_mounts.end())
+        if (!vm_mounts.contains(target))
         {
             try
             {
@@ -3827,7 +3911,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
         for (const auto& name : vms)
         {
-            if (async_running_futures.find(name) != async_running_futures.end())
+            if (async_running_futures.contains(name))
             {
                 start_synchronizer.addFuture(async_running_futures[name]);
             }
@@ -3888,7 +3972,7 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
 
 void mp::Daemon::finish_async_operation(const std::string& async_future_key)
 {
-    if (async_future_watchers.find(async_future_key) == async_future_watchers.end())
+    if (!async_future_watchers.contains(async_future_key))
         return;
 
     auto async_op_result = async_future_watchers.at(async_future_key)->result();
@@ -4038,7 +4122,7 @@ grpc::Status mp::Daemon::validate_dest_name(const std::string& name)
     {
         return dest_vm_status;
     }
-    if (preparing_instances.find(name) != preparing_instances.end())
+    if (preparing_instances.contains(name))
     {
         return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
                             fmt::format("instance \"{}\" is being prepared", name),
@@ -4107,7 +4191,7 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
         throw std::runtime_error(
             fmt::format(invalid_network_template, preferred_net, mp::bridged_interface_key));
     }
-    else if (info->needs_authorization && !user_authorized_bridges.count(preferred_net))
+    else if (info->needs_authorization && !user_authorized_bridges.contains(preferred_net))
     {
         throw mp::NonAuthorizedBridgeSettingsException("Cannot update instance settings",
                                                        instance_name,

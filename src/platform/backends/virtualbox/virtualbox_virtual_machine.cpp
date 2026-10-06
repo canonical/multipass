@@ -180,12 +180,12 @@ void update_mac_addresses_of_network_adapters(const mp::VirtualMachineDescriptio
 
 } // namespace
 
-mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
+mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& vm_desc,
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
                                                        AvailabilityZone& zone,
                                                        const mp::Path& instance_dir_qstr)
-    : VirtualBoxVirtualMachine(desc, monitor, key_provider, zone, instance_dir_qstr, true)
+    : VirtualBoxVirtualMachine(vm_desc, monitor, key_provider, zone, instance_dir_qstr, true)
 {
     if (desc.extra_interfaces.size() > 7)
     {
@@ -262,12 +262,12 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
 }
 
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source_vm_name,
-                                                       const VirtualMachineDescription& desc,
+                                                       const VirtualMachineDescription& vm_desc,
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
                                                        AvailabilityZone& zone,
                                                        const Path& dest_instance_dir)
-    : VirtualBoxVirtualMachine(desc, monitor, key_provider, zone, dest_instance_dir, true)
+    : VirtualBoxVirtualMachine(vm_desc, monitor, key_provider, zone, dest_instance_dir, true)
 {
     const fs::path instances_dir = fs::path{dest_instance_dir.toStdString()}.parent_path();
 
@@ -335,9 +335,8 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                                        AvailabilityZone& zone,
                                                        const mp::Path& instance_dir_qstr,
                                                        bool /*is_internal*/)
-    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir_qstr},
-      name{QString::fromStdString(desc.vm_name)},
-      monitor{&monitor}
+    : BaseVirtualMachine{desc.vm_name, desc, monitor, key_provider, zone, instance_dir_qstr},
+      name{QString::fromStdString(desc.vm_name)}
 {
 }
 
@@ -443,7 +442,7 @@ void mp::VirtualBoxVirtualMachine::suspend()
         mpl::info(vm_name, "Ignoring suspend issued while stopped");
     }
 
-    monitor->on_suspend();
+    monitor.on_suspend();
 }
 
 bool mp::VirtualBoxVirtualMachine::set_available(bool /*available*/)
@@ -499,17 +498,12 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
 
 void mp::VirtualBoxVirtualMachine::handle_state_update()
 {
-    monitor->persist_state_for(vm_name, state);
+    monitor.persist_state_for(vm_name, state);
 }
 
 std::string mp::VirtualBoxVirtualMachine::ssh_hostname()
 {
     return "127.0.0.1";
-}
-
-std::string mp::VirtualBoxVirtualMachine::ssh_username()
-{
-    return desc.ssh_username;
 }
 
 std::optional<mp::IPAddress> mp::VirtualBoxVirtualMachine::management_ipv4()
@@ -528,20 +522,16 @@ std::vector<mp::IPAddress> mp::VirtualBoxVirtualMachine::get_all_ipv4()
     return all_ipv4;
 }
 
-void mp::VirtualBoxVirtualMachine::update_cpus(int num_cores)
+void mp::VirtualBoxVirtualMachine::update_cpus_impl(int num_cores)
 {
-    assert(num_cores > 0);
-
     mpu::process_throw_on_error("VBoxManage",
                                 {"modifyvm", name, "--cpus", QString::number(num_cores)},
                                 "Could not update CPUs: {}",
                                 name);
 }
 
-void mp::VirtualBoxVirtualMachine::resize_memory(const MemorySize& new_size)
+void mp::VirtualBoxVirtualMachine::resize_memory_impl(const MemorySize& new_size)
 {
-    assert(new_size.in_bytes() > 0);
-
     mpu::process_throw_on_error(
         "VBoxManage",
         {"modifyvm", name, "--memory", QString::number(new_size.in_megabytes())},
@@ -551,8 +541,6 @@ void mp::VirtualBoxVirtualMachine::resize_memory(const MemorySize& new_size)
 
 void mp::VirtualBoxVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
-    assert(new_size.in_bytes() > 0);
-
     mpu::process_throw_on_error("VBoxManage",
                                 {"modifyhd",
                                  MP_PLATFORM.path_to_qstr(desc.image.image_path),
@@ -626,5 +614,6 @@ auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const std::stri
                                                 std::move(parent),
                                                 name.toStdString(),
                                                 specs,
-                                                *this);
+                                                *this,
+                                                desc);
 }

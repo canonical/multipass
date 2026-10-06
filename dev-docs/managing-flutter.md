@@ -9,7 +9,7 @@ Multipass gets its Flutter from the 3rd-party/flutter git submodule. When a new 
 ```
 git fetch
 git checkout <release-tag> # go to the actual release tag e.g. 3.32.5
-flutter precache # download the new flutter binaries
+./bin/flutter precache # download the new flutter binaries
 ```
 
 ### Updating Flutter dependencies
