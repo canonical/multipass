@@ -192,6 +192,12 @@ TEST_F(TestDaemonSnapshot, failsOnRepeatedSnapshotName)
     EXPECT_CALL(server,
                 Write(Property(&mp::SnapshotReply::reply_message, Eq("Taking snapshot")), _))
         .WillOnce(Return(true));
+    // On failure, the daemon still writes a final (empty) reply before reporting the error status
+    EXPECT_CALL(server,
+                Write(AllOf(Property(&mp::SnapshotReply::reply_message, IsEmpty()),
+                            Property(&mp::SnapshotReply::snapshot, IsEmpty())),
+                      _))
+        .WillOnce(Return(true));
 
     auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshot, request, server);
 

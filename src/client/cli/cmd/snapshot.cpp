@@ -22,6 +22,8 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/client_common.h>
+#include <multipass/cli/prompters.h>
 
 namespace mp = multipass;
 namespace cmd = mp::cmd;

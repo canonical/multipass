@@ -2920,16 +2920,29 @@ try
     assert(spec_it != vm_instance_specs.end() && "missing instance specs");
 
     SnapshotReply final_reply;
+    grpc::Status final_status{grpc::Status::OK};
     final_reply.set_reply_message("Taking snapshot");
     server->Write(final_reply);
     final_reply.clear_reply_message();
-    final_reply.set_snapshot(
-        vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment())->get_name());
+    try
+    {
+        final_reply.set_snapshot(
+            vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment())->get_name());
+    }
+    // If the snapshot fails, we may still need to re-start the VM
+    catch (const SnapshotNameTakenException& e)
+    {
+        final_status = grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), "");
+    }
+    catch (const std::exception& e)
+    {
+        final_status = grpc::Status(grpc::StatusCode::INTERNAL, e.what(), "");
+    }
 
     if (!restart) // Only stopped VMs
     {
         server->Write(final_reply);
-        return context->set_value(status);
+        return context->set_value(final_status);
     }
 
     // We start the VM back if the flag was true
@@ -2947,13 +2960,20 @@ try
             fmt::format("Could not restart '{0}'. Run 'multipass start {0}' to restart manually.",
                         vm_name));
         server->Write(final_reply);
-        // The snapshot was successfully taken, the request is considered successful
-        return context->set_value(grpc::Status::OK);
+        // The snapshot was successfully taken, the request is considered successful under any
+        // failure
+        return context->set_value(final_status);
     }
-    auto future_watcher = new QFutureWatcher<AsyncOperationStatus>;
-    QObject::connect(future_watcher,
+    auto future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
+    auto future_key = utils::make_uuid();
+    QObject::connect(future_watcher.get(),
                      &QFutureWatcher<AsyncOperationStatus>::finished,
-                     [future_watcher, server, snapshot_name = final_reply.snapshot()] {
+                     [this,
+                      future_watcher = future_watcher.get(),
+                      future_key,
+                      server,
+                      snapshot_name = final_reply.snapshot(),
+                      final_status] {
                          auto async_op_status = future_watcher->future().result();
 
                          mp::SnapshotReply reply;
@@ -2963,8 +2983,8 @@ try
 
                          server->Write(reply);
 
-                         future_watcher->deleteLater();
-                         async_op_status.context->set_value(grpc::Status::OK);
+                         async_op_status.context->set_value(final_status);
+                         this->async_future_watchers.erase(future_key);
                      });
     future_watcher->setFuture(
         QtConcurrent::run(&Daemon::async_wait_for_ready_all<SnapshotReply, SnapshotRequest>,
@@ -2975,14 +2995,11 @@ try
                           context,
                           std::string(),
                           std::string()));
-}
-catch (const SnapshotNameTakenException& e)
-{
-    context->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+    async_future_watchers.insert({future_key, std::move(future_watcher)});
 }
 catch (const std::exception& e)
 {
-    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
 void mp::Daemon::restore(const mp::RestoreRequest* request,
