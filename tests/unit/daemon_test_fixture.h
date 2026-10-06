@@ -20,12 +20,14 @@
 // This include must go first because it comes from premock.
 #include "mock_ssh_test_fixture.h"
 
+#include "mock_server_reader_writer.h"
 #include "mock_virtual_machine_factory.h"
 #include "temp_dir.h"
 
 #include <src/daemon/daemon.h>
 #include <src/daemon/daemon_config.h>
 
+#include <multipass/callable_traits.h>
 #include <multipass/constants.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 
@@ -83,7 +85,7 @@ struct DaemonTestFixture : public ::Test
     plant_instance_json(const std::string& contents);
 
     template <typename R>
-    bool is_ready(std::future<R> const& f);
+    bool is_ready(std::future<R> const& f) const;
 
     /**
      * Helper function to call one of the <em>daemon slots</em> that ultimately handle RPC requests
@@ -112,7 +114,47 @@ struct DaemonTestFixture : public ::Test
     grpc::Status call_daemon_slot(Daemon& daemon,
                                   DaemonSlotPtr slot,
                                   const Request& request,
-                                  Server&& server);
+                                  Server&& server) const;
+
+    template <typename DaemonSlot>
+    struct DaemonSlotTraits
+    {
+        template <typename>
+        struct UnwrapReaderWriterPtr
+        {
+        };
+
+        template <typename TReply, typename TRequest>
+        struct UnwrapReaderWriterPtr<grpc::ServerReaderWriterInterface<TReply, TRequest>*>
+        {
+            using Reply = TReply;
+            using Request = TRequest;
+        };
+
+        using ReaderWriterPtr = typename callable_traits<DaemonSlot>::template arg<1>::type;
+
+        using Request = typename UnwrapReaderWriterPtr<ReaderWriterPtr>::Request;
+        using Reply = typename UnwrapReaderWriterPtr<ReaderWriterPtr>::Reply;
+    };
+
+    template <typename Request,
+              typename DaemonSlot,
+              typename Reply = typename DaemonSlotTraits<DaemonSlot>::Reply>
+    Reply process_request(Daemon& daemon, const Request& request, DaemonSlot&& slot) const
+    {
+        auto result = Reply{};
+
+        auto reader_writer = StrictMock<MockServerReaderWriter<Reply, Request>>{};
+        EXPECT_CALL(reader_writer, Write).WillOnce(DoAll(SaveArg<0>(&result), Return(true)));
+
+        const auto status = call_daemon_slot(daemon,
+                                             std::forward<DaemonSlot>(slot),
+                                             request,
+                                             reader_writer);
+        EXPECT_TRUE(status.ok());
+
+        return result;
+    }
 
     MockSSHTestFixture mock_ssh_test_fixture;
 #ifdef MULTIPASS_PLATFORM_WINDOWS
@@ -127,5 +169,6 @@ struct DaemonTestFixture : public ::Test
     inline static std::stringstream
         trash_stream{}; // this may have contents (that we don't care about)
 };
+
 } // namespace test
 } // namespace multipass
