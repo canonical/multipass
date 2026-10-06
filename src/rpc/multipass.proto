@@ -523,6 +523,7 @@ message SnapshotRequest {
     string comment = 3;
     int32 verbosity_level = 4;
     bool restart = 5;
+    string password = 6;
 }
 
 message SnapshotReply {
@@ -532,6 +533,7 @@ message SnapshotReply {
     bool needs_prompt = 4;
     bool is_suspended = 5;
     string warnings = 6;
+    bool password_requested = 7;
 }
 
 message RestoreRequest {

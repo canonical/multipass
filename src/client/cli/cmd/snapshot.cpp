@@ -46,6 +46,13 @@ mp::ReturnCodeVariant cmd::Snapshot::run(mp::ArgParser* parser)
             spinner.start(msg);
         }
 
+        if (reply.password_requested())
+        {
+            spinner.stop();
+            cmd::handle_password(client, term);
+            spinner.start();
+        }
+
         if (reply.needs_prompt())
         {
             spinner.stop();
