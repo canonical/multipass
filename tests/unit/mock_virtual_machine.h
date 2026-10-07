@@ -65,7 +65,8 @@ struct MockVirtualMachineT : public T
     void setup_default_actions()
     {
         ON_CALL(*this, get_name).WillByDefault(ReturnRefOfCopy(std::string{"mock-vm"}));
-        ON_CALL(*this, current_state).WillByDefault(Return(multipass::VirtualMachine::State::off));
+        ON_CALL(*this, current_state)
+            .WillByDefault(Return(multipass::VirtualMachine::State::stopped));
         ON_CALL(*this, ssh_port).WillByDefault(Return(42));
         ON_CALL(*this, ssh_hostname()).WillByDefault(Return("localhost"));
         ON_CALL(*this, ssh_username).WillByDefault(Return("ubuntu"));

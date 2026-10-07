@@ -183,7 +183,8 @@ TEST_F(TestDaemonSnapshot, failsOnRepeatedSnapshotName)
     request.set_snapshot(snapshot_name);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*instance, current_state)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*instance, take_snapshot(_, Eq(snapshot_name), _))
         .WillOnce(Throw(mp::SnapshotNameTakenException{mock_instance_name, snapshot_name}));
 
@@ -234,7 +235,8 @@ TEST_F(TestDaemonSnapshot, acceptsEmptySnapshotName)
     request.set_instance(mock_instance_name);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*instance, current_state)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
 
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, get_name).WillOnce(Return(generated_name));

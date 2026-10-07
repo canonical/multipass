@@ -125,7 +125,7 @@ struct TestQemuSnapshot : public Test
         const auto disk_space = mp::MemorySize{"3.21M"};
         const std::vector<mp::NetworkInterface> extra_interfaces{
             {"eth15", "15:15:15:15:15:15", false}};
-        const auto state = mp::VirtualMachine::State::off;
+        const auto state = mp::VirtualMachine::State::stopped;
         const auto mounts = std::unordered_map<std::string, mp::VMMount>{
             {"asdf", {"fdsa", {}, {}, mp::VMMount::MountType::Classic}}};
         const boost::json::object metadata = {{"meta", "data"}};
@@ -192,14 +192,14 @@ TEST_F(TestQemuSnapshot, initializesBasePropertiesFromJson)
     EXPECT_EQ(snapshot.get_mem_size(), mp::MemorySize{"1G"});
     EXPECT_EQ(snapshot.get_disk_space(), mp::MemorySize{"5G"});
     EXPECT_EQ(snapshot.get_extra_interfaces(), std::vector<mp::NetworkInterface>{});
-    EXPECT_EQ(snapshot.get_state(), mp::VirtualMachine::State::off);
+    EXPECT_EQ(snapshot.get_state(), mp::VirtualMachine::State::stopped);
 
-    auto mount_matcher1 =
-        Pair(Eq("guybrush"),
-             Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Classic)));
-    auto mount_matcher2 =
-        Pair(Eq("murray"),
-             Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Native)));
+    auto mount_matcher1 = Pair(
+        Eq("guybrush"),
+        Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Classic)));
+    auto mount_matcher2 = Pair(
+        Eq("murray"),
+        Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Native)));
     EXPECT_THAT(snapshot.get_mounts(), UnorderedElementsAre(mount_matcher1, mount_matcher2));
 
     EXPECT_THAT(

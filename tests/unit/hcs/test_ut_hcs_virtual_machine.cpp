@@ -579,7 +579,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, failed_cold_vm_recreation_reports_off)
     expect_failed_recreation();
 
     EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
-    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::off);
+    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(HyperVHCSVirtualMachine_UnitTests, failure_after_compute_system_creation_drops_handle)
@@ -594,7 +594,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, failure_after_compute_system_creation_
     EXPECT_THROW(uut->start(), std::runtime_error);
 
     // The terminated handle would still report `stopped`; reopening finds no compute system.
-    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::off);
+    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(HyperVHCSVirtualMachine_UnitTests, compute_system_open_error_reports_unknown_state)
@@ -1005,7 +1005,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_on_destruction_persists_run
         save_compute_system(Eq(mock_handle), Property(&mp::NativePath::get, saved_state_file)))
         .Times(1);
     EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle))).Times(1);
-    EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::off));
+    EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::stopped));
     EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::suspended));
     EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::running));
 
@@ -1053,12 +1053,12 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_destruction_does_not_persist_state_
     // A purged instance is destroyed after its record is gone, so persisting anything from the
     // destructor would bring the record back.
     StrictMock<mpt::MockVMStatusMonitor> monitor;
-    EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::off))
+    EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::stopped))
         .Times(AtMost(1));
 
     {
         auto uut = construct_vm(&monitor);
-        EXPECT_EQ(uut->state, mp::VirtualMachine::State::off);
+        EXPECT_EQ(uut->state, mp::VirtualMachine::State::stopped);
         api_state = hcs_system_state_t::stopped;
     }
 }

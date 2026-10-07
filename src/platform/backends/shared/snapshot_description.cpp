@@ -76,7 +76,7 @@ mp::SnapshotDescription::SnapshotDescription(std::string name,
       upgraded(upgraded)
 {
     using St = VirtualMachine::State;
-    if (this->state != St::off && this->state != St::stopped)
+    if (this->state != St::stopped)
         throw std::runtime_error{
             fmt::format("Unsupported VM state in snapshot: {}", static_cast<int>(this->state))};
     if (this->index < 1)
@@ -120,8 +120,14 @@ mp::SnapshotDescription mp::tag_invoke(const boost::json::value_to_tag<mp::Snaps
                                        const SnapshotContext& ctx)
 {
     const auto& json_obj = json.as_object();
-    bool upgraded =
-        !(json_obj.contains("extra_interfaces") && json_obj.contains("cloud_init_instance_id"));
+    bool upgraded = !(json_obj.contains("extra_interfaces") &&
+                      json_obj.contains("cloud_init_instance_id"));
+
+    auto state = value_to<int>(json.at("state"));
+    // In Multipass 1.17 and older, we had separate states for "off" (0) and "stopped" (1). Now,
+    // they've been merged to "stopped" (0), so adjust the stored value to match.
+    if (state == 1)
+        state = static_cast<int>(mp::VirtualMachine::State::stopped);
 
     return {
         value_to<std::string>(json.at("name")),
@@ -136,7 +142,7 @@ mp::SnapshotDescription mp::tag_invoke(const boost::json::value_to_tag<mp::Snaps
         lookup_or<std::vector<NetworkInterface>>(json,
                                                  "extra_interfaces",
                                                  ctx.vm_desc.extra_interfaces),
-        static_cast<mp::VirtualMachine::State>(value_to<int>(json.at("state"))),
+        static_cast<mp::VirtualMachine::State>(state),
         value_to<std::unordered_map<std::string, mp::VMMount>>(json.at("mounts"),
                                                                MapAsJsonArray{"target_path"}),
         json.at("metadata").as_object(),
