@@ -365,6 +365,14 @@ TEST_F(UbuntuImageHost, invalidRemoteThrowsError)
     EXPECT_THROW(host.info_for(make_query("xenial", "foo")), std::runtime_error);
 }
 
+TEST_F(UbuntuImageHost, unspecifiedRemoteThrowsError)
+{
+    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
+    host.update_manifests(false);
+
+    EXPECT_THROW(host.all_info_for(make_query("foo", "")), std::runtime_error);
+}
+
 TEST_F(UbuntuImageHost, handlesAndRecoversFromInitialNetworkFailure)
 {
     url_downloader.mischiefs = 1000;
@@ -423,21 +431,6 @@ TEST_F(UbuntuImageHost, throwsUnsupportedImageWhenImageNotSupported)
                  mp::UnsupportedImageException);
 }
 
-TEST_F(UbuntuImageHost, develRequestWithNoRemoteReturnsExpectedInfo)
-{
-    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
-
-    QString daily_expected_location{daily_url + "newest-artful.img"};
-    QString daily_expected_id{"c09f123b9589c504fe39ec6e9ebe5188c67be7d1fc4fb80c969bf877f5a8333a"};
-
-    auto info = host.info_for(make_query("devel", ""));
-
-    ASSERT_TRUE(info);
-    EXPECT_EQ(info->image_location, daily_expected_location);
-    EXPECT_EQ(info->id, daily_expected_id);
-}
-
 TEST_F(UbuntuImageHost, infoForTooManyHashMatchesThrows)
 {
     mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader};
@@ -451,51 +444,13 @@ TEST_F(UbuntuImageHost, infoForTooManyHashMatchesThrows)
         mpt::match_what(StrEq(fmt::format("Too many images matching \"{}\"", release))));
 }
 
-TEST_F(UbuntuImageHost, infoForSameFullHashInBothRemotesDoesNotThrow)
-{
-    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
-
-    const auto hash_query{"ab115b83e7a8bebf3d3a02bf55ad0cb75a0ed515fcbc65fb0c9abe76c752921c"};
-
-    EXPECT_NO_THROW(host.info_for(make_query(hash_query, "")));
-}
-
-TEST_F(UbuntuImageHost, infoForPartialHashInBothRemotesThrows)
-{
-    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
-
-    const auto hash_query{"ab115"};
-
-    MP_EXPECT_THROW_THAT(
-        host.info_for(make_query(hash_query, "")),
-        std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("Too many images matching \"{}\"", hash_query))));
-}
-
-TEST_F(UbuntuImageHost, allInfoForNoRemoteQueryDefaultsToRelease)
-{
-    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
-
-    auto images_info = host.all_info_for(make_query("1", ""));
-
-    const size_t expected_matches{2};
-    EXPECT_EQ(images_info.size(), expected_matches);
-}
-
-TEST_F(UbuntuImageHost, allInfoForUnsupportedImageThrow)
+TEST_F(UbuntuImageHost, allInfoForUnsupportedImageReturnsEmpty)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
 
     const std::string release{"artful"};
-
-    MP_EXPECT_THROW_THAT(
-        host.all_info_for(make_query(release, release_remote_spec.first)),
-        mp::UnsupportedImageException,
-        mpt::match_what(StrEq(fmt::format("The {} release is no longer supported.", release))));
+    EXPECT_THAT(host.all_info_for(make_query(release, release_remote_spec.first)), IsEmpty());
 }
 
 TEST_F(UbuntuImageHost, infoForFullHashFindsImage)

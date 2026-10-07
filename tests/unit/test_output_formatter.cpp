@@ -765,6 +765,7 @@ auto construct_images_one_reply()
     image_entry->set_release("18.04 LTS");
     image_entry->set_version("20190516");
     image_entry->add_aliases("ubuntu");
+    image_entry->set_is_default_remote(true);
 
     return reply;
 }
@@ -778,6 +779,7 @@ auto construct_images_one_reply_no_os()
     image_entry->set_version("20190520");
     image_entry->add_aliases("core18");
     image_entry->set_remote_name("snapcraft");
+    image_entry->set_is_default_remote(false);
 
     return reply;
 }
@@ -785,6 +787,7 @@ auto construct_images_one_reply_no_os()
 auto construct_images_multiple_reply()
 {
     auto reply = mp::ImagesReply();
+    reply.set_all_remotes(false);
 
     auto image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
@@ -793,6 +796,7 @@ auto construct_images_multiple_reply()
     image_entry->add_aliases("19.04");
     image_entry->add_aliases("disco");
     image_entry->set_remote_name("release");
+    image_entry->set_is_default_remote(true);
 
     image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
@@ -802,8 +806,25 @@ auto construct_images_multiple_reply()
     image_entry->add_aliases("bionic");
     image_entry->add_aliases("lts");
     image_entry->set_remote_name("release");
+    image_entry->set_is_default_remote(true);
 
     image_entry = reply.add_images_info();
+    image_entry->set_os("OS");
+    image_entry->set_release("26.10");
+    image_entry->set_version("20261007");
+    image_entry->add_aliases("custom");
+    image_entry->set_remote_name(mp::unspecified_remote);
+    image_entry->set_is_default_remote(true);
+
+    return reply;
+}
+
+auto construct_images_multiple_reply_all()
+{
+    auto reply = construct_images_multiple_reply();
+    reply.set_all_remotes(true);
+
+    auto* image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
     image_entry->set_release("19.10");
     image_entry->set_version("20190516");
@@ -811,6 +832,7 @@ auto construct_images_multiple_reply()
     image_entry->add_aliases("eoan");
     image_entry->add_aliases("devel");
     image_entry->set_remote_name("daily");
+    image_entry->set_is_default_remote(false);
 
     return reply;
 }
@@ -818,6 +840,7 @@ auto construct_images_multiple_reply()
 auto construct_images_multiple_reply_duplicate_image()
 {
     auto reply = mp::ImagesReply();
+    reply.set_all_remotes(true);
 
     auto image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
@@ -825,12 +848,14 @@ auto construct_images_multiple_reply_duplicate_image()
     image_entry->set_version("20190520");
     image_entry->add_aliases("core18");
     image_entry->set_remote_name("core");
+    image_entry->set_is_default_remote(false);
 
     image_entry = reply.add_images_info();
     image_entry->set_release("Snapcraft builder for core18");
     image_entry->set_version("20190520");
     image_entry->add_aliases("core18");
     image_entry->set_remote_name("snapcraft");
+    image_entry->set_is_default_remote(false);
 
     return reply;
 }
@@ -1335,6 +1360,7 @@ const std::vector<FormatterParamType> remotes_formatter_outputs{
 const auto empty_images_reply = construct_empty_reply();
 const auto images_one_reply = construct_images_one_reply();
 const auto images_multiple_reply = construct_images_multiple_reply();
+const auto images_multiple_reply_all = construct_images_multiple_reply_all();
 const auto images_one_reply_no_os = construct_images_one_reply_no_os();
 const auto images_multiple_reply_duplicate_image =
     construct_images_multiple_reply_duplicate_image();
@@ -1352,6 +1378,10 @@ const std::vector<FormatterParamType> images_formatter_outputs{
      &images_multiple_reply,
      mpt::load_test_file("formatters/table/images_multiple_reply.txt").toStdString(),
      "table_images_multiple"},
+    {&table_formatter,
+     &images_multiple_reply_all,
+     mpt::load_test_file("formatters/table/images_multiple_reply_all.txt").toStdString(),
+     "table_images_multiple_all"},
     {&table_formatter,
      &images_one_reply_no_os,
      mpt::load_test_file("formatters/table/images_one_reply_no_os.txt").toStdString(),
@@ -1374,6 +1404,10 @@ const std::vector<FormatterParamType> images_formatter_outputs{
      mpt::load_test_file("formatters/json/images_multiple_reply.json").toStdString(),
      "json_images_multiple"},
     {&json_formatter,
+     &images_multiple_reply_all,
+     mpt::load_test_file("formatters/json/images_multiple_reply_all.json").toStdString(),
+     "json_images_multiple_all"},
+    {&json_formatter,
      &images_multiple_reply_duplicate_image,
      mpt::load_test_file("formatters/json/images_multiple_reply_duplicate_image.json")
          .toStdString(),
@@ -1391,6 +1425,10 @@ const std::vector<FormatterParamType> images_formatter_outputs{
      mpt::load_test_file("formatters/csv/images_multiple_reply.csv").toStdString(),
      "csv_images_multiple"},
     {&csv_formatter,
+     &images_multiple_reply_all,
+     mpt::load_test_file("formatters/csv/images_multiple_reply_all.csv").toStdString(),
+     "csv_images_multiple_all"},
+    {&csv_formatter,
      &images_multiple_reply_duplicate_image,
      mpt::load_test_file("formatters/csv/images_multiple_reply_duplicate_image.csv").toStdString(),
      "csv_images_multiple_duplicate_image"},
@@ -1406,6 +1444,10 @@ const std::vector<FormatterParamType> images_formatter_outputs{
      &images_multiple_reply,
      mpt::load_test_file("formatters/yaml/images_multiple_reply.yaml").toStdString(),
      "yaml_images_multiple"},
+    {&yaml_formatter,
+     &images_multiple_reply_all,
+     mpt::load_test_file("formatters/yaml/images_multiple_reply_all.yaml").toStdString(),
+     "yaml_images_multiple_all"},
     {&yaml_formatter,
      &images_multiple_reply_duplicate_image,
      mpt::load_test_file("formatters/yaml/images_multiple_reply_duplicate_image.yaml")

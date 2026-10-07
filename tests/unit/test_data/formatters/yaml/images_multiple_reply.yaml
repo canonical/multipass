@@ -16,11 +16,10 @@ images:
     release: 19.04
     version: 20190516
     remote: release
-  "daily:19.10":
+  custom:
     aliases:
-      - eoan
-      - devel
-    os: Ubuntu
-    release: 19.10
-    version: 20190516
-    remote: daily
+      []
+    os: OS
+    release: 26.10
+    version: 20261007
+    remote: ""
