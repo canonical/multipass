@@ -34,6 +34,7 @@
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
+#include <multipass/exceptions/remote_not_found_exception.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
@@ -833,7 +834,7 @@ TEST_F(ImageVault, invalidRemoteThrows)
     query.remote_name = "foo";
 
     EXPECT_THROW(vault.fetch_image(query, stub_prepare, stub_monitor, std::nullopt, instance_dir),
-                 std::runtime_error);
+                 mp::RemoteNotFoundException);
 }
 
 TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(invalidImageAliasThrow))
@@ -973,7 +974,7 @@ TEST_F(ImageVault, allInfoForNoRemoteGivenThrows)
     EXPECT_CALL(host, all_info_for).Times(0);
 
     const auto query = mp::SearchQuery{.filter = "e3", .allow_unsupported = true};
-    EXPECT_THROW(vault.all_info_for(query), std::runtime_error);
+    EXPECT_THROW(vault.all_info_for(query), mp::RemoteNotFoundException);
 }
 
 TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
