@@ -28,6 +28,16 @@
             "aliases": [
             ],
             "remote": ""
+        },
+        "daily:19.10": {
+            "os": "Ubuntu",
+            "release": "19.10",
+            "version": "20190516",
+            "aliases": [
+                "eoan",
+                "devel"
+            ],
+            "remote": "daily"
         }
     }
 }

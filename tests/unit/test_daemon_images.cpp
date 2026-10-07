@@ -26,10 +26,13 @@
 #include "mock_vm_image_vault.h"
 
 #include <src/daemon/daemon.h>
+#include <src/daemon/default_vm_image_vault.h>
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/format.h>
+
+#include <utility>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -39,11 +42,60 @@ struct DaemonImages : public mpt::DaemonTestFixture
 {
     void SetUp() override
     {
+        // Let the builder create the real vault implementation.
+        config_builder.vault = nullptr;
+        config_builder.image_hosts.clear();
+
+        auto* factory = use_a_mock_vm_factory();
+        EXPECT_CALL(*factory, create_image_vault).WillRepeatedly(Invoke([](auto&&... args) {
+            return std::make_unique<mp::DefaultVMImageVault>(std::forward<decltype(args)>(args)...);
+        }));
+
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
         EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
         EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("senna"));
         ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
+    }
+
+    void TearDown() override
+    {
+        config_builder.image_hosts.clear();
+    }
+
+    template <typename ImageHost, typename... Args>
+    ImageHost& add_image_host(Args&&... args)
+    {
+        auto image_host_ptr = std::make_unique<ImageHost>(std::forward<Args>(args)...);
+        auto& image_host = *image_host_ptr;
+        config_builder.image_hosts.push_back(std::move(image_host_ptr));
+        return image_host;
+    }
+
+    std::map<std::string, std::vector<mp::VMImageInfo>> default_images()
+    {
+        auto mock = mpt::MockImageHost{};
+        return {{"release", {mock.mock_bionic_image_info, mock.mock_another_image_info}},
+                {"snapcraft", {mock.mock_snapcraft_image_info}},
+                {"custom", {mock.mock_custom_image_info}}};
+    }
+
+    mp::VMImageInfo make_dummy_info(std::string hash, std::vector<std::string> aliases)
+    {
+        return mp::VMImageInfo{
+            .aliases = std::move(aliases),
+            .os = "",
+            .release = "",
+            .release_title = "",
+            .release_codename = "",
+            .supported = true,
+            .image_location = "",
+            .id = std::move(hash),
+            .stream_location = "",
+            .version = "",
+            .size = 0,
+            .verify = false,
+        };
     }
 
     mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
@@ -61,12 +113,9 @@ struct DaemonImages : public mpt::DaemonTestFixture
     mpt::MockUtils& mock_utils = *mock_utils_injection.first;
 };
 
-TEST_F(DaemonImages, blankQueryReturnsAllData)
+TEST_F(DaemonImages, blankQueryReturnsFromDefaultRemotes)
 {
-    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
-
-    config_builder.image_hosts.clear();
-    config_builder.image_hosts.push_back(std::move(mock_image_host));
+    add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
@@ -76,26 +125,53 @@ TEST_F(DaemonImages, blankQueryReturnsAllData)
                 AllOf(HasSubstr(mpt::default_alias),
                       HasSubstr(mpt::default_release_info),
                       HasSubstr(mpt::another_alias),
+                      HasSubstr(mpt::another_release_info)));
+
+    EXPECT_THAT(stream.str(),
+                Not(AnyOf(HasSubstr(mpt::custom_alias),
+                          HasSubstr(mpt::custom_release_info),
+                          HasSubstr(mpt::snapcraft_alias),
+                          HasSubstr(mpt::snapcraft_release_info))));
+
+    EXPECT_THAT(stream.str(), Not(HasSubstr("Remote")));
+    EXPECT_EQ(total_lines_of_output(stream), 4);
+}
+
+TEST_F(DaemonImages, queryWithAllReturnsAllData)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+    EXPECT_CALL(image_host, images_for_remote(_)).Times(3);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    send_command({"images", "--all"}, stream);
+
+    EXPECT_THAT(stream.str(),
+                AllOf(HasSubstr(mpt::default_alias),
+                      HasSubstr(mpt::default_release_info),
+                      HasSubstr(mpt::another_alias),
+                      HasSubstr(mpt::another_release_info)));
+
+    EXPECT_THAT(stream.str(),
+                AllOf(HasSubstr(mpt::default_alias),
+                      HasSubstr(mpt::default_release_info),
+                      HasSubstr(mpt::another_alias),
                       HasSubstr(mpt::another_release_info),
-                      HasSubstr(fmt::format("{}:{}", mpt::custom_remote, mpt::custom_alias)),
-                      HasSubstr(mpt::custom_release_info)));
+                      HasSubstr(mpt::custom_alias),
+                      HasSubstr(mpt::custom_release_info),
+                      HasSubstr(mpt::snapcraft_alias),
+                      HasSubstr(mpt::snapcraft_release_info)));
 
-    EXPECT_THAT(
-        stream.str(),
-        Not(AllOf(HasSubstr(fmt::format("{}:{}", mpt::snapcraft_remote, mpt::snapcraft_alias)),
-                  HasSubstr(mpt::snapcraft_release_info))));
-
-    EXPECT_EQ(total_lines_of_output(stream), 5);
+    EXPECT_THAT(stream.str(), HasSubstr("Remote"));
+    EXPECT_EQ(total_lines_of_output(stream), 6);
 }
 
 TEST_F(DaemonImages, queryForDefaultReturnsExpectedData)
 {
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+    EXPECT_CALL(image_host, images_for_remote(_)).Times(1);
 
-    EXPECT_CALL(*mock_image_vault, all_info_for(_))
-        .WillOnce(Return(std::vector{mpt::MockImageHost{}.mock_bionic_image_info}));
-
-    config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
 
     std::stringstream stream;
@@ -104,16 +180,15 @@ TEST_F(DaemonImages, queryForDefaultReturnsExpectedData)
     EXPECT_THAT(stream.str(),
                 AllOf(HasSubstr(mpt::default_alias), HasSubstr(mpt::default_release_info)));
 
+    EXPECT_THAT(stream.str(), Not(HasSubstr("Remote")));
     EXPECT_EQ(total_lines_of_output(stream), 3);
 }
 
 TEST_F(DaemonImages, unknownQueryReturnsEmpty)
 {
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+    EXPECT_CALL(image_host, images_for_remote(_)).Times(1);
 
-    EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce(Throw(std::runtime_error("")));
-
-    config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
 
     constexpr auto phony_name = "phony";
@@ -123,110 +198,111 @@ TEST_F(DaemonImages, unknownQueryReturnsEmpty)
     EXPECT_THAT(stream.str(), HasSubstr("No images found."));
 }
 
-TEST_F(DaemonImages, forByRemoteReturnsExpectedData)
+TEST_F(DaemonImages, queryWithRemoteReturnsExpectedData)
 {
-    NiceMock<mpt::MockImageHost> mock_image_host;
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+    EXPECT_CALL(image_host, images_for_remote(_)).Times(2);
 
-    EXPECT_CALL(*mock_image_vault, image_host_for(_)).WillOnce(Return(&mock_image_host));
-    EXPECT_CALL(mock_image_host, all_info_for(_))
-        .WillOnce(Return(std::vector<mp::VMImageInfo>{mock_image_host.mock_bionic_image_info,
-                                                      mock_image_host.mock_another_image_info}));
-
-    config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
 
-    constexpr auto remote_name = "release:";
-    std::stringstream stream;
-    send_command({"images", remote_name}, stream);
+    {
+        std::stringstream stream;
+        send_command({"images", "release:"}, stream);
 
-    EXPECT_THAT(stream.str(),
-                AllOf(HasSubstr(fmt::format("{}", mpt::default_alias)),
-                      HasSubstr(mpt::default_release_info),
-                      HasSubstr(fmt::format("{}", mpt::another_alias)),
-                      HasSubstr(mpt::another_release_info)));
+        EXPECT_THAT(stream.str(),
+                    AllOf(HasSubstr(mpt::default_alias),
+                          HasSubstr(mpt::default_release_info),
+                          HasSubstr(mpt::another_alias),
+                          HasSubstr(mpt::another_release_info)));
 
-    EXPECT_EQ(total_lines_of_output(stream), 4);
+        EXPECT_THAT(stream.str(), Not(HasSubstr("Remote")));
+        EXPECT_EQ(total_lines_of_output(stream), 4);
+    }
+
+    {
+        std::stringstream stream;
+        send_command({"images", "snapcraft:"}, stream);
+
+        EXPECT_THAT(stream.str(),
+                    AllOf(HasSubstr(mpt::snapcraft_alias), HasSubstr(mpt::snapcraft_release_info)));
+
+        EXPECT_THAT(stream.str(), Not(HasSubstr("Remote")));
+        EXPECT_EQ(total_lines_of_output(stream), 3);
+    }
 }
 
-TEST_F(DaemonImages, invalidRemoteNameAndEmptySearchString)
+TEST_F(DaemonImages, invalidRemoteName)
 {
-    auto mock_image_vault = std::make_unique<NiceMock<const mpt::MockVMImageVault>>();
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+    EXPECT_CALL(image_host, images_for_remote(_)).Times(0);
 
     constexpr std::string_view remote_name = "nonsense";
     const std::string error_msg = fmt::format("Remote \'{}\' is not found. Please use `multipass "
                                               "images` for supported remotes and images.",
                                               remote_name);
 
-    EXPECT_CALL(*mock_image_vault, image_host_for(_)).Times(1).WillOnce([&error_msg]() {
-        throw std::runtime_error(error_msg);
-        return nullptr;
-    });
-
-    config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
 
-    const std::string full_name = std::string(remote_name) + ":";
-    std::stringstream cerr_Stream;
-    // std::cout is the place holder here.
-    send_command({"images", full_name}, std::cout, cerr_Stream);
+    {
+        const std::string full_name = std::string(remote_name) + ":";
+        std::stringstream cerr_stream;
+        // std::cout is the place holder here.
+        send_command({"images", full_name}, std::cout, cerr_stream);
 
-    EXPECT_THAT(cerr_Stream.str(), HasSubstr(error_msg));
-    EXPECT_EQ(total_lines_of_output(cerr_Stream), 1);
+        EXPECT_THAT(cerr_stream.str(), HasSubstr(error_msg));
+        EXPECT_EQ(total_lines_of_output(cerr_stream), 1);
+    }
+
+    {
+        constexpr std::string_view search_string = "default";
+        const std::string full_name = std::string(remote_name) + ":" + std::string(search_string);
+        std::stringstream cerr_stream;
+        // std::cout is the place holder here.
+        send_command({"images", full_name}, std::cout, cerr_stream);
+
+        EXPECT_THAT(cerr_stream.str(), HasSubstr(error_msg));
+        EXPECT_EQ(total_lines_of_output(cerr_stream), 1);
+    }
 }
 
-TEST_F(DaemonImages, invalidRemoteNameAndNonEmptySearchString)
+TEST_F(DaemonImages, returnSameResultsWhenFilteredByDifferentAliases)
 {
-    auto mock_image_vault = std::make_unique<NiceMock<const mpt::MockVMImageVault>>();
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info("image", {"toto", "tata"}));
 
-    constexpr std::string_view remote_name = "nonsense";
-    const std::string error_msg = fmt::format("Remote \'{}\' is not found. Please use `multipass "
-                                              "images` for supported remotes and images.",
-                                              remote_name);
-
-    EXPECT_CALL(*mock_image_vault, image_host_for(_)).Times(1).WillOnce([&error_msg]() {
-        throw std::runtime_error(error_msg);
-        return nullptr;
-    });
-
-    config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
 
-    constexpr std::string_view search_string = "default";
-    const std::string full_name = std::string(remote_name) + ":" + std::string(search_string);
-    std::stringstream cerr_Stream;
-    // std::cout is the place holder here.
-    send_command({"images", full_name}, std::cout, cerr_Stream);
+    std::stringstream s1;
+    send_command({"images", "toto"}, s1);
 
-    EXPECT_THAT(cerr_Stream.str(), HasSubstr(error_msg));
-    EXPECT_EQ(total_lines_of_output(cerr_Stream), 1);
+    std::stringstream s2;
+    send_command({"images", "tata"}, s2);
+
+    EXPECT_THAT(s1.str(), AllOf(HasSubstr("toto"), HasSubstr("tata")));
+    EXPECT_THAT(s2.str(), AllOf(HasSubstr("toto"), HasSubstr("tata")));
+    EXPECT_EQ(s1.str(), s2.str());
 }
 
 TEST_F(DaemonImages, findWithoutForceUpdateCheckUpdateManifestsCall)
 {
-    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
+    auto& image_host = add_image_host<NiceMock<mpt::MockImageHost>>();
+    EXPECT_CALL(image_host, update_manifests(false)).Times(1);
 
     // only the daemon constructor invoke it once
-    EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
-    // overwrite the default emplaced StubVMImageHost
-    config_builder.image_hosts[0] = std::move(mock_image_host);
     const mp::Daemon daemon{config_builder.build()};
-
     send_command({"images"});
 }
 
 TEST_F(DaemonImages,
        updateManifestsThrowTriggersTheFailedCaseEventHandlerOfAsyncPeriodicDownloadTask)
 {
-    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
+    auto& image_host = add_image_host<NiceMock<mpt::MockImageHost>>();
 
     // daemon constructor which constructs update_manifests_all_task calls this.
-    EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1).WillOnce([]() {
+    EXPECT_CALL(image_host, update_manifests(false)).WillOnce([]() {
         throw mp::DownloadException{"dummy_url", "dummy_cause"};
     });
 
-    // overwrite the default emplaced StubVMImageHost
-    config_builder.image_hosts[0] = std::move(mock_image_host);
     const mp::Daemon daemon{config_builder.build()};
 
     // need it because mp::Daemon destructor which destructs qfuture and qfuturewatcher does not
@@ -237,53 +313,45 @@ TEST_F(DaemonImages,
 
 TEST_F(DaemonImages, findForceUpdateCheckUpdateManifestsCalls)
 {
-    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
+    auto& image_host = add_image_host<NiceMock<mpt::MockImageHost>>();
 
     // daemon constructor invoke it first and images --force-update invoke it with force flag true
     // after
     const testing::InSequence sequence; // Force the following expectations to occur in order
-    EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
-    EXPECT_CALL(*mock_image_host, update_manifests(true)).Times(1);
+    EXPECT_CALL(image_host, update_manifests(false)).Times(1);
+    EXPECT_CALL(image_host, update_manifests(true)).Times(1);
 
-    config_builder.image_hosts[0] = std::move(mock_image_host);
     const mp::Daemon daemon{config_builder.build()};
     send_command({"images", "--force-update"});
 }
 
 TEST_F(DaemonImages, findForceUpdateRemoteCheckUpdateManifestsCalls)
 {
-    // this unit test requires and mock image_host_for of vault, so
-    // auto image_host = config->vault->image_host_for(remote);
-    // can have a legal value in image_host variable and avoid seg fault in the next
-    // line
-
-    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-
-    EXPECT_CALL(*mock_image_vault, image_host_for(_))
-        .WillOnce([image_host_ptr = mock_image_host.get()](auto...) { return image_host_ptr; });
+    auto& image_host = add_image_host<NiceMock<mpt::MockImageHost>>();
 
     const testing::InSequence sequence;
-    EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
-    EXPECT_CALL(*mock_image_host, update_manifests(true)).Times(1);
+    EXPECT_CALL(image_host, all_info_for).Times(0);
+    EXPECT_CALL(image_host, update_manifests(false)).Times(1);
+    EXPECT_CALL(image_host, update_manifests(true)).Times(1);
+    EXPECT_CALL(image_host, all_info_for(Field(&mp::SearchQuery::remote_name, "release"))).Times(1);
 
-    config_builder.vault = std::move(mock_image_vault);
-    config_builder.image_hosts[0] = std::move(mock_image_host);
     const mp::Daemon daemon{config_builder.build()};
-
     send_command({"find", "release:", "--force-update"});
 }
 
 TEST_F(DaemonImages, findForceUpdateRemoteSearchNameCheckUpdateManifestsCalls)
 {
-    auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
+    auto& image_host = add_image_host<NiceMock<mpt::MockImageHost>>();
 
     const testing::InSequence sequence;
-    EXPECT_CALL(*mock_image_host, update_manifests(false)).Times(1);
-    EXPECT_CALL(*mock_image_host, update_manifests(true)).Times(1);
+    EXPECT_CALL(image_host, all_info_for).Times(0);
+    EXPECT_CALL(image_host, update_manifests(false)).Times(1);
+    EXPECT_CALL(image_host, update_manifests(true)).Times(1);
+    EXPECT_CALL(image_host,
+                all_info_for(AllOf(Field(&mp::SearchQuery::remote_name, "release"),
+                                   Field(&mp::SearchQuery::filter, "22.04"))))
+        .Times(1);
 
-    config_builder.image_hosts[0] = std::move(mock_image_host);
     const mp::Daemon daemon{config_builder.build()};
-
     send_command({"find", "release:22.04", "--force-update"});
 }

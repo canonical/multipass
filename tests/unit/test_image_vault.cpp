@@ -941,7 +941,7 @@ TEST_F(ImageVault, abortedDownloadThrows)
         mp::AbortedDownloadException);
 }
 
-TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)
+TEST_F(ImageVault, anyInfoForNoRemoteGivenReturnsFirstFound)
 {
     mpt::StubURLDownloader stub_url_downloader;
     mp::DefaultVMImageVault vault{hosts,
@@ -950,22 +950,30 @@ TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)
                                   data_dir.path(),
                                   mp::days{0}};
 
-    EXPECT_CALL(host, all_info_for(_))
-        .WillOnce(Return(std::vector<mp::VMImageInfo>{host.mock_bionic_image_info,
-                                                      host.mock_another_image_info}));
+    EXPECT_CALL(host, info_for(_))
+        .WillOnce(Return(std::make_optional(host.mock_bionic_image_info)));
 
     const auto query = mp::SearchQuery{.filter = "e3", .allow_unsupported = true};
-    auto images = vault.all_info_for(query);
+    auto image = vault.any_info_for(query);
 
-    EXPECT_EQ(images.size(), 2u);
+    EXPECT_NE(image, std::nullopt);
+    EXPECT_EQ(image->id, mpt::default_id);
+    EXPECT_EQ(image->version, mpt::default_version);
+}
 
-    const auto& first_image_info = images[0];
-    EXPECT_EQ(first_image_info.id, mpt::default_id);
-    EXPECT_EQ(first_image_info.version, mpt::default_version);
+TEST_F(ImageVault, allInfoForNoRemoteGivenThrows)
+{
+    mpt::StubURLDownloader stub_url_downloader;
+    mp::DefaultVMImageVault vault{hosts,
+                                  &stub_url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
 
-    const auto& second_image_info = images[1];
-    EXPECT_EQ(second_image_info.id, mpt::another_image_id);
-    EXPECT_EQ(second_image_info.version, mpt::another_image_version);
+    EXPECT_CALL(host, all_info_for).Times(0);
+
+    const auto query = mp::SearchQuery{.filter = "e3", .allow_unsupported = true};
+    EXPECT_THROW(vault.all_info_for(query), std::runtime_error);
 }
 
 TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
@@ -983,7 +991,7 @@ TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
 
     const auto query = mp::SearchQuery{.filter = "e3",
                                        .remote_name = mp::release_remote,
-.allow_unsupported = true};
+                                       .allow_unsupported = true};
     auto images = vault.all_info_for(query);
 
     EXPECT_EQ(images.size(), 2u);
@@ -995,6 +1003,24 @@ TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
     const auto& second_image_info = images[1];
     EXPECT_EQ(second_image_info.id, mpt::another_image_id);
     EXPECT_EQ(second_image_info.version, mpt::another_image_version);
+}
+
+TEST_F(ImageVault, anyInfoForNoImagesReturnsEmpty)
+{
+    mpt::StubURLDownloader stub_url_downloader;
+    mp::DefaultVMImageVault vault{hosts,
+                                  &stub_url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+
+    const std::string name{"foo"};
+    EXPECT_CALL(host, info_for(_)).WillOnce(Return(std::nullopt));
+
+    const auto query = mp::SearchQuery{.filter = name,
+                                       .remote_name = mp::release_remote,
+                                       .allow_unsupported = true};
+    EXPECT_EQ(vault.any_info_for(query), std::nullopt);
 }
 
 TEST_F(ImageVault, allInfoForNoImagesReturnsEmpty)
@@ -1009,7 +1035,9 @@ TEST_F(ImageVault, allInfoForNoImagesReturnsEmpty)
     const std::string name{"foo"};
     EXPECT_CALL(host, all_info_for(_)).WillOnce(Return(std::vector<mp::VMImageInfo>{}));
 
-    const auto query = mp::SearchQuery{.filter = name, .allow_unsupported = true};
+    const auto query = mp::SearchQuery{.filter = name,
+                                       .remote_name = mp::release_remote,
+                                       .allow_unsupported = true};
     EXPECT_TRUE(vault.all_info_for(query).empty());
 }
 
