@@ -202,7 +202,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 
         setup_network_interfaces();
 
-        state = State::off;
+        state = State::stopped;
     }
     else
     {
@@ -271,7 +271,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
     // 6. Reset the default address, and extra interface addresses
     update_network_interfaces(src_vm_specs);
 
-    state = State::off;
+    state = State::stopped;
 
     remove_snapshots_from_backend();
     fs::remove_all(exported_vm_path);
@@ -354,7 +354,7 @@ mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 void mp::HyperVVirtualMachine::start()
 {
     const auto present_state = current_state();
-    if (present_state == State::off || present_state == State::stopped)
+    if (present_state == State::stopped)
     {
         default_switch_interface = resolve_default_switch_interface();
         const auto switch_interface = default_switch_interface.load();
@@ -403,7 +403,7 @@ void mp::HyperVVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         power_shell->run({"Stop-VM", "-Name", name});
     }
 
-    state = State::off;
+    state = State::stopped;
 
     // If it wasn't force, we wouldn't be here
     if (present_state == State::starting)

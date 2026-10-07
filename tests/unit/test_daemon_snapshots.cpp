@@ -61,7 +61,7 @@ struct TestDaemonSnapshots : public mpt::DaemonTestFixture
         props.name = mock_instance_name;
         props.default_mac = mac_addr;
         props.deleted = deleted;
-        props.state = mp::VirtualMachine::State::off;
+        props.state = mp::VirtualMachine::State::stopped;
         const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(props));
 
         auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();

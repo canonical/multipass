@@ -51,9 +51,9 @@ public:
     // TODO: Get rid of the VirtualMachine::State in favor of InstanceStatus
     enum class State
     {
-        off,
-        stopped,
-        starting,
+        stopped = 0,
+        // We used to have a separate "off" state. Preserve the numeric values of these states.
+        starting = 2,
         restarting,
         running,
         delayed_shutdown,
@@ -140,7 +140,7 @@ public:
     std::mutex state_mutex;
 
 protected:
-    explicit VirtualMachine(State state = State::off) : state{state}
+    explicit VirtualMachine(State state = State::stopped) : state{state}
     {
     }
 };
@@ -155,9 +155,6 @@ struct fmt::formatter<multipass::VirtualMachine::State, char> : fmt::formatter<s
         std::string_view v = "(undefined)";
         switch (state)
         {
-        case multipass::VirtualMachine::State::off:
-            v = "off";
-            break;
         case multipass::VirtualMachine::State::stopped:
             v = "stopped";
             break;

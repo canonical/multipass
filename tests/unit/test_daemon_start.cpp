@@ -75,7 +75,7 @@ TEST_F(TestDaemonStart, successfulStartOkStatus)
     EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
     EXPECT_CALL(*instance_ptr, wait_until_ssh_up).WillRepeatedly(Return());
     EXPECT_CALL(*instance_ptr, current_state())
-        .WillRepeatedly(Return(mp::VirtualMachine::State::off));
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*instance_ptr, start()).Times(1);
 
     config_builder.data_directory = temp_dir->path();
@@ -113,7 +113,7 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
     EXPECT_CALL(*instance_ptr, wait_until_ssh_up).WillRepeatedly(Return());
     EXPECT_CALL(*instance_ptr, current_state())
-        .WillRepeatedly(Return(mp::VirtualMachine::State::off));
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*instance_ptr, start()).Times(1);
     // New networks configuration was moved to the instance settings handler, add_network_interface
     // mustn't be called.
@@ -224,7 +224,7 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
-    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, make_native_mount_handler)
         .WillOnce(Return(std::move(mock_mount_handler)));
@@ -268,7 +268,7 @@ TEST_F(TestDaemonStart, removingMountOnFailedStart)
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
-    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, make_native_mount_handler)
         .WillOnce(Return(std::move(mock_mount_handler)));

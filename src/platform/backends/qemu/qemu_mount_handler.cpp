@@ -56,7 +56,7 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm,
         return;
     }
 
-    if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
+    if (state != VirtualMachine::State::stopped)
     {
         throw mp::NativeMountNeedsStoppedVMException(vm->get_name());
     }

@@ -200,7 +200,6 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         switch (current_state())
         {
         case VirtualMachine::State::stopped:
-        case VirtualMachine::State::off:
             drop_ssh_session();
             vm_handle.reset();
             return mp::utils::TimeoutAction::done;

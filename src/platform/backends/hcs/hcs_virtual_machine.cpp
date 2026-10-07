@@ -156,7 +156,7 @@ void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* co
     case hcs::HcsEventType::SystemExited:
     {
         mpl::info(vm->get_name(), "compute_system_event_callback() > SystemExited event received");
-        vm->set_state(State::off);
+        vm->set_state(State::stopped);
         vm->termination_signal.signal();
     }
     break;
@@ -386,7 +386,7 @@ void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
     switch (compute_system_state)
     {
     case hcs::ComputeSystemState::created:
-        set_state(State::off);
+        set_state(State::stopped);
         break;
     case hcs::ComputeSystemState::paused:
         mpl::debug(vm_name, "VM is paused but not completely suspended");
@@ -541,7 +541,6 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     switch (auto s = current_state())
     {
     case VirtualMachine::State::stopped:
-    case VirtualMachine::State::off:
     case VirtualMachine::State::suspended:
         break;
     default:
@@ -577,7 +576,7 @@ try
     if (!hcs_system && !maybe_open_compute_system())
     {
         if (state != State::unavailable)
-            state = has_saved_state_file() ? State::suspended : State::off;
+            state = has_saved_state_file() ? State::suspended : State::stopped;
 
         return state;
     }
