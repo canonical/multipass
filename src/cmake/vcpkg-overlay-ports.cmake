@@ -34,10 +34,10 @@ function(copy_vcpkg_port PORT DESTINATION)
         DESTINATION "${DESTINATION}")
 endfunction()
 
-# Apply PATCH to the files it names, relative to DIR, which must not be a git repo root
-function(apply_patch PATCH DIR) # TODO@ricab use a more specific name, less likely to collide
-    if(EXISTS "${DIR}/.git")
-        message(FATAL_ERROR "Cannot apply ${PATCH} in ${DIR}: it is a git repo")
+# Apply PATCH to the files it names, relative to PORT_DIR, which must not be a git repo root
+function(apply_vcpkg_port_patch PATCH PORT_DIR)
+    if(EXISTS "${PORT_DIR}/.git")
+        message(FATAL_ERROR "Cannot apply ${PATCH} in ${PORT_DIR}: it is a git repo")
     endif()
 
     find_package(Git REQUIRED)
@@ -49,12 +49,12 @@ function(apply_patch PATCH DIR) # TODO@ricab use a more specific name, less like
             "${GIT_EXECUTABLE}" -c core.longpaths=true -c core.autocrlf=false
             -c core.filemode=true --work-tree=. --git-dir=.git
             apply "${PATCH}" --ignore-whitespace --whitespace=nowarn
-        WORKING_DIRECTORY "${DIR}"
+        WORKING_DIRECTORY "${PORT_DIR}"
         RESULT_VARIABLE APPLY_RESULT
         ERROR_VARIABLE APPLY_ERROR
     )
     if(NOT APPLY_RESULT EQUAL 0)
-        message(FATAL_ERROR "Could not apply ${PATCH} in ${DIR}:\n${APPLY_ERROR}")
+        message(FATAL_ERROR "Could not apply ${PATCH} in ${PORT_DIR}:\n${APPLY_ERROR}")
     endif()
 endfunction()
 
@@ -66,7 +66,8 @@ function(generate_patched_vcpkg_ports PORTS_DIR)
     find_patched_vcpkg_ports(PORTS)
     foreach(PORT IN LISTS PORTS)
         copy_vcpkg_port("${PORT}" "${PORTS_DIR}/${PORT}")
-        apply_patch("${MULTIPASS_SOURCE_VCPKG_PORTS_DIR}/${PORT}/${MULTIPASS_PORTFILE_PATCH}"
+        apply_vcpkg_port_patch(
+            "${MULTIPASS_SOURCE_VCPKG_PORTS_DIR}/${PORT}/${MULTIPASS_PORTFILE_PATCH}"
             "${PORTS_DIR}/${PORT}") # TODO@ricab should we use the copied patch in here? that would accommodate any future transformation
         message(STATUS "Generated patched vcpkg port: ${PORT}")
     endforeach()
