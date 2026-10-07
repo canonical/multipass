@@ -299,26 +299,12 @@ void mp::AliasDict::save_file()
 // This function removes the contexts which do not contain aliases, except the active context.
 void mp::AliasDict::sanitize_contexts()
 {
-    // To avoid invalidating iterators, the function works in two stages. First, the aliases which
-    // need to be removed are determined and, second, they are effectively removed.
-    std::vector<std::string> empty_contexts;
+    const auto removed = std::erase_if(aliases, [this](const auto& context) {
+        return context.first != active_context && context.second.empty();
+    });
 
-    for (auto& context : aliases)
-    {
-        if (context.first != active_context && context.second.empty())
-        {
-            empty_contexts.push_back(context.first);
-        }
-    }
-
-    if (!empty_contexts.empty())
-    {
+    if (removed > 0)
         modified = true;
-        for (const auto& context : empty_contexts)
-        {
-            aliases.erase(context);
-        }
-    }
 }
 
 // Returns an alias definition iff the given alias name is unique across all the contexts. The given
