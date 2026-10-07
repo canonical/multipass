@@ -588,11 +588,11 @@ void mp::QemuVirtualMachine::initialize_vm_process()
                          {
                              const auto log_level = force_shutdown ? mpl::Level::info
                                                                    : mpl::Level::error;
-                             mpl::log(log_level,
-                                      vm_name,
-                                      "process error occurred {} {}",
-                                      utils::qenum_to_string(error),
-                                      error_string);
+                             const auto error_msg{fmt::format("process error occurred {} {}",
+                                                              utils::qenum_to_string(error),
+                                                              error_string)};
+                             mpl::log_message(log_level, vm_name, error_msg);
+                             save_error_msg(error_msg);
                              on_error();
                          }
                      });
@@ -616,6 +616,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             else
             {
                 const auto log_level = force_shutdown ? mpl::Level::info : mpl::Level::error;
+                save_error_msg(process_state.error->message.toStdString());
                 mpl::log(log_level, vm_name, "error: {}", process_state.error->message);
 
                 // reset force_shutdown so that subsequent errors can be accurately reported
