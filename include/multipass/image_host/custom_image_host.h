@@ -43,10 +43,8 @@ public:
     std::vector<std::string> supported_remotes() const override;
 
 private:
-    std::optional<VMImageInfo> info_for_impl(const Query& query) const override;
-    std::vector<VMImageInfo> all_info_for_impl(const Query& query) const override;
-    std::vector<VMImageInfo> all_images_for_impl(const std::string& remote_name,
-                                                 bool allow_unsupported) const override;
+    std::optional<VMImageInfo> info_for_impl(const SearchQuery& query) const override;
+    std::vector<VMImageInfo> all_info_for_impl(const SearchQuery& query) const override;
     void for_each_entry_do_impl(const Action& action) const override;
     VMImageInfo info_for_full_hash_impl(const std::string& full_hash) const override;
     void fetch_manifests(bool force_update) override;

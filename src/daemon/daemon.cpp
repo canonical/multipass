@@ -1764,39 +1764,40 @@ try
     warn_driver_deprecation(*server); // TODO@deprecations remove
 
     ImagesReply response;
+    response.set_all_remotes(false);
 
     auto remotes = std::vector<std::string>{};
-    const auto default_set = std::set<std::string>{default_remotes.begin(), default_remotes.end()};
 
     if (request->all_remotes())
     {
         remotes = config->vault->get_remotes();
+        response.set_all_remotes(true);
     }
     else if (request->remote_name().empty())
     {
-        remotes.insert(remotes.end(), default_set.begin(), default_set.end());
+        remotes.insert(remotes.end(), default_remotes.begin(), default_remotes.end());
     }
-    else
+    else if (config->vault->image_host_for(request->remote_name()) != nullptr)
     {
         remotes.emplace_back(request->remote_name());
     }
 
-    if (!request->search_string().empty())
+    const auto force_manifest_update = request->force_manifest_network_download();
+    if (!remotes.empty() || force_manifest_update)
     {
-        wait_update_manifests_all_and_optionally_applied_force(
-            request->force_manifest_network_download());
-        std::vector<VMImageInfo> vm_images_info;
+        wait_update_manifests_all_and_optionally_applied_force(force_manifest_update);
 
+        std::vector<VMImageInfo> vm_images_info;
         for (const auto& remote : remotes)
         {
+            vm_images_info.clear();
+
             try
             {
-                vm_images_info = config->vault->all_info_for({"",
-                                                              request->search_string(),
-                                                              false,
-                                                              remote,
-                                                              Query::Type::Alias,
-                                                              request->allow_unsupported()});
+                vm_images_info = config->vault->all_info_for(
+                    SearchQuery{.filter = request->search_string(),
+                                .remote_name = remote,
+                                .allow_unsupported = request->allow_unsupported()});
             }
             catch (const std::exception& e)
             {
@@ -1808,41 +1809,12 @@ try
 
             for (auto& info : vm_images_info)
             {
-                // TODO(C++23): Use `std::ranges::contains` instead of `std::ranges::find`.
-                if (std::ranges::find(info.aliases, request->search_string()) != info.aliases.end())
-                    info.aliases = {request->search_string()};
-                else
-                    info.aliases = {info.id.substr(0, 12)};
-
-                add_aliases(response.mutable_images_info(),
-                            remote,
-                            info,
-                            default_set.contains(remote));
+                const auto is_default_remote = std::ranges::find(default_remotes, remote) !=
+                                               default_remotes.end();
+                add_aliases(response.mutable_images_info(), remote, info, is_default_remote);
             }
         }
     }
-    else
-    {
-        wait_update_manifests_all_and_optionally_applied_force(
-            request->force_manifest_network_download());
-
-        for (const auto& remote : remotes)
-        {
-            const auto image_host = config->vault->image_host_for(remote);
-            const auto vm_images_info = image_host->all_images_for(remote,
-                                                                   request->allow_unsupported());
-
-            for (const auto& info : vm_images_info)
-            {
-                add_aliases(response.mutable_images_info(),
-                            remote,
-                            info,
-                            default_set.contains(remote));
-            }
-        }
-    }
-
-    response.set_all_remotes(request->all_remotes());
 
     server->Write(response);
     context->set_value(grpc::Status::OK);
