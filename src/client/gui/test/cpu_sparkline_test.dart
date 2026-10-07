@@ -96,12 +96,12 @@ void main() {
       test('rounds the usage percentage to a whole number', () {
         final container = makeContainer();
 
-        // 3000 busy out of 3500 total is 85.71%, expected to round to 86.
+        // 3200 busy out of 3600 total is 88.89%, expected to round to 89.
         container
             .read(_cpuTimesProvider.notifier)
-            .set('cpu  200 300 400 500 600 700 800');
+            .set('cpu  100 200 300 400 500 600 700 800');
 
-        expect(container.read(cpuUsagesProvider('test-vm')).last, equals(86.0));
+        expect(container.read(cpuUsagesProvider('test-vm')).last, equals(89.0));
       });
     });
 
