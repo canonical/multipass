@@ -43,16 +43,16 @@ public:
     std::vector<std::string> supported_remotes() const override;
 
 private:
-    std::optional<VMImageInfo> info_for_impl(const SearchQuery& query) const override;
-    std::vector<VMImageInfo> all_info_for_impl(const SearchQuery& query) const override;
-    void for_each_entry_do_impl(const Action& action) const override;
-    VMImageInfo info_for_full_hash_impl(const std::string& full_hash) const override;
+    const std::vector<VMImageInfo>* images_for_remote(const std::string& remote) const override;
+
     void fetch_manifests(bool force_update) override;
     void clear() override;
+
     const CustomManifest& manifest_from(const std::string& remote_name) const;
 
     const std::string arch;
     std::pair<std::string, std::unique_ptr<CustomManifest>> manifest;
     std::string remote;
 };
+
 } // namespace multipass

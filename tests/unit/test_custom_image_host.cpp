@@ -138,14 +138,14 @@ TEST_F(CustomImageHost, supportedRemotesReturnsExpectedValues)
                 supported_remotes.end());
 }
 
-TEST_F(CustomImageHost, invalidImageReturnsFalse)
+TEST_F(CustomImageHost, invalidImageReturnsNullopt)
 {
     EXPECT_CALL(mock_url_downloader, download(_, _)).WillOnce(Return(payload));
     mp::CustomVMImageHost host{&mock_url_downloader};
 
     host.update_manifests(false);
 
-    EXPECT_FALSE(host.info_for(make_query("foo", "")));
+    EXPECT_EQ(host.info_for(make_query("foo", "")), std::nullopt);
 }
 
 TEST_F(CustomImageHost, invalidRemoteThrowsError)

@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <multipass/constants.h>
 #include <multipass/format.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/query.h>
@@ -57,6 +58,31 @@ public:
         return *host;
     }
 
+    std::optional<VMImageInfo> any_info_for(const SearchQuery& query) const override
+    {
+        if (!query.remote_name.empty())
+        {
+            return get_image_host_for(query.remote_name).info_for(query);
+        }
+
+        // Not super obvious, but this falls back on the default remotes when none was specified.
+        for (const auto& remote : default_remotes)
+        {
+            if (const auto* host = image_host_for(remote))
+            {
+                auto query_for_remote = query;
+                query_for_remote.remote_name = remote;
+
+                if (const auto info = host->info_for(query_for_remote))
+                {
+                    return info;
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
     std::vector<VMImageInfo> all_info_for(const SearchQuery& query) const final
     {
         return get_image_host_for(query.remote_name).all_info_for(query);
@@ -71,28 +97,6 @@ public:
         }
         return remotes;
     }
-
-protected:
-    virtual std::optional<VMImageInfo> info_for(const Query& query) const
-    {
-        std::optional<VMImageInfo> info;
-
-        if (!query.remote_name.empty())
-        {
-            info = get_image_host_for(query.remote_name).info_for(query);
-        }
-        else
-        {
-            for (const auto& image_host : image_hosts)
-            {
-                info = image_host->info_for(query);
-                if (info)
-                    break;
-            }
-        }
-
-        return info;
-    };
 
 private:
     std::vector<VMImageHost*> image_hosts;

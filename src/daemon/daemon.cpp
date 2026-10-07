@@ -432,8 +432,11 @@ void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& va
     // to avoid calls
     //       later that accomplish the same thing.
     auto image_query = query_from(request, "");
-    if (image_query.query_type == mp::Query::Type::Alias && vault.all_info_for(image_query).empty())
+    if (image_query.query_type == mp::Query::Type::Alias &&
+        !vault.any_info_for(image_query).has_value())
+    {
         throw mp::ImageNotFoundException(request->image(), request->remote_name());
+    }
 }
 
 auto validate_create_arguments(const mp::LaunchRequest* request, const mp::DaemonConfig* config)
@@ -1790,10 +1793,13 @@ try
 
             try
             {
-                vm_images_info = config->vault->all_info_for(
-                    SearchQuery{.filter = request->search_string(),
-                                .remote_name = remote,
-                                .allow_unsupported = request->allow_unsupported()});
+                const auto query = SearchQuery{
+                    .filter = request->search_string(),
+                    .remote_name = remote,
+                    .allow_unsupported = request->allow_unsupported(),
+                };
+
+                vm_images_info = config->vault->all_info_for(query);
             }
             catch (const std::exception& e)
             {

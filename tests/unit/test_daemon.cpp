@@ -1368,8 +1368,8 @@ TEST_F(Daemon, launchesWithValidNetworkInterface)
     mpt::MockVirtualMachineFactory* mock_factory = use_a_mock_vm_factory();
     auto mock_image_host = std::make_unique<NiceMock<mpt::MockImageHost>>();
 
-    EXPECT_CALL(*mock_image_host, all_info_for(_))
-        .WillOnce(Return(std::vector<mp::VMImageInfo>{mock_image_host->mock_bionic_image_info}));
+    EXPECT_CALL(*mock_image_host, info_for(_))
+        .WillOnce(Return(std::make_optional(mock_image_host->mock_bionic_image_info)));
     config_builder.image_hosts.clear();
     config_builder.image_hosts.push_back(std::move(mock_image_host));
 
@@ -1385,8 +1385,8 @@ TEST_F(Daemon, launchesWithValidNetworkInterface)
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    EXPECT_CALL(*mock_image_vault, all_info_for(_))
-        .WillOnce(Invoke(&default_vault, &mp::DefaultVMImageVault::all_info_for));
+    EXPECT_CALL(*mock_image_vault, any_info_for(_))
+        .WillOnce(Invoke(&default_vault, &mp::DefaultVMImageVault::any_info_for));
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
@@ -1449,7 +1449,7 @@ TEST_F(Daemon, failsWithImageNotFoundAlsoIfImageIsAlsoNonBridgeable)
 {
     // Here there should be no image in mocked vault.
     auto mock_vm_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    EXPECT_CALL(*mock_vm_vault, all_info_for(_)).WillOnce(Return(std::vector<mp::VMImageInfo>{}));
+    EXPECT_CALL(*mock_vm_vault, any_info_for(_)).WillOnce(Return(std::nullopt));
     config_builder.vault = std::move(mock_vm_vault);
     mp::Daemon daemon{config_builder.build()};
 
