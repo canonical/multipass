@@ -52,9 +52,13 @@ struct UbuntuImageHost : public testing::Test
         EXPECT_CALL(mock_settings, get(Eq(mp::mirror_key))).WillRepeatedly(Return(""));
     }
 
-    mp::Query make_query(std::string release, std::string remote)
+    mp::SearchQuery make_query(std::string release,
+                               std::string remote,
+                               bool allow_unsupported = false)
     {
-        return {"", std::move(release), false, std::move(remote), mp::Query::Type::Alias};
+        return mp::SearchQuery{.filter = std::move(release),
+                               .remote_name = std::move(remote),
+                               .allow_unsupported = allow_unsupported};
     }
 
     QString test_host = QUrl::fromLocalFile(mpt::test_data_path()).toString();
@@ -295,7 +299,7 @@ TEST_F(UbuntuImageHost, allImagesForReleaseReturnsFourMatches)
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
 
-    auto images = host.all_images_for(release_remote_spec.first, false);
+    auto images = host.all_info_for(make_query("", release_remote_spec.first));
 
     const size_t expected_matches{4};
     EXPECT_THAT(images.size(), Eq(expected_matches));
@@ -306,7 +310,7 @@ TEST_F(UbuntuImageHost, allImagesForReleaseUnsupportedReturnsFiveMatches)
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
 
-    auto images = host.all_images_for(release_remote_spec.first, true);
+    auto images = host.all_info_for(make_query("", release_remote_spec.first, true));
 
     const size_t expected_matches{5};
     EXPECT_THAT(images.size(), Eq(expected_matches));
@@ -318,7 +322,7 @@ TEST_F(UbuntuImageHost, allImagesForThrowsForUnknownRemote)
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
 
-    MP_EXPECT_THROW_THAT(host.all_images_for(remote_name, false),
+    MP_EXPECT_THROW_THAT(host.all_info_for(make_query("", remote_name, false)),
                          std::runtime_error,
                          mpt::match_what(HasSubstr(
                              fmt::format("Remote \"{}\" is unknown or unreachable", remote_name))));
@@ -329,7 +333,7 @@ TEST_F(UbuntuImageHost, allImagesForDailyReturnsAllMatches)
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
 
-    auto images = host.all_images_for(daily_remote_spec.first, false);
+    auto images = host.all_info_for(make_query("", daily_remote_spec.first, false));
 
     const size_t expected_matches{3};
     EXPECT_THAT(images.size(), Eq(expected_matches));
@@ -499,8 +503,8 @@ TEST_F(UbuntuImageHost, infoForFullHashFindsImage)
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
 
-    auto image_info =
-        host.info_for_full_hash("AB115B83E7A8BEBF3D3A02BF55AD0CB75A0ED515FCBC65FB0C9ABE76C752921C");
+    auto image_info = host.info_for_full_hash(
+        "AB115B83E7A8BEBF3D3A02BF55AD0CB75A0ED515FCBC65FB0C9ABE76C752921C");
 
     EXPECT_EQ(image_info.release, "zesty");
 }

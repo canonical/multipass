@@ -954,7 +954,8 @@ TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)
         .WillOnce(Return(std::vector<mp::VMImageInfo>{host.mock_bionic_image_info,
                                                       host.mock_another_image_info}));
 
-    auto images = vault.all_info_for({"", "e3", false, "", mp::Query::Type::Alias, true});
+    const auto query = mp::SearchQuery{.filter = "e3", .allow_unsupported = true};
+    auto images = vault.all_info_for(query);
 
     EXPECT_EQ(images.size(), 2u);
 
@@ -980,8 +981,10 @@ TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
         .WillOnce(Return(std::vector<mp::VMImageInfo>{host.mock_bionic_image_info,
                                                       host.mock_another_image_info}));
 
-    auto images = vault.all_info_for(
-        {"", "e3", false, mp::release_remote, mp::Query::Type::Alias, true});
+    const auto query = mp::SearchQuery{.filter = "e3",
+                                       .remote_name = mp::release_remote,
+.allow_unsupported = true};
+    auto images = vault.all_info_for(query);
 
     EXPECT_EQ(images.size(), 2u);
 
@@ -1006,7 +1009,8 @@ TEST_F(ImageVault, allInfoForNoImagesReturnsEmpty)
     const std::string name{"foo"};
     EXPECT_CALL(host, all_info_for(_)).WillOnce(Return(std::vector<mp::VMImageInfo>{}));
 
-    EXPECT_TRUE(vault.all_info_for({"", name, false, "", mp::Query::Type::Alias, true}).empty());
+    const auto query = mp::SearchQuery{.filter = name, .allow_unsupported = true};
+    EXPECT_TRUE(vault.all_info_for(query).empty());
 }
 
 TEST_F(ImageVault, updateImagesLogsWarningOnUnsupportedImage)

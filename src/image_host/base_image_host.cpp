@@ -32,13 +32,13 @@ mp::BaseVMImageHost::BaseVMImageHost(URLDownloader* downloader) : url_downloader
 {
 }
 
-auto mp::BaseVMImageHost::info_for(const Query& query) const -> std::optional<VMImageInfo>
+auto mp::BaseVMImageHost::info_for(const SearchQuery& query) const -> std::optional<VMImageInfo>
 {
     std::shared_lock lock{manifest_mutex};
     return info_for_impl(query);
 }
 
-auto mp::BaseVMImageHost::all_info_for(const Query& query) const -> std::vector<VMImageInfo>
+auto mp::BaseVMImageHost::all_info_for(const SearchQuery& query) const -> std::vector<VMImageInfo>
 {
     std::shared_lock lock{manifest_mutex};
     return all_info_for_impl(query);
@@ -48,13 +48,6 @@ auto mp::BaseVMImageHost::info_for_full_hash(const std::string& full_hash) const
 {
     std::shared_lock lock{manifest_mutex};
     return info_for_full_hash_impl(full_hash);
-}
-
-auto mp::BaseVMImageHost::all_images_for(const std::string& remote_name,
-                                         bool allow_unsupported) const -> std::vector<VMImageInfo>
-{
-    std::shared_lock lock{manifest_mutex};
-    return all_images_for_impl(remote_name, allow_unsupported);
 }
 
 void mp::BaseVMImageHost::for_each_entry_do(const Action& action) const
