@@ -144,6 +144,11 @@ endif()
 # All the current backends depend on QEMU one way or the other.
 list(APPEND VCPKG_MANIFEST_FEATURES "qemu")
 
+include(src/cmake/vcpkg-overlay-ports.cmake)
+set(MULTIPASS_VCPKG_PORTS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-ports")
+generate_patched_vcpkg_ports("${MULTIPASS_VCPKG_PORTS_DIR}")
+register_vcpkg_overlay_ports("${MULTIPASS_VCPKG_PORTS_DIR}")
+
 set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
 
