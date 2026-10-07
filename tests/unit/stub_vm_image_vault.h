@@ -52,6 +52,11 @@ struct StubVMImageVault final : public multipass::VMImageVault
         return nullptr;
     }
 
+    std::optional<VMImageInfo> any_info_for(const SearchQuery& query) const override
+    {
+        return all_info_for(query).front();
+    }
+
     std::vector<VMImageInfo> all_info_for(const SearchQuery&) const override
     {
         return std::vector<multipass::VMImageInfo>{{{default_alias},
