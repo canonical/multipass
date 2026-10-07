@@ -152,7 +152,7 @@ class _PrimaryNameFieldState extends State<PrimaryNameField> {
   @override
   void didUpdateWidget(PrimaryNameField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    controller.text = widget.value;
+    if (oldWidget.value != widget.value) controller.text = widget.value;
   }
 
   @override
