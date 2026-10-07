@@ -92,12 +92,8 @@ TEST_F(DaemonImages, queryForDefaultReturnsExpectedData)
 {
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    EXPECT_CALL(*mock_image_vault, all_info_for(_)).WillOnce([](const mp::Query&) {
-        mpt::MockImageHost mock_image_host;
-        std::vector<mp::VMImageInfo> info;
-        info.push_back(mock_image_host.mock_bionic_image_info);
-        return info;
-    });
+    EXPECT_CALL(*mock_image_vault, all_info_for(_))
+        .WillOnce(Return(std::vector{mpt::MockImageHost{}.mock_bionic_image_info}));
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
@@ -132,18 +128,10 @@ TEST_F(DaemonImages, forByRemoteReturnsExpectedData)
     NiceMock<mpt::MockImageHost> mock_image_host;
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    EXPECT_CALL(*mock_image_vault, image_host_for(_)).WillOnce([&mock_image_host](auto...) {
-        return &mock_image_host;
-    });
-
-    EXPECT_CALL(mock_image_host, all_images_for(_, _)).WillOnce([&mock_image_host](auto...) {
-        std::vector<mp::VMImageInfo> images_info;
-
-        images_info.push_back(mock_image_host.mock_bionic_image_info);
-        images_info.push_back(mock_image_host.mock_another_image_info);
-
-        return images_info;
-    });
+    EXPECT_CALL(*mock_image_vault, image_host_for(_)).WillOnce(Return(&mock_image_host));
+    EXPECT_CALL(mock_image_host, all_info_for(_))
+        .WillOnce(Return(std::vector<mp::VMImageInfo>{mock_image_host.mock_bionic_image_info,
+                                                      mock_image_host.mock_another_image_info}));
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};

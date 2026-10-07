@@ -107,33 +107,33 @@ mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader)
 {
 }
 
-std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for_impl(const Query& query) const
+std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for_impl(const SearchQuery& query) const
 {
     const auto& custom_manifest = manifest_from(query.remote_name);
 
-    auto it = custom_manifest.image_records.find(query.release);
-
+    auto it = custom_manifest.image_records.find(query.filter);
     if (it == custom_manifest.image_records.end())
         return std::nullopt;
 
     return *it->second;
 }
 
-std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for_impl(const Query& query) const
+// Check that query.release is always set to non empty when going in here.
+// If ok, then query.release === empty means fetch everything
+std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_info_for_impl(const SearchQuery& query) const
 {
     std::vector<mp::VMImageInfo> images;
 
-    if (auto image = info_for_impl(query))
+    if (query.filter.empty())
+    {
+        images = manifest_from(query.remote_name).products;
+    }
+    else if (auto image = info_for_impl(query))
+    {
         images.emplace_back(std::move(*image));
+    }
 
     return images;
-}
-
-std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for_impl(
-    const std::string& remote_name,
-    bool /*allow_unsupported*/) const
-{
-    return manifest_from(remote_name).products;
 }
 
 std::vector<std::string> mp::CustomVMImageHost::supported_remotes() const

@@ -40,7 +40,13 @@ public:
     VMImageHost* image_host_for(const std::string& remote_name) const override
     {
         auto it = remote_image_host_map.find(remote_name);
-        if (it == remote_image_host_map.end())
+        return it == remote_image_host_map.end() ? nullptr : it->second;
+    }
+
+    VMImageHost& get_image_host_for(const std::string& remote_name) const
+    {
+        auto* host = image_host_for(remote_name);
+        if (host == nullptr)
         {
             throw std::runtime_error(fmt::format(
                 "Remote \'{}\' is not found. Please use `multipass images` for supported "
@@ -48,12 +54,12 @@ public:
                 remote_name));
         }
 
-        return it->second;
-    };
+        return *host;
+    }
 
-    std::vector<VMImageInfo> all_info_for(const Query& query) const override
+    std::vector<VMImageInfo> all_info_for(const SearchQuery& query) const final
     {
-        return image_host_for(query.remote_name)->all_info_for(query);
+        return get_image_host_for(query.remote_name).all_info_for(query);
     }
 
     std::vector<std::string> fetch_remotes() const override
@@ -73,15 +79,13 @@ protected:
 
         if (!query.remote_name.empty())
         {
-            auto image_host = image_host_for(query.remote_name);
-            info = image_host->info_for(query);
+            info = get_image_host_for(query.remote_name).info_for(query);
         }
         else
         {
             for (const auto& image_host : image_hosts)
             {
                 info = image_host->info_for(query);
-
                 if (info)
                     break;
             }

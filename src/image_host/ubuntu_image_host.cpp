@@ -114,51 +114,51 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(
 {
 }
 
-std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for_impl(const Query& query) const
+std::optional<mp::VMImageInfo> mp::UbuntuVMImageHost::info_for_impl(const SearchQuery& query) const
 {
     auto images = all_info_for_impl(query);
 
     if (images.size() == 0)
         return std::nullopt;
 
-    auto key = key_from(query.release);
-    auto image_id = images.front().id;
+    auto key = key_from(query.filter);
+    auto image_hash = images.front().id;
 
     // If a partial hash query matches more than once, throw an exception
-    if (images.size() > 1 && key != image_id && image_id.starts_with(key))
-        throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.release));
+    if (images.size() > 1 && key != image_hash && image_hash.starts_with(key))
+        throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.filter));
 
     // It's not a hash match, so choose the first one no matter what
     return images.front();
 }
 
-std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for_impl(const Query& query) const
+std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_info_for_impl(
+    const SearchQuery& query) const
 {
-    auto key = key_from(query.release);
-
     std::vector<mp::VMImageInfo> images;
+    std::unordered_set<std::string> found_hashes;
+
     const auto& manifest = manifest_from(query.remote_name);
 
-    if (const auto* info = match_alias(key, manifest); info)
+    if (!query.filter.empty())
     {
-        if (!info->supported && !query.allow_unsupported)
-            throw mp::UnsupportedImageException(query.release);
-
-        images.emplace_back(*info);
-    }
-    else
-    {
-        std::unordered_set<std::string> found_hashes;
-
-        for (const auto& entry : manifest.products)
+        if (const auto* info = match_alias(query.filter, manifest);
+            info != nullptr && (info->supported || query.allow_unsupported))
         {
-            const auto id = entry.id;
-            if (id.starts_with(key) && (entry.supported || query.allow_unsupported) &&
-                !found_hashes.contains(id))
-            {
-                images.emplace_back(entry);
-                found_hashes.insert(id);
-            }
+            images.emplace_back(*info);
+            found_hashes.insert(info->id);
+        }
+    }
+
+    for (const auto& entry : manifest.products)
+    {
+        const auto hash = entry.id;
+
+        if (hash.starts_with(query.filter) && (entry.supported || query.allow_unsupported) &&
+            !found_hashes.contains(hash))
+        {
+            images.emplace_back(entry);
+            found_hashes.insert(hash);
         }
     }
 
@@ -179,28 +179,6 @@ mp::VMImageInfo mp::UbuntuVMImageHost::info_for_full_hash_impl(const std::string
     }
 
     throw mp::ImageNotFoundException(full_hash);
-}
-
-std::vector<mp::VMImageInfo> mp::UbuntuVMImageHost::all_images_for_impl(
-    const std::string& remote_name,
-    bool allow_unsupported) const
-{
-    std::vector<mp::VMImageInfo> images;
-    const auto& manifest = manifest_from(remote_name);
-
-    for (const auto& entry : manifest.products)
-    {
-        if (entry.supported || allow_unsupported)
-        {
-            images.push_back(entry);
-        }
-    }
-
-    if (images.empty())
-        throw std::runtime_error(
-            fmt::format("Unable to find images for remote \"{}\"", remote_name));
-
-    return images;
 }
 
 void mp::UbuntuVMImageHost::for_each_entry_do_impl(const Action& action) const

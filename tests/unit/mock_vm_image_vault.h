@@ -70,7 +70,7 @@ public:
     MOCK_METHOD(void, update_images, (const PrepareAction&, const ProgressMonitor&), (override));
     MOCK_METHOD(void, clone, (const std::string&, const std::string&), (override));
     MOCK_METHOD(VMImageHost*, image_host_for, (const std::string&), (const, override));
-    MOCK_METHOD((std::vector<VMImageInfo>), all_info_for, (const Query&), (const, override));
+    MOCK_METHOD((std::vector<VMImageInfo>), all_info_for, (const SearchQuery&), (const, override));
     MOCK_METHOD((std::vector<std::string>), fetch_remotes, (), (const, override));
 
 private:

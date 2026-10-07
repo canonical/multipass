@@ -1386,8 +1386,7 @@ TEST_F(Daemon, launchesWithValidNetworkInterface)
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     EXPECT_CALL(*mock_image_vault, all_info_for(_))
-        .WillOnce(
-            [&default_vault](const mp::Query& query) { return default_vault.all_info_for(query); });
+        .WillOnce(Invoke(&default_vault, &mp::DefaultVMImageVault::all_info_for));
 
     config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};

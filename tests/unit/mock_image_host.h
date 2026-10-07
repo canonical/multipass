@@ -62,11 +62,11 @@ public:
     MockImageHost()
     {
         ON_CALL(*this, info_for(_)).WillByDefault([this](const auto& query) {
-            if (query.release == snapcraft_remote)
+            if (query.remote_name == snapcraft_remote)
             {
                 return mock_snapcraft_image_info;
             }
-            else if (query.release == custom_remote)
+            else if (query.remote_name == custom_remote)
             {
                 return mock_custom_image_info;
             }
@@ -77,7 +77,6 @@ public:
         });
         ON_CALL(*this, all_info_for(_)).WillByDefault(Return(empty_image_info_vector));
         ON_CALL(*this, info_for_full_hash(_)).WillByDefault(Return(empty_vm_image_info));
-        ON_CALL(*this, all_images_for(_, _)).WillByDefault(Return(empty_image_info_vector));
         ON_CALL(*this, for_each_entry_do(_)).WillByDefault([this](const Action& action) {
             action(release_remote, mock_bionic_image_info);
             action(release_remote, mock_another_image_info);
@@ -87,13 +86,9 @@ public:
         ON_CALL(*this, supported_remotes()).WillByDefault(Return(remote));
     };
 
-    MOCK_METHOD(std::optional<VMImageInfo>, info_for, (const Query&), (const, override));
-    MOCK_METHOD((std::vector<VMImageInfo>), all_info_for, (const Query&), (const, override));
+    MOCK_METHOD(std::optional<VMImageInfo>, info_for, (const SearchQuery&), (const, override));
+    MOCK_METHOD((std::vector<VMImageInfo>), all_info_for, (const SearchQuery&), (const, override));
     MOCK_METHOD(VMImageInfo, info_for_full_hash, (const std::string&), (const, override));
-    MOCK_METHOD(std::vector<VMImageInfo>,
-                all_images_for,
-                (const std::string&, bool),
-                (const, override));
     MOCK_METHOD(void, for_each_entry_do, (const Action&), (const, override));
     MOCK_METHOD(std::vector<std::string>, supported_remotes, (), (const, override));
     MOCK_METHOD(void, update_manifests, (bool), (override));

@@ -52,7 +52,7 @@ struct StubVMImageVault final : public multipass::VMImageVault
         return nullptr;
     }
 
-    std::vector<VMImageInfo> all_info_for(const Query&) const override
+    std::vector<VMImageInfo> all_info_for(const SearchQuery&) const override
     {
         return std::vector<multipass::VMImageInfo>{{{default_alias},
                                                     "Ubuntu",
