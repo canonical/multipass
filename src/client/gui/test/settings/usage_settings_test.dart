@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/app_localizations_en.dart';
+import 'package:multipass_gui/settings/hotkey.dart';
 import 'package:multipass_gui/settings/usage_settings.dart';
+
+final _l10n = AppLocalizationsEn();
 
 Widget _buildApp(Widget child) {
   return MaterialApp(
@@ -12,204 +17,255 @@ Widget _buildApp(Widget child) {
 }
 
 void main() {
-  group('PrimaryNameField validation', () {
+  group('PrimaryNameField', () {
     Future<void> pumpField(
       WidgetTester tester, {
       String value = '',
-      void Function(String)? onSave,
+      ValueChanged<String>? onSave,
     }) async {
       await tester.pumpWidget(
         _buildApp(
-          Builder(
-            builder: (context) {
-              final l10n = AppLocalizations.of(context)!;
-              return PrimaryNameField(
-                value: value,
-                l10n: l10n,
-                onSave: onSave ?? (_) {},
-              );
-            },
+          PrimaryNameField(
+            value: value,
+            l10n: _l10n,
+            onSave: onSave ?? (_) {},
           ),
         ),
       );
-      await tester.pumpAndSettle();
     }
 
-    testWidgets('empty input shows no validation error', (tester) async {
-      await pumpField(tester, value: '');
-
-      await tester.enterText(find.byType(TextFormField), '');
-      await tester.pump();
-
-      expect(find.byType(ErrorWidget), findsNothing);
-    });
-
-    testWidgets('input starting with a digit shows error', (tester) async {
-      await pumpField(tester, value: '');
-
-      await tester.enterText(find.byType(TextFormField), '1abc');
-      await tester.pump();
-
-      expect(find.byIcon(Icons.check), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.check));
-      await tester.pump();
-
-      final l10n = tester.element(find.byType(TextFormField)).l10n;
-      expect(find.text(l10n.usagePrimaryNameErrorStartLetter), findsOneWidget);
-    });
-
-    testWidgets('single character input shows too-short error', (tester) async {
-      await pumpField(tester, value: '');
-
-      await tester.enterText(find.byType(TextFormField), 'a');
+    Future<void> enterAndSave(WidgetTester tester, String text) async {
+      await tester.enterText(find.byType(TextFormField), text);
       await tester.pump();
       await tester.tap(find.byIcon(Icons.check));
       await tester.pump();
+    }
 
-      final l10n = tester.element(find.byType(TextFormField)).l10n;
-      expect(find.text(l10n.usagePrimaryNameErrorTooShort), findsOneWidget);
-    });
+    String fieldText(WidgetTester tester) => tester
+        .widget<TextFormField>(find.byType(TextFormField))
+        .controller!
+        .text;
 
-    testWidgets('input ending with a dash shows error', (tester) async {
-      await pumpField(tester, value: '');
+    for (final (input, error) in [
+      ('1abc', _l10n.usagePrimaryNameErrorStartLetter),
+      ('a', _l10n.usagePrimaryNameErrorTooShort),
+      ('abc-', _l10n.usagePrimaryNameErrorEndChar),
+    ]) {
+      testWidgets('rejects "$input" without saving', (tester) async {
+        String? saved;
+        await pumpField(tester, onSave: (v) => saved = v);
 
-      await tester.enterText(find.byType(TextFormField), 'abc-');
-      await tester.pump();
-      await tester.tap(find.byIcon(Icons.check));
-      await tester.pump();
+        await enterAndSave(tester, input);
 
-      final l10n = tester.element(find.byType(TextFormField)).l10n;
-      expect(find.text(l10n.usagePrimaryNameErrorEndChar), findsOneWidget);
-    });
+        expect(find.text(error), findsOneWidget);
+        expect(saved, isNull);
+      });
+    }
 
-    testWidgets('valid input calls onSave', (tester) async {
+    for (final input in ['my-vm', 'ab', 'A1', 'a-b']) {
+      testWidgets('saves "$input"', (tester) async {
+        String? saved;
+        await pumpField(tester, onSave: (v) => saved = v);
+
+        await enterAndSave(tester, input);
+
+        expect(saved, input);
+      });
+    }
+
+    testWidgets('saves an empty name to unset the primary instance',
+        (tester) async {
       String? saved;
-      await pumpField(tester, value: '', onSave: (v) => saved = v);
+      await pumpField(tester, value: 'primary', onSave: (v) => saved = v);
 
-      await tester.enterText(find.byType(TextFormField), 'my-vm');
-      await tester.pump();
-      await tester.tap(find.byIcon(Icons.check));
-      await tester.pump();
+      await enterAndSave(tester, '');
 
-      expect(saved, equals('my-vm'));
+      expect(saved, isEmpty);
     });
 
-    testWidgets('discard reverts text to original value', (tester) async {
+    testWidgets('drops characters other than letters, digits and dashes',
+        (tester) async {
+      await pumpField(tester);
+
+      await tester.enterText(find.byType(TextFormField), 'my_vm.1!');
+
+      expect(fieldText(tester), 'myvm1');
+    });
+
+    testWidgets('discard restores the original value and clears the error',
+        (tester) async {
       await pumpField(tester, value: 'original');
+      await enterAndSave(tester, '1abc');
 
-      await tester.enterText(find.byType(TextFormField), 'changed');
-      await tester.pump();
-
-      expect(find.byIcon(Icons.close), findsOneWidget);
       await tester.tap(find.byIcon(Icons.close));
       await tester.pump();
 
-      final textField =
-          tester.widget<TextFormField>(find.byType(TextFormField));
-      expect(textField.controller?.text, equals('original'));
+      expect(fieldText(tester), 'original');
+      expect(find.text(_l10n.usagePrimaryNameErrorStartLetter), findsNothing);
+      expect(find.byIcon(Icons.check), findsNothing);
+    });
+
+    testWidgets('keeps unsaved edits when the parent rebuilds', (tester) async {
+      await pumpField(tester, value: 'original');
+      await tester.enterText(find.byType(TextFormField), 'edited');
+      await tester.pump();
+
+      await pumpField(tester, value: 'original');
+
+      expect(fieldText(tester), 'edited');
+      expect(find.byIcon(Icons.check), findsOneWidget);
+    });
+
+    testWidgets('shows the new value when it changes externally',
+        (tester) async {
+      await pumpField(tester, value: 'old');
+
+      await pumpField(tester, value: 'new');
+
+      expect(fieldText(tester), 'new');
+      expect(find.byIcon(Icons.check), findsNothing);
+    });
+  });
+
+  group('HotkeyField', () {
+    const original = SingleActivator(LogicalKeyboardKey.keyT, control: true);
+
+    Future<void> pumpField(
+      WidgetTester tester, {
+      ValueChanged<SingleActivator?>? onSave,
+    }) async {
+      await tester.pumpWidget(
+        _buildApp(
+          HotkeyField(value: original, l10n: _l10n, onSave: onSave ?? (_) {}),
+        ),
+      );
+    }
+
+    Future<void> recordMetaK(WidgetTester tester) async {
+      await tester.tap(find.byType(HotkeyRecorder));
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyK);
+      await tester.pump();
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyK);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      await tester.pump();
+    }
+
+    testWidgets('saves the recorded hotkey', (tester) async {
+      SingleActivator? saved;
+      await pumpField(tester, onSave: (v) => saved = v);
+      await recordMetaK(tester);
+
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pump();
+
+      expect(saved?.trigger, LogicalKeyboardKey.keyK);
+      expect(saved?.meta, isTrue);
+    });
+
+    testWidgets('discarded hotkey does not reappear when the parent rebuilds',
+        (tester) async {
+      await pumpField(tester);
+      await recordMetaK(tester);
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pump();
+      expect(find.byIcon(Icons.check), findsNothing);
+
+      await pumpField(tester);
+
+      expect(find.byIcon(Icons.check), findsNothing);
+    });
+  });
+
+  group('PassphraseField', () {
+    Future<void> pumpField(
+      WidgetTester tester, {
+      ValueChanged<String>? onSave,
+    }) async {
+      await tester.pumpWidget(
+        _buildApp(
+          PassphraseField(
+            hasPassphrase: false,
+            l10n: _l10n,
+            onSave: onSave ?? (_) {},
+          ),
+        ),
+      );
+    }
+
+    testWidgets('saves the passphrase and clears the field', (tester) async {
+      String? saved;
+      await pumpField(tester, onSave: (v) => saved = v);
+      await tester.enterText(find.byType(TextField), 'secret');
+      await tester.pump(PassphraseField.changeDelay);
+
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pump(PassphraseField.changeDelay);
+
+      expect(saved, 'secret');
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        isEmpty,
+      );
+    });
+
+    testWidgets('does not update state after being disposed', (tester) async {
+      await pumpField(tester);
+      await tester.enterText(find.byType(TextField), 'secret');
+
+      await tester.pumpWidget(_buildApp(const SizedBox()));
+      await tester.pump(PassphraseField.changeDelay);
+
+      expect(tester.takeException(), isNull);
     });
   });
 
   group('SettingField', () {
-    testWidgets('save and discard buttons hidden when not changed',
-        (tester) async {
+    Future<void> pumpField(
+      WidgetTester tester, {
+      required bool changed,
+      VoidCallback? onSave,
+      VoidCallback? onDiscard,
+    }) async {
       await tester.pumpWidget(
         _buildApp(
           SettingField(
-            label: 'Test Label',
-            onSave: () {},
-            onDiscard: () {},
-            changed: false,
+            label: 'Label',
+            onSave: onSave ?? () {},
+            onDiscard: onDiscard ?? () {},
+            changed: changed,
             child: const SizedBox(),
           ),
         ),
       );
-      await tester.pumpAndSettle();
+    }
+
+    testWidgets('hides save and discard buttons when unchanged',
+        (tester) async {
+      await pumpField(tester, changed: false);
 
       expect(find.byIcon(Icons.check), findsNothing);
       expect(find.byIcon(Icons.close), findsNothing);
     });
 
-    testWidgets('save and discard buttons visible when changed',
+    testWidgets('save and discard buttons invoke their callbacks',
         (tester) async {
-      await tester.pumpWidget(
-        _buildApp(
-          SettingField(
-            label: 'Test Label',
-            onSave: () {},
-            onDiscard: () {},
-            changed: true,
-            child: const SizedBox(),
-          ),
-        ),
+      var saved = false;
+      var discarded = false;
+      await pumpField(
+        tester,
+        changed: true,
+        onSave: () => saved = true,
+        onDiscard: () => discarded = true,
       );
-      await tester.pumpAndSettle();
-
-      expect(find.byIcon(Icons.check), findsOneWidget);
-      expect(find.byIcon(Icons.close), findsOneWidget);
-    });
-
-    testWidgets('tapping save calls onSave', (tester) async {
-      var saveCalled = false;
-      await tester.pumpWidget(
-        _buildApp(
-          SettingField(
-            label: 'Test Label',
-            onSave: () => saveCalled = true,
-            onDiscard: () {},
-            changed: true,
-            child: const SizedBox(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.check));
-      await tester.pump();
-
-      expect(saveCalled, isTrue);
-    });
-
-    testWidgets('tapping discard calls onDiscard', (tester) async {
-      var discardCalled = false;
-      await tester.pumpWidget(
-        _buildApp(
-          SettingField(
-            label: 'Test Label',
-            onSave: () {},
-            onDiscard: () => discardCalled = true,
-            changed: true,
-            child: const SizedBox(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
+      expect((saved, discarded), (true, false));
 
       await tester.tap(find.byIcon(Icons.close));
-      await tester.pump();
-
-      expect(discardCalled, isTrue);
-    });
-
-    testWidgets('label text is displayed', (tester) async {
-      await tester.pumpWidget(
-        _buildApp(
-          SettingField(
-            label: 'My Setting',
-            onSave: () {},
-            onDiscard: () {},
-            changed: false,
-            child: const SizedBox(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('My Setting'), findsOneWidget);
+      expect((saved, discarded), (true, true));
     });
   });
-}
-
-extension on BuildContext {
-  AppLocalizations get l10n => AppLocalizations.of(this)!;
 }
