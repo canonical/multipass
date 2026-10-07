@@ -3,139 +3,85 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/confirmation_dialog.dart';
 
 void main() {
-  Widget buildDialog({
-    required String title,
-    required Widget body,
-    required String actionText,
-    required VoidCallback onAction,
-    required String inactionText,
-    required VoidCallback onInaction,
-  }) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Dialog(
-          child: ConfirmationDialog(
-            title: title,
-            body: body,
-            actionText: actionText,
-            onAction: onAction,
-            inactionText: inactionText,
-            onInaction: onInaction,
+  Future<void> openDialog(
+    WidgetTester tester, {
+    VoidCallback? onAction,
+    VoidCallback? onInaction,
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => ConfirmationDialog(
+                  title: 'Delete instance',
+                  body: const Text('Are you sure?'),
+                  actionText: 'Delete',
+                  onAction: onAction ?? () {},
+                  inactionText: 'Cancel',
+                  onInaction: onInaction ?? () {},
+                ),
+              ),
+              child: const Text('Open'),
+            ),
           ),
         ),
       ),
     );
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
   }
 
-  group('ConfirmationDialog', () {
-    testWidgets('tapping action button invokes onAction', (tester) async {
-      var actionCalled = false;
+  testWidgets('tapping action button invokes only onAction', (tester) async {
+    var actionCount = 0;
+    var inactionCount = 0;
+    await openDialog(
+      tester,
+      onAction: () => actionCount++,
+      onInaction: () => inactionCount++,
+    );
 
-      await tester.pumpWidget(buildDialog(
-        title: 'Delete instance',
-        body: const Text('Are you sure?'),
-        actionText: 'Delete',
-        onAction: () => actionCalled = true,
-        inactionText: 'Cancel',
-        onInaction: () {},
-      ));
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Delete'));
-      await tester.pumpAndSettle();
+    expect(actionCount, 1);
+    expect(inactionCount, 0);
+  });
 
-      expect(actionCalled, isTrue);
-    });
+  testWidgets('tapping inaction button invokes only onInaction',
+      (tester) async {
+    var actionCount = 0;
+    var inactionCount = 0;
+    await openDialog(
+      tester,
+      onAction: () => actionCount++,
+      onInaction: () => inactionCount++,
+    );
 
-    testWidgets('tapping inaction button invokes onInaction', (tester) async {
-      var inactionCalled = false;
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
 
-      await tester.pumpWidget(buildDialog(
-        title: 'Delete instance',
-        body: const Text('Are you sure?'),
-        actionText: 'Delete',
-        onAction: () {},
-        inactionText: 'Cancel',
-        onInaction: () => inactionCalled = true,
-      ));
+    expect(actionCount, 0);
+    expect(inactionCount, 1);
+  });
 
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
+  testWidgets('tapping close button dismisses without invoking callbacks',
+      (tester) async {
+    var callbackCount = 0;
+    await openDialog(
+      tester,
+      onAction: () => callbackCount++,
+      onInaction: () => callbackCount++,
+    );
+    expect(find.text('Delete instance'), findsOneWidget);
+    expect(find.text('Are you sure?'), findsOneWidget);
 
-      expect(inactionCalled, isTrue);
-    });
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
 
-    testWidgets('tapping close icon button dismisses the dialog',
-        (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) => Scaffold(
-              body: TextButton(
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (_) => ConfirmationDialog(
-                    title: 'Delete instance',
-                    body: const Text('Are you sure?'),
-                    actionText: 'Delete',
-                    onAction: () {},
-                    inactionText: 'Cancel',
-                    onInaction: () {},
-                  ),
-                ),
-                child: const Text('Open'),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Open'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Delete instance'), findsOneWidget);
-
-      await tester.tap(find.byIcon(Icons.close));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Delete instance'), findsNothing);
-    });
-
-    testWidgets('tapping action button does not invoke onInaction',
-        (tester) async {
-      var inactionCalled = false;
-
-      await tester.pumpWidget(buildDialog(
-        title: 'Delete instance',
-        body: const Text('Are you sure?'),
-        actionText: 'Delete',
-        onAction: () {},
-        inactionText: 'Cancel',
-        onInaction: () => inactionCalled = true,
-      ));
-
-      await tester.tap(find.text('Delete'));
-      await tester.pumpAndSettle();
-
-      expect(inactionCalled, isFalse);
-    });
-
-    testWidgets('tapping inaction button does not invoke onAction',
-        (tester) async {
-      var actionCalled = false;
-
-      await tester.pumpWidget(buildDialog(
-        title: 'Delete instance',
-        body: const Text('Are you sure?'),
-        actionText: 'Delete',
-        onAction: () => actionCalled = true,
-        inactionText: 'Cancel',
-        onInaction: () {},
-      ));
-
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
-
-      expect(actionCalled, isFalse);
-    });
+    expect(find.text('Delete instance'), findsNothing);
+    expect(callbackCount, 0);
   });
 }
