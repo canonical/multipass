@@ -236,7 +236,8 @@ class _HotkeyFieldState extends State<HotkeyField> {
       label: widget.l10n.usageHotkeyLabel,
       onSave: () => widget.onSave(value),
       onDiscard: () => setState(() {
-        recorderState.currentState?.set(widget.value);
+        value = widget.value;
+        recorderState.currentState?.set(value);
         changed = false;
       }),
       changed: changed,
