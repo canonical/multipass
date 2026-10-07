@@ -162,5 +162,12 @@ void main() {
         expect(changedValue, equals(3));
       });
     });
+
+  testWidgets('shows no selection when value is not one of the items',
+      (tester) async {
+    await tester.pumpWidget(buildDropdown(value: 'missing'));
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(Text), findsNothing);
   });
 }
