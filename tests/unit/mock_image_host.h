@@ -20,15 +20,20 @@
 #include "common.h"
 #include "temp_file.h"
 
+#include <multipass/image_host/base_image_host.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/query.h>
 
+#include <algorithm>
+#include <map>
+#include <string>
+#include <vector>
+
 using namespace testing;
 
-namespace multipass
+namespace multipass::test
 {
-namespace test
-{
+
 constexpr auto default_id = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 constexpr auto default_release_info = "18.04 LTS";
 constexpr auto default_version = "20200519.1";
@@ -148,5 +153,55 @@ private:
     VMImageInfo empty_vm_image_info{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
     std::vector<std::string> remote{{"release"}};
 };
-} // namespace test
-} // namespace multipass
+
+class MockBaseImageHost : public BaseVMImageHost
+{
+public:
+    MockBaseImageHost() : MockBaseImageHost{{}}
+    {
+    }
+
+    explicit MockBaseImageHost(std::map<std::string, std::vector<VMImageInfo>> images_by_remote)
+        : BaseVMImageHost{nullptr}, images_by_remote{std::move(images_by_remote)}
+    {
+        ON_CALL(*this, collect_images_for_remote(_, _))
+            .WillByDefault([this](std::vector<VMImageInfo>& images, const std::string& remote) {
+                auto it = this->images_by_remote.find(remote);
+                if (it != this->images_by_remote.end())
+                {
+                    images = it->second;
+                    return true;
+                }
+
+                return false;
+            });
+
+        ON_CALL(*this, supported_remotes()).WillByDefault([this]() {
+            auto remotes = std::vector<std::string>{};
+            std::ranges::transform(this->images_by_remote,
+                                   std::back_inserter(remotes),
+                                   [](const auto& pair) { return pair.first; });
+            return remotes;
+        });
+    }
+
+    MOCK_METHOD(std::vector<std::string>, supported_remotes, (), (const, override));
+
+    MOCK_METHOD(bool,
+                collect_images_for_remote,
+                (std::vector<VMImageInfo>&, const std::string&),
+                (const, override));
+
+    MOCK_METHOD(void, fetch_manifests, (bool), (override));
+    MOCK_METHOD(void, clear, (), (override));
+
+    void add_image(const std::string& remote, const VMImageInfo& image)
+    {
+        images_by_remote[remote].push_back(image);
+    }
+
+private:
+    std::map<std::string, std::vector<VMImageInfo>> images_by_remote;
+};
+
+} // namespace multipass::test
