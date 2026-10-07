@@ -224,8 +224,8 @@ TEST_F(DaemonImages, invalidRemoteName)
     EXPECT_CALL(image_host, collect_images_for_remote).Times(0);
 
     constexpr std::string_view remote_name = "nonsense";
-    const std::string error_msg = fmt::format("Remote \'{}\' is not found. Please use `multipass "
-                                              "images` for supported remotes and images.",
+    const std::string error_msg = fmt::format("Remote \'{}\' is not found. Please use ‘multipass "
+                                              "images --remotes’ for supported remotes.",
                                               remote_name);
 
     mp::Daemon daemon{config_builder.build()};

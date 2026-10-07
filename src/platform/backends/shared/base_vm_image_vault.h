@@ -18,6 +18,7 @@
 #pragma once
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/remote_not_found_exception.h>
 #include <multipass/format.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/query.h>
@@ -49,10 +50,7 @@ public:
         auto* host = image_host_for(remote_name);
         if (host == nullptr)
         {
-            throw std::runtime_error(fmt::format(
-                "Remote \'{}\' is not found. Please use `multipass images` for supported "
-                "remotes and images.",
-                remote_name));
+            throw RemoteNotFoundException(remote_name);
         }
 
         return *host;
