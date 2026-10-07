@@ -94,21 +94,20 @@ void AppleVZVirtualMachine::start()
     }
     else
     {
-        const auto error_string{
-            fmt::format("start() -> VM `{}` cannot be started. Current state `{}`",
-                        vm_name,
-                        current_state())};
-        mpl::error(log_category, error_string);
-        save_error_msg(error_string);
+        static constexpr auto error_string{
+            "start() -> VM `{}` cannot be started. Current state `{}`",
+        };
+        const auto state{current_state()};
+        mpl::error(log_category, error_string, vm_name, state);
+        save_error_msg(fmt::format(error_string, vm_name, state));
         return;
     }
 
     if (error)
     {
-        const auto error_string{
-            fmt::format("start() -> VM '{}' failed to start: {}", vm_name, error)};
-        mpl::error(log_category, error_string);
-        save_error_msg(error_string);
+        static constexpr auto error_string{"start() -> VM '{}' failed to start: {}"};
+        mpl::error(log_category, error_string, vm_name, error);
+        save_error_msg(fmt::format(error_string, vm_name, error));
         throw std::runtime_error(
             fmt::format("VM '{}' failed to start, check logs for more details", vm_name));
     }

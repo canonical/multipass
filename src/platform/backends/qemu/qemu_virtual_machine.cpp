@@ -579,23 +579,25 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             mpl::info(vm_name, "process state changed to {}", utils::qenum_to_string(newState));
         });
 
-    QObject::connect(vm_process.get(),
-                     &Process::error_occurred,
-                     [this](QProcess::ProcessError error, QString error_string) {
-                         // We just kill the process when suspending, so we don't want to print
-                         // out any scary error messages for this state
-                         if (update_shutdown_status)
-                         {
-                             const auto log_level = force_shutdown ? mpl::Level::info
-                                                                   : mpl::Level::error;
-                             mpl::log(log_level,
-                                      vm_name,
-                                      "process error occurred {} {}",
-                                      utils::qenum_to_string(error),
-                                      error_string);
-                             on_error();
-                         }
-                     });
+    QObject::connect(
+        vm_process.get(),
+        &Process::error_occurred,
+        [this](QProcess::ProcessError error, QString error_string) {
+            // We just kill the process when suspending, so we don't want to print
+            // out any scary error messages for this state
+            if (update_shutdown_status)
+            {
+                const auto log_level = force_shutdown ? mpl::Level::info : mpl::Level::error;
+                static constexpr auto error_msg{"process error occurred {} {}"};
+                mpl::log(log_level,
+                         vm_name,
+                         error_msg,
+                         utils::qenum_to_string(error),
+                         error_string);
+                save_error_msg(fmt::format(error_msg, utils::qenum_to_string(error), error_string));
+                on_error();
+            }
+        });
 
     QObject::connect(vm_process.get(), &Process::finished, [this](ProcessState process_state) {
         if (process_state.exit_code)
@@ -616,6 +618,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             else
             {
                 const auto log_level = force_shutdown ? mpl::Level::info : mpl::Level::error;
+                save_error_msg(process_state.error->message.toStdString());
                 mpl::log(log_level, vm_name, "error: {}", process_state.error->message);
 
                 // reset force_shutdown so that subsequent errors can be accurately reported
