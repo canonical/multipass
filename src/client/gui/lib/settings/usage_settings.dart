@@ -282,6 +282,7 @@ class _PassphraseFieldState extends State<PassphraseField> {
 
   void hasChanged() {
     Timer(100.milliseconds, () {
+      if (!mounted) return;
       setState(() {
         changed = (focus.hasFocus && widget.hasPassphrase) ||
             controller.text.isNotEmpty;
