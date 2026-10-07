@@ -34,13 +34,19 @@ function(copy_vcpkg_port PORT DESTINATION)
         DESTINATION "${DESTINATION}")
 endfunction()
 
-# Apply PATCH to the files it names, relative to DIR
+# Apply PATCH to the files it names, relative to DIR, which must not be a git repo root
 function(apply_patch PATCH DIR) # TODO@ricab use a more specific name, less likely to collide
+    if(EXISTS "${DIR}/.git")
+        message(FATAL_ERROR "Cannot apply ${PATCH} in ${DIR}: it is a git repo")
+    endif()
+
     find_package(Git REQUIRED)
 
-    # Mirror vcpkg's own patching (z_vcpkg_apply_patches): works outside a repo, no fuzz
+    # Mirror vcpkg's own patching: works outside a repo, no fuzz. We don't call vcpkg's function
+    # (z_vcpkg_apply_patches) directly, because it is private and needs a portfile context.
     execute_process(
-        COMMAND "${GIT_EXECUTABLE}" -c core.longpaths=true -c core.autocrlf=false
+        COMMAND "${CMAKE_COMMAND}" -E env GIT_CONFIG_NOSYSTEM=1
+            "${GIT_EXECUTABLE}" -c core.longpaths=true -c core.autocrlf=false
             -c core.filemode=true --work-tree=. --git-dir=.git
             apply "${PATCH}" --ignore-whitespace --whitespace=nowarn
         WORKING_DIRECTORY "${DIR}"
