@@ -34,6 +34,7 @@
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
+#include <multipass/exceptions/remote_not_found_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
@@ -1788,7 +1789,7 @@ try
     {
         remotes.insert(remotes.end(), default_set.begin(), default_set.end());
     }
-    else if (config->vault->image_host_for(request->remote_name()) != nullptr)
+    else
     {
         remotes.emplace_back(request->remote_name());
     }
@@ -1812,6 +1813,13 @@ try
                 };
 
                 vm_images_info = config->vault->all_info_for(query);
+            }
+            catch (const RemoteNotFoundException& e)
+            {
+                if (!request->remote_name().empty())
+                {
+                    throw;
+                }
             }
             catch (const std::exception& e)
             {
