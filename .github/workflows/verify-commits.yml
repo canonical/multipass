@@ -4,6 +4,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+permissions:
+  contents: read
+
 jobs:
   CheckCommits:
     runs-on: ubuntu-slim
@@ -56,4 +59,39 @@ jobs:
             exit 1
           else
             echo "All commits passed validation"
+          fi
+
+      - name: Verify commit signatures
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -e -o pipefail
+
+          FAIL=0
+          COMMITS="$(git rev-list --reverse "$BASE_SHA..$HEAD_SHA")"
+
+          # loop over all commits in the PR (excluding merge base), merge commits included
+          for COMMIT_SHA in $COMMITS; do
+            REASON="$(gh api "repos/$REPO/commits/$COMMIT_SHA" \
+                        --jq '.commit.verification | if .verified then "" else .reason end')"
+
+            if [ -z "$REASON" ]; then
+              echo "✅ $COMMIT_SHA"
+            else
+              echo "❌ $COMMIT_SHA ($REASON)"
+              FAIL=1
+            fi
+          done
+
+          if [ $FAIL -eq 1 ]; then
+            echo "One or more commits are not signed and verified. All commits must be signed and show"
+            echo "as \"Verified\" on GitHub. See GIT7 in our guidelines:"
+            echo "https://github.com/canonical/multipass/blob/main/GUIDELINES.md#git-usage-git"
+            exit 1
+          else
+            echo "All commits are signed and verified"
           fi
