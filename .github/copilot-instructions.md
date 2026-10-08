@@ -14,6 +14,13 @@ Copilot-specific behavior.
   verify every finding against the actual code before asserting it, keep comments
   few and high-signal, and stay silent on formatting and intentional project idioms.
 
+## Custom agents
+
+- **`master-code-reviewer`** (`.github/agents/`): in-depth implementation review of a working
+  tree, commit, or branch, built on the code-review skill. Read-only.
+- **`master-software-architect`** (`.github/agents/`): system-level design, architecture review,
+  and tradeoff advice. Does not modify source code unless explicitly asked.
+
 ## Tooling notes
 
 - **Formatting** — Run formatters before finishing a task, per AGENTS.md:
