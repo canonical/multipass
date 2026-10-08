@@ -1,5 +1,5 @@
-Image,Remote,Aliases,OS,Release,Version,Type
-19.04,release,disco,Ubuntu,19.04,20190516,Cloud Image
-18.04,release,bionic;lts,Ubuntu,18.04 LTS,20180421,Cloud Image
-custom,,,OS,26.10,20261007,Cloud Image
-daily:19.10,daily,eoan;devel,Ubuntu,19.10,20190516,Cloud Image
+Image,Remote,Aliases,OS,Release,Version,Hash,Type
+19.04,release,disco,Ubuntu,19.04,20190516,c4e1b2e713d03f9d79a3df8ee3e6b5419f0d7bf4b5610efb5458aa6a68bb4d98,Cloud Image
+18.04,release,bionic;lts,Ubuntu,18.04 LTS,20180421,8dd2e6b5e5aad20c3f836123b300cba9861249408cbb07c359145a65d6bab6b6,Cloud Image
+custom,,,OS,26.10,20261007,28680fe5b371a5a82ebf43a31926e086a168e59949d03969c5093e7071f90b7f,Cloud Image
+daily:19.10,daily,eoan;devel,Ubuntu,19.10,20190516,f0b499f0a7c8b5ca90ad12aa0b11a3643d5d272de02fabfd799eecb6227ec456,Cloud Image
