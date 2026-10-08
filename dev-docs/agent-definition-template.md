@@ -13,16 +13,32 @@ Use this as the starting point for the next one.
 ---
 description: 'One sentence: what it produces and the key constraint/guardrail.'
 name: 'Human-Readable Agent Name'
-tools: ['search/codebase', 'edit/editFiles', 'web/githubRepo', 'web/fetch', 'execute/runInTerminal', 'execute/getTerminalOutput', 'execute/runTask', 'search', 'read/terminalLastCommand', 'todo']
+tools: ['view', 'grep', 'glob', 'create', 'edit', 'bash', 'read_bash', 'list_bash', 'stop_bash', 'task']
 ---
 ```
 
 - `description` is shown in agent pickers — keep it to one sentence and
   include the non-obvious constraint (e.g. "never pushes", "excludes
   already-shipped PRs"), not just the happy-path goal.
-- `tools` should be the minimal set the agent actually needs. Add
-  `search/usages` only if the agent needs to navigate code call sites;
-  omit `edit/editFiles` entirely for read-only/reporting agents.
+- **`tools` must use the harness's own tool IDs, not another harness's.**
+  The release-notes agent's tool list (`search/codebase`, `edit/editFiles`,
+  `web/githubRepo`, ...) is VS Code Copilot Chat/coding-agent vocabulary. If
+  an agent is meant to run via `copilot --agent <name>` (this CLI),
+  verified empirically with
+  `copilot --agent <name> -p "List the names of tools you currently have access to, one per line, nothing else." --allow-all-tools --silent`
+  that unrecognized identifiers are silently dropped — e.g. the
+  VS-Code-style list above mapped onto only `edit`/`bash`/`read_bash`
+  /`list_bash`/`stop_bash`/`skill`/`sql`, silently losing `view`, `create`,
+  `grep`, `glob`, and `task`. Use CLI-native tool IDs (`view`, `create`,
+  `edit`, `bash`, `grep`, `glob`, `task`, `read_bash`, `list_bash`,
+  `stop_bash`, `skill`, `sql`, ...) for a CLI-targeted agent instead, and
+  re-run that same probe after editing the list to confirm it grants what
+  the operating procedure actually needs.
+- Beyond that, keep `tools` to the minimal set the agent actually needs —
+  omit `edit`/`create` entirely for read-only/reporting agents, and favor
+  `--available-tools`/`--excluded-tools` at invocation time (see below) when
+  a step needs an even tighter, temporary restriction than the agent's own
+  default list.
 
 ## Body sections
 
@@ -67,3 +83,12 @@ tools: ['search/codebase', 'edit/editFiles', 'web/githubRepo', 'web/fetch', 'exe
   (`.agent.md` → workflow doc, and the workflow doc → `.agent.md`, plus any
   `tools/<agent-slug>/*.sh` scripts it drives) and add it to
   `dev-docs/README.md`.
+- **Non-interactive/scripted invocation.** An agent can be driven headlessly
+  from a `tools/<agent-slug>/*.sh` wrapper via
+  `copilot --agent <name> -p "<prompt>" --allow-all-tools --no-ask-user -C <repo-root> --silent`
+  (`--no-ask-user` is required — there's no human to answer `ask_user` in a
+  script). Prefer embedding already-fetched data directly in the prompt over
+  letting the model fetch it itself, and use `--available-tools` to
+  structurally enforce a guardrail (e.g. omit `bash` entirely so the model
+  *cannot* run `git diff`/`gh pr diff` even if instructed not to) rather than
+  relying on prompt wording alone for the steps where that matters.
