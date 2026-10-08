@@ -265,6 +265,154 @@ TEST_F(DaemonImages, invalidRemoteName)
     }
 }
 
+TEST_F(DaemonImages, doFilterByAlias)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info("a", {"carot", "orange"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("b", {"banana"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("c", {"apple-pie"}));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    {
+        std::stringstream stream;
+        send_command({"images", "carot"}, stream);
+        EXPECT_THAT(stream.str(),
+                    AllOf(HasSubstr("carot"),
+                          HasSubstr("orange"),
+                          Not(HasSubstr("banana")),
+                          Not(HasSubstr("apple-pie"))));
+    }
+
+    {
+        std::stringstream stream;
+        send_command({"images", "bAnAnA"}, stream);
+        EXPECT_THAT(stream.str(),
+                    AllOf(HasSubstr("banana"),
+                          Not(HasSubstr("carot")),
+                          Not(HasSubstr("orange")),
+                          Not(HasSubstr("apple-pie"))));
+    }
+}
+
+TEST_F(DaemonImages, doFilterByAliasPrefix)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info("a", {"carot", "orange"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("b", {"camembert"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("c", {"camomilla", "flower"}));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    {
+        std::stringstream stream;
+        send_command({"images", "ca"}, stream);
+        EXPECT_THAT(stream.str(),
+                    AllOf(HasSubstr("carot"),
+                          HasSubstr("orange"),
+                          HasSubstr("camembert"),
+                          HasSubstr("camomilla")));
+    }
+
+    {
+        std::stringstream stream;
+        send_command({"images", "CAM"}, stream);
+        EXPECT_THAT(stream.str(),
+                    AllOf(HasSubstr("camembert"),
+                          HasSubstr("camomilla"),
+                          Not(HasSubstr("carot")),
+                          Not(HasSubstr("orange"))));
+    }
+
+    {
+        std::stringstream stream;
+        send_command({"images", "rot"}, stream);
+        EXPECT_THAT(stream.str(),
+                    AllOf(Not(HasSubstr("carot")),
+                          Not(HasSubstr("orange")),
+                          Not(HasSubstr("camembert")),
+                          Not(HasSubstr("camomilla"))));
+    }
+}
+
+TEST_F(DaemonImages, doFilterByMajorVersion)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info("a", {"13.04"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("b", {"13.6"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("c", {"24.04"}));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    {
+        std::stringstream stream;
+        send_command({"images", "1"}, stream);
+        EXPECT_THAT(
+            stream.str(),
+            AllOf(Not(HasSubstr("13.04")), Not(HasSubstr("13.6")), Not(HasSubstr("24.04"))));
+    }
+
+    {
+        std::stringstream stream;
+        send_command({"images", "2"}, stream);
+        EXPECT_THAT(
+            stream.str(),
+            AllOf(Not(HasSubstr("13.04")), Not(HasSubstr("13.6")), Not(HasSubstr("24.04"))));
+    }
+
+    {
+        std::stringstream stream;
+        send_command({"images", "13"}, stream);
+        EXPECT_THAT(stream.str(),
+                    AllOf(HasSubstr("13.04"), HasSubstr("13.6"), Not(HasSubstr("24.04"))));
+    }
+
+    {
+        std::stringstream stream;
+        send_command({"images", "24"}, stream);
+        EXPECT_THAT(stream.str(),
+                    AllOf(Not(HasSubstr("13.04")), Not(HasSubstr("13.6")), HasSubstr("24.04")));
+    }
+
+    {
+        std::stringstream stream;
+        send_command({"images", "04"}, stream);
+        EXPECT_THAT(
+            stream.str(),
+            AllOf(Not(HasSubstr("13.04")), Not(HasSubstr("13.6")), Not(HasSubstr("24.04"))));
+    }
+}
+
+TEST_F(DaemonImages, doNotFilterByHash)
+{
+    const auto alias = "toto";
+    const auto full_hash = "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac";
+    const auto short_hash = "1797c5c";
+
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info(full_hash, {alias}));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    {
+        std::stringstream stream;
+        send_command({"images", alias}, stream);
+        EXPECT_THAT(stream.str(), HasSubstr(alias));
+    }
+
+    {
+        std::stringstream stream;
+        send_command({"images", full_hash}, stream);
+        EXPECT_THAT(stream.str(), Not(HasSubstr(alias)));
+    }
+
+    {
+        std::stringstream stream;
+        send_command({"images", short_hash}, stream);
+        EXPECT_THAT(stream.str(), Not(HasSubstr(alias)));
+    }
+}
+
 TEST_F(DaemonImages, returnSameResultsWhenFilteredByDifferentAliases)
 {
     auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();

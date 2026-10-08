@@ -35,7 +35,7 @@ constexpr std::string deprecated_name = "find";
 constexpr const auto command_filter_help =
     "An optional value to search for in [<remote:>]<string> format, where <remote> is one of the "
     "available remotes. If <remote> is omitted, it will search default remotes. <string> can be a "
-    "partial image hash or a release version, codename or alias.";
+    "codename, an alias, a major version, or an alias prefix.";
 
 struct CommandOptions
 {
@@ -224,7 +224,7 @@ QString Images::short_help() const
 QString Images::description() const
 {
     return QStringLiteral("Lists available images matching <string> for creating instances from.\n"
-                          "With no search string, lists all aliases for supported releases.");
+                          "With no search string, lists images available from default remotes.");
 }
 
 std::vector<std::string> Images::aliases() const
