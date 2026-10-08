@@ -32,11 +32,12 @@ analysis, and tests. Run Flutter commands from `src/client/gui`.
 
 - `lib/generated/` is produced from `src/rpc/multipass.proto` by `protoc` during the CMake GUI
   build. Change the proto, not the generated Dart.
-- `linux/`, `macos/`, and `windows/` contain Flutter runner templates; clang-format is disabled
-  there. Change them only when the task requires it.
+- `linux/`, `macos/`, and `windows/` contain Flutter runner templates (clang-format is disabled
+  in `linux/` and `windows/`). Change them only when the task requires it; the C++ instructions
+  do not apply to runner code.
 
 ## Tests
 
 - Put tests under `test/`, mirroring the `lib/` feature folders, with the `_test.dart` suffix.
 - Replace dependencies with `ProviderScope(overrides: [...])` or a `ProviderContainer` with
-  overrides. The project does not use mockito or mocktail; do not add them.
+  overrides. The project has no mocking package; prefer provider overrides to adding one.

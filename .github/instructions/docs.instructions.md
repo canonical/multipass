@@ -37,7 +37,7 @@ User-facing docs are Sphinx with the Canonical starter pack, written in MyST Mar
 
 ## Validation
 
-Run from `docs/`. CI runs Canonical's shared documentation checks on every PR.
+Run from `docs/`. CI runs Canonical's shared documentation checks on PRs that touch `docs/`.
 
 ```bash
 make html        # build with warnings as errors
