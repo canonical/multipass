@@ -164,6 +164,7 @@ message ImagesReply {
     repeated ImageInfo images_info = 1;
     string log_line = 2;
     bool all_remotes = 3;
+    string retry_with_remote = 4;
 }
 
 message RemotesRequest {

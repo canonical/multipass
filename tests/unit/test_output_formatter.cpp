@@ -688,6 +688,13 @@ auto construct_empty_reply()
     return reply;
 }
 
+auto construct_empty_reply_remote_hint()
+{
+    auto reply = mp::ImagesReply();
+    reply.set_retry_with_remote("core");
+    return reply;
+}
+
 auto construct_images_one_reply()
 {
     auto reply = mp::ImagesReply();
@@ -1243,6 +1250,7 @@ const std::vector<FormatterParamType> remotes_formatter_outputs{
      "yaml_remotes_multiple"}};
 
 const auto empty_images_reply = construct_empty_reply();
+const auto empty_images_reply_with_remote_hint = construct_empty_reply_remote_hint();
 const auto images_one_reply = construct_images_one_reply();
 const auto images_multiple_reply = construct_images_multiple_reply();
 const auto images_multiple_reply_all = construct_images_multiple_reply_all();
@@ -1255,6 +1263,10 @@ const std::vector<FormatterParamType> images_formatter_outputs{
      &empty_images_reply,
      mpt::load_test_file("formatters/table/empty_images_reply.txt").toStdString(),
      "table_images_empty"},
+    {&table_formatter,
+     &empty_images_reply_with_remote_hint,
+     mpt::load_test_file("formatters/table/empty_images_reply_remote_hint.txt").toStdString(),
+     "table_images_empty_with_remote_hint"},
     {&table_formatter,
      &images_one_reply,
      mpt::load_test_file("formatters/table/images_one_reply.txt").toStdString(),
@@ -1281,6 +1293,10 @@ const std::vector<FormatterParamType> images_formatter_outputs{
      mpt::load_test_file("formatters/json/empty_images_reply.json").toStdString(),
      "json_images_empty"},
     {&json_formatter,
+     &empty_images_reply_with_remote_hint,
+     mpt::load_test_file("formatters/json/empty_images_reply.json").toStdString(),
+     "json_images_empty_with_remote_hint"},
+    {&json_formatter,
      &images_one_reply,
      mpt::load_test_file("formatters/json/images_one_reply.json").toStdString(),
      "json_images_one"},
@@ -1302,6 +1318,10 @@ const std::vector<FormatterParamType> images_formatter_outputs{
      mpt::load_test_file("formatters/csv/empty_images_reply.csv").toStdString(),
      "csv_images_empty"},
     {&csv_formatter,
+     &empty_images_reply_with_remote_hint,
+     mpt::load_test_file("formatters/csv/empty_images_reply.csv").toStdString(),
+     "csv_images_empty_with_remote_hint"},
+    {&csv_formatter,
      &images_one_reply,
      mpt::load_test_file("formatters/csv/images_one_reply.csv").toStdString(),
      "csv_images_one"},
@@ -1321,6 +1341,10 @@ const std::vector<FormatterParamType> images_formatter_outputs{
      &empty_images_reply,
      mpt::load_test_file("formatters/yaml/empty_images_reply.yaml").toStdString(),
      "yaml_images_empty"},
+    {&yaml_formatter,
+     &empty_images_reply_with_remote_hint,
+     mpt::load_test_file("formatters/yaml/empty_images_reply.yaml").toStdString(),
+     "yaml_images_empty_with_remote_hint"},
     {&yaml_formatter,
      &images_one_reply,
      mpt::load_test_file("formatters/yaml/images_one_reply.yaml").toStdString(),

@@ -265,6 +265,21 @@ TEST_F(DaemonImages, invalidRemoteName)
     }
 }
 
+TEST_F(DaemonImages, returnUsageHintWhenRemoteUsedAsFilter)
+{
+    add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    send_command({"images", "custom"}, stream);
+
+    constexpr auto expected_result =
+        "No images found. To search a specific remote, use ‘multipass images custom:’\n"
+        "Run ‘multipass images --remotes’ to see all available remotes.\n";
+    EXPECT_THAT(stream.str(), Eq(expected_result));
+}
+
 TEST_F(DaemonImages, doFilterByAlias)
 {
     auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();

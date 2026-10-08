@@ -1830,6 +1830,14 @@ try
         }
     }
 
+    if (response.images_info().empty() && !filter.empty() && request->remote_name().empty())
+    {
+        if (config->vault->image_host_for(filter) != nullptr)
+        {
+            response.set_retry_with_remote(filter);
+        }
+    }
+
     server->Write(response);
     context->set_value(grpc::Status::OK);
 }
