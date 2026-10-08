@@ -3,6 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/confirmation_dialog.dart';
 import 'package:multipass_gui/delete_instance_dialog.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/app_localizations_en.dart';
+
+final _l10n = AppLocalizationsEn();
 
 Widget buildWidget({required VoidCallback onDelete, int count = 1}) {
   return MaterialApp(
@@ -27,25 +30,25 @@ Widget buildWidget({required VoidCallback onDelete, int count = 1}) {
 
 void main() {
   group('DeleteInstanceDialog', () {
-    testWidgets('renders a ConfirmationDialog', (tester) async {
-      await tester.pumpWidget(buildWidget(onDelete: () {}));
-      await tester.tap(find.text('Open'));
-      await tester.pumpAndSettle();
+    for (final count in [1, 2]) {
+      testWidgets('uses count=$count for the title and body', (tester) async {
+        await tester.pumpWidget(buildWidget(onDelete: () {}, count: count));
+        await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(ConfirmationDialog), findsOneWidget);
-    });
+        expect(find.text(_l10n.deleteInstanceTitle(count)), findsOneWidget);
+        expect(find.text(_l10n.deleteInstanceBody(count)), findsOneWidget);
+      });
+    }
 
-    testWidgets('invoking delete calls onDelete and closes the dialog',
+    testWidgets('delete button calls onDelete and closes the dialog',
         (tester) async {
       var deleted = false;
       await tester.pumpWidget(buildWidget(onDelete: () => deleted = true));
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      // The delete button has an explicit red backgroundColor style.
-      await tester.tap(find.byWidgetPredicate(
-        (w) => w is TextButton && w.style?.backgroundColor != null,
-      ));
+      await tester.tap(find.text(_l10n.commonDelete));
       await tester.pumpAndSettle();
 
       expect(deleted, isTrue);
@@ -59,7 +62,7 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(OutlinedButton));
+      await tester.tap(find.text(_l10n.commonCancel));
       await tester.pumpAndSettle();
 
       expect(deleted, isFalse);
