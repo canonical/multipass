@@ -1,21 +1,15 @@
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
 import 'package:multipass_gui/notifications/notification_entries.dart';
 import 'package:multipass_gui/notifications/notifications_provider.dart';
 
-void main() {
-  group('objectToString', () {
-    test('returns the toString() of the argument', () {
-      expect(objectToString(42), equals('42'));
-      expect(objectToString('hello'), equals('hello'));
-      expect(objectToString(null), equals('null'));
-      expect(objectToString([1, 2, 3]), equals('[1, 2, 3]'));
-    });
-  });
+String? errorText(Widget notification) =>
+    ((notification as ErrorNotification).child as Text).data;
 
+void main() {
   group('NotificationsNotifier', () {
     late ProviderContainer container;
 
@@ -33,19 +27,11 @@ void main() {
     NotificationsNotifier notifier() =>
         container.read(notificationsProvider.notifier);
 
-    test('initial state is an empty BuiltList', () {
+    test('initial state is empty', () {
       expect(state(), isEmpty);
-      expect(state(), isA<BuiltList<Widget>>());
     });
 
-    test('add() appends a widget to the list', () {
-      final widget = const SizedBox();
-      notifier().add(widget);
-      expect(state(), hasLength(1));
-      expect(state().first, same(widget));
-    });
-
-    test('add() multiple times grows the list in order', () {
+    test('add() appends widgets in order', () {
       final first = const SizedBox(key: ValueKey('first'));
       final second = const SizedBox(key: ValueKey('second'));
       final third = const SizedBox(key: ValueKey('third'));
@@ -75,122 +61,90 @@ void main() {
       expect(state().first, same(kept));
     });
 
-    test('addError() with a plain object adds an ErrorNotification', () {
-      notifier().addError('something went wrong');
+    test('addError() shows the error toString() by default', () {
+      notifier().addError(Exception('boom'));
       expect(state(), hasLength(1));
-      expect(state().first, isA<ErrorNotification>());
+      expect(errorText(state().first), equals('Exception: boom'));
     });
 
-    test('addError() with a plain object uses objectToString by default', () {
-      const error = 'plain error';
-      notifier().addError(error);
-      // The default format is objectToString which calls .toString().
-      expect(state(), hasLength(1));
-      expect(state().first, isA<ErrorNotification>());
+    test('addError() shows only the message of a GrpcError', () {
+      notifier().addError(GrpcError.internal('grpc error message'));
+      expect(errorText(state().first), equals('grpc error message'));
     });
 
-    test(
-        'addError() with a GrpcError extracts the message instead of using the '
-        'full error string', () {
-      const message = 'grpc error message';
-      final grpcError = GrpcError.internal(message);
-
-      var capturedArg = Object();
-      notifier().addError(grpcError, (e) {
-        capturedArg = e!;
-        return e.toString();
-      });
-
-      // The notifier must have unwrapped the GrpcError to its message before
-      // calling the format function.
-      expect(capturedArg, equals(message));
-      expect(state(), hasLength(1));
-      expect(state().first, isA<ErrorNotification>());
+    test('addError() shows the output of a custom format function', () {
+      notifier().addError('raw error', (e) => 'formatted: $e');
+      expect(errorText(state().first), equals('formatted: raw error'));
     });
 
-    test('addError() with a custom format function calls it with the error',
+    test('addOperation() adds an OperationNotification with the loading text',
         () {
-      const error = 'raw error';
-      var called = false;
-      String? captured;
-
-      notifier().addError(error, (e) {
-        called = true;
-        captured = e as String?;
-        return 'formatted: $e';
-      });
-
-      expect(called, isTrue);
-      expect(captured, equals(error));
-      expect(state(), hasLength(1));
-      expect(state().first, isA<ErrorNotification>());
-    });
-
-    test('addOperation() adds an OperationNotification to the list', () {
-      final future = Future.value('done');
       notifier().addOperation(
-        future,
-        loading: 'loading...',
-        onSuccess: (result) => 'success: $result',
-        onError: (e) => 'error: $e',
-      );
-      expect(state(), hasLength(1));
-      expect(state().first, isA<OperationNotification>());
-    });
-
-    test('addOperation() OperationNotification carries the loading text', () {
-      const loadingText = 'doing work';
-      final future = Future.value('result');
-      notifier().addOperation(
-        future,
-        loading: loadingText,
+        Future.value('result'),
+        loading: 'doing work',
         onSuccess: (r) => r,
         onError: (e) => e.toString(),
       );
 
+      expect(state(), hasLength(1));
       final notification = state().first as OperationNotification;
-      expect(notification.text, equals(loadingText));
+      expect(notification.text, equals('doing work'));
+    });
+
+    test('addOperation() maps a successful result through onSuccess', () async {
+      notifier().addOperation(
+        Future.value(42),
+        loading: 'loading',
+        onSuccess: (r) => 'success: $r',
+        onError: (e) => 'error: $e',
+      );
+
+      final notification = state().first as OperationNotification;
+      await expectLater(notification.future, completion('success: 42'));
+    });
+
+    test('addOperation() passes only the GrpcError message to onError',
+        () async {
+      notifier().addOperation<String>(
+        Future.error(GrpcError.internal('boom')),
+        loading: 'loading',
+        onSuccess: (r) => r,
+        onError: (e) => 'error: $e',
+      );
+
+      final notification = state().first as OperationNotification;
+      await expectLater(notification.future, throwsA('error: boom'));
     });
   });
 
   group('ErrorNotificationWidgetRefExtension.notifyError', () {
-    testWidgets('adds an ErrorNotification when called with a plain error',
+    testWidgets('adds an ErrorNotification with the formatted error',
         (tester) async {
-      late WidgetRef capturedRef;
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.listen(notificationsProvider, (_, __) {});
+      late WidgetRef ref;
 
       await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: Consumer(
-                builder: (_, ref, __) {
-                  capturedRef = ref;
-                  ref.watch(notificationsProvider);
-                  return const SizedBox();
-                },
-              ),
-            ),
+        UncontrolledProviderScope(
+          container: container,
+          child: Consumer(
+            builder: (_, widgetRef, __) {
+              ref = widgetRef;
+              return const SizedBox();
+            },
           ),
         ),
       );
 
-      final handler = capturedRef.notifyError((e) => 'Formatted: $e');
+      final handler = ref.notifyError((e) => 'Formatted: $e');
       handler('something went wrong', StackTrace.empty);
 
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(Consumer)),
-      );
       expect(container.read(notificationsProvider), hasLength(1));
       expect(
-        container.read(notificationsProvider).first,
-        isA<ErrorNotification>(),
+        errorText(container.read(notificationsProvider).first),
+        equals('Formatted: something went wrong'),
       );
-
-      final notification =
-          container.read(notificationsProvider).first as ErrorNotification;
-
-      await tester.pumpWidget(MaterialApp(home: Scaffold(body: notification)));
-      expect(find.text('Formatted: something went wrong'), findsOneWidget);
     });
   });
 }
