@@ -1,22 +1,32 @@
 (reference-command-line-interface-images)=
 # images
 
-The `multipass images` command without any argument lists the images Multipass can use to run instances with [`launch`](/reference/command-line-interface/launch) on your system and associated version information. For example:
+The `multipass images` command lists the images Multipass can use to run instances with [`launch`](/reference/command-line-interface/launch) on your system and associated version information. For example:
 
 ```{code-block} text
 Image             Aliases                     Version          Description
-22.04             jammy                       20260705         Ubuntu 22.04 LTS
-24.04             noble                       20260705         Ubuntu 24.04 LTS
-26.04             resolute,lts,ubuntu         20260720         Ubuntu 26.04 LTS
-daily:26.10       stonking,devel              20260627         Ubuntu 26.10
-core:core16                                   current          Ubuntu Core 16
-core:core18                                   current          Ubuntu Core 18
-core:core20                                   current          Ubuntu Core 20
-core:core22                                   current          Ubuntu Core 22
-core:core24                                   current          Ubuntu Core 24
-core:core26                                   current          Ubuntu Core 26
-debian            trixie                      20260706         Debian Trixie
+22.04             jammy                       20261004         Ubuntu 22.04 LTS
+24.04             noble                       20260926         Ubuntu 24.04 LTS
+26.04             resolute,lts,ubuntu         20260927         Ubuntu 26.04 LTS
+debian            trixie                      20261001         Debian 13
 fedora                                        20260422         Fedora 44
+```
+
+If no arguments are provided, `multipass images` only lists images from the default remotes.
+The `--all` option includes images from all available remotes.
+
+```{code-block} text
+Remote              Image             Aliases                     Version          Description
+(default)           22.04             jammy                       20261004         Ubuntu 22.04 LTS
+(default)           24.04             noble                       20260926         Ubuntu 24.04 LTS
+(default)           26.04             resolute,lts,ubuntu         20260927         Ubuntu 26.04 LTS
+(default)           debian            trixie                      20261001         Debian 13
+(default)           fedora                                        20260422         Fedora 44
+core                core16                                        current          Ubuntu Core 16
+core                core18                                        current          Ubuntu Core 18
+...
+snapcraft           26.04             resolute,lts,core26         20260802         Ubuntu 26.04 LTS
+snapcraft           26.10             stonking,devel              20261006         Ubuntu 26.10
 ```
 
 Launch aliases, version information and a brief description are shown next to each name in the command output.
@@ -41,8 +51,7 @@ The command also supports searching through available images. For example, `mult
 
 ```{code-block} text
 Image             Aliases                     Version          Description
-daily:resolute                                20260720         Ubuntu 26.04 LTS
-resolute                                      20260720         Ubuntu 26.04 LTS
+26.04             resolute,lts,ubuntu         20260927         Ubuntu 26.04 LTS
 ```
 
 To search images within a specific remote, `<remote_name>:` can be passed as parameter.
@@ -50,10 +59,10 @@ For instance, `multipass images daily:` returns:
 
 ```{code-block} text
 Image             Aliases                     Version          Description
-daily:22.04       jammy                       20260926         Ubuntu 22.04 LTS
-daily:24.04       noble                       20260926         Ubuntu 24.04 LTS
-daily:26.04       resolute,lts                20260927         Ubuntu 26.04 LTS
-daily:26.10       stonking,devel              20260919         Ubuntu 26.10
+22.04             jammy                       20261004         Ubuntu 22.04 LTS
+24.04             noble                       20260926         Ubuntu 24.04 LTS
+26.04             resolute,lts                20260927         Ubuntu 26.04 LTS
+26.10             stonking,devel              20261006         Ubuntu 26.10
 ```
 
 To list all available remotes, use `multipass images --remotes`:
@@ -81,6 +90,7 @@ Options:
                       option for more detail. Maximum verbosity is obtained with
                       4 (or more) v's, i.e. -vvvv.
   --remotes           List all available remotes.
+  --all               Images from all remotes will be shown.
   --show-unsupported  Show unsupported cloud images as well
   --format <format>   Output list in the requested format.
                       Valid formats are: table (default), json, csv and yaml
@@ -89,8 +99,7 @@ Options:
 Arguments:
   string              An optional value to search for in [<remote:>]<string>
                       format, where <remote> is one of the available remotes. If
-                      <remote> is omitted, it will search ‘release‘ first, and
-                      if no matches are found, it will then search ‘daily‘.
+                      <remote> is omitted, it will search default remotes.
                       <string> can be a partial image hash or a release version,
                       codename or alias.
 ```

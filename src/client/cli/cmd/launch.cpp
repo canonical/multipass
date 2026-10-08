@@ -128,10 +128,10 @@ mp::ReturnCodeVariant cmd::Launch::run(mp::ArgParser* parser)
 
     if (MP_SETTINGS.get_as<bool>(mounts_key))
     {
-        auto has_home_mount =
-            std::count_if(mount_routes.begin(), mount_routes.end(), [](const auto& route) {
-                return route.second == home_automount_dir;
-            });
+        auto has_home_mount = std::count_if(
+            mount_routes.begin(),
+            mount_routes.end(),
+            [](const auto& route) { return route.second == home_automount_dir; });
 
         if (got_petenv && !has_home_mount)
         {
@@ -183,14 +183,11 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument(
         "image",
-        "Optional image to launch. If omitted, then the latest Ubuntu LTS "
-        "will be used.\n"
-        "<remote> can be either ‘release’ or ‘daily‘. If <remote> is omitted, "
-        "‘release’ will be used.\n"
-        "<image> can be a partial image hash or an Ubuntu release version, "
-        "codename or alias.\n"
-        "<url> is a custom image URL that is in http://, https://, or file:// "
-        "format.\n",
+        "Optional image to launch. If omitted, then the latest Ubuntu LTS will be used.\n"
+        "<remote> can be any of the available remotes returned by ‘multipass images --remotes’. If "
+        "<remote> is omitted, image will be searched for in one of the default remotes.\n"
+        "<image> can be a partial image hash or an Ubuntu release version, codename or alias.\n"
+        "<url> is a custom image URL that is in http://, https://, or file:// format.\n",
         "[[<remote:>]<image> | <url>]");
     QCommandLineOption cpusOption({"c", "cpus"},
                                   QString::fromStdString(fmt::format("Number of CPUs to allocate.\n"
@@ -219,9 +216,9 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "memory",
         QString::fromUtf8(default_memory_size)); // In MB's
 
-    const auto valid_name_desc =
-        QString{"Valid names must consist of letters, numbers, or hyphens, must start with a "
-                "letter, and must end with an alphanumeric character."};
+    const auto valid_name_desc = QString{
+        "Valid names must consist of letters, numbers, or hyphens, must start with a "
+        "letter, and must end with an alphanumeric character."};
     const auto name_option_desc =
         petenv_name.isEmpty()
             ? QString{"Name for the instance.\n%1"}.arg(valid_name_desc)
@@ -431,8 +428,9 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         }
         catch (const YAML::BadFile& e)
         {
-            auto err_detail =
-                fmt::format("{}\n{}", e.what(), "Please ensure that Multipass can read it.");
+            auto err_detail = fmt::format("{}\n{}",
+                                          e.what(),
+                                          "Please ensure that Multipass can read it.");
             fmt::println(cerr, err_msg_template, err_detail);
             return ParseCode::CommandLineError;
         }
@@ -533,10 +531,10 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         for (const auto& workspace_to_be_created : reply.workspaces_to_be_created())
         {
             auto home_dir = mpu::in_multipass_snap()
-                                ? QString::fromLocal8Bit(mpu::snap_real_home_dir())
-                                : MP_STDPATHS.writableLocation(StandardPaths::HomeLocation);
-            auto full_path_str =
-                home_dir + "/multipass/" + QString::fromStdString(workspace_to_be_created);
+                              ? QString::fromLocal8Bit(mpu::snap_real_home_dir())
+                              : MP_STDPATHS.writableLocation(StandardPaths::HomeLocation);
+            auto full_path_str = home_dir + "/multipass/" +
+                                 QString::fromStdString(workspace_to_be_created);
 
             QDir full_path(full_path_str);
             if (full_path.exists())
@@ -588,18 +586,18 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         {
             if (error == LaunchError::INVALID_DISK_SIZE)
             {
-                error_details =
-                    fmt::format("Invalid disk size value supplied: {}.", request.disk_space());
+                error_details = fmt::format("Invalid disk size value supplied: {}.",
+                                            request.disk_space());
             }
             else if (error == LaunchError::INVALID_MEM_SIZE)
             {
-                error_details =
-                    fmt::format("Invalid memory size value supplied: {}.", request.mem_size());
+                error_details = fmt::format("Invalid memory size value supplied: {}.",
+                                            request.mem_size());
             }
             else if (error == LaunchError::INVALID_HOSTNAME)
             {
-                error_details =
-                    fmt::format("Invalid instance name supplied: {}", request.instance_name());
+                error_details = fmt::format("Invalid instance name supplied: {}",
+                                            request.instance_name());
             }
             else if (error == LaunchError::INVALID_NETWORK)
             {

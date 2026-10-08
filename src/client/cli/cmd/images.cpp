@@ -34,9 +34,8 @@ constexpr std::string deprecated_name = "find";
 
 constexpr const auto command_filter_help =
     "An optional value to search for in [<remote:>]<string> format, where <remote> is one of the "
-    "available remotes. If <remote> is omitted, it will search ‘release‘ first, and if no matches "
-    "are found, it will then search ‘daily‘. <string> can be a partial image hash or a release "
-    "version, codename or alias.";
+    "available remotes. If <remote> is omitted, it will search default remotes. <string> can be a "
+    "partial image hash or a release version, codename or alias.";
 
 struct CommandOptions
 {

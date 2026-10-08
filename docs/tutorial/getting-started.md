@@ -324,23 +324,16 @@ In Multipass, an instance with the name "primary" is privileged. That is, it ser
 
 ## Create a customised instance
 
-Multipass has a great feature to help you get started with creating customised instances. Open a terminal and run the `multipass images` command. The result shows a list of all images you can currently launch through Multipass.
+Multipass has a great feature to help you get started with creating customised instances. Open a terminal and run the `multipass images` command. The result shows a list of images you can currently launch through Multipass.
 
 ```{code-block} text
 $ multipass images
-Image                       Aliases              Version          Description
-22.04                       jammy                20260515         Ubuntu 22.04 LTS
-24.04                       noble                20260518         Ubuntu 24.04 LTS
-25.10                       questing             20260520         Ubuntu 25.10
-26.04                       resolute,lts,ubuntu  20260520         Ubuntu 26.04 LTS
-core:core16                                      current          Ubuntu Core 16
-core:core18                                      current          Ubuntu Core 18
-core:core20                                      current          Ubuntu Core 20
-core:core22                                      current          Ubuntu Core 22
-core:core24                                      current          Ubuntu Core 24
-core:core26                                      current          Ubuntu Core 26
-debian                      trixie               20260601         Debian Trixie
-fedora                                           20260422         Fedora 44
+Image             Aliases                     Version          Description
+22.04             jammy                       20261004         Ubuntu 22.04 LTS
+24.04             noble                       20260926         Ubuntu 24.04 LTS
+26.04             resolute,lts,ubuntu         20260927         Ubuntu 26.04 LTS
+debian            trixie                      20261001         Debian 13
+fedora                                        20260422         Fedora 44
 ```
 
 `````{tab-set}
