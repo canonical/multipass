@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:built_collection/built_collection.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,7 @@ import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/notifications/notification_entries.dart';
 import 'package:multipass_gui/notifications/notifications_list.dart';
+import 'package:multipass_gui/notifications/notifications_provider.dart';
 import 'package:multipass_gui/providers.dart';
 import 'package:multipass_gui/sidebar.dart';
 
@@ -34,18 +36,29 @@ void main() {
       expect(find.text('hello'), findsOneWidget);
     });
 
-    testWidgets('shows close button when closeable is true', (tester) async {
+    testWidgets('close button dispatches CloseNotificationIntent',
+        (tester) async {
+      var invoked = false;
+
       await tester.pumpWidget(
         buildWidget(
-          SimpleNotification(
-            barColor: Colors.blue,
-            icon: const Icon(Icons.info),
-            closeable: true,
-            child: const Text('x'),
+          Actions(
+            actions: {
+              CloseNotificationIntent: CallbackAction<CloseNotificationIntent>(
+                onInvoke: (_) => invoked = true,
+              ),
+            },
+            child: SimpleNotification(
+              barColor: Colors.blue,
+              icon: const Icon(Icons.info),
+              child: const Text('close me'),
+            ),
           ),
         ),
       );
-      expect(find.byIcon(Icons.close), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.close));
+      expect(invoked, isTrue);
     });
 
     testWidgets('hides close button when closeable is false', (tester) async {
@@ -60,19 +73,6 @@ void main() {
         ),
       );
       expect(find.byIcon(Icons.close), findsNothing);
-    });
-
-    testWidgets('renders the icon', (tester) async {
-      await tester.pumpWidget(
-        buildWidget(
-          SimpleNotification(
-            barColor: Colors.green,
-            icon: const Icon(Icons.check_circle),
-            child: const Text('x'),
-          ),
-        ),
-      );
-      expect(find.byIcon(Icons.check_circle), findsOneWidget);
     });
   });
 
@@ -154,149 +154,134 @@ void main() {
     });
   });
 
-  group('SimpleNotification close button', () {
-    testWidgets('tapping close button dispatches CloseNotificationIntent',
-        (tester) async {
-      var invoked = false;
-
-      await tester.pumpWidget(
+  group('TimeoutNotification', () {
+    Future<void> pumpTimeout(WidgetTester tester, VoidCallback onClose) {
+      return tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: Actions(
               actions: {
                 CloseNotificationIntent:
                     CallbackAction<CloseNotificationIntent>(
-                  onInvoke: (_) => invoked = true,
+                  onInvoke: (_) => onClose(),
                 ),
               },
-              child: SimpleNotification(
-                barColor: Colors.blue,
-                icon: const Icon(Icons.info),
-                closeable: true,
-                child: const Text('close me'),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: 300,
+                  height: 60,
+                  child: TimeoutNotification(
+                    barColor: Colors.green,
+                    icon: const Icon(Icons.check),
+                    duration: const Duration(seconds: 1),
+                    child: const Text('will close'),
+                  ),
+                ),
               ),
             ),
           ),
         ),
       );
+    }
 
-      await tester.tap(find.byIcon(Icons.close));
-      expect(invoked, isTrue);
-    });
-  });
+    testWidgets('closes only after the duration elapses', (tester) async {
+      var closed = false;
+      await pumpTimeout(tester, () => closed = true);
 
-  group('TimeoutNotification', () {
-    testWidgets('renders child widget', (tester) async {
-      await tester.pumpWidget(
-        buildWidget(
-          TimeoutNotification(
-            barColor: Colors.green,
-            icon: const Icon(Icons.check),
-            child: const Text('timeout content'),
-          ),
-        ),
-      );
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 900));
+      expect(closed, isFalse);
 
-      expect(find.text('timeout content'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(closed, isTrue);
     });
 
-    testWidgets('renders icon', (tester) async {
-      await tester.pumpWidget(
-        buildWidget(
-          TimeoutNotification(
-            barColor: Colors.green,
-            icon: const Icon(Icons.check_circle),
-            child: const Text('x'),
-          ),
-        ),
-      );
-      await tester.pump();
-
-      expect(find.byIcon(Icons.check_circle), findsOneWidget);
-    });
-
-    testWidgets('auto-closes after duration via CloseNotificationIntent',
+    testWidgets('hovering pauses the timeout and leaving restarts it',
         (tester) async {
       var closed = false;
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: const Offset(700, 500));
+      addTearDown(mouse.removePointer);
+      await pumpTimeout(tester, () => closed = true);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Actions(
-              actions: {
-                CloseNotificationIntent:
-                    CallbackAction<CloseNotificationIntent>(
-                  onInvoke: (_) => closed = true,
-                ),
-              },
-              child: TimeoutNotification(
-                barColor: Colors.green,
-                icon: const Icon(Icons.check),
-                duration: Duration.zero,
-                child: const Text('will close'),
-              ),
-            ),
-          ),
-        ),
-      );
+      await tester.pump(const Duration(milliseconds: 900));
+      await mouse.moveTo(tester.getCenter(find.text('will close')));
+      await tester.pump(const Duration(seconds: 2));
+      expect(closed, isFalse);
 
-      await tester.pumpAndSettle();
+      await mouse.moveTo(const Offset(700, 500));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 900));
+      expect(closed, isFalse);
 
+      await tester.pump(const Duration(milliseconds: 200));
       expect(closed, isTrue);
     });
   });
 
   group('SuccessNotification', () {
-    testWidgets('renders child widget', (tester) async {
+    testWidgets('shows the child with a success icon', (tester) async {
       await tester.pumpWidget(
         buildWidget(
           const SuccessNotification(child: Text('success message')),
         ),
       );
-      await tester.pump();
 
       expect(find.text('success message'), findsOneWidget);
-    });
-
-    testWidgets('renders green check circle icon', (tester) async {
-      await tester.pumpWidget(
-        buildWidget(
-          const SuccessNotification(child: Text('ok')),
-        ),
-      );
-      await tester.pump();
-
       expect(find.byIcon(Icons.check_circle_outline), findsOneWidget);
     });
   });
 
   group('LaunchingNotification', () {
-    Widget buildApp(Widget child) {
-      return ProviderScope(
+    Future<ProviderContainer> pumpApp(WidgetTester tester, Widget body) async {
+      final container = ProviderContainer(
         overrides: [
           vmNamesProvider.overrideWith((ref) => BuiltSet<String>()),
         ],
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(body: child),
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(body: body),
+          ),
         ),
       );
+      return container;
     }
 
-    testWidgets('shows GrpcError.message text on stream error', (tester) async {
+    StreamController<Either<LaunchReply, MountReply>?> newController() {
       final controller =
           StreamController<Either<LaunchReply, MountReply>?>.broadcast();
       addTearDown(controller.close);
+      return controller;
+    }
 
-      await tester.pumpWidget(buildApp(
+    Either<LaunchReply, MountReply> progress(
+      LaunchProgress_ProgressType type, [
+      String percentComplete = '',
+    ]) {
+      return Left(LaunchReply(
+        launchProgress: LaunchProgress(
+          type: type,
+          percentComplete: percentComplete,
+        ),
+      ));
+    }
+
+    testWidgets('shows GrpcError.message text on stream error', (tester) async {
+      final controller = newController();
+      await pumpApp(
+        tester,
         LaunchingNotification(
           stream: controller.stream,
           cancelCompleter: Completer(),
           name: 'my-vm',
         ),
-      ));
+      );
       await tester.pump();
 
       final error =
@@ -309,17 +294,15 @@ void main() {
 
     testWidgets('shows error.toString() for non-GrpcError on stream error',
         (tester) async {
-      final controller =
-          StreamController<Either<LaunchReply, MountReply>?>.broadcast();
-      addTearDown(controller.close);
-
-      await tester.pumpWidget(buildApp(
+      final controller = newController();
+      await pumpApp(
+        tester,
         LaunchingNotification(
           stream: controller.stream,
           cancelCompleter: Completer(),
           name: 'my-vm',
         ),
-      ));
+      );
       await tester.pump();
 
       controller.addError(Exception('plain exception'));
@@ -331,13 +314,14 @@ void main() {
     testWidgets(
         'shows SuccessNotification with "Go to instance" when stream completes',
         (tester) async {
-      await tester.pumpWidget(buildApp(
+      await pumpApp(
+        tester,
         LaunchingNotification(
           stream: Stream<Either<LaunchReply, MountReply>?>.fromIterable([]),
           cancelCompleter: Completer(),
           name: 'my-vm',
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.byType(SuccessNotification), findsOneWidget);
@@ -347,29 +331,12 @@ void main() {
     testWidgets(
         '"Go to instance" button sets sidebarKeyProvider to "vm-{name}"',
         (tester) async {
-      final container = ProviderContainer(
-        overrides: [
-          vmNamesProvider.overrideWith((ref) => BuiltSet<String>()),
-        ],
-      );
-      addTearDown(container.dispose);
-      container.listen(sidebarKeyProvider, (_, __) {});
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(
-              body: LaunchingNotification(
-                stream:
-                    Stream<Either<LaunchReply, MountReply>?>.fromIterable([]),
-                cancelCompleter: Completer(),
-                name: 'my-vm',
-              ),
-            ),
-          ),
+      final container = await pumpApp(
+        tester,
+        LaunchingNotification(
+          stream: Stream<Either<LaunchReply, MountReply>?>.fromIterable([]),
+          cancelCompleter: Completer(),
+          name: 'my-vm',
         ),
       );
       await tester.pump();
@@ -378,25 +345,38 @@ void main() {
       expect(container.read(sidebarKeyProvider), equals('vm-my-vm'));
     });
 
-    testWidgets('VERIFY progress shows verify message without cancel button',
+    testWidgets('tapping the in-progress notification goes to the instance',
         (tester) async {
-      final controller =
-          StreamController<Either<LaunchReply, MountReply>?>.broadcast();
-      addTearDown(controller.close);
-
-      await tester.pumpWidget(buildApp(
+      final controller = newController();
+      final container = await pumpApp(
+        tester,
         LaunchingNotification(
           stream: controller.stream,
           cancelCompleter: Completer(),
           name: 'my-vm',
         ),
-      ));
+      );
 
-      controller.add(Left(LaunchReply(
-        launchProgress: LaunchProgress(
-          type: LaunchProgress_ProgressType.VERIFY,
+      controller.add(progress(LaunchProgress_ProgressType.VERIFY));
+      await tester.pump();
+
+      await tester.tap(find.textContaining(_l10n.launchVerifyingImage));
+      expect(container.read(sidebarKeyProvider), equals('vm-my-vm'));
+    });
+
+    testWidgets('VERIFY progress shows verify message without cancel button',
+        (tester) async {
+      final controller = newController();
+      await pumpApp(
+        tester,
+        LaunchingNotification(
+          stream: controller.stream,
+          cancelCompleter: Completer(),
+          name: 'my-vm',
         ),
-      )));
+      );
+
+      controller.add(progress(LaunchProgress_ProgressType.VERIFY));
       await tester.pump();
 
       expect(find.textContaining(_l10n.launchVerifyingImage), findsOneWidget);
@@ -405,57 +385,95 @@ void main() {
 
     testWidgets('download progress shows percentage and cancel button',
         (tester) async {
-      final controller =
-          StreamController<Either<LaunchReply, MountReply>?>.broadcast();
-      addTearDown(controller.close);
-
-      await tester.pumpWidget(buildApp(
+      final controller = newController();
+      await pumpApp(
+        tester,
         LaunchingNotification(
           stream: controller.stream,
           cancelCompleter: Completer(),
           name: 'my-vm',
         ),
-      ));
+      );
 
-      controller.add(Left(LaunchReply(
-        launchProgress: LaunchProgress(
-          type: LaunchProgress_ProgressType.IMAGE,
-          percentComplete: '42',
-        ),
-      )));
+      controller.add(progress(LaunchProgress_ProgressType.IMAGE, '42'));
       await tester.pump();
 
       expect(find.textContaining('42'), findsOneWidget);
       expect(find.text(_l10n.commonCancel), findsOneWidget);
     });
 
+    final messageReplies = <String, Either<LaunchReply, MountReply>>{
+      'create message': Left(LaunchReply(createMessage: 'status update')),
+      'launch reply message': Left(LaunchReply(replyMessage: 'status update')),
+      'mount reply message': Right(MountReply(replyMessage: 'status update')),
+    };
+
+    for (final MapEntry(key: kind, value: reply) in messageReplies.entries) {
+      testWidgets('shows the $kind without a cancel button', (tester) async {
+        final controller = newController();
+        await pumpApp(
+          tester,
+          LaunchingNotification(
+            stream: controller.stream,
+            cancelCompleter: Completer(),
+            name: 'my-vm',
+          ),
+        );
+
+        controller.add(reply);
+        await tester.pump();
+
+        expect(find.textContaining('status update'), findsOneWidget);
+        expect(find.text(_l10n.commonCancel), findsNothing);
+      });
+    }
+
     testWidgets('tapping cancel button completes cancelCompleter',
         (tester) async {
       final cancelCompleter = Completer<void>();
-      final controller =
-          StreamController<Either<LaunchReply, MountReply>?>.broadcast();
-      addTearDown(controller.close);
-
-      await tester.pumpWidget(buildApp(
+      final controller = newController();
+      await pumpApp(
+        tester,
         LaunchingNotification(
           stream: controller.stream,
           cancelCompleter: cancelCompleter,
           name: 'my-vm',
         ),
-      ));
+      );
 
-      controller.add(Left(LaunchReply(
-        launchProgress: LaunchProgress(
-          type: LaunchProgress_ProgressType.IMAGE,
-          percentComplete: '50',
-        ),
-      )));
+      controller.add(progress(LaunchProgress_ProgressType.IMAGE, '50'));
       await tester.pump();
 
       await tester.tap(find.text(_l10n.commonCancel));
       await tester.pump();
 
       expect(cancelCompleter.isCompleted, isTrue);
+    });
+
+    testWidgets('tapping cancel again while the notification closes is safe',
+        (tester) async {
+      final controller = newController();
+      final container = await pumpApp(tester, const NotificationList());
+      container.read(notificationsProvider.notifier).add(
+            LaunchingNotification(
+              stream: controller.stream,
+              cancelCompleter: Completer(),
+              name: 'my-vm',
+            ),
+          );
+      await tester.pump();
+      controller.add(progress(LaunchProgress_ProgressType.IMAGE, '50'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      final cancel = find.text(_l10n.commonCancel);
+      await tester.tap(cancel);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(cancel);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(cancel, findsNothing);
     });
   });
 }
