@@ -43,4 +43,5 @@ naming, and assertion style of nearby tests.
 - Run CLI commands through the `multipass()` helper (`tests/cli/multipass/multipass_cmd.py`) and
   generate names with `random_vm_name()`. Reuse helpers in `tests/cli/multipass/` before adding
   new ones.
-- Match the black/isort style configured in `tests/cli/pyproject.toml`.
+- Follow the isort (black profile), ruff, and pylint settings in `tests/cli/pyproject.toml`. CI
+  does not enforce them, so match nearby code.

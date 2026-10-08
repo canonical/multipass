@@ -5,7 +5,8 @@ applyTo: "src/**/*.{h,hpp,cpp,c,mm},include/**/*.{h,hpp},tests/**/*.{h,cpp}"
 # C++ code
 
 These rules add to `AGENTS.md`, which covers build, formatting, and validation. Rule IDs refer
-to `CONTRIBUTING.md`.
+to `CONTRIBUTING.md`. They do not apply to the Flutter runner templates under
+`src/client/gui/{linux,macos,windows}/`.
 
 ## Types and initialization
 
@@ -38,8 +39,8 @@ to `CONTRIBUTING.md`.
 
 ## Platforms and backends
 
-- Platform-conditional code (`#ifdef`, OS checks) belongs only in dedicated platform units under
-  `src/platform/` or a backend directory (CPP9). Shared code calls `MP_PLATFORM` or an interface.
+- Platform-conditional code (`#ifdef`, OS checks) belongs only in dedicated platform units,
+  usually under `src/platform/` (CPP9). Shared code calls `MP_PLATFORM` or an interface.
 - Changes to `VirtualMachine` or `VirtualMachineFactory` behavior must cover every backend in
   `src/platform/backends/`, or justify the gap. Put common logic in `shared/` base classes rather
   than duplicating it per backend.

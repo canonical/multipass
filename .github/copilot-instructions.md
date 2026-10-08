@@ -17,9 +17,9 @@ Copilot-specific behavior.
 ## Custom agents
 
 - **`master-code-reviewer`** (`.github/agents/`): in-depth implementation review of a working
-  tree, commit, or branch, built on the code-review skill. Read-only.
+  tree, commit, or branch, built on the code-review skill. Does not edit files.
 - **`master-software-architect`** (`.github/agents/`): system-level design, architecture review,
-  and tradeoff advice. Does not modify source code unless explicitly asked.
+  and tradeoff advice. Read-only.
 
 ## Tooling notes
 

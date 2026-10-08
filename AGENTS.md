@@ -114,9 +114,10 @@ pytest tests/cli -k shell_test --daemon-controller=standalone --bin-dir=build/bi
 ```
 
 See `tests/cli/README.md` for other daemon controllers, storage options, and
-diagnostics. `--remove-all-instances` deletes instance storage under the selected
-storage directory; state that impact and get confirmation before using it on a
-machine that may have real instances.
+diagnostics. `--remove-all-instances` deletes all instances in the test storage
+directory. Without `--storage-dir`, the `standalone` and `none` controllers use a
+temporary directory, but `snap`, `launchd`, and `winsvc` use the installed daemon's
+real storage. State that impact and get confirmation before using it.
 
 ## Language Workflows
 
@@ -182,8 +183,7 @@ cargo test --workspace
 - Add or update tests beside changed behavior.
 - Keep user-facing documentation in `docs/` (Sphinx: tutorial, how-to-guides,
   reference, explanation) in sync with behavior changes — new/changed commands,
-  settings, CLI flags, and workflows need corresponding doc updates. Internal
-  design notes live in `dev-docs/`.
+  settings, CLI flags, and workflows need corresponding doc updates.
 - Dependencies follow `CONTRIBUTING.md` `DEP1`–`DEP2`: do not vendor copied source;
   new C++ dependencies are vcpkg ports (repo-owned overlays/triplets under
   `3rd-party/vcpkg-ports/` and `3rd-party/vcpkg-triplets/`).
