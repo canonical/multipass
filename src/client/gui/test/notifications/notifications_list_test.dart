@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/notifications/notifications_list.dart';
 import 'package:multipass_gui/notifications/notifications_provider.dart';
 
-/// A notifier that starts with a pre-seeded [NotificationList]
+/// A notifier that starts with a pre-seeded list of notifications.
 class _PreseededNotifier extends NotificationsNotifier {
   final BuiltList<Widget> _initial;
 
@@ -35,29 +35,23 @@ void main() {
         'CloseNotificationIntent removes the notification from the provider',
         (tester) async {
       final notification = const Text('closeable note');
+      final container = ProviderContainer(
+        overrides: [
+          notificationsProvider.overrideWith(
+            () => _PreseededNotifier(BuiltList([notification])),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(notificationsProvider, (_, __) {});
 
       await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            notificationsProvider.overrideWith(
-              () => _PreseededNotifier(BuiltList([notification])),
-            ),
-          ],
+        UncontrolledProviderScope(
+          container: container,
           child: MaterialApp(
-            home: Scaffold(
-              body: Consumer(
-                builder: (_, ref, __) {
-                  ref.watch(notificationsProvider);
-                  return NotificationTile(notification);
-                },
-              ),
-            ),
+            home: Scaffold(body: NotificationTile(notification)),
           ),
         ),
-      );
-
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(Consumer)),
       );
 
       expect(container.read(notificationsProvider), hasLength(1));
@@ -92,19 +86,55 @@ void main() {
       expect(find.text('initial notification'), findsOneWidget);
     });
 
-    testWidgets(
-        'renders an AnimatedList with zero items when provider is empty',
+    testWidgets('shows notifications added after the first build',
         (tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(body: NotificationList()),
-          ),
-        ),
-      );
+      final container = await pumpList(tester);
 
-      expect(find.byType(NotificationList), findsOneWidget);
-      expect(find.byType(AnimatedList), findsOneWidget);
+      container.read(notificationsProvider.notifier).add(const Text('new'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('new'), findsOneWidget);
+    });
+
+    testWidgets('hides a notification once it is removed', (tester) async {
+      final container = await pumpList(tester);
+      final notifier = container.read(notificationsProvider.notifier);
+      const notification = Text('to remove');
+
+      notifier.add(notification);
+      await tester.pumpAndSettle();
+      notifier.remove(notification);
+      await tester.pumpAndSettle();
+
+      expect(find.text('to remove'), findsNothing);
+    });
+
+    testWidgets('shows a notification added in the same frame as a removal',
+        (tester) async {
+      final container = await pumpList(tester);
+      final notifier = container.read(notificationsProvider.notifier);
+      const old = Text('old');
+
+      notifier.add(old);
+      await tester.pumpAndSettle();
+      notifier.remove(old);
+      notifier.add(const Text('new'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('old'), findsNothing);
+      expect(find.text('new'), findsOneWidget);
     });
   });
+}
+
+Future<ProviderContainer> pumpList(WidgetTester tester) async {
+  final container = ProviderContainer();
+  addTearDown(container.dispose);
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: Scaffold(body: NotificationList())),
+    ),
+  );
+  return container;
 }
