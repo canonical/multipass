@@ -33,6 +33,14 @@ function(validate_patched_vcpkg_port PORT)
         message(FATAL_ERROR
             "Cannot patch vcpkg port ${PORT}: not found in ${MULTIPASS_UPSTREAM_VCPKG_PORTS_DIR}")
     endif()
+
+    set(SOURCE_PORT_DIR "${MULTIPASS_SOURCE_VCPKG_PORTS_DIR}/${PORT}")
+    file(GLOB ENTRIES RELATIVE "${SOURCE_PORT_DIR}" "${SOURCE_PORT_DIR}/*")
+    list(REMOVE_ITEM ENTRIES "${MULTIPASS_PATCHES_DIR_NAME}")
+    if(ENTRIES)
+        message(FATAL_ERROR "Cannot patch vcpkg port ${PORT}: ${SOURCE_PORT_DIR} must contain only "
+            "${MULTIPASS_PATCHES_DIR_NAME}, but it also has: ${ENTRIES}")
+    endif()
 endfunction()
 
 # Copy the upstream vcpkg PORT, along with our patches for it, into DESTINATION
