@@ -24,8 +24,11 @@
 #include <multipass/query.h>
 #include <multipass/utils.h>
 
+#include <algorithm>
+#include <cctype>
 #include <ranges>
 #include <set>
+#include <utility>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -33,6 +36,16 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "VMImageHost";
+
+auto make_alias_filter(const std::string& filter)
+{
+    const auto is_number = mp::utils::has_only_digits(filter);
+    auto prefix = is_number ? filter + '.' : filter;
+
+    return [&filter, prefix = std::move(prefix)](const std::string& alias) {
+        return mp::utils::istarts_with(alias, prefix) || mp::utils::iequals(alias, filter);
+    };
+}
 
 auto make_image_filter(const mp::SearchQuery& query)
 {
@@ -47,10 +60,13 @@ auto make_image_filter(const mp::SearchQuery& query)
             return false;
         }
 
-        if (!info.id.starts_with(query.filter) &&
-            std::ranges::find(info.aliases, query.filter) == info.aliases.end())
+        if (!query.filter.empty())
         {
-            return false;
+            auto alias_filter = make_alias_filter(query.filter);
+            if (std::ranges::none_of(info.aliases, alias_filter))
+            {
+                return false;
+            }
         }
 
         found_hashes.insert(info.id);
@@ -92,17 +108,6 @@ auto mp::BaseVMImageHost::info_for(const SearchQuery& query) const -> std::optio
         return std::nullopt;
     }
 
-    // Filtering
-    auto key = query.filter.empty() ? "default" : query.filter;
-    auto image_hash = images.front().id;
-
-    // If a partial hash query matches more than once, throw an exception
-    if (images.size() > 1 && query.filter != image_hash && image_hash.starts_with(key))
-    {
-        throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.filter));
-    }
-
-    // It's not a hash match, so choose the first one no matter what
     return images.front();
 }
 
