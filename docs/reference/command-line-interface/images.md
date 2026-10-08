@@ -85,6 +85,14 @@ Image             Aliases                     Version          Description
 26.10             stonking,devel              20261006         Ubuntu 26.10
 ```
 
+If the user forgets to put the mandatory colon after the remote name, a hint advises them to retry their prompt with the missing colon.
+
+```{code-block} text
+$ multipass images core
+No images found. To search a specific remote, use ‘multipass images core:’
+Run ‘multipass images --remotes’ to see all available remotes.
+```
+
 To list all available remotes, use `multipass images --remotes`:
 
 ```{code-block} text
