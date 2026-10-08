@@ -12,6 +12,7 @@ Only the most recent release of Multipass is actively supported. Users are encou
 | Release date   |  Release notes  |
 |----|----|
 | September XX, 2026 | [Multipass 1.17.0](./1.17.0) |
+| October XX, 2026 | [Multipass 1.16.5](./1.16.5) |
 | September 8, 2026 | [Multipass 1.16.4](./1.16.4) |
 | May 29, 2026 | [Multipass 1.16.3](./1.16.3) |
 | May 2, 2026 | [Multipass 1.16.2](./1.16.2) |
