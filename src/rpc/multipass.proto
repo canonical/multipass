@@ -158,7 +158,8 @@ message ImagesReply {
         repeated string aliases = 4;
         string codename = 5;
         string remote_name = 6;
-        bool is_default_remote = 7;
+        string hash = 7;
+        bool is_default_remote = 8;
     }
     repeated ImageInfo images_info = 1;
     string log_line = 2;

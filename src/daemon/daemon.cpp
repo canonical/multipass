@@ -1130,6 +1130,7 @@ void add_aliases(google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>* 
         entry->set_version(info.version);
         entry->set_codename(info.release_codename);
         entry->set_remote_name(remote_name);
+        entry->set_hash(info.id);
         entry->set_is_default_remote(is_default_remote);
     }
 }

@@ -7,6 +7,7 @@ images:
     os: Ubuntu
     release: Core 18
     version: 20190520
+    hash: 0906153ddef617d9deeb8343b55eaea82323201a12634ccdcfc87f9200cb82df
     remote: core
   "snapcraft:core18":
     aliases:
@@ -14,4 +15,5 @@ images:
     os: ""
     release: Snapcraft builder for core18
     version: 20190520
+    hash: 24c87304639a1718c1cbc2ef7679afb5935d523d1e67440dffc850f572f6951e
     remote: snapcraft
