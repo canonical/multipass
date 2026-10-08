@@ -1,7 +1,7 @@
 # Multipass vcpkg gRPC patch
 
 This patch mechanism trims down the gRPC port in favor of better build times. See
-[the overview of our vcpkg ports](../../README.md) for how it is applied and how to update it.
+[the overview of our vcpkg port patches](../README.md) for how it is applied and how to update it.
 
 ## What is removed?
 
