@@ -254,6 +254,9 @@ class _HotkeyFieldState extends State<HotkeyField> {
 }
 
 class PassphraseField extends StatefulWidget {
+  @visibleForTesting
+  static const changeDelay = Duration(milliseconds: 100);
+
   final bool hasPassphrase;
   final AppLocalizations l10n;
   final ValueChanged<String> onSave;
@@ -282,7 +285,7 @@ class _PassphraseFieldState extends State<PassphraseField> {
   }
 
   void hasChanged() {
-    Timer(100.milliseconds, () {
+    Timer(PassphraseField.changeDelay, () {
       if (!mounted) return;
       setState(() {
         changed = (focus.hasFocus && widget.hasPassphrase) ||
