@@ -45,6 +45,7 @@ boost::json::value format_images(
                                            {"release", image.release()},
                                            {"version", image.version()},
                                            {"aliases", std::move(aliases_json)},
+                                           {"hash", image.hash()},
                                            {"remote", image.remote_name()}});
     }
     return result;

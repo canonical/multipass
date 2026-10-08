@@ -7,4 +7,5 @@ images:
     os: Ubuntu
     release: 18.04 LTS
     version: 20190516
+    hash: 8dd2e6b5e5aad20c3f836123b300cba9861249408cbb07c359145a65d6bab6b6
     remote: ""
