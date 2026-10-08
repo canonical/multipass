@@ -65,10 +65,9 @@ function(generate_patched_vcpkg_ports PORTS_DIR)
 
     find_patched_vcpkg_ports(PORTS)
     foreach(PORT IN LISTS PORTS)
-        copy_vcpkg_port("${PORT}" "${PORTS_DIR}/${PORT}")
-        apply_vcpkg_port_patch(
-            "${MULTIPASS_SOURCE_VCPKG_PORTS_DIR}/${PORT}/${MULTIPASS_PORTFILE_PATCH}"
-            "${PORTS_DIR}/${PORT}") # TODO@ricab should we use the copied patch in here? that would accommodate any future transformation
+        set(PORT_DIR "${PORTS_DIR}/${PORT}")
+        copy_vcpkg_port("${PORT}" "${PORT_DIR}")
+        apply_vcpkg_port_patch("${PORT_DIR}/${MULTIPASS_PORTFILE_PATCH}" "${PORT_DIR}")
         message(STATUS "Generated patched vcpkg port: ${PORT}")
     endforeach()
 endfunction()
