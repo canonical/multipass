@@ -27,6 +27,14 @@ function(find_patched_vcpkg_ports OUT_PORTS)
     set(${OUT_PORTS} "${PORTS}" PARENT_SCOPE)
 endfunction()
 
+# Check that the vcpkg PORT that we patch exists upstream and that we keep only our patches for it
+function(validate_patched_vcpkg_port PORT)
+    if(NOT IS_DIRECTORY "${MULTIPASS_UPSTREAM_VCPKG_PORTS_DIR}/${PORT}")
+        message(FATAL_ERROR
+            "Cannot patch vcpkg port ${PORT}: not found in ${MULTIPASS_UPSTREAM_VCPKG_PORTS_DIR}")
+    endif()
+endfunction()
+
 # Copy the upstream vcpkg PORT, along with our patches for it, into DESTINATION
 function(copy_vcpkg_port PORT DESTINATION)
     file(COPY "${MULTIPASS_UPSTREAM_VCPKG_PORTS_DIR}/${PORT}/" DESTINATION "${DESTINATION}")
@@ -65,6 +73,7 @@ function(generate_patched_vcpkg_ports PORTS_DIR)
 
     find_patched_vcpkg_ports(PORTS)
     foreach(PORT IN LISTS PORTS)
+        validate_patched_vcpkg_port("${PORT}")
         set(PORT_DIR "${PORTS_DIR}/${PORT}")
         copy_vcpkg_port("${PORT}" "${PORT_DIR}")
         apply_vcpkg_port_patch("${PORT_DIR}/${MULTIPASS_PORTFILE_PATCH}" "${PORT_DIR}")
