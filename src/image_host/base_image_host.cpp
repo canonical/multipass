@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <ranges>
 #include <set>
+#include <utility>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -34,6 +35,28 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "VMImageHost";
+
+auto make_alias_filter(const std::string& filter)
+{
+    return [&filter, is_number = mp::utils::has_only_digits(filter)](const std::string& alias) {
+        if (mp::utils::istarts_with(alias, filter))
+        {
+            if (is_number && alias.size() > filter.size())
+            {
+                // If the filter is a number and the match is not perfect, only accept it if it
+                // matches a major version number. We therefore check that the alias starts with the
+                // filter followed by a dot. This ensures that a filter like "2" will only match
+                // aliases like "2.x" and not "20.x".
+
+                return alias[filter.size()] == '.';
+            }
+
+            return true;
+        }
+
+        return false;
+    };
+}
 
 auto make_image_filter(const mp::SearchQuery& query)
 {
@@ -43,10 +66,13 @@ auto make_image_filter(const mp::SearchQuery& query)
             return false;
         }
 
-        if (!info.id.starts_with(query.filter) &&
-            std::ranges::find(info.aliases, query.filter) == info.aliases.end())
+        if (!query.filter.empty())
         {
-            return false;
+            auto alias_filter = make_alias_filter(query.filter);
+            if (std::ranges::none_of(info.aliases, alias_filter))
+            {
+                return false;
+            }
         }
 
         return true;
@@ -85,16 +111,6 @@ auto mp::BaseVMImageHost::info_for(const SearchQuery& query) const -> std::optio
         }
 
         return std::nullopt;
-    }
-
-    // Filtering
-    auto key = query.filter.empty() ? "default" : query.filter;
-    auto image_hash = images.front().id;
-
-    // If a partial hash query matches more than once, throw an exception
-    if (images.size() > 1 && query.filter != image_hash && image_hash.starts_with(key))
-    {
-        throw std::runtime_error(fmt::format("Too many images matching \"{}\"", query.filter));
     }
 
     return images.front();

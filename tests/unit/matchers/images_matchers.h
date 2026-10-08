@@ -45,6 +45,11 @@ namespace multipass::test
     return ::testing::Property(&ImagesReply_ImageInfo::remote_name, inner_matcher);
 }
 
+::testing::Matcher<ImagesReply_ImageInfo> ImageHash(const auto& inner_matcher)
+{
+    return ::testing::Property(&ImagesReply_ImageInfo::hash, inner_matcher);
+}
+
 ::testing::Matcher<ImagesReply> AllRemotesFlag(const auto& inner_matcher)
 {
     return ::testing::Property(&ImagesReply::all_remotes, inner_matcher);
