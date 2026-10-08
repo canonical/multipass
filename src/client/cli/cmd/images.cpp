@@ -34,18 +34,16 @@ constexpr std::string deprecated_name = "find";
 
 constexpr const auto query_help =
     "An optional value to search for in [<remote>:][<filter>] format, where <remote> is one of the "
-    "available remotes. If <remote> is omitted, it will search ‘release‘ first, and if no matches "
-    "are found, it will then search ‘daily‘. <filter> can be a partial image hash or a release "
-    "version, codename or alias.";
+    "available remotes. If <remote> is omitted, the default remotes will be searched. <filter> can "
+    "be a partial image hash or a release version, codename or alias.";
 
 struct CommandOptions
 {
     const QCommandLineOption list_remotes = QCommandLineOption{"remotes",
                                                                "List all available remotes."};
 
-    const QCommandLineOption all_remotes = QCommandLineOption{
-        "all",
-        "Images from all remotes will be shown."};
+    const QCommandLineOption all_remotes = QCommandLineOption{"all",
+                                                              "Show images from all remotes."};
 
     const QCommandLineOption unsupported = QCommandLineOption{
         "show-unsupported",
