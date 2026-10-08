@@ -43,6 +43,11 @@ At Canonical, we define and update roadmaps twice a year - in April and October.
 All contributors must sign the [Canonical contributor license agreement (CLA)](https://ubuntu.com/legal/contributors),
 which gives Canonical permission to use the contributions. Without the CLA, contributions cannot be accepted.
 
+### Signed commits
+
+All commits must be signed and show as "Verified" on GitHub (see GIT7 in our
+[Coding Guidelines](GUIDELINES.md#git-usage-git)). Contributions with unsigned commits cannot be accepted.
+
 ### Code of Conduct
 
 When contributing, you must adhere to the [Code of Conduct](https://ubuntu.com/community/ethos/code-of-conduct).
