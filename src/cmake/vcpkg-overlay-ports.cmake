@@ -45,11 +45,13 @@ function(validate_patched_vcpkg_port PORT)
     endif()
 endfunction()
 
-# Copy the upstream vcpkg PORT, along with our patches for it, into DESTINATION
+# Copy the upstream vcpkg PORT, along with our patches for it, into DESTINATION. Leave out our
+# READMEs, so that documentation changes do not affect the port's ABI (forcing rebuilds).
 function(copy_vcpkg_port PORT DESTINATION)
     file(COPY "${MULTIPASS_UPSTREAM_VCPKG_PORTS_DIR}/${PORT}/" DESTINATION "${DESTINATION}")
     file(COPY "${MULTIPASS_VCPKG_PORT_PATCHES_DIR}/${PORT}/"
-        DESTINATION "${DESTINATION}/${MULTIPASS_PATCHES_DIR_NAME}")
+        DESTINATION "${DESTINATION}/${MULTIPASS_PATCHES_DIR_NAME}"
+        PATTERN "README.md" EXCLUDE)
 endfunction()
 
 # Apply PATCH to the files it names, relative to PORT_DIR, which must not be a git repo root
