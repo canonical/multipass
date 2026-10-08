@@ -12,42 +12,44 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set(MULTIPASS_SOURCE_VCPKG_PORTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-ports")
+# Each dir in 3rd-party/vcpkg-port-patches holds our patches for the upstream port of the same name
+set(MULTIPASS_VCPKG_PORT_PATCHES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-port-patches")
 set(MULTIPASS_UPSTREAM_VCPKG_PORTS_DIR "${MULTIPASS_VCPKG_LOCATION}/ports")
-set(MULTIPASS_PATCHES_DIR_NAME "multipass-patches")
-
-# A port is patched when its 3rd-party/vcpkg-ports dir has multipass-patches/portfile.cmake.patch
-set(MULTIPASS_PORTFILE_PATCH "${MULTIPASS_PATCHES_DIR_NAME}/portfile.cmake.patch")
+set(MULTIPASS_PATCHES_DIR_NAME "multipass-patches") # where our patches go in generated ports
+set(MULTIPASS_PORTFILE_PATCH_NAME "portfile.cmake.patch")
 
 # Find the names of the upstream vcpkg ports that we patch
 function(find_patched_vcpkg_ports OUT_PORTS)
-    file(GLOB PORTS RELATIVE "${MULTIPASS_SOURCE_VCPKG_PORTS_DIR}"
-        "${MULTIPASS_SOURCE_VCPKG_PORTS_DIR}/*/${MULTIPASS_PORTFILE_PATCH}")
-    list(TRANSFORM PORTS REPLACE "/${MULTIPASS_PORTFILE_PATCH}$" "")
+    file(GLOB ENTRIES RELATIVE "${MULTIPASS_VCPKG_PORT_PATCHES_DIR}"
+        "${MULTIPASS_VCPKG_PORT_PATCHES_DIR}/*")
+    set(PORTS)
+    foreach(ENTRY IN LISTS ENTRIES)
+        if(IS_DIRECTORY "${MULTIPASS_VCPKG_PORT_PATCHES_DIR}/${ENTRY}")
+            list(APPEND PORTS "${ENTRY}")
+        endif()
+    endforeach()
     set(${OUT_PORTS} "${PORTS}" PARENT_SCOPE)
 endfunction()
 
-# Check that the vcpkg PORT that we patch exists upstream and that we keep only our patches for it
+# Check that the vcpkg PORT that we patch exists upstream and that we have a portfile patch for it
 function(validate_patched_vcpkg_port PORT)
     if(NOT IS_DIRECTORY "${MULTIPASS_UPSTREAM_VCPKG_PORTS_DIR}/${PORT}")
         message(FATAL_ERROR
             "Cannot patch vcpkg port ${PORT}: not found in ${MULTIPASS_UPSTREAM_VCPKG_PORTS_DIR}")
     endif()
 
-    set(SOURCE_PORT_DIR "${MULTIPASS_SOURCE_VCPKG_PORTS_DIR}/${PORT}")
-    file(GLOB ENTRIES RELATIVE "${SOURCE_PORT_DIR}" "${SOURCE_PORT_DIR}/*")
-    list(REMOVE_ITEM ENTRIES "${MULTIPASS_PATCHES_DIR_NAME}")
-    if(ENTRIES)
-        message(FATAL_ERROR "Cannot patch vcpkg port ${PORT}: ${SOURCE_PORT_DIR} must contain only "
-            "${MULTIPASS_PATCHES_DIR_NAME}, but it also has: ${ENTRIES}")
+    set(PORT_PATCHES_DIR "${MULTIPASS_VCPKG_PORT_PATCHES_DIR}/${PORT}")
+    if(NOT EXISTS "${PORT_PATCHES_DIR}/${MULTIPASS_PORTFILE_PATCH_NAME}")
+        message(FATAL_ERROR "Cannot patch vcpkg port ${PORT}: "
+            "${MULTIPASS_PORTFILE_PATCH_NAME} not found in ${PORT_PATCHES_DIR}")
     endif()
 endfunction()
 
 # Copy the upstream vcpkg PORT, along with our patches for it, into DESTINATION
 function(copy_vcpkg_port PORT DESTINATION)
     file(COPY "${MULTIPASS_UPSTREAM_VCPKG_PORTS_DIR}/${PORT}/" DESTINATION "${DESTINATION}")
-    file(COPY "${MULTIPASS_SOURCE_VCPKG_PORTS_DIR}/${PORT}/${MULTIPASS_PATCHES_DIR_NAME}"
-        DESTINATION "${DESTINATION}")
+    file(COPY "${MULTIPASS_VCPKG_PORT_PATCHES_DIR}/${PORT}/"
+        DESTINATION "${DESTINATION}/${MULTIPASS_PATCHES_DIR_NAME}")
 endfunction()
 
 # Apply PATCH to the files it names, relative to PORT_DIR, which must not be a git repo root
@@ -84,7 +86,8 @@ function(generate_patched_vcpkg_ports PORTS_DIR)
         validate_patched_vcpkg_port("${PORT}")
         set(PORT_DIR "${PORTS_DIR}/${PORT}")
         copy_vcpkg_port("${PORT}" "${PORT_DIR}")
-        apply_vcpkg_port_patch("${PORT_DIR}/${MULTIPASS_PORTFILE_PATCH}" "${PORT_DIR}")
+        set(PATCHES_DIR "${PORT_DIR}/${MULTIPASS_PATCHES_DIR_NAME}")
+        apply_vcpkg_port_patch("${PATCHES_DIR}/${MULTIPASS_PORTFILE_PATCH_NAME}" "${PORT_DIR}")
         message(STATUS "Generated patched vcpkg port: ${PORT}")
     endforeach()
 endfunction()
