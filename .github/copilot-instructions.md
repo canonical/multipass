@@ -3,7 +3,7 @@
 Agent-specific instructions for GitHub Copilot working in this repository.
 
 **General project knowledge — architecture, layout, build, testing, language
-conventions, security, and Git policy — lives in [AGENTS.md](../../AGENTS.md) at the
+conventions, security, and Git policy — lives in [AGENTS.md](../AGENTS.md) at the
 repository root. Read and follow it for all tasks.** This file only covers
 Copilot-specific behavior.
 
@@ -17,8 +17,9 @@ Copilot-specific behavior.
 ## Tooling notes
 
 - **Formatting** — Run formatters before finishing a task, per AGENTS.md:
-  `clang-format -i` for C++ (project `.clang-format`), and the vendored Flutter SDK
-  (`3rd-party/flutter/bin/dart format`) for Dart — not whatever is on `PATH`.
+  `git clang-format <base>` for C++ so only changed lines are formatted (matching
+  CI), and the vendored Flutter SDK (`flutter pub get`, then `dart format`) for
+  Dart, not whatever is on `PATH`.
 - **Validation honesty** — Do not claim a build, test, or lint check passed unless
   it was actually run in this session. Name the checks run in your final summary
   and flag any relevant ones that could not be run.

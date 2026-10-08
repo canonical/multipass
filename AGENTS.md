@@ -27,6 +27,7 @@ Other key directories:
   - `applevz/` — macOS Virtualization.framework
   - `virtualbox/` — VBoxManage integration (macOS/Windows)
   - `hyperv/` — Windows Hyper-V via PowerShell cmdlets
+  - `hyperv_api/` — Windows Hyper-V via the native HCS, HCN, and virtdisk APIs
   - `shared/` — common base classes (`BaseVirtualMachine`, `BaseSnapshot`)
 - `src/image_host/`, `src/daemon/default_vm_image_vault.cpp` — image hosts (Ubuntu
   SimpleStreams, custom URLs) and the image vault (fetch/verify/cache).
@@ -113,7 +114,9 @@ pytest tests/cli -k shell_test --daemon-controller=standalone --bin-dir=build/bi
 ```
 
 See `tests/cli/README.md` for other daemon controllers, storage options, and
-diagnostics.
+diagnostics. `--remove-all-instances` deletes instance storage under the selected
+storage directory; state that impact and get confirmation before using it on a
+machine that may have real instances.
 
 ## Language Workflows
 
@@ -129,13 +132,18 @@ Follow `CONTRIBUTING.md`. Its most important C++ rules:
 - Avoid const by-value parameters, magic numbers, duplicated sources of truth, and
   warnings; non-MSVC builds use `-Werror`.
 - C++ formatting follows `.clang-format` (LLVM base, 4-space indent, 100 columns,
-  left pointer alignment, braces on new lines). Run `clang-format -i` on changed
-  files before committing.
+  left pointer alignment, braces on new lines). CI checks only changed lines
+  (`clang-format-diff` on the PR diff, clang version from `CLANG_VERSION` in
+  `snap/snapcraft.yaml`), so format only your changed lines with
+  `git clang-format <base>`; do not reformat whole files.
 
-For GUI work, use the **vendored SDK**, not whatever is on `PATH`:
+For GUI work, use the **vendored SDK**, not whatever is on `PATH`. Run `pub get`
+before formatting; CI does too because dependencies can change the formatter's
+output:
 
 ```bash
 cd src/client/gui
+../../../3rd-party/flutter/bin/flutter pub get
 ../../../3rd-party/flutter/bin/dart format --output=none --set-exit-if-changed .
 ../../../3rd-party/flutter/bin/flutter analyze
 ../../../3rd-party/flutter/bin/flutter test
@@ -169,6 +177,8 @@ cargo test --workspace
   behavior.
 - Keep changes small and task-focused. Do not refactor unrelated code, edit
   generated/build output, or fix unrelated failures.
+- Ask before changing `packaging/`, `snap/`, `.github/workflows/`, or release and
+  version metadata unless the task is specifically about them.
 - Add or update tests beside changed behavior.
 - Keep user-facing documentation in `docs/` (Sphinx: tutorial, how-to-guides,
   reference, explanation) in sync with behavior changes — new/changed commands,
@@ -184,13 +194,22 @@ cargo test --workspace
 
 Run checks for every touched component:
 
-- C++: build the affected target, run focused GoogleTests, format changed files.
+- C++: build the affected target, run focused GoogleTests, format changed lines.
 - GUI: Dart format check, Flutter analyze, focused or full Flutter tests.
 - Rust: `cargo fmt --check`, Clippy, focused or workspace tests.
 - CLI: focused pytest with the correct controller and `--bin-dir` in standalone mode.
 
 Also run the relevant registered CTest (or the full suite) when changing shared
 contracts, platform interfaces, daemon lifecycle, or broad user-facing workflows.
+
+The lint workflow (`.github/workflows/lint.yml`) also fails on:
+
+- Whitespace errors (`git diff --check`) and files without exactly one trailing
+  newline.
+- A stale `packaging/gui-less/snap/snapcraft.yaml`. It is generated from
+  `snap/snapcraft.yaml`: after editing the latter, run
+  `packaging/gui-less/generate-snapcraft.py` (dependencies in
+  `git-hooks/requirements.txt`) and never edit the generated file by hand.
 
 Do not claim a check passed unless it was run. In the final report, name the checks
 run and explain any relevant checks that could not be run.
