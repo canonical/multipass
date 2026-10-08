@@ -14,7 +14,7 @@ communicating via **gRPC streaming**. Three user-facing components:
   `src/client/cli/cmd/*.cpp`, one file per command; shared client code in
   `src/client/common/`).
 - `multipass.gui` — Flutter/Dart desktop client (`src/client/gui/`) with a Dart gRPC
-  client, Provider state management, and FFI for native integration.
+  client, Riverpod state management, and FFI for native integration.
 
 Other key directories:
 
