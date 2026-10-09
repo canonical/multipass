@@ -681,7 +681,7 @@ TEST_F(Daemon, launchReturnsStructuredSshTimeoutError)
 
     const auto status = call_daemon_slot(daemon, &mp::Daemon::launch, request, server);
 
-    ASSERT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    ASSERT_EQ(status.error_code(), grpc::StatusCode::DEADLINE_EXCEEDED);
     mp::LaunchError launch_error;
     ASSERT_TRUE(launch_error.ParseFromString(status.error_details()));
     EXPECT_EQ(launch_error.readiness_error(), mp::ReadinessError::SSH_TIMEOUT);
@@ -707,7 +707,7 @@ TEST_F(Daemon, launchReturnsStructuredCloudInitTimeoutError)
 
     const auto status = call_daemon_slot(daemon, &mp::Daemon::launch, request, server);
 
-    ASSERT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    ASSERT_EQ(status.error_code(), grpc::StatusCode::DEADLINE_EXCEEDED);
     mp::LaunchError launch_error;
     ASSERT_TRUE(launch_error.ParseFromString(status.error_details()));
     EXPECT_EQ(launch_error.readiness_error(), mp::ReadinessError::CLOUD_INIT_TIMEOUT);

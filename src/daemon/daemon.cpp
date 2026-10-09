@@ -4229,18 +4229,29 @@ template <typename Reply>
 grpc::Status mp::Daemon::grpc_status_for_readiness(const std::vector<ReadinessResult>& errors,
                                                    const std::string& start_errors)
 {
-    if (start_errors.size() == 0 && errors.empty())
+    const auto is_error = [](const ReadinessResult& result) {
+        return result.error != ReadinessError::OK;
+    };
+
+    if (start_errors.empty() && std::none_of(errors.begin(), errors.end(), is_error))
         return grpc::Status::OK;
 
+    grpc::StatusCode status_code = grpc::StatusCode::INVALID_ARGUMENT;
     std::string error_details;
+
     if constexpr (std::is_same_v<Reply, LaunchReply>)
     {
         assert(errors.size() <= 1);
 
         LaunchError launch_error;
         for (const auto& error : errors)
-            launch_error.set_readiness_error(error.error);
+        {
+            if (error.error == ReadinessError::SSH_TIMEOUT ||
+                error.error == ReadinessError::CLOUD_INIT_TIMEOUT)
+                status_code = grpc::StatusCode::DEADLINE_EXCEEDED;
 
+            launch_error.set_readiness_error(error.error);
+        }
         error_details = launch_error.SerializeAsString();
     }
     else if constexpr (std::is_same_v<Reply, StartReply>)
@@ -4248,7 +4259,8 @@ grpc::Status mp::Daemon::grpc_status_for_readiness(const std::vector<ReadinessRe
         StartError start_error;
         auto* readiness_errors = start_error.mutable_readiness_errors();
         for (const auto& error : errors)
-            (*readiness_errors)[error.instance_name] = error.error;
+            if (is_error(error))
+                (*readiness_errors)[error.instance_name] = error.error;
         error_details = start_error.SerializeAsString();
     }
 
@@ -4259,9 +4271,8 @@ grpc::Status mp::Daemon::grpc_status_for_readiness(const std::vector<ReadinessRe
         add_fmt_to(collective_errors, "{}", start_errors);
 
     for (const auto& result : errors)
-        add_fmt_to(collective_errors, "{}", result.message);
+        if (is_error(result))
+            add_fmt_to(collective_errors, "{}", result.message);
 
-    return {grpc::StatusCode::INVALID_ARGUMENT,
-            fmt::to_string(collective_errors),
-            std::move(error_details)};
+    return {status_code, fmt::to_string(collective_errors), std::move(error_details)};
 }
