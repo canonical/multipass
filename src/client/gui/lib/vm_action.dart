@@ -24,7 +24,12 @@ enum VmAction {
         stop => const {Status.RUNNING},
         suspend => const {Status.RUNNING},
         restart => const {Status.RUNNING},
-        delete => const {Status.STOPPED, Status.SUSPENDED, Status.RUNNING},
+        delete => const {
+          Status.STOPPED,
+          Status.SUSPENDED,
+          Status.RUNNING,
+          Status.UNAVAILABLE,
+        },
         recover => const {Status.DELETED},
         purge => const {Status.DELETED},
         edit => const {Status.STOPPED},
