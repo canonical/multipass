@@ -486,6 +486,28 @@ std::string mp::TableFormatter::format(const NetworksReply& reply) const
     return fmt::to_string(buf);
 }
 
+std::string mp::TableFormatter::format(const RemotesReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    if (reply.remotes().empty())
+    {
+        fmt::format_to(std::back_inserter(buf), "No remotes available.\n");
+    }
+    else
+    {
+        fmt::format_to(std::back_inserter(buf), "Remote\n");
+
+        auto sorted_remotes = reply.remotes();
+        std::ranges::sort(sorted_remotes);
+        for (const auto& remote : sorted_remotes)
+        {
+            fmt::format_to(std::back_inserter(buf), "{}\n", remote);
+        }
+    }
+    return fmt::to_string(buf);
+}
+
 std::string mp::TableFormatter::format(const ImagesReply& reply) const
 {
     fmt::memory_buffer buf;

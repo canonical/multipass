@@ -666,13 +666,29 @@ auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
     }
 }
 
+auto construct_empty_remotes_reply()
+{
+    auto reply = mp::RemotesReply();
+    return reply;
+}
+
+auto construct_multiple_remotes_reply()
+{
+    auto reply = mp::RemotesReply();
+    reply.add_remotes("core");
+    reply.add_remotes("daily");
+    reply.add_remotes("release");
+    reply.add_remotes("snapcraft");
+    return reply;
+}
+
 auto construct_empty_reply()
 {
     auto reply = mp::ImagesReply();
     return reply;
 }
 
-auto construct_find_one_reply()
+auto construct_images_one_reply()
 {
     auto reply = mp::ImagesReply();
 
@@ -685,7 +701,7 @@ auto construct_find_one_reply()
     return reply;
 }
 
-auto construct_find_one_reply_no_os()
+auto construct_images_one_reply_no_os()
 {
     auto reply = mp::ImagesReply();
 
@@ -698,7 +714,7 @@ auto construct_find_one_reply_no_os()
     return reply;
 }
 
-auto construct_find_multiple_reply()
+auto construct_images_multiple_reply()
 {
     auto reply = mp::ImagesReply();
 
@@ -731,7 +747,7 @@ auto construct_find_multiple_reply()
     return reply;
 }
 
-auto construct_find_multiple_reply_duplicate_image()
+auto construct_images_multiple_reply_duplicate_image()
 {
     auto reply = mp::ImagesReply();
 
@@ -1157,81 +1173,122 @@ const std::vector<FormatterParamType> non_orderable_networks_formatter_outputs{
      mpt::load_test_file("formatters/json/multiple_lines_networks_reply.json").toStdString(),
      "json_networks_multiple_lines"}};
 
-const auto empty_find_reply = construct_empty_reply();
-const auto find_one_reply = construct_find_one_reply();
-const auto find_multiple_reply = construct_find_multiple_reply();
-const auto find_one_reply_no_os = construct_find_one_reply_no_os();
-const auto find_multiple_reply_duplicate_image = construct_find_multiple_reply_duplicate_image();
+const auto empty_remotes_reply = construct_empty_remotes_reply();
+const auto multiple_remotes_reply = construct_multiple_remotes_reply();
 
-const std::vector<FormatterParamType> find_formatter_outputs{
+const std::vector<FormatterParamType> remotes_formatter_outputs{
     {&table_formatter,
-     &empty_find_reply,
-     mpt::load_test_file("formatters/table/empty_find_reply.txt").toStdString(),
-     "table_find_empty"},
+     &empty_remotes_reply,
+     mpt::load_test_file("formatters/table/empty_remotes_reply.txt").toStdString(),
+     "table_remotes_empty"},
     {&table_formatter,
-     &find_one_reply,
-     mpt::load_test_file("formatters/table/find_one_reply.txt").toStdString(),
-     "table_find_one_image"},
-    {&table_formatter,
-     &find_multiple_reply,
-     mpt::load_test_file("formatters/table/find_multiple_reply.txt").toStdString(),
-     "table_find_multiple"},
-    {&table_formatter,
-     &find_one_reply_no_os,
-     mpt::load_test_file("formatters/table/find_one_reply_no_os.txt").toStdString(),
-     "table_find_no_os"},
-    {&table_formatter,
-     &find_multiple_reply_duplicate_image,
-     mpt::load_test_file("formatters/table/find_multiple_reply_duplicate_image.txt").toStdString(),
-     "table_find_multiple_duplicate_image"},
+     &multiple_remotes_reply,
+     mpt::load_test_file("formatters/table/multiple_remotes_reply.txt").toStdString(),
+     "table_remotes_multiple"},
     {&json_formatter,
-     &empty_find_reply,
-     mpt::load_test_file("formatters/json/empty_find_reply.json").toStdString(),
-     "json_find_empty"},
+     &empty_remotes_reply,
+     mpt::load_test_file("formatters/json/empty_remotes_reply.json").toStdString(),
+     "json_remotes_empty"},
     {&json_formatter,
-     &find_one_reply,
-     mpt::load_test_file("formatters/json/find_one_reply.json").toStdString(),
-     "json_find_one"},
+     &multiple_remotes_reply,
+     mpt::load_test_file("formatters/json/multiple_remotes_reply.json").toStdString(),
+     "json_remotes_multiple"},
+    {&csv_formatter,
+     &empty_remotes_reply,
+     mpt::load_test_file("formatters/csv/empty_remotes_reply.csv").toStdString(),
+     "csv_remotes_empty"},
+    {&csv_formatter,
+     &multiple_remotes_reply,
+     mpt::load_test_file("formatters/csv/multiple_remotes_reply.csv").toStdString(),
+     "csv_remotes_multiple"},
+    {&yaml_formatter,
+     &empty_remotes_reply,
+     mpt::load_test_file("formatters/yaml/empty_remotes_reply.yaml").toStdString(),
+     "yaml_remotes_empty"},
+    {&yaml_formatter,
+     &multiple_remotes_reply,
+     mpt::load_test_file("formatters/yaml/multiple_remotes_reply.yaml").toStdString(),
+     "yaml_remotes_multiple"}};
+
+const auto empty_images_reply = construct_empty_reply();
+const auto images_one_reply = construct_images_one_reply();
+const auto images_multiple_reply = construct_images_multiple_reply();
+const auto images_one_reply_no_os = construct_images_one_reply_no_os();
+const auto images_multiple_reply_duplicate_image =
+    construct_images_multiple_reply_duplicate_image();
+
+const std::vector<FormatterParamType> images_formatter_outputs{
+    {&table_formatter,
+     &empty_images_reply,
+     mpt::load_test_file("formatters/table/empty_images_reply.txt").toStdString(),
+     "table_images_empty"},
+    {&table_formatter,
+     &images_one_reply,
+     mpt::load_test_file("formatters/table/images_one_reply.txt").toStdString(),
+     "table_images_one_image"},
+    {&table_formatter,
+     &images_multiple_reply,
+     mpt::load_test_file("formatters/table/images_multiple_reply.txt").toStdString(),
+     "table_images_multiple"},
+    {&table_formatter,
+     &images_one_reply_no_os,
+     mpt::load_test_file("formatters/table/images_one_reply_no_os.txt").toStdString(),
+     "table_images_no_os"},
+    {&table_formatter,
+     &images_multiple_reply_duplicate_image,
+     mpt::load_test_file("formatters/table/images_multiple_reply_duplicate_image.txt")
+         .toStdString(),
+     "table_images_multiple_duplicate_image"},
     {&json_formatter,
-     &find_multiple_reply,
-     mpt::load_test_file("formatters/json/find_multiple_reply.json").toStdString(),
-     "json_find_multiple"},
+     &empty_images_reply,
+     mpt::load_test_file("formatters/json/empty_images_reply.json").toStdString(),
+     "json_images_empty"},
     {&json_formatter,
-     &find_multiple_reply_duplicate_image,
-     mpt::load_test_file("formatters/json/find_multiple_reply_duplicate_image.json").toStdString(),
-     "json_find_multiple_duplicate_image"},
+     &images_one_reply,
+     mpt::load_test_file("formatters/json/images_one_reply.json").toStdString(),
+     "json_images_one"},
+    {&json_formatter,
+     &images_multiple_reply,
+     mpt::load_test_file("formatters/json/images_multiple_reply.json").toStdString(),
+     "json_images_multiple"},
+    {&json_formatter,
+     &images_multiple_reply_duplicate_image,
+     mpt::load_test_file("formatters/json/images_multiple_reply_duplicate_image.json")
+         .toStdString(),
+     "json_images_multiple_duplicate_image"},
     {&csv_formatter,
-     &empty_find_reply,
-     mpt::load_test_file("formatters/csv/empty_find_reply.csv").toStdString(),
-     "csv_find_empty"},
+     &empty_images_reply,
+     mpt::load_test_file("formatters/csv/empty_images_reply.csv").toStdString(),
+     "csv_images_empty"},
     {&csv_formatter,
-     &find_one_reply,
-     mpt::load_test_file("formatters/csv/find_one_reply.csv").toStdString(),
-     "csv_find_one"},
+     &images_one_reply,
+     mpt::load_test_file("formatters/csv/images_one_reply.csv").toStdString(),
+     "csv_images_one"},
     {&csv_formatter,
-     &find_multiple_reply,
-     mpt::load_test_file("formatters/csv/find_multiple_reply.csv").toStdString(),
-     "csv_find_multiple"},
+     &images_multiple_reply,
+     mpt::load_test_file("formatters/csv/images_multiple_reply.csv").toStdString(),
+     "csv_images_multiple"},
     {&csv_formatter,
-     &find_multiple_reply_duplicate_image,
-     mpt::load_test_file("formatters/csv/find_multiple_reply_duplicate_image.csv").toStdString(),
-     "csv_find_multiple_duplicate_image"},
+     &images_multiple_reply_duplicate_image,
+     mpt::load_test_file("formatters/csv/images_multiple_reply_duplicate_image.csv").toStdString(),
+     "csv_images_multiple_duplicate_image"},
     {&yaml_formatter,
-     &empty_find_reply,
-     mpt::load_test_file("formatters/yaml/empty_find_reply.yaml").toStdString(),
-     "yaml_find_empty"},
+     &empty_images_reply,
+     mpt::load_test_file("formatters/yaml/empty_images_reply.yaml").toStdString(),
+     "yaml_images_empty"},
     {&yaml_formatter,
-     &find_one_reply,
-     mpt::load_test_file("formatters/yaml/find_one_reply.yaml").toStdString(),
-     "yaml_find_one"},
+     &images_one_reply,
+     mpt::load_test_file("formatters/yaml/images_one_reply.yaml").toStdString(),
+     "yaml_images_one"},
     {&yaml_formatter,
-     &find_multiple_reply,
-     mpt::load_test_file("formatters/yaml/find_multiple_reply.yaml").toStdString(),
-     "yaml_find_multiple"},
+     &images_multiple_reply,
+     mpt::load_test_file("formatters/yaml/images_multiple_reply.yaml").toStdString(),
+     "yaml_images_multiple"},
     {&yaml_formatter,
-     &find_multiple_reply_duplicate_image,
-     mpt::load_test_file("formatters/yaml/find_multiple_reply_duplicate_image.yaml").toStdString(),
-     "yaml_find_multiple_duplicate_image"}};
+     &images_multiple_reply_duplicate_image,
+     mpt::load_test_file("formatters/yaml/images_multiple_reply_duplicate_image.yaml")
+         .toStdString(),
+     "yaml_images_multiple_duplicate_image"}};
 
 const auto version_client_reply = mp::VersionReply();
 const auto version_daemon_no_update_reply = construct_version_info_multipassd_up_to_date();
@@ -1302,6 +1359,8 @@ TEST_P(FormatterSuite, properlyFormatsOutput)
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::InfoReply*>(reply))
         output = formatter->format(*input);
+    else if (auto input = dynamic_cast<const mp::RemotesReply*>(reply))
+        output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::ImagesReply*>(reply))
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::VersionReply*>(reply))
@@ -1320,9 +1379,13 @@ INSTANTIATE_TEST_SUITE_P(NonOrderableListInfoOutputFormatter,
                          FormatterSuite,
                          ValuesIn(non_orderable_list_info_formatter_outputs),
                          print_param_name);
-INSTANTIATE_TEST_SUITE_P(FindOutputFormatter,
+INSTANTIATE_TEST_SUITE_P(RemotesOutputFormatter,
                          FormatterSuite,
-                         ValuesIn(find_formatter_outputs),
+                         ValuesIn(remotes_formatter_outputs),
+                         print_param_name);
+INSTANTIATE_TEST_SUITE_P(ImagesOutputFormatter,
+                         FormatterSuite,
+                         ValuesIn(images_formatter_outputs),
                          print_param_name);
 INSTANTIATE_TEST_SUITE_P(NonOrderableNetworksOutputFormatter,
                          FormatterSuite,

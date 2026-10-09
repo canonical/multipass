@@ -36,7 +36,7 @@ public:
     }
 
     MOCK_METHOD(grpc::Status, Finish, (), (override));
-    MOCK_METHOD(bool, NextMessageSize, (uint32_t * sz), (override));
+    MOCK_METHOD(bool, NextMessageSize, (uint32_t* sz), (override));
     MOCK_METHOD(bool, Read, (R * msg), (override));
     MOCK_METHOD(void, WaitForInitialMetadata, (), (override));
     MOCK_METHOD(bool, Write, (const W& msg, grpc::WriteOptions options), (override));
@@ -103,6 +103,21 @@ public:
         PrepareAsyncpurgeRaw,
         (grpc::ClientContext * context, grpc::CompletionQueue* cq),
         (override));
+    MOCK_METHOD(
+        (grpc::ClientReaderWriterInterface<multipass::RemotesRequest, multipass::RemotesReply>*),
+        remotesRaw,
+        (grpc::ClientContext * context),
+        (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::RemotesRequest,
+                                                        multipass::RemotesReply>*),
+                AsyncremotesRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq, void* tag),
+                (override));
+    MOCK_METHOD((grpc::ClientAsyncReaderWriterInterface<multipass::RemotesRequest,
+                                                        multipass::RemotesReply>*),
+                PrepareAsyncremotesRaw,
+                (grpc::ClientContext * context, grpc::CompletionQueue* cq),
+                (override));
     MOCK_METHOD(
         (grpc::ClientReaderWriterInterface<multipass::ImagesRequest, multipass::ImagesReply>*),
         imagesRaw,

@@ -27,6 +27,7 @@ public:
     std::string format(const InfoReply& info) const override;
     std::string format(const ListReply& list) const override;
     std::string format(const NetworksReply& list) const override;
+    std::string format(const RemotesReply& list) const override;
     std::string format(const ImagesReply& list) const override;
     std::string format(const VersionReply& list, const std::string& client_version) const override;
     std::string format(const AliasDict& aliases) const override;

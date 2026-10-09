@@ -1310,6 +1310,7 @@ constexpr bool is_one_of_v = (std::is_same_v<T, Types> || ...);
 // Request types not listed here are blocked during migration.
 template <typename Request>
 constexpr bool allowed_during_migration = is_one_of_v<Request,
+                                                      mp::RemotesRequest,
                                                       mp::ImagesRequest,
                                                       mp::InfoRequest,
                                                       mp::ListRequest,
@@ -1354,6 +1355,7 @@ void mp::Daemon::connect_rpc(DaemonRpc& rpc)
     connect(&DaemonRpc::on_create, &Daemon::create);
     connect(&DaemonRpc::on_launch, &Daemon::launch);
     connect(&DaemonRpc::on_purge, &Daemon::purge);
+    connect(&DaemonRpc::on_remotes, &Daemon::remotes);
     connect(&DaemonRpc::on_images, &Daemon::images);
     connect(&DaemonRpc::on_info, &Daemon::info);
     connect(&DaemonRpc::on_list, &Daemon::list);
@@ -1715,6 +1717,29 @@ try
 
     deleted_instances.clear();
     persist_instances();
+
+    server->Write(response);
+    context->set_value(grpc::Status::OK);
+}
+catch (const std::exception& e)
+{
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::remotes(const RemotesRequest*,
+                         grpc::ServerReaderWriterInterface<RemotesReply, RemotesRequest>* server,
+                         DaemonRpcContext* context)
+try
+{
+    RemotesReply response;
+
+    for (auto remote : config->vault->fetch_remotes())
+    {
+        if (remote != unspecified_remote)
+        {
+            response.add_remotes(std::move(remote));
+        }
+    }
 
     server->Write(response);
     context->set_value(grpc::Status::OK);

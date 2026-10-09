@@ -194,6 +194,14 @@ grpc::Status mp::DaemonRpc::purge(grpc::ServerContext* context,
                                                 server);
 }
 
+grpc::Status mp::DaemonRpc::remotes(grpc::ServerContext* context,
+                                    grpc::ServerReaderWriter<RemotesReply, RemotesRequest>* server)
+{
+    return verify_client_and_dispatch_operation(std::bind_front(&DaemonRpc::on_remotes, this),
+                                                client_cert_from(context),
+                                                server);
+}
+
 grpc::Status mp::DaemonRpc::images(grpc::ServerContext* context,
                                    grpc::ServerReaderWriter<ImagesReply, ImagesRequest>* server)
 {
