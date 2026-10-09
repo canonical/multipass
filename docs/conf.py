@@ -237,6 +237,8 @@ linkcheck_retries = 3
 
 linkcheck_anchors_ignore_for_url = [r"https://github\.com/", r"https://matrix\.to/"]
 
+# Excluded documents
+linkcheck_exclude_documents = [r"reference/release-notes/RELEASE_NOTES_TEMPLATE.md"]
 
 ########################
 # Configuration extras #
