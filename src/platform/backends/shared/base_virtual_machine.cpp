@@ -24,6 +24,7 @@
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/exceptions/timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
@@ -400,7 +401,7 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
     };
 
     auto on_timeout = [] {
-        throw std::runtime_error("timed out waiting for initialization to complete");
+        throw CloudInitTimeoutException("timed out waiting for initialization to complete");
     };
     mpu::try_action_for(on_timeout, timeout, action);
 }
@@ -994,5 +995,5 @@ void mp::BaseVirtualMachine::timeout_ssh()
     std::lock_guard lock{state_mutex};
     state = State::unknown;
     handle_state_update();
-    throw std::runtime_error(fmt::format("{}: timed out waiting for response", vm_name));
+    throw SSHTimeoutException("{}: timed out waiting for response", vm_name);
 }
