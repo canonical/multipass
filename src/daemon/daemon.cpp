@@ -929,7 +929,6 @@ mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::St
 {
     switch (state)
     {
-    case mp::VirtualMachine::State::off:
     case mp::VirtualMachine::State::stopped:
         return mp::InstanceStatus::STOPPED;
     case mp::VirtualMachine::State::starting:
@@ -1486,7 +1485,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         // FIXME: somehow we're writing contradictory state to disk.
         if (spec_copy.deleted)
         {
-            if (spec_copy.state != e_state::stopped && spec_copy.state != e_state::off)
+            if (spec_copy.state != e_state::stopped)
             {
                 mpl::warn(
                     category,
@@ -2822,8 +2821,7 @@ try
         auto* vm_ptr = std::get<0>(instance_trail)->second.get();
         assert(vm_ptr);
 
-        using St = VirtualMachine::State;
-        if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
+        if (auto state = vm_ptr->current_state(); state != VirtualMachine::State::stopped)
             return context->set_value(
                 grpc::Status{grpc::FAILED_PRECONDITION,
                              "Multipass can only take snapshots of stopped instances."});
@@ -2877,8 +2875,7 @@ try
         // is discarded
         std::ignore = vm_ptr->get_snapshot(request->snapshot());
 
-        using St = VirtualMachine::State;
-        if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
+        if (auto state = vm_ptr->current_state(); state != VirtualMachine::State::stopped)
             return context->set_value(
                 grpc::Status{grpc::FAILED_PRECONDITION,
                              "Multipass can only restore snapshots of stopped instances."});
@@ -2959,8 +2956,7 @@ try
         const auto source_vm_ptr = std::get<0>(src_instance_trail)->second;
         assert(source_vm_ptr);
         const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
-        if (source_vm_state != VirtualMachine::State::stopped &&
-            source_vm_state != VirtualMachine::State::off)
+        if (source_vm_state != VirtualMachine::State::stopped)
         {
             return context->set_value(grpc::Status{grpc::FAILED_PRECONDITION,
                                                    "Multipass can only clone stopped instances."});
@@ -3354,7 +3350,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                  vm_desc.default_mac_address,
                                  vm_desc.extra_interfaces,
                                  config->ssh_username,
-                                 VirtualMachine::State::off,
+                                 VirtualMachine::State::stopped,
                                  {},
                                  false,
                                  {},

@@ -56,7 +56,7 @@ TEST(TestJsonUtils, updatesUniqueIdentifiersOfMetadata)
                              "01:ff:00:00:00:01",
                              {{"id", "01:ff:00:00:00:02", false}},
                              "username",
-                             mp::VirtualMachine::State::off,
+                             mp::VirtualMachine::State::stopped,
                              {},
                              false,
                              {},

@@ -631,21 +631,22 @@ INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler,
                                         VMSt::delayed_shutdown,
                                         VMSt::suspended,
                                         VMSt::suspending,
-                                        VMSt::unknown)));
+                                        VMSt::unknown,
+                                        VMSt::unavailable)));
 
 struct TestInstanceModOnStoppedInstance : public TestInstanceSettingsHandler,
-                                          public WithParamInterface<PropertyAndState>
+                                          public WithParamInterface<Property>
 {
 };
 
-TEST_P(TestInstanceModOnStoppedInstance, setWorksOnOtherStates)
+TEST_P(TestInstanceModOnStoppedInstance, setWorksOnStoppedState)
 {
     constexpr auto target_instance_name = "Beethoven";
     const auto val = "1500000000"; // exceed all minima
-    const auto [property, state] = GetParam();
+    const auto property = GetParam();
     const auto& target_specs = specs[target_instance_name];
 
-    EXPECT_CALL(mock_vm(target_instance_name), current_state).WillOnce(Return(state));
+    EXPECT_CALL(mock_vm(target_instance_name), current_state).WillOnce(Return(VMSt::stopped));
 
     mp::UserMessages messages{};
     EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, property), val, messages));
@@ -658,8 +659,7 @@ TEST_P(TestInstanceModOnStoppedInstance, setWorksOnOtherStates)
 
 INSTANTIATE_TEST_SUITE_P(TestInstanceSettingsHandler,
                          TestInstanceModOnStoppedInstance,
-                         Combine(ValuesIn(TestInstanceSettingsHandler::numeric_properties),
-                                 Values(VMSt::off, VMSt::stopped)));
+                         ValuesIn(TestInstanceSettingsHandler::numeric_properties));
 
 struct TestInstanceModPersists : public TestInstanceSettingsHandler,
                                  public WithParamInterface<Property>

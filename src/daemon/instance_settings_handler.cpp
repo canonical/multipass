@@ -103,7 +103,7 @@ pick_instance(InstanceMap& instances,
 void check_state_for_update(mp::VirtualMachine& instance)
 {
     auto st = instance.current_state();
-    if (st != mp::VirtualMachine::State::stopped && st != mp::VirtualMachine::State::off)
+    if (st != mp::VirtualMachine::State::stopped)
         throw mp::InstanceStateSettingsException{operation_msg(Operation::Modify),
                                                  instance.get_name(),
                                                  "Instance must be stopped for modification"};

@@ -230,7 +230,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                              : (mp::backend::instance_image_has_snapshot(desc.image.image_path,
                                                                          suspend_tag)
                                     ? State::suspended
-                                    : State::off),
+                                    : State::stopped),
                          desc.vm_name,
                          desc,
                          monitor,
@@ -371,7 +371,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
         }
 
-        state = State::off;
+        state = State::stopped;
     }
     else
     {
@@ -386,7 +386,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             if (vm_process->wait_for_finished(vm_shutdown_timeout))
             {
                 lock.lock();
-                state = State::off;
+                state = State::stopped;
             }
             else
             {
@@ -416,7 +416,7 @@ void mp::QemuVirtualMachine::suspend()
 
         vm_process.reset(nullptr);
     }
-    else if (state == State::off || state == State::suspended || state == State::unavailable)
+    else if (state == State::stopped || state == State::suspended || state == State::unavailable)
     {
         // TODO: format state directly
         mpl::info(vm_name, "Ignoring suspend issued while stopped/suspended/unavailable");
@@ -443,7 +443,7 @@ void mp::QemuVirtualMachine::on_started()
 
 void mp::QemuVirtualMachine::on_error()
 {
-    state = State::off;
+    state = State::stopped;
     handle_state_update();
 }
 
@@ -453,7 +453,7 @@ void mp::QemuVirtualMachine::on_shutdown()
         std::unique_lock lock{state_mutex};
         auto old_state = state;
 
-        state = State::off;
+        state = State::stopped;
         if (old_state == State::starting)
             state_wait.wait(lock, [this] { return shutdown_while_starting; });
 
@@ -741,8 +741,7 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_
                                                     std::shared_ptr<Snapshot> parent)
     -> std::shared_ptr<Snapshot>
 {
-    assert(state == VirtualMachine::State::off ||
-           state == VirtualMachine::State::stopped); // would need QMP otherwise
+    assert(state == VirtualMachine::State::stopped); // would need QMP otherwise
     return std::make_shared<QemuSnapshot>(snapshot_name,
                                           comment,
                                           instance_id,

@@ -253,7 +253,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                     "Could not storageattach DVD: {}",
                                     name);
 
-        state = State::off;
+        state = State::stopped;
     }
     else
     {

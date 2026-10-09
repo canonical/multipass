@@ -450,9 +450,7 @@ TEST_F(Daemon, ensureThatOnRestartFutureCompletes)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{"yakety-yak"}));
-    EXPECT_CALL(*mock_vm, current_state)
-        .Times(1)
-        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
 
     mp::Signal sig;
@@ -1637,10 +1635,10 @@ INSTANTIATE_TEST_SUITE_P(Daemon,
                                 std::make_tuple(mp::VirtualMachine::State::running,
                                                 std::vector<std::string>{"list", "--no-ipv4"},
                                                 std::vector<std::string>{"Running", "--"}),
-                                std::make_tuple(mp::VirtualMachine::State::off,
+                                std::make_tuple(mp::VirtualMachine::State::stopped,
                                                 std::vector<std::string>{"list"},
                                                 std::vector<std::string>{"Stopped", "--"}),
-                                std::make_tuple(mp::VirtualMachine::State::off,
+                                std::make_tuple(mp::VirtualMachine::State::stopped,
                                                 std::vector<std::string>{"list", "--no-ipv4"},
                                                 std::vector<std::string>{"Stopped", "--"})));
 
@@ -2042,7 +2040,7 @@ TEST_F(Daemon, startReportsErrorEvenWhenStartExceptionIsIntentional)
     auto mock_factory = use_a_mock_vm_factory();
 
     mpt::fake_vm_properties vm_props{};
-    vm_props.state = mp::VirtualMachine::State::off;
+    vm_props.state = mp::VirtualMachine::State::stopped;
     const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(vm_props));
     config_builder.data_directory = temp_dir->path();
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -2050,7 +2048,8 @@ TEST_F(Daemon, startReportsErrorEvenWhenStartExceptionIsIntentional)
     const std::string error_msg{"shutdown requested by cloud-init"};
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
-    EXPECT_CALL(*mock_vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::off));
+    EXPECT_CALL(*mock_vm, current_state())
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start()).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up)
         .WillOnce(Throw(mp::StartException{vm_props.name, error_msg, true}));

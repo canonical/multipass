@@ -93,7 +93,7 @@ struct StubSnapshot : public Snapshot
 
     VirtualMachine::State get_state() const noexcept override
     {
-        return VirtualMachine::State::off;
+        return VirtualMachine::State::stopped;
     }
 
     const std::unordered_map<std::string, VMMount>& get_mounts() const noexcept override

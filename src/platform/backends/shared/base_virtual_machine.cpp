@@ -63,7 +63,7 @@ constexpr auto yes_overwrite = true;
 
 void assert_vm_stopped([[maybe_unused]] St state)
 {
-    assert(state == St::off || state == St::stopped);
+    assert(state == St::stopped);
 }
 
 mp::Path derive_head_path(const QDir& snapshot_dir)
@@ -100,7 +100,7 @@ mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
-    : BaseVirtualMachine(zone.is_available() ? State::off : State::unavailable,
+    : BaseVirtualMachine(zone.is_available() ? State::stopped : State::unavailable,
                          vm_name,
                          vm_desc,
                          monitor,
@@ -166,7 +166,7 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
 void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy) const
 {
     // A mutex should already be locked by the caller here
-    if (state == State::off || state == State::stopped || state == State::unavailable)
+    if (state == State::stopped || state == State::unavailable)
     {
         // TODO: format state directly
         throw VMStateIdempotentException{
@@ -216,7 +216,7 @@ bool mp::BaseVirtualMachine::set_available(bool available)
     if (available)
     {
         assert(state == State::unavailable);
-        state = State::off;
+        state = State::stopped;
         handle_state_update();
         return was_running;
     }
@@ -325,7 +325,7 @@ std::unique_ptr<multipass::SSHSession> multipass::BaseVirtualMachine::new_ssh_se
 bool multipass::BaseVirtualMachine::unplugged()
 {
     auto st = current_state();
-    return st == State::off || st == State::stopped;
+    return st == State::stopped;
 }
 
 void mp::BaseVirtualMachine::detect_aborted_start()

@@ -127,7 +127,7 @@ struct VirtDiskSnapshotTest : public ::testing::Test
                             .default_mac_address = "00:00:00:00:00:00",
                             .extra_interfaces = {},
                             .ssh_username = "ubuntu",
-                            .state = VirtualMachine::State::off,
+                            .state = VirtualMachine::State::stopped,
                             .mounts = {},
                             .deleted = false,
                             .metadata = {}};
