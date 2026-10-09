@@ -2,6 +2,12 @@ name: Linux
 
 on:
   workflow_call:
+    inputs:
+      slow-runners-needed:
+        description: Whether optional slow runners should be enabled
+        type: boolean
+        required: false
+        default: false
   schedule:
   # Daily at 00:34 UTC
     - cron: 34 0 * * *
@@ -35,9 +41,11 @@ jobs:
           });
 
           let runners = ["ubuntu-latest", "ubuntu-24.04-arm"];
-          if (context.eventName === 'schedule' &&
-              context.repo.owner === 'canonical' &&
-              context.repo.repo === 'multipass') {
+          const slowRunnersNeeded = '${{ inputs.slow-runners-needed }}' === 'true';
+          if (context.repo.owner === 'canonical' &&
+              context.repo.repo === 'multipass' &&
+              (context.eventName === 'schedule' || slowRunnersNeeded)
+            ) {
             runners.push("self-hosted-linux-ppc64el-noble-edge",
                          "self-hosted-linux-s390x-noble-edge");
           }
