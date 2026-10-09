@@ -37,5 +37,8 @@ Options:
                      option for more detail. Maximum verbosity is obtained with
                      4 (or more) v's, i.e. -vvvv.
   --format <format>  Output version information in the requested format.
-                     Valid formats are: table (default), json, csv and yaml
+                     Valid formats are: table (default), json, csv and yaml.
+                     Machine-readable formats (json, csv, yaml) cover regular
+                     output only; errors and warnings are not included in them,
+                     and are printed to stderr as plain text.
 ```

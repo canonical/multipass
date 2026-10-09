@@ -66,7 +66,9 @@ ParseCode Zones::parse_args(ArgParser* parser)
     QCommandLineOption formatOption{
         "format",
         "Output list in the requested format.\nValid formats are: table (default), json, csv and "
-        "yaml",
+        "yaml.\n"
+        "Machine-readable formats (json, csv, yaml) cover regular output only; errors and "
+        "warnings are not included in them, and are printed to stderr as plain text.",
         "format",
         "table",
     };

@@ -72,11 +72,15 @@ QString cmd::List::description() const
 mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
 {
     QCommandLineOption snapshotsOption("snapshots", "List all available snapshots");
-    QCommandLineOption formatOption("format",
-                                    "Output list in the requested format.\nValid formats are: "
-                                    "table (default), json, csv and yaml",
-                                    "format",
-                                    "table");
+    QCommandLineOption formatOption(
+        "format",
+        "Output list in the requested format.\nValid formats are: "
+        "table (default), json, csv and yaml.\n"
+        "Machine-readable formats (json, csv, yaml) cover regular output "
+        "only; errors and warnings are not included in them, and are "
+        "printed to stderr as plain text.",
+        "format",
+        "table");
     QCommandLineOption noIpv4Option("no-ipv4",
                                     "Do not query the instances for the IPv4's they are using");
     noIpv4Option.setFlags(QCommandLineOption::HiddenFromHelp);

@@ -81,7 +81,10 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         "to obtain detailed information on all the snapshots of all instances."};
     QCommandLineOption format_option(format_option_name,
                                      "Output info in the requested format.\nValid formats are: "
-                                     "table (default), json, csv and yaml.",
+                                     "table (default), json, csv and yaml.\n"
+                                     "Machine-readable formats (json, csv, yaml) cover regular "
+                                     "output only; errors and warnings are not included in them, "
+                                     "and are printed to stderr as plain text.",
                                      format_option_name,
                                      "table");
 

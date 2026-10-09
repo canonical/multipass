@@ -61,7 +61,9 @@ mp::ParseCode cmd::Aliases::parse_args(mp::ArgParser* parser)
         "yaml. "
         "The output working directory states whether the alias runs in the instance's default "
         "directory "
-        "or the alias running directory should try to be mapped to a mounted one.\n",
+        "or the alias running directory should try to be mapped to a mounted one.\n"
+        "Machine-readable formats (json, csv, yaml) cover regular output only; errors and "
+        "warnings are not included in them, and are printed to stderr as plain text.",
         "format",
         "table");
 

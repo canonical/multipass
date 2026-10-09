@@ -17,6 +17,10 @@ PrivSwitch      switch  Private virtual switch
 
 Like [`list`](/reference/command-line-interface/list), `networks` supports the `--format` option.
 
+```{note}
+The `json`, `csv` and `yaml` formats cover regular output only. Errors and warnings are not included in them: they are printed to the standard error stream as plain text, and failures are signalled by a non-zero exit status.
+```
+
 Another example, running the command `multipass networks --format yaml` on macOS with VirtualBox returns:
 
 ```{code-block} text
@@ -55,5 +59,8 @@ Options:
                      option for more detail. Maximum verbosity is obtained with
                      4 (or more) v's, i.e. -vvvv.
   --format <format>  Output list in the requested format.
-                     Valid formats are: table (default), json, csv and yaml
+                     Valid formats are: table (default), json, csv and yaml.
+                     Machine-readable formats (json, csv, yaml) cover regular
+                     output only; errors and warnings are not included in them,
+                     and are printed to stderr as plain text.
 ```

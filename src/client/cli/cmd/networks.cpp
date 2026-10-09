@@ -74,11 +74,15 @@ QString cmd::Networks::description() const
 
 mp::ParseCode cmd::Networks::parse_args(mp::ArgParser* parser)
 {
-    QCommandLineOption formatOption("format",
-                                    "Output list in the requested format.\nValid formats are: "
-                                    "table (default), json, csv and yaml",
-                                    "format",
-                                    "table");
+    QCommandLineOption formatOption(
+        "format",
+        "Output list in the requested format.\nValid formats are: "
+        "table (default), json, csv and yaml.\n"
+        "Machine-readable formats (json, csv, yaml) cover regular output "
+        "only; errors and warnings are not included in them, and are "
+        "printed to stderr as plain text.",
+        "format",
+        "table");
 
     parser->addOption(formatOption);
 
