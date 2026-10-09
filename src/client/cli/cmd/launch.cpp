@@ -568,7 +568,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         {
             // TODO: daemon doesn't know if client actually shows this notice. Need to be able
             // to tell daemon that the notice will be displayed or not.
-            cout << update_notice(reply.update_info());
+            cerr << update_notice(reply.update_info());
         }
 
         return ReturnCode::Ok;
