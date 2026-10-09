@@ -125,6 +125,7 @@ public:
                 (const fs::path& path, std::error_code& err),
                 (override, const, noexcept));
     MOCK_METHOD(bool, is_symlink, (const fs::path& path), (override, const));
+    MOCK_METHOD(bool, is_directory, (const fs::path& path), (override, const));
     MOCK_METHOD(bool,
                 is_directory,
                 (const fs::path& path, std::error_code& err),
@@ -133,6 +134,7 @@ public:
                 create_directory,
                 (const fs::path& path, std::error_code& err),
                 (override, const));
+    MOCK_METHOD(bool, create_directories, (const fs::path& path), (override, const));
     MOCK_METHOD(bool,
                 create_directories,
                 (const fs::path& path, std::error_code& err),
@@ -142,6 +144,7 @@ public:
                 remove,
                 (const fs::path& path, std::error_code& err),
                 (override, const, noexcept));
+    MOCK_METHOD(bool, remove_all, (const fs::path& path), (override, const));
     MOCK_METHOD(void,
                 create_symlink,
                 (const fs::path& to, const fs::path& path, std::error_code& err),
