@@ -30,6 +30,8 @@
 #include "temp_dir.h"
 
 #include <multipass/cli/client_common.h>
+#include <multipass/cli/json_formatter.h>
+#include <multipass/cli/table_formatter.h>
 #include <multipass/utils.h>
 
 #include <grpcpp/support/status.h>
@@ -145,4 +147,30 @@ TEST(StandardFailureHandlerFormatting, singleTrailingNewlineWhenDetailsAlreadyEn
     EXPECT_EQ(cerr_stream.str(),
               "start failed: instance(s) missing\n"
               "Instance 'asdf' does not exist.\n");
+}
+
+TEST(StandardFailureHandlerFormatting, jsonFormatterWrapsErrorInJson)
+{
+    std::stringstream cerr_stream;
+    grpc::Status status{grpc::StatusCode::ABORTED, "instance \"foo\" does not exist", ""};
+    const mp::JsonFormatter formatter;
+
+    EXPECT_EQ(mp::cmd::standard_failure_handler_for("info", cerr_stream, status, "", &formatter),
+              mp::ReturnCode::CommandFail);
+    EXPECT_EQ(cerr_stream.str(),
+              "{\n"
+              "    \"error_msg\": \"info failed: instance \\\"foo\\\" does not exist\",\n"
+              "    \"exit_code\": 2\n"
+              "}\n");
+}
+
+TEST(StandardFailureHandlerFormatting, nonJsonFormatterKeepsPlainError)
+{
+    std::stringstream cerr_stream;
+    grpc::Status status{grpc::StatusCode::UNAVAILABLE, "cannot connect", ""};
+    const mp::TableFormatter formatter;
+
+    EXPECT_EQ(mp::cmd::standard_failure_handler_for("list", cerr_stream, status, "", &formatter),
+              mp::ReturnCode::DaemonFail);
+    EXPECT_EQ(cerr_stream.str(), "list failed: cannot connect\n");
 }

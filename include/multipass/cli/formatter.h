@@ -22,6 +22,7 @@
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/client_platform.h>
+#include <multipass/cli/return_codes.h>
 
 #include <string>
 
@@ -41,6 +42,10 @@ public:
                                const std::string& client_version) const = 0;
     virtual std::string format(const AliasDict& aliases) const = 0;
     virtual std::string format(const ZonesReply& reply) const = 0;
+    virtual std::string format_error(const std::string& error_msg, ReturnCode /*exit_code*/) const
+    {
+        return error_msg + '\n';
+    }
 
 protected:
     Formatter() = default;

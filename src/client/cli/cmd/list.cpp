@@ -42,7 +42,7 @@ mp::ReturnCodeVariant cmd::List::run(mp::ArgParser* parser)
     };
 
     auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
-        return standard_failure_handler_for(name(), cerr, status);
+        return standard_failure_handler_for(name(), cerr, status, {}, chosen_formatter);
     };
 
     request.set_verbosity_level(parser->verbosityLevel());

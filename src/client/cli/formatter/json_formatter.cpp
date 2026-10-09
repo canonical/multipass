@@ -328,3 +328,9 @@ std::string mp::JsonFormatter::format(const ZonesReply& reply) const
 
     return pretty_print(root_object);
 }
+
+std::string mp::JsonFormatter::format_error(const std::string& error_msg,
+                                            ReturnCode exit_code) const
+{
+    return pretty_print({{"error_msg", error_msg}, {"exit_code", static_cast<int>(exit_code)}});
+}

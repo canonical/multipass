@@ -32,6 +32,8 @@
 
 namespace multipass
 {
+class Formatter;
+
 const QString common_client_cert_dir{"/multipass-client-certificate"};
 const QString client_cert_prefix{"multipass_cert"};
 const QString cert_file_suffix{".pem"};
@@ -49,7 +51,8 @@ namespace cmd
 ReturnCode standard_failure_handler_for(const std::string& command,
                                         std::ostream& cerr,
                                         const grpc::Status& status,
-                                        const std::string& error_details = std::string());
+                                        const std::string& error_details = std::string(),
+                                        const Formatter* formatter = nullptr);
 bool update_available(const UpdateInfo& update_info);
 std::string update_notice(const multipass::UpdateInfo& update_info);
 

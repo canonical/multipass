@@ -2126,6 +2126,33 @@ TEST_F(Client, infoCmdSucceedsWithAllAndNoRuntimeInformation)
                 Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, infoCmdFailureIsJsonWithJsonFormat)
+{
+    std::stringstream cout_stream, cerr_stream;
+    EXPECT_CALL(mock_daemon, info)
+        .WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
+
+    EXPECT_THAT(send_command({"info", "foo", "--format=json"}, cout_stream, cerr_stream),
+                Eq(mp::ReturnCode::CommandFail));
+    EXPECT_EQ(cout_stream.str(), "");
+    EXPECT_EQ(cerr_stream.str(),
+              "{\n"
+              "    \"error_msg\": \"info failed: msg\",\n"
+              "    \"exit_code\": 2\n"
+              "}\n");
+}
+
+TEST_F(Client, infoCmdFailureIsPlainWithDefaultFormat)
+{
+    std::stringstream cerr_stream;
+    EXPECT_CALL(mock_daemon, info)
+        .WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
+
+    EXPECT_THAT(send_command({"info", "foo"}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::CommandFail));
+    EXPECT_EQ(cerr_stream.str(), "info failed: msg\n");
+}
+
 // list cli tests
 TEST_F(Client, listCmdOkNoArgs)
 {
@@ -2137,6 +2164,21 @@ TEST_F(Client, listCmdOkNoArgs)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::ListReply, mp::ListRequest>(list_matcher, ok, reply)));
     EXPECT_THAT(send_command({"list"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, listCmdFailureIsJsonWithJsonFormat)
+{
+    std::stringstream cerr_stream;
+    EXPECT_CALL(mock_daemon, list)
+        .WillOnce(Return(grpc::Status{grpc::StatusCode::ABORTED, "msg"}));
+
+    EXPECT_THAT(send_command({"list", "--format=json"}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::CommandFail));
+    EXPECT_EQ(cerr_stream.str(),
+              "{\n"
+              "    \"error_msg\": \"list failed: msg\",\n"
+              "    \"exit_code\": 2\n"
+              "}\n");
 }
 
 TEST_F(Client, listCmdFailsWithArgs)

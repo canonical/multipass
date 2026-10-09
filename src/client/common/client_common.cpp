@@ -16,6 +16,7 @@
  */
 
 #include <multipass/cli/client_common.h>
+#include <multipass/cli/formatter.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
 #include <multipass/exceptions/settings_exceptions.h>
@@ -82,23 +83,36 @@ grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const mp::CertProvider
     return opts;
 }
 
+std::string failure_message_for(const std::string& command,
+                                const grpc::Status& status,
+                                const std::string& error_details)
+{
+    const auto trimmed =
+        std::string_view(error_details).substr(0, error_details.find_last_not_of("\r\n") + 1);
+
+    return fmt::format("{} failed: {}{}",
+                       command,
+                       status.error_message(),
+                       trimmed.empty() ? "" : fmt::format("\n{}", trimmed));
+}
+
 } // namespace
 
 mp::ReturnCode mp::cmd::standard_failure_handler_for(const std::string& command,
                                                      std::ostream& cerr,
                                                      const grpc::Status& status,
-                                                     const std::string& error_details)
+                                                     const std::string& error_details,
+                                                     const Formatter* formatter)
 {
-    const auto trimmed =
-        std::string_view(error_details).substr(0, error_details.find_last_not_of("\r\n") + 1);
+    const auto return_code = return_code_for(status.error_code());
+    const auto message = failure_message_for(command, status, error_details);
 
-    fmt::print(cerr,
-               "{} failed: {}\n{}",
-               command,
-               status.error_message(),
-               trimmed.empty() ? "" : fmt::format("{}\n", trimmed));
+    if (formatter)
+        cerr << formatter->format_error(message, return_code);
+    else
+        fmt::print(cerr, "{}\n", message);
 
-    return return_code_for(status.error_code());
+    return return_code;
 }
 
 bool mp::cmd::update_available(const mp::UpdateInfo& update_info)

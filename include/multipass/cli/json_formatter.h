@@ -31,5 +31,6 @@ public:
     std::string format(const VersionReply& list, const std::string& client_version) const override;
     std::string format(const AliasDict& aliases) const override;
     std::string format(const ZonesReply& reply) const override;
+    std::string format_error(const std::string& error_msg, ReturnCode exit_code) const override;
 };
 } // namespace multipass

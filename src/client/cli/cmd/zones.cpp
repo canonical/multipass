@@ -33,7 +33,7 @@ ReturnCodeVariant Zones::run(ArgParser* parser)
     };
 
     auto on_failure = [this](const grpc::Status& status) -> ReturnCodeVariant {
-        return standard_failure_handler_for(name(), cerr, status);
+        return standard_failure_handler_for(name(), cerr, status, {}, chosen_formatter);
     };
 
     ZonesRequest request{};
