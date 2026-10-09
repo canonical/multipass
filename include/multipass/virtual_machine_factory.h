@@ -87,6 +87,8 @@ public:
     // TODO@backends: remove once deprecated backends are removed
     virtual bool supports_availability_zones() const = 0;
 
+    virtual void validate_instance_name(const std::string& name) const = 0;
+
 protected:
     VirtualMachineFactory() = default;
 

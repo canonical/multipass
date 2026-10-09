@@ -54,6 +54,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
+#include <multipass/utils.h>
 #include <multipass/utils/grpc_utils.h>
 #include <multipass/version.h>
 #include <multipass/virtual_machine.h>
@@ -233,6 +234,22 @@ auto name_from(const std::string& requested_name,
         }
         throw std::runtime_error("unable to generate a unique name");
     }
+}
+
+auto abbreviate_name(const std::string& name)
+{
+    static constexpr size_t max_display_length = 100;
+    static constexpr std::string_view ellipsis = "...";
+
+    if (name.size() <= max_display_length)
+        return name;
+
+    static constexpr size_t kept_length = max_display_length - ellipsis.size();
+    static constexpr size_t prefix_length = kept_length * 3 / 4;
+    static constexpr size_t suffix_length = kept_length - prefix_length;
+
+    return name.substr(0, prefix_length) + std::string{ellipsis} +
+           name.substr(name.size() - suffix_length);
 }
 
 std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
@@ -479,6 +496,8 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
     if (!instance_name.empty() && !mp::utils::valid_hostname(instance_name))
         option_errors.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
 
+    config->factory->validate_instance_name(instance_name);
+
     if (!zone_name.empty() && config->factory->supports_availability_zones() &&
         !config->az_manager->get_zone(zone_name).is_available())
         option_errors.add_error_codes(mp::LaunchError::ZONE_UNAVAILABLE);
@@ -488,6 +507,13 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
                                                       *config->factory,
                                                       nets_need_bridging,
                                                       option_errors);
+
+    const auto max_instance_name_len = MP_UTILS.max_instance_name_length(config->data_directory);
+    if (instance_name.size() > max_instance_name_len)
+    {
+        option_errors.add_error_codes(mp::LaunchError::INSTANCE_NAME_TOO_LONG);
+        option_errors.set_max_instance_name_len(max_instance_name_len);
+    }
 
     struct CheckedArguments
     {
@@ -3050,6 +3076,7 @@ try
 
     response.set_cpus(MP_PLATFORM.get_cpus());
     response.set_memory(MP_PLATFORM.get_total_ram());
+    response.set_max_instance_name_len(MP_UTILS.max_instance_name_length(config->data_directory));
 
     server->Write(response);
     context->set_value(grpc::Status{});
@@ -3330,6 +3357,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     auto name = name_from(checked_args.instance_name, *config->name_generator, operative_instances);
 
+    auto abbreviated_name = abbreviate_name(name);
+
     auto zone_name = !checked_args.zone_name.empty()
                        ? checked_args.zone_name
                        : config->az_manager->get_automatic_zone_name();
@@ -3359,7 +3388,14 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     QObject::connect(prepare_future_watcher,
                      &QFutureWatcher<mp::VirtualMachineDescription>::finished,
-                     [this, server, context, name, timeout, start, prepare_future_watcher] {
+                     [this,
+                      server,
+                      context,
+                      name,
+                      abbreviated_name,
+                      timeout,
+                      start,
+                      prepare_future_watcher] {
                          // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
 
                          try
@@ -3391,7 +3427,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                              if (start)
                              {
                                  LaunchReply reply;
-                                 reply.set_create_message("Starting " + name);
+                                 reply.set_create_message("Starting " + abbreviated_name);
                                  server->Write(reply);
 
                                  operative_instances[name]->start();
@@ -3438,14 +3474,15 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                          prepare_future_watcher->deleteLater();
                      });
 
-    auto make_vm_description = [this, server, request, name, zone_name, checked_args]() mutable
+    auto make_vm_description =
+        [this, server, request, name, abbreviated_name, zone_name, checked_args]() mutable
         -> mp::VirtualMachineDescription {
         try
         {
             CreateReply reply;
             reply.set_create_message(config->factory->supports_availability_zones()
-                                         ? fmt::format("Creating {} in {}", name, zone_name)
-                                         : fmt::format("Creating {}", name));
+                                         ? fmt::format("Creating {} in {}", abbreviated_name, zone_name)
+                                         : fmt::format("Creating {}", abbreviated_name));
             server->Write(reply);
 
             Query query;
@@ -3481,9 +3518,10 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 return server->Write(create_reply);
             };
 
-            auto prepare_action = [this, server, name](const VMImage& source_image) -> VMImage {
+            auto prepare_action =
+                [this, server, &abbreviated_name](const VMImage& source_image) -> VMImage {
                 CreateReply reply;
-                reply.set_create_message("Preparing image for " + name);
+                reply.set_create_message("Preparing image for " + abbreviated_name);
                 server->Write(reply);
 
                 return config->factory->prepare_source_image(source_image);
@@ -3506,7 +3544,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 vm_desc.disk_space.in_bytes() > 0 ? vm_desc.disk_space : checked_args.disk_space,
                 config->data_directory);
 
-            reply.set_create_message("Configuring " + name);
+            reply.set_create_message("Configuring " + abbreviated_name);
             server->Write(reply);
 
             config->factory->prepare_networking(checked_args.extra_interfaces);
