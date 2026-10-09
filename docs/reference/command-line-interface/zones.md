@@ -16,7 +16,13 @@ zone3   Unavailable  10.42.2.0/24
 
 A zone in the `Unavailable` state has been disabled with [`multipass disable-zones`](reference-command-line-interface-disable-zones); instances cannot be launched into it, and any instances already in it are forcefully stopped until the zone is re-enabled with [`multipass enable-zones`](reference-command-line-interface-enable-zones).
 
-Like [`multipass list`](reference-command-line-interface-list), `multipass zones` supports the `--format` option to get machine-readable output. The `json`, `csv` and `yaml` formats cover regular output only. Errors and log messages are printed to the standard error stream as plain text, with failures signaled by a non-zero exit status. For example, `multipass zones --format yaml`:
+Like [`multipass list`](reference-command-line-interface-list), `multipass zones` supports the `--format` option to get machine-readable output.
+
+```{note}
+The `json`, `csv` and `yaml` formats cover regular output only. Errors and log messages are printed to the standard error stream as plain text, with failures signaled by a non-zero exit status.
+```
+
+For example, `multipass zones --format yaml`:
 
 ```{code-block} text
 zone1:

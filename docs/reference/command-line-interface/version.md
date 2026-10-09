@@ -22,6 +22,12 @@ Go here for more information: https://github.com/canonical/multipass/releases/ta
 ########################################################################################
 ```
 
+Like [`list`](/reference/command-line-interface/list), `version` supports the `--format` option to get machine-readable output (`json`, `csv` or `yaml`).
+
+```{note}
+The `json`, `csv` and `yaml` formats cover regular output only. Errors and log messages are printed to the standard error stream as plain text, with failures signaled by a non-zero exit status.
+```
+
 ---
 
 The full `multipass help version` output explains the available options:

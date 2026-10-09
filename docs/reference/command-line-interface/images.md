@@ -45,6 +45,12 @@ daily:resolute                                20260720         Ubuntu 26.04 LTS
 resolute                                      20260720         Ubuntu 26.04 LTS
 ```
 
+Like [`list`](/reference/command-line-interface/list), `images` supports the `--format` option to get machine-readable output (`json`, `csv` or `yaml`).
+
+```{note}
+The `json`, `csv` and `yaml` formats cover regular output only. Errors and log messages are printed to the standard error stream as plain text, with failures signaled by a non-zero exit status.
+```
+
 ---
 
 The full `multipass help images` output explains the available options:
