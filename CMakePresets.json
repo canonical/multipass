@@ -45,6 +45,34 @@
             }
         },
         {
+            "name": "local-debug",
+            "description": "Preset for locally generating a debug build.",
+            "inherits": "common",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "MULTIPASS_ENABLE_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "local-release",
+            "description": "Preset for locally generating a release build.",
+            "inherits": "common",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "MULTIPASS_ENABLE_TESTS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
             "name": "snap",
             "description": "Preset for snap builds.",
             "inherits": "common",
@@ -168,9 +196,18 @@
     "buildPresets": [
         {
             "name": "configured-at-present",
-            "description":
-                "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
+            "description": "Build whatever configure preset is configured at the moment. Requires the preset to be configured to `${sourceDir}/build` folder.",
             "configurePreset": "common"
+        },
+        {
+            "name": "local-debug",
+            "configurePreset": "local-debug",
+            "configuration": "Debug"
+        },
+        {
+            "name": "local-release",
+            "configurePreset": "local-release",
+            "configuration": "Release"
         }
     ]
 }
