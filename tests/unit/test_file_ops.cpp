@@ -231,19 +231,20 @@ struct HighLevelFileOps : public Test
 TEST_F(HighLevelFileOps, writesTransactionally)
 {
     EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                setStaleLockTime(mpt::QFileNameMatches<QLockFile&>(Eq(lockfile_path)),
                                  Eq(expected_stale_lock_time)));
     EXPECT_CALL(
         mock_file_ops,
-        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
+        tryLock(mpt::QFileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
         .WillOnce(Return(true));
 
     EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, open(mpt::FileNameMatches(Eq(file_path)), _)).WillOnce(Return(true));
+    EXPECT_CALL(mock_file_ops, open(mpt::QFileNameMatches(Eq(file_path)), _))
+        .WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops,
-                write(mpt::FileNameMatches(Eq(file_path)), Eq(file_text), Eq(strlen(file_text))))
+                write(mpt::QFileNameMatches(Eq(file_path)), Eq(file_text), Eq(strlen(file_text))))
         .WillOnce(Return(14));
-    EXPECT_CALL(mock_file_ops, commit(mpt::FileNameMatches<QSaveFile&>(Eq(file_path))))
+    EXPECT_CALL(mock_file_ops, commit(mpt::QFileNameMatches<QSaveFile&>(Eq(file_path))))
         .WillOnce(Return(true));
     EXPECT_NO_THROW(mock_file_ops.write_transactionally(file_path, file_text));
 }
@@ -251,24 +252,24 @@ TEST_F(HighLevelFileOps, writesTransactionally)
 TEST_F(HighLevelFileOps, writesTransactionallyEventually)
 {
     EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                setStaleLockTime(mpt::QFileNameMatches<QLockFile&>(Eq(lockfile_path)),
                                  Eq(expected_stale_lock_time)));
     EXPECT_CALL(
         mock_file_ops,
-        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
+        tryLock(mpt::QFileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
         .WillOnce(Return(true));
 
     EXPECT_CALL(mock_file_ops, mkpath(Eq(dir), Eq("."))).WillOnce(Return(true));
-    EXPECT_CALL(mock_file_ops, open(mpt::FileNameMatches(Eq(file_path)), _))
+    EXPECT_CALL(mock_file_ops, open(mpt::QFileNameMatches(Eq(file_path)), _))
         .Times(expected_retry_attempts)
         .WillRepeatedly(Return(true));
     EXPECT_CALL(mock_file_ops,
-                write(mpt::FileNameMatches(Eq(file_path)), Eq(file_text), Eq(strlen(file_text))))
+                write(mpt::QFileNameMatches(Eq(file_path)), Eq(file_text), Eq(strlen(file_text))))
         .Times(expected_retry_attempts)
         .WillRepeatedly(Return(14));
 
     auto commit_called_times = 0;
-    EXPECT_CALL(mock_file_ops, commit(mpt::FileNameMatches<QSaveFile&>(Eq(file_path))))
+    EXPECT_CALL(mock_file_ops, commit(mpt::QFileNameMatches<QSaveFile&>(Eq(file_path))))
         .Times(expected_retry_attempts)
         .WillRepeatedly(
             InvokeWithoutArgs([&]() { return ++commit_called_times == expected_retry_attempts; }));
@@ -288,11 +289,11 @@ TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToCreateDirectory)
 TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToOpenFile)
 {
     EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                setStaleLockTime(mpt::QFileNameMatches<QLockFile&>(Eq(lockfile_path)),
                                  Eq(expected_stale_lock_time)));
     EXPECT_CALL(
         mock_file_ops,
-        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
+        tryLock(mpt::QFileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
         .WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(false));
@@ -305,11 +306,11 @@ TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToOpenFile)
 TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToWriteFile)
 {
     EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                setStaleLockTime(mpt::QFileNameMatches<QLockFile&>(Eq(lockfile_path)),
                                  Eq(expected_stale_lock_time)));
     EXPECT_CALL(
         mock_file_ops,
-        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
+        tryLock(mpt::QFileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
         .WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, open(_, _)).WillOnce(Return(true));
@@ -323,11 +324,11 @@ TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToWriteFile)
 TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToAcquireLock)
 {
     EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                setStaleLockTime(mpt::QFileNameMatches<QLockFile&>(Eq(lockfile_path)),
                                  Eq(expected_stale_lock_time)));
     EXPECT_CALL(
         mock_file_ops,
-        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
+        tryLock(mpt::QFileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
         .WillOnce(Return(false));
     EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
 
@@ -340,11 +341,11 @@ TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToAcquireLock)
 TEST_F(HighLevelFileOps, writeTransactionallyThrowsOnFailureToCommit)
 {
     EXPECT_CALL(mock_file_ops,
-                setStaleLockTime(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)),
+                setStaleLockTime(mpt::QFileNameMatches<QLockFile&>(Eq(lockfile_path)),
                                  Eq(expected_stale_lock_time)));
     EXPECT_CALL(
         mock_file_ops,
-        tryLock(mpt::FileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
+        tryLock(mpt::QFileNameMatches<QLockFile&>(Eq(lockfile_path)), Eq(expected_lock_timeout)))
         .WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, mkpath).WillOnce(Return(true));
     EXPECT_CALL(mock_file_ops, open(_, _))
