@@ -16,9 +16,12 @@
  */
 
 #include "delete.h"
+
+#include "autocomplete_from_rpc_provider.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/autocompleter.h>
 #include <multipass/cli/prompters.h>
 #include <multipass/platform.h>
 
@@ -74,11 +77,11 @@ mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
     auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
         // grpc::StatusCode::FAILED_PRECONDITION matches mp::VMStateInvalidException
         return status.error_code() == grpc::StatusCode::FAILED_PRECONDITION
-                   ? standard_failure_handler_for(name(),
-                                                  cerr,
-                                                  status,
-                                                  "Use --purge to forcefully delete it.")
-                   : standard_failure_handler_for(name(), cerr, status);
+                 ? standard_failure_handler_for(name(),
+                                                cerr,
+                                                status,
+                                                "Use --purge to forcefully delete it.")
+                 : standard_failure_handler_for(name(), cerr, status);
     };
 
     using Client = grpc::ClientReaderWriterInterface<DeleteRequest, DeleteReply>;
@@ -121,6 +124,25 @@ QString cmd::Delete::description() const
         "with the \"purge\" command. Until they are purged, instances can be recovered\n"
         "with the \"recover\" command. Snapshots cannot be recovered after deletion and must be "
         "purged at once.");
+}
+
+std::vector<std::string> cmd::Delete::autocomplete(const std::vector<std::string>& previous) const
+{
+    auto completer = AutoCompleter{};
+
+    completer.add_option("purge");
+    completer.add_option("verbose", true);
+
+    const auto all_option = completer.add_option(all_option_name.toStdString());
+
+    const auto target_provider = AutoCompleteFromRpcProvider{stub};
+    const auto target_param = completer.add_parameter([&target_provider]() {
+        return target_provider.provide(make_snapshots_request(), make_instances_request());
+    });
+
+    completer.set_repeat_last_parameter(true);
+    completer.set_mutual_exclusion(all_option, target_param);
+    return completer.complete(previous);
 }
 
 mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
@@ -183,10 +205,10 @@ bool multipass::cmd::Delete::confirm_snapshot_purge() const
 
 std::string multipass::cmd::Delete::generate_snapshot_purge_msg() const
 {
-    const auto no_purge_base_error_msg =
-        fmt::format("{}. Unable to query client for confirmation. Please use the "
-                    "`--purge` flag if that is what you want",
-                    snapshot_purge_notice_msg);
+    const auto no_purge_base_error_msg = fmt::format(
+        "{}. Unable to query client for confirmation. Please use the "
+        "`--purge` flag if that is what you want",
+        snapshot_purge_notice_msg);
 
     if (!instance_args.empty())
         return fmt::format(

@@ -22,6 +22,9 @@
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>
 
+#include <string>
+#include <vector>
+
 namespace multipass
 {
 class ArgParser;
@@ -32,6 +35,7 @@ class Command : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<Command>;
+
     Command(Rpc::StubInterface& stub, std::ostream& cout, std::ostream& cerr)
         : stub{&stub}, cout{cout}, cerr{cerr}
     {
@@ -41,6 +45,7 @@ public:
         : stub{&stub}, term{term}, cout{term->cout()}, cerr{term->cerr()}
     {
     }
+
     virtual ~Command() = default;
 
     virtual ReturnCodeVariant run(ArgParser* parser) = 0;
@@ -53,6 +58,14 @@ public:
     virtual QString short_help() const = 0;
     virtual QString description() const = 0;
 
+    virtual bool is_hidden() const
+    {
+        return false;
+    }
+
+    // TODO: Switch to pure virtual once all commands implement it.
+    virtual std::vector<std::string> autocomplete(const std::vector<std::string>& previous) const;
+
 protected:
     template <typename RpcFunc,
               typename Request,
@@ -63,7 +76,7 @@ protected:
                                const Request& request,
                                SuccessCallable&& on_success,
                                FailureCallable&& on_failure,
-                               StreamingCallback&& streaming_callback)
+                               StreamingCallback&& streaming_callback) const
     {
         return dispatch_rpc_stream(stub,
                                    std::forward<RpcFunc>(rpc_func),
@@ -80,7 +93,7 @@ protected:
     ReturnCodeVariant dispatch(RpcFunc&& rpc_func,
                                const Request& request,
                                SuccessCallable&& on_success,
-                               FailureCallable&& on_failure)
+                               FailureCallable&& on_failure) const
     {
         return dispatch_rpc(stub,
                             std::forward<RpcFunc>(rpc_func),
@@ -95,5 +108,11 @@ protected:
     std::ostream& cout;
     std::ostream& cerr;
 };
+
+inline std::vector<std::string> Command::autocomplete(const std::vector<std::string>&) const
+{
+    return {};
+}
+
 } // namespace cmd
 } // namespace multipass

@@ -36,7 +36,7 @@ public:
     }
 
     MOCK_METHOD(grpc::Status, Finish, (), (override));
-    MOCK_METHOD(bool, NextMessageSize, (uint32_t * sz), (override));
+    MOCK_METHOD(bool, NextMessageSize, (uint32_t* sz), (override));
     MOCK_METHOD(bool, Read, (R * msg), (override));
     MOCK_METHOD(void, WaitForInitialMetadata, (), (override));
     MOCK_METHOD(bool, Write, (const W& msg, grpc::WriteOptions options), (override));
@@ -484,4 +484,28 @@ public:
                 (grpc::ClientContext * context, grpc::CompletionQueue* cq),
                 (override));
 };
+
+template <typename Request, typename Reply>
+auto SuccessfullyReply(const Reply& reply)
+{
+    return Invoke([&reply](auto&&) {
+        auto rw = std::make_unique<NiceMock<MockClientReaderWriter<Request, Reply>>>();
+        EXPECT_CALL(*rw, Read(_))
+            .WillOnce(DoAll(SetArgPointee<0>(reply), Return(true)))
+            .WillRepeatedly(Return(false));
+
+        return rw.release();
+    });
+}
+
+template <typename Request, typename Reply>
+auto FailWithStatus(grpc::StatusCode code)
+{
+    return Invoke([code](auto&&) {
+        auto rw = std::make_unique<NiceMock<MockClientReaderWriter<Request, Reply>>>();
+        EXPECT_CALL(*rw, Finish()).WillOnce(Return(grpc::Status{code, ""}));
+        return rw.release();
+    });
+}
+
 } // namespace multipass::test
