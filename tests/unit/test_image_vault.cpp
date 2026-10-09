@@ -174,18 +174,14 @@ struct ImageVault : public testing::Test
     mpt::TempDir data_dir;
     mpt::TempDir save_dir;
     std::string instance_name{"valley-pied-piper"};
-    QString instance_dir = save_dir.filePath("instances/" + QString::fromStdString(instance_name));
+    std::filesystem::path instance_dir = save_dir / "instances" / instance_name;
     mp::Query default_query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
 };
 } // namespace
 
 TEST_F(ImageVault, downloadsImage)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     auto vm_image = vault.fetch_image(default_query,
                                       stub_prepare,
                                       stub_monitor,
@@ -202,11 +198,7 @@ TEST_F(ImageVault, emptyReleaseFallsBackToOsTitleVersionDirName)
     host.mock_bionic_image_info.os = "Fedora";
     host.mock_bionic_image_info.release_title = "44";
 
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     vault.fetch_image(default_query, stub_prepare, stub_monitor, std::nullopt, instance_dir);
 
     ASSERT_THAT(url_downloader.downloaded_files.size(), Eq(1));
@@ -217,11 +209,7 @@ TEST_F(ImageVault, emptyReleaseFallsBackToOsTitleVersionDirName)
 
 TEST_F(ImageVault, downloadsImageXz)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     auto query = default_query;
     query.release = "xenial.xz";
     auto vm_image = vault.fetch_image(query,
@@ -236,11 +224,7 @@ TEST_F(ImageVault, downloadsImageXz)
 
 TEST_F(ImageVault, returnedImageContainsInstanceName)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     auto vm_image = vault.fetch_image(default_query,
                                       stub_prepare,
                                       stub_monitor,
@@ -252,11 +236,7 @@ TEST_F(ImageVault, returnedImageContainsInstanceName)
 
 TEST_F(ImageVault, imageCloneSuccess)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     vault.fetch_image(default_query, stub_prepare, stub_monitor, std::nullopt, instance_dir);
 
     const std::string dest_name = instance_name + "clone";
@@ -266,17 +246,13 @@ TEST_F(ImageVault, imageCloneSuccess)
 
 TEST_F(ImageVault, invalidFileURLThrows)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
 
     const std::string invalid_url{"file://path/to/image"};
     const mp::Query query{"", invalid_url, false, "", mp::Query::Type::LocalFile};
 
     MP_EXPECT_THROW_THAT(
-        vault.fetch_image(query, stub_prepare, stub_monitor, std::nullopt, save_dir.path()),
+        vault.fetch_image(query, stub_prepare, stub_monitor, std::nullopt, save_dir),
         std::runtime_error,
         mpt::match_what(
             StrEq(fmt::format("Invalid file URL `{}`; did you forget a slash?", invalid_url))));
@@ -284,16 +260,12 @@ TEST_F(ImageVault, invalidFileURLThrows)
 
 TEST_F(ImageVault, imageCloneWithInvalidInstanceDirThrows)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     vault.fetch_image(default_query,
                       stub_prepare,
                       stub_monitor,
                       std::nullopt,
-                      this->save_dir.path()); // no "/instances" in save dir
+                      this->save_dir); // no "/instances" in save dir
 
     const std::string dest_name = instance_name + "clone";
     MP_EXPECT_THROW_THAT(vault.clone(instance_name, dest_name),
@@ -304,11 +276,7 @@ TEST_F(ImageVault, imageCloneWithInvalidInstanceDirThrows)
 
 TEST_F(ImageVault, nonexistentLocalFileImageThrows)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
 
     const std::string missing_file{"/foo"};
     const mp::Query query{"",
@@ -318,7 +286,7 @@ TEST_F(ImageVault, nonexistentLocalFileImageThrows)
                           mp::Query::Type::LocalFile};
 
     MP_EXPECT_THROW_THAT(
-        vault.fetch_image(query, stub_prepare, stub_monitor, std::nullopt, save_dir.path()),
+        vault.fetch_image(query, stub_prepare, stub_monitor, std::nullopt, save_dir),
         std::runtime_error,
         mpt::match_what(StrEq(fmt::format("Custom image `{}` does not exist.", missing_file))));
 }
@@ -329,36 +297,23 @@ TEST_F(ImageVault, DISABLE_ON_UNIX(imageFileNameWithDriveLetter))
     // Verify that our temp file has a drive letter.
     EXPECT_TRUE(file.name().at(1) == u':');
 
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
 
     const mp::Query query{"", file.url().toStdString(), false, "", mp::Query::Type::LocalFile};
 
-    EXPECT_NO_THROW(
-        vault.fetch_image(query, stub_prepare, stub_monitor, std::nullopt, save_dir.path()));
+    EXPECT_NO_THROW(vault.fetch_image(query, stub_prepare, stub_monitor, std::nullopt, save_dir));
 }
 
 TEST_F(ImageVault, imageCloneFailOnNonExistSrcImage)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
 
     EXPECT_THROW(vault.clone("non_exist_src_image_name", "dummy_dest_name"), std::runtime_error);
 }
 
 TEST_F(ImageVault, imageCloneFailOnAlreadyExistDestImage)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     vault.fetch_image(default_query, stub_prepare, stub_monitor, std::nullopt, instance_dir);
 
     const std::string dest_name = "valley-pied-piper-clone";
@@ -368,7 +323,7 @@ TEST_F(ImageVault, imageCloneFailOnAlreadyExistDestImage)
                       stub_prepare,
                       stub_monitor,
                       std::nullopt,
-                      save_dir.filePath(QString::fromStdString(second_query.name)));
+                      save_dir / second_query.name);
 
     // valley-pied-piper-clone is already added, so it will throw
     EXPECT_THROW(vault.clone(instance_name, dest_name), std::runtime_error);
@@ -376,11 +331,7 @@ TEST_F(ImageVault, imageCloneFailOnAlreadyExistDestImage)
 
 TEST_F(ImageVault, callsPrepare)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
 
     bool prepare_called{false};
     auto prepare = [&prepare_called](const mp::VMImage& source_image) -> mp::VMImage {
@@ -398,11 +349,7 @@ TEST_F(ImageVault, callsPrepare)
 
 TEST_F(ImageVault, recordsInstancedImages)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     int prepare_called_count{0};
     auto prepare = [&prepare_called_count](const mp::VMImage& source_image) -> mp::VMImage {
         ++prepare_called_count;
@@ -427,11 +374,7 @@ TEST_F(ImageVault, recordsInstancedImages)
 
 TEST_F(ImageVault, cachesPreparedImages)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     int prepare_called_count{0};
     auto prepare = [&prepare_called_count](const mp::VMImage& source_image) -> mp::VMImage {
         ++prepare_called_count;
@@ -445,12 +388,11 @@ TEST_F(ImageVault, cachesPreparedImages)
 
     auto another_query = default_query;
     another_query.name = "valley-pied-piper-chat";
-    auto vm_image2 = vault.fetch_image(
-        another_query,
-        prepare,
-        stub_monitor,
-        std::nullopt,
-        save_dir.filePath(QString::fromStdString(another_query.name)));
+    auto vm_image2 = vault.fetch_image(another_query,
+                                       prepare,
+                                       stub_monitor,
+                                       std::nullopt,
+                                       save_dir / another_query.name);
 
     EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
     EXPECT_THAT(prepare_called_count, Eq(1));
@@ -461,11 +403,7 @@ TEST_F(ImageVault, cachesPreparedImages)
 
 TEST_F(ImageVault, emptyAndReleaseRemoteNamesShareCache)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     int prepare_called_count{0};
     auto prepare = [&prepare_called_count](const mp::VMImage& source_image) -> mp::VMImage {
         ++prepare_called_count;
@@ -479,11 +417,7 @@ TEST_F(ImageVault, emptyAndReleaseRemoteNamesShareCache)
     auto gui_query = default_query;
     gui_query.name = "valley-pied-piper-gui";
     gui_query.remote_name = mpt::release_remote;
-    vault.fetch_image(gui_query,
-                      prepare,
-                      stub_monitor,
-                      std::nullopt,
-                      save_dir.filePath(QString::fromStdString(gui_query.name)));
+    vault.fetch_image(gui_query, prepare, stub_monitor, std::nullopt, save_dir / gui_query.name);
 
     EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
     EXPECT_THAT(prepare_called_count, Eq(1));
@@ -499,11 +433,7 @@ TEST_F(ImageVault, sameImageIdFromDifferentRemotesSharesCache)
     });
     hosts.push_back(&daily_host);
 
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     int prepare_called_count{0};
     auto prepare = [&prepare_called_count](const mp::VMImage& source_image) -> mp::VMImage {
         ++prepare_called_count;
@@ -521,7 +451,7 @@ TEST_F(ImageVault, sameImageIdFromDifferentRemotesSharesCache)
                       prepare,
                       stub_monitor,
                       std::nullopt,
-                      save_dir.filePath(QString::fromStdString(daily_query.name)));
+                      save_dir / daily_query.name);
 
     EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
     EXPECT_THAT(prepare_called_count, Eq(1));
@@ -535,22 +465,14 @@ TEST_F(ImageVault, remembersInstanceImages)
         return source_image;
     };
 
-    mp::DefaultVMImageVault first_vault{hosts,
-                                        &url_downloader,
-                                        cache_dir.path(),
-                                        data_dir.path(),
-                                        mp::days{0}};
+    mp::DefaultVMImageVault first_vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     auto vm_image1 = first_vault.fetch_image(default_query,
                                              prepare,
                                              stub_monitor,
                                              std::nullopt,
                                              instance_dir);
 
-    mp::DefaultVMImageVault another_vault{hosts,
-                                          &url_downloader,
-                                          cache_dir.path(),
-                                          data_dir.path(),
-                                          mp::days{0}};
+    mp::DefaultVMImageVault another_vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     auto vm_image2 = another_vault.fetch_image(default_query,
                                                prepare,
                                                stub_monitor,
@@ -570,11 +492,7 @@ TEST_F(ImageVault, remembersPreparedImages)
         return source_image;
     };
 
-    mp::DefaultVMImageVault first_vault{hosts,
-                                        &url_downloader,
-                                        cache_dir.path(),
-                                        data_dir.path(),
-                                        mp::days{0}};
+    mp::DefaultVMImageVault first_vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     auto vm_image1 = first_vault.fetch_image(default_query,
                                              prepare,
                                              stub_monitor,
@@ -583,17 +501,12 @@ TEST_F(ImageVault, remembersPreparedImages)
 
     auto another_query = default_query;
     another_query.name = "valley-pied-piper-chat";
-    mp::DefaultVMImageVault another_vault{hosts,
-                                          &url_downloader,
-                                          cache_dir.path(),
-                                          data_dir.path(),
-                                          mp::days{0}};
-    auto vm_image2 = another_vault.fetch_image(
-        another_query,
-        prepare,
-        stub_monitor,
-        std::nullopt,
-        save_dir.filePath(QString::fromStdString(another_query.name)));
+    mp::DefaultVMImageVault another_vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
+    auto vm_image2 = another_vault.fetch_image(another_query,
+                                               prepare,
+                                               stub_monitor,
+                                               std::nullopt,
+                                               save_dir / another_query.name);
 
     EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
     EXPECT_THAT(prepare_called_count, Eq(1));
@@ -605,19 +518,14 @@ TEST_F(ImageVault, usesImageFromPrepare)
 {
     constexpr auto expected_data = "12345-pied-piper-rats";
 
-    QDir dir{cache_dir.path()};
-    auto file_name = dir.filePath("prepared-image");
+    auto file_name = cache_dir / "prepared-image";
     mpt::make_file_with_content(file_name, expected_data);
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
-        return {file_name.toStdString(), source_image.id, "", "", "", "", {}};
+        return {file_name, source_image.id, "", "", "", "", {}};
     };
 
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     auto vm_image = vault.fetch_image(default_query,
                                       prepare,
                                       stub_monitor,
@@ -631,18 +539,15 @@ TEST_F(ImageVault, usesImageFromPrepare)
 
 TEST_F(ImageVault, imagePurgedExpired)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
 
-    QDir images_dir{MP_UTILS.make_dir(cache_dir.path(), "images")};
-    auto file_name = images_dir.filePath("mock_image.img");
+    auto images_dir = cache_dir / "images";
+    auto file_name = images_dir / "mock_image.img";
+    create_directories(images_dir);
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name.toStdString(), source_image.id, "", "", "", "", {}};
+        return {file_name, source_image.id, "", "", "", "", {}};
     };
     auto vm_image = vault.fetch_image(default_query,
                                       prepare,
@@ -650,27 +555,24 @@ TEST_F(ImageVault, imagePurgedExpired)
                                       std::nullopt,
                                       instance_dir);
 
-    EXPECT_TRUE(QFileInfo::exists(file_name));
+    EXPECT_TRUE(exists(file_name));
 
     vault.prune_expired_images();
 
-    EXPECT_FALSE(QFileInfo::exists(file_name));
+    EXPECT_FALSE(exists(file_name));
 }
 
 TEST_F(ImageVault, imageExistsNotExpired)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{1}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{1}};
 
-    QDir images_dir{MP_UTILS.make_dir(cache_dir.path(), "images")};
-    auto file_name = images_dir.filePath("mock_image.img");
+    auto images_dir = cache_dir / "images";
+    auto file_name = images_dir / "mock_image.img";
+    create_directories(images_dir);
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
-        return {file_name.toStdString(), source_image.id, "", "", "", "", {}};
+        return {file_name, source_image.id, "", "", "", "", {}};
     };
     auto vm_image = vault.fetch_image(default_query,
                                       prepare,
@@ -678,21 +580,17 @@ TEST_F(ImageVault, imageExistsNotExpired)
                                       std::nullopt,
                                       instance_dir);
 
-    EXPECT_TRUE(QFileInfo::exists(file_name));
+    EXPECT_TRUE(exists(file_name));
 
     vault.prune_expired_images();
 
-    EXPECT_TRUE(QFileInfo::exists(file_name));
+    EXPECT_TRUE(exists(file_name));
 }
 
 TEST_F(ImageVault, inProgressDownloadDirectoryNotPrunedDuringFetch)
 {
     BlockingURLDownloader blocking_downloader;
-    mp::DefaultVMImageVault vault{hosts,
-                                  &blocking_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &blocking_downloader, cache_dir, data_dir, mp::days{0}};
 
     auto fetch_future = std::async(std::launch::async, [&] {
         vault.fetch_image(default_query, stub_prepare, stub_monitor, std::nullopt, instance_dir);
@@ -701,14 +599,17 @@ TEST_F(ImageVault, inProgressDownloadDirectoryNotPrunedDuringFetch)
     // Wait for download to start
     blocking_downloader.started.get_future().wait();
 
-    QDir images_dir{MP_UTILS.make_dir(cache_dir.path(), "vault/images")};
-    const auto entries = images_dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot);
-    ASSERT_EQ(entries.size(), 1);
-    const auto image_dir_path = entries.first().absoluteFilePath();
+    auto images_dir = cache_dir / "vault" / "images";
+    create_directories(images_dir);
+
+    using namespace std::filesystem;
+    std::vector<directory_entry> entries{directory_iterator(images_dir), directory_iterator()};
+    ASSERT_THAT(entries, SizeIs(1));
+    const auto image_dir_path = entries[0].path();
 
     vault.prune_expired_images();
 
-    EXPECT_TRUE(QFileInfo::exists(image_dir_path));
+    EXPECT_TRUE(exists(image_dir_path));
 
     // Release the downloader
     blocking_downloader.proceed.set_value();
@@ -717,33 +618,26 @@ TEST_F(ImageVault, inProgressDownloadDirectoryNotPrunedDuringFetch)
 
 TEST_F(ImageVault, invalidImageDirIsRemoved)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{1}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{1}};
 
-    QDir invalid_image_dir(MP_UTILS.make_dir(cache_dir.path(), "vault/images/invalid_image"));
-    auto file_name = invalid_image_dir.filePath("mock_image.img");
+    auto invalid_image_dir = cache_dir / "vault" / "images" / "invalid_image";
+    auto file_name = invalid_image_dir / "mock_image.img";
+    std::filesystem::create_directories(cache_dir);
 
     mpt::make_file_with_content(file_name);
 
-    EXPECT_TRUE(QFileInfo::exists(file_name));
+    EXPECT_TRUE(exists(file_name));
 
     vault.prune_expired_images();
 
-    EXPECT_FALSE(QFileInfo::exists(file_name));
-    EXPECT_FALSE(QFileInfo::exists(invalid_image_dir.absolutePath()));
+    EXPECT_FALSE(exists(file_name));
+    EXPECT_FALSE(exists(invalid_image_dir));
 }
 
 TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(fileBasedFetchCopiesImageAndReturnsExpectedInfo))
 {
     mpt::TempFile file;
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     auto query = default_query;
 
     query.release = file.url().toStdString();
@@ -761,11 +655,7 @@ TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(fileBasedFetchCopiesImageAndRetu
 
 TEST_F(ImageVault, invalidCustomImageFileThrows)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     auto query = default_query;
 
     query.release = "file://foo";
@@ -777,11 +667,7 @@ TEST_F(ImageVault, invalidCustomImageFileThrows)
 
 TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(customImageUrlDownloads))
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     auto query = default_query;
 
     query.release = "http://www.foo.com/fake.img";
@@ -796,11 +682,7 @@ TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(customImageUrlDownloads))
 TEST_F(ImageVault, missingDownloadedImageThrows)
 {
     mpt::StubURLDownloader stub_url_downloader;
-    mp::DefaultVMImageVault vault{hosts,
-                                  &stub_url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir, data_dir, mp::days{0}};
     EXPECT_THROW(
         vault.fetch_image(default_query, stub_prepare, stub_monitor, std::nullopt, instance_dir),
         mp::CreateImageException);
@@ -809,11 +691,7 @@ TEST_F(ImageVault, missingDownloadedImageThrows)
 TEST_F(ImageVault, hashMismatchThrows)
 {
     BadURLDownloader bad_url_downloader;
-    mp::DefaultVMImageVault vault{hosts,
-                                  &bad_url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &bad_url_downloader, cache_dir, data_dir, mp::days{0}};
     EXPECT_THROW(
         vault.fetch_image(default_query, stub_prepare, stub_monitor, std::nullopt, instance_dir),
         mp::CreateImageException);
@@ -822,11 +700,7 @@ TEST_F(ImageVault, hashMismatchThrows)
 TEST_F(ImageVault, invalidRemoteThrows)
 {
     mpt::StubURLDownloader stub_url_downloader;
-    mp::DefaultVMImageVault vault{hosts,
-                                  &stub_url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir, data_dir, mp::days{0}};
     auto query = default_query;
 
     query.remote_name = "foo";
@@ -838,11 +712,7 @@ TEST_F(ImageVault, invalidRemoteThrows)
 TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(invalidImageAliasThrow))
 {
     mpt::StubURLDownloader stub_url_downloader;
-    mp::DefaultVMImageVault vault{hosts,
-                                  &stub_url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir, data_dir, mp::days{0}};
     auto query = default_query;
 
     query.release = "foo";
@@ -853,11 +723,7 @@ TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(invalidImageAliasThrow))
 
 TEST_F(ImageVault, validRemoteAndAliasReturnsValidImageInfo)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
     auto query = default_query;
 
     query.release = "default";
@@ -874,11 +740,7 @@ TEST_F(ImageVault, validRemoteAndAliasReturnsValidImageInfo)
 TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(httpDownloadReturnsExpectedImageInfo))
 {
     HttpURLDownloader http_url_downloader;
-    mp::DefaultVMImageVault vault{hosts,
-                                  &http_url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &http_url_downloader, cache_dir, data_dir, mp::days{0}};
 
     auto image_url{"http://www.foo.com/images/foo.img"};
     mp::Query query{instance_name, image_url, false, "", mp::Query::Type::HttpDownload};
@@ -894,11 +756,7 @@ TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(httpDownloadReturnsExpectedImage
 
 TEST_F(ImageVault, imageUpdateCreatesNewDirAndRemovesOld)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{1}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{1}};
     vault.fetch_image(default_query, stub_prepare, stub_monitor, std::nullopt, instance_dir);
 
     auto original_file{url_downloader.downloaded_files[0]};
@@ -927,11 +785,7 @@ TEST_F(ImageVault, imageUpdateCreatesNewDirAndRemovesOld)
 TEST_F(ImageVault, abortedDownloadThrows)
 {
     RunningURLDownloader running_url_downloader;
-    mp::DefaultVMImageVault vault{hosts,
-                                  &running_url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &running_url_downloader, cache_dir, data_dir, mp::days{0}};
 
     running_url_downloader.abort_all_downloads();
 
@@ -943,11 +797,7 @@ TEST_F(ImageVault, abortedDownloadThrows)
 TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)
 {
     mpt::StubURLDownloader stub_url_downloader;
-    mp::DefaultVMImageVault vault{hosts,
-                                  &stub_url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir, data_dir, mp::days{0}};
 
     const std::string remote_name{"release"};
     EXPECT_CALL(host, all_info_for(_))
@@ -973,11 +823,7 @@ TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)
 TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
 {
     mpt::StubURLDownloader stub_url_downloader;
-    mp::DefaultVMImageVault vault{hosts,
-                                  &stub_url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir, data_dir, mp::days{0}};
 
     const std::string remote_name{"release"};
     EXPECT_CALL(host, all_info_for(_))
@@ -1003,11 +849,7 @@ TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
 TEST_F(ImageVault, allInfoForNoImagesReturnsEmpty)
 {
     mpt::StubURLDownloader stub_url_downloader;
-    mp::DefaultVMImageVault vault{hosts,
-                                  &stub_url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{0}};
+    mp::DefaultVMImageVault vault{hosts, &stub_url_downloader, cache_dir, data_dir, mp::days{0}};
 
     const std::string name{"foo"};
     EXPECT_CALL(host, all_info_for(_))
@@ -1019,11 +861,7 @@ TEST_F(ImageVault, allInfoForNoImagesReturnsEmpty)
 TEST_F(ImageVault, updateImagesLogsWarningOnUnsupportedImage)
 {
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::warning);
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{1}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{1}};
     vault.fetch_image(default_query, stub_prepare, stub_monitor, std::nullopt, instance_dir);
 
     EXPECT_CALL(host, info_for(_))
@@ -1042,11 +880,7 @@ TEST_F(ImageVault, updateImagesLogsWarningOnUnsupportedImage)
 TEST_F(ImageVault, updateImagesLogsWarningOnEmptyVault)
 {
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject(mpl::Level::warning);
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{1}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{1}};
     vault.fetch_image(default_query, stub_prepare, stub_monitor, std::nullopt, instance_dir);
 
     EXPECT_CALL(host, info_for(_)).WillOnce(Return(std::nullopt));
@@ -1066,11 +900,7 @@ TEST_F(ImageVault, updateImagesLogsWarningOnEmptyVault)
 
 TEST_F(ImageVault, fetchLocalImageThrowsOnEmptyVault)
 {
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{1}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{1}};
 
     EXPECT_CALL(host, info_for(_)).WillOnce(Return(std::nullopt));
 
@@ -1082,11 +912,7 @@ TEST_F(ImageVault, fetchLocalImageThrowsOnEmptyVault)
 TEST_F(ImageVault, fetchRemoteImageThrowsOnMissingKernel)
 {
     mp::Query query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
-    mp::DefaultVMImageVault vault{hosts,
-                                  &url_downloader,
-                                  cache_dir.path(),
-                                  data_dir.path(),
-                                  mp::days{1}};
+    mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{1}};
 
     EXPECT_CALL(host, info_for(_)).WillOnce(Return(std::nullopt));
 
