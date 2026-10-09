@@ -40,21 +40,25 @@ public:
         });
         ON_CALL(*this, has_record_for(_)).WillByDefault(Return(true));
 
+        ON_CALL(*this, any_info_for(_)).WillByDefault(Invoke([this](const SearchQuery& query) {
+            auto all_info = all_info_for(query);
+            return all_info.empty() ? std::nullopt : std::make_optional(all_info.front());
+        }));
+
         ON_CALL(*this, all_info_for(_))
-            .WillByDefault(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
-                std::pair<std::string, mp::VMImageInfo>{"default",
-                                                        {{default_alias},
-                                                         "Ubuntu",
-                                                         "bionic",
-                                                         default_release_info,
-                                                         "Bionic Beaver",
-                                                         true,
-                                                         dummy_image.url().toStdString(),
-                                                         default_id,
-                                                         default_stream_location,
-                                                         default_version,
-                                                         1,
-                                                         true}}}));
+            .WillByDefault(
+                Return(std::vector<mp::VMImageInfo>{mp::VMImageInfo{{default_alias},
+                                                                    "Ubuntu",
+                                                                    "bionic",
+                                                                    default_release_info,
+                                                                    "Bionic Beaver",
+                                                                    true,
+                                                                    dummy_image.url().toStdString(),
+                                                                    default_id,
+                                                                    default_stream_location,
+                                                                    default_version,
+                                                                    1,
+                                                                    true}}));
     };
 
     MOCK_METHOD(VMImage,
@@ -71,10 +75,8 @@ public:
     MOCK_METHOD(void, update_images, (const PrepareAction&, const ProgressMonitor&), (override));
     MOCK_METHOD(void, clone, (const std::string&, const std::string&), (override));
     MOCK_METHOD(VMImageHost*, image_host_for, (const std::string&), (const, override));
-    MOCK_METHOD((std::vector<std::pair<std::string, VMImageInfo>>),
-                all_info_for,
-                (const Query&),
-                (const, override));
+    MOCK_METHOD(std::optional<VMImageInfo>, any_info_for, (const SearchQuery&), (const, override));
+    MOCK_METHOD((std::vector<VMImageInfo>), all_info_for, (const SearchQuery&), (const, override));
     MOCK_METHOD((std::vector<std::string>), fetch_remotes, (), (const, override));
 
 private:

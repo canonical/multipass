@@ -34,14 +34,17 @@ constexpr std::string deprecated_name = "find";
 
 constexpr const auto command_filter_help =
     "An optional value to search for in [<remote:>]<string> format, where <remote> is one of the "
-    "available remotes. If <remote> is omitted, it will search ‘release‘ first, and if no matches "
-    "are found, it will then search ‘daily‘. <string> can be a partial image hash or a release "
-    "version, codename or alias.";
+    "available remotes. If <remote> is omitted, it will search default remotes. <string> can be a "
+    "partial image hash or a release version, codename or alias.";
 
 struct CommandOptions
 {
     const QCommandLineOption list_remotes = QCommandLineOption{"remotes",
                                                                "List all available remotes."};
+
+    const QCommandLineOption all_remotes = QCommandLineOption{
+        "all",
+        "Images from all remotes will be shown."};
 
     const QCommandLineOption unsupported = QCommandLineOption{
         "show-unsupported",
@@ -77,6 +80,13 @@ std::tuple<ParseCode, ImagesRequest> parse_images_request(ArgParser& parser,
         }
         else if (colon_count == 1)
         {
+            if (parser.isSet(options.all_remotes))
+            {
+                cerr << "Cannot specify a remote when using the "
+                     << options.all_remotes.names().front().toStdString() << " option\n";
+                return {ParseCode::CommandLineError, request};
+            }
+
             request.set_remote_name(search_string.section(':', 0, 0).toStdString());
             request.set_search_string(search_string.section(':', 1).toStdString());
         }
@@ -87,6 +97,7 @@ std::tuple<ParseCode, ImagesRequest> parse_images_request(ArgParser& parser,
     }
 
     request.set_verbosity_level(parser.verbosityLevel());
+    request.set_all_remotes(parser.isSet(options.all_remotes));
     request.set_allow_unsupported(parser.isSet(options.unsupported));
     request.set_force_manifest_network_download(
         parser.isSet(options.force_manifest_network_download));
@@ -106,12 +117,13 @@ std::tuple<ParseCode, RemotesRequest> parse_remotes_request(ArgParser& parser,
         return {ParseCode::CommandLineError, request};
     }
 
-    if (parser.isSet(options.force_manifest_network_download) || parser.isSet(options.unsupported))
+    if (parser.isSet(options.all_remotes) ||
+        parser.isSet(options.force_manifest_network_download) || parser.isSet(options.unsupported))
     {
-        cerr << "Options " << options.force_manifest_network_download.names().front().toStdString()
-             << " and " << options.unsupported.names().front().toStdString()
-             << " are not compatible with " << options.list_remotes.names().front().toStdString()
-             << ".\n";
+        cerr << "Options " << options.all_remotes.names().front().toStdString() << ", "
+             << options.force_manifest_network_download.names().front().toStdString() << " and "
+             << options.unsupported.names().front().toStdString() << " are not compatible with "
+             << options.list_remotes.names().front().toStdString() << ".\n";
         return {ParseCode::CommandLineError, request};
     }
 
@@ -146,6 +158,7 @@ ReturnCodeVariant Images::run(ArgParser* parser)
     parser->addPositionalArgument("string", command_filter_help, "[<remote:>][<string>]");
     parser->addOptions({
         options.list_remotes,
+        options.all_remotes,
         options.unsupported,
         options.format,
         options.force_manifest_network_download,

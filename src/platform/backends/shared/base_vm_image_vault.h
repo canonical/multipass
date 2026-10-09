@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <multipass/constants.h>
+#include <multipass/exceptions/remote_not_found_exception.h>
 #include <multipass/format.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/query.h>
@@ -40,33 +42,48 @@ public:
     VMImageHost* image_host_for(const std::string& remote_name) const override
     {
         auto it = remote_image_host_map.find(remote_name);
-        if (it == remote_image_host_map.end())
+        return it == remote_image_host_map.end() ? nullptr : it->second;
+    }
+
+    VMImageHost& get_image_host_for(const std::string& remote_name) const
+    {
+        auto* host = image_host_for(remote_name);
+        if (host == nullptr)
         {
-            throw std::runtime_error(fmt::format(
-                "Remote \'{}\' is not found. Please use `multipass images` for supported "
-                "remotes and images.",
-                remote_name));
+            throw RemoteNotFoundException(remote_name);
         }
 
-        return it->second;
-    };
+        return *host;
+    }
 
-    std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query& query) const override
+    std::optional<VMImageInfo> any_info_for(const SearchQuery& query) const override
     {
-        std::vector<std::pair<std::string, VMImageInfo>> images_info;
-
-        auto grab_imgs = [&images_info, &query](auto* image_host) {
-            return !(images_info = image_host->all_info_for(query)).empty();
-        };
-
         if (!query.remote_name.empty())
-            images_info = image_host_for(query.remote_name)->all_info_for(query);
-        else
-            static_cast<void>(std::any_of(image_hosts.begin(),
-                                          image_hosts.end(),
-                                          grab_imgs)); // intentional discard
+        {
+            return get_image_host_for(query.remote_name).info_for(query);
+        }
 
-        return images_info;
+        // Not super obvious, but this falls back on the default remotes when none was specified.
+        for (const auto& remote : default_remotes)
+        {
+            if (const auto* host = image_host_for(remote))
+            {
+                auto query_for_remote = query;
+                query_for_remote.remote_name = remote;
+
+                if (const auto info = host->info_for(query_for_remote))
+                {
+                    return info;
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::vector<VMImageInfo> all_info_for(const SearchQuery& query) const final
+    {
+        return get_image_host_for(query.remote_name).all_info_for(query);
     }
 
     std::vector<std::string> fetch_remotes() const override
@@ -78,30 +95,6 @@ public:
         }
         return remotes;
     }
-
-protected:
-    virtual std::optional<VMImageInfo> info_for(const Query& query) const
-    {
-        std::optional<VMImageInfo> info;
-
-        if (!query.remote_name.empty())
-        {
-            auto image_host = image_host_for(query.remote_name);
-            info = image_host->info_for(query);
-        }
-        else
-        {
-            for (const auto& image_host : image_hosts)
-            {
-                info = image_host->info_for(query);
-
-                if (info)
-                    break;
-            }
-        }
-
-        return info;
-    };
 
 private:
     std::vector<VMImageHost*> image_hosts;

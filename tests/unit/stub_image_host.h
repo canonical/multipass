@@ -25,28 +25,21 @@ namespace test
 {
 struct StubVMImageHost final : public multipass::VMImageHost
 {
-    std::optional<multipass::VMImageInfo> info_for(const multipass::Query&) const override
+    std::optional<multipass::VMImageInfo> info_for(const multipass::SearchQuery&) const override
     {
         return std::optional<multipass::VMImageInfo>{
             VMImageInfo{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}}};
-    };
+    }
 
-    std::vector<std::pair<std::string, multipass::VMImageInfo>> all_info_for(
-        const multipass::Query&) const override
+    std::vector<multipass::VMImageInfo> all_info_for(const multipass::SearchQuery&) const override
     {
         return {};
-    };
+    }
 
     multipass::VMImageInfo info_for_full_hash(const std::string& /*full_hash*/) const override
     {
         return {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
-    };
-
-    std::vector<multipass::VMImageInfo> all_images_for(const std::string& /*remote_name*/,
-                                                       bool /*allow_unsupported*/) const override
-    {
-        return {};
-    };
+    }
 
     void for_each_entry_do(const Action&) const override
     {

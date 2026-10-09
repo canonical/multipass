@@ -1,0 +1,6 @@
+Remote              Image             Aliases                     Version          Description
+(default)           18.04             bionic,lts                  20180421         Ubuntu 18.04 LTS
+(default)           19.04             disco                       20190516         Ubuntu 19.04
+(default)           custom                                        20261007         OS 26.10
+daily               19.10             eoan,devel                  20190516         Ubuntu 19.10
+

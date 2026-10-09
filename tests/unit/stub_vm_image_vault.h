@@ -44,7 +44,7 @@ struct StubVMImageVault final : public multipass::VMImageVault
         return false;
     }
 
-    void prune_expired_images() override{};
+    void prune_expired_images() override {};
     void update_images(const PrepareAction&, const ProgressMonitor&) override {};
 
     VMImageHost* image_host_for(const std::string& /*remote_name*/) const override
@@ -52,22 +52,25 @@ struct StubVMImageVault final : public multipass::VMImageVault
         return nullptr;
     }
 
-    std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query&) const override
+    std::optional<VMImageInfo> any_info_for(const SearchQuery& query) const override
     {
-        return std::vector<std::pair<std::string, multipass::VMImageInfo>>{
-            std::pair<std::string, multipass::VMImageInfo>{"default",
-                                                           {{default_alias},
-                                                            "Ubuntu",
-                                                            "bionic",
-                                                            default_release_info,
-                                                            "Bionic Beaver",
-                                                            true,
-                                                            dummy_image.url().toStdString(),
-                                                            default_id,
-                                                            default_stream_location,
-                                                            default_version,
-                                                            1,
-                                                            true}}};
+        return all_info_for(query).front();
+    }
+
+    std::vector<VMImageInfo> all_info_for(const SearchQuery&) const override
+    {
+        return std::vector<multipass::VMImageInfo>{{{default_alias},
+                                                    "Ubuntu",
+                                                    "bionic",
+                                                    default_release_info,
+                                                    "Bionic Beaver",
+                                                    true,
+                                                    dummy_image.url().toStdString(),
+                                                    default_id,
+                                                    default_stream_location,
+                                                    default_version,
+                                                    1,
+                                                    true}};
     }
 
     std::vector<std::string> fetch_remotes() const override

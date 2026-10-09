@@ -181,8 +181,9 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const Query& query,
 
         if (source_image.image_path.extension() == ".xz")
         {
-            source_image.image_path =
-                extract_image_from(source_image, monitor, save_dir.toStdString());
+            source_image.image_path = extract_image_from(source_image,
+                                                         monitor,
+                                                         save_dir.toStdString());
         }
         else
         {
@@ -216,10 +217,10 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const Query& query,
 
             // If no checksum given, generate a sha256 hash based on the URL and use that for the id
             id = checksum
-                     ? *checksum
-                     : QCryptographicHash::hash(query.release.c_str(), QCryptographicHash::Sha256)
-                           .toHex()
-                           .toStdString();
+                   ? *checksum
+                   : QCryptographicHash::hash(query.release.c_str(), QCryptographicHash::Sha256)
+                         .toHex()
+                         .toStdString();
             auto last_modified = url_downloader->last_modified(image_url);
 
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
@@ -280,7 +281,7 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const Query& query,
         }
         else
         {
-            const auto info = info_for(query);
+            const auto info = any_info_for(query);
             if (!info)
                 throw mp::ImageNotFoundException(query.release, query.remote_name);
 
@@ -430,7 +431,7 @@ void mp::DefaultVMImageVault::update_images(const PrepareAction& prepare,
         {
             try
             {
-                auto info = info_for(record.second.query);
+                auto info = any_info_for(record.second.query);
                 if (!info)
                     throw mp::ImageNotFoundException(record.second.query.release,
                                                      record.second.query.remote_name);
@@ -502,10 +503,10 @@ void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
     // metadata.
     // The path might have mixed slashes \\ / in Windows. Normalize it before replace.
     auto image_path = dest_vault_record.image.image_path.generic_string();
-    dest_vault_record.image.image_path =
-        boost::replace_all_copy(image_path,
-                                "instances/" + source_instance_name,
-                                "instances/" + destination_instance_name);
+    dest_vault_record.image.image_path = boost::replace_all_copy(
+        image_path,
+        "instances/" + source_instance_name,
+        "instances/" + destination_instance_name);
 
     if (dest_vault_record.image.image_path.generic_string() == image_path)
         throw std::runtime_error{"Path replace for the cloned image failed!"};
@@ -559,8 +560,9 @@ mp::VMImage mp::DefaultVMImageVault::download_and_prepare_source_image(
 
         if (source_image.image_path.extension() == ".xz")
         {
-            source_image.image_path =
-                MP_IMAGE_VAULT_UTILS.extract_file(source_image.image_path, monitor, true);
+            source_image.image_path = MP_IMAGE_VAULT_UTILS.extract_file(source_image.image_path,
+                                                                        monitor,
+                                                                        true);
         }
 
         auto prepared_image = prepare(source_image);

@@ -60,6 +60,7 @@ private:
 } // namespace vault
 
 class Query;
+struct SearchQuery;
 class VMImage;
 class VMImageVault : private DisabledCopyMove
 {
@@ -80,8 +81,8 @@ public:
     virtual void clone(const std::string& source_instance_name,
                        const std::string& destination_instance_name) = 0;
     virtual VMImageHost* image_host_for(const std::string& remote_name) const = 0;
-    virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for(
-        const Query& query) const = 0;
+    virtual std::optional<VMImageInfo> any_info_for(const SearchQuery& query) const = 0;
+    virtual std::vector<VMImageInfo> all_info_for(const SearchQuery& query) const = 0;
     virtual std::vector<std::string> fetch_remotes() const = 0;
 
 protected:

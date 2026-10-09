@@ -20,15 +20,19 @@
 #include "common.h"
 #include "temp_file.h"
 
+#include <multipass/image_host/base_image_host.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/query.h>
 
+#include <map>
+#include <string>
+#include <vector>
+
 using namespace testing;
 
-namespace multipass
+namespace multipass::test
 {
-namespace test
-{
+
 constexpr auto default_id = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 constexpr auto default_release_info = "18.04 LTS";
 constexpr auto default_version = "20200519.1";
@@ -62,11 +66,11 @@ public:
     MockImageHost()
     {
         ON_CALL(*this, info_for(_)).WillByDefault([this](const auto& query) {
-            if (query.release == snapcraft_remote)
+            if (query.remote_name == snapcraft_remote)
             {
                 return mock_snapcraft_image_info;
             }
-            else if (query.release == custom_remote)
+            else if (query.remote_name == custom_remote)
             {
                 return mock_custom_image_info;
             }
@@ -75,9 +79,8 @@ public:
                 return mock_bionic_image_info;
             }
         });
-        ON_CALL(*this, all_info_for(_)).WillByDefault(Return(empty_image_info_vector_pair));
+        ON_CALL(*this, all_info_for(_)).WillByDefault(Return(empty_image_info_vector));
         ON_CALL(*this, info_for_full_hash(_)).WillByDefault(Return(empty_vm_image_info));
-        ON_CALL(*this, all_images_for(_, _)).WillByDefault(Return(empty_image_info_vector));
         ON_CALL(*this, for_each_entry_do(_)).WillByDefault([this](const Action& action) {
             action(release_remote, mock_bionic_image_info);
             action(release_remote, mock_another_image_info);
@@ -87,16 +90,9 @@ public:
         ON_CALL(*this, supported_remotes()).WillByDefault(Return(remote));
     };
 
-    MOCK_METHOD(std::optional<VMImageInfo>, info_for, (const Query&), (const, override));
-    MOCK_METHOD((std::vector<std::pair<std::string, VMImageInfo>>),
-                all_info_for,
-                (const Query&),
-                (const, override));
+    MOCK_METHOD(std::optional<VMImageInfo>, info_for, (const SearchQuery&), (const, override));
+    MOCK_METHOD((std::vector<VMImageInfo>), all_info_for, (const SearchQuery&), (const, override));
     MOCK_METHOD(VMImageInfo, info_for_full_hash, (const std::string&), (const, override));
-    MOCK_METHOD(std::vector<VMImageInfo>,
-                all_images_for,
-                (const std::string&, bool),
-                (const, override));
     MOCK_METHOD(void, for_each_entry_do, (const Action&), (const, override));
     MOCK_METHOD(std::vector<std::string>, supported_remotes, (), (const, override));
     MOCK_METHOD(void, update_manifests, (bool), (override));
@@ -152,10 +148,53 @@ public:
                                         false};
 
 private:
-    std::vector<std::pair<std::string, VMImageInfo>> empty_image_info_vector_pair;
     std::vector<VMImageInfo> empty_image_info_vector;
     VMImageInfo empty_vm_image_info{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
     std::vector<std::string> remote{{"release"}};
 };
-} // namespace test
-} // namespace multipass
+
+class MockBaseImageHost : public BaseVMImageHost
+{
+public:
+    MockBaseImageHost() : MockBaseImageHost{{}}
+    {
+    }
+
+    explicit MockBaseImageHost(std::map<std::string, std::vector<VMImageInfo>> images_by_remote)
+        : BaseVMImageHost{nullptr}, images_by_remote{std::move(images_by_remote)}
+    {
+        ON_CALL(*this, images_for_remote(_))
+            .WillByDefault(Invoke([this](const std::string& remote) {
+                auto it = this->images_by_remote.find(remote);
+                return it == this->images_by_remote.end() ? nullptr : &it->second;
+            }));
+
+        ON_CALL(*this, supported_remotes()).WillByDefault(Invoke([this]() {
+            auto remotes = std::vector<std::string>{};
+            std::ranges::transform(this->images_by_remote,
+                                   std::back_inserter(remotes),
+                                   [](const auto& pair) { return pair.first; });
+            return remotes;
+        }));
+    }
+
+    MOCK_METHOD(std::vector<std::string>, supported_remotes, (), (const, override));
+
+    MOCK_METHOD(const std::vector<VMImageInfo>*,
+                images_for_remote,
+                (const std::string&),
+                (const, override));
+
+    MOCK_METHOD(void, fetch_manifests, (bool), (override));
+    MOCK_METHOD(void, clear, (), (override));
+
+    void add_image(const std::string& remote, const VMImageInfo& image)
+    {
+        images_by_remote[remote].push_back(image);
+    }
+
+private:
+    std::map<std::string, std::vector<VMImageInfo>> images_by_remote;
+};
+
+} // namespace multipass::test
