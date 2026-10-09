@@ -62,8 +62,9 @@ mp::ParseCode cmd::Aliases::parse_args(mp::ArgParser* parser)
         "The output working directory states whether the alias runs in the instance's default "
         "directory "
         "or the alias running directory should try to be mapped to a mounted one.\n"
-        "Machine-readable formats (json, csv, yaml) cover regular output only; errors and "
-        "warnings are not included in them, and are printed to stderr as plain text.",
+        "The json, csv and yaml formats cover regular output only. Errors and log messages are "
+        "printed to the standard error stream as plain text, with failures signaled by a non-zero "
+        "exit status.",
         "format",
         "table");
 

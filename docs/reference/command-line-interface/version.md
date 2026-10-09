@@ -38,7 +38,8 @@ Options:
                      4 (or more) v's, i.e. -vvvv.
   --format <format>  Output version information in the requested format.
                      Valid formats are: table (default), json, csv and yaml.
-                     Machine-readable formats (json, csv, yaml) cover regular
-                     output only; errors and warnings are not included in them,
-                     and are printed to stderr as plain text.
+                     The json, csv and yaml formats cover regular output only.
+                     Errors and log messages are printed to the standard error
+                     stream as plain text, with failures signaled by a non-zero
+                     exit status.
 ```

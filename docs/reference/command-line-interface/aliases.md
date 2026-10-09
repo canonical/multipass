@@ -26,7 +26,7 @@ The value will be `default` only if the alias was created with the `--no-map-wor
 The command can be used in conjunction with the `--format` or `-f` options to specify the desired output format: `csv`, `json`, `table` or `yaml`.
 
 ```{note}
-The `json`, `csv` and `yaml` formats cover regular output only. Errors and warnings are not included in them: they are printed to the standard error stream as plain text, and failures are signalled by a non-zero exit status.
+The `json`, `csv` and `yaml` formats cover regular output only. Errors and log messages are printed to the standard error stream as plain text, with failures signaled by a non-zero exit status.
 ```
 
 ---
@@ -47,7 +47,8 @@ Options:
                      directory states whether the alias runs in the instance's
                      default directory or the alias running directory should try
                      to be mapped to a mounted one.
-                     Machine-readable formats (json, csv, yaml) cover regular
-                     output only; errors and warnings are not included in them,
-                     and are printed to stderr as plain text.
+                     The json, csv and yaml formats cover regular output only.
+                     Errors and log messages are printed to the standard error
+                     stream as plain text, with failures signaled by a non-zero
+                     exit status.
 ```

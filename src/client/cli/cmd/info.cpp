@@ -79,14 +79,15 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         "Display detailed information about the snapshots of specified instances. This "
         "option has no effect on snapshot arguments. Omit instance/snapshot arguments "
         "to obtain detailed information on all the snapshots of all instances."};
-    QCommandLineOption format_option(format_option_name,
-                                     "Output info in the requested format.\nValid formats are: "
-                                     "table (default), json, csv and yaml.\n"
-                                     "Machine-readable formats (json, csv, yaml) cover regular "
-                                     "output only; errors and warnings are not included in them, "
-                                     "and are printed to stderr as plain text.",
-                                     format_option_name,
-                                     "table");
+    QCommandLineOption format_option(
+        format_option_name,
+        "Output info in the requested format.\nValid formats are: "
+        "table (default), json, csv and yaml.\n"
+        "The json, csv and yaml formats cover regular output only. Errors and log messages are "
+        "printed to the standard error stream as plain text, with failures signaled by a non-zero "
+        "exit status.",
+        format_option_name,
+        "table");
 
     parser->addOptions({noRuntimeInfoOption, snapshots_option, format_option});
 

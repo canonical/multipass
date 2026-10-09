@@ -23,7 +23,7 @@ calm-squirrel   snapshot3   snapshot1   Before restoring snapshot2
 
 The `multipass list` command will truncate long snapshot comments, as well as those containing newlines. You can use [`info`](/reference/command-line-interface/info) to view them in full.
 
-You can also use the `--format` option to get machine-readable output (CSV, JSON, or YAML), which also includes each instance's zone name and availability. These formats cover regular output only; errors and warnings are not included in them, and are printed to stderr as plain text. For example, `multipass list --format yaml`:
+You can also use the `--format` option to get machine-readable output (CSV, JSON, or YAML), which also includes each instance's zone name and availability. The `json`, `csv` and `yaml` formats cover regular output only. Errors and log messages are printed to the standard error stream as plain text, with failures signaled by a non-zero exit status. For example, `multipass list --format yaml`:
 
 ```{code-block} text
 primary:
@@ -59,7 +59,8 @@ Options:
   --snapshots        List all available snapshots
   --format <format>  Output list in the requested format.
                      Valid formats are: table (default), json, csv and yaml.
-                     Machine-readable formats (json, csv, yaml) cover regular
-                     output only; errors and warnings are not included in them,
-                     and are printed to stderr as plain text.
+                     The json, csv and yaml formats cover regular output only.
+                     Errors and log messages are printed to the standard error
+                     stream as plain text, with failures signaled by a non-zero
+                     exit status.
 ```

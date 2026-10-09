@@ -16,7 +16,7 @@ zone3   Unavailable  10.42.2.0/24
 
 A zone in the `Unavailable` state has been disabled with [`multipass disable-zones`](reference-command-line-interface-disable-zones); instances cannot be launched into it, and any instances already in it are forcefully stopped until the zone is re-enabled with [`multipass enable-zones`](reference-command-line-interface-enable-zones).
 
-Like [`multipass list`](reference-command-line-interface-list), `multipass zones` supports the `--format` option to get machine-readable output. These formats cover regular output only; errors and warnings are not included in them, and are printed to stderr as plain text. For example, `multipass zones --format yaml`:
+Like [`multipass list`](reference-command-line-interface-list), `multipass zones` supports the `--format` option to get machine-readable output. The `json`, `csv` and `yaml` formats cover regular output only. Errors and log messages are printed to the standard error stream as plain text, with failures signaled by a non-zero exit status. For example, `multipass zones --format yaml`:
 
 ```{code-block} text
 zone1:
@@ -45,7 +45,8 @@ Options:
                       4 (or more) v's, i.e. -vvvv.
   --format <format>   Output list in the requested format.
                       Valid formats are: table (default), json, csv and yaml.
-                      Machine-readable formats (json, csv, yaml) cover regular
-                      output only; errors and warnings are not included in them,
-                      and are printed to stderr as plain text.
+                      The json, csv and yaml formats cover regular output only.
+                      Errors and log messages are printed to the standard error
+                      stream as plain text, with failures signaled by a non-zero
+                      exit status.
 ```
