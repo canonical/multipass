@@ -212,9 +212,9 @@ struct StubVirtualMachine final : public VirtualMachine
         return 0;
     }
 
-    QDir instance_directory() const noexcept override
+    std::filesystem::path instance_directory() const noexcept override
     {
-        return tmp_dir->path();
+        return *tmp_dir;
     }
 
     const std::string& get_name() const noexcept override

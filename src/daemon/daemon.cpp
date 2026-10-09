@@ -4070,7 +4070,8 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     auto mount_info = info->mutable_mount_info();
     populate_mount_info(vm_specs.mounts, mount_info, have_mounts);
 
-    const auto created_time = QFileInfo{vm.instance_directory().path()}.birthTime();
+    const auto created_time = QFileInfo{MP_PLATFORM.path_to_qstr(vm.instance_directory())}
+                                  .birthTime();
     auto timestamp = instance_info->mutable_creation_timestamp();
     timestamp->set_seconds(created_time.toSecsSinceEpoch());
     timestamp->set_nanos(created_time.time().msec() * 1'000'000);

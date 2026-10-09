@@ -106,7 +106,7 @@ public:
         const Snapshot* parent) const override;
     int get_snapshot_count() const override;
 
-    QDir instance_directory() const noexcept override;
+    std::filesystem::path instance_directory() const noexcept override;
     const std::string& get_name() const noexcept override;
     const AvailabilityZone& get_zone() const noexcept override;
 
@@ -248,7 +248,7 @@ inline int multipass::BaseVirtualMachine::get_snapshot_count() const
     return snapshot_count;
 }
 
-inline QDir multipass::BaseVirtualMachine::instance_directory() const noexcept
+inline std::filesystem::path multipass::BaseVirtualMachine::instance_directory() const noexcept
 {
     return instance_dir;
 }

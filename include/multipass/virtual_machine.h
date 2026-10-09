@@ -131,7 +131,7 @@ public:
         const Snapshot* parent) const = 0;
     virtual int get_snapshot_count() const = 0;
 
-    virtual QDir instance_directory() const noexcept = 0;
+    virtual std::filesystem::path instance_directory() const noexcept = 0;
     virtual const std::string& get_name() const noexcept = 0;
     virtual const AvailabilityZone& get_zone() const noexcept = 0;
 
