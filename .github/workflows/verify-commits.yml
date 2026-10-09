@@ -80,7 +80,27 @@ jobs:
                         --jq '.commit.verification | if .verified then "" else .reason end')"
 
             if [ -z "$REASON" ]; then
-              echo "✅ $COMMIT_SHA"
+              # The API does not distinguish "Partially verified" commits, which have an author
+              # other than the committer with vigilant mode enabled. Warn about possible ones.
+              COMMITTER="$(git log -1 --format=%ce "$COMMIT_SHA")"
+              OTHER_AUTHORS="$(
+                {
+                  # GitHub signs commits it creates on behalf of their author (e.g. via web UI)
+                  [ "$COMMITTER" = "noreply@github.com" ] || git log -1 --format=%ae "$COMMIT_SHA"
+                  git log -1 --format='%(trailers:key=Co-authored-by,valueonly)' "$COMMIT_SHA" \
+                    | sed -n 's/.*<\(.*\)>.*/\1/p'
+                } | grep -Fivx -e "$COMMITTER" -e "" | sort -fu | paste -sd ' ' || true
+              )"
+
+              if [ -z "$OTHER_AUTHORS" ]; then
+                echo "✅ $COMMIT_SHA"
+              else
+                echo "⚠️ $COMMIT_SHA (possibly partially verified)"
+                echo "::warning title=Possibly partially verified commit::Commit $COMMIT_SHA is" \
+                     "signed by $COMMITTER but also authored by: $OTHER_AUTHORS. If any of them has" \
+                     "vigilant mode enabled, GitHub shows it as \"Partially verified\". This is" \
+                     "accepted, but the signature does not attest their consent."
+              fi
             else
               echo "❌ $COMMIT_SHA ($REASON)"
               FAIL=1
@@ -89,7 +109,7 @@ jobs:
 
           if [ $FAIL -eq 1 ]; then
             echo "One or more commits are not signed and verified. All commits must be signed and show"
-            echo "as \"Verified\" on GitHub. See GIT7 in our guidelines:"
+            echo "as \"Verified\" (or \"Partially verified\") on GitHub. See GIT7 in our guidelines:"
             echo "https://github.com/canonical/multipass/blob/main/GUIDELINES.md#git-usage-git"
             exit 1
           else
