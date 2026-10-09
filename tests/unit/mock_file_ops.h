@@ -194,6 +194,12 @@ inline std::unique_ptr<std::stringstream> mock_read_data(std::string_view data)
     return filestream;
 }
 
+template <typename InnerMatcher>
+auto FileNameMatches(InnerMatcher&& m)
+{
+    return testing::Property(&std::filesystem::path::filename, std::forward<InnerMatcher>(m));
+}
+
 // Match a Qt object's file name, mainly for use in EXPECT_CALL matchers. The optional first
 // template type is the expected type of the argument.
 template <typename T = QIODevice&, typename InnerMatcher = void>

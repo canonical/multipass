@@ -20,16 +20,22 @@
 
 #pragma once
 
+#include <filesystem>
+
 #include <QByteArray>
 #include <QString>
 
-namespace multipass
-{
-namespace test
+namespace multipass::test
 {
 QByteArray load(QString path);
 QByteArray load_test_file(const char* file_name);
-void make_file_with_content(const QString& file_name,
+void make_file_with_content(const std::filesystem::path& file_name,
                             const std::string& content = "this is a test file");
-} // namespace test
-} // namespace multipass
+
+template <std::same_as<QString> T> // No type conversion!
+void make_file_with_content(const T& file_name, const std::string& content = "this is a test file")
+{
+    make_file_with_content(file_name.toStdString(), content);
+}
+
+} // namespace multipass::test
