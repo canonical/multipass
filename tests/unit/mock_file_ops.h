@@ -197,7 +197,7 @@ inline std::unique_ptr<std::stringstream> mock_read_data(std::string_view data)
 // Match a Qt object's file name, mainly for use in EXPECT_CALL matchers. The optional first
 // template type is the expected type of the argument.
 template <typename T = QIODevice&, typename InnerMatcher = void>
-testing::Matcher<T> FileNameMatches(const InnerMatcher& m)
+testing::Matcher<T> QFileNameMatches(const InnerMatcher& m)
 {
     using ValueType = std::remove_cvref_t<T>;
     using namespace testing;
