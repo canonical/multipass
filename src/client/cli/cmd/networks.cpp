@@ -77,7 +77,7 @@ mp::ParseCode cmd::Networks::parse_args(mp::ArgParser* parser)
     QCommandLineOption formatOption(
         "format",
         "Output list in the requested format.\nValid formats are: "
-        "table (default), json, csv and yaml.\n"
+        "table (default), json, csv and yaml. "
         "The json, csv and yaml formats cover regular output only. Errors and log messages are "
         "printed to the standard error stream as plain text, with failures signaled by a non-zero "
         "exit status.",
