@@ -48,6 +48,20 @@ jobs:
       - name: Read snapcraft.yml parameters
         uses: ./.github/actions/read-snapcraft-yml-params
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Run Rust format check
+        working-directory: rxx
+        run: |
+          if ! cargo fmt --all -- --check; then
+            echo -n "##[error] Rust code is not properly formatted. "
+            echo "Run 'cargo fmt --all' in rxx/ to fix formatting."
+            exit 1
+          fi
+
       - name: Install clang-format
         shell: bash
         run: sudo apt-get install --no-install-recommends --yes clang-format-$SNAP_CLANG_VERSION
