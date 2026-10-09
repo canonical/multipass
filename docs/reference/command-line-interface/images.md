@@ -61,7 +61,11 @@ Options:
                       4 (or more) v's, i.e. -vvvv.
   --show-unsupported  Show unsupported cloud images as well
   --format <format>   Output list in the requested format.
-                      Valid formats are: table (default), json, csv and yaml
+                      Valid formats are: table (default), json, csv and yaml.
+                      The json, csv and yaml formats cover regular output only.
+                      Errors and log messages are printed to the standard error
+                      stream as plain text, with failures signaled by a non-zero
+                      exit status.
   --force-update      Force the image information to update from the network
 
 Arguments:

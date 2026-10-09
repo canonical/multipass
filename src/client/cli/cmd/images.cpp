@@ -85,11 +85,15 @@ ParseCode Images::parse_args(ArgParser* parser)
 
     QCommandLineOption unsupportedOption("show-unsupported",
                                          "Show unsupported cloud images as well");
-    QCommandLineOption formatOption("format",
-                                    "Output list in the requested format.\nValid formats are: "
-                                    "table (default), json, csv and yaml",
-                                    "format",
-                                    "table");
+    QCommandLineOption formatOption(
+        "format",
+        "Output list in the requested format.\nValid formats are: "
+        "table (default), json, csv and yaml. "
+        "The json, csv and yaml formats cover regular output only. Errors and log messages are "
+        "printed to the standard error stream as plain text, with failures signaled by a non-zero "
+        "exit status.",
+        "format",
+        "table");
     const QCommandLineOption force_manifest_network_download(
         "force-update",
         "Force the image information to update from the network");

@@ -68,11 +68,15 @@ QString cmd::Version::description() const
 
 mp::ParseCode cmd::Version::parse_args(mp::ArgParser* parser)
 {
-    QCommandLineOption formatOption("format",
-                                    "Output version information in the requested format.\n"
-                                    "Valid formats are: table (default), json, csv and yaml",
-                                    "format",
-                                    "table");
+    QCommandLineOption formatOption(
+        "format",
+        "Output version information in the requested format.\n"
+        "Valid formats are: table (default), json, csv and yaml. "
+        "The json, csv and yaml formats cover regular output only. Errors and log messages are "
+        "printed to the standard error stream as plain text, with failures signaled by a non-zero "
+        "exit status.",
+        "format",
+        "table");
 
     parser->addOption(formatOption);
 
