@@ -80,8 +80,8 @@ mp::ParseCode cmd::Info::parse_args(mp::ArgParser* parser)
         "option has no effect on snapshot arguments. Omit instance/snapshot arguments "
         "to obtain detailed information on all the snapshots of all instances."};
     QCommandLineOption format_option(format_option_name,
-                                     "Output info in the requested format.\nValid formats are: "
-                                     "table (default), json, csv and yaml.",
+                                     "Output info in the requested format.\n" +
+                                         format_option_details,
                                      format_option_name,
                                      "table");
 
