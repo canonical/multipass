@@ -31,7 +31,7 @@ def strip_driver_deprecation_notice(text: str) -> str:
     """
 
     return re.sub(
-        r"\*\*\* Warning! The \S+ driver is deprecated[^\r\n]*(?:\r*\n){2}.*?(?:\r*\n){2}",
+        r"\*\*\* Warning: the \S+ driver is deprecated[^\r\n]*(?:\r*\n){2}.*?(?:\r*\n){2}",
         "",
         text,
         flags=re.S,
@@ -81,3 +81,15 @@ class Output:
     def json(self):
         """Cast output to JsonOutput."""
         return JsonOutput(self.content, self.exitstatus)
+
+    def json_with_header(self) -> tuple[JsonOutput, str]:
+        """Return the free-text header and the JSON output that follows it."""
+        lines = self.content.splitlines(keepends=True)
+        json_start = next(
+            (idx for idx, line in enumerate(lines) if line.lstrip().startswith("{")),
+            len(lines),
+        )
+
+        header = "".join(lines[:json_start])
+        json_content = "".join(lines[json_start:])
+        return JsonOutput(json_content, self.exitstatus), header

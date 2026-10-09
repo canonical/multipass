@@ -204,6 +204,7 @@ templates_path = [".sphinx/_templates"]
 #       the sphinx_reredirects extension will be disabled.
 
 redirects = {
+    "reference/command-line-interface/find": "../images/",
     "reference/command-line-interface/umount": "../unmount/",
 }
 
