@@ -193,39 +193,6 @@ TEST_F(UbuntuImageHost, iteratesOverAllEntries)
                 Eq(1u));
 }
 
-TEST_F(UbuntuImageHost, canQueryByHash)
-{
-    mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader};
-    host.update_manifests(false);
-    const auto expected_id = "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac";
-    auto info = host.info_for(make_query(expected_id, release_remote_spec.first));
-
-    ASSERT_TRUE(info);
-    EXPECT_THAT(info->id, Eq(expected_id));
-}
-
-TEST_F(UbuntuImageHost, canQueryByPartialHash)
-{
-    mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader};
-    host.update_manifests(false);
-    const auto expected_id = "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac";
-
-    QStringList short_hashes;
-    short_hashes << "1797"
-                 << "1797c5"
-                 << "1797c5c";
-
-    for (const auto& hash : short_hashes)
-    {
-        auto info = host.info_for(make_query(hash.toStdString(), release_remote_spec.first));
-
-        ASSERT_TRUE(info);
-        EXPECT_THAT(info->id, Eq(expected_id));
-    }
-
-    EXPECT_FALSE(host.info_for(make_query("abcde", release_remote_spec.first)));
-}
-
 TEST_F(UbuntuImageHost, supportsMultipleManifests)
 {
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
@@ -260,17 +227,6 @@ TEST_F(UbuntuImageHost, looksForAliasesBeforeHashes)
     ASSERT_TRUE(info);
     EXPECT_THAT(info->image_location, Eq(daily_expected_location));
     EXPECT_THAT(info->id, Eq(daily_expected_id));
-}
-
-TEST_F(UbuntuImageHost, allInfoReleaseReturnsMultipleHashMatches)
-{
-    mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
-    host.update_manifests(false);
-
-    auto images_info = host.all_info_for(make_query("1", release_remote_spec.first));
-
-    const size_t expected_matches{2};
-    EXPECT_THAT(images_info.size(), Eq(expected_matches));
 }
 
 TEST_F(UbuntuImageHost, allInfoDailyNoMatchesReturnsEmptyVector)
@@ -429,19 +385,6 @@ TEST_F(UbuntuImageHost, throwsUnsupportedImageWhenImageNotSupported)
 
     EXPECT_THROW(host.info_for(make_query("artful", release_remote_spec.first)),
                  mp::UnsupportedImageException);
-}
-
-TEST_F(UbuntuImageHost, infoForTooManyHashMatchesThrows)
-{
-    mp::UbuntuVMImageHost host{{release_remote_spec}, &url_downloader};
-    host.update_manifests(false);
-
-    const std::string release{"1"};
-
-    MP_EXPECT_THROW_THAT(
-        host.info_for(make_query(release, release_remote_spec.first)),
-        std::runtime_error,
-        mpt::match_what(StrEq(fmt::format("Too many images matching \"{}\"", release))));
 }
 
 TEST_F(UbuntuImageHost, allInfoForUnsupportedImageReturnsEmpty)

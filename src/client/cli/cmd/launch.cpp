@@ -186,7 +186,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "Optional image to launch. If omitted, then the latest Ubuntu LTS will be used.\n"
         "<remote> can be any of the available remotes returned by ‘multipass images --remotes’. If "
         "<remote> is omitted, image will be searched for in one of the default remotes.\n"
-        "<image> can be a partial image hash or an Ubuntu release version, codename or alias.\n"
+        "<image> can be a codename, an alias, a major version, or an alias prefix.\n"
         "<url> is a custom image URL that is in http://, https://, or file:// format.\n",
         "[[<remote:>]<image> | <url>]");
     QCommandLineOption cpusOption({"c", "cpus"},

@@ -21,6 +21,7 @@
 #include <multipass/cli/table_formatter.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
+#include <multipass/user_messages/images_messages.h>
 #include <multipass/utils.h>
 #include <multipass/utils/sorted_map_view.h>
 
@@ -530,7 +531,18 @@ std::string mp::TableFormatter::format(const ImagesReply& reply) const
     fmt::memory_buffer buf;
     if (reply.images_info().empty())
     {
-        fmt::format_to(std::back_inserter(buf), "No images found.\n");
+        fmt::format_to(std::back_inserter(buf), "No images found.");
+
+        if (!reply.retry_with_remote().empty())
+        {
+            fmt::format_to(std::back_inserter(buf),
+                           " {}",
+                           ImagesUserMessages::search_remote_hint(reply.retry_with_remote()));
+        }
+        else
+        {
+            fmt::format_to(std::back_inserter(buf), "\n");
+        }
     }
     else
     {

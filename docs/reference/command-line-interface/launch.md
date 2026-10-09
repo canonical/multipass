@@ -99,8 +99,8 @@ Arguments:
                                returned by ‘multipass images --remotes’. If
                                <remote> is omitted, image will be searched for
                                in one of the default remotes.
-                               <image> can be a partial image hash or an Ubuntu
-                               release version, codename or alias.
+                               <image> can be a codename, an alias, a major
+                               version, or an alias prefix.
                                <url> is a custom image URL that is in http://,
                                https://, or file:// format.
 ```

@@ -27,6 +27,13 @@ namespace multipass
 
 struct ImagesUserMessages
 {
+    static std::string search_remote_hint(const std::string& remote_name)
+    {
+        return fmt::format("To search a specific remote, use ‘multipass images {}:’\n"
+                           "Run ‘multipass images --remotes’ to see all available remotes.\n",
+                           remote_name);
+    }
+
     static std::string remote_not_found(const std::string& remote_name)
     {
         return fmt::format("Remote \'{}\' is not found. "

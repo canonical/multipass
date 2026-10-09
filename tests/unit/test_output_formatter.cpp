@@ -688,6 +688,13 @@ auto construct_empty_reply()
     return reply;
 }
 
+auto construct_empty_reply_remote_hint()
+{
+    auto reply = mp::ImagesReply();
+    reply.set_retry_with_remote("core");
+    return reply;
+}
+
 auto construct_images_one_reply()
 {
     auto reply = mp::ImagesReply();
@@ -697,6 +704,7 @@ auto construct_images_one_reply()
     image_entry->set_release("18.04 LTS");
     image_entry->set_version("20190516");
     image_entry->add_aliases("ubuntu");
+    image_entry->set_hash("8dd2e6b5e5aad20c3f836123b300cba9861249408cbb07c359145a65d6bab6b6");
     image_entry->set_is_default_remote(true);
 
     return reply;
@@ -727,6 +735,7 @@ auto construct_images_multiple_reply()
     image_entry->set_version("20190516");
     image_entry->add_aliases("19.04");
     image_entry->add_aliases("disco");
+    image_entry->set_hash("c4e1b2e713d03f9d79a3df8ee3e6b5419f0d7bf4b5610efb5458aa6a68bb4d98");
     image_entry->set_remote_name("release");
     image_entry->set_is_default_remote(true);
 
@@ -737,6 +746,7 @@ auto construct_images_multiple_reply()
     image_entry->add_aliases("18.04");
     image_entry->add_aliases("bionic");
     image_entry->add_aliases("lts");
+    image_entry->set_hash("8dd2e6b5e5aad20c3f836123b300cba9861249408cbb07c359145a65d6bab6b6");
     image_entry->set_remote_name("release");
     image_entry->set_is_default_remote(true);
 
@@ -745,6 +755,7 @@ auto construct_images_multiple_reply()
     image_entry->set_release("26.10");
     image_entry->set_version("20261007");
     image_entry->add_aliases("custom");
+    image_entry->set_hash("28680fe5b371a5a82ebf43a31926e086a168e59949d03969c5093e7071f90b7f");
     image_entry->set_remote_name(mp::unspecified_remote);
     image_entry->set_is_default_remote(true);
 
@@ -763,6 +774,7 @@ auto construct_images_multiple_reply_all()
     image_entry->add_aliases("19.10");
     image_entry->add_aliases("eoan");
     image_entry->add_aliases("devel");
+    image_entry->set_hash("f0b499f0a7c8b5ca90ad12aa0b11a3643d5d272de02fabfd799eecb6227ec456");
     image_entry->set_remote_name("daily");
     image_entry->set_is_default_remote(false);
 
@@ -779,6 +791,7 @@ auto construct_images_multiple_reply_duplicate_image()
     image_entry->set_release("Core 18");
     image_entry->set_version("20190520");
     image_entry->add_aliases("core18");
+    image_entry->set_hash("0906153ddef617d9deeb8343b55eaea82323201a12634ccdcfc87f9200cb82df");
     image_entry->set_remote_name("core");
     image_entry->set_is_default_remote(false);
 
@@ -786,6 +799,7 @@ auto construct_images_multiple_reply_duplicate_image()
     image_entry->set_release("Snapcraft builder for core18");
     image_entry->set_version("20190520");
     image_entry->add_aliases("core18");
+    image_entry->set_hash("24c87304639a1718c1cbc2ef7679afb5935d523d1e67440dffc850f572f6951e");
     image_entry->set_remote_name("snapcraft");
     image_entry->set_is_default_remote(false);
 
@@ -1236,6 +1250,7 @@ const std::vector<FormatterParamType> remotes_formatter_outputs{
      "yaml_remotes_multiple"}};
 
 const auto empty_images_reply = construct_empty_reply();
+const auto empty_images_reply_with_remote_hint = construct_empty_reply_remote_hint();
 const auto images_one_reply = construct_images_one_reply();
 const auto images_multiple_reply = construct_images_multiple_reply();
 const auto images_multiple_reply_all = construct_images_multiple_reply_all();
@@ -1248,6 +1263,10 @@ const std::vector<FormatterParamType> images_formatter_outputs{
      &empty_images_reply,
      mpt::load_test_file("formatters/table/empty_images_reply.txt").toStdString(),
      "table_images_empty"},
+    {&table_formatter,
+     &empty_images_reply_with_remote_hint,
+     mpt::load_test_file("formatters/table/empty_images_reply_remote_hint.txt").toStdString(),
+     "table_images_empty_with_remote_hint"},
     {&table_formatter,
      &images_one_reply,
      mpt::load_test_file("formatters/table/images_one_reply.txt").toStdString(),
@@ -1274,6 +1293,10 @@ const std::vector<FormatterParamType> images_formatter_outputs{
      mpt::load_test_file("formatters/json/empty_images_reply.json").toStdString(),
      "json_images_empty"},
     {&json_formatter,
+     &empty_images_reply_with_remote_hint,
+     mpt::load_test_file("formatters/json/empty_images_reply.json").toStdString(),
+     "json_images_empty_with_remote_hint"},
+    {&json_formatter,
      &images_one_reply,
      mpt::load_test_file("formatters/json/images_one_reply.json").toStdString(),
      "json_images_one"},
@@ -1295,6 +1318,10 @@ const std::vector<FormatterParamType> images_formatter_outputs{
      mpt::load_test_file("formatters/csv/empty_images_reply.csv").toStdString(),
      "csv_images_empty"},
     {&csv_formatter,
+     &empty_images_reply_with_remote_hint,
+     mpt::load_test_file("formatters/csv/empty_images_reply.csv").toStdString(),
+     "csv_images_empty_with_remote_hint"},
+    {&csv_formatter,
      &images_one_reply,
      mpt::load_test_file("formatters/csv/images_one_reply.csv").toStdString(),
      "csv_images_one"},
@@ -1314,6 +1341,10 @@ const std::vector<FormatterParamType> images_formatter_outputs{
      &empty_images_reply,
      mpt::load_test_file("formatters/yaml/empty_images_reply.yaml").toStdString(),
      "yaml_images_empty"},
+    {&yaml_formatter,
+     &empty_images_reply_with_remote_hint,
+     mpt::load_test_file("formatters/yaml/empty_images_reply.yaml").toStdString(),
+     "yaml_images_empty_with_remote_hint"},
     {&yaml_formatter,
      &images_one_reply,
      mpt::load_test_file("formatters/yaml/images_one_reply.yaml").toStdString(),

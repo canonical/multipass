@@ -21,6 +21,8 @@
 #include <multipass/utils.h>
 #include <multipass/utils/sorted_map_view.h>
 
+#include <string_view>
+
 namespace mp = multipass;
 
 namespace
@@ -28,8 +30,10 @@ namespace
 template <typename Dest>
 void format_images(Dest&& dest,
                    const google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>& images_info,
-                   std::string type)
+                   std::string_view type)
 {
+    fmt::format_to(dest, "Image,Remote,Aliases,OS,Release,Version,Hash,Type\n");
+
     for (const auto& image : images_info)
     {
         auto aliases = image.aliases();
@@ -38,13 +42,14 @@ void format_images(Dest&& dest,
         auto image_id = mp::format::image_string_for(image.remote_name(), aliases[0]);
 
         fmt::format_to(dest,
-                       "{},{},{},{},{},{},{}\n",
+                       "{},{},{},{},{},{},{},{}\n",
                        image_id,
                        image.remote_name(),
                        fmt::join(aliases.cbegin() + 1, aliases.cend(), ";"),
                        image.os(),
                        image.release(),
                        image.version(),
+                       image.hash(),
                        type);
     }
 }
@@ -241,10 +246,7 @@ std::string mp::CSVFormatter::format(const RemotesReply& reply) const
 std::string mp::CSVFormatter::format(const ImagesReply& reply) const
 {
     fmt::memory_buffer buf;
-
-    fmt::format_to(std::back_inserter(buf), "Image,Remote,Aliases,OS,Release,Version,Type\n");
     format_images(std::back_inserter(buf), reply.images_info(), "Cloud Image");
-
     return fmt::to_string(buf);
 }
 
