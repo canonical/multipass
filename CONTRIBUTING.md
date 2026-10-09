@@ -45,7 +45,7 @@ which gives Canonical permission to use the contributions. Without the CLA, cont
 
 ### Signed commits
 
-All commits must be signed and show as "Verified" on GitHub (see GIT7 in our
+All commits must be signed and show as "Verified" (or "Partially verified") on GitHub (see GIT7 in our
 [Coding Guidelines](GUIDELINES.md#git-usage-git)). Contributions with unsigned commits cannot be accepted.
 
 ### Code of Conduct

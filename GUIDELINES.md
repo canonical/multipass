@@ -76,7 +76,7 @@ there should be two commits instead.<br>
 **GIT6.** Avoid merging the target branch back into the topic branch. Rebase instead.<br>
 **GIT7.** All commits must be
 [signed](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits)
-and show as "Verified" on GitHub.<br>
+and show as "Verified" (or "Partially verified") on GitHub.<br>
 **GIT8.** Use kebab-case branch names (i.e. lower-case-words-separated-with-hyphens).<br>
 **GIT9.** Do not introduce whitespace errors.<br>
 
