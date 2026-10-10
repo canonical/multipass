@@ -427,6 +427,7 @@ message RestartRequest {
     int32 verbosity_level = 2;
     int32 timeout = 3;
     string password = 4;
+    bool running_only = 5;
 }
 
 message RestartReply {

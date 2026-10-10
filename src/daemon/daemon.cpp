@@ -633,6 +633,21 @@ LinearInstanceSelection select_instances_by_zones(InstanceTable& instances, cons
     return selection;
 }
 
+template <std::same_as<mp::VirtualMachine::State>... Args>
+LinearInstanceSelection filter_instances_by_state(const LinearInstanceSelection& instances,
+                                                  mp::VirtualMachine::State first_state,
+                                                  Args... args)
+{
+    LinearInstanceSelection selection;
+    for (auto instance : instances)
+    {
+        auto vm_state = instance->second->current_state();
+        if (vm_state == first_state || ((vm_state == args) || ...))
+            selection.push_back(instance);
+    }
+    return selection;
+}
+
 struct SelectionReaction
 {
     struct ReactionComponent
@@ -841,33 +856,64 @@ std::string make_start_error_details(const InstanceSelectionReport& instance_sel
     return start_error.SerializeAsString();
 }
 
+grpc::Status grpc_concatenate_status(const grpc::Status& s1, const grpc::Status& s2)
+{
+    if (s1.ok())
+        return s2;
+    if (s2.ok())
+        return s1;
+
+    auto code = s1.error_code();
+    auto msg = fmt::format("{}\n{}", s1.error_message(), s2.error_message());
+
+    return grpc::Status{code, msg};
+}
+
 using VMCommand = std::function<grpc::Status(mp::VirtualMachine&)>;
-grpc::Status cmd_vms(const LinearInstanceSelection& tgts, const VMCommand& cmd)
+grpc::Status cmd_vms(const LinearInstanceSelection& tgts,
+                     const VMCommand& cmd,
+                     bool fail_early = true)
 {
     // std::function involves some overhead, but it should be negligible here and
     // it gives clear error messages on type mismatch (!= templated callable).
+    auto global_st{grpc::Status::OK};
     for (const auto& tgt : tgts)
     {
         auto vm_ptr = tgt->second;
         assert(vm_ptr && "no nulls please");
-
-        if (auto st = cmd(*vm_ptr); !st.ok())
-            return st; // Fail early
+        auto st = cmd(*vm_ptr);
+        if (!st.ok())
+        {
+            if (fail_early)
+                return st; // Fail early
+            global_st = grpc_concatenate_status(global_st, st);
+        }
     }
 
-    return grpc::Status::OK;
+    return global_st;
 }
 
-std::vector<std::string> names_from(const LinearInstanceSelection& instances)
+grpc::Status parallel_cmd_vms(const InstanceTable& instance_table,
+                              const std::vector<std::string>& vm_names,
+                              const VMCommand& cmd)
 {
-    std::vector<std::string> ret;
-    ret.reserve(instances.size());
-    std::transform(std::cbegin(instances),
-                   std::cend(instances),
-                   std::back_inserter(ret),
-                   [](const auto& item) { return item->first; });
+    auto global_st{grpc::Status::OK};
+    std::mutex status_mutex;
+    mpu::parallel_for_each(
+        vm_names,
+        [cmd, &global_st, &status_mutex, &instance_table](const std::string& vm_name) {
+            auto status = grpc::Status::OK;
+            const auto& it = instance_table.find(vm_name);
+            if (it != instance_table.end())
+                status = cmd(*it->second);
+            else
+                status = grpc::Status(grpc::FAILED_PRECONDITION,
+                                      fmt::format("Instance '{}' could not be found.", vm_name));
+            std::lock_guard guard{status_mutex};
+            global_st = grpc_concatenate_status(global_st, status);
+        });
 
-    return ret;
+    return global_st;
 }
 
 template <typename Instances>
@@ -2409,40 +2455,155 @@ try
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
-    auto [instance_selection,
-          status] = select_instances_and_react(operative_instances,
-                                               deleted_instances,
-                                               request->instance_names().instance_name(),
-                                               InstanceGroup::Operative,
-                                               require_operative_instances_reaction);
-
-    if (!status.ok())
+    if (auto [instance_selection,
+              status] = select_instances_and_react(operative_instances,
+                                                   deleted_instances,
+                                                   request->instance_names().instance_name(),
+                                                   InstanceGroup::Operative,
+                                                   require_operative_instances_reaction);
+        !status.ok())
     {
         return context->set_value(status);
     }
 
-    const auto& instance_targets = instance_selection.operative_selection;
-    status = cmd_vms(instance_targets, [this](auto& vm) {
-        stop_mounts(vm.get_name());
+    std::vector<std::string> instance_names{request->instance_names().instance_name().begin(),
+                                            request->instance_names().instance_name().end()};
 
-        return reboot_vm(vm);
-    }); // 1st pass to reboot all targets
+    auto resume_suspended_future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
+    auto future_key = utils::make_uuid();
+    QObject::connect(
+        resume_suspended_future_watcher.get(),
+        &QFutureWatcher<AsyncOperationStatus>::finished,
+        [this,
+         resume_suspended_future_watcher = resume_suspended_future_watcher.get(),
+         instance_names,
+         future_key,
+         timeout,
+         context,
+         server,
+         running_only = request->running_only()] {
+            try
+            {
+                auto sg = sg::make_scope_guard([this,
 
-    if (!status.ok())
-    {
-        return context->set_value(status);
-    }
+                                                future_key]() noexcept -> void {
+                    mp::top_catch_all(category, [this, future_key]() {
+                        async_future_watchers.erase(future_key);
+                    });
+                });
+                auto [instance_selection,
+                      status] = select_instances_and_react(operative_instances,
+                                                           deleted_instances,
+                                                           instance_names,
+                                                           InstanceGroup::Operative,
+                                                           require_operative_instances_reaction);
+                if (!status.ok())
+                    return context->set_value(status);
 
-    auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_for_ready_all<RestartReply, RestartRequest>,
-                          this,
-                          server,
-                          names_from(instance_targets),
-                          timeout,
-                          context,
-                          std::string(),
-                          std::string()));
+                const auto& instance_targets = instance_selection.operative_selection;
+                std::vector<std::string> starting_vms;
+
+                status = resume_suspended_future_watcher->future().result().status;
+                status = grpc_concatenate_status(
+                    status,
+                    cmd_vms(
+                        instance_targets,
+                        [this, &starting_vms, running_only](VirtualMachine& vm) {
+                            try
+                            {
+                                auto status = this->reboot_vm(vm, running_only);
+                                if (status.ok())
+                                    starting_vms.push_back(vm.get_name());
+                                return status;
+                            }
+                            catch (const std::exception& e)
+                            {
+                                return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
+                            }
+                        },
+                        /*fail_early=*/false)); // 1st pass to reboot all targets
+
+                if (starting_vms.empty())
+                    return context->set_value(status);
+
+                auto future_watcher = create_future_watcher();
+                future_watcher->setFuture(QtConcurrent::run(
+                    &Daemon::async_wait_for_ready_all<RestartReply, RestartRequest>,
+                    this,
+                    server,
+                    starting_vms,
+                    timeout,
+                    context,
+                    status.error_message(),
+                    std::string()));
+            }
+            catch (const std::exception& e)
+            {
+                return context->set_value({grpc::FAILED_PRECONDITION, e.what(), ""});
+            }
+        });
+
+    auto start_suspended_instances =
+        [this,
+         instance_names,
+         timeout,
+         running_only = request->running_only()]() -> AsyncOperationStatus {
+        if (running_only)
+            // Suspended instances do not need to be resumed if only running instances are
+            // restarted
+            return {grpc::Status::OK, nullptr};
+
+        try
+        {
+
+            auto [instance_selection,
+                  status] = select_instances_and_react(operative_instances,
+                                                       deleted_instances,
+                                                       instance_names,
+                                                       InstanceGroup::Operative,
+                                                       require_operative_instances_reaction);
+
+            if (!status.ok())
+                return {status, nullptr};
+
+            const auto& instance_targets = instance_selection.operative_selection;
+            const auto& suspended_instances = filter_instances_by_state(
+                instance_targets,
+                mp::VirtualMachine::State::suspended);
+            std::vector<std::string> suspended_vms;
+            std::transform(suspended_instances.begin(),
+                           suspended_instances.end(),
+                           std::back_inserter(suspended_vms),
+                           [](const auto it) { return it->first; });
+
+            status = parallel_cmd_vms(
+                operative_instances,
+                suspended_vms,
+                [this, timeout](VirtualMachine& vm) {
+                    try
+                    {
+                        {
+                            std::lock_guard start_guard{start_mutex};
+                            vm.start();
+                        }
+                        // We only need the instance to achieve an SSH session for restart
+                        vm.wait_until_ssh_up(timeout);
+                        return grpc::Status::OK;
+                    }
+                    catch (const std::runtime_error& e)
+                    {
+                        return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
+                    }
+                });
+            return {status, nullptr};
+        }
+        catch (const std::exception& e)
+        {
+            return {grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""}, nullptr};
+        }
+    };
+    resume_suspended_future_watcher->setFuture(QtConcurrent::run(start_suspended_instances));
+    async_future_watchers.insert({future_key, std::move(resume_suspended_future_watcher)});
 }
 catch (const std::exception& e)
 {
@@ -3584,25 +3745,64 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
     return instances_dirty;
 }
 
-grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
+grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, bool running_only)
 {
-    if (vm.state == VirtualMachine::State::delayed_shutdown)
-        delayed_shutdown_instances.erase(vm.get_name());
-
-    if (auto st = vm.current_state(); !MP_UTILS.is_running(st))
+    const auto st = vm.current_state();
+    if (running_only && !MP_UTILS.is_running(st))
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            fmt::format("Instance '{}' is not running", vm.get_name()),
+                            ""};
+    switch (st)
     {
-        std::string msg;
-        if (st == VirtualMachine::State::unknown)
-            msg = fmt::format("Instance '{0}' is already running, but in an unknown state.\n"
-                              "Try to stop and start it instead.",
-                              vm.get_name());
-        else
-            msg = fmt::format("Instance '{0}' is not running", vm.get_name());
-        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, std::move(msg), ""};
-    }
+    case VirtualMachine::State::delayed_shutdown:
+        delayed_shutdown_instances.erase(vm.get_name());
+        [[fallthrough]];
+    case VirtualMachine::State::running:
+        mpl::debug(category, "Rebooting {}", vm.get_name());
+        stop_mounts(vm.get_name());
+        return ssh_reboot(vm);
 
-    mpl::debug(category, "Rebooting {}", vm.get_name());
-    return ssh_reboot(vm);
+    case VirtualMachine::State::off:
+    case VirtualMachine::State::stopped:
+        mpl::debug(category, "Rebooting {}", vm.get_name());
+        try
+        {
+            std::lock_guard guard{start_mutex};
+            // Avoid concurrent calls to vm.start()
+            vm.start();
+        }
+        catch (const std::exception& e)
+        {
+            return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""};
+        }
+        stop_mounts(vm.get_name());
+        return grpc::Status::OK;
+
+    case VirtualMachine::State::unavailable:
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            fmt::format("Instance '{}' is unavailable.", vm.get_name()),
+                            ""};
+
+    case VirtualMachine::State::suspended:
+        // A suspended instance should have been resumed and set to running before this function is
+        // called. If the state is detected here, we cannot recover
+        return grpc::Status{
+            grpc::StatusCode::FAILED_PRECONDITION,
+            fmt::format("Suspended instance '{}' failed to resume and restart.", vm.get_name()),
+            ""};
+    case VirtualMachine::State::suspending:
+    case VirtualMachine::State::starting:
+    case VirtualMachine::State::restarting:
+    case VirtualMachine::State::unknown:
+    default:
+        return grpc::Status{
+            grpc::StatusCode::FAILED_PRECONDITION,
+            fmt::format("The state of instance '{0}' is '{1}' and cannot be restarted.\nUse "
+                        "'multipass stop --force {0}' to force-stop it, then retry.",
+                        vm.get_name(),
+                        st),
+            ""};
+    }
 }
 
 grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay)

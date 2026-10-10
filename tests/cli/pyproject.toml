@@ -44,4 +44,5 @@ markers = [
     "images: Images tests",
     "exec: Exec tests",
     "az: Availability zone tests",
+    "restart: Restart tests",
 ]
