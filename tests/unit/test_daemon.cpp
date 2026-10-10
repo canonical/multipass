@@ -1202,8 +1202,12 @@ TEST_F(Daemon, readsMacAddressesFromJson)
 
     std::string mac_addr("52:54:00:73:76:28");
     std::vector<mp::NetworkInterface> extra_interfaces{
-        mp::NetworkInterface{"wlx60e3270f55fe", "52:54:00:bd:19:41", true},
-        mp::NetworkInterface{"enp3s0", "01:23:45:67:89:ab", false}};
+        mp::NetworkInterface{.id = "wlx60e3270f55fe",
+                             .mac_address = "52:54:00:bd:19:41",
+                             .auto_mode = true},
+        mp::NetworkInterface{.id = "enp3s0",
+                             .mac_address = "01:23:45:67:89:ab",
+                             .auto_mode = false}};
 
     const auto [temp_dir,
                 filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
@@ -1564,10 +1568,14 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
         .WillRepeatedly(
             DoDefault()); // returns an image that can be verified to exist for this instance
     EXPECT_CALL(*mock_image_vault, fetch_image(Field(&mp::Query::name, gone), _, _, _, _))
-        .WillOnce(Return(
-            mp::VMImage{"/path/to/nowhere", "", "", "", "", "", {}})); // an image that can't be
-                                                                       // verified to exist for
-                                                                       // this instance
+        .WillOnce(Return(mp::VMImage{.image_path = "/path/to/nowhere",
+                                     .id = "",
+                                     .original_release = "",
+                                     .current_release = "",
+                                     .release_date = "",
+                                     .os = "",
+                                     .aliases = {}})); // an image that can't be verified to exist
+                                                       // for this instance
     config_builder.vault = std::move(mock_image_vault);
 
     auto mock_factory = use_a_mock_vm_factory();
@@ -1921,7 +1929,7 @@ TEST_F(Daemon, doesNotHoldOnToRepeatedMacAddressesWhenLoading)
 {
     std::string mac_addr("52:54:00:73:76:28");
     std::vector<mp::NetworkInterface> extra_interfaces{
-        mp::NetworkInterface{"eth0", mac_addr, true}};
+        mp::NetworkInterface{.id = "eth0", .mac_address = mac_addr, .auto_mode = true}};
 
     const auto [temp_dir,
                 filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
@@ -1937,7 +1945,8 @@ TEST_F(Daemon, doesNotHoldOnToRepeatedMacAddressesWhenLoading)
 TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
 {
     std::string mac1{"52:54:00:73:76:28"}, mac2{"52:54:00:bd:19:41"};
-    std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"eth0", mac2, true}};
+    std::vector<mp::NetworkInterface> extra_interfaces{
+        mp::NetworkInterface{.id = "eth0", .mac_address = mac2, .auto_mode = true}};
 
     const auto [temp_dir,
                 filename] = plant_instance_json(fake_json_contents(mac1, extra_interfaces));
@@ -1945,10 +1954,14 @@ TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     EXPECT_CALL(*mock_image_vault, fetch_image)
-        .WillOnce(Return(
-            mp::VMImage{"/path/to/nowhere", "", "", "", "", "", {}})) // cause the Daemon's ctor to
-                                                                      // fail verifying that the img
-                                                                      // exists
+        .WillOnce(Return(mp::VMImage{.image_path = "/path/to/nowhere",
+                                     .id = "",
+                                     .original_release = "",
+                                     .current_release = "",
+                                     .release_date = "",
+                                     .os = "",
+                                     .aliases = {}})) // cause the Daemon's ctor to fail verifying
+                                                      // that the img exists
         .WillRepeatedly(DoDefault());
     config_builder.vault = std::move(mock_image_vault);
 
@@ -2462,8 +2475,11 @@ TEST_F(Daemon, addBridgedInterfaceWorks)
     logger_scope.mock_logger->screen_logs(mpl::Level::debug);
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "New interface {\"eth8\", ");
 
-    std::vector<mp::NetworkInterfaceInfo> net_info{
-        {"eth8", "Ethernet", "A network adapter", {}, false}};
+    std::vector<mp::NetworkInterfaceInfo> net_info{{.id = "eth8",
+                                                    .type = "Ethernet",
+                                                    .description = "A network adapter",
+                                                    .links = {},
+                                                    .needs_authorization = false}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(1);
     EXPECT_CALL(*instance_ptr, add_network_interface(0, _, _)).Times(1);
@@ -2478,7 +2494,8 @@ TEST_F(Daemon, addBridgedInterfaceWarnsAndNoopIfAlreadyBridged)
     std::string if_name{"eth8"};
 
     mp::VMSpecs specs{};
-    specs.extra_interfaces.push_back({if_name, "ab:ab:ab:ab:ab:ab", true});
+    specs.extra_interfaces.push_back(
+        {.id = if_name, .mac_address = "ab:ab:ab:ab:ab:ab", .auto_mode = true});
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
@@ -2501,14 +2518,19 @@ TEST_F(Daemon, addBridgedInterfaceHonorsPreparedBridge)
     std::string instance_name{"asdf"};
     std::string if_name{"eth8"};
     std::string br_name{"br-eth8"};
-    mp::NetworkInterface br_net{br_name, "ab:ab:ab:ab:ab:ab", true};
+    mp::NetworkInterface br_net{.id = br_name,
+                                .mac_address = "ab:ab:ab:ab:ab:ab",
+                                .auto_mode = true};
 
     auto mock_factory = use_a_mock_vm_factory();
     mpt::MockDaemon daemon{config_builder.build()};
     auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
 
-    std::vector<mp::NetworkInterfaceInfo> net_info{
-        {if_name, "Ethernet", "A regular adapter", {}, false}};
+    std::vector<mp::NetworkInterfaceInfo> net_info{{.id = if_name,
+                                                    .type = "Ethernet",
+                                                    .description = "A regular adapter",
+                                                    .links = {},
+                                                    .needs_authorization = false}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory,
                 prepare_networking(Contains(Field(&mp::NetworkInterface::id, StrEq("eth8")))))
@@ -2532,8 +2554,11 @@ TEST_F(Daemon, addBridgedInterfaceThrowsIfBackendThrows)
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "New interface {\"eth8\", ");
     logger_scope.mock_logger->expect_log(mpl::Level::debug,
                                          "Failure adding interface to instance, rolling back");
-    std::vector<mp::NetworkInterfaceInfo> net_info{
-        {"eth8", "Ethernet", "A network adapter", {}, false}};
+    std::vector<mp::NetworkInterfaceInfo> net_info{{.id = "eth8",
+                                                    .type = "Ethernet",
+                                                    .description = "A network adapter",
+                                                    .links = {},
+                                                    .needs_authorization = false}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(1);
     EXPECT_CALL(*instance_ptr, add_network_interface(0, _, _))
@@ -2555,8 +2580,11 @@ TEST_F(Daemon, addBridgedInterfaceThrowsOnBadBridgedNetworkSetting)
     mpt::MockDaemon daemon{config_builder.build()};
     auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
 
-    std::vector<mp::NetworkInterfaceInfo> net_info{
-        {"eth9", "Ethernet", "An invalid network adapter", {}, false}};
+    std::vector<mp::NetworkInterfaceInfo> net_info{{.id = "eth9",
+                                                    .type = "Ethernet",
+                                                    .description = "An invalid network adapter",
+                                                    .links = {},
+                                                    .needs_authorization = false}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(0);
     EXPECT_CALL(*instance_ptr, add_network_interface(_, _, _)).Times(0);
@@ -2578,8 +2606,11 @@ TEST_F(Daemon, addBridgedInterfaceThrowsIfNeedsAuthorization)
     mpt::MockDaemon daemon{config_builder.build()};
     auto instance_ptr = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
 
-    std::vector<mp::NetworkInterfaceInfo> net_info{
-        {"eth8", "Ethernet", "A network adapter", {}, true}};
+    std::vector<mp::NetworkInterfaceInfo> net_info{{.id = "eth8",
+                                                    .type = "Ethernet",
+                                                    .description = "A network adapter",
+                                                    .links = {},
+                                                    .needs_authorization = true}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(0);
     EXPECT_CALL(*instance_ptr, add_network_interface(_, _, _)).Times(0);
@@ -2629,30 +2660,42 @@ TEST_P(DaemonIsBridged, isBridgedWorks)
 INSTANTIATE_TEST_SUITE_P(
     Daemon,
     DaemonIsBridged,
-    Values(std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{},
-                           std::vector<mp::NetworkInterface>{{"eth8", "52:54:00:09:10:11", true}},
-                           true),
-           std::make_tuple(
-               std::vector<mp::NetworkInterfaceInfo>{
-                   {"somebr", "generic", "some bridge", {"eth8"}, false}},
-               std::vector<mp::NetworkInterface>{{"somebr", "52:54:00:12:13:14", true}},
-               true),
-           std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{},
-                           std::vector<mp::NetworkInterface>{{"eth9", "52:54:00:15:16:17", true}},
-                           false),
-           std::make_tuple(
-               std::vector<mp::NetworkInterfaceInfo>{
-                   {"somebr", "generic", "some bridge", {"eth9"}, false}},
-               std::vector<mp::NetworkInterface>{{"somebr", "52:54:00:18:19:20", true}},
-               false)));
+    Values(
+        std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{},
+                        std::vector<mp::NetworkInterface>{
+                            {.id = "eth8", .mac_address = "52:54:00:09:10:11", .auto_mode = true}},
+                        true),
+        std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{{.id = "somebr",
+                                                               .type = "generic",
+                                                               .description = "some bridge",
+                                                               .links = {"eth8"},
+                                                               .needs_authorization = false}},
+                        std::vector<mp::NetworkInterface>{{.id = "somebr",
+                                                           .mac_address = "52:54:00:12:13:14",
+                                                           .auto_mode = true}},
+                        true),
+        std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{},
+                        std::vector<mp::NetworkInterface>{
+                            {.id = "eth9", .mac_address = "52:54:00:15:16:17", .auto_mode = true}},
+                        false),
+        std::make_tuple(std::vector<mp::NetworkInterfaceInfo>{{.id = "somebr",
+                                                               .type = "generic",
+                                                               .description = "some bridge",
+                                                               .links = {"eth9"},
+                                                               .needs_authorization = false}},
+                        std::vector<mp::NetworkInterface>{{.id = "somebr",
+                                                           .mac_address = "52:54:00:18:19:20",
+                                                           .auto_mode = true}},
+                        false)));
 
 TEST_F(Daemon, requestsNetworks)
 {
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    std::vector<mp::NetworkInterfaceInfo> net_infos{{"net_a", "type_a", "description_a"},
-                                                    {"net_b", "type_b", "description_b"}};
+    std::vector<mp::NetworkInterfaceInfo> net_infos{
+        {.id = "net_a", .type = "type_a", .description = "description_a"},
+        {.id = "net_b", .type = "type_b", .description = "description_b"}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_infos));
 
     StrictMock<mpt::MockServerReaderWriter<mp::NetworksReply, mp::NetworksRequest>> mock_server;

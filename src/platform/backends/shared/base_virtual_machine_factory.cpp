@@ -93,7 +93,10 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
         else
         {
             net.id = create_bridge_with(*net_it);
-            host_nets.push_back({net.id, bridge_type, "new bridge", {net_it->id}});
+            host_nets.push_back({.id = net.id,
+                                 .type = bridge_type,
+                                 .description = "new bridge",
+                                 .links = {net_it->id}});
         }
     }
 }
@@ -120,20 +123,20 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
                                               cloud_init_path);
 
     // start to construct VirtualMachineDescription
-    mp::VirtualMachineDescription dest_vm_desc{dest_spec.num_cores,
-                                               dest_spec.mem_size,
-                                               dest_spec.disk_space,
-                                               dest_name,
-                                               dest_spec.zone,
-                                               dest_spec.default_mac_address,
-                                               dest_spec.extra_interfaces,
-                                               dest_spec.ssh_username,
-                                               dest_image,
-                                               cloud_init_path.string().c_str(),
-                                               {},
-                                               {},
-                                               {},
-                                               {}};
+    mp::VirtualMachineDescription dest_vm_desc{.num_cores = dest_spec.num_cores,
+                                               .mem_size = dest_spec.mem_size,
+                                               .disk_space = dest_spec.disk_space,
+                                               .vm_name = dest_name,
+                                               .zone = dest_spec.zone,
+                                               .default_mac_address = dest_spec.default_mac_address,
+                                               .extra_interfaces = dest_spec.extra_interfaces,
+                                               .ssh_username = dest_spec.ssh_username,
+                                               .image = dest_image,
+                                               .cloud_init_iso = cloud_init_path.string().c_str(),
+                                               .meta_data_config = {},
+                                               .user_data_config = {},
+                                               .vendor_data_config = {},
+                                               .network_data_config = {}};
 
     return clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
 }

@@ -86,8 +86,16 @@ struct TestInstanceSettingsHandler : public Test
     std::function<std::vector<mp::NetworkInterfaceInfo>()> make_fake_host_networks()
     {
         std::vector<mp::NetworkInterfaceInfo> ret;
-        ret.push_back(mp::NetworkInterfaceInfo{"eth8", "ethernet", "Ethernet device", {}, true});
-        ret.push_back(mp::NetworkInterfaceInfo{"virbr0", "bridge", "Network bridge", {}, false});
+        ret.push_back(mp::NetworkInterfaceInfo{.id = "eth8",
+                                               .type = "ethernet",
+                                               .description = "Ethernet device",
+                                               .links = {},
+                                               .needs_authorization = true});
+        ret.push_back(mp::NetworkInterfaceInfo{.id = "virbr0",
+                                               .type = "bridge",
+                                               .description = "Network bridge",
+                                               .links = {},
+                                               .needs_authorization = false});
 
         return [ret] { return ret; };
     }
@@ -117,7 +125,9 @@ struct TestInstanceSettingsHandler : public Test
         return [this](const std::string& n) {
             if (!make_fake_is_bridged()(n))
                 specs[n].extra_interfaces.push_back(
-                    mp::NetworkInterface{"eth8", mpu::generate_mac_address(), true});
+                    mp::NetworkInterface{.id = "eth8",
+                                         .mac_address = mpu::generate_mac_address(),
+                                         .auto_mode = true});
         };
     }
 
@@ -274,7 +284,8 @@ TEST_P(TestBridgedInstanceSettings, getFetchesBridged)
     constexpr auto target_instance_name = "lemmy";
     specs.insert({{"mikkey", {}}, {"phil", {}}, {target_instance_name, {}}});
 
-    specs[target_instance_name].extra_interfaces = {{br_interface, "52:54:00:12:34:56", true}};
+    specs[target_instance_name].extra_interfaces = {
+        {.id = br_interface, .mac_address = "52:54:00:12:34:56", .auto_mode = true}};
 
     const auto got = make_handler().get(make_key(target_instance_name, "bridged"));
     EXPECT_EQ(got, bridged ? "true" : "false");
@@ -551,7 +562,8 @@ TEST_F(TestInstanceSettingsHandler, setRefusesToUnbridge)
 {
     constexpr auto target_instance_name = "hendrix";
     specs.insert({{"voodoo", {}}, {"chile", {}}, {target_instance_name, {}}});
-    specs[target_instance_name].extra_interfaces = {{"eth8", "52:54:00:78:90:12", true}};
+    specs[target_instance_name].extra_interfaces = {
+        {.id = "eth8", .mac_address = "52:54:00:78:90:12", .auto_mode = true}};
 
     mock_vm(target_instance_name); // TODO: make this an expectation.
 
@@ -566,7 +578,8 @@ TEST_F(TestInstanceSettingsHandler, setAddsInterface)
 {
     constexpr auto target_instance_name = "pappo";
     specs.insert({{"blues", {}}, {"local", {}}, {target_instance_name, {}}});
-    specs[target_instance_name].extra_interfaces = {{"id", "52:54:00:45:67:89", true}};
+    specs[target_instance_name].extra_interfaces = {
+        {.id = "id", .mac_address = "52:54:00:45:67:89", .auto_mode = true}};
 
     mock_vm(target_instance_name); // TODO: make this an expectation.
 
@@ -582,7 +595,8 @@ TEST_F(TestInstanceSettingsHandler, setDoesNotAddTwoInterfaces)
 {
     constexpr auto target_instance_name = "vitico";
     specs.insert({{"viticus", {}}, {"super", {}}, {target_instance_name, {}}});
-    specs[target_instance_name].extra_interfaces = {{"br-eth8", "52:54:00:45:67:90", true}};
+    specs[target_instance_name].extra_interfaces = {
+        {.id = "br-eth8", .mac_address = "52:54:00:45:67:90", .auto_mode = true}};
 
     mock_vm(target_instance_name); // TODO: make this an expectation.
 

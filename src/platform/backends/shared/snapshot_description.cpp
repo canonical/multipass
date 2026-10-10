@@ -111,7 +111,8 @@ void mp::tag_invoke(const boost::json::value_from_tag&,
         {"disk_space", QString::number(desc.disk_space.in_bytes()).toStdString()},
         {"extra_interfaces", boost::json::value_from(desc.extra_interfaces)},
         {"state", static_cast<int>(desc.state)},
-        {"mounts", boost::json::value_from(desc.mounts, MapAsJsonArray{"target_path"})},
+        {"mounts",
+         boost::json::value_from(desc.mounts, MapAsJsonArray{.key_field = "target_path"})},
         {"metadata", desc.metadata}};
 }
 
@@ -137,8 +138,9 @@ mp::SnapshotDescription mp::tag_invoke(const boost::json::value_to_tag<mp::Snaps
                                                  "extra_interfaces",
                                                  ctx.vm_desc.extra_interfaces),
         static_cast<mp::VirtualMachine::State>(value_to<int>(json.at("state"))),
-        value_to<std::unordered_map<std::string, mp::VMMount>>(json.at("mounts"),
-                                                               MapAsJsonArray{"target_path"}),
+        value_to<std::unordered_map<std::string, mp::VMMount>>(
+            json.at("mounts"),
+            MapAsJsonArray{.key_field = "target_path"}),
         json.at("metadata").as_object(),
         upgraded};
 }

@@ -513,9 +513,10 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         std::vector<std::string> warning_aliases;
         for (const auto& alias_to_be_created : reply.aliases_to_be_created())
         {
-            AliasDefinition alias_definition{alias_to_be_created.instance(),
-                                             alias_to_be_created.command(),
-                                             alias_to_be_created.working_directory()};
+            AliasDefinition alias_definition{
+                .instance = alias_to_be_created.instance(),
+                .command = alias_to_be_created.command(),
+                .working_directory = alias_to_be_created.working_directory()};
             if (create_alias(aliases,
                              alias_to_be_created.name(),
                              alias_definition,

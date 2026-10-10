@@ -472,7 +472,7 @@ void pad_to_end(std::ofstream& f)
 
 void mp::CloudInitIso::add_file(const std::string& name, const std::string& data)
 {
-    files.push_back(FileEntry{name, data});
+    files.push_back(FileEntry{.name = name, .data = data});
 }
 
 bool mp::CloudInitIso::contains(const std::string& name) const
@@ -512,7 +512,7 @@ std::string& mp::CloudInitIso::operator[](const std::string& name)
             [name](const FileEntry& file_entry) -> bool { return file_entry.name == name; });
         iter == std::end(files))
     {
-        return files.emplace_back(FileEntry{name, std::string()}).data;
+        return files.emplace_back(FileEntry{.name = name, .data = std::string()}).data;
     }
     else
     {
@@ -709,7 +709,8 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
             std::string_view{reinterpret_cast<const char*>(encoded_file_name.data()),
                              encoded_file_name.size()});
         files.emplace_back(
-            FileEntry{original_file_name, std::string{file_content.cbegin(), file_content.cend()}});
+            FileEntry{.name = original_file_name,
+                      .data = std::string{file_content.cbegin(), file_content.cend()}});
 
         current_file_record_start_pos += to_u32(file_record_data_size);
     }

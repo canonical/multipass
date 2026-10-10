@@ -366,9 +366,9 @@ mpt::MockVirtualMachineFactory* mpt::DaemonTestFixture::use_a_mock_vm_factory()
     ON_CALL(*mock_factory_ptr, supports_availability_zones()).WillByDefault(Return(true));
 
     ON_CALL(*mock_factory_ptr, networks())
-        .WillByDefault(
-            Return(std::vector<NetworkInterfaceInfo>{{"eth0", "ethernet", "wired adapter"},
-                                                     {"wlan0", "wi-fi", "wireless adapter"}}));
+        .WillByDefault(Return(std::vector<NetworkInterfaceInfo>{
+            {.id = "eth0", .type = "ethernet", .description = "wired adapter"},
+            {.id = "wlan0", .type = "wi-fi", .description = "wireless adapter"}}));
 
     config_builder.factory = std::move(mock_factory);
     return mock_factory_ptr;
@@ -397,7 +397,9 @@ void mpt::DaemonTestFixture::send_commands(std::vector<std::vector<std::string>>
         std::unique_ptr<CertProvider> cert_provider;
         cert_provider = std::make_unique<NiceMock<MockCertProvider>>();
 
-        ClientConfig client_config{server_address, std::move(cert_provider), &term};
+        ClientConfig client_config{.server_address = server_address,
+                                   .cert_provider = std::move(cert_provider),
+                                   .term = &term};
         TestClient client{client_config};
         for (const auto& command : commands)
         {

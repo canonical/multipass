@@ -492,8 +492,8 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                                                 std::filesystem::perms::owner_all |
                                                     std::filesystem::perms::group_read |
                                                     std::filesystem::perms::others_read);
-                    return {mp::utils::contents_of(cert_path),
-                            mp::utils::contents_of(priv_key_path)};
+                    return {.pem_cert = mp::utils::contents_of(cert_path),
+                            .pem_priv_key = mp::utils::contents_of(priv_key_path)};
                 }
             }
             else
@@ -522,7 +522,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                                           std::move(root_cert)};
         server_cert_key.write(priv_key_path);
         signed_server_cert.write(cert_path);
-        return {signed_server_cert.as_pem(), server_cert_key.as_pem()};
+        return {.pem_cert = signed_server_cert.as_pem(), .pem_priv_key = server_cert_key.as_pem()};
     }
     else
     {
@@ -532,7 +532,8 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
             // even on `multipass list`
             // Re-enable it after fixing.
             // mpl::trace(kLogCategory, "Re-using existing certificates for the gRPC client");
-            return {mp::utils::contents_of(cert_path), mp::utils::contents_of(priv_key_path)};
+            return {.pem_cert = mp::utils::contents_of(cert_path),
+                    .pem_priv_key = mp::utils::contents_of(priv_key_path)};
         }
 
         // mpl::trace(kLogCategory, "Regenerating certificates for the gRPC client");
@@ -546,7 +547,7 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                                         std::filesystem::perms::group_read |
                                         std::filesystem::perms::others_read);
 
-        return {client_cert.as_pem(), client_cert_key.as_pem()};
+        return {.pem_cert = client_cert.as_pem(), .pem_priv_key = client_cert_key.as_pem()};
     }
 }
 } // namespace
