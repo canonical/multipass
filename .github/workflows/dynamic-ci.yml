@@ -27,6 +27,7 @@ jobs:
     outputs:
       docs: ${{ steps.filter.outputs.docs }}
       code: ${{ steps.filter.outputs.code }}
+      slow-runners: ${{ steps.filter.outputs.slow-runners }}
       hooks: ${{ steps.filter.outputs.hooks }}
       is-tag: ${{ steps.check-tag.outputs.is-tag }}
     steps:
@@ -78,6 +79,15 @@ jobs:
               - "CMakeLists.txt"
               - "vcpkg-configuration.json"
               - "vcpkg.json"
+            slow-runners:
+              - "CMakeLists.txt"
+              - "**/CMakeLists.txt"
+              - "**/snapcraft.yaml"
+              - debian/control
+              - ".gitmodules"
+              - "3rd-party/**"
+              - "vcpkg-configuration.json"
+              - "vcpkg.json"
             hooks:
               - "git-hooks/**"
 
@@ -98,6 +108,8 @@ jobs:
     needs: filter
     if: needs.filter.outputs.code == 'true' || needs.filter.outputs.is-tag == 'true'
     uses: "./.github/workflows/linux.yml"
+    with:
+      slow-runners-needed: ${{ needs.filter.outputs.slow-runners == 'true' }}
     secrets: inherit
 
   macos:
