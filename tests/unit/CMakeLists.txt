@@ -121,6 +121,7 @@ add_executable(multipass_cpp_tests
   test_recursive_dir_iter.cpp
   test_remote_settings_handler.cpp
   test_rust_integration.cpp
+  test_semver_compare.cpp
   test_setting_specs.cpp
   test_settings.cpp
   test_sftp_client.cpp

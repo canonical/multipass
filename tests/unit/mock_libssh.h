@@ -142,9 +142,15 @@ public:
                 (const, override));
 
     // --- pki / keys ----------------------------------------------------------
+    MOCK_METHOD(ssh_pki_ctx, ssh_pki_ctx_new, (), (const, override));
+    MOCK_METHOD(void, ssh_pki_ctx_free, (ssh_pki_ctx context), (const, override));
     MOCK_METHOD(int,
-                ssh_pki_generate,
-                (enum ssh_keytypes_e type, int parameter, ssh_key* pkey),
+                ssh_pki_ctx_options_set,
+                (ssh_pki_ctx context, enum ssh_pki_options_e option, const void* value),
+                (const, override));
+    MOCK_METHOD(int,
+                ssh_pki_generate_key,
+                (enum ssh_keytypes_e type, ssh_pki_ctx context, ssh_key* pkey),
                 (const, override));
     MOCK_METHOD(int,
                 ssh_pki_export_privkey_file,

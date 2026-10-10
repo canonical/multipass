@@ -116,4 +116,10 @@ consteval auto string_literal(const char (&str)[N]) -> detail::formattable_strin
     return detail::formattable_string_literal<Char, N>{str};
 }
 
+template <typename Char>
+inline constexpr auto comma = string_literal<Char>(",");
+
+template <typename Char>
+inline constexpr auto comma_view = static_cast<fmt::basic_string_view<Char>>(comma<Char>);
+
 } // namespace multipass::hyperv

@@ -1,5 +1,5 @@
 {
-    "builtin-baseline": "d015e31e90838a4c9dfa3eed45979bc70d9357fc",
+    "builtin-baseline": "fbb0f7bb200b07a9eb9081c7a3cf51d1aa1c51a1",
     "dependencies": [
         "boost-algorithm",
         "boost-json",
@@ -33,12 +33,8 @@
     ],
     "overrides": [
         {
-            "name": "fmt",
-            "version": "11.2.0"
-        },
-        {
             "name": "libssh",
-            "version": "0.11.3"
+            "version": "0.12.0"
         }
     ],
     "features": {

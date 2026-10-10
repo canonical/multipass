@@ -49,9 +49,9 @@ auto fmt::formatter<CreateNetworkParameters, Char>::format(const CreateNetworkPa
     return json_template.format_to(ctx,
                                    params.name,
                                    params.type,
-                                   fmt::join(params.ipams, string_literal<Char>(",")),
+                                   fmt::join(params.ipams, comma_view<Char>),
                                    fmt::underlying(params.flags),
-                                   fmt::join(params.policies, string_literal<Char>(",")));
+                                   fmt::join(params.policies, comma_view<Char>));
 }
 
 template auto fmt::formatter<CreateNetworkParameters, char>::format<fmt::format_context>(

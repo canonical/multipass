@@ -81,12 +81,18 @@ struct ApparmoredProcessTest : public ApparmoredProcessNoFactoryTest
 {
     using ApparmoredProcessNoFactoryTest::ApparmoredProcessNoFactoryTest; // ctor
 
-    const mp::ProcessFactory& process_factory{MP_PROCFACTORY};
+    void SetUp() override
+    {
+        ApparmoredProcessNoFactoryTest::SetUp();
+        process_factory = &MP_PROCFACTORY;
+    }
+
+    const mp::ProcessFactory* process_factory{nullptr};
 };
 
 TEST_F(ApparmoredProcessTest, loadsProfileWithApparmor)
 {
-    auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
+    auto process = process_factory->create_process(std::make_unique<TestProcessSpec>());
 
     // apparmor profile should have been installed
     QFile apparmor_input(apparmor_output_file);
@@ -131,7 +137,7 @@ TEST_F(ApparmoredProcessNoFactoryTest, noOutputFileWhenNoApparmor)
 
 TEST_F(ApparmoredProcessTest, unloadsProfileWithApparmorOnProcessOutOfScope)
 {
-    auto process = process_factory.create_process(std::make_unique<TestProcessSpec>());
+    auto process = process_factory->create_process(std::make_unique<TestProcessSpec>());
     process.reset();
 
     // apparmor profile should have been removed
@@ -146,7 +152,7 @@ TEST_F(ApparmoredProcessTest, unloadsProfileWithApparmorOnProcessOutOfScope)
 // Copies of tests in LinuxProcessTest
 TEST_F(ApparmoredProcessTest, executeMissingCommand)
 {
-    auto process = process_factory.create_process("a_missing_command");
+    auto process = process_factory->create_process("a_missing_command");
     auto process_state = process->execute();
 
     EXPECT_FALSE(process_state.completed_successfully());
@@ -158,7 +164,7 @@ TEST_F(ApparmoredProcessTest, executeMissingCommand)
 
 TEST_F(ApparmoredProcessTest, executeCrashingCommand)
 {
-    auto process = process_factory.create_process("mock_process");
+    auto process = process_factory->create_process("mock_process");
     auto process_state = process->execute();
 
     EXPECT_FALSE(process_state.completed_successfully());
@@ -171,7 +177,7 @@ TEST_F(ApparmoredProcessTest, executeCrashingCommand)
 TEST_F(ApparmoredProcessTest, executeGoodCommandWithPositiveExitCode)
 {
     const int exit_code = 7;
-    auto process = process_factory.create_process("mock_process", {QString::number(exit_code)});
+    auto process = process_factory->create_process("mock_process", {QString::number(exit_code)});
     auto process_state = process->execute();
 
     EXPECT_FALSE(process_state.completed_successfully());
@@ -185,7 +191,7 @@ TEST_F(ApparmoredProcessTest, executeGoodCommandWithPositiveExitCode)
 TEST_F(ApparmoredProcessTest, executeGoodCommandWithZeroExitCode)
 {
     const int exit_code = 0;
-    auto process = process_factory.create_process("mock_process", {QString::number(exit_code)});
+    auto process = process_factory->create_process("mock_process", {QString::number(exit_code)});
     auto process_state = process->execute();
 
     EXPECT_TRUE(process_state.completed_successfully());
@@ -199,8 +205,8 @@ TEST_F(ApparmoredProcessTest, executeGoodCommandWithZeroExitCode)
 TEST_F(ApparmoredProcessTest, processStateWhenRunsAndStopsOk)
 {
     const int exit_code = 7;
-    auto process =
-        process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
+    auto process = process_factory->create_process("mock_process",
+                                                   {QString::number(exit_code), "stay-alive"});
     process->start();
 
     EXPECT_TRUE(process->wait_for_started());
@@ -222,8 +228,8 @@ TEST_F(ApparmoredProcessTest, processStateWhenRunsAndStopsOk)
 TEST_F(ApparmoredProcessTest, processStateWhenRunsButFailsToStop)
 {
     const int exit_code = 2;
-    auto process =
-        process_factory.create_process("mock_process", {QString::number(exit_code), "stay-alive"});
+    auto process = process_factory->create_process("mock_process",
+                                                   {QString::number(exit_code), "stay-alive"});
     process->start();
 
     EXPECT_TRUE(process->wait_for_started());
@@ -243,7 +249,7 @@ TEST_F(ApparmoredProcessTest, processStateWhenRunsButFailsToStop)
 
 TEST_F(ApparmoredProcessTest, processStateWhenCrashesOnStart)
 {
-    auto process = process_factory.create_process("mock_process"); // will crash immediately
+    auto process = process_factory->create_process("mock_process"); // will crash immediately
     process->start();
 
     // EXPECT_TRUE(process->wait_for_started()); // on start too soon, app hasn't crashed yet!
@@ -257,8 +263,8 @@ TEST_F(ApparmoredProcessTest, processStateWhenCrashesOnStart)
 
 TEST_F(ApparmoredProcessTest, processStateWhenCrashesWhileRunning)
 {
-    auto process =
-        process_factory.create_process("mock_process", {QString::number(0), "stay-alive"});
+    auto process = process_factory->create_process("mock_process",
+                                                   {QString::number(0), "stay-alive"});
     process->start();
 
     process->write("crash"); // will make mock_process crash
@@ -274,7 +280,7 @@ TEST_F(ApparmoredProcessTest, processStateWhenCrashesWhileRunning)
 
 TEST_F(ApparmoredProcessTest, processStateWhenFailedToStart)
 {
-    auto process = process_factory.create_process("a_missing_process");
+    auto process = process_factory->create_process("a_missing_process");
     process->start();
 
     EXPECT_FALSE(process->wait_for_started());
@@ -289,7 +295,7 @@ TEST_F(ApparmoredProcessTest, processStateWhenFailedToStart)
 TEST_F(ApparmoredProcessTest, processStateWhenRunsAndStopsImmediately)
 {
     const int exit_code = 7;
-    auto process = process_factory.create_process("mock_process", {QString::number(exit_code)});
+    auto process = process_factory->create_process("mock_process", {QString::number(exit_code)});
     process->start();
 
     EXPECT_TRUE(process->wait_for_started());
