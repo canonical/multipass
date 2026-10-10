@@ -935,7 +935,7 @@ TEST_F(SFTPClient, pullDirSuccessSymlink)
             make_unique_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path / "symlink")));
 
     REPLACE(sftp_readlink, [](auto...) { return strdup("dummy/link"); });
-    EXPECT_CALL(*mock_file_ops, is_directory).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, is_directory(_, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, remove(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, create_symlink(_, target_path / "symlink", _));
     EXPECT_CALL(mock_platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
@@ -991,7 +991,7 @@ TEST_F(SFTPClient, pullDirCannotCreateSymlink)
             make_unique_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path / "symlink")));
 
     REPLACE(sftp_readlink, [](auto...) { return strdup("dummy/link"); });
-    EXPECT_CALL(*mock_file_ops, is_directory).WillOnce(Return(false));
+    EXPECT_CALL(*mock_file_ops, is_directory(_, _)).WillOnce(Return(false));
     EXPECT_CALL(*mock_file_ops, remove(_, _)).WillOnce(Return(true));
     auto err = std::make_error_code(std::errc::permission_denied);
     EXPECT_CALL(*mock_file_ops, create_symlink(_, target_path / "symlink", _))
@@ -1023,7 +1023,7 @@ TEST_F(SFTPClient, pullDirSymlinkOverDir)
             make_unique_dummy_sftp_attr(SSH_FILEXFER_TYPE_SYMLINK, source_path / "symlink")));
 
     REPLACE(sftp_readlink, [](auto...) { return strdup("dummy/link"); });
-    EXPECT_CALL(*mock_file_ops, is_directory).WillOnce(Return(true));
+    EXPECT_CALL(*mock_file_ops, is_directory(_, _)).WillOnce(Return(true));
     EXPECT_CALL(mock_platform, set_permissions(_, _, _)).WillRepeatedly(Return(true));
 
     auto sftp_client = make_sftp_client();

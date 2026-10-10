@@ -682,7 +682,7 @@ TEST_F(Client, transferCmdInstanceSourcesLocalTargetNotDir)
 
     EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient)
         .WillOnce(Return(std::make_unique<mpt::MockSFTPClient>()));
-    EXPECT_CALL(*mocked_file_ops, is_directory).WillOnce(Return(false));
+    EXPECT_CALL(*mocked_file_ops, is_directory(_, _)).WillOnce(Return(false));
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
             mp::SSHInfoReply reply;
@@ -705,7 +705,7 @@ TEST_F(Client, transferCmdInstanceSourcesLocalTargetCannotAccess)
     EXPECT_CALL(*mocked_sftp_utils, make_SFTPClient)
         .WillOnce(Return(std::make_unique<mpt::MockSFTPClient>()));
     auto err = std::make_error_code(std::errc::permission_denied);
-    EXPECT_CALL(*mocked_file_ops, is_directory).WillOnce([&](auto, std::error_code& e) {
+    EXPECT_CALL(*mocked_file_ops, is_directory(_, _)).WillOnce([&](auto, std::error_code& e) {
         e = err;
         return false;
     });
