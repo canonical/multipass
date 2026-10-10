@@ -522,11 +522,18 @@ message SnapshotRequest {
     string snapshot = 2;
     string comment = 3;
     int32 verbosity_level = 4;
+    bool restart = 5;
+    string password = 6;
 }
 
 message SnapshotReply {
     string snapshot = 1; // automatically generated unless specifically requested
     string log_line = 2;
+    string reply_message = 3;
+    bool needs_prompt = 4;
+    bool is_suspended = 5;
+    string warnings = 6;
+    bool password_requested = 7;
 }
 
 message RestoreRequest {

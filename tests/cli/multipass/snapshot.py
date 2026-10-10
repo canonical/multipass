@@ -44,7 +44,7 @@ def take_snapshot(vm_name, snapshot_name, expected_parent="", expected_comment="
 
     with multipass("snapshot", f"{vm_name}", "--name", f"{snapshot_name}") as output:
         assert output.exitstatus == 0
-        assert "Snapshot taken" in output
+        assert f"Snapshot '{snapshot_name}' of '{vm_name}' created." in output
 
     with multipass("list", "--format=json", "--snapshots").json() as output:
         assert output.exitstatus == 0

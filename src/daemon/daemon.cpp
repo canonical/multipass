@@ -2816,39 +2816,161 @@ try
                                                             instance_name,
                                                             require_operative_instances_reaction);
 
-    if (status.ok())
+    if (!status.ok())
+        return context->set_value(status);
+
+    assert(instance_trail.index() == 0);
+    auto* vm_ptr = std::get<0>(instance_trail)->second.get();
+    assert(vm_ptr);
+
+    auto snapshot_name = request->snapshot();
+    if (!snapshot_name.empty() && !mp::utils::valid_hostname(snapshot_name))
+        return context->set_value(
+            grpc::Status{grpc::INVALID_ARGUMENT,
+                         fmt::format(R"(Invalid snapshot name: "{}".)", snapshot_name)});
+
+    // Check VM state
+    bool restart{request->restart()};
+    auto state = vm_ptr->current_state();
+    using St = VirtualMachine::State;
+    switch (state)
     {
-        assert(instance_trail.index() == 0);
-        auto* vm_ptr = std::get<0>(instance_trail)->second.get();
-        assert(vm_ptr);
-
-        using St = VirtualMachine::State;
-        if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
+    case St::off:
+    case St::stopped:
+        break;
+    case St::suspended:
+    case St::running:
+    case St::delayed_shutdown:
+    {
+        if (restart)
+            break;
+        mp::SnapshotReply reply;
+        reply.set_is_suspended(state == St::suspended);
+        reply.set_needs_prompt(true);
+        if (!server->Write(reply))
+            throw std::runtime_error("Cannot request confirmation from client. Aborting...");
+        mp::SnapshotRequest request;
+        if (!server->Read(&request))
             return context->set_value(
-                grpc::Status{grpc::FAILED_PRECONDITION,
-                             "Multipass can only take snapshots of stopped instances."});
-
-        auto snapshot_name = request->snapshot();
-        if (!snapshot_name.empty() && !mp::utils::valid_hostname(snapshot_name))
-            return context->set_value(
-                grpc::Status{grpc::INVALID_ARGUMENT,
-                             fmt::format(R"(Invalid snapshot name: "{}".)", snapshot_name)});
-
-        const auto spec_it = vm_instance_specs.find(instance_name);
-        assert(spec_it != vm_instance_specs.end() && "missing instance specs");
-
-        SnapshotReply reply;
-        reply.set_snapshot(
-            vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment())->get_name());
-
-        server->Write(reply);
+                grpc::Status(grpc::StatusCode::CANCELLED,
+                             "Cannot get confirmation from client. Aborting..."));
+        restart = request.restart();
+        if (restart)
+            break;
+    }
+        [[fallthrough]];
+    default:
+        return context->set_value(
+            grpc::Status{grpc::FAILED_PRECONDITION,
+                         "Multipass can only take snapshots of stopped instances."});
     }
 
-    context->set_value(status);
-}
-catch (const SnapshotNameTakenException& e)
-{
-    context->set_value(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), ""));
+    auto vm_name{vm_ptr->get_name()};
+    // Do a normative restart (bool is true implicitly)
+    if (state == St::delayed_shutdown || state == St::running || state == St::suspended)
+    {
+        assert(restart);
+        if (state == St::suspended)
+        {
+            SnapshotReply temp_reply;
+            temp_reply.set_reply_message(fmt::format("Starting {}", vm_name));
+            server->Write(temp_reply);
+            {
+                std::lock_guard guard{start_mutex};
+                vm_ptr->start();
+            }
+            vm_ptr->wait_until_ssh_up(mp::default_timeout);
+        }
+        SnapshotReply temp_reply;
+        temp_reply.set_reply_message(fmt::format("Stopping {}", vm_name));
+        server->Write(temp_reply);
+
+        auto status = shutdown_vm(*vm_ptr, std::chrono::minutes(0));
+        if (!status.ok())
+            return context->set_value(status);
+    }
+
+    // Take the snapshot
+    const auto spec_it = vm_instance_specs.find(instance_name);
+    assert(spec_it != vm_instance_specs.end() && "missing instance specs");
+
+    SnapshotReply final_reply;
+    grpc::Status final_status{grpc::Status::OK};
+    final_reply.set_reply_message("Taking snapshot");
+    server->Write(final_reply);
+    final_reply.clear_reply_message();
+    try
+    {
+        final_reply.set_snapshot(
+            vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment())->get_name());
+    }
+    // If the snapshot fails, we may still need to re-start the VM
+    catch (const SnapshotNameTakenException& e)
+    {
+        final_status = grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what(), "");
+    }
+    catch (const std::exception& e)
+    {
+        final_status = grpc::Status(grpc::StatusCode::INTERNAL, e.what(), "");
+    }
+
+    if (!restart) // Only stopped VMs
+    {
+        server->Write(final_reply);
+        return context->set_value(final_status);
+    }
+
+    // We start the VM back if the flag was true
+    try
+    {
+        SnapshotReply temp_reply;
+        temp_reply.set_reply_message(fmt::format("Restarting {}", vm_name));
+        server->Write(temp_reply);
+        std::lock_guard guard{start_mutex};
+        vm_ptr->start();
+    }
+    catch (const std::exception& e)
+    {
+        final_reply.set_warnings(
+            fmt::format("Could not restart '{0}'. Run 'multipass start {0}' to restart manually.",
+                        vm_name));
+        server->Write(final_reply);
+        // The snapshot was successfully taken, the request is considered successful under any
+        // failure
+        return context->set_value(final_status);
+    }
+    auto future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
+    auto future_key = utils::make_uuid();
+    QObject::connect(future_watcher.get(),
+                     &QFutureWatcher<AsyncOperationStatus>::finished,
+                     [this,
+                      future_watcher = future_watcher.get(),
+                      future_key,
+                      server,
+                      snapshot_name = final_reply.snapshot(),
+                      final_status] {
+                         auto async_op_status = future_watcher->future().result();
+
+                         mp::SnapshotReply reply;
+                         if (!async_op_status.status.ok())
+                             reply.set_warnings(async_op_status.status.error_message());
+                         reply.set_snapshot(snapshot_name);
+
+                         server->Write(reply);
+
+                         async_op_status.context->set_value(final_status);
+                         this->async_future_watchers.erase(future_key);
+                     });
+    future_watcher->setFuture(
+        QtConcurrent::run(&Daemon::async_wait_for_ready_all<SnapshotReply, SnapshotRequest>,
+                          this,
+                          server,
+                          std::vector<std::string>{vm_name},
+                          mp::default_timeout,
+                          context,
+                          std::string(),
+                          std::string()));
+    async_future_watchers.insert({future_key, std::move(future_watcher)});
 }
 catch (const std::exception& e)
 {
@@ -3781,11 +3903,11 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
     return future_watcher_p;
 }
 
-template <typename Reply, typename Request>
+template <typename LogMsgReply, typename Request>
 error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
     const std::string& name,
     const std::chrono::seconds& timeout,
-    grpc::ServerReaderWriterInterface<Reply, Request>* server)
+    grpc::ServerReaderWriterInterface<LogMsgReply, Request>* server)
 {
     fmt::memory_buffer errors;
     try
@@ -3801,11 +3923,11 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
         const auto vm = it->second;
         vm->wait_until_ssh_up(timeout);
 
-        if (std::is_same<Reply, LaunchReply>::value)
+        if (std::is_same<LogMsgReply, LaunchReply>::value)
         {
             if (server)
             {
-                Reply reply;
+                LogMsgReply reply;
                 reply.set_reply_message("Waiting for initialization to complete");
                 server->Write(reply);
             }
@@ -3848,7 +3970,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
 
             if (server && warnings.size() > 0)
             {
-                Reply reply;
+                LogMsgReply reply;
                 reply.set_log_line(fmt::to_string(warnings));
                 server->Write(reply);
             }

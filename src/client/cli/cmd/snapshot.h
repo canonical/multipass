@@ -33,6 +33,7 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser);
+    bool confirm_restart(const std::string& name, bool is_suspended);
     SnapshotRequest request;
 };
 } // namespace multipass::cmd

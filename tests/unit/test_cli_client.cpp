@@ -3849,6 +3849,189 @@ TEST_F(Client, snapshotCmdInvalidOptionFails)
     EXPECT_EQ(send_command({"snapshot", "--snap"}), mp::ReturnCode::CommandLineError);
 }
 
+TEST_F(Client, snapshotCmdRestartOptionAlternativesOk)
+{
+    EXPECT_CALL(mock_daemon, snapshot(_, _)).Times(2).WillRepeatedly([](auto, auto* server) {
+        mp::SnapshotRequest request;
+        EXPECT_TRUE(server->Read(&request));
+        EXPECT_TRUE(request.restart());
+        return grpc::Status{};
+    });
+    EXPECT_EQ(send_command({"snapshot", "--restart", "foo"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"snapshot", "-r", "foo"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, snapshotCmdNoRestartOptionDefaultsToFalse)
+{
+    EXPECT_CALL(mock_daemon, snapshot(_, _)).WillOnce([](auto, auto* server) {
+        mp::SnapshotRequest request;
+        EXPECT_TRUE(server->Read(&request));
+        EXPECT_FALSE(request.restart());
+        return grpc::Status{};
+    });
+    EXPECT_EQ(send_command({"snapshot", "foo"}), mp::ReturnCode::Ok);
+}
+
+struct SnapshotCommandClient : public Client
+{
+    SnapshotCommandClient()
+    {
+        EXPECT_CALL(mock_terminal, cout).WillRepeatedly(ReturnRef(cout));
+        EXPECT_CALL(mock_terminal, cerr).WillRepeatedly(ReturnRef(cerr));
+        EXPECT_CALL(mock_terminal, cin).WillRepeatedly(ReturnRef(cin));
+    }
+
+    std::ostringstream cerr, cout;
+    std::istringstream cin;
+    mpt::MockTerminal mock_terminal;
+};
+
+TEST_F(SnapshotCommandClient, snapshotCmdPromptConfirmedRestartsInstance)
+{
+    // "Y" branch: user confirms the prompt, so the client re-sends the request with restart set,
+    // and the daemon proceeds to report a successful snapshot.
+    cin.str("invalid input\nyes\n");
+
+    EXPECT_CALL(mock_terminal, cin_is_live()).WillOnce(Return(true));
+    EXPECT_CALL(mock_terminal, cout_is_live()).WillOnce(Return(true));
+
+    EXPECT_CALL(mock_daemon, snapshot(_, _)).WillOnce([](auto, auto* server) {
+        mp::SnapshotRequest request;
+        server->Read(&request);
+
+        EXPECT_FALSE(request.restart());
+
+        mp::SnapshotReply prompt_reply;
+        prompt_reply.set_needs_prompt(true);
+        server->Write(prompt_reply);
+
+        mp::SnapshotRequest confirmation;
+        EXPECT_TRUE(server->Read(&confirmation));
+        EXPECT_TRUE(confirmation.restart());
+
+        mp::SnapshotReply final_reply;
+        final_reply.set_snapshot("snapshot1");
+        server->Write(final_reply);
+        return grpc::Status{};
+    });
+
+    EXPECT_EQ(setup_client_and_run({"snapshot", "foo"}, mock_terminal), mp::ReturnCode::Ok);
+    EXPECT_NE(cout.str().find("is running. Would you like to stop it"), std::string::npos);
+    EXPECT_NE(cout.str().find("Please answer [y/N]"), std::string::npos);
+    EXPECT_NE(cout.str().find("Snapshot 'snapshot1' of 'foo' created."), std::string::npos);
+}
+
+TEST_F(SnapshotCommandClient, snapshotCmdPromptForSuspendedInstanceShowsSuspendedPrompt)
+{
+    // Same "Y" branch, but when the reply indicates the instance is suspended, the client must
+    // show the suspended-specific prompt text instead of the running one.
+    cin.str("yes\n");
+
+    EXPECT_CALL(mock_terminal, cin_is_live()).WillOnce(Return(true));
+    EXPECT_CALL(mock_terminal, cout_is_live()).WillOnce(Return(true));
+
+    EXPECT_CALL(mock_daemon, snapshot(_, _)).WillOnce([](auto, auto* server) {
+        mp::SnapshotRequest request;
+        server->Read(&request);
+
+        EXPECT_FALSE(request.restart());
+
+        mp::SnapshotReply prompt_reply;
+        prompt_reply.set_needs_prompt(true);
+        prompt_reply.set_is_suspended(true);
+        server->Write(prompt_reply);
+
+        mp::SnapshotRequest confirmation;
+        EXPECT_TRUE(server->Read(&confirmation));
+        EXPECT_TRUE(confirmation.restart());
+
+        mp::SnapshotReply final_reply;
+        final_reply.set_snapshot("snapshot1");
+        server->Write(final_reply);
+        return grpc::Status{};
+    });
+
+    EXPECT_EQ(setup_client_and_run({"snapshot", "foo"}, mock_terminal), mp::ReturnCode::Ok);
+    EXPECT_NE(cout.str().find("is suspended. Would you like to resume and stop it"),
+              std::string::npos);
+    EXPECT_EQ(cout.str().find("is running. Would you like to stop it"), std::string::npos);
+}
+
+TEST_F(SnapshotCommandClient, snapshotCmdPrintsWarningWhenRestartFailsAfterSnapshot)
+{
+    // If the snapshot succeeds but the daemon could not restart the instance afterwards, the
+    // reply's "warnings" field is printed as a warning, the overall command still succeeding.
+    EXPECT_CALL(mock_daemon, snapshot(_, _)).WillOnce([](auto, auto* server) {
+        mp::SnapshotRequest request;
+        server->Read(&request);
+
+        mp::SnapshotReply final_reply;
+        final_reply.set_snapshot("snapshot1");
+        final_reply.set_warnings(
+            "Could not restart 'foo'. Run 'multipass start foo' to restart manually.");
+        server->Write(final_reply);
+        return grpc::Status{};
+    });
+
+    EXPECT_EQ(setup_client_and_run({"snapshot", "--restart", "foo"}, mock_terminal),
+              mp::ReturnCode::Ok);
+    EXPECT_NE(cout.str().find("Snapshot 'snapshot1' of 'foo' created."), std::string::npos);
+    EXPECT_NE(cout.str().find("warning: Could not restart 'foo'."), std::string::npos);
+}
+
+TEST_F(SnapshotCommandClient, snapshotCmdPromptDeclinedFailsPrecondition)
+{
+    // "N" branch: user declines the prompt, so the client re-sends the request without restart,
+    // and the daemon fails as it can only snapshot stopped instances.
+    cin.str("invalid input\nno\n");
+
+    EXPECT_CALL(mock_terminal, cin_is_live()).WillOnce(Return(true));
+    EXPECT_CALL(mock_terminal, cout_is_live()).WillOnce(Return(true));
+
+    EXPECT_CALL(mock_daemon, snapshot(_, _)).WillOnce([](auto, auto* server) {
+        mp::SnapshotRequest request;
+        server->Read(&request);
+
+        mp::SnapshotReply prompt_reply;
+        prompt_reply.set_needs_prompt(true);
+        server->Write(prompt_reply);
+
+        mp::SnapshotRequest confirmation;
+        EXPECT_TRUE(server->Read(&confirmation));
+        EXPECT_FALSE(confirmation.restart());
+
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            "Multipass can only take snapshots of stopped instances."};
+    });
+
+    EXPECT_EQ(setup_client_and_run({"snapshot", "foo"}, mock_terminal),
+              mp::ReturnCode::CommandFail);
+    EXPECT_NE(cout.str().find("Please answer [y/N]"), std::string::npos);
+    EXPECT_NE(cerr.str().find("Multipass can only take snapshots of stopped instances."),
+              std::string::npos);
+}
+
+TEST_F(SnapshotCommandClient, snapshotCmdNotLiveTermFailsWithHelpfulMessage)
+{
+    EXPECT_CALL(mock_terminal, cin_is_live()).WillOnce(Return(false));
+
+    EXPECT_CALL(mock_daemon, snapshot(_, _)).WillOnce([](auto, auto* server) {
+        mp::SnapshotRequest req;
+        EXPECT_TRUE(server->Read(&req));
+        mp::SnapshotReply reply;
+        reply.set_needs_prompt(true);
+        server->Write(reply);
+
+        EXPECT_FALSE(server->Read(&req));
+        return grpc::Status{grpc::StatusCode::CANCELLED, "dummy_msg"};
+    });
+
+    EXPECT_EQ(setup_client_and_run({"snapshot", "foo"}, mock_terminal),
+              mp::ReturnCode::CommandFail);
+    EXPECT_NE(cerr.str().find("Unable to query client for confirmation"), std::string::npos);
+    EXPECT_NE(cerr.str().find("--restart"), std::string::npos);
+}
+
 // restore cli tests
 TEST_F(Client, restoreCmdHelpOk)
 {
