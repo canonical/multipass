@@ -73,7 +73,7 @@ public:
                                                      days_to_expire);
     };
 
-    void configure(VirtualMachineDescription& vm_desc) override;
+    void configure(VirtualMachineDescription& vm_desc, const CloudInitConfig& cloud_init) override;
 
     std::vector<NetworkInterfaceInfo> networks() const override
     {

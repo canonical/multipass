@@ -18,6 +18,7 @@
 #include "base_virtual_machine_factory.h"
 #include "multipass/platform.h"
 
+#include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/memory_size.h>
@@ -38,7 +39,8 @@ mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_d
                                                          AvailabilityZoneManager& az_manager)
     : az_manager{az_manager}, instances_dir{instances_dir} {};
 
-void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
+void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc,
+                                              const CloudInitConfig& cloud_init)
 {
     auto instance_dir{mpu::base_dir(MP_PLATFORM.path_to_qstr(vm_desc.image.image_path))};
     const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
@@ -46,11 +48,11 @@ void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc
     if (!QFile::exists(cloud_init_iso))
     {
         mp::CloudInitIso iso;
-        iso.add_file("meta-data", mpu::emit_cloud_config(vm_desc.meta_data_config));
-        iso.add_file("vendor-data", mpu::emit_cloud_config(vm_desc.vendor_data_config));
-        iso.add_file("user-data", mpu::emit_cloud_config(vm_desc.user_data_config));
-        if (!vm_desc.network_data_config.IsNull())
-            iso.add_file("network-config", mpu::emit_cloud_config(vm_desc.network_data_config));
+        iso.add_file("meta-data", mpu::emit_cloud_config(cloud_init.meta_data));
+        iso.add_file("vendor-data", mpu::emit_cloud_config(cloud_init.vendor_data));
+        iso.add_file("user-data", mpu::emit_cloud_config(cloud_init.user_data));
+        if (!cloud_init.network_data.IsNull())
+            iso.add_file("network-config", mpu::emit_cloud_config(cloud_init.network_data));
 
         iso.write_to(cloud_init_iso.toStdString());
     }
@@ -129,11 +131,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
                                                dest_spec.extra_interfaces,
                                                dest_spec.ssh_username,
                                                dest_image,
-                                               cloud_init_path.string().c_str(),
-                                               {},
-                                               {},
-                                               {},
-                                               {}};
+                                               cloud_init_path.string().c_str()};
 
     return clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
 }

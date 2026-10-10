@@ -17,36 +17,15 @@
 
 #pragma once
 
-#include <multipass/memory_size.h>
-#include <multipass/network_interface.h>
-#include <multipass/path.h>
-#include <multipass/vm_image.h>
-
 #include <yaml-cpp/yaml.h>
-
-#include <string>
-#include <vector>
-
-#include <QMetaType>
 
 namespace multipass
 {
-class VirtualMachineDescription
+struct CloudInitConfig
 {
-public:
-    using MBytes = size_t;
-
-    int num_cores;
-    MemorySize mem_size;
-    MemorySize disk_space;
-    std::string vm_name;
-    std::string zone;
-    std::string default_mac_address;
-    std::vector<NetworkInterface> extra_interfaces;
-    std::string ssh_username;
-    VMImage image;
-    Path cloud_init_iso;
+    YAML::Node meta_data;
+    YAML::Node user_data;
+    YAML::Node vendor_data;
+    YAML::Node network_data;
 };
 } // namespace multipass
-
-Q_DECLARE_METATYPE(multipass::VirtualMachineDescription)

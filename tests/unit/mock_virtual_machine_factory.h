@@ -61,7 +61,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
                 create_image_vault,
                 (std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&),
                 (override));
-    MOCK_METHOD(void, configure, (VirtualMachineDescription&), (override));
+    MOCK_METHOD(void, configure, (VirtualMachineDescription&, const CloudInitConfig&), (override));
     MOCK_METHOD(std::vector<NetworkInterfaceInfo>, networks, (), (const, override));
     MOCK_METHOD(bool, supports_availability_zones, (), (const, override));
 
