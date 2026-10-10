@@ -24,6 +24,7 @@
 #include <filesystem>
 #include <functional>
 #include <iostream>
+#include <vector>
 
 #include <QFlags>
 
@@ -54,6 +55,7 @@ public:
     SFTPClient(SSHSessionUPtr ssh_session);
 
     virtual bool is_remote_dir(const fs::path& path);
+    virtual std::vector<fs::path> expand_remote_path(const fs::path& path);
     virtual bool push(const fs::path& source_path, const fs::path& target_path, Flags flags = {});
     virtual bool pull(const fs::path& source_path, const fs::path& target_path, Flags flags = {});
     virtual void from_cin(std::istream& cin, const fs::path& target_path, bool make_parent);
