@@ -94,7 +94,7 @@ mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc,
     : desc{std::move(desc)},
       parent{std::move(parent)},
       id{fmt::format(snapshot_template, this->desc.index)},
-      storage_dir{MP_PLATFORM.qstr_to_path(vm.instance_directory().path())},
+      storage_dir{vm.instance_directory()},
       vm_desc{vm_desc},
       captured{captured}
 {
@@ -109,7 +109,7 @@ mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc,
                                bool captured)
     : desc{std::move(desc)},
       id{fmt::format(snapshot_template, desc.index)},
-      storage_dir{MP_PLATFORM.qstr_to_path(vm.instance_directory().path())},
+      storage_dir{vm.instance_directory()},
       vm_desc{vm_desc},
       captured{captured}
 {

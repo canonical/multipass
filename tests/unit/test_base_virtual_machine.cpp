@@ -167,7 +167,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
                                  stub_monitor,
                                  mpt::StubSSHKeyProvider{},
                                  zone,
-                                 tmp_dir->path()},
+                                 *tmp_dir},
           tmp_dir{std::move(tmp_dir)}
     {
     }
@@ -333,10 +333,10 @@ TEST_F(BaseVM, getAllIpv4WorksWhenInstanceIsOff)
 TEST_F(BaseVM, providesInstanceDirectory)
 {
     auto vm_dir = std::make_unique<mpt::TempDir>();
-    const auto vm_path = vm_dir->path();
+    const std::filesystem::path vm_path = *vm_dir;
     const StubBaseVirtualMachine vm{St::off, zone, std::move(vm_dir)};
 
-    EXPECT_EQ(vm.instance_directory().absolutePath(), vm_path);
+    EXPECT_EQ(absolute(vm.instance_directory()), vm_path);
 }
 
 TEST_F(BaseVM, addNetworkInterfaceThrows)
@@ -1056,13 +1056,13 @@ TEST_F(BaseVM, throwsIfThereAreSnapshotsToLoadButNoGenericInfo)
 
     mpt::make_file_with_content(get_snapshot_file_path(1), "stub");
     MP_EXPECT_THROW_THAT(vm.load_snapshots(),
-                         mp::FileOpenFailedException,
+                         std::filesystem::filesystem_error,
                          mpt::match_what(HasSubstr(count_filename)));
 
     vm.delete_snapshot(name);
     mpt::make_file_with_content(count_path, "1");
     MP_EXPECT_THROW_THAT(vm.load_snapshots(),
-                         mp::FileOpenFailedException,
+                         std::filesystem::filesystem_error,
                          mpt::match_what(HasSubstr(head_filename)));
 }
 

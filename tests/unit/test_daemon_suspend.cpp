@@ -68,9 +68,9 @@ TEST_F(TestDaemonSuspend, suspendStopsMounts)
     std::unordered_map<std::string, mp::VMMount> mounts{
         {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
-    config_builder.data_directory = temp_dir->path();
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
+    config_builder.data_directory = *temp_dir;
 
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
     EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));

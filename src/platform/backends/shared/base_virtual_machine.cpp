@@ -66,9 +66,9 @@ void assert_vm_stopped([[maybe_unused]] St state)
     assert(state == St::off || state == St::stopped);
 }
 
-mp::Path derive_head_path(const QDir& snapshot_dir)
+std::filesystem::path derive_head_path(const std::filesystem::path& snapshot_dir)
 {
-    return snapshot_dir.filePath(head_filename);
+    return snapshot_dir / head_filename;
 }
 
 void update_parents_rollback_helper(const std::shared_ptr<mp::Snapshot>& deleted_parent,
@@ -78,9 +78,9 @@ void update_parents_rollback_helper(const std::shared_ptr<mp::Snapshot>& deleted
         snapshot->set_parent(deleted_parent);
 }
 
-std::string trimmed_contents_of(const QString& file_path)
+std::string trimmed_contents_of(const std::filesystem::path& file_path)
 {
-    return mpu::trim(mpu::contents_of(file_path));
+    return mpu::trim(MP_FILEOPS.read_file(file_path));
 }
 
 template <typename ExceptionT>
@@ -99,7 +99,7 @@ mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            VMStatusMonitor& monitor,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
-                                           const Path& instance_dir)
+                                           const std::filesystem::path& instance_dir)
     : BaseVirtualMachine(zone.is_available() ? State::off : State::unavailable,
                          vm_name,
                          vm_desc,
@@ -116,7 +116,7 @@ mp::BaseVirtualMachine::BaseVirtualMachine(State state,
                                            VMStatusMonitor& monitor,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
-                                           const Path& instance_dir)
+                                           const std::filesystem::path& instance_dir)
     : VirtualMachine{state},
       vm_name{vm_name},
       desc{vm_desc},
@@ -134,8 +134,7 @@ void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_ini
     const std::vector<NetworkInterface>& extra_interfaces,
     const std::string& new_instance_id) const
 {
-    const std::filesystem::path cloud_init_path =
-        std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
+    const std::filesystem::path cloud_init_path = absolute(instance_dir) / cloud_init_file_name;
 
     MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(default_mac_addr,
                                                                                   extra_interfaces,
@@ -147,8 +146,7 @@ void mp::BaseVirtualMachine::add_extra_interface_to_instance_cloud_init(
     const std::string& default_mac_addr,
     const NetworkInterface& extra_interface) const
 {
-    const std::filesystem::path cloud_init_path =
-        std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
+    const std::filesystem::path cloud_init_path = absolute(instance_dir) / cloud_init_file_name;
 
     MP_CLOUD_INIT_FILE_OPS.add_extra_interface_to_cloud_init(default_mac_addr,
                                                              extra_interface,
@@ -157,8 +155,7 @@ void mp::BaseVirtualMachine::add_extra_interface_to_instance_cloud_init(
 
 std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
 {
-    const std::filesystem::path cloud_init_path =
-        std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
+    const std::filesystem::path cloud_init_path = absolute(instance_dir) / cloud_init_file_name;
 
     return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_path);
 }
@@ -587,7 +584,7 @@ std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
 }
 
 bool mp::BaseVirtualMachine::updated_deleted_head(std::shared_ptr<Snapshot>& snapshot,
-                                                  const Path& head_path)
+                                                  const std::filesystem::path& head_path)
 {
     if (head_snapshot == snapshot)
     {
@@ -599,7 +596,7 @@ bool mp::BaseVirtualMachine::updated_deleted_head(std::shared_ptr<Snapshot>& sna
     return false;
 }
 
-auto mp::BaseVirtualMachine::make_deleted_head_rollback(const Path& head_path,
+auto mp::BaseVirtualMachine::make_deleted_head_rollback(const std::filesystem::path& head_path,
                                                         const bool& wrote_head)
 {
     return sg::make_scope_guard(
@@ -608,7 +605,7 @@ auto mp::BaseVirtualMachine::make_deleted_head_rollback(const Path& head_path,
         });
 }
 
-void mp::BaseVirtualMachine::deleted_head_rollback_helper(const Path& head_path,
+void mp::BaseVirtualMachine::deleted_head_rollback_helper(const std::filesystem::path& head_path,
                                                           const bool& wrote_head,
                                                           std::shared_ptr<Snapshot>& old_head)
 {
@@ -617,7 +614,7 @@ void mp::BaseVirtualMachine::deleted_head_rollback_helper(const Path& head_path,
         head_snapshot = std::move(old_head);
         if (wrote_head)
             top_catch_all(vm_name, [this, &head_path] {
-                MP_UTILS.make_file_with_content(head_path.toStdString(),
+                MP_UTILS.make_file_with_content(head_path,
                                                 std::to_string(head_snapshot->get_index()) + "\n",
                                                 yes_overwrite);
             });
@@ -750,12 +747,12 @@ void mp::BaseVirtualMachine::load_generic_snapshot_info()
 {
     try
     {
-        snapshot_count = std::stoi(trimmed_contents_of(instance_dir.filePath(count_filename)));
+        snapshot_count = std::stoi(trimmed_contents_of(instance_dir / count_filename));
 
-        auto head_index = std::stoi(trimmed_contents_of(instance_dir.filePath(head_filename)));
+        auto head_index = std::stoi(trimmed_contents_of(instance_dir / head_filename));
         head_snapshot = head_index ? get_snapshot(head_index) : nullptr;
     }
-    catch (FileOpenFailedException&)
+    catch (const std::filesystem::filesystem_error&)
     {
         if (!snapshots.empty())
             throw;
@@ -797,28 +794,26 @@ void mp::BaseVirtualMachine::load_snapshot(const QString& filename)
     }
 }
 
-auto mp::BaseVirtualMachine::make_common_file_rollback(const Path& file_path,
-                                                       QFile& file,
+auto mp::BaseVirtualMachine::make_common_file_rollback(const std::filesystem::path& file,
                                                        const std::string& old_contents) const
 {
     return sg::make_scope_guard(
-        [this, &file_path, &file, old_contents, existed = file.exists()]() noexcept {
-            common_file_rollback_helper(file_path, file, old_contents, existed);
+        [this, &file, old_contents, existed = MP_FILEOPS.exists(file)]() noexcept {
+            common_file_rollback_helper(file, old_contents, existed);
         });
 }
 
-void mp::BaseVirtualMachine::common_file_rollback_helper(const Path& file_path,
-                                                         QFile& file,
+void mp::BaseVirtualMachine::common_file_rollback_helper(const std::filesystem::path& file,
                                                          const std::string& old_contents,
                                                          bool existed) const
 {
-    // best effort, ignore returns
-    if (!existed)
-        file.remove();
-    else
-        top_catch_all(vm_name, [&file_path, &old_contents] {
-            MP_UTILS.make_file_with_content(file_path.toStdString(), old_contents, yes_overwrite);
-        });
+    // best effort, ignore exceptions
+    top_catch_all(vm_name, [&] {
+        if (!existed)
+            MP_FILEOPS.remove(file);
+        else
+            MP_UTILS.make_file_with_content(file, old_contents, yes_overwrite);
+    });
 }
 
 void mp::BaseVirtualMachine::persist_generic_snapshot_info() const
@@ -826,20 +821,16 @@ void mp::BaseVirtualMachine::persist_generic_snapshot_info() const
     assert(head_snapshot);
 
     auto head_path = derive_head_path(instance_dir);
-    auto count_path = instance_dir.filePath(count_filename);
+    auto count_path = instance_dir / count_filename;
 
-    QFile head_file{head_path};
     auto head_file_rollback = make_common_file_rollback(
         head_path,
-        head_file,
         std::to_string(head_snapshot->get_parents_index()) + "\n");
     persist_head_snapshot_index(head_path);
 
-    QFile count_file{count_path};
     auto count_file_rollback = make_common_file_rollback(count_path,
-                                                         count_file,
                                                          std::to_string(snapshot_count - 1) + "\n");
-    MP_UTILS.make_file_with_content(count_path.toStdString(),
+    MP_UTILS.make_file_with_content(count_path,
                                     std::to_string(snapshot_count) + "\n",
                                     yes_overwrite);
 
@@ -847,10 +838,10 @@ void mp::BaseVirtualMachine::persist_generic_snapshot_info() const
     head_file_rollback.dismiss();
 }
 
-void mp::BaseVirtualMachine::persist_head_snapshot_index(const Path& head_path) const
+void mp::BaseVirtualMachine::persist_head_snapshot_index(const std::filesystem::path& head_path) const
 {
     auto head_index = head_snapshot ? head_snapshot->get_index() : 0;
-    MP_UTILS.make_file_with_content(head_path.toStdString(),
+    MP_UTILS.make_file_with_content(head_path,
                                     std::to_string(head_index) + "\n",
                                     yes_overwrite);
 }
@@ -860,7 +851,7 @@ std::string mp::BaseVirtualMachine::generate_snapshot_name() const
     return fmt::format("snapshot{}", snapshot_count + 1);
 }
 
-auto mp::BaseVirtualMachine::make_restore_rollback(const Path& head_path, VMSpecs& specs)
+auto mp::BaseVirtualMachine::make_restore_rollback(const std::filesystem::path& head_path, VMSpecs& specs)
 {
     return sg::make_scope_guard(
         [this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
@@ -874,7 +865,7 @@ auto mp::BaseVirtualMachine::make_restore_rollback(const Path& head_path, VMSpec
         });
 }
 
-void mp::BaseVirtualMachine::restore_rollback_helper(const Path& head_path,
+void mp::BaseVirtualMachine::restore_rollback_helper(const std::filesystem::path& head_path,
                                                      const std::shared_ptr<Snapshot>& old_head,
                                                      const VMSpecs& old_specs,
                                                      VMSpecs& specs)

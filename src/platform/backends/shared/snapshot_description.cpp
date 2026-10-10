@@ -40,7 +40,7 @@ std::string choose_cloud_init_instance_id(const boost::json::value* id,
     if (id)
         return value_to<std::string>(*id);
 
-    std::filesystem::path instance_dir{vm.instance_directory().absolutePath().toStdString()};
+    std::filesystem::path instance_dir = absolute(vm.instance_directory());
     return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(instance_dir /
                                                                   mp::cloud_init_file_name);
 }

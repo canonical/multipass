@@ -57,7 +57,7 @@ struct MockVirtualMachineT : public T
     template <typename... Args>
         requires(!std::same_as<VirtualMachine, T>)
     explicit MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
-        : T{std::forward<Args>(args)..., tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+        : T{std::forward<Args>(args)..., *tmp_dir}, tmp_dir{std::move(tmp_dir)}
     {
         setup_default_actions();
     }
@@ -71,7 +71,8 @@ struct MockVirtualMachineT : public T
         ON_CALL(*this, ssh_username).WillByDefault(Return("ubuntu"));
         ON_CALL(*this, management_ipv4).WillByDefault(Return(IPAddress{"0.0.0.0"}));
         ON_CALL(*this, get_all_ipv4).WillByDefault(Return(std::vector{IPAddress{"192.168.2.123"}}));
-        ON_CALL(*this, instance_directory).WillByDefault(Return(this->tmp_dir->path()));
+        ON_CALL(*this, instance_directory)
+            .WillByDefault(Return(std::filesystem::path{*this->tmp_dir}));
         ON_CALL(*this, ssh_exec_process).WillByDefault(std::make_unique<NiceMock<MockSSHProcess>>);
         ON_CALL(*this, new_ssh_session).WillByDefault(std::make_unique<NiceMock<MockSSHSession>>);
     }
@@ -136,7 +137,7 @@ struct MockVirtualMachineT : public T
                 (const Snapshot*),
                 (const, override));
     MOCK_METHOD(int, get_snapshot_count, (), (const, override));
-    MOCK_METHOD(QDir, instance_directory, (), (const, noexcept, override));
+    MOCK_METHOD(std::filesystem::path, instance_directory, (), (const, noexcept, override));
     MOCK_METHOD(const std::string&, get_name, (), (const, noexcept, override));
     MOCK_METHOD(AvailabilityZone&, get_zone, (), (const, noexcept, override));
 

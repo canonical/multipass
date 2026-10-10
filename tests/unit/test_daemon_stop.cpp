@@ -51,7 +51,7 @@ struct TestDaemonStop : public mpt::DaemonTestFixture
 
         std::tie(temp_dir,
                  std::ignore) = plant_instance_json(fake_json_contents(mac_addr, {}, mounts));
-        config_builder.data_directory = temp_dir->path();
+        config_builder.data_directory = *temp_dir;
 
         EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
         EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))

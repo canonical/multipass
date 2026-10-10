@@ -143,9 +143,9 @@ TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
         {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}},
         {fake_target_path + "2", {"foo2", {}, {}, mp::VMMount::MountType::Native}}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
-    config_builder.data_directory = temp_dir->path();
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
+    config_builder.data_directory = *temp_dir;
 
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
     auto mock_mount_handler2 = std::make_unique<mpt::MockMountHandler>();
@@ -181,9 +181,9 @@ TEST_F(TestDaemonUmount, umountWithTargetOnlyStopsItsHandlers)
         {fake_target_path + "2", {"foo2", {}, {}, mp::VMMount::MountType::Native}},
         {fake_target_path + "3", {"foo3", {}, {}, mp::VMMount::MountType::Native}}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
-    config_builder.data_directory = temp_dir->path();
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
+    config_builder.data_directory = *temp_dir;
 
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
     auto mock_mount_handler2 = std::make_unique<mpt::MockMountHandler>();
@@ -223,9 +223,9 @@ TEST_F(TestDaemonUmount, umountWithTargetOnlyStopsItsHandlers)
 
 TEST_F(TestDaemonUmount, mountNotFound)
 {
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
-    config_builder.data_directory = temp_dir->path();
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    config_builder.data_directory = *temp_dir;
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
@@ -245,7 +245,7 @@ TEST_F(TestDaemonUmount, failedMountDoesNotPreventUnmountingOtherTargets)
 
     const auto [temp_dir, filename] = plant_instance_json(
         fake_json_contents(mac_addr, extra_interfaces, mounts));
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
 
     const auto error = "device is busy";
     std::string failed_target;
@@ -297,9 +297,9 @@ TEST_P(TestDaemonUmountFailure, stoppingMountFailsAndCanBeRetried)
     std::unordered_map<std::string, mp::VMMount> mounts{
         {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
-    config_builder.data_directory = temp_dir->path();
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
+    config_builder.data_directory = *temp_dir;
 
     auto error = "device is busy";
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();

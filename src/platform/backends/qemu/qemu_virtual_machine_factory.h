@@ -23,6 +23,7 @@
 
 #include <QString>
 
+#include <filesystem>
 #include <string>
 
 namespace multipass
@@ -30,7 +31,8 @@ namespace multipass
 class QemuVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
-    explicit QemuVirtualMachineFactory(const Path& data_dir, AvailabilityZoneManager& az_manager);
+    explicit QemuVirtualMachineFactory(const std::filesystem::path& data_dir,
+                                       AvailabilityZoneManager& az_manager);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
@@ -40,7 +42,7 @@ public:
                                 const VirtualMachineDescription& desc) override;
     void hypervisor_health_check() override;
     QString get_backend_version_string() const override;
-    QString get_backend_directory_name() const override;
+    std::filesystem::path get_backend_directory_name() const override;
     std::vector<NetworkInterfaceInfo> networks() const override;
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
 
@@ -50,7 +52,7 @@ protected:
 
 private:
     QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform,
-                              const Path& data_dir,
+                              const std::filesystem::path& data_dir,
                               AvailabilityZoneManager& az_manager);
     VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
                                        const multipass::VMSpecs& src_vm_specs,

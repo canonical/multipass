@@ -58,7 +58,7 @@ struct TestDaemonSnapshotRestoreBase : public mpt::DaemonTestFixture
             .WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
         EXPECT_CALL(mock_factory, create_virtual_machine).WillOnce(Return(std::move(instance_ptr)));
 
-        config_builder.data_directory = temp_dir->path();
+        config_builder.data_directory = *temp_dir;
         auto daemon = std::make_unique<mp::Daemon>(config_builder.build());
 
         return std::pair{std::move(daemon), ret_instance};
@@ -329,7 +329,7 @@ TEST_F(TestDaemonRestore, replacesMountHandlersWhenRestoringSnapshot)
 
     const auto [temp_dir, filename] = plant_instance_json(
         fake_json_contents(mac_addr, extra_interfaces, current_mounts));
-    config_builder.data_directory = temp_dir->path();
+    config_builder.data_directory = *temp_dir;
     config_builder.server_address = "127.0.0.1:0";
 
     auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();

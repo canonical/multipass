@@ -37,7 +37,7 @@ public:
     void platform_health_check() override;
     QStringList vmstate_platform_args() override;
     QStringList vm_platform_args(const VirtualMachineDescription& vm_desc) override;
-    QString get_directory_name() const override;
+    std::filesystem::path get_directory_name() const override;
     bool is_network_supported(const std::string& network_type) const override;
     bool needs_network_prep() const override;
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) const override;

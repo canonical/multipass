@@ -58,6 +58,7 @@ public:
     virtual void write_transactionally(const QString& file_name, const QByteArrayView& data) const;
     virtual void write_transactionally(const fs::path& file_name, std::string_view data) const;
     virtual std::optional<std::string> try_read_file(const fs::path& filename) const;
+    virtual std::string read_file(const fs::path& filename) const;
 
     // QDir operations
     virtual bool exists(const QDir& dir) const;
@@ -133,6 +134,7 @@ public:
     virtual bool is_directory(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual bool is_directory(const fs::path& path, std::error_code& err) const;
+    virtual bool create_directory(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual bool create_directory(const fs::path& path, std::error_code& err) const;
     virtual bool create_directories(const fs::path& path) const;
