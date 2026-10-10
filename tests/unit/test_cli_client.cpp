@@ -1299,12 +1299,17 @@ TEST_F(Client, launchCmdWithInvalidZoneFails)
     mp::ZonesReply zones_reply{};
     zones_reply.add_zones()->set_name("zone1");
     EXPECT_CALL(mock_daemon, zones)
-        .WillOnce(WithArg<1>(
+        .Times(2)
+        .WillRepeatedly(WithArg<1>(
             check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
 
     const auto request_matcher = Property(&mp::LaunchRequest::zone, StrEq("invalid_zone"));
     EXPECT_CALL(mock_daemon, launch).Times(0);
     EXPECT_THAT(send_command({"launch", "--zone", "invalid_zone"}),
+                Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(send_command({"launch",
+                              "--zone",
+                              "1123124029352598273598273598237529835723752039857203985720398572"}),
                 Eq(mp::ReturnCode::CommandFail));
 }
 
@@ -4576,12 +4581,15 @@ TEST_F(ClientZone, enableZonesCmdNoZonesFails)
 TEST_F(ClientZone, enableZonesCmdInvalidZonesFails)
 {
     EXPECT_CALL(mock_daemon, zones)
-        .Times(2)
+        .Times(3)
         .WillRepeatedly(WithArg<1>(
             check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
     EXPECT_CALL(mock_daemon, zones_state(_, _)).Times(0);
 
     EXPECT_EQ(send_command({"enable-zones", "100"}), mp::ReturnCode::CommandFail);
+    EXPECT_EQ(send_command({"enable-zones",
+                            "1123124029352598273598273598237529835723752039857203985720398572"}),
+              mp::ReturnCode::CommandFail);
     EXPECT_EQ(send_command({"enable-zones", "not-a-zone"}), mp::ReturnCode::CommandFail);
 }
 
@@ -4640,12 +4648,16 @@ TEST_F(ClientZone, disableZonesCmdNoZonesFails)
 TEST_F(ClientZone, disableZonesCmdInvalidZonesFails)
 {
     EXPECT_CALL(mock_daemon, zones)
-        .Times(2)
+        .Times(3)
         .WillRepeatedly(WithArg<1>(
             check_request_and_return<mp::ZonesReply, mp::ZonesRequest>(_, ok, zones_reply)));
     EXPECT_CALL(mock_daemon, zones_state(_, _)).Times(0);
 
     EXPECT_EQ(send_command({"disable-zones", "--force", "100"}), mp::ReturnCode::CommandFail);
+    EXPECT_EQ(send_command({"disable-zones",
+                            "--force",
+                            "1123124029352598273598273598237529835723752039857203985720398572"}),
+              mp::ReturnCode::CommandFail);
     EXPECT_EQ(send_command({"disable-zones", "--force", "not-a-zone"}),
               mp::ReturnCode::CommandFail);
 }
