@@ -68,7 +68,6 @@ The images Multipass launches include an OpenSSH server. You can add your own SS
 - **OpenSSL:** TLS, certificates, and hashing. See the [OpenSSL documentation](https://docs.openssl.org/).
 - **libssh:** SSH and SFTP. See the [libssh documentation](https://www.libssh.org/documentation/).
 - **gRPC:** encrypted client and daemon communication. See [gRPC authentication](https://grpc.io/docs/guides/auth/).
-- **Qt Network:** HTTPS downloads, using OpenSSL.
 
 Multipass bundles these libraries with [vcpkg](https://vcpkg.io/), which builds them from upstream source. Pinned versions and Multipass-specific patches are in the [Multipass repository on GitHub](https://github.com/canonical/multipass/tree/main/3rd-party).
 
