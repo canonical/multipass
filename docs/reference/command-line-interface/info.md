@@ -43,6 +43,10 @@ With no positional arguments, `multipass info` displays information on all the i
 
 The `--format` option allows to choose how the output is formatted. The available options are a human-readable `table`, or machine-readable formats: `json`, `yaml` or `csv`.
 
+```{note}
+The `json`, `csv` and `yaml` formats cover regular output only. Errors and log messages are printed to the standard error stream as plain text, with failures signaled by a non-zero exit status.
+```
+
 For example, the command `multipass info --format yaml calm-squirrel` produces the following output:
 
 ```{code-block} text
@@ -127,7 +131,11 @@ Options:
                      arguments. Omit instance/snapshot arguments to obtain
                      detailed information on all the snapshots of all instances.
   --format <format>  Output info in the requested format.
-                     Valid formats are: table (default), json, csv and yaml.
+                     Valid formats are: table (default), json, csv and yaml. The
+                     json, csv and yaml formats cover regular output only.
+                     Errors and log messages are printed to the standard error
+                     stream as plain text, with failures signaled by a non-zero
+                     exit status.
 
 Arguments:
   instance/snapshot  Names of instances or snapshots to display information

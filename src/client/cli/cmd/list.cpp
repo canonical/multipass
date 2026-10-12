@@ -73,8 +73,8 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
 {
     QCommandLineOption snapshotsOption("snapshots", "List all available snapshots");
     QCommandLineOption formatOption("format",
-                                    "Output list in the requested format.\nValid formats are: "
-                                    "table (default), json, csv and yaml",
+                                    "Output list in the requested format.\n" +
+                                        format_option_details,
                                     "format",
                                     "table");
     QCommandLineOption noIpv4Option("no-ipv4",
