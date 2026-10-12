@@ -47,7 +47,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 ```{slice} Use a virtual machine:
 
 {doc}`Multipass exec and shells <explanation/multipass-exec-and-shells>`
-{doc}`Use an instance <how-to-guides/manage-instances/use-an-instance>` domain
+{doc}`Use an instance <how-to-guides/manage-instances/use-an-instance>` slice
 ```
 
 ````
@@ -65,11 +65,11 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 ```{slice} Instances
 
 {doc}`Overview <explanation/instance>` slice
-{doc}`Create an instance <how-to-guides/manage-instances/create-an-instance>` domain
-{doc}`Use an instance <how-to-guides/manage-instances/use-an-instance>` domain
-{doc}`Modify an instance <how-to-guides/manage-instances/modify-an-instance>` domain
-{doc}`Use instance command aliases <how-to-guides/manage-instances/use-instance-command-aliases>` domain
-{doc}`Remove an instance <how-to-guides/manage-instances/remove-an-instance>` domain
+{doc}`Create an instance <how-to-guides/manage-instances/create-an-instance>`
+{doc}`Use an instance <how-to-guides/manage-instances/use-an-instance>` slice
+{doc}`Modify an instance <how-to-guides/manage-instances/modify-an-instance>`
+{doc}`Use instance command aliases <how-to-guides/manage-instances/use-instance-command-aliases>` slice
+{doc}`Remove an instance <how-to-guides/manage-instances/remove-an-instance>`
 {doc}`Instance states <reference/instance-states>`
 ```
 
@@ -109,7 +109,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 {doc}`Service <explanation/service>`
 {doc}`Reference architecture <explanation/reference-architecture>`
 {doc}`Authenticate users with the Multipass service <how-to-guides/customise-multipass/authenticate-users-with-the-multipass-service>`
-{doc}`Authentication <explanation/authentication>` domain
+{doc}`Authentication <explanation/authentication>` slice
 ```
 
 ```{slice} Share data with the host
@@ -163,7 +163,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 ```{slice} Aliases
 
 {doc}`Alias <explanation/index>`
-{doc}`Use instance command aliases <how-to-guides/manage-instances/use-instance-command-aliases>` domain
+{doc}`Use instance command aliases <how-to-guides/manage-instances/use-instance-command-aliases>` slice
 ```
 
 ```{slice} Primary instance
@@ -189,7 +189,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 {doc}`Security architecture <explanation/security/security-architecture>`
 {doc}`Operating securely <explanation/security/operating-securely>`
 {doc}`Cryptography <explanation/security/cryptography>`
-{doc}`Authentication <explanation/authentication>` domain
+{doc}`Authentication <explanation/authentication>` slice
 ```
 
 ```{slice} Performance
