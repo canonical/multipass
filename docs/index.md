@@ -129,6 +129,11 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 {doc}`Set up custom networking <how-to-guides/manage-instances/set-up-custom-networking>`
 ```
 
+```{slice} Storage
+
+{doc}`Configure where Multipass stores external data <how-to-guides/customise-multipass/configure-where-multipass-stores-external-data>`
+```
+
 ```{slice} Platform-specific hypervisor drivers
 
 {doc}`Driver <explanation/driver>`
