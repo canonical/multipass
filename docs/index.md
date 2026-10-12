@@ -105,12 +105,6 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ````{domain}
 
-```{slice} Native drivers
-
-{doc}`Driver <explanation/driver>`
-{doc}`Set up the driver <how-to-guides/customise-multipass/set-up-the-driver>` domain
-```
-
 ```{slice} Multipass architecture
 
 {doc}`Service <explanation/service>`
@@ -133,6 +127,12 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 {doc}`Add a network to an existing instance <how-to-guides/manage-instances/add-a-network-to-an-existing-instance>`
 {doc}`Configure static IPs <how-to-guides/manage-instances/configure-static-ips>`
 {doc}`Set up custom networking <how-to-guides/manage-instances/set-up-custom-networking>`
+```
+
+```{slice} Platform-specific hypervisor drivers
+
+{doc}`Driver <explanation/driver>`
+{doc}`Set up the driver <how-to-guides/customise-multipass/set-up-the-driver>` domain
 ```
 
 ````
