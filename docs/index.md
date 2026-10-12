@@ -117,6 +117,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 {doc}`Mount <explanation/mount>`
 {doc}`Share data with an instance <how-to-guides/manage-instances/share-data-with-an-instance>`
+{doc}`Mount an encrypted home folder <how-to-guides/troubleshoot/mount-an-encrypted-home-folder>`
 {doc}`Transfer files <reference/command-line-interface/transfer>`
 {doc}`Security considerations <explanation/mount>`
 {doc}`ID mapping <explanation/id-mapping>`
@@ -206,7 +207,6 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 ```{slice} Troubleshooting
 
 {doc}`Troubleshoot launch/start issues <how-to-guides/troubleshoot/troubleshoot-launch-start-issues>`
-{doc}`Mount an encrypted home folder <how-to-guides/troubleshoot/mount-an-encrypted-home-folder>`
 {doc}`Troubleshoot networking <how-to-guides/troubleshoot/troubleshoot-networking>`
 ```
 
@@ -217,7 +217,6 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ```{slice} Platform specific
 
-{doc}`Set up the driver <how-to-guides/customise-multipass/set-up-the-driver>` domain
 {doc}`Integrate with Windows Terminal <how-to-guides/customise-multipass/integrate-with-windows-terminal>`
 {doc}`Use a different terminal from the system icon <how-to-guides/customise-multipass/use-a-different-terminal-from-the-system-icon>`
 ```
