@@ -19,39 +19,57 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <list>
-#include <ranges>
-#include <set>
-#include <string_view>
 
 namespace multipass::test
 {
 
 using namespace ::testing;
 
+namespace
+{
+
+template <typename... Args>
+auto make_arguments_provider(Args&&... args)
+{
+    return [args = std::vector<std::string>{std::forward<Args>(args)...}]() { return args; };
+}
+
+template <typename... Args>
+std::vector<AutoCompleteParameterSpecs> single_parameter(Args&&... args)
+{
+    return {{make_arguments_provider(std::forward<Args>(args)...)}};
+}
+
+} // namespace
+
 TEST(AutoCompleter, autoCompletesPositionalParameters)
 {
-    auto completer = AutoCompleter{};
+    auto specs = AutoCompleteCommandSpecs{
+        .positional_parameters = {{make_arguments_provider("carotte", "concombre", "courgette")},
+                                  {make_arguments_provider("patate", "radis")}},
+    };
 
-    completer.add_parameter({"carotte", "concombre", "courgette"});
-    completer.add_parameter({"patate", "radis"});
+    {
+        auto completer = AutoCompleter{specs};
+        EXPECT_THAT(completer.complete({}), ElementsAre("carotte", "concombre", "courgette"));
+        EXPECT_THAT(completer.complete({"first"}), ElementsAre("patate", "radis"));
+        EXPECT_THAT(completer.complete({"first", "second"}), ElementsAre());
+    }
 
-    EXPECT_THAT(completer.complete({}), ElementsAre("carotte", "concombre", "courgette"));
-    EXPECT_THAT(completer.complete({"first"}), ElementsAre("patate", "radis"));
-    EXPECT_THAT(completer.complete({"first", "second"}), ElementsAre());
+    {
+        specs.last_repeatable = true;
 
-    completer.set_repeat_last_parameter(true);
-    EXPECT_THAT(completer.complete({"first", "second"}), ElementsAre("patate", "radis"));
-    EXPECT_THAT(completer.complete({"first", "patate"}), ElementsAre("radis"));
-    EXPECT_THAT(completer.complete({"first", "radis", "patate"}), ElementsAre());
+        auto completer = AutoCompleter{specs};
+        EXPECT_THAT(completer.complete({"first", "second"}), ElementsAre("patate", "radis"));
+        EXPECT_THAT(completer.complete({"first", "patate"}), ElementsAre("radis"));
+        EXPECT_THAT(completer.complete({"first", "radis", "patate"}), ElementsAre());
+    }
 }
 
 TEST(AutoCompleter, autoCompletesOptions)
 {
-    auto completer = AutoCompleter{};
-    completer.add_option("opt1");
-    completer.add_option("opt2");
-    completer.add_option("option3");
+    auto completer = AutoCompleter{AutoCompleteCommandSpecs{
+        .optional_parameters = {{"--opt1", {}}, {"--opt2", {}}, {"--option3", {}}}}};
 
     EXPECT_THAT(completer.complete({}), ElementsAre("--opt1", "--opt2", "--option3"));
     EXPECT_THAT(completer.complete({"--opt1"}), ElementsAre("--opt2", "--option3"));
@@ -60,14 +78,11 @@ TEST(AutoCompleter, autoCompletesOptions)
 
 TEST(AutoCompleter, autoCompletesOptionParameters)
 {
-    auto completer = AutoCompleter{};
-
-    const auto opt1 = completer.add_option("opt1");
-    completer.add_option_parameter(opt1, []() { return std::vector<std::string>{"a1", "a2"}; });
-
-    const auto opt2 = completer.add_option("opt2");
-    completer.add_option_parameter(opt2,
-                                   []() { return std::vector<std::string>{"b1", "b2", "b3"}; });
+    auto completer = AutoCompleter{AutoCompleteCommandSpecs{
+        .optional_parameters = {
+            {"--opt1", AutoCompleteOptionSpecs{.parameters = single_parameter("a1", "a2")}},
+            {"--opt2",
+             AutoCompleteOptionSpecs{.parameters = single_parameter("b1", "b2", "b3")}}}}};
 
     EXPECT_THAT(completer.complete({}), ElementsAre("--opt1", "--opt2"));
     EXPECT_THAT(completer.complete({"--opt1"}), ElementsAre("a1", "a2"));
@@ -78,12 +93,13 @@ TEST(AutoCompleter, autoCompletesOptionParameters)
 
 TEST(AutoCompleter, autoCompletesRepeatableOptions)
 {
-    auto completer = AutoCompleter{};
-
-    completer.add_option("opt1", true);
-
-    const auto opt2 = completer.add_option("opt2", true);
-    completer.add_option_parameter(opt2, []() { return std::vector<std::string>{"v1", "v2"}; });
+    auto completer = AutoCompleter{AutoCompleteCommandSpecs{
+        .optional_parameters = {{"--opt1", AutoCompleteOptionSpecs{.repeatable = true}},
+                                {"--opt2",
+                                 AutoCompleteOptionSpecs{
+                                     .parameters = single_parameter("v1", "v2"),
+                                     .repeatable = true,
+                                 }}}}};
 
     EXPECT_THAT(completer.complete({}), ElementsAre("--opt1", "--opt2"));
     EXPECT_THAT(completer.complete({"--opt1"}), ElementsAre("--opt1", "--opt2"));
@@ -95,28 +111,40 @@ TEST(AutoCompleter, autoCompletesRepeatableOptions)
 
 TEST(AutoCompleter, canSetMutuallyExclusiveOptions)
 {
-    auto completer = AutoCompleter{};
+    auto specs = {
+        AutoCompleteCommandSpecs{
+            .optional_parameters = {{"--opt1",
+                                     AutoCompleteOptionSpecs{.excluded_options = {"--opt2"}}},
+                                    {"--opt2", {}},
+                                    {"--opt3", {}}}},
+        AutoCompleteCommandSpecs{
+            .optional_parameters = {{"--opt1", {}},
+                                    {"--opt2",
+                                     AutoCompleteOptionSpecs{.excluded_options = {"--opt1"}}},
+                                    {"--opt3", {}}}},
+        AutoCompleteCommandSpecs{
+            .optional_parameters = {{"--opt1",
+                                     AutoCompleteOptionSpecs{.excluded_options = {"--opt2"}}},
+                                    {"--opt2",
+                                     AutoCompleteOptionSpecs{.excluded_options = {"--opt1"}}},
+                                    {"--opt3", {}}}},
+    };
 
-    const auto opt1 = completer.add_option("opt1");
-    const auto opt2 = completer.add_option("opt2");
-    completer.add_option("opt3");
-
-    completer.set_mutual_exclusion(opt1, opt2);
-
-    EXPECT_THAT(completer.complete({}), ElementsAre("--opt1", "--opt2", "--opt3"));
-    EXPECT_THAT(completer.complete({"--opt1"}), ElementsAre("--opt3"));
-    EXPECT_THAT(completer.complete({"--opt2"}), ElementsAre("--opt3"));
+    for (const auto& spec : specs)
+    {
+        auto completer = AutoCompleter{spec};
+        EXPECT_THAT(completer.complete({}), ElementsAre("--opt1", "--opt2", "--opt3"));
+        EXPECT_THAT(completer.complete({"--opt1"}), ElementsAre("--opt3"));
+        EXPECT_THAT(completer.complete({"--opt2"}), ElementsAre("--opt3"));
+    }
 }
 
 TEST(AutoCompleter, canSetMutuallyExclusiveOptionAndParameter)
 {
-    auto completer = AutoCompleter{};
-
-    const auto opt = completer.add_option("opt");
-    const auto param = completer.add_parameter(
-        []() { return std::vector<std::string>{"v1", "v2"}; });
-
-    completer.set_mutual_exclusion(opt, param);
+    auto completer = AutoCompleter{AutoCompleteCommandSpecs{
+        .optional_parameters = {{"--opt", AutoCompleteOptionSpecs{.excluded_parameters = {0}}}},
+        .positional_parameters = single_parameter("v1", "v2"),
+    }};
 
     EXPECT_THAT(completer.complete({}), ElementsAre("--opt", "v1", "v2"));
     EXPECT_THAT(completer.complete({"--opt"}), ElementsAre());
@@ -126,28 +154,24 @@ TEST(AutoCompleter, canSetMutuallyExclusiveOptionAndParameter)
 
 TEST(AutoCompleter, complexAutoComplete)
 {
-    auto completer = AutoCompleter{};
-
-    const auto format = completer.add_option("format");
-    completer.add_option_parameter(format, []() {
-        return std::vector<std::string>{"csv", "json", "table"};
-    });
-
-    const auto remotes = completer.add_option("remotes");
-    const auto all = completer.add_option("all");
-
-    completer.add_option("help");
-    completer.add_option("verbose", true);
-
-    const auto first_param = completer.add_parameter(
-        []() { return std::vector<std::string>{"vma", "vmb"}; });
-    const auto last_param = completer.add_parameter(
-        []() { return std::vector<std::string>{"vm1", "vm2", "vm3"}; });
-
-    completer.set_mutual_exclusion(remotes, all);
-    completer.set_mutual_exclusion(remotes, first_param);
-    completer.set_mutual_exclusion(remotes, last_param);
-    completer.set_repeat_last_parameter(true);
+    auto completer = AutoCompleter{AutoCompleteCommandSpecs{
+        .optional_parameters =
+            {
+                {"--format",
+                 AutoCompleteOptionSpecs{.parameters = single_parameter("csv", "json", "table")}},
+                {"--remotes",
+                 AutoCompleteOptionSpecs{.excluded_options = {"--all"},
+                                         .excluded_parameters = {0, 1}}},
+                {"--all", {}},
+                {"--help", {}},
+                {"--verbose", AutoCompleteOptionSpecs{.repeatable = true}},
+            },
+        .positional_parameters =
+            {
+                {make_arguments_provider("vma", "vmb")},
+                {make_arguments_provider("vm1", "vm2", "vm3")},
+            },
+        .last_repeatable = true}};
 
     EXPECT_THAT(completer.complete({}),
                 ElementsAre("--all", "--format", "--help", "--remotes", "--verbose", "vma", "vmb"));

@@ -19,6 +19,7 @@
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
+#include <multipass/cli/command_specs.h>
 
 #include <string>
 #include <vector>
@@ -30,12 +31,7 @@ namespace cmd
 class Delete final : public Command
 {
 public:
-    using Command::Command;
-
-    Delete(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
-        : Command(stub, term), aliases(dict)
-    {
-    }
+    Delete(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict);
 
     ReturnCodeVariant run(ArgParser* parser) override;
 
@@ -47,6 +43,8 @@ public:
 
 private:
     AliasDict aliases;
+    CommandSpecs specs;
+
     DeleteRequest request;
     std::string instance_args;
     std::string snapshot_args;

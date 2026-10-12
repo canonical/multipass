@@ -19,14 +19,19 @@
 
 #include <algorithm>
 #include <ranges>
+#include <utility>
 
 namespace multipass
 {
 
-void AutoCompleter::Parameter::complete(std::vector<std::string>& completions,
-                                        const std::vector<std::string>& previous) const
+namespace
 {
-    for (const auto& completion : provider())
+
+void complete_parameter(std::vector<std::string>& completions,
+                        const AutoCompleteParameterSpecs& parameter,
+                        const std::vector<std::string>& previous)
+{
+    for (const auto& completion : parameter.arguments_provider())
     {
         if (std::ranges::find(previous, completion) == previous.end())
         {
@@ -35,80 +40,67 @@ void AutoCompleter::Parameter::complete(std::vector<std::string>& completions,
     }
 }
 
-void AutoCompleter::Option::complete(std::vector<std::string>& completions,
-                                     size_t next_parameters_idx) const
+void complete_option(std::vector<std::string>& completions,
+                     const AutoCompleteOptionSpecs& option,
+                     size_t next_parameters_idx)
 {
-    if (next_parameters_idx < parameters.size())
+    if (next_parameters_idx < option.parameters.size())
     {
-        parameters[next_parameters_idx].complete(completions, {});
+        complete_parameter(completions, option.parameters[next_parameters_idx], {});
     }
 }
 
-std::string_view AutoCompleter::add_option(std::string_view option, bool is_repeatable)
-{
-    auto option_id = std::string{"--"};
-    option_id += option;
+} // namespace
 
-    auto [it, inserted] = _options.try_emplace(std::move(option_id));
-    it->second.is_repeatable = is_repeatable;
-    return it->first;
-}
-
-void AutoCompleter::add_option_parameter(std::string_view option,
-                                         std::function<std::vector<std::string>()> provider)
+AutoCompleter::AutoCompleter(AutoCompleteCommandSpecs specs)
+    : _specs{std::move(specs)}, _exclusions_by_param{_specs.positional_parameters.size()}
 {
-    if (auto it = _options.find(option); it != _options.end())
+    for (const auto& [option, option_spec] : _specs.optional_parameters)
     {
-        it->second.parameters.push_back({std::move(provider)});
+        if (!option.starts_with("--"))
+        {
+            throw std::logic_error{"Option " + option + " must start with '--'"};
+        }
+
+        for (const auto& other : option_spec.excluded_options)
+        {
+            if (other == option)
+            {
+                throw std::logic_error{"Option " + option + " cannot exclude itself"};
+            }
+
+            if (!_specs.optional_parameters.contains(other))
+            {
+                throw std::logic_error{"Invalid exclusion set for " + option + ": option '" +
+                                       other + "' does not exist"};
+            }
+        }
+
+        for (const auto& param : option_spec.excluded_parameters)
+        {
+            if (param >= _exclusions_by_param.size())
+            {
+                throw std::out_of_range{"Invalid exclusion set for " + option + ": parameter #" +
+                                        std::to_string(param) + " does not exist"};
+            }
+
+            _exclusions_by_param[param].emplace(option);
+        }
     }
-}
-
-void AutoCompleter::add_option_parameter(std::string_view option, std::vector<std::string> values)
-{
-    return add_option_parameter(option, [values = std::move(values)]() { return values; });
-}
-
-size_t AutoCompleter::add_parameter(std::function<std::vector<std::string>()> provider)
-{
-    auto idx = _parameters.size();
-    _parameters.push_back({std::move(provider)});
-    _exclusions_by_param.emplace_back();
-    return idx;
-}
-
-size_t AutoCompleter::add_parameter(std::vector<std::string> values)
-{
-    return add_parameter([values = std::move(values)]() { return values; });
-}
-
-void AutoCompleter::set_repeat_last_parameter(bool do_repeat)
-{
-    _do_repeat_last = do_repeat;
-}
-
-void AutoCompleter::set_mutual_exclusion(std::string_view option_1, std::string_view option_2)
-{
-    _exclusions_by_option[std::string{option_1}].emplace(option_2);
-    _exclusions_by_option[std::string{option_2}].emplace(option_1);
-}
-
-void AutoCompleter::set_mutual_exclusion(std::string_view option, size_t parameter)
-{
-    _exclusions_by_param[parameter].emplace(option);
 }
 
 void AutoCompleter::complete(std::vector<std::string>& completions,
                              const std::vector<std::string>& previous) const
 {
     auto next_parameter_idx = size_t{0};
-    auto last_option_it = _options.end();
+    auto last_option_it = _specs.optional_parameters.end();
     auto last_option_params_count = size_t{0};
     for (auto idx = size_t{0}; idx < previous.size(); ++idx)
     {
         if (previous[idx].starts_with("--"))
         {
-            last_option_it = _options.find(previous[idx]);
-            last_option_params_count = last_option_it != _options.end()
+            last_option_it = _specs.optional_parameters.find(previous[idx]);
+            last_option_params_count = last_option_it != _specs.optional_parameters.end()
                                          ? last_option_it->second.parameters.size()
                                          : 0;
         }
@@ -125,27 +117,30 @@ void AutoCompleter::complete(std::vector<std::string>& completions,
     if (last_option_params_count > 0)
     {
         auto& last_option = last_option_it->second;
-        last_option.complete(completions, last_option.parameters.size() - last_option_params_count);
+        complete_option(completions,
+                        last_option,
+                        last_option.parameters.size() - last_option_params_count);
         return;
     }
 
-    for (const auto& [key, option] : _options)
+    for (const auto& [key, option] : _specs.optional_parameters)
     {
-        if ((option.is_repeatable || std::ranges::find(previous, key) == previous.end()) &&
+        if ((option.repeatable || std::ranges::find(previous, key) == previous.end()) &&
             !is_excluded(key, previous, next_parameter_idx))
         {
             completions.push_back(key);
         }
     }
 
-    if (_do_repeat_last && next_parameter_idx >= _parameters.size())
+    if (_specs.last_repeatable && next_parameter_idx >= _specs.positional_parameters.size())
     {
-        next_parameter_idx = _parameters.size() - 1;
+        next_parameter_idx = _specs.positional_parameters.size() - 1;
     }
 
-    if (next_parameter_idx < _parameters.size() && !is_excluded(next_parameter_idx, previous))
+    if (next_parameter_idx < _specs.positional_parameters.size() &&
+        !is_excluded(next_parameter_idx, previous))
     {
-        _parameters[next_parameter_idx].complete(completions, previous);
+        complete_parameter(completions, _specs.positional_parameters[next_parameter_idx], previous);
     }
 }
 
@@ -156,13 +151,21 @@ std::vector<std::string> AutoCompleter::complete(const std::vector<std::string>&
     return completions;
 }
 
-bool AutoCompleter::is_excluded(std::string_view option,
+bool AutoCompleter::is_excluded(const std::string& option,
                                 const std::vector<std::string>& previous,
                                 size_t parameters_count) const
 {
-    for (auto i = size_t{0}; i < parameters_count && i < _exclusions_by_param.size(); ++i)
+    auto it = _specs.optional_parameters.find(option);
+    if (it == _specs.optional_parameters.end())
     {
-        if (_exclusions_by_param[i].contains(option))
+        return false;
+    }
+
+    const auto& option_specs = it->second;
+
+    for (auto i = size_t{0}; i < parameters_count; ++i)
+    {
+        if (option_specs.excluded_parameters.contains(i))
         {
             return true;
         }
@@ -170,11 +173,11 @@ bool AutoCompleter::is_excluded(std::string_view option,
 
     for (const auto& prev : previous)
     {
-        const auto is_option = prev.starts_with("--");
-        if (is_option)
+        const auto prev_it = _specs.optional_parameters.find(prev);
+        if (prev_it != _specs.optional_parameters.end())
         {
-            auto it = _exclusions_by_option.find(prev);
-            if (it != _exclusions_by_option.end() && it->second.contains(option))
+            if (option_specs.excluded_options.contains(prev) ||
+                prev_it->second.excluded_options.contains(option))
             {
                 return true;
             }
