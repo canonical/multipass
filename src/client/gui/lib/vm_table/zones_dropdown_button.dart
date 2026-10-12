@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart' hide Switch;
 import 'package:flutter_svg/flutter_svg.dart';
-import '../switch.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../colors.dart';
+import '../confirmation_dialog.dart';
 import '../l10n/app_localizations.dart';
 import '../providers.dart';
+import '../switch.dart';
 
 class ZonesDropdownButton extends ConsumerWidget {
   const ZonesDropdownButton({super.key});
@@ -104,6 +105,54 @@ class _ZoneToggleRow extends ConsumerWidget {
 
   const _ZoneToggleRow(this.zoneName);
 
+  Future<void> toggleZoneAvailability(
+      BuildContext context, WidgetRef ref, bool value) async {
+    if (!value) {
+      final unstoppedInstancesCount = ref.read(vmInfosProvider.select((infos) {
+        return infos
+            .where((vm) => vm.zone.name == zoneName)
+            .where((vm) =>
+                vm.instanceStatus.status == Status.RUNNING ||
+                vm.instanceStatus.status == Status.STARTING ||
+                vm.instanceStatus.status == Status.RESTARTING ||
+                vm.instanceStatus.status == Status.DELAYED_SHUTDOWN ||
+                vm.instanceStatus.status == Status.SUSPENDING ||
+                vm.instanceStatus.status == Status.SUSPENDED)
+            .length;
+      }));
+
+      if (unstoppedInstancesCount > 0) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            final l10n = AppLocalizations.of(context)!;
+            return ConfirmationDialog(
+              title: l10n.vmTableZonesMakeUnavailablePopupTitle(zoneName),
+              body: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text(l10n.vmTableZonesMakeUnavailablePopupContent(
+                    unstoppedInstancesCount, zoneName)),
+              ),
+              actionText: l10n.vmTableZonesMakeUnavailablePopupAction(
+                  unstoppedInstancesCount),
+              onAction: () => Navigator.pop(context, true),
+              inactionText: l10n.commonCancel,
+              onInaction: () => Navigator.pop(context, false),
+            );
+          },
+        );
+
+        if (confirmed != true) {
+          return;
+        }
+      }
+    }
+
+    final client = ref.read(grpcClientProvider);
+    client.zonesState([zoneName], value);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -113,7 +162,7 @@ class _ZoneToggleRow extends ConsumerWidget {
       return zones.firstWhere((z) => z.name == zoneName).available;
     }));
 
-    final instanceCount = ref.watch(vmInfosProvider.select((infos) {
+    final runningInstancesCount = ref.watch(vmInfosProvider.select((infos) {
       return infos
           .where((vm) => vm.zone.name == zoneName)
           .where((vm) => vm.instanceStatus.status == Status.RUNNING)
@@ -138,14 +187,15 @@ class _ZoneToggleRow extends ConsumerWidget {
               cursor: SystemMouseCursors.click,
               child: Switch(
                 value: available,
-                onChanged: (value) => client.zonesState([zoneName], value),
+                onChanged: (value) =>
+                    toggleZoneAvailability(context, ref, value),
                 size: 28,
               ),
             ),
           ],
         ),
         Text(
-          l10n.vmTableZonesRunningInstanceCount(instanceCount),
+          l10n.vmTableZonesRunningInstanceCount(runningInstancesCount),
           style: TextStyle(fontSize: 16, height: 1.5, color: Colors.black),
         ),
       ],

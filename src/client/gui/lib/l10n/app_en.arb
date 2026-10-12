@@ -819,6 +819,40 @@
             }
         }
     },
+    "vmTableZonesMakeUnavailablePopupTitle": "Make {zone} unavailable",
+    "@vmTableZonesMakeUnavailablePopupTitle": {
+        "description": "Title of the popup opened when trying to disable a zone containing unstopped instances",
+        "placeholders": {
+            "zone": {
+                "type": "String",
+                "description": "Identifier of the zone"
+            }
+        }
+    },
+    "vmTableZonesMakeUnavailablePopupContent": "{unstopped, plural, =1{There is an instance in this zone that is not stopped} other{There are {unstopped} instances in this zone that are not stopped}}. When {zone} becomes unavailable, {unstopped, plural, =1{it} other{they}} will be forced-stopped and you may lose data.",
+    "@vmTableZonesMakeUnavailablePopupContent": {
+        "description": "Content of the popup opened when trying to disable a zone containing unstopped instances",
+        "placeholders": {
+            "unstopped": {
+                "type": "int",
+                "description": "Number of unstopped VM instances"
+            },
+            "zone": {
+                "type": "String",
+                "description": "Identifier of the zone"
+            }
+        }
+    },
+    "vmTableZonesMakeUnavailablePopupAction": "Force-stop {unstopped, plural, =1{instance} other{instances}}",
+    "@vmTableZonesMakeUnavailablePopupAction": {
+        "description": "Label of the action button of the popup opened when trying to disable a zone containing unstopped instances",
+        "placeholders": {
+            "unstopped": {
+                "type": "int",
+                "description": "Number of unstopped VM instances"
+            }
+        }
+    },
     "commonLaunch": "Launch",
     "@commonLaunch": {
         "description": "Button label that opens the catalogue to launch a new instance"
