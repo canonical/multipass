@@ -145,7 +145,7 @@ endif()
 list(APPEND VCPKG_MANIFEST_FEATURES "qemu")
 
 include(src/cmake/vcpkg-overlay-ports.cmake)
-set(MULTIPASS_VCPKG_PORTS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-ports")
+set(MULTIPASS_VCPKG_PORTS_DIR "${CMAKE_CURRENT_BINARY_DIR}/patched-upstream-vcpkg-ports")
 generate_patched_vcpkg_ports("${MULTIPASS_VCPKG_PORTS_DIR}")
 register_vcpkg_overlay_ports("${MULTIPASS_VCPKG_PORTS_DIR}")
 
