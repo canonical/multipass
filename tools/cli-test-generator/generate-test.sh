@@ -7,9 +7,12 @@
 # mount test to cli_mount_test.py) or, if none fits, a new, aptly-named file
 # (e.g. cli_mount_classic_test.py). The output is never named after the
 # issue/PR (no cli_issue_<N>_test.py) unless no better name applies.
-# Nothing else happens after that -- no git, no cat. The script detects
-# which file was touched, compile-checks it, and reports its path, then
-# stops.
+# Nothing else happens after that -- no git, no cat, and no execution of
+# the generated test itself (that needs sudo/a real VM backend and is left
+# entirely to you). The script detects which file was touched,
+# compile-checks it, collection-checks it (safe -- no daemon/build needed),
+# prints manual red-before-green validation instructions, then reports its
+# path and stops.
 #
 # Usage: ./generate-test.sh --feature path/to/file.feature [--prompt "extra instructions"]
 # Options:
@@ -33,7 +36,7 @@ EXTRA_PROMPT=""
 TEST_PATH=""
 
 usage() {
-  sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 while [[ $# -gt 0 ]]; do
@@ -121,9 +124,49 @@ and nothing else:
    with view/grep/glob to follow this suite's conventions: import helpers
    from cli.multipass / cli.utilities, use fixtures such as
    multipassd/instance, and mirror class/method naming patterns.
+   IMPORTANT framework rule: conftest.py's pytest_collection_modifyitems
+   hook (maybe_skip_mount_test) runs for EVERY test item carrying the
+   \`@pytest.mark.mount\` marker and unconditionally reads
+   \`callspec.params["mount_type"]\`. If you apply \`@pytest.mark.mount\`
+   to a class or function that is not also parametrized with
+   \`@pytest.mark.parametrize("mount_type", ["classic", "native"])\`
+   (directly, or inherited from an enclosing class), pytest collection
+   crashes with \`AttributeError: 'NoneType' object has no attribute
+   'params'\` for the WHOLE file, not just your new test. So: either
+   parametrize every \`mount\`-marked test/class by \`mount_type\`, or do
+   not apply the \`mount\` marker at all if the scenario doesn't need to
+   vary by mount type.
 3. ${DESTINATION_INSTRUCTION}
 4. Write one pytest method per Gherkin scenario. Add a short comment above
-   each method linking it back to the scenario title it implements.
+   each method linking it back to the scenario title it implements, AND
+   noting whether the scenario exercises the new/fixed behavior (must FAIL
+   against the current, unfixed code) or verifies an unaffected/control
+   case (e.g. "stays literal"/"unchanged" -- expected to pass either way).
+   This distinction matters because a reviewer validating the file against
+   the current build will see some scenarios genuinely pass before any fix
+   exists -- tag which ones that's expected for, so a real false positive
+   isn't mistaken for an intentional control case (or vice versa).
+   IMPORTANT correctness rule: assert the EXACT, specific outcome the
+   Gherkin describes, not a loose/weak check that unrelated pre-existing
+   code could already satisfy by coincidence. Prefer exact equality (e.g.
+   comparing a whole dict/string to its complete expected value) over
+   membership/substring checks when the Gherkin implies an exact value.
+   A test that passes even though the described fix/feature has not been
+   implemented yet is a false positive and defeats the entire point of
+   this pipeline -- if you are unsure whether an assertion would actually
+   fail on unfixed code, make it stricter rather than looser.
+   Additional rules for every scenario marked "must FAIL on unfixed code":
+   - Hard-code the expected value as a literal in the test (e.g.
+     "/home/ubuntu/target"); never derive it from the same input the test
+     passes to the command, or from the command's own output.
+   - Add a second, negative assertion that the exact buggy/unfixed value
+     is absent (e.g. the literal unexpanded "~" component), so the test
+     states both what must be true and what the bug looks like.
+   - In the comment above the method, add a line starting with
+     "Raw repro:" giving the bare multipass command(s) a human can type to
+     see the bug by hand (e.g. \`multipass mount <src> <vm>:~/target\`
+     then \`multipass info <vm> --format=json\`), so a surprising PASS can
+     be cross-checked outside pytest.
 5. Directly above the test class you added (or, if appending methods to an
    existing class, directly above that class), include the FULL text of
    the approved Gherkin feature verbatim, wrapped in a single
@@ -182,11 +225,78 @@ else
 fi
 
 echo "==> Compile-checking ${TEST_PATH}" >&2
+COMPILE_OK=1
 if python3 -m py_compile "$REPO_ROOT/$TEST_PATH"; then
   echo "    OK" >&2
 else
+  COMPILE_OK=0
   echo "    FAILED -- inspect ${TEST_PATH} before using it." >&2
 fi
 
-echo "==> Done. Review ${TEST_PATH}. Run it explicitly with:" >&2
-echo "        pytest ${TEST_PATH} --daemon-controller=standalone --bin-dir=build/bin" >&2
+# py_compile only catches syntax errors. A second, cheap class of failure is
+# collection-time breakage (e.g. a mismatched pytest marker/parametrize
+# combination), which only surfaces when pytest actually imports the file
+# and runs its collection hooks. --collect-only does this without needing a
+# real daemon/build, so run it scoped to just this one file.
+if [[ "$COMPILE_OK" -eq 1 ]] && command -v pytest >/dev/null 2>&1; then
+  echo "==> Collection-checking ${TEST_PATH} (pytest --collect-only)" >&2
+  if (cd "$REPO_ROOT" && python3 -m pytest "${TEST_PATH}" --collect-only -q) >/tmp/cli-test-gen-collect.$$ 2>&1; then
+    echo "    OK" >&2
+  else
+    echo "    FAILED -- pytest could not collect ${TEST_PATH}:" >&2
+    sed 's/^/    /' /tmp/cli-test-gen-collect.$$ >&2
+    echo "    If this mentions 'mount_type'/callspec, the test applies" >&2
+    echo "    @pytest.mark.mount without a matching" >&2
+    echo "    @pytest.mark.parametrize(\"mount_type\", [...]) -- fix one of" >&2
+    echo "    those two before using this file." >&2
+  fi
+  rm -f /tmp/cli-test-gen-collect.$$
+else
+  echo "==> Skipping collection-check (pytest not found in PATH)." >&2
+fi
+
+# NOTE: this script deliberately does NOT execute the generated test
+# against a real daemon/build -- doing so needs sudo, a real VM backend
+# (KVM etc.), and can conflict with or be masked by an already-running
+# system multipass install (snap/launchd/service shares the same default
+# bridge interface names/subnets), which breaks unpredictably in
+# environments that aren't set up for it. Validating red-before-green (did
+# this test actually fail before any fix/feature exists?) is therefore a
+# manual step for you to run yourself, never automated here:
+echo "==> Not running the test for real (needs sudo/a VM backend/a real" >&2
+echo "    daemon -- left entirely to you). Before trusting this test as a" >&2
+echo "    regression/acceptance check, confirm it actually FAILS against" >&2
+echo "    the current (pre-fix) build, scenario by scenario:" >&2
+echo "        pytest ${TEST_PATH} --daemon-controller=standalone --bin-dir=<path-to-build/bin> -rA -v" >&2
+echo "    - Never trust a bare 'pytest ${TEST_PATH}' with no" >&2
+echo "      --daemon-controller/--bin-dir flags for this -- it silently" >&2
+echo "      falls back to the system-installed snap multipass, not this" >&2
+echo "      checkout's own code." >&2
+echo "    - Judge each scenario individually, not the aggregate exit code:" >&2
+echo "      a file commonly mixes scenarios that must fail pre-fix with" >&2
+echo "      ones intentionally verifying unaffected/control behavior" >&2
+echo "      (expected to pass either way). If ANY scenario passes that" >&2
+echo "      exercises the new/fixed behavior, that's a likely false" >&2
+echo "      positive -- tighten its assertions (exact equality over" >&2
+echo "      membership/substring checks) and re-confirm by" >&2
+echo "      stashing/reverting any local fix and re-running." >&2
+echo "    - If a system multipass service is already running" >&2
+echo "      (snap/launchd/service), stop it first -- it can conflict with" >&2
+echo "      (and crash on startup) the standalone daemon via shared bridge" >&2
+echo "      interfaces/subnets, or leave stray dnsmasq processes bound to" >&2
+echo "      those names." >&2
+echo "    - Before concluding a surprising PASS means the assertion is too" >&2
+echo "      loose, cross-check independently with a raw, non-pytest" >&2
+echo "      'multipass' command against the exact same binary (e.g." >&2
+echo "      'multipass mount <src> <instance>:<target>' then 'multipass" >&2
+echo "      info <instance> --format=json', read the mounts key by eye)." >&2
+echo "      If that raw check shows the behavior is genuinely unfixed while" >&2
+echo "      pytest reported PASS for the same scenario, pytest likely did" >&2
+echo "      not exercise what you think -- rule out: --bin-dir/PATH" >&2
+echo "      resolving to a different multipass than you just built; a" >&2
+echo "      stale __pycache__ serving an older/looser version of a" >&2
+echo "      hand-edited test file (clear it, re-run with --cache-clear);" >&2
+echo "      or leftover persisted daemon state from reusing the same" >&2
+echo "      --storage-dir across runs (use a fresh one, or omit the flag)." >&2
+
+echo "==> Done. Review ${TEST_PATH} before deciding whether to keep it." >&2
