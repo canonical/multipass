@@ -159,7 +159,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ````
 
-### Quality
+### Performance, security and logging
 
 ````{domain}
 
