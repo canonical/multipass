@@ -1,7 +1,7 @@
 (reference-command-line-interface-snapshot)=
 # snapshot
 
-> See also: [`restore`](/reference/command-line-interface/restore), [`list`](/reference/command-line-interface/list), [`info`](/reference/command-line-interface/info), [`delete`](/reference/command-line-interface/delete)
+> See also: [`restore`](/reference/command-line-interface/restore), [`snapshots`](/reference/command-line-interface/snapshots), [`info`](/reference/command-line-interface/info), [`delete`](/reference/command-line-interface/delete)
 
 The `multipass snapshot` command takes a snapshot of an instance; for example:
 

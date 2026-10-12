@@ -274,6 +274,11 @@ std::string mp::JsonFormatter::format(const ListReply& reply) const
     return pretty_print(output);
 }
 
+std::string mp::JsonFormatter::format(const SnapshotsReply& reply) const
+{
+    return pretty_print(generate_snapshots_list(reply.snapshot_list()));
+}
+
 std::string mp::JsonFormatter::format(const NetworksReply& reply) const
 {
     boost::json::array interfaces;

@@ -55,7 +55,12 @@ from .helpers import (
     get_boot_id
 )
 from .multipass_cmd import multipass
-from .snapshot import build_snapshot_tree, collapse_to_snapshot_tree, take_snapshot
+from .snapshot import (
+    assert_list_snapshots_matches_snapshots,
+    build_snapshot_tree,
+    collapse_to_snapshot_tree,
+    take_snapshot,
+)
 from .validate import (
     validate_info_output,
     validate_list_output,

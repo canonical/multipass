@@ -1,0 +1,30 @@
+{
+    "errors": [
+    ],
+    "info": {
+        "prosperous-spadefish": {
+            "snapshot10": {
+                "parent": "snapshot2",
+                "comment": ""
+            },
+            "snapshot2": {
+                "parent": "",
+                "comment": "Before restoring snap1\nContains a newline that\r\nshould be truncated"
+            }
+        },
+        "hale-roller": {
+            "rolling": {
+                "parent": "pristine",
+                "comment": "Loaded with stuff"
+            },
+            "rocking": {
+                "parent": "pristine",
+                "comment": "A very long comment that should be truncated by the table formatter"
+            },
+            "pristine": {
+                "parent": "",
+                "comment": "A first snapshot"
+            }
+        }
+    }
+}

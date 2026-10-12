@@ -296,6 +296,11 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
     return output;
 }
 
+std::string mp::YamlFormatter::format(const SnapshotsReply& reply) const
+{
+    return generate_snapshots_list(reply.snapshot_list());
+}
+
 std::string mp::YamlFormatter::format(const NetworksReply& reply) const
 {
     YAML::Node list;
