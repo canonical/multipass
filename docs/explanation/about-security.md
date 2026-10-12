@@ -15,7 +15,7 @@ Multipass has two parts: clients (the CLI and the GUI) that run as your user, an
 
 A trust boundary is an interface where data or commands pass between parts of the system with different privileges or owners. Multipass has four trust boundaries:
 
-1. **User and daemon.** Clients run with your user's priviledges. The priviledged daemon runs as `root` on Linux and macOS, and as `SYSTEM` on Windows. Every request crosses from unprivileged to privileged here. The communication between client and daemon is over gRPC secured using TLS.
+1. **User and daemon.** Clients run with your user's privileges. The privileged daemon runs as `root` on Linux and macOS, and as `SYSTEM` on Windows. Every request crosses from unprivileged to privileged here. The communication between client and daemon is over gRPC secured using TLS.
 2. **Host and internet.** The daemon downloads images from remote image servers using `https` only. Nothing that arrives from the internet is trusted until it is verified using checksums.
 3. **Host and instances.** Each instance is a virtual machine, isolated from the host by the hypervisor. The daemon controls instances over SSH. Mounts deliberately cross this boundary to share parts of the host file system with an instance.
 4. **Instances and network.** Every instance has a default NAT network that it uses to reach the outside world. Bridged networking adds an interface on a host network, which puts the instance directly on your local network.
