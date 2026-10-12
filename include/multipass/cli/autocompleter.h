@@ -31,22 +31,6 @@ namespace multipass
 
 class AutoCompleter : private DisabledCopyMove
 {
-    struct Parameter
-    {
-        void complete(std::vector<std::string>& completions,
-                      const std::vector<std::string>& previous) const;
-
-        std::function<std::vector<std::string>()> provider;
-    };
-
-    struct Option
-    {
-        void complete(std::vector<std::string>& completions, size_t next_parameter_idx) const;
-
-        std::vector<Parameter> parameters;
-        bool is_repeatable = false;
-    };
-
 public:
     std::string_view add_option(std::string_view option, bool is_repeatable = false);
 
@@ -68,6 +52,22 @@ public:
     std::vector<std::string> complete(const std::vector<std::string>& previous) const;
 
 private:
+    struct Parameter
+    {
+        void complete(std::vector<std::string>& completions,
+                      const std::vector<std::string>& previous) const;
+
+        std::function<std::vector<std::string>()> provider;
+    };
+
+    struct Option
+    {
+        void complete(std::vector<std::string>& completions, size_t next_parameter_idx) const;
+
+        std::vector<Parameter> parameters;
+        bool is_repeatable = false;
+    };
+
     bool is_excluded(std::string_view option,
                      const std::vector<std::string>& previous,
                      size_t parameters_count) const;
