@@ -68,7 +68,6 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 {doc}`Create an instance <how-to-guides/manage-instances/create-an-instance>` domain
 {doc}`Use an instance <how-to-guides/manage-instances/use-an-instance>` domain
 {doc}`Modify an instance <how-to-guides/manage-instances/modify-an-instance>` domain
-{doc}`Use the primary instance <how-to-guides/manage-instances/use-the-primary-instance>` domain
 {doc}`Use instance command aliases <how-to-guides/manage-instances/use-instance-command-aliases>` domain
 {doc}`Remove an instance <how-to-guides/manage-instances/remove-an-instance>` domain
 {doc}`Instance states <reference/instance-states>`
@@ -164,7 +163,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ```{slice} Primary instance
 
-{doc}`Use the primary instance <how-to-guides/manage-instances/use-the-primary-instance>` domain
+{doc}`Use the primary instance <how-to-guides/manage-instances/use-the-primary-instance>`
 ```
 
 ````
