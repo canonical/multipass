@@ -249,11 +249,11 @@ private:
                                         grpc::ServerReaderWriterInterface<Reply, Request>* server);
     template <typename Reply, typename Request>
     AsyncOperationStatus
-    async_wait_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                         const std::vector<std::string>& vms,
-                         const std::chrono::seconds& timeout,
-                         DaemonRpcContext* context,
-                         const std::string& errors);
+    async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                                  const std::vector<std::string>& vms,
+                                  const std::chrono::seconds& timeout,
+                                  DaemonRpcContext* context,
+                                  const std::string& errors);
     void finish_async_operation(const std::string& async_future_key);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(
         std::function<void()> const& finished_op = []() {});
@@ -279,8 +279,14 @@ private:
                        const std::string& dest_name);
 
     template <typename Reply>
-    grpc::Status grpc_status_for_readiness(const std::vector<ReadinessResult>& errors,
+    grpc::Status grpc_status_for_readiness(const std::vector<ReadinessResult>& results,
                                            const std::string& start_errors);
+    grpc::StatusCode grpc_status_code_for_readiness(const std::vector<ReadinessResult>& results,
+                                                    const std::string& start_errors);
+    std::string grpc_error_message_for_readiness(const std::vector<ReadinessResult>& results,
+                                                 const std::string& start_errors);
+    template <typename Reply>
+    std::string grpc_error_details_for_readiness(const std::vector<ReadinessResult>& results);
 
     std::unique_ptr<const DaemonConfig> config;
 
