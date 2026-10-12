@@ -11,7 +11,7 @@ Multipass is intended for development, testing, and local environments. It is no
 
 ## Multipass architecture and trust boundaries
 
-Multipass has two parts: clients (the CLI and the GUI) that run as your user, and a daemon that runs with full privileges on the host and manages instances through a hypervisor. See [Reference architecture](explanation-reference-architecture) for a description of each component.
+Multipass has two parts: clients (the CLI and the GUI) that run as your user, and a privileged daemon that runs on the host and manages instances through a hypervisor. See [Reference architecture](explanation-reference-architecture) for a description of each component.
 
 A trust boundary is a point where data or commands pass between parts of the system with different privileges or owners. Multipass has four:
 
