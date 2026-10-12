@@ -28,7 +28,7 @@ You can work inside an instance interactively or run one command at a time from 
 
 These commands report information without changing anything. Use them to choose an image before you launch, or to check an instance's IP address, disk usage, and memory usage.
 
-- [`find`](reference-command-line-interface-find)
+- [`images`](reference-command-line-interface-images)
 - [`list`](reference-command-line-interface-list)
 - [`info`](reference-command-line-interface-info)
 - [`networks`](reference-command-line-interface-networks)
@@ -54,7 +54,7 @@ A snapshot records an instance at a point in time, so you can experiment and rol
 A mount shares a host folder with an instance, while a transfer copies files between the host and an instance without mounting anything. See [Mount](explanation-mount) for the different types of mount.
 
 - [`mount`](reference-command-line-interface-mount)
-- [`umount`](reference-command-line-interface-umount)
+- [`unmount`](reference-command-line-interface-unmount)
 - [`transfer`](reference-command-line-interface-transfer)
 
 ## Aliases
