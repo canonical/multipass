@@ -32,6 +32,7 @@ These commands report information without changing anything. Use them to choose 
 - [`list`](reference-command-line-interface-list)
 - [`info`](reference-command-line-interface-info)
 - [`networks`](reference-command-line-interface-networks)
+- [`snapshots`](reference-command-line-interface-snapshots)
 
 ## Instance state
 
