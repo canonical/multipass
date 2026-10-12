@@ -25,7 +25,6 @@ The following scenarios describe commonly encountered Multipass networking probl
 
 ### Windows
 
-- [Instances won't start or keep timing out](#networking-windows-switch).
 - [Connectivity is unreliable and you run anti-virus or security software](#networking-windows-security-software).
 - [Upload speeds over Wi-Fi are very slow](#networking-windows-wifi).
 
@@ -287,31 +286,6 @@ Try these in order (see [issue #2387](https://github.com/canonical/multipass/iss
 ---
 
 ## On Windows
-
-(networking-windows-switch)=
-### Instances won't start or keep timing out
-
-> New instances fail to launch, or existing ones hang and time out when starting, and the problem survives a reboot.
-
-**What's happening**
-
-The Hyper-V Default Switch is known to be unreliable, and Windows updates often leave it in a broken state. Because the broken state persists across reboots, restarting alone won't fix it.
-
-**How to fix it**
-
-Reset the Default Switch by removing its network sharing. In a PowerShell window with administrator rights:
-
-```{code-block} powershell
-Get-HNSNetwork | ? Name -Like "Default Switch" | Remove-HNSNetwork
-```
-
-Then restart your computer:
-
-```{code-block} powershell
-Restart-Computer
-```
-
-Hyper-V recreates the switch automatically on the next boot.
 
 (networking-windows-security-software)=
 ### Your security software is blocking instances
