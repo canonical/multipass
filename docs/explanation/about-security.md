@@ -13,15 +13,15 @@ Multipass is intended for development, testing, and local environments. It is no
 
 Multipass has two parts: clients (the CLI and the GUI) that run as your user, and a privileged daemon that runs on the host and manages instances through a hypervisor. See [Reference architecture](explanation-reference-architecture) for a description of each component.
 
-A trust boundary is a point where data or commands pass between parts of the system with different privileges or owners. Multipass has four:
+A trust boundary is an interface where data or commands pass between parts of the system with different privileges or owners. Multipass has four trust boundaries:
 
 ```{figure} /images/multipass-security-trust-boundaries.png
    :alt: Diagram of the Multipass client, daemon, instances, image servers, and local network, with four numbered trust boundaries
 ```
 
-1. **User and daemon.** Clients run as your user. The daemon runs as `root` on Linux and macOS, and as `SYSTEM` on Windows. Every request crosses from unprivileged to privileged here, so the daemon checks who is asking before it acts.
-2. **Host and internet.** The daemon downloads images from remote image servers. Nothing that arrives from the internet is trusted until it is verified.
-3. **Host and instances.** Each instance is a virtual machine, isolated from the host by the hypervisor. The daemon controls instances over SSH and cloud-init. Mounts deliberately cross this boundary to share host files with an instance.
+1. **User and daemon.** Clients run with your user's priviledges. The priviledged daemon runs as `root` on Linux and macOS, and as `SYSTEM` on Windows. Every request crosses from unprivileged to privileged here. The communication between client and daemon is over gRPC secured using TLS.
+2. **Host and internet.** The daemon downloads images from remote image servers using `https` only. Nothing that arrives from the internet is trusted until it is verified using checksums.
+3. **Host and instances.** Each instance is a virtual machine, isolated from the host by the hypervisor. The daemon controls instances over SSH. Mounts deliberately cross this boundary to share parts of the host file system with an instance.
 4. **Instances and network.** Every instance has a default NAT network that it uses to reach the outside world. Bridged networking adds an interface on a host network, which puts the instance directly on your local network.
 
 ## Secure by design
@@ -42,7 +42,7 @@ Multipass uses defense in depth, so that the failure of one layer does not expos
 - On Linux, the Multipass snap runs under strict [snap confinement](https://snapcraft.io/docs/snap-confinement), which limits what the daemon can reach on the host, including where mounts can point.
 - On Windows, mounts are disabled by default.
 
-Mounts are the main way an instance can affect the host, because the daemon performs them with its own privileges. See [Security considerations](security-considerations-mount) on the Mount page for the implications on each platform.
+Mounts are the main way an instance can compromise the host, because the daemon performs them with its own privileges. See [Security considerations](security-considerations-mount) on the Mount page for the implications on each platform.
 
 ### Secure development
 
@@ -50,13 +50,13 @@ Multipass is open source, so its security does not depend on keeping the design 
 
 ## Cryptography in Multipass
 
-Multipass uses cryptography to protect the communication between its components, to authenticate users, and to verify downloaded images. It works out of the box and there is nothing to configure.
+Multipass uses cryptography to protect the communication between its components, to authenticate users, and to verify downloaded images. It works out of the box and there is nothing to configure by the user.
 
-### Cryptography used by Multipass
+Cryptography technology in use within Multipass:
 
 | Where | What it protects | Technology |
 | ----- | ---------------- | ---------- |
-| Client and daemon | Commands and credentials | TLS through gRPC. Clients and the daemon identify themselves with X.509 certificates using EC P-256 keys, signed with SHA-256. |
+| Client and daemon | Commands, payloads, and credentials | TLS through gRPC. Clients and the daemon identify themselves with X.509 certificates using EC P-256 keys, signed with SHA-256. |
 | Daemon and instances | Control commands, `multipass shell`, `exec`, and `transfer` | SSH with a 2048-bit RSA key that Multipass generates. Ciphers: ChaCha20-Poly1305, with AES-256-CTR as a fallback. |
 | Classic mounts | Files shared with an instance | SFTP over the same SSH connection. |
 | Image downloads | Images and image metadata | HTTPS with certificate validation. |
@@ -68,7 +68,7 @@ Multipass uses cryptography to protect the communication between its components,
 
 The images Multipass launches include an OpenSSH server. You can add your own SSH keys to an instance, for example with cloud-init, and connect with any key type the server supports, such as Ed25519 or RSA.
 
-### Libraries that provide cryptography
+### Libraries that use cryptography
 
 - **OpenSSL:** TLS, certificates, and hashing. See the [OpenSSL documentation](https://docs.openssl.org/).
 - **libssh:** SSH and SFTP. See the [libssh documentation](https://www.libssh.org/documentation/).
@@ -124,7 +124,7 @@ See the Uninstall section of [Install Multipass](how-to-guides-install-multipass
 (security-lifecycle)=
 ## Security lifecycle
 
-Only the latest stable release of Multipass is supported. Older releases do not receive security fixes, so running one leaves you exposed to known vulnerabilities. Security fixes ship in regular releases, which can be bug-fix, minor, or major releases, depending on what else they include.
+Only the latest stable release of Multipass is supported. Older releases do not receive security fixes, so running one might leave you exposed to known vulnerabilities. Security fixes ship in regular feature or maintenance releases, depending on what else they include.
 
 How you get updates depends on your platform:
 
