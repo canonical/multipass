@@ -51,8 +51,15 @@ QString petenv_interpreter(QString val)
 
 mp::ReturnCode return_code_for(const grpc::StatusCode& code)
 {
-    return code == grpc::StatusCode::UNAVAILABLE ? mp::ReturnCode::DaemonFail
-                                                 : mp::ReturnCode::CommandFail;
+    switch (code)
+    {
+    case grpc::StatusCode::UNAVAILABLE:
+        return mp::ReturnCode::DaemonFail;
+    case grpc::StatusCode::DEADLINE_EXCEEDED:
+        return mp::ReturnCode::TimeoutFailure;
+    default:
+        return mp::ReturnCode::CommandFail;
+    }
 }
 
 std::string message_box(const std::string& message)
