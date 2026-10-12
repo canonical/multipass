@@ -64,7 +64,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ```{slice} Instances
 
-{doc}`Instances overview <explanation/instance>`
+{doc}`Overview <explanation/instance>` slice
 {doc}`Create an instance <how-to-guides/manage-instances/create-an-instance>` domain
 {doc}`Use an instance <how-to-guides/manage-instances/use-an-instance>` domain
 {doc}`Modify an instance <how-to-guides/manage-instances/modify-an-instance>` domain
@@ -77,13 +77,13 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 ```{slice} Instances: snapshots, cloning
 
 {doc}`Snapshot <explanation/snapshot>`
-{doc}`snapshot <reference/command-line-interface/snapshot>`
-{doc}`clone <reference/command-line-interface/clone>`
+{doc}`Snapshot CLI <reference/command-line-interface/snapshot>`
+{doc}`Instance cloning <reference/command-line-interface/clone>`
 ```
 
 ```{slice} Images
 
-{doc}`Images overview <explanation/image>`
+{doc}`Overview <explanation/image>` slice
 {doc}`Build Multipass images with Packer <how-to-guides/customise-multipass/build-multipass-images-with-packer>`
 ```
 
@@ -133,7 +133,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 ```{slice} Platform-specific hypervisor drivers
 
 {doc}`Driver <explanation/driver>`
-{doc}`Set up the driver <how-to-guides/customise-multipass/set-up-the-driver>` domain
+{doc}`Set up the driver <how-to-guides/customise-multipass/set-up-the-driver>`
 ```
 
 ````
