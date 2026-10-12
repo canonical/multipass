@@ -25,12 +25,31 @@ committing are up to you.
 
 **VS Code Copilot Chat**
 
-- Open the Chat view, open the agent picker (the mode dropdown next to the
-  input box) and select **CLI Behavior Test Generator**. It is listed because
-  the definition is in `.github/agents/`.
+Open the Chat view, open the agent picker (the mode dropdown next to the input
+box) and select **CLI Behavior Test Generator**. It is listed because the
+definition is in `.github/agents/`.
 
 Then just write your request in the chat, as below. Every request is a plain
 prompt; no flags or scripts are needed.
+
+## VS Code integration: prompt files
+
+Two prompt files in `.github/prompts/` give one-step entry points in VS Code
+Copilot Chat. Type the slash command in the chat; it selects the agent for you
+and asks for its inputs:
+
+| Slash command | Mode | Asks for |
+|---|---|---|
+| `/cli-test-gherkin` | Mode 1 — Generate Gherkin | issue/PR (optionally `in owner/repo`), extra guidance |
+| `/cli-test-from-gherkin` | Mode 2 — Generate test from Gherkin | `.feature` path, extra guidance or forced destination file |
+
+Notes:
+- These prompt files are a VS Code feature. Copilot CLI does **not** load
+  `.github/prompts/`; in the CLI, select the agent as above and type the
+  prompt yourself, or use the scripts below.
+- The agent's tools come from its own definition, and VS Code does not
+  restrict them the way the scripts do, so the "no diff, no git" rules rely on
+  the agent's instructions.
 
 ## Mode 1 — Generate Gherkin
 
