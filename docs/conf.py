@@ -272,6 +272,7 @@ linkcheck_anchors_ignore_for_url = [r"https://github\.com/", r"https://matrix\.t
 extensions = [
     "canonical_sphinx",
     "sphinxcontrib.cairosvgconverter",
+    "sphinxcontrib.mermaid",
     "sphinx_last_updated_by_git",
     "sphinx_sitemap",
 ]
