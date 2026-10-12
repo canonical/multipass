@@ -51,6 +51,29 @@ namespace cmd = multipass::cmd;
 
 namespace
 {
+
+constexpr auto client_timeout_message = R"(Timed out waiting for the launch operation.
+The instance status is unknown and it may still be starting. Check with:
+
+    multipass list
+
+Mounts may not have been performed. Apply any missing mounts manually with:
+
+    multipass mount <source> {}:<target>)";
+
+constexpr auto server_timeout_message = R"(Timed out waiting for {}.
+The instance was created but may still be starting. Check with:
+
+    multipass list
+
+Check its initialization status with:
+
+    multipass exec {} -- cloud-init status
+
+No mounts were performed. Apply any missing mounts manually with:
+
+    multipass mount <source> {}:<target>)";
+
 auto checked_mode(const std::string& mode)
 {
     if (mode == "auto")
@@ -491,6 +514,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         request.set_zone(zone);
     }
 
+    const auto vm_name = request.instance_name().empty() ? "<vm-name>" : request.instance_name();
     if (timer)
         timer->resume();
     else if (parser->isSet("timeout"))
@@ -498,7 +522,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         timer = cmd::make_timer(parser->value("timeout").toInt(),
                                 spinner.get(),
                                 cerr,
-                                "Timed out waiting for instance launch.");
+                                fmt::format(client_timeout_message, vm_name));
         timer->start();
     }
 
@@ -574,8 +598,8 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &parser](grpc::Status& status,
-                                      mp::LaunchReply& reply) -> ReturnCodeVariant {
+    auto on_failure = [this, &parser, vm_name](grpc::Status& status,
+                                               mp::LaunchReply& reply) -> ReturnCodeVariant {
         spinner->stop();
         if (timer)
             timer->pause();
@@ -620,6 +644,20 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             {
                 error_details = fmt::format("Unavailable zone name supplied: {}", request.zone());
             }
+        }
+
+        const auto readiness_error = launch_error.readiness_error();
+        const auto readiness_timed_out = readiness_error == ReadinessError::SSH_TIMEOUT ||
+                                         readiness_error == ReadinessError::CLOUD_INIT_TIMEOUT;
+
+        if (readiness_timed_out)
+        {
+            assert(launch_error.error_codes().empty());
+
+            const auto readiness_stage = readiness_error == ReadinessError::SSH_TIMEOUT
+                                           ? "SSH"
+                                           : "cloud-init";
+            error_details = fmt::format(server_timeout_message, readiness_stage, vm_name, vm_name);
         }
 
         return standard_failure_handler_for(name(), cerr, status, error_details);
