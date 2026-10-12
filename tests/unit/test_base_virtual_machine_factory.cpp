@@ -152,7 +152,7 @@ TEST_F(BaseFactory, virtualSizeForReturnsQemuImgVirtualSize)
 {
     constexpr qint64 virtual_size = 5368709120;
     auto scope = fake_qemuimg_info(
-        {0, std::nullopt},
+        {.exit_code = 0, .error = std::nullopt},
         QByteArray::fromStdString(fmt::format(R"({{"virtual-size": {}}})", virtual_size)));
 
     mpt::TempFile image;
@@ -163,7 +163,7 @@ TEST_F(BaseFactory, virtualSizeForReturnsQemuImgVirtualSize)
 
 TEST_F(BaseFactory, virtualSizeForThrowsWhenQemuImgFails)
 {
-    auto scope = fake_qemuimg_info({1, std::nullopt}, "Could not find");
+    auto scope = fake_qemuimg_info({.exit_code = 1, .error = std::nullopt}, "Could not find");
 
     mpt::TempFile image;
     MockBaseFactory factory{az_manager};
@@ -174,7 +174,8 @@ TEST_F(BaseFactory, virtualSizeForThrowsWhenQemuImgFails)
 TEST_F(BaseFactory, virtualSizeForThrowsWhenQemuImgCrashes)
 {
     auto scope = fake_qemuimg_info(
-        {std::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}},
+        {.exit_code = std::nullopt,
+         .error = mp::ProcessState::Error{.state = QProcess::Crashed, .message = "core dumped"}},
         "about to crash");
 
     mpt::TempFile image;
@@ -185,7 +186,8 @@ TEST_F(BaseFactory, virtualSizeForThrowsWhenQemuImgCrashes)
 
 TEST_F(BaseFactory, virtualSizeForThrowsWhenVirtualSizeIsNotANumber)
 {
-    auto scope = fake_qemuimg_info({0, std::nullopt}, R"({"format": "qcow2"})");
+    auto scope = fake_qemuimg_info({.exit_code = 0, .error = std::nullopt},
+                                   R"({"format": "qcow2"})");
 
     mpt::TempFile image;
     MockBaseFactory factory{az_manager};
@@ -209,20 +211,20 @@ TEST_F(BaseFactory, createsCloudInitIsoImage)
                            .arg(QString::fromStdString(name))
                            .toStdString();
 
-    mp::VirtualMachineDescription vm_desc{2,
-                                          mp::MemorySize{"3M"},
-                                          mp::MemorySize{}, // not used
-                                          name,
-                                          "zone1",
-                                          "00:16:3e:fe:f2:b9",
-                                          {},
-                                          "yoda",
-                                          image,
-                                          "",
-                                          metadata,
-                                          user_data,
-                                          vendor_data,
-                                          network_data};
+    mp::VirtualMachineDescription vm_desc{.num_cores = 2,
+                                          .mem_size = mp::MemorySize{"3M"},
+                                          .disk_space = mp::MemorySize{}, // not used
+                                          .vm_name = name,
+                                          .zone = "zone1",
+                                          .default_mac_address = "00:16:3e:fe:f2:b9",
+                                          .extra_interfaces = {},
+                                          .ssh_username = "yoda",
+                                          .image = image,
+                                          .cloud_init_iso = "",
+                                          .meta_data_config = metadata,
+                                          .user_data_config = user_data,
+                                          .vendor_data_config = vendor_data,
+                                          .network_data_config = network_data};
 
     factory.configure(vm_desc);
 
@@ -248,7 +250,8 @@ TEST_F(BaseFactory, prepareNetworkingHasNoObviousEffectByDefault)
         factory.mp::BaseVirtualMachineFactory::prepare_networking(nets);
     });
 
-    std::vector<mp::NetworkInterface> nets{{"asdf", "qwer", true}};
+    std::vector<mp::NetworkInterface> nets{
+        {.id = "asdf", .mac_address = "qwer", .auto_mode = true}};
     const auto nets_copy = nets;
 
     factory.prepare_networking(nets);
@@ -259,9 +262,12 @@ TEST_F(BaseFactory, prepareInterfaceLeavesUnrecognizedNetworkAlone)
 {
     StrictMock<MockBaseFactory> factory{az_manager};
 
-    auto host_nets = std::vector<mp::NetworkInterfaceInfo>{{"eth0", "ethernet", "asd"},
-                                                           {"wlan0", "wifi", "asd"}};
-    auto extra_net = mp::NetworkInterface{"eth1", "fa:se:ma:c0:12:23", false};
+    auto host_nets = std::vector<mp::NetworkInterfaceInfo>{
+        {.id = "eth0", .type = "ethernet", .description = "asd"},
+        {.id = "wlan0", .type = "wifi", .description = "asd"}};
+    auto extra_net = mp::NetworkInterface{.id = "eth1",
+                                          .mac_address = "fa:se:ma:c0:12:23",
+                                          .auto_mode = false};
     const auto host_copy = host_nets;
     const auto extra_copy = extra_net;
 
@@ -278,9 +284,12 @@ TEST_F(BaseFactory, prepareInterfaceLeavesExistingBridgeAlone)
     auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*mock_platform, bridge_nomenclature).WillRepeatedly(Return(bridge_type));
 
-    auto host_nets = std::vector<mp::NetworkInterfaceInfo>{{"br0", bridge_type, "foo"},
-                                                           {"xyz", bridge_type, "bar"}};
-    auto extra_net = mp::NetworkInterface{"xyz", "fake mac", true};
+    auto host_nets = std::vector<mp::NetworkInterfaceInfo>{
+        {.id = "br0", .type = bridge_type, .description = "foo"},
+        {.id = "xyz", .type = bridge_type, .description = "bar"}};
+    auto extra_net = mp::NetworkInterface{.id = "xyz",
+                                          .mac_address = "fake mac",
+                                          .auto_mode = true};
     const auto host_copy = host_nets;
     const auto extra_copy = extra_net;
 
@@ -299,11 +308,16 @@ TEST_F(BaseFactory, prepareInterfaceReplacesBridgedNetworkWithCorrespondingBridg
     EXPECT_CALL(*mock_platform, bridge_nomenclature).WillRepeatedly(Return(bridge_type));
 
     auto host_nets = std::vector<mp::NetworkInterfaceInfo>{
-        {"eth", "ethernet", "already bridged"},
-        {"wlan", "wifi", "something else"},
-        {bridge, bridge_type, "bridge to eth", {"eth"}},
-        {"different", bridge_type, "uninteresting", {"wlan"}}};
-    auto extra_net = mp::NetworkInterface{"eth", "fake mac", false};
+        {.id = "eth", .type = "ethernet", .description = "already bridged"},
+        {.id = "wlan", .type = "wifi", .description = "something else"},
+        {.id = bridge, .type = bridge_type, .description = "bridge to eth", .links = {"eth"}},
+        {.id = "different",
+         .type = bridge_type,
+         .description = "uninteresting",
+         .links = {"wlan"}}};
+    auto extra_net = mp::NetworkInterface{.id = "eth",
+                                          .mac_address = "fake mac",
+                                          .auto_mode = false};
 
     const auto host_copy = host_nets;
     auto extra_check = extra_net;
@@ -323,14 +337,16 @@ TEST_F(BaseFactory, prepareInterfaceCreatesBridgeForUnbridgedNetwork)
     auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*mock_platform, bridge_nomenclature).WillRepeatedly(Return(bridge_type));
 
-    auto host_nets =
-        std::vector<mp::NetworkInterfaceInfo>{{"eth", "ethernet", "already bridged"},
-                                              {"wlan", "wifi", "something else"},
-                                              {"br0", bridge_type, "bridge to wlan", {"wlan"}}};
+    auto host_nets = std::vector<mp::NetworkInterfaceInfo>{
+        {.id = "eth", .type = "ethernet", .description = "already bridged"},
+        {.id = "wlan", .type = "wifi", .description = "something else"},
+        {.id = "br0", .type = bridge_type, .description = "bridge to wlan", .links = {"wlan"}}};
     const auto host_copy = host_nets;
 
     auto extra_id = "eth";
-    auto extra_net = mp::NetworkInterface{extra_id, "maccc", true};
+    auto extra_net = mp::NetworkInterface{.id = extra_id,
+                                          .mac_address = "maccc",
+                                          .auto_mode = true};
     auto extra_check = extra_net;
     extra_check.id = bridge;
 
@@ -367,14 +383,17 @@ TEST_F(BaseFactory, prepareNetworkingPreparesEachRequestedNetwork)
     auto [mock_platform, platform_guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*mock_platform, bridge_nomenclature).WillRepeatedly(Return(bridge_type));
 
-    const auto host_nets =
-        std::vector<mp::NetworkInterfaceInfo>{{"simple", "bridge", "this and that"}};
-    const auto tag = mp::NetworkInterface{"updated", "tag", false};
+    const auto host_nets = std::vector<mp::NetworkInterfaceInfo>{
+        {.id = "simple", .type = "bridge", .description = "this and that"}};
+    const auto tag = mp::NetworkInterface{.id = "updated",
+                                          .mac_address = "tag",
+                                          .auto_mode = false};
 
-    auto extra_nets = std::vector<mp::NetworkInterface>{{"aaa", "alpha", true},
-                                                        {"bbb", "beta", false},
-                                                        {"br", "bridge", true},
-                                                        {"brr", "bridge", false}};
+    auto extra_nets = std::vector<mp::NetworkInterface>{
+        {.id = "aaa", .mac_address = "alpha", .auto_mode = true},
+        {.id = "bbb", .mac_address = "beta", .auto_mode = false},
+        {.id = "br", .mac_address = "bridge", .auto_mode = true},
+        {.id = "brr", .mac_address = "bridge", .auto_mode = false}};
     const auto num_nets = extra_nets.size();
 
     MockBaseFactory factory{az_manager};

@@ -36,25 +36,32 @@ public:
     MockVMImageVault()
     {
         ON_CALL(*this, fetch_image).WillByDefault([this](auto&&...) {
-            return VMImage{dummy_image.path(), {}, {}, {}, {}, {}, {}};
+            return VMImage{.image_path = dummy_image.path(),
+                           .id = {},
+                           .original_release = {},
+                           .current_release = {},
+                           .release_date = {},
+                           .os = {},
+                           .aliases = {}};
         });
         ON_CALL(*this, has_record_for(_)).WillByDefault(Return(true));
 
         ON_CALL(*this, all_info_for(_))
             .WillByDefault(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
-                std::pair<std::string, mp::VMImageInfo>{"default",
-                                                        {{default_alias},
-                                                         "Ubuntu",
-                                                         "bionic",
-                                                         default_release_info,
-                                                         "Bionic Beaver",
-                                                         true,
-                                                         dummy_image.url().toStdString(),
-                                                         default_id,
-                                                         default_stream_location,
-                                                         default_version,
-                                                         1,
-                                                         true}}}));
+                std::pair<std::string, mp::VMImageInfo>{
+                    "default",
+                    {.aliases = {default_alias},
+                     .os = "Ubuntu",
+                     .release = "bionic",
+                     .release_title = default_release_info,
+                     .release_codename = "Bionic Beaver",
+                     .supported = true,
+                     .image_location = dummy_image.url().toStdString(),
+                     .id = default_id,
+                     .stream_location = default_stream_location,
+                     .version = default_version,
+                     .size = 1,
+                     .verify = true}}}));
     };
 
     MOCK_METHOD(VMImage,

@@ -50,21 +50,23 @@ std::string tag_invoke(const boost::json::value_to_tag<std::string>&,
 
 TEST(TestJsonUtils, updatesUniqueIdentifiersOfMetadata)
 {
-    mp::VMSpecs src_specs = {1,
-                             mp::MemorySize::from_bytes(0),
-                             mp::MemorySize::from_bytes(0),
-                             "01:ff:00:00:00:01",
-                             {{"id", "01:ff:00:00:00:02", false}},
-                             "username",
-                             mp::VirtualMachine::State::off,
-                             {},
-                             false,
-                             {},
-                             0,
-                             "zone"};
+    mp::VMSpecs src_specs = {
+        .num_cores = 1,
+        .mem_size = mp::MemorySize::from_bytes(0),
+        .disk_space = mp::MemorySize::from_bytes(0),
+        .default_mac_address = "01:ff:00:00:00:01",
+        .extra_interfaces = {{.id = "id", .mac_address = "01:ff:00:00:00:02", .auto_mode = false}},
+        .ssh_username = "username",
+        .state = mp::VirtualMachine::State::off,
+        .mounts = {},
+        .deleted = false,
+        .metadata = {},
+        .clone_count = 0,
+        .zone = "zone"};
     mp::VMSpecs dst_specs = src_specs;
     dst_specs.default_mac_address = "aa:ff:00:00:00:01";
-    dst_specs.extra_interfaces = {{"id", "aa:ff:00:00:00:02", false}};
+    dst_specs.extra_interfaces = {
+        {.id = "id", .mac_address = "aa:ff:00:00:00:02", .auto_mode = false}};
 
     boost::json::object src_metadata = {{"arguments",
                                          {"instances/src_vm",
@@ -148,23 +150,24 @@ void tag_invoke(const boost::json::value_from_tag&, boost::json::value& json, co
 }
 Animal tag_invoke(const boost::json::value_to_tag<Animal>&, const boost::json::value& json)
 {
-    return {value_to<std::string>(json.at("name"))};
+    return {.name = value_to<std::string>(json.at("name"))};
 }
 
 TEST(TestJsonUtils, mapToJsonArray)
 {
-    std::map<std::string, Animal> map = {{"dog", {"fido"}},
-                                         {"goat", {"philipp"}},
-                                         {"panda", {"coco"}}};
+    std::map<std::string, Animal> map = {{"dog", {.name = "fido"}},
+                                         {"goat", {.name = "philipp"}},
+                                         {"panda", {.name = "coco"}}};
     boost::json::array json_array = {{{"species", "dog"}, {"name", "fido"}},
                                      {{"species", "goat"}, {"name", "philipp"}},
                                      {{"species", "panda"}, {"name", "coco"}}};
 
-    auto json_result = boost::json::value_from(map, mp::MapAsJsonArray{"species"});
+    auto json_result = boost::json::value_from(map, mp::MapAsJsonArray{.key_field = "species"});
     EXPECT_EQ(json_result, json_array);
 
-    auto map_result =
-        value_to<std::map<std::string, Animal>>(json_array, mp::MapAsJsonArray{"species"});
+    auto map_result = value_to<std::map<std::string, Animal>>(
+        json_array,
+        mp::MapAsJsonArray{.key_field = "species"});
     EXPECT_EQ(map_result, map);
 }
 
@@ -172,17 +175,18 @@ TEST(TestJsonUtils, mapToJsonArrayDoesntRecurse)
 {
     // MapAsJsonArray should apply only to the top-level `std::map`, but not the inner `std::map`.
     using MapOfMap = std::map<std::string, std::map<std::string, Animal>>;
-    MapOfMap map_of_map = {{"pet", {{"dog", {"fido"}}, {"goat", {"philipp"}}}},
-                           {"wild", {{"panda", {"coco"}}}}};
+    MapOfMap map_of_map = {{"pet", {{"dog", {.name = "fido"}}, {"goat", {.name = "philipp"}}}},
+                           {"wild", {{"panda", {.name = "coco"}}}}};
 
     boost::json::array json_array = {
         {{"_where", "pet"}, {"dog", {{"name", "fido"}}}, {"goat", {{"name", "philipp"}}}},
         {{"_where", "wild"}, {"panda", {{"name", "coco"}}}}};
 
-    auto json_result = boost::json::value_from(map_of_map, mp::MapAsJsonArray{"_where"});
+    auto json_result = boost::json::value_from(map_of_map,
+                                               mp::MapAsJsonArray{.key_field = "_where"});
     EXPECT_EQ(json_result, json_array);
 
-    auto map_result = value_to<MapOfMap>(json_array, mp::MapAsJsonArray{"_where"});
+    auto map_result = value_to<MapOfMap>(json_array, mp::MapAsJsonArray{.key_field = "_where"});
     EXPECT_EQ(map_result, map_of_map);
 }
 

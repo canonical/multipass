@@ -169,18 +169,18 @@ try
             const auto& aliases = version_qstring == latest_version ? product_aliases
                                                                     : std::vector<std::string>{};
 
-            VMImageInfo info{aliases,
-                             "Ubuntu",
-                             release,
-                             release_title,
-                             release_codename,
-                             supported,
-                             image_location,
-                             sha256,
-                             host_url.toStdString(),
-                             version_string,
-                             size,
-                             true};
+            VMImageInfo info{.aliases = aliases,
+                             .os = "Ubuntu",
+                             .release = release,
+                             .release_title = release_title,
+                             .release_codename = release_codename,
+                             .supported = supported,
+                             .image_location = image_location,
+                             .id = sha256,
+                             .stream_location = host_url.toStdString(),
+                             .version = version_string,
+                             .size = size,
+                             .verify = true};
 
             if (mutator(info))
             {

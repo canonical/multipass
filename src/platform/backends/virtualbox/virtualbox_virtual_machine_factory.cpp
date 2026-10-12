@@ -95,9 +95,9 @@ mp::NetworkInterfaceInfo list_vbox_network(
             {
                 // Use the OS information about the interface
                 return mp::NetworkInterfaceInfo{
-                    if_info.id,
-                    wireless ? "wifi" : (if_info.type.empty() ? "unknown" : if_info.type),
-                    if_info.description};
+                    .id = if_info.id,
+                    .type = wireless ? "wifi" : (if_info.type.empty() ? "unknown" : if_info.type),
+                    .description = if_info.description};
             }
             else
             {
@@ -106,7 +106,9 @@ mp::NetworkInterfaceInfo list_vbox_network(
                            ? "wifi"
                            : (ifdescription.starts_with("Thunderbolt") ? "thunderbolt" : iftype);
 
-                return mp::NetworkInterfaceInfo{if_info.id, iftype, ifdescription};
+                return mp::NetworkInterfaceInfo{.id = if_info.id,
+                                                .type = iftype,
+                                                .description = ifdescription};
             }
         }
 

@@ -342,7 +342,10 @@ TEST_F(BaseVM, addNetworkInterfaceThrows)
 {
     StubBaseVirtualMachine base_vm(zone, St::off);
 
-    MP_EXPECT_THROW_THAT(base_vm.add_network_interface(1, "", {"eth1", "52:54:00:00:00:00", true}),
+    MP_EXPECT_THROW_THAT(base_vm.add_network_interface(
+                             1,
+                             "",
+                             {.id = "eth1", .mac_address = "52:54:00:00:00:00", .auto_mode = true}),
                          mp::NotImplementedOnThisBackendException,
                          mpt::match_what(HasSubstr("networks")));
 }
@@ -407,20 +410,20 @@ TEST_P(IpExecution, getAllIpv4WorksWhenSshWorks)
 INSTANTIATE_TEST_SUITE_P(
     BaseVM,
     IpExecution,
-    Values(IpTestParams{0,
-                        "eth0             UP             192.168.2.168/24 \n",
-                        {mp::IPAddress{"192.168.2.168"}}},
-           IpTestParams{0,
-                        "eth1             UP             192.168.2.169/24 metric 100 \n",
-                        {mp::IPAddress{"192.168.2.169"}}},
-           IpTestParams{0,
-                        "wlp4s0           UP             192.168.2.8/24 \n"
-                        "virbr0           DOWN           192.168.3.1/24 \n"
-                        "tun0             UNKNOWN        10.172.66.5/18 \n",
-                        {mp::IPAddress{"192.168.2.8"},
-                         mp::IPAddress{"192.168.3.1"},
-                         mp::IPAddress{"10.172.66.5"}}},
-           IpTestParams{0, "", {}}));
+    Values(IpTestParams{.exit_status = 0,
+                        .output = "eth0             UP             192.168.2.168/24 \n",
+                        .expected_ips = {mp::IPAddress{"192.168.2.168"}}},
+           IpTestParams{.exit_status = 0,
+                        .output = "eth1             UP             192.168.2.169/24 metric 100 \n",
+                        .expected_ips = {mp::IPAddress{"192.168.2.169"}}},
+           IpTestParams{.exit_status = 0,
+                        .output = "wlp4s0           UP             192.168.2.8/24 \n"
+                                  "virbr0           DOWN           192.168.3.1/24 \n"
+                                  "tun0             UNKNOWN        10.172.66.5/18 \n",
+                        .expected_ips = {mp::IPAddress{"192.168.2.8"},
+                                         mp::IPAddress{"192.168.3.1"},
+                                         mp::IPAddress{"10.172.66.5"}}},
+           IpTestParams{.exit_status = 0, .output = "", .expected_ips = {}}));
 
 TEST_F(BaseVM, startsWithNoSnapshots)
 {
@@ -832,18 +835,18 @@ TEST_F(BaseVM, restoresSnapshots)
     boost::json::object metadata = {{"meta", "data"}};
 
     const mp::VMSpecs original_specs{
-        2,
-        mp::MemorySize{"3.5G"},
-        mp::MemorySize{"15G"},
-        "12:12:12:12:12:12",
-        {},
-        "user",
-        St::off,
-        {{"dst", mount}},
-        false,
-        metadata,
-        0,
-        "zone1",
+        .num_cores = 2,
+        .mem_size = mp::MemorySize{"3.5G"},
+        .disk_space = mp::MemorySize{"15G"},
+        .default_mac_address = "12:12:12:12:12:12",
+        .extra_interfaces = {},
+        .ssh_username = "user",
+        .state = St::off,
+        .mounts = {{"dst", mount}},
+        .deleted = false,
+        .metadata = metadata,
+        .clone_count = 0,
+        .zone = "zone1",
     };
 
     const auto* snapshot_name = "shoot";
@@ -890,8 +893,8 @@ TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
 
     mp::VMSpecs new_specs = original_specs;
     new_specs.extra_interfaces = std::vector<mp::NetworkInterface>{
-        {"id", "52:54:00:56:78:91", true},
-        {"id", "52:54:00:56:78:92", true}};
+        {.id = "id", .mac_address = "52:54:00:56:78:91", .auto_mode = true},
+        {.id = "id", .mac_address = "52:54:00:56:78:92", .auto_mode = true}};
 
     // the ref return functions can not use the default mock behavior, so they need to be specified
     EXPECT_CALL(snapshot, get_mounts).WillOnce(ReturnRef(original_specs.mounts));
@@ -1301,18 +1304,18 @@ TEST_F(BaseVM, rollsbackFailedRestore)
     mock_snapshotting();
 
     const mp::VMSpecs original_specs{
-        1,
-        mp::MemorySize{"1.5G"},
-        mp::MemorySize{"4G"},
-        "ab:ab:ab:ab:ab:ab",
-        {},
-        "me",
-        St::off,
-        {},
-        false,
-        {},
-        0,
-        "zone1",
+        .num_cores = 1,
+        .mem_size = mp::MemorySize{"1.5G"},
+        .disk_space = mp::MemorySize{"4G"},
+        .default_mac_address = "ab:ab:ab:ab:ab:ab",
+        .extra_interfaces = {},
+        .ssh_username = "me",
+        .state = St::off,
+        .mounts = {},
+        .deleted = false,
+        .metadata = {},
+        .clone_count = 0,
+        .zone = "zone1",
     };
 
     vm.take_snapshot(original_specs, "", "");

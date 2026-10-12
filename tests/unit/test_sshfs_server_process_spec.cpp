@@ -31,15 +31,15 @@ using namespace testing;
 
 struct TestSSHFSServerProcessSpec : public Test
 {
-    mp::SSHFSServerConfig config{"host",
-                                 42,
-                                 "username",
-                                 "instance",
-                                 "private_key",
-                                 "source_path",
-                                 "target_path",
-                                 {{1, 2}, {3, 4}},
-                                 {{5, -1}, {6, 10}}};
+    mp::SSHFSServerConfig config{.host = "host",
+                                 .port = 42,
+                                 .username = "username",
+                                 .instance = "instance",
+                                 .private_key = "private_key",
+                                 .source_path = "source_path",
+                                 .target_path = "target_path",
+                                 .gid_mappings = {{1, 2}, {3, 4}},
+                                 .uid_mappings = {{5, -1}, {6, 10}}};
 };
 
 TEST_F(TestSSHFSServerProcessSpec, programCorrect)

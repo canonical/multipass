@@ -222,7 +222,9 @@ TEST_F(QemuPlatformLinux, getIpForReturnsExpectedInfo)
 TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected)
 {
     mp::VirtualMachineDescription vm_desc;
-    mp::NetworkInterface extra_interface{"br-en0", "52:54:00:98:76:54", true};
+    mp::NetworkInterface extra_interface{.id = "br-en0",
+                                         .mac_address = "52:54:00:98:76:54",
+                                         .auto_mode = true};
 
     const auto& vswitch = switches.front();
     vm_desc.vm_name = vswitch.name;
@@ -313,7 +315,9 @@ TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected
 TEST_F(QemuPlatformLinux, tapDevicesAreRemovedOnDestruction)
 {
     mp::VirtualMachineDescription vm_desc;
-    mp::NetworkInterface extra_interface{"br-en0", "52:54:00:98:76:54", true};
+    mp::NetworkInterface extra_interface{.id = "br-en0",
+                                         .mac_address = "52:54:00:98:76:54",
+                                         .auto_mode = true};
 
     const auto& vswitch = switches.front();
     vm_desc.vm_name = vswitch.name;
@@ -446,12 +450,28 @@ TEST_F(QemuPlatformLinux, platformCorrectlySetsAuthorization)
     mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
 
     std::vector<mp::NetworkInterfaceInfo> networks{
-        mp::NetworkInterfaceInfo{"br-en0", "bridge", "", {"en0"}, false},
-        mp::NetworkInterfaceInfo{"mpbr0", "bridge", "", {}, false}};
-    const auto& bridged_network =
-        networks.emplace_back(mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, false});
-    const auto& non_bridged_network =
-        networks.emplace_back(mp::NetworkInterfaceInfo{"en1", "ethernet", "", {}, false});
+        mp::NetworkInterfaceInfo{.id = "br-en0",
+                                 .type = "bridge",
+                                 .description = "",
+                                 .links = {"en0"},
+                                 .needs_authorization = false},
+        mp::NetworkInterfaceInfo{.id = "mpbr0",
+                                 .type = "bridge",
+                                 .description = "",
+                                 .links = {},
+                                 .needs_authorization = false}};
+    const auto& bridged_network = networks.emplace_back(
+        mp::NetworkInterfaceInfo{.id = "en0",
+                                 .type = "ethernet",
+                                 .description = "",
+                                 .links = {},
+                                 .needs_authorization = false});
+    const auto& non_bridged_network = networks.emplace_back(
+        mp::NetworkInterfaceInfo{.id = "en1",
+                                 .type = "ethernet",
+                                 .description = "",
+                                 .links = {},
+                                 .needs_authorization = false});
 
     qemu_platform_linux.set_authorization(networks);
 
@@ -466,6 +486,10 @@ TEST_F(QemuPlatformLinux, createBridgeWithCallsExpectedMethods)
     mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
 
     EXPECT_EQ(qemu_platform_linux.create_bridge_with(
-                  mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, true}),
+                  mp::NetworkInterfaceInfo{.id = "en0",
+                                           .type = "ethernet",
+                                           .description = "",
+                                           .links = {},
+                                           .needs_authorization = true}),
               "br-en0");
 }

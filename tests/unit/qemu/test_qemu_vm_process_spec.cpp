@@ -33,20 +33,26 @@ using namespace testing;
 
 struct TestQemuVMProcessSpec : public Test
 {
-    const mp::VirtualMachineDescription desc{2 /*cores*/,
-                                             mp::MemorySize{"3G"} /*mem_size*/,
-                                             mp::MemorySize{"4G"} /*disk_space*/,
-                                             "vm_name",
-                                             "zone1",
-                                             "00:11:22:33:44:55",
-                                             {},
-                                             "ssh_username",
-                                             {"/path/to/image", "", "", "", "", "", {}}, // VMImage
-                                             mp::Path{"/path/to/cloud_init.iso"},
-                                             {},
-                                             {},
-                                             {},
-                                             {}};
+    const mp::VirtualMachineDescription desc{.num_cores = 2,
+                                             .mem_size = mp::MemorySize{"3G"},
+                                             .disk_space = mp::MemorySize{"4G"},
+                                             .vm_name = "vm_name",
+                                             .zone = "zone1",
+                                             .default_mac_address = "00:11:22:33:44:55",
+                                             .extra_interfaces = {},
+                                             .ssh_username = "ssh_username",
+                                             .image = {.image_path = "/path/to/image",
+                                                       .id = "",
+                                                       .original_release = "",
+                                                       .current_release = "",
+                                                       .release_date = "",
+                                                       .os = "",
+                                                       .aliases = {}},
+                                             .cloud_init_iso = mp::Path{"/path/to/cloud_init.iso"},
+                                             .meta_data_config = {},
+                                             .user_data_config = {},
+                                             .vendor_data_config = {},
+                                             .network_data_config = {}};
     const QStringList platform_args{
         {"--enable-kvm", "-nic", "tap,ifname=tap_device,script=no,downscript=no"}};
     const std::unordered_map<std::string, std::pair<std::string, QStringList>> mount_args{
@@ -101,9 +107,9 @@ TEST_F(TestQemuVMProcessSpec, defaultArgumentsCorrect)
 
 TEST_F(TestQemuVMProcessSpec, resumeArgumentsTakenFromResumedata)
 {
-    const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag",
-                                                        "machine_type",
-                                                        {"-one", "-two"}};
+    const mp::QemuVMProcessSpec::ResumeData resume_data{.suspend_tag = "suspend_tag",
+                                                        .machine_type = "machine_type",
+                                                        .arguments = {"-one", "-two"}};
 
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data);
 
@@ -134,9 +140,10 @@ TEST_F(TestQemuVMProcessSpec, resumeWithMissingMachineTypeGuessesCorrectly)
 
 TEST_F(TestQemuVMProcessSpec, resumeFixesVmnetFormat)
 {
-    const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag",
-                                                        "machine_type",
-                                                        {"vmnet-macos,mode=shared,foo"}};
+    const mp::QemuVMProcessSpec::ResumeData resume_data{
+        .suspend_tag = "suspend_tag",
+        .machine_type = "machine_type",
+        .arguments = {"vmnet-macos,mode=shared,foo"}};
 
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data);
 

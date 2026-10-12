@@ -114,31 +114,44 @@ struct HyperVBackend : public Test
         return ret;
     }
 
-    inline static const std::vector<RunSpec> prefix_ctor_runs = {{"Get-VM", "", false},
-                                                                 {"Get-VMSwitch"},
-                                                                 {"New-VM"},
-                                                                 {"-EnableSecureBoot Off"},
-                                                                 {"Set-VMProcessor"},
-                                                                 {"Add-VMDvdDrive"},
-                                                                 {"Set-VMMemory"},
-                                                                 {"Set-VM"}};
+    inline static const std::vector<RunSpec> prefix_ctor_runs = {
+        {.expect_cmdlet_substr = "Get-VM", .will_output = "", .will_return = false},
+        {.expect_cmdlet_substr = "Get-VMSwitch"},
+        {.expect_cmdlet_substr = "New-VM"},
+        {.expect_cmdlet_substr = "-EnableSecureBoot Off"},
+        {.expect_cmdlet_substr = "Set-VMProcessor"},
+        {.expect_cmdlet_substr = "Add-VMDvdDrive"},
+        {.expect_cmdlet_substr = "Set-VMMemory"},
+        {.expect_cmdlet_substr = "Set-VM"}};
     inline static const std::vector<RunSpec> postfix_ctor_runs = {};
-    inline static const RunSpec default_network_run = {"Set-VMNetworkAdapter"};
-    inline static const RunSpec min_dtor_run = {"-ExpandProperty State", "Off"};
+    inline static const RunSpec default_network_run = {
+        .expect_cmdlet_substr = "Set-VMNetworkAdapter"};
+    inline static const RunSpec min_dtor_run = {.expect_cmdlet_substr = "-ExpandProperty State",
+                                                .will_output = "Off"};
 
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
     mpt::TempDir data_dir;
-    mp::VirtualMachineDescription default_description{2,
-                                                      mp::MemorySize{"3M"},
-                                                      mp::MemorySize{}, // not used,
-                                                      "pied-piper-valley",
-                                                      "zone1",
-                                                      "ba:ba:ca:ca:ca:ba",
-                                                      {},
-                                                      "",
-                                                      {dummy_image.path(), "", "", "", "", {}},
-                                                      dummy_cloud_init_iso.name()};
+    mp::VirtualMachineDescription default_description{.num_cores = 2,
+                                                      .mem_size = mp::MemorySize{"3M"},
+                                                      .disk_space = mp::MemorySize{}, // not used
+                                                      .vm_name = "pied-piper-valley",
+                                                      .zone = "zone1",
+                                                      .default_mac_address = "ba:ba:ca:ca:ca:ba",
+                                                      .extra_interfaces = {},
+                                                      .ssh_username = "",
+                                                      .image = {.image_path = dummy_image.path(),
+                                                                .id = "",
+                                                                .original_release = "",
+                                                                .current_release = "",
+                                                                .release_date = "",
+                                                                .os = {},
+                                                                .aliases = {}},
+                                                      .cloud_init_iso = dummy_cloud_init_iso.name(),
+                                                      .meta_data_config = {},
+                                                      .user_data_config = {},
+                                                      .vendor_data_config = {},
+                                                      .network_data_config = {}};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mpt::PowerShellTestHelper ps_helper;
     mpt::StubAvailabilityZone zone{};
@@ -152,8 +165,9 @@ TEST_F(HyperVBackend, createsInOffState)
 {
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence());
 
-    auto machine =
-        backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor);
+    auto machine = backend.create_virtual_machine(default_description,
+                                                  stub_key_provider,
+                                                  stub_monitor);
     ASSERT_THAT(machine.get(), NotNull());
     EXPECT_THAT(machine->state, Eq(mp::VirtualMachine::State::off));
 }
@@ -166,8 +180,9 @@ struct HyperVNeighbors : public HyperVBackend
 {
     // The PowerShell query for the Default Switch host vNIC, which HNS names after its network.
     inline static const RunSpec default_switch_lookup_run{
-        "Get-VMNetworkAdapter -ManagementOS -Name 'Host Vnic C08CB7B8-9B3C-408E-8E30-5E16A3AEB444'",
-        "{99F4AB49-031B-48CE-B1E3-69068EBEEA09}"};
+        .expect_cmdlet_substr = "Get-VMNetworkAdapter -ManagementOS -Name 'Host Vnic "
+                                "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444'",
+        .will_output = "{99F4AB49-031B-48CE-B1E3-69068EBEEA09}"};
 
     // Expects the device ID returned by the lookup to resolve to `default_switch_luid`.
     void expect_default_switch_luid()
@@ -184,8 +199,9 @@ struct HyperVNeighbors : public HyperVBackend
     static mp::hyperv::IpNetTableResult make_neighbor_table()
     {
         constexpr std::array<unsigned char, 6> mac{0xba, 0xba, 0xca, 0xca, 0xca, 0xba};
-        return mpt::make_neighbor_table({{{10, 97, 0, 82}, other_network_luid, mac},
-                                         {{10, 22, 0, 82}, default_switch_luid, mac}});
+        return mpt::make_neighbor_table(
+            {{.address = {10, 97, 0, 82}, .interface_luid = other_network_luid, .mac = mac},
+             {.address = {10, 22, 0, 82}, .interface_luid = default_switch_luid, .mac = mac}});
     }
 
     mpt::MockNetIOAPI::GuardedMock mock_net_io_api_injection =
@@ -197,7 +213,10 @@ TEST_F(HyperVNeighbors, managementIpv4UsesDefaultSwitchEntry)
 {
     // The host vNIC is looked up once and reused by later queries.
     ps_helper.setup_mocked_run_sequence(
-        {{"Get-VM"}, {"-ExpandProperty State", "Off"}, default_switch_lookup_run, min_dtor_run});
+        {{.expect_cmdlet_substr = "Get-VM"},
+         {.expect_cmdlet_substr = "-ExpandProperty State", .will_output = "Off"},
+         default_switch_lookup_run,
+         min_dtor_run});
     expect_default_switch_luid();
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(2).WillRepeatedly([] {
         return make_neighbor_table();
@@ -216,7 +235,10 @@ TEST_F(HyperVNeighbors, managementIpv4ReturnsEmptyWithoutDefaultSwitchInterface)
     failed_lookup.will_output = "";
     failed_lookup.will_return = false;
     ps_helper.setup_mocked_run_sequence(
-        {{"Get-VM"}, {"-ExpandProperty State", "Off"}, failed_lookup, min_dtor_run});
+        {{.expect_cmdlet_substr = "Get-VM"},
+         {.expect_cmdlet_substr = "-ExpandProperty State", .will_output = "Off"},
+         failed_lookup,
+         min_dtor_run});
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(0);
     logger_scope.mock_logger->expect_log(mpl::Level::warning,
                                          "Could not find the Default Switch host interface");
@@ -236,11 +258,17 @@ struct HyperVStart : public HyperVNeighbors, public WithParamInterface<HyperVSta
 TEST_P(HyperVStart, removesNeighborsOnlyForConfirmedColdStart)
 {
     const auto& [initial_state, state_query, remove_neighbors] = GetParam();
-    std::vector<RunSpec> runs{{"Get-VM"}, {"-ExpandProperty State", initial_state}, state_query};
+    std::vector<RunSpec> runs{
+        {.expect_cmdlet_substr = "Get-VM"},
+        {.expect_cmdlet_substr = "-ExpandProperty State", .will_output = initial_state},
+        state_query};
     if (remove_neighbors)
         runs.push_back(default_switch_lookup_run);
-    runs.insert(runs.end(),
-                {{"-ExpandProperty State", state_query.will_output}, {"Start-VM"}, min_dtor_run});
+    runs.insert(
+        runs.end(),
+        {{.expect_cmdlet_substr = "-ExpandProperty State", .will_output = state_query.will_output},
+         {.expect_cmdlet_substr = "Start-VM"},
+         min_dtor_run});
     ps_helper.setup_mocked_run_sequence(runs);
 
     // The mocks are strict, so without expectations no lookup or removal may happen.
@@ -264,22 +292,40 @@ TEST_P(HyperVStart, removesNeighborsOnlyForConfirmedColdStart)
     EXPECT_EQ(machine->state, mp::VirtualMachine::State::starting);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    HyperVBackend,
-    HyperVStart,
-    Values(HyperVStartParams{"Off", {"-ExpandProperty State", "Off"}, true},
-           HyperVStartParams{"Saved", {"-ExpandProperty State", "Saved"}, false},
-           HyperVStartParams{"Off", {"-ExpandProperty State", "Running"}, false},
-           HyperVStartParams{"Off", {"-ExpandProperty State", "Starting"}, false},
-           HyperVStartParams{"Paused", {"-ExpandProperty State", "Paused"}, false},
-           HyperVStartParams{"Saved", {"-ExpandProperty State", "", false}, false}));
+INSTANTIATE_TEST_SUITE_P(HyperVBackend,
+                         HyperVStart,
+                         Values(HyperVStartParams{"Off",
+                                                  {.expect_cmdlet_substr = "-ExpandProperty State",
+                                                   .will_output = "Off"},
+                                                  true},
+                                HyperVStartParams{"Saved",
+                                                  {.expect_cmdlet_substr = "-ExpandProperty State",
+                                                   .will_output = "Saved"},
+                                                  false},
+                                HyperVStartParams{"Off",
+                                                  {.expect_cmdlet_substr = "-ExpandProperty State",
+                                                   .will_output = "Running"},
+                                                  false},
+                                HyperVStartParams{"Off",
+                                                  {.expect_cmdlet_substr = "-ExpandProperty State",
+                                                   .will_output = "Starting"},
+                                                  false},
+                                HyperVStartParams{"Paused",
+                                                  {.expect_cmdlet_substr = "-ExpandProperty State",
+                                                   .will_output = "Paused"},
+                                                  false},
+                                HyperVStartParams{"Saved",
+                                                  {.expect_cmdlet_substr = "-ExpandProperty State",
+                                                   .will_output = "",
+                                                   .will_return = false},
+                                                  false}));
 
 TEST_F(HyperVBackend, setsMacAddressOnDefaultNetworkAdapter)
 {
-    auto network_run =
-        RunSpec{fmt::format("Set-VMNetworkAdapter -VMName {} -StaticMacAddress \"{}\"",
-                            default_description.vm_name,
-                            default_description.default_mac_address)};
+    auto network_run = RunSpec{.expect_cmdlet_substr = fmt::format(
+                                   "Set-VMNetworkAdapter -VMName {} -StaticMacAddress \"{}\"",
+                                   default_description.vm_name,
+                                   default_description.default_mac_address)};
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({network_run}));
 
     backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor);
@@ -291,7 +337,7 @@ TEST_F(HyperVBackend, throwsOnFailureToSetupDefaultNetworkAdapter)
     default_tweaked_run.will_return = false;
 
     ps_helper.setup_mocked_run_sequence(
-        standard_ps_run_sequence({default_tweaked_run, {"Get-VM"}}));
+        standard_ps_run_sequence({default_tweaked_run, {.expect_cmdlet_substr = "Get-VM"}}));
 
     MP_EXPECT_THROW_THAT(
         backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor),
@@ -301,19 +347,21 @@ TEST_F(HyperVBackend, throwsOnFailureToSetupDefaultNetworkAdapter)
 
 TEST_F(HyperVBackend, addsExtraNetworkAdapters)
 {
-    default_description.extra_interfaces = {{"switchA", "55:66:44:77:33:88"},
-                                            {"switchB", "15:16:14:17:13:18"},
-                                            {"switchC", "5e:6f:4e:7f:3e:8f"}};
+    default_description.extra_interfaces = {{.id = "switchA", .mac_address = "55:66:44:77:33:88"},
+                                            {.id = "switchB", .mac_address = "15:16:14:17:13:18"},
+                                            {.id = "switchC", .mac_address = "5e:6f:4e:7f:3e:8f"}};
 
     auto network_runs = std::vector<RunSpec>{default_network_run};
     for (const auto& iface : default_description.extra_interfaces)
     {
-        network_runs.push_back({fmt::format("Get-VMSwitch -Name \"{}\"", iface.id)});
-        network_runs.push_back({fmt::format(
-            "Add-VMNetworkAdapter -VMName {} -SwitchName \"{}\" -StaticMacAddress \"{}\"",
-            default_description.vm_name,
-            iface.id,
-            iface.mac_address)});
+        network_runs.push_back(
+            {.expect_cmdlet_substr = fmt::format("Get-VMSwitch -Name \"{}\"", iface.id)});
+        network_runs.push_back(
+            {.expect_cmdlet_substr = fmt::format(
+                 "Add-VMNetworkAdapter -VMName {} -SwitchName \"{}\" -StaticMacAddress \"{}\"",
+                 default_description.vm_name,
+                 iface.id,
+                 iface.mac_address)});
     };
 
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence(std::move(network_runs)));
@@ -323,12 +371,15 @@ TEST_F(HyperVBackend, addsExtraNetworkAdapters)
 
 TEST_F(HyperVBackend, throwsOnFailureToDetectSwitchFromExtraInterface)
 {
-    auto extra_iface = mp::NetworkInterface{"MissingSwitch", "55:66:44:77:33:88"};
+    auto extra_iface = mp::NetworkInterface{.id = "MissingSwitch",
+                                            .mac_address = "55:66:44:77:33:88"};
     default_description.extra_interfaces.push_back(extra_iface);
 
     auto failing_cmd = fmt::format("Get-VMSwitch -Name \"{}\"", extra_iface.id);
-    ps_helper.setup_mocked_run_sequence(
-        standard_ps_run_sequence({default_network_run, {failing_cmd, "", false}, {"Get-VM"}}));
+    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence(
+        {default_network_run,
+         {.expect_cmdlet_substr = failing_cmd, .will_output = "", .will_return = false},
+         {.expect_cmdlet_substr = "Get-VM"}}));
 
     MP_EXPECT_THROW_THAT(
         backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor),
@@ -339,17 +390,21 @@ TEST_F(HyperVBackend, throwsOnFailureToDetectSwitchFromExtraInterface)
 
 TEST_F(HyperVBackend, throwsOnFailureToAddExtraInterface)
 {
-    auto extra_iface = mp::NetworkInterface{"SuperPriviledgedSwitch", "55:66:44:77:33:88"};
+    auto extra_iface = mp::NetworkInterface{.id = "SuperPriviledgedSwitch",
+                                            .mac_address = "55:66:44:77:33:88"};
     default_description.extra_interfaces.push_back(extra_iface);
 
-    auto failing_cmd =
-        fmt::format("Add-VMNetworkAdapter -VMName {} -SwitchName \"{}\" -StaticMacAddress \"{}\"",
-                    default_description.vm_name,
-                    extra_iface.id,
-                    extra_iface.mac_address);
+    auto failing_cmd = fmt::format(
+        "Add-VMNetworkAdapter -VMName {} -SwitchName \"{}\" -StaticMacAddress \"{}\"",
+        default_description.vm_name,
+        extra_iface.id,
+        extra_iface.mac_address);
 
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence(
-        {default_network_run, {"Get-VMSwitch"}, {failing_cmd, "", false}, {"Get-VM"}}));
+        {default_network_run,
+         {.expect_cmdlet_substr = "Get-VMSwitch"},
+         {.expect_cmdlet_substr = failing_cmd, .will_output = "", .will_return = false},
+         {.expect_cmdlet_substr = "Get-VM"}}));
 
     MP_EXPECT_THROW_THAT(
         backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor),
@@ -360,7 +415,9 @@ TEST_F(HyperVBackend, throwsOnFailureToAddExtraInterface)
 
 TEST_F(HyperVBackend, createBridgeRequestsNewSwitch)
 {
-    const mp::NetworkInterfaceInfo net{"asdf", "Ethernet", "The asdf net"};
+    const mp::NetworkInterfaceInfo net{.id = "asdf",
+                                       .type = "Ethernet",
+                                       .description = "The asdf net"};
 
     ps_helper.setup(
         [&net](auto* process) {
@@ -377,7 +434,9 @@ TEST_F(HyperVBackend, createBridgeRequestsNewSwitch)
 
 TEST_F(HyperVBackend, createBridgeReturnsNewSwitchName)
 {
-    const mp::NetworkInterfaceInfo net{"e1", "Ethernet", "Ethernet network"};
+    const mp::NetworkInterfaceInfo net{.id = "e1",
+                                       .type = "Ethernet",
+                                       .description = "Ethernet network"};
     const auto switch_name = fmt::format("ExtSwitch ({})", net.id);
     ps_helper.mock_ps_exec(QByteArray::fromStdString(switch_name));
     EXPECT_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(net), Eq(switch_name));
@@ -388,15 +447,15 @@ TEST_F(HyperVBackend, createBridgeThrowsOnNameMismatch)
     const auto bad = "wrong";
     ps_helper.mock_ps_exec(bad);
 
-    MP_EXPECT_THROW_THAT(
-        mpt::HyperVNetworkAccessor{backend}.create_bridge_with({"lagwagon", "Ethernet", "duh"}),
-        std::runtime_error,
-        mpt::match_what(HasSubstr(bad)));
+    MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(
+                             {.id = "lagwagon", .type = "Ethernet", .description = "duh"}),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr(bad)));
 }
 
 TEST_F(HyperVBackend, createBridgeThrowsOnProcessFailure)
 {
-    const mp::NetworkInterfaceInfo net{"rerere", "Ethernet", "lilo"};
+    const mp::NetworkInterfaceInfo net{.id = "rerere", .type = "Ethernet", .description = "lilo"};
     ps_helper.mock_ps_exec(std::nullopt,
                            QByteArray::fromStdString(fmt::format("ExtSwitch ({})", net.id)),
                            /* succeed = */ false);
@@ -416,7 +475,7 @@ TEST_F(HyperVBackend, createBridgeIncludesErrorMsgInException)
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "Process failed");
     logger_scope.mock_logger->expect_log(mpl::Level::warning, "stderr");
     MP_EXPECT_THROW_THAT(mpt::HyperVNetworkAccessor{backend}.create_bridge_with(
-                             {"Needle", "Ethernet", "in the hay"}),
+                             {.id = "Needle", .type = "Ethernet", .description = "in the hay"}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr(error)));
 }
@@ -437,34 +496,38 @@ INSTANTIATE_TEST_SUITE_P(
     CheckFineSuite,
     // Common case, vmms running
     Values(
-        std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "10"},
-                                                        {"ReleaseId", "1803"},
-                                                        {"HypervisorPresent", "True"},
-                                                        {"Microsoft-Hyper-V", "Enabled"},
-                                                        {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
-                                                        {"vmms", "Running"}},
+        std::vector<mpt::PowerShellTestHelper::RunSpec>{
+            {.expect_cmdlet_substr = "CurrentMajorVersionNumber", .will_output = "10"},
+            {.expect_cmdlet_substr = "ReleaseId", .will_output = "1803"},
+            {.expect_cmdlet_substr = "HypervisorPresent", .will_output = "True"},
+            {.expect_cmdlet_substr = "Microsoft-Hyper-V", .will_output = "Enabled"},
+            {.expect_cmdlet_substr = "Microsoft-Hyper-V-Hypervisor", .will_output = "Enabled"},
+            {.expect_cmdlet_substr = "vmms", .will_output = "Running"}},
         // Common case, vmms needs to be started
-        std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "10"},
-                                                        {"ReleaseId", "1803"},
-                                                        {"HypervisorPresent", "True"},
-                                                        {"Microsoft-Hyper-V", "Enabled"},
-                                                        {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
-                                                        {"vmms", "Stopped"},
-                                                        {"Get-Service", "Automatic"},
-                                                        {"Start-Service"}},
+        std::vector<mpt::PowerShellTestHelper::RunSpec>{
+            {.expect_cmdlet_substr = "CurrentMajorVersionNumber", .will_output = "10"},
+            {.expect_cmdlet_substr = "ReleaseId", .will_output = "1803"},
+            {.expect_cmdlet_substr = "HypervisorPresent", .will_output = "True"},
+            {.expect_cmdlet_substr = "Microsoft-Hyper-V", .will_output = "Enabled"},
+            {.expect_cmdlet_substr = "Microsoft-Hyper-V-Hypervisor", .will_output = "Enabled"},
+            {.expect_cmdlet_substr = "vmms", .will_output = "Stopped"},
+            {.expect_cmdlet_substr = "Get-Service", .will_output = "Automatic"},
+            {.expect_cmdlet_substr = "Start-Service"}},
         // New ReleaseId format
-        std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "10"},
-                                                        {"ReleaseId", "21H2"},
-                                                        {"HypervisorPresent", "True"},
-                                                        {"Microsoft-Hyper-V", "Enabled"},
-                                                        {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
-                                                        {"vmms", "Running"}},
+        std::vector<mpt::PowerShellTestHelper::RunSpec>{
+            {.expect_cmdlet_substr = "CurrentMajorVersionNumber", .will_output = "10"},
+            {.expect_cmdlet_substr = "ReleaseId", .will_output = "21H2"},
+            {.expect_cmdlet_substr = "HypervisorPresent", .will_output = "True"},
+            {.expect_cmdlet_substr = "Microsoft-Hyper-V", .will_output = "Enabled"},
+            {.expect_cmdlet_substr = "Microsoft-Hyper-V-Hypervisor", .will_output = "Enabled"},
+            {.expect_cmdlet_substr = "vmms", .will_output = "Running"}},
         // Windows 11, no need to check ReleaseId
-        std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "11"},
-                                                        {"HypervisorPresent", "True"},
-                                                        {"Microsoft-Hyper-V", "Enabled"},
-                                                        {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
-                                                        {"vmms", "Running"}}));
+        std::vector<mpt::PowerShellTestHelper::RunSpec>{
+            {.expect_cmdlet_substr = "CurrentMajorVersionNumber", .will_output = "11"},
+            {.expect_cmdlet_substr = "HypervisorPresent", .will_output = "True"},
+            {.expect_cmdlet_substr = "Microsoft-Hyper-V", .will_output = "Enabled"},
+            {.expect_cmdlet_substr = "Microsoft-Hyper-V-Hypervisor", .will_output = "Enabled"},
+            {.expect_cmdlet_substr = "vmms", .will_output = "Running"}}));
 
 struct CheckBadSuite : public HyperVBackend,
                        public WithParamInterface<std::vector<mpt::PowerShellTestHelper::RunSpec>>
@@ -482,25 +545,29 @@ INSTANTIATE_TEST_SUITE_P(
     CheckBadSuite,
     // Windows 7
     Values(
-        std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "7"}},
+        std::vector<mpt::PowerShellTestHelper::RunSpec>{
+            {.expect_cmdlet_substr = "CurrentMajorVersionNumber", .will_output = "7"}},
         // Windows 10, too old
-        std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "10"},
-                                                        {"ReleaseId", "1802"}},
+        std::vector<mpt::PowerShellTestHelper::RunSpec>{
+            {.expect_cmdlet_substr = "CurrentMajorVersionNumber", .will_output = "10"},
+            {.expect_cmdlet_substr = "ReleaseId", .will_output = "1802"}},
         // vmms service fails to start
-        std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "11"},
-                                                        {"HypervisorPresent", "True"},
-                                                        {"Microsoft-Hyper-V", "Enabled"},
-                                                        {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
-                                                        {"vmms", "Stopped"},
-                                                        {"Get-Service", "Automatic"},
-                                                        {"Start-Service", "", false}},
+        std::vector<mpt::PowerShellTestHelper::RunSpec>{
+            {.expect_cmdlet_substr = "CurrentMajorVersionNumber", .will_output = "11"},
+            {.expect_cmdlet_substr = "HypervisorPresent", .will_output = "True"},
+            {.expect_cmdlet_substr = "Microsoft-Hyper-V", .will_output = "Enabled"},
+            {.expect_cmdlet_substr = "Microsoft-Hyper-V-Hypervisor", .will_output = "Enabled"},
+            {.expect_cmdlet_substr = "vmms", .will_output = "Stopped"},
+            {.expect_cmdlet_substr = "Get-Service", .will_output = "Automatic"},
+            {.expect_cmdlet_substr = "Start-Service", .will_output = "", .will_return = false}},
         // vmms service disabled
-        std::vector<mpt::PowerShellTestHelper::RunSpec>{{"CurrentMajorVersionNumber", "11"},
-                                                        {"HypervisorPresent", "True"},
-                                                        {"Microsoft-Hyper-V", "Enabled"},
-                                                        {"Microsoft-Hyper-V-Hypervisor", "Enabled"},
-                                                        {"vmms", "Stopped"},
-                                                        {"Get-Service", "Disabled"}}));
+        std::vector<mpt::PowerShellTestHelper::RunSpec>{
+            {.expect_cmdlet_substr = "CurrentMajorVersionNumber", .will_output = "11"},
+            {.expect_cmdlet_substr = "HypervisorPresent", .will_output = "True"},
+            {.expect_cmdlet_substr = "Microsoft-Hyper-V", .will_output = "Enabled"},
+            {.expect_cmdlet_substr = "Microsoft-Hyper-V-Hypervisor", .will_output = "Enabled"},
+            {.expect_cmdlet_substr = "vmms", .will_output = "Stopped"},
+            {.expect_cmdlet_substr = "Get-Service", .will_output = "Disabled"}}));
 struct HyperVNetworks : public Test
 {
     void SetUp() override
@@ -564,7 +631,8 @@ TEST_F(HyperVNetworksPS, joinsSwitchesAndAdapters)
 {
     ps_helper.mock_ps_exec("switch,External, a switch,\n");
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(network_map_from_vector({{"eth", "Ethernet", "wired"}})));
+        .WillOnce(Return(
+            network_map_from_vector({{.id = "eth", .type = "Ethernet", .description = "wired"}})));
 
     auto got_nets = backend.networks();
     EXPECT_THAT(got_nets, SizeIs(2));
@@ -625,7 +693,8 @@ TEST_P(TestNonExternalSwitchesWithLinks, throwsOnNonExternalSwitchWithLink)
 {
     constexpr auto link_description = "foo bar net";
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(network_map_from_vector({{"eth", "Ethernet", link_description}})));
+        .WillOnce(Return(network_map_from_vector(
+            {{.id = "eth", .type = "Ethernet", .description = link_description}})));
 
     auto switch_type = GetParam();
     auto switch_line = fmt::format("a switch,{},{},", switch_type, link_description);
@@ -711,8 +780,8 @@ TEST_F(HyperVNetworksPS, handlesUnknownSwitchTypes)
 
 TEST_F(HyperVNetworksPS, includesSwitchLinksToKnownAdapters)
 {
-    mp::NetworkInterfaceInfo net_a{"a", "Ethernet", "an a a aaa"};
-    mp::NetworkInterfaceInfo net_c{"c", "Ethernet", "a c cc cc"};
+    mp::NetworkInterfaceInfo net_a{.id = "a", .type = "Ethernet", .description = "an a a aaa"};
+    mp::NetworkInterfaceInfo net_c{.id = "c", .type = "Ethernet", .description = "a c cc cc"};
 
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
         .WillOnce(Return(network_map_from_vector({net_a, net_c})));
@@ -747,10 +816,10 @@ TEST_P(TestSwitchUnsupportedLinks, omitsUnsupportedAdapterFromExternalSwitchDesc
 {
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
         .WillOnce(Return(network_map_from_vector(GetParam())));
-    const auto desc_matcher =
-        Field(&mp::NetworkInterfaceInfo::description,
-              make_required_forbidden_regex_matcher("^(?=.*switch)(?=.*external)",
-                                                    "via|internal|private"));
+    const auto desc_matcher = Field(
+        &mp::NetworkInterfaceInfo::description,
+        make_required_forbidden_regex_matcher("^(?=.*switch)(?=.*external)",
+                                              "via|internal|private"));
 
     ps_helper.mock_ps_exec("some switch,external,some unknown NIC,");
     EXPECT_THAT(backend.networks(), Contains(desc_matcher));
@@ -760,15 +829,21 @@ INSTANTIATE_TEST_SUITE_P(
     HyperVNetworksPS,
     TestSwitchUnsupportedLinks,
     Values(std::vector<mp::NetworkInterfaceInfo>{},
-           std::vector<mp::NetworkInterfaceInfo>{{"nic", "wifi", "a wifi"},
-                                                 {"eth", "Ethernet", "an ethernet"}},
-           std::vector<mp::NetworkInterfaceInfo>{{"nic", "crazy_type", "some unknown NIC"},
-                                                 {"eth", "Ethernet", "an ethernet"}}));
+           std::vector<mp::NetworkInterfaceInfo>{
+               {.id = "nic", .type = "wifi", .description = "a wifi"},
+               {.id = "eth", .type = "Ethernet", .description = "an ethernet"}},
+           std::vector<mp::NetworkInterfaceInfo>{
+               {.id = "nic", .type = "crazy_type", .description = "some unknown NIC"},
+               {.id = "eth", .type = "Ethernet", .description = "an ethernet"}}));
 
 TEST_F(HyperVNetworksPS, includesSupportedAdapterInExternalSwitchDescription)
 {
-    mp::NetworkInterfaceInfo eth{"Ethernet", "Ethernet", "An Ethernet NIC"};
-    mp::NetworkInterfaceInfo other{"Quantumwire", "quantum wire", "Future tech"};
+    mp::NetworkInterfaceInfo eth{.id = "Ethernet",
+                                 .type = "Ethernet",
+                                 .description = "An Ethernet NIC"};
+    mp::NetworkInterfaceInfo other{.id = "Quantumwire",
+                                   .type = "quantum wire",
+                                   .description = "Future tech"};
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
         .WillOnce(Return(network_map_from_vector({eth, other})));
 
@@ -795,8 +870,10 @@ TEST_F(HyperVNetworksPS, includesExistingNotesInSwitchDescription)
         QByteArray::fromStdString(fmt::format(output_format, notes, adapter_id)));
 
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
-        .WillOnce(Return(network_map_from_vector(
-            {mp::NetworkInterfaceInfo{adapter_id, "Ethernet", "eth adapter"}})));
+        .WillOnce(Return(
+            network_map_from_vector({mp::NetworkInterfaceInfo{.id = adapter_id,
+                                                              .type = "Ethernet",
+                                                              .description = "eth adapter"}})));
 
     auto matchers = std::vector{4, Field(&mp::NetworkInterfaceInfo::description, HasSubstr(notes))};
     matchers.push_back(Field(&mp::NetworkInterfaceInfo::id, Eq(adapter_id)));
@@ -853,11 +930,18 @@ TEST_P(TestAdapterAuthorization, requiresNoAuthorizationForSwitches)
                            Field(&mp::NetworkInterfaceInfo::needs_authorization, false))));
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    HyperVNetworkPS,
-    TestAdapterAuthorization,
-    Values(mp::NetworkInterfaceInfo{"abc", "Ethernet", "An adapter", {}, false},
-           mp::NetworkInterfaceInfo{"ghi", "Ethernet", "Yet another", {"x", "y", "z"}, false}));
+INSTANTIATE_TEST_SUITE_P(HyperVNetworkPS,
+                         TestAdapterAuthorization,
+                         Values(mp::NetworkInterfaceInfo{.id = "abc",
+                                                         .type = "Ethernet",
+                                                         .description = "An adapter",
+                                                         .links = {},
+                                                         .needs_authorization = false},
+                                mp::NetworkInterfaceInfo{.id = "ghi",
+                                                         .type = "Ethernet",
+                                                         .description = "Yet another",
+                                                         .links = {"x", "y", "z"},
+                                                         .needs_authorization = false}));
 
 TEST_F(HyperVNetworksPS, getSwitchesReturnsEmptyWhenNoSwitchesFound)
 {
@@ -897,12 +981,16 @@ TEST_F(HyperVNetworksPS, getSwitchesReturnsOnlySwitches)
 
 TEST_F(HyperVNetworks, getAdaptersReturnsEthernetAndNoWifi)
 {
-    mp::NetworkInterfaceInfo strange{"strange", "strangewire", "waka waka"};
-    mp::NetworkInterfaceInfo weird{"weird", "future tech", "wika wika"};
-    mp::NetworkInterfaceInfo unknown{"virtio", "unknown", "wuka wuka"};
-    mp::NetworkInterfaceInfo eth1{"eth1", "Ethernet", "ethththth"};
-    mp::NetworkInterfaceInfo eth2{"eth2", "Ethernet", "ethththth"};
-    mp::NetworkInterfaceInfo wifi1{"wireless1", "wifi", "wiiiiiii"};
+    mp::NetworkInterfaceInfo strange{.id = "strange",
+                                     .type = "strangewire",
+                                     .description = "waka waka"};
+    mp::NetworkInterfaceInfo weird{.id = "weird",
+                                   .type = "future tech",
+                                   .description = "wika wika"};
+    mp::NetworkInterfaceInfo unknown{.id = "virtio", .type = "unknown", .description = "wuka wuka"};
+    mp::NetworkInterfaceInfo eth1{.id = "eth1", .type = "Ethernet", .description = "ethththth"};
+    mp::NetworkInterfaceInfo eth2{.id = "eth2", .type = "Ethernet", .description = "ethththth"};
+    mp::NetworkInterfaceInfo wifi1{.id = "wireless1", .type = "wifi", .description = "wiiiiiii"};
 
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
         .WillOnce(Return(network_map_from_vector({strange, eth1, unknown, eth2, weird})));
@@ -930,8 +1018,12 @@ TEST_F(HyperVNetworks, getAdaptersMatchesPlatformEthernetCasing)
     // The Windows platform reports physical adapters with the exact type "Ethernet" (see
     // adapter_type_to_str). get_adapters() must match that casing; a differently-cased
     // "ethernet" is not what the platform emits and must not be picked up.
-    mp::NetworkInterfaceInfo real_adapter{"real", "Ethernet", "as reported by the platform"};
-    mp::NetworkInterfaceInfo wrong_case{"wrong", "ethernet", "never emitted by the platform"};
+    mp::NetworkInterfaceInfo real_adapter{.id = "real",
+                                          .type = "Ethernet",
+                                          .description = "as reported by the platform"};
+    mp::NetworkInterfaceInfo wrong_case{.id = "wrong",
+                                        .type = "ethernet",
+                                        .description = "never emitted by the platform"};
 
     EXPECT_CALL(*mock_platform, get_network_interfaces_info)
         .WillOnce(Return(network_map_from_vector({real_adapter, wrong_case})));

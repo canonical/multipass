@@ -412,7 +412,8 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
     original_iso.write_to(iso_path);
 
     const std::string default_mac_addr = "52:54:00:56:78:90";
-    const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true}};
+    const std::vector<mp::NetworkInterface> extra_interfaces = {
+        {.id = "id", .mac_address = "52:54:00:56:78:91", .auto_mode = true}};
     EXPECT_NO_THROW(MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(
         default_mac_addr,
         extra_interfaces,
@@ -462,7 +463,8 @@ TEST_F(CloudInitIso, updateCloneCloudInitSrcFileWithExtraInterfaces)
     original_iso.write_to(iso_path);
 
     const std::string default_mac_addr = "52:54:00:56:78:90";
-    const std::vector<mp::NetworkInterface> extra_interfaces = {{"id", "52:54:00:56:78:91", true}};
+    const std::vector<mp::NetworkInterface> extra_interfaces = {
+        {.id = "id", .mac_address = "52:54:00:56:78:91", .auto_mode = true}};
     EXPECT_NO_THROW(MP_CLOUD_INIT_FILE_OPS.update_identifiers(default_mac_addr,
                                                               extra_interfaces,
                                                               "vm1-clone1",

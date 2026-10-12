@@ -159,7 +159,9 @@ mp::ParseCode cmd::Alias::parse_args(mp::ArgParser* parser)
         return ParseCode::CommandLineError;
     }
 
-    alias_definition = AliasDefinition{instance, command, working_directory};
+    alias_definition = AliasDefinition{.instance = instance,
+                                       .command = command,
+                                       .working_directory = working_directory};
 
     return ParseCode::Ok;
 }

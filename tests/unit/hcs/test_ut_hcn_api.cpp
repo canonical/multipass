@@ -164,7 +164,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_ics)
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
         params.ipams = {
-            hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
+            hcn::HcnIpam{.type = hcn::HcnIpamType::Static(),
+                         .subnets = {hcn::HcnSubnet{.ip_address_prefix = "172.50.224.0/20"}}}};
 
         const auto& [status, status_msg] = HCN().create_network(params);
         ASSERT_TRUE(status.success());
@@ -228,8 +229,9 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_transparent)
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
         params.ipams = {};
-        hcn::HcnNetworkPolicy policy{hcn::HcnNetworkPolicyType::NetAdapterName(),
-                                     hcn::HcnNetworkPolicyNetAdapterName{"test adapter"}};
+        hcn::HcnNetworkPolicy policy{
+            .type = hcn::HcnNetworkPolicyType::NetAdapterName(),
+            .settings = hcn::HcnNetworkPolicyNetAdapterName{.net_adapter_name = "test adapter"}};
         params.policies.push_back(policy);
 
         const auto& [status, status_msg] = HCN().create_network(params);
@@ -303,8 +305,9 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_polici
         params.ipams = {};
         params.flags = hcn::HcnNetworkFlags::enable_dhcp_server |
                        hcn::HcnNetworkFlags::enable_non_persistent;
-        hcn::HcnNetworkPolicy policy{hcn::HcnNetworkPolicyType::NetAdapterName(),
-                                     hcn::HcnNetworkPolicyNetAdapterName{"test adapter"}};
+        hcn::HcnNetworkPolicy policy{
+            .type = hcn::HcnNetworkPolicyType::NetAdapterName(),
+            .settings = hcn::HcnNetworkPolicyNetAdapterName{.net_adapter_name = "test adapter"}};
         params.policies.push_back(policy);
         params.policies.push_back(policy);
 
@@ -385,7 +388,10 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
         hcn::HcnIpam ipam1;
         ipam1.type = hcn::HcnIpamType::Static();
         ipam1.subnets.push_back(
-            hcn::HcnSubnet{"10.0.0.10/10", {hcn::HcnRoute{"10.0.0.1", "0.0.0.0/0", 0}}});
+            hcn::HcnSubnet{.ip_address_prefix = "10.0.0.10/10",
+                           .routes = {hcn::HcnRoute{.next_hop = "10.0.0.1",
+                                                    .destination_prefix = "0.0.0.0/0",
+                                                    .metric = 0}}});
         hcn::HcnIpam ipam2;
         ipam2.type = hcn::HcnIpamType::Dhcp();
 
@@ -423,7 +429,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_close_network_failed)
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
         params.ipams = {
-            hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
+            hcn::HcnIpam{.type = hcn::HcnIpamType::Static(),
+                         .subnets = {hcn::HcnSubnet{.ip_address_prefix = "172.50.224.0/20"}}}};
 
         const auto& [success, error_msg] = HCN().create_network(params);
         ASSERT_TRUE(success.success());
@@ -461,7 +468,8 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_failed)
         params.name = "multipass-hyperv-api-hcn-create-test";
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
         params.ipams = {
-            hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
+            hcn::HcnIpam{.type = hcn::HcnIpamType::Static(),
+                         .subnets = {hcn::HcnSubnet{.ip_address_prefix = "172.50.224.0/20"}}}};
 
         const auto& [status, error_msg] = HCN().create_network(params);
         ASSERT_FALSE(status.success());

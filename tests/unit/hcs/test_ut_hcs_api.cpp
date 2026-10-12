@@ -262,8 +262,13 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_happy_path)
             .processor_count = 8,
             .scsi_devices =
                 {
-                    {HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true},
-                    {HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"},
+                    {.type = HcsScsiDeviceType::Iso(),
+                     .name = "cloud-init",
+                     .path = "cloudinit iso path",
+                     .read_only = true},
+                    {.type = HcsScsiDeviceType::VirtualDisk(),
+                     .name = "primary",
+                     .path = "virtual disk path"},
                 },
             .guest_state =
                 {
@@ -439,7 +444,9 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_cloudinit)
             .processor_count = 8,
             .scsi_devices =
                 {
-                    {HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"},
+                    {.type = HcsScsiDeviceType::VirtualDisk(),
+                     .name = "primary",
+                     .path = "virtual disk path"},
                 },
         });
     }
@@ -560,7 +567,10 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wo_vhdx)
             .processor_count = 8,
             .scsi_devices =
                 {
-                    {HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true},
+                    {.type = HcsScsiDeviceType::Iso(),
+                     .name = "cloud-init",
+                     .path = "cloudinit iso path",
+                     .read_only = true},
                 },
         });
     }
@@ -698,8 +708,13 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_create_operation_fail)
             .processor_count = 8,
             .scsi_devices =
                 {
-                    {HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true},
-                    {HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"},
+                    {.type = HcsScsiDeviceType::Iso(),
+                     .name = "cloud-init",
+                     .path = "cloudinit iso path",
+                     .read_only = true},
+                    {.type = HcsScsiDeviceType::VirtualDisk(),
+                     .name = "primary",
+                     .path = "virtual disk path"},
                 },
         };
 
@@ -817,8 +832,13 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_fail)
             .processor_count = 8,
             .scsi_devices =
                 {
-                    {HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true},
-                    {HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"},
+                    {.type = HcsScsiDeviceType::Iso(),
+                     .name = "cloud-init",
+                     .path = "cloudinit iso path",
+                     .read_only = true},
+                    {.type = HcsScsiDeviceType::VirtualDisk(),
+                     .name = "primary",
+                     .path = "virtual disk path"},
                 },
         };
 
@@ -955,8 +975,13 @@ TEST_F(HyperVHCSAPI_UnitTests, create_compute_system_wait_for_operation_fail)
             .processor_count = 8,
             .scsi_devices =
                 {
-                    {HcsScsiDeviceType::Iso(), "cloud-init", "cloudinit iso path", true},
-                    {HcsScsiDeviceType::VirtualDisk(), "primary", "virtual disk path"},
+                    {.type = HcsScsiDeviceType::Iso(),
+                     .name = "cloud-init",
+                     .path = "cloudinit iso path",
+                     .read_only = true},
+                    {.type = HcsScsiDeviceType::VirtualDisk(),
+                     .name = "primary",
+                     .path = "virtual disk path"},
                 },
         };
 
@@ -1851,9 +1876,10 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_happy_path)
         params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
         params.mac_address = "00:00:00:00:00:00";
 
-        HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
-                                           HcsRequestType::Add(),
-                                           params};
+        HcsRequest add_network_adapter_req{
+            .resource_path = HcsResourcePath::NetworkAdapters(params.endpoint_guid),
+            .request_type = HcsRequestType::Add(),
+            .settings = params};
         return HCS().modify_compute_system(handle, add_network_adapter_req);
     });
 }
@@ -1866,9 +1892,10 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_hcs_open_fa
         HcsSystemHandle handle{nullptr};
         EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
         HcsNetworkAdapter params{};
-        HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
-                                           HcsRequestType::Add(),
-                                           params};
+        HcsRequest add_network_adapter_req{
+            .resource_path = HcsResourcePath::NetworkAdapters(params.endpoint_guid),
+            .request_type = HcsRequestType::Add(),
+            .settings = params};
         return HCS().modify_compute_system(handle, add_network_adapter_req);
     });
 }
@@ -1881,9 +1908,10 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_create_oper
         HcsSystemHandle handle{nullptr};
         EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         HcsNetworkAdapter params{};
-        HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
-                                           HcsRequestType::Add(),
-                                           params};
+        HcsRequest add_network_adapter_req{
+            .resource_path = HcsResourcePath::NetworkAdapters(params.endpoint_guid),
+            .request_type = HcsRequestType::Add(),
+            .settings = params};
         return HCS().modify_compute_system(handle, add_network_adapter_req);
     });
 }
@@ -1924,9 +1952,10 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_fail)
         HcsNetworkAdapter params{};
         params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
         params.mac_address = "00:00:00:00:00:00";
-        HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
-                                           HcsRequestType::Add(),
-                                           params};
+        HcsRequest add_network_adapter_req{
+            .resource_path = HcsResourcePath::NetworkAdapters(params.endpoint_guid),
+            .request_type = HcsRequestType::Add(),
+            .settings = params};
         return HCS().modify_compute_system(handle, add_network_adapter_req);
     });
 }
@@ -1967,9 +1996,10 @@ TEST_F(HyperVHCSAPI_UnitTests, add_network_adapter_to_compute_system_wait_for_op
         HcsNetworkAdapter params{};
         params.endpoint_guid = "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca";
         params.mac_address = "00:00:00:00:00:00";
-        HcsRequest add_network_adapter_req{HcsResourcePath::NetworkAdapters(params.endpoint_guid),
-                                           HcsRequestType::Add(),
-                                           params};
+        HcsRequest add_network_adapter_req{
+            .resource_path = HcsResourcePath::NetworkAdapters(params.endpoint_guid),
+            .request_type = HcsRequestType::Add(),
+            .settings = params};
         return HCS().modify_compute_system(handle, add_network_adapter_req);
     });
 }
@@ -2003,9 +2033,9 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_happy_
     generic_operation_happy_path([&]() {
         HcsSystemHandle handle{nullptr};
         EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
-        HcsRequest remove_network_adapter_req{
-            HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
-            HcsRequestType::Remove()};
+        HcsRequest remove_network_adapter_req{.resource_path = HcsResourcePath::NetworkAdapters(
+                                                  "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
+                                              .request_type = HcsRequestType::Remove()};
         return HCS().modify_compute_system(handle, remove_network_adapter_req);
     });
 }
@@ -2017,9 +2047,9 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_hcs_op
     generic_operation_hcs_open_fail([&]() {
         HcsSystemHandle handle{nullptr};
         EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
-        HcsRequest remove_network_adapter_req{
-            HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
-            HcsRequestType::Remove()};
+        HcsRequest remove_network_adapter_req{.resource_path = HcsResourcePath::NetworkAdapters(
+                                                  "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
+                                              .request_type = HcsRequestType::Remove()};
         return HCS().modify_compute_system(handle, remove_network_adapter_req);
     });
 }
@@ -2031,9 +2061,9 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_create
     generic_operation_create_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
         EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
-        HcsRequest remove_network_adapter_req{
-            HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
-            HcsRequestType::Remove()};
+        HcsRequest remove_network_adapter_req{.resource_path = HcsResourcePath::NetworkAdapters(
+                                                  "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
+                                              .request_type = HcsRequestType::Remove()};
         return HCS().modify_compute_system(handle, remove_network_adapter_req);
     });
 }
@@ -2067,9 +2097,9 @@ TEST_F(HyperVHCSAPI_UnitTests, remove_network_adapter_from_compute_system_fail)
     generic_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
         EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
-        HcsRequest remove_network_adapter_req{
-            HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
-            HcsRequestType::Remove()};
+        HcsRequest remove_network_adapter_req{.resource_path = HcsResourcePath::NetworkAdapters(
+                                                  "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
+                                              .request_type = HcsRequestType::Remove()};
         return HCS().modify_compute_system(handle, remove_network_adapter_req);
     });
 }
@@ -2104,9 +2134,9 @@ TEST_F(HyperVHCSAPI_UnitTests,
     generic_operation_wait_for_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
         EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
-        HcsRequest remove_network_adapter_req{
-            HcsResourcePath::NetworkAdapters("288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
-            HcsRequestType::Remove()};
+        HcsRequest remove_network_adapter_req{.resource_path = HcsResourcePath::NetworkAdapters(
+                                                  "288cc1ac-8f31-4a09-9e90-30ad0bcfdbca"),
+                                              .request_type = HcsRequestType::Remove()};
         return HCS().modify_compute_system(handle, remove_network_adapter_req);
     });
 }
@@ -2140,9 +2170,9 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_happy_path)
     generic_operation_happy_path([&]() {
         HcsSystemHandle handle{nullptr};
         EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
-        HcsRequest req{HcsResourcePath::Memory(),
-                       HcsRequestType::Update(),
-                       HcsModifyMemorySettings{16384}};
+        HcsRequest req{.resource_path = HcsResourcePath::Memory(),
+                       .request_type = HcsRequestType::Update(),
+                       .settings = HcsModifyMemorySettings{.size_in_mb = 16384}};
 
         return HCS().modify_compute_system(handle, req);
     });
@@ -2155,9 +2185,9 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_hcs_open_fail)
     generic_operation_hcs_open_fail([&]() {
         HcsSystemHandle handle{nullptr};
         EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
-        HcsRequest req{HcsResourcePath::Memory(),
-                       HcsRequestType::Update(),
-                       HcsModifyMemorySettings{16384}};
+        HcsRequest req{.resource_path = HcsResourcePath::Memory(),
+                       .request_type = HcsRequestType::Update(),
+                       .settings = HcsModifyMemorySettings{.size_in_mb = 16384}};
         return HCS().modify_compute_system(handle, req);
     });
 }
@@ -2169,9 +2199,9 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_create_operation_
     generic_operation_create_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
         EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
-        HcsRequest req{HcsResourcePath::Memory(),
-                       HcsRequestType::Update(),
-                       HcsModifyMemorySettings{16384}};
+        HcsRequest req{.resource_path = HcsResourcePath::Memory(),
+                       .request_type = HcsRequestType::Update(),
+                       .settings = HcsModifyMemorySettings{.size_in_mb = 16384}};
         return HCS().modify_compute_system(handle, req);
     });
 }
@@ -2205,9 +2235,9 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_fail)
     generic_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
         EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
-        HcsRequest req{HcsResourcePath::Memory(),
-                       HcsRequestType::Update(),
-                       HcsModifyMemorySettings{16384}};
+        HcsRequest req{.resource_path = HcsResourcePath::Memory(),
+                       .request_type = HcsRequestType::Update(),
+                       .settings = HcsModifyMemorySettings{.size_in_mb = 16384}};
         return HCS().modify_compute_system(handle, req);
     });
 }
@@ -2241,9 +2271,9 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_wait_for_operatio
     generic_operation_wait_for_operation_fail([&]() {
         HcsSystemHandle handle{nullptr};
         EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
-        HcsRequest req{HcsResourcePath::Memory(),
-                       HcsRequestType::Update(),
-                       HcsModifyMemorySettings{16384}};
+        HcsRequest req{.resource_path = HcsResourcePath::Memory(),
+                       .request_type = HcsRequestType::Update(),
+                       .settings = HcsModifyMemorySettings{.size_in_mb = 16384}};
         return HCS().modify_compute_system(handle, req);
     });
 }
