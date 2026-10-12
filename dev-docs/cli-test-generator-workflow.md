@@ -132,6 +132,23 @@ contents. Nothing else happens — no test is generated yet.
 your terminal); this script does not ask you to approve inline, it just
 stops so you can.
 
+Add `--interactive` to turn this into a live, attached `copilot` session
+instead of a single headless call:
+
+```bash
+./tools/cli-test-generator/generate-gherkin.sh --issue 1234 --interactive
+```
+
+In this mode the script drops `--no-ask-user`/`--silent` and launches
+`copilot -i "<prompt>"` attached to your terminal. The prompt tells the
+model to ask you clarifying questions (exact flags, exact output text,
+instance/mount preconditions, edge cases, etc.) before it drafts anything,
+and you answer right there in the session — a real back-and-forth, not a
+one-shot guess. Exit the session yourself (e.g. `ctrl+d`) once the `.feature`
+file looks right; the script then checks the result exactly like the
+headless mode. The tool restriction (`view grep glob create`, no `bash`/
+`git`/`gh`) still applies either way.
+
 **Script 2 — generate the test from your approved Gherkin:**
 
 ```bash
