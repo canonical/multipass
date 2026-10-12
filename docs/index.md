@@ -89,7 +89,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ```{slice} Settings
 
-{doc}`Settings <reference/settings/index>`
+{doc}`Available settings <reference/settings/index>`
 {doc}`Settings keys and values <explanation/settings-keys-values>`
 {doc}`Instance name format <reference/instance-name-format>`
 ```
