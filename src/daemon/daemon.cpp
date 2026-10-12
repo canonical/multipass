@@ -2308,7 +2308,7 @@ try
 
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_vms_ready<StartReply, StartRequest>,
+        QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<StartReply, StartRequest>,
                           this,
                           server,
                           starting_vms,
@@ -2433,7 +2433,7 @@ try
 
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_vms_ready<RestartReply, RestartRequest>,
+        QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<RestartReply, RestartRequest>,
                           this,
                           server,
                           names_from(instance_targets),
@@ -3145,7 +3145,7 @@ try // clang-format on
     {
         auto future_watcher = create_future_watcher();
         future_watcher->setFuture(
-            QtConcurrent::run(&Daemon::async_wait_vms_ready<StartReply, StartRequest>,
+            QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<StartReply, StartRequest>,
                               this,
                               nullptr,
                               starting_vms,
@@ -3215,7 +3215,7 @@ void mp::Daemon::on_restart(const std::string& name)
         }
     });
     future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_vms_ready<StartReply, StartRequest>,
+        QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<StartReply, StartRequest>,
                           this,
                           nullptr,
                           std::vector<std::string>{name},
@@ -3384,7 +3384,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                                          server->Write(reply);
                                      });
                                  future_watcher->setFuture(QtConcurrent::run(
-                                     &Daemon::async_wait_vms_ready<LaunchReply, LaunchRequest>,
+                                     &Daemon::async_wait_multiple_vms_ready<LaunchReply,
+                                                                            LaunchRequest>,
                                      this,
                                      server,
                                      std::vector<std::string>{name},
@@ -3881,11 +3882,11 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
 
 template <typename Reply, typename Request>
 mp::Daemon::AsyncOperationStatus
-mp::Daemon::async_wait_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                                 const std::vector<std::string>& vms,
-                                 const std::chrono::seconds& timeout,
-                                 DaemonRpcContext* context,
-                                 const std::string& start_errors)
+mp::Daemon::async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                                          const std::vector<std::string>& vms,
+                                          const std::chrono::seconds& timeout,
+                                          DaemonRpcContext* context,
+                                          const std::string& start_errors)
 {
     QFutureSynchronizer<ReadinessResult> start_synchronizer;
     {
@@ -3919,12 +3920,11 @@ mp::Daemon::async_wait_vms_ready(grpc::ServerReaderWriterInterface<Reply, Reques
         }
     }
 
-    std::vector<ReadinessResult> readiness_errors;
-    readiness_errors.reserve(vms.size());
+    std::vector<ReadinessResult> results;
+    results.reserve(vms.size());
 
     for (const auto& future : start_synchronizer.futures())
-        if (const auto result = future.result(); result.error != ReadinessError::OK)
-            readiness_errors.push_back(result);
+        results.push_back(future.result());
 
     if constexpr (std::is_same_v<Reply, StartReply> || std::is_same_v<Reply, RestartReply>)
     {
@@ -3936,7 +3936,7 @@ mp::Daemon::async_wait_vms_ready(grpc::ServerReaderWriterInterface<Reply, Reques
         }
     }
 
-    return {grpc_status_for_readiness<Reply>(readiness_errors, start_errors), context};
+    return {grpc_status_for_readiness<Reply>(results, start_errors), context};
 }
 
 void mp::Daemon::finish_async_operation(const std::string& async_future_key)
@@ -4206,54 +4206,86 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
     }
 }
 
-template <typename Reply>
-grpc::Status mp::Daemon::grpc_status_for_readiness(const std::vector<ReadinessResult>& errors,
-                                                   const std::string& start_errors)
+grpc::StatusCode mp::Daemon::grpc_status_code_for_readiness(
+    const std::vector<ReadinessResult>& results,
+    const std::string& start_errors)
 {
     const auto is_error = [](const ReadinessResult& result) {
         return result.error != ReadinessError::OK;
     };
 
-    if (start_errors.empty() && std::none_of(errors.begin(), errors.end(), is_error))
-        return grpc::Status::OK;
+    if (start_errors.empty() && std::none_of(results.begin(), results.end(), is_error))
+        return grpc::StatusCode::OK;
 
-    grpc::StatusCode status_code = grpc::StatusCode::INVALID_ARGUMENT;
-    std::string error_details;
+    // If there is only one VM and that VM timed-out with no other errors, return DEADLINE_EXCEEDED
+    if ((start_errors.empty() && results.size() == 1) &&
+        (results[0].error == ReadinessError::SSH_TIMEOUT ||
+         results[0].error == ReadinessError::CLOUD_INIT_TIMEOUT))
+        return grpc::StatusCode::DEADLINE_EXCEEDED;
 
-    if constexpr (std::is_same_v<Reply, LaunchReply>)
-    {
-        assert(errors.size() <= 1);
+    return grpc::StatusCode::INVALID_ARGUMENT;
+}
 
-        LaunchError launch_error;
-        for (const auto& error : errors)
-        {
-            if (error.error == ReadinessError::SSH_TIMEOUT ||
-                error.error == ReadinessError::CLOUD_INIT_TIMEOUT)
-                status_code = grpc::StatusCode::DEADLINE_EXCEEDED;
+template <typename Reply>
+std::string mp::Daemon::grpc_error_details_for_readiness(const std::vector<ReadinessResult>&)
+{
+    return {};
+}
 
-            launch_error.set_readiness_error(error.error);
-        }
-        error_details = launch_error.SerializeAsString();
-    }
-    else if constexpr (std::is_same_v<Reply, StartReply>)
-    {
-        StartError start_error;
-        auto* readiness_errors = start_error.mutable_readiness_errors();
-        for (const auto& error : errors)
-            if (is_error(error))
-                (*readiness_errors)[error.instance_name] = error.error;
-        error_details = start_error.SerializeAsString();
-    }
+template <>
+std::string mp::Daemon::grpc_error_details_for_readiness<mp::LaunchReply>(
+    const std::vector<ReadinessResult>& results)
+{
+    assert(results.size() == 1);
 
+    LaunchError launch_error;
+    launch_error.set_readiness_error(results.at(0).error);
+
+    return launch_error.SerializeAsString();
+}
+
+template <>
+std::string mp::Daemon::grpc_error_details_for_readiness<mp::StartReply>(
+    const std::vector<ReadinessResult>& results)
+{
+    StartError start_error;
+
+    auto* readiness_errors = start_error.mutable_readiness_errors();
+    for (const auto& result : results)
+        if (result.error != ReadinessError::OK)
+            (*readiness_errors)[result.instance_name] = result.error;
+
+    return start_error.SerializeAsString();
+}
+
+std::string mp::Daemon::grpc_error_message_for_readiness(
+    const std::vector<ReadinessResult>& results,
+    const std::string& start_errors)
+{
     fmt::memory_buffer collective_errors;
     add_fmt_to(collective_errors, "The following errors occurred:");
 
     if (!start_errors.empty())
         add_fmt_to(collective_errors, "{}", start_errors);
 
-    for (const auto& result : errors)
-        if (is_error(result))
+    for (const auto& result : results)
+        if (result.error != ReadinessError::OK)
             add_fmt_to(collective_errors, "{}", result.message);
 
-    return {status_code, fmt::to_string(collective_errors), std::move(error_details)};
+    return fmt::to_string(collective_errors);
+}
+
+template <typename Reply>
+grpc::Status mp::Daemon::grpc_status_for_readiness(const std::vector<ReadinessResult>& results,
+                                                   const std::string& start_errors)
+{
+    const grpc::StatusCode status_code = grpc_status_code_for_readiness(results, start_errors);
+    if (status_code == grpc::StatusCode::OK)
+    {
+        return grpc::Status::OK;
+    }
+
+    return {status_code,
+            grpc_error_message_for_readiness(results, start_errors),
+            grpc_error_details_for_readiness<Reply>(results)};
 }

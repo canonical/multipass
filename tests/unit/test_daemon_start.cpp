@@ -346,7 +346,8 @@ TEST_F(TestDaemonStart, sshfsMissingReturnsStructuredReadinessError)
 
 struct TestDaemonStartSshReadinessError
     : public TestDaemonStart,
-      public WithParamInterface<std::tuple<mp::ReadinessError::ErrorCode, std::function<void()>>>
+      public WithParamInterface<
+          std::tuple<mp::ReadinessError::ErrorCode, std::function<void()>, grpc::StatusCode>>
 {
 };
 
@@ -375,7 +376,7 @@ TEST_P(TestDaemonStartSshReadinessError, returnsStructuredReadinessError)
 
     const auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(server));
 
-    ASSERT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
+    ASSERT_EQ(status.error_code(), std::get<2>(GetParam()));
     mp::StartError start_error;
     ASSERT_TRUE(start_error.ParseFromString(status.error_details()));
     const auto error = start_error.readiness_errors().find(mock_instance_name);
@@ -383,12 +384,17 @@ TEST_P(TestDaemonStartSshReadinessError, returnsStructuredReadinessError)
     EXPECT_EQ(error->second, std::get<0>(GetParam()));
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    TestDaemonStart,
-    TestDaemonStartSshReadinessError,
-    Values(std::make_tuple(mp::ReadinessError::UNPLUGGED,
-                           [] { throw mp::StartException{"real-zebraphant", "unplugged"}; }),
-           std::make_tuple(mp::ReadinessError::SSH_TIMEOUT,
-                           [] { throw mp::SSHTimeoutException{"ssh timeout"}; }),
-           std::make_tuple(mp::ReadinessError::OTHER,
-                           [] { throw std::runtime_error{"unexpected error"}; })));
+INSTANTIATE_TEST_SUITE_P(TestDaemonStart,
+                         TestDaemonStartSshReadinessError,
+                         Values(std::make_tuple(
+                                    mp::ReadinessError::UNPLUGGED,
+                                    [] { throw mp::StartException{"real-elephant", "unplugged"}; },
+                                    grpc::StatusCode::INVALID_ARGUMENT),
+                                std::make_tuple(
+                                    mp::ReadinessError::SSH_TIMEOUT,
+                                    [] { throw mp::SSHTimeoutException{"ssh timeout"}; },
+                                    grpc::StatusCode::DEADLINE_EXCEEDED),
+                                std::make_tuple(
+                                    mp::ReadinessError::OTHER,
+                                    [] { throw std::runtime_error{"unexpected error"}; },
+                                    grpc::StatusCode::INVALID_ARGUMENT)));
