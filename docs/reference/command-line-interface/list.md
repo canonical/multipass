@@ -6,9 +6,9 @@
 The `multipass list` command lists available instances. It presents a generic view of instances, with some of their properties, including the number of {ref}`mounts <reference-command-line-interface-mount>` each instance has and the {ref}`availability zone <explanation-availability-zone>` it is in; for example:
 
 ```{code-block} text
-Name                    State             IPv4             Release            Mounts  Zone
-primary                 Suspended         --               Ubuntu 26.04 LTS   1       zone1
-calm-squirrel           Running           10.218.69.109    Ubuntu 26.04 LTS   0       zone2
+Name             State        IPv4             Release            Mounts  Zone
+primary          Suspended    --               Ubuntu 26.04 LTS   1       zone1
+calm-squirrel    Running      10.218.69.109    Ubuntu 26.04 LTS   0       zone2
 ```
 
 If an instance's zone has been disabled with [`multipass disable-zones`](reference-command-line-interface-disable-zones), `(n/a)` is appended to its zone in the table output, and its state shows as `Unavailable` (see {ref}`Instance states <reference-instance-states>`).
