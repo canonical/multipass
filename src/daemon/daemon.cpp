@@ -308,6 +308,13 @@ auto fetch_image_for(const std::string& name,
                              factory.get_instance_directory(name));
 }
 
+std::filesystem::path cloud_init_iso_path(const mp::VirtualMachineFactory& factory,
+                                          const std::string& name)
+{
+    return MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)) /
+           mp::cloud_init_file_name;
+}
+
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
 {
     try
@@ -1463,9 +1470,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        const auto instance_dir = mp::utils::base_dir(
-            MP_PLATFORM.path_to_qstr(vm_image.image_path));
-        const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
+        const auto cloud_init_iso = MP_PLATFORM.path_to_qstr(
+            cloud_init_iso_path(*config->factory, name));
         mp::VirtualMachineDescription vm_desc{spec_copy.num_cores,
                                               spec_copy.mem_size,
                                               spec_copy.disk_space,
@@ -3573,11 +3579,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 checked_args.extra_interfaces);
 
             vm_desc.image = vm_image;
-            const auto cloud_init_iso =
-                MP_PLATFORM.qstr_to_path(config->factory->get_instance_directory(name)) /
-                cloud_init_file_name;
-            if (!MP_FILEOPS.exists(cloud_init_iso))
-                CloudInitIso{cloud_init}.write_to(cloud_init_iso);
+            const auto cloud_init_iso = cloud_init_iso_path(*config->factory, name);
+            CloudInitIso{cloud_init}.write_to(cloud_init_iso);
             vm_desc.cloud_init_iso = MP_PLATFORM.path_to_qstr(cloud_init_iso);
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
