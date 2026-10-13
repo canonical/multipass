@@ -2322,17 +2322,17 @@ try
                 "Try to stop it first.",
                 name);
             mpl::log_message(mpl::Level::warning, category, error_string);
-            start_errors.append(error_string);
+            add_fmt_to(start_errors, "{}", error_string);
             continue;
         }
         case VirtualMachine::State::suspending:
         case VirtualMachine::State::unavailable:
             // TODO: format State directly
-            fmt::format_to(std::back_inserter(start_errors),
-                           "Cannot start the instance '{}' while {}.",
-                           name,
-                           vm.current_state() == VirtualMachine::State::suspending ? "suspending"
-                                                                                   : "unavailable");
+            add_fmt_to(start_errors,
+                       "Cannot start the instance '{}' while {}.",
+                       name,
+                       vm.current_state() == VirtualMachine::State::suspending ? "suspending"
+                                                                               : "unavailable");
             continue;
         case VirtualMachine::State::delayed_shutdown:
             delayed_shutdown_instances.erase(name);
