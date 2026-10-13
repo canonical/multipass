@@ -530,7 +530,7 @@ std::string& mp::CloudInitIso::operator[](const std::string& name)
     }
 }
 
-void mp::CloudInitIso::write_to(const std::filesystem::path& path)
+void mp::CloudInitIso::write_to(const std::filesystem::path& path) const
 {
     std::ofstream f{path, std::ios::binary | std::ios::out};
     if (!f.is_open())
