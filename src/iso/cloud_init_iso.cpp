@@ -472,17 +472,12 @@ void pad_to_end(std::ofstream& f)
 } // namespace
 
 mp::CloudInitIso::CloudInitIso(const CloudInitConfig& config)
+    : files{{"meta-data", mpu::emit_cloud_config(config.meta_data)},
+            {"vendor-data", mpu::emit_cloud_config(config.vendor_data)},
+            {"user-data", mpu::emit_cloud_config(config.user_data)}}
 {
-    add_file("meta-data", mpu::emit_cloud_config(config.meta_data));
-    add_file("vendor-data", mpu::emit_cloud_config(config.vendor_data));
-    add_file("user-data", mpu::emit_cloud_config(config.user_data));
     if (!config.network_data.IsNull())
-        add_file("network-config", mpu::emit_cloud_config(config.network_data));
-}
-
-void mp::CloudInitIso::add_file(const std::string& name, const std::string& data)
-{
-    files.push_back(FileEntry{name, data});
+        files.push_back({"network-config", mpu::emit_cloud_config(config.network_data)});
 }
 
 bool mp::CloudInitIso::contains(const std::string& name) const

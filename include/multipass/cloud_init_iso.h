@@ -37,7 +37,6 @@ public:
     CloudInitIso() = default;
     explicit CloudInitIso(const CloudInitConfig& config);
 
-    void add_file(const std::string& name, const std::string& data);
     bool contains(const std::string& name) const;
     const std::string& at(const std::string& name) const;
     std::string& at(const std::string& name);
