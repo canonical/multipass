@@ -265,7 +265,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
         24);
     const std::string::size_type state_column_width = 18;
     const std::string::size_type ip_column_width = 17;
-    [[maybe_unused]] const std::string::size_type image_column_width = 20;
+    const std::string::size_type image_column_width = 20;
     const std::string::size_type mounts_column_width = 8;
 
     constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
