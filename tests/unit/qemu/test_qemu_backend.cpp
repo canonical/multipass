@@ -40,6 +40,7 @@
 #include <src/platform/backends/qemu/qemu_virtual_machine_factory.h>
 
 #include <multipass/auto_join_thread.h>
+#include <multipass/cloud_init_iso.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
@@ -450,7 +451,10 @@ TEST_F(QemuBackend, shutdownWhileStartingWithCloudInitPoweroffIsIntentional)
     // configure cloud-init to request an unconditional poweroff, which should make the resulting
     // StartException be flagged as intentional once BaseVirtualMachine detects the shutdown
     auto description = default_description;
-    description.user_data_config["power_state"]["mode"] = "poweroff";
+    description.cloud_init_iso = QDir{instance_dir.path()}.filePath("cloud-init-config.iso");
+    mp::CloudInitIso iso;
+    iso["user-data"] = "power_state:\n  mode: poweroff\n";
+    iso.write_to(description.cloud_init_iso.toStdString());
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
@@ -493,8 +497,10 @@ TEST_F(QemuBackend, shutdownWhileStartingWithCloudInitPoweroffFalseConditionIsNo
     // a poweroff guarded by a condition that evaluates to false means the shutdown was not
     // actually requested by cloud-init, so the resulting StartException must not be intentional
     auto description = default_description;
-    description.user_data_config["power_state"]["mode"] = "poweroff";
-    description.user_data_config["power_state"]["condition"] = false;
+    description.cloud_init_iso = QDir{instance_dir.path()}.filePath("cloud-init-config.iso");
+    mp::CloudInitIso iso;
+    iso["user-data"] = "power_state:\n  mode: poweroff\n  condition: false\n";
+    iso.write_to(description.cloud_init_iso.toStdString());
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
