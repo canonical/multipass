@@ -16,7 +16,6 @@
  */
 
 #include "daemon.h"
-#include "base_cloud_init_config.h"
 #include "daemon_init_settings.h"
 #include "hyperv_driver_transition.h"
 #include "instance_settings_handler.h"
@@ -137,6 +136,14 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     return {name, image, false, request->remote_name(), query_type, true};
 }
 
+constexpr auto base_vendor_data = "growpart:\n"
+                                  "    mode: auto\n"
+                                  "    devices: [\"/\"]\n"
+                                  "    ignore_growroot_disabled: false\n"
+                                  "users:\n"
+                                  "    - default\n"
+                                  "manage_etc_hosts: true\n";
+
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
                                    const std::string& username,
                                    const std::string& backend_version_string,
@@ -161,7 +168,7 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
     }
 
     auto remote_name = request->remote_name();
-    auto config = YAML::Load(mp::base_cloud_init_config);
+    auto config = YAML::Load(base_vendor_data);
     config["ssh_authorized_keys"].push_back(ssh_key_line);
     config["timezone"] = request->time_zone();
     config["system_info"]["default_user"]["name"] = username;
