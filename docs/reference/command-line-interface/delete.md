@@ -9,7 +9,7 @@ You can provide multiple arguments in the same delete command, including both in
 
 ```{code-block} text
 multipass delete legal-takin calm-squirrel.snapshot2
-Instance 'legal-takin' and snapshot calm-squirrel.snapshot2 will be deleted permanently. Would you like to proceed? [y/N]: y
+Instance 'legal-takin' and snapshot 'calm-squirrel.snapshot2' will be deleted permanently. Would you like to proceed? [y/N]: y
 legal-takin is deleted.
 calm-squirrel.snapshot2 is deleted.
 ```
