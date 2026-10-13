@@ -60,6 +60,17 @@ std::map<std::string, YAML::Node> format_images(const ImageInfo& images_info)
     return images_node;
 }
 
+YAML::Node format_zone(const mp::Zone& zone)
+{
+    if (zone.name().empty())
+        return YAML::Node(YAML::NodeType::Null);
+
+    YAML::Node zone_node;
+    zone_node["name"] = zone.name();
+    zone_node["available"] = zone.available();
+    return zone_node;
+}
+
 YAML::Node generate_snapshot_details(const mp::DetailedInfoItem& item)
 {
     const auto& snapshot_details = item.snapshot_info();
@@ -102,16 +113,7 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
     YAML::Node instance_node;
 
     instance_node["state"] = mp::format::status_string_for(item.instance_status());
-    if (!item.zone().name().empty())
-    {
-        instance_node["zone"] = YAML::Node{};
-        instance_node["zone"]["name"] = item.zone().name();
-        instance_node["zone"]["available"] = item.zone().available();
-    }
-    else
-    {
-        instance_node["zone"] = YAML::Node(YAML::NodeType::Null);
-    }
+    instance_node["zone"] = format_zone(item.zone());
 
     if (instance_details.has_num_snapshots())
         instance_node["snapshot_count"] = instance_details.num_snapshots();
@@ -200,16 +202,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     {
         YAML::Node instance_node;
         instance_node["state"] = mp::format::status_string_for(instance.instance_status());
-        if (!instance.zone().name().empty())
-        {
-            instance_node["zone"] = YAML::Node{};
-            instance_node["zone"]["name"] = instance.zone().name();
-            instance_node["zone"]["available"] = instance.zone().available();
-        }
-        else
-        {
-            instance_node["zone"] = YAML::Node(YAML::NodeType::Null);
-        }
+        instance_node["zone"] = format_zone(instance.zone());
 
         instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
         for (const auto& ip : instance.ipv4())
