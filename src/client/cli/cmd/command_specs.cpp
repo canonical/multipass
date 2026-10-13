@@ -56,8 +56,9 @@ AutoCompleter CommandSpecs::make_completer() const
 
     for (const auto& option : optional_parameters)
     {
-        auto& option_specs = completer_specs.optional_parameters.try_emplace("--" + option.name)
-                                 .first->second;
+        auto option_name = "--" + option.name;
+        auto& option_specs = completer_specs.optional_parameters[option_name];
+
         option_specs.repeatable = option.repeatable;
         option_specs.excluded_options = option.excluded_options;
         option_specs.excluded_parameters = option.excluded_parameters;
@@ -66,6 +67,12 @@ AutoCompleter CommandSpecs::make_completer() const
         {
             auto& param_specs = option_specs.parameters.emplace_back();
             param_specs.arguments_provider = p.arguments_provider;
+        }
+
+        for (const auto& alias : option.aliases)
+        {
+            auto prefix = alias.size() == 1 ? "-" : "--";
+            completer_specs.option_aliases[prefix + alias] = option_name;
         }
     }
 

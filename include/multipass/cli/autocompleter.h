@@ -47,6 +47,8 @@ struct AutoCompleteOptionSpecs
 struct AutoCompleteCommandSpecs
 {
     std::map<std::string, AutoCompleteOptionSpecs> optional_parameters = {};
+    std::map<std::string, std::string> option_aliases = {};
+
     std::vector<AutoCompleteParameterSpecs> positional_parameters = {};
     bool last_repeatable = false;
 };
@@ -62,6 +64,8 @@ public:
     std::vector<std::string> complete(const std::vector<std::string>& previous) const;
 
 private:
+    const std::string& option_key(const std::string& option) const;
+
     bool is_excluded(const std::string& option,
                      const std::vector<std::string>& previous,
                      size_t parameters_count) const;

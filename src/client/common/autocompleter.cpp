@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <ranges>
+#include <stdexcept>
 #include <utility>
 
 namespace multipass
@@ -97,9 +98,10 @@ void AutoCompleter::complete(std::vector<std::string>& completions,
     auto last_option_params_count = size_t{0};
     for (auto idx = size_t{0}; idx < previous.size(); ++idx)
     {
-        if (previous[idx].starts_with("--"))
+        const auto& prev = previous[idx];
+        if (prev.starts_with("--") || (prev.starts_with("-") && prev.size() == 2))
         {
-            last_option_it = _specs.optional_parameters.find(previous[idx]);
+            last_option_it = _specs.optional_parameters.find(option_key(prev));
             last_option_params_count = last_option_it != _specs.optional_parameters.end()
                                          ? last_option_it->second.parameters.size()
                                          : 0;
@@ -125,8 +127,7 @@ void AutoCompleter::complete(std::vector<std::string>& completions,
 
     for (const auto& [key, option] : _specs.optional_parameters)
     {
-        if ((option.repeatable || std::ranges::find(previous, key) == previous.end()) &&
-            !is_excluded(key, previous, next_parameter_idx))
+        if (!is_excluded(key, previous, next_parameter_idx))
         {
             completions.push_back(key);
         }
@@ -146,9 +147,15 @@ void AutoCompleter::complete(std::vector<std::string>& completions,
 
 std::vector<std::string> AutoCompleter::complete(const std::vector<std::string>& previous) const
 {
-    std::vector<std::string> completions;
+    auto completions = std::vector<std::string>{};
     complete(completions, previous);
     return completions;
+}
+
+const std::string& AutoCompleter::option_key(const std::string& option) const
+{
+    const auto alias_it = _specs.option_aliases.find(option);
+    return alias_it != _specs.option_aliases.end() ? alias_it->second : option;
 }
 
 bool AutoCompleter::is_excluded(const std::string& option,
@@ -173,10 +180,16 @@ bool AutoCompleter::is_excluded(const std::string& option,
 
     for (const auto& prev : previous)
     {
-        const auto prev_it = _specs.optional_parameters.find(prev);
+        const auto& prev_key = option_key(prev);
+        if (prev_key == option && !option_specs.repeatable)
+        {
+            return true;
+        }
+
+        const auto prev_it = _specs.optional_parameters.find(prev_key);
         if (prev_it != _specs.optional_parameters.end())
         {
-            if (option_specs.excluded_options.contains(prev) ||
+            if (option_specs.excluded_options.contains(prev_key) ||
                 prev_it->second.excluded_options.contains(option))
             {
                 return true;
@@ -192,8 +205,9 @@ bool AutoCompleter::is_excluded(size_t parameter, const std::vector<std::string>
     if (parameter < _exclusions_by_param.size())
     {
         const auto& exclusions = _exclusions_by_param[parameter];
-        return std::ranges::any_of(previous,
-                                   [&exclusions](const auto& p) { return exclusions.contains(p); });
+        return std::ranges::any_of(previous, [this, &exclusions](const auto& p) {
+            return exclusions.contains(option_key(p));
+        });
     }
 
     return false;

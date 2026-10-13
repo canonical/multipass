@@ -79,16 +79,20 @@ TEST(AutoCompleter, autoCompletesOptions)
 TEST(AutoCompleter, autoCompletesOptionParameters)
 {
     auto completer = AutoCompleter{AutoCompleteCommandSpecs{
-        .optional_parameters = {
-            {"--opt1", AutoCompleteOptionSpecs{.parameters = single_parameter("a1", "a2")}},
-            {"--opt2",
-             AutoCompleteOptionSpecs{.parameters = single_parameter("b1", "b2", "b3")}}}}};
+        .optional_parameters =
+            {{"--opt1", AutoCompleteOptionSpecs{.parameters = single_parameter("a1", "a2")}},
+             {"--opt2", AutoCompleteOptionSpecs{.parameters = single_parameter("b1", "b2", "b3")}}},
+        .option_aliases = {{"-a", "--opt1"}}}};
 
     EXPECT_THAT(completer.complete({}), ElementsAre("--opt1", "--opt2"));
     EXPECT_THAT(completer.complete({"--opt1"}), ElementsAre("a1", "a2"));
     EXPECT_THAT(completer.complete({"--opt1", "a2"}), ElementsAre("--opt2"));
     EXPECT_THAT(completer.complete({"--opt1", "a2", "a1"}), ElementsAre("--opt2"));
     EXPECT_THAT(completer.complete({"--opt1", "a2", "--opt2"}), ElementsAre("b1", "b2", "b3"));
+
+    EXPECT_THAT(completer.complete({"-a"}), ElementsAre("a1", "a2"));
+    EXPECT_THAT(completer.complete({"-a", "a1"}), ElementsAre("--opt2"));
+    EXPECT_THAT(completer.complete({"-a", "a1", "--opt2"}), ElementsAre("b1", "b2", "b3"));
 }
 
 TEST(AutoCompleter, autoCompletesRepeatableOptions)
@@ -116,18 +120,21 @@ TEST(AutoCompleter, canSetMutuallyExclusiveOptions)
             .optional_parameters = {{"--opt1",
                                      AutoCompleteOptionSpecs{.excluded_options = {"--opt2"}}},
                                     {"--opt2", {}},
-                                    {"--opt3", {}}}},
+                                    {"--opt3", {}}},
+            .option_aliases = {{"-a", "--opt1"}}},
         AutoCompleteCommandSpecs{
             .optional_parameters = {{"--opt1", {}},
                                     {"--opt2",
                                      AutoCompleteOptionSpecs{.excluded_options = {"--opt1"}}},
-                                    {"--opt3", {}}}},
+                                    {"--opt3", {}}},
+            .option_aliases = {{"-a", "--opt1"}}},
         AutoCompleteCommandSpecs{
             .optional_parameters = {{"--opt1",
                                      AutoCompleteOptionSpecs{.excluded_options = {"--opt2"}}},
                                     {"--opt2",
                                      AutoCompleteOptionSpecs{.excluded_options = {"--opt1"}}},
-                                    {"--opt3", {}}}},
+                                    {"--opt3", {}}},
+            .option_aliases = {{"-a", "--opt1"}}},
     };
 
     for (const auto& spec : specs)
@@ -136,6 +143,7 @@ TEST(AutoCompleter, canSetMutuallyExclusiveOptions)
         EXPECT_THAT(completer.complete({}), ElementsAre("--opt1", "--opt2", "--opt3"));
         EXPECT_THAT(completer.complete({"--opt1"}), ElementsAre("--opt3"));
         EXPECT_THAT(completer.complete({"--opt2"}), ElementsAre("--opt3"));
+        EXPECT_THAT(completer.complete({"-a"}), ElementsAre("--opt3"));
     }
 }
 
@@ -143,11 +151,13 @@ TEST(AutoCompleter, canSetMutuallyExclusiveOptionAndParameter)
 {
     auto completer = AutoCompleter{AutoCompleteCommandSpecs{
         .optional_parameters = {{"--opt", AutoCompleteOptionSpecs{.excluded_parameters = {0}}}},
+        .option_aliases = {{"-a", "--opt"}},
         .positional_parameters = single_parameter("v1", "v2"),
     }};
 
     EXPECT_THAT(completer.complete({}), ElementsAre("--opt", "v1", "v2"));
     EXPECT_THAT(completer.complete({"--opt"}), ElementsAre());
+    EXPECT_THAT(completer.complete({"-a"}), ElementsAre());
     EXPECT_THAT(completer.complete({"v1"}), ElementsAre());
     EXPECT_THAT(completer.complete({"v2"}), ElementsAre());
 }
@@ -166,6 +176,7 @@ TEST(AutoCompleter, complexAutoComplete)
                 {"--help", {}},
                 {"--verbose", AutoCompleteOptionSpecs{.repeatable = true}},
             },
+        .option_aliases = {{"-f", "--format"}, {"-a", "--all"}, {"-h", "--help"}},
         .positional_parameters =
             {
                 {make_arguments_provider("vma", "vmb")},
@@ -177,8 +188,11 @@ TEST(AutoCompleter, complexAutoComplete)
                 ElementsAre("--all", "--format", "--help", "--remotes", "--verbose", "vma", "vmb"));
 
     EXPECT_THAT(completer.complete({"vma", "--format"}), ElementsAre("csv", "json", "table"));
+    EXPECT_THAT(completer.complete({"vma", "-f"}), ElementsAre("csv", "json", "table"));
 
     EXPECT_THAT(completer.complete({"--all"}),
+                ElementsAre("--format", "--help", "--verbose", "vma", "vmb"));
+    EXPECT_THAT(completer.complete({"-a"}),
                 ElementsAre("--format", "--help", "--verbose", "vma", "vmb"));
 
     EXPECT_THAT(completer.complete({"vma", "--all"}),

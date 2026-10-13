@@ -84,7 +84,7 @@ public:
 
     CommandSpecsBuilder& set_repeatable_last_parameter(bool repeatable);
 
-    CommandSpecsBuilder& add_mutual_exclusion(std::string_view option_1, std::string_view option_2);
+    CommandSpecsBuilder& add_mutual_exclusion(std::string option_1, std::string option_2);
     CommandSpecsBuilder& add_mutual_exclusion(size_t parameter_idx, std::string_view option);
 
     CommandSpecs build() &&;

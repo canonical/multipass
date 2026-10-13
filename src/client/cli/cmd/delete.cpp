@@ -41,7 +41,7 @@ mp::CommandSpecs make_command_specs(mp::Rpc::StubInterface& stub)
     auto builder = mp::CommandSpecsBuilder{};
 
     builder.set_name("delete")
-        .set_short_help("Delete an instance or snapshot")
+        .set_short_help("Delete instances and snapshots")
         .set_description(
             "Delete instances and snapshots (in stopped instances). Instances can be purged "
             "immediately or later on,\n"

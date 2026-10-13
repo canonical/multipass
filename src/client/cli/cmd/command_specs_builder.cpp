@@ -156,22 +156,22 @@ CommandSpecsBuilder& CommandSpecsBuilder::set_repeatable_last_parameter(bool rep
     return *this;
 }
 
-CommandSpecsBuilder& CommandSpecsBuilder::add_mutual_exclusion(std::string_view option_1,
-                                                               std::string_view option_2)
+CommandSpecsBuilder& CommandSpecsBuilder::add_mutual_exclusion(std::string option_1,
+                                                               std::string option_2)
 {
     if (auto it1 = _option_indices.find(option_1); it1 != _option_indices.end())
     {
         if (auto it2 = _option_indices.find(option_2); it2 != _option_indices.end())
         {
-            _specs.optional_parameters[it1->second].excluded_options.emplace(
-                std::string{"--"} += option_2);
+            _specs.optional_parameters[it1->second].excluded_options.emplace(std::move(option_2));
+            _specs.optional_parameters[it2->second].excluded_options.emplace(std::move(option_1));
 
-            _specs.optional_parameters[it2->second].excluded_options.emplace(
-                std::string{"--"} += option_1);
+            return *this;
         }
     }
 
-    return *this;
+    throw std::invalid_argument{"Both " + option_1 + " and " + option_2 +
+                                " must be registered for mutual exclusion to be set"};
 }
 
 CommandSpecsBuilder& CommandSpecsBuilder::add_mutual_exclusion(size_t parameter,
