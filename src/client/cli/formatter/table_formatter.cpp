@@ -76,6 +76,13 @@ std::string to_usage(const std::string& usage, const std::string& total)
                        mp::MemorySize{total}.human_readable());
 }
 
+std::string format_zone(const mp::Zone& zone)
+{
+    if (zone.name().empty())
+        return "n/a";
+    return fmt::format("{}{}", zone.name(), zone.available() ? "" : "(n/a)");
+}
+
 template <typename Dest>
 void generate_snapshot_details(Dest&& dest, const mp::DetailedInfoItem& item)
 {
@@ -144,13 +151,7 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
                    "{:<16}{}\n",
                    "State:",
                    mp::format::status_string_for(item.instance_status()));
-    fmt::format_to(
-        dest,
-        "{:<16}{}\n",
-        "Zone:",
-        !item.zone().name().empty()
-            ? fmt::format("{}{}", item.zone().name(), item.zone().available() ? "" : "(n/a)")
-            : std::string{"n/a"});
+    fmt::format_to(dest, "{:<16}{}\n", "Zone:", format_zone(item.zone()));
 
     if (instance_details.has_num_snapshots())
         fmt::format_to(dest, "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
@@ -302,11 +303,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
             image_column_width,
             instance.mount_count(),
             mounts_column_width,
-            !instance.zone().name().empty()
-                ? fmt::format("{}{}",
-                              instance.zone().name(),
-                              instance.zone().available() ? "" : "(n/a)")
-                : std::string{"n/a"});
+            format_zone(instance.zone()));
 
         for (int i = 1; i < ipv4_size; ++i)
         {
