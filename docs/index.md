@@ -93,7 +93,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 {doc}`Instance name format <reference/instance-name-format>`
 ```
 
-```{slice} Uninstallation
+```{slice} Deinstallation
 
 {doc}`Uninstall Multipass <how-to-guides/install-multipass>`
 ```
