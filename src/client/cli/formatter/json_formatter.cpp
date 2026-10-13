@@ -177,6 +177,7 @@ boost::json::value generate_instances_list(const mp::InstancesList& instance_lis
                                                    {"name", instance.zone().name()},
                                                    {"available", instance.zone().available()}})
                                              : boost::json::value(nullptr)},
+            {"mounts", instance.mount_count()},
         });
     }
 
