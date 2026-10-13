@@ -19,7 +19,7 @@ communicating via **gRPC streaming**. Three user-facing components:
 Other key directories:
 
 - `src/rpc/multipass.proto` — the protobuf/gRPC contract shared by daemon and clients.
-  All RPCs use bidirectional `ServerReaderWriter` streams, not simple request-response.
+  All RPCs except the unary `ping` use bidirectional `ServerReaderWriter` streams.
 - `include/multipass/` — public C++ interfaces; implementations live under `src/`.
 - `src/platform/backends/` — hypervisor backends implementing the common
   `VirtualMachine` / `VirtualMachineFactory` interfaces:
@@ -48,13 +48,15 @@ Other key directories:
 ### Key interfaces
 
 - `VirtualMachine` — core VM abstraction all backends implement
-  (`include/multipass/virtual_machine.h`)
-- `VirtualMachineFactory` — VM creation; `fetch_type()` declares image requirements
-- `VMStatusMonitor` — VM state change notifications; states follow a strict machine
-  (`off, starting, restarting, running, delayed_shutdown, suspending, suspended,
-  unknown`) persisted as JSON by the daemon
+  (`include/multipass/virtual_machine.h`); `VirtualMachine::State` is `off, stopped,
+  starting, restarting, running, delayed_shutdown, suspending, suspended, unknown,
+  unavailable`
+- `VirtualMachineFactory` — VM creation and cloning, image preparation
+  (`prepare_source_image`, `prepare_instance_image`), and backend resources
+- `VMStatusMonitor` — VM state change notifications and instance metadata
+  persisted as JSON by the daemon
 - `VMImageVault`, `SSHKeyProvider`, `MountHandler`, `Snapshot` (hierarchical
-  parent-child, stored as QJsonObject)
+  parent-child, persisted as JSON)
 
 ### Architectural patterns
 
