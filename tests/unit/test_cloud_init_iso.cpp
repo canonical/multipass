@@ -95,21 +95,6 @@ TEST_F(CloudInitIso, checkContainsTrue)
     EXPECT_TRUE(iso.contains("test"));
 }
 
-TEST_F(CloudInitIso, checkEraseFalse)
-{
-    mp::CloudInitIso iso;
-    EXPECT_FALSE(iso.erase("non_exist_file"));
-}
-
-TEST_F(CloudInitIso, checkEraseTrue)
-{
-    mp::CloudInitIso iso;
-    iso.add_file("test", "test data");
-    EXPECT_TRUE(iso.contains("test"));
-    EXPECT_TRUE(iso.erase("test"));
-    EXPECT_FALSE(iso.contains("test"));
-}
-
 TEST_F(CloudInitIso, checkAtOperatorThrow)
 {
     mp::CloudInitIso iso;

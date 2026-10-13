@@ -530,21 +530,6 @@ std::string& mp::CloudInitIso::operator[](const std::string& name)
     }
 }
 
-bool mp::CloudInitIso::erase(const std::string& name)
-{
-    if (auto iter = std::find_if(
-            files.cbegin(),
-            files.cend(),
-            [name](const FileEntry& file_entry) -> bool { return file_entry.name == name; });
-        iter != std::cend((files)))
-    {
-        files.erase(iter);
-        return true;
-    }
-
-    return false;
-}
-
 void mp::CloudInitIso::write_to(const std::filesystem::path& path)
 {
     std::ofstream f{path, std::ios::binary | std::ios::out};
