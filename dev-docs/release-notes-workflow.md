@@ -28,6 +28,7 @@ release-notes tooling available:
 
 ```bash
 cd multipass
+bash --version   # 4 or newer; on macOS: brew install bash
 which gh
 which jq
 gh auth status

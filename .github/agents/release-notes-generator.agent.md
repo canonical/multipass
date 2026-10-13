@@ -140,7 +140,7 @@ The `tools/release-notes/get-commits-since-release.sh --json` script outputs:
 
       // Null/absent for commits without a PR:
       "pr_title": "Full PR title",
-      "pr_body": "PR description, truncated to 4000 chars",
+      "pr_body": "PR description, truncated to 4000 chars",  // null when skip is true
       "labels": ["feature", "area/networking"],
       "additions": 135,
       "deletions": 109,
@@ -169,8 +169,9 @@ diffstat are the evidence subagents must reason over. Never evaluate a PR from
 its `subject` alone when enriched fields are available.
 
 **`skip` is a hard pre-filter.** Commits with `skip: true` are release-notes
-noise (CI/infra plumbing, or dependency/CI bot churn). They are **not enriched**
-(no PR body is fetched, so they never enter subagent context) and must be
+noise (CI/infra plumbing, or dependency/CI bot churn). Their `pr_body` is
+omitted (the PR is still fetched so its author counts for contributor
+detection), so they never enter subagent context, and they must be
 excluded from candidate selection and ranking. Carve-outs are baked in:
 `copilot-swe-agent[bot]` is treated as a real contributor (never skipped by
 author), and human-authored `deps`/`cmake`/`build` PRs are **kept** so they can
@@ -390,7 +391,7 @@ jq --slurpfile ranked /tmp/ranked-prs.json '
   def ranked_item($ranking):
     {
       category,
-      subject,
+      subject: ((.pr_title // .subject) | sub("^\\[[^\\]]*\\]\\s*"; "")),
       title: .pr_title,
       labels,
       hash: .hash[0:9],
@@ -426,7 +427,7 @@ jq --slurpfile ranked /tmp/ranked-prs.json '
   DOCS: ($doc_items | length > 0),
   features: {
     by_category: [
-      $commits[] | select(.type == "feature") | selected
+      $commits[] | select(.type == "feature" or .type == "performance" or .type == "other") | selected
     ] | by_ranked_category
   },
   fixes: {
@@ -441,13 +442,15 @@ jq --slurpfile ranked /tmp/ranked-prs.json '
     items: $doc_items
   },
   new_authors: {
-    names: [$data.commits[]
+    items: [$data.commits[]
       | select(.is_new_author == true
           and .contributor_status == "true"
           and (.pr_author_type != "Bot")
           and (.pr_author_login != null)
           and (.skip_reason != "automation-author"))
-      | .pr_author_login] | unique | sort
+      | {login: .pr_author_login, pr_number}]
+      | group_by(.login)
+      | map({login: .[0].login, first_pr: (map(.pr_number) | min)})
   }
 }' /tmp/commits-data.json
 ```
@@ -471,24 +474,18 @@ fixes, Documentation, and New contributors. Do not add PR links uniformly to
 every bullet. If a breaking or feature entry needs traceability, put the PR
 number in your working notes, not in the published bullet.
 
-`names` is a sorted list of authoritative GitHub PR logins. The linked PR is
-the contributor's first PR that shipped in this release; pick their earliest
-in-range PR by number. `contributor_status == "true"` already means "first
+`new_authors.items` is a list of `{login, first_pr}` sorted by authoritative
+GitHub PR login. `first_pr` is the contributor's earliest in-range PR by
+number, i.e. their first PR that shipped in this release.
+`contributor_status == "true"` already means "first
 shipped in this release" (no PR of theirs shipped in any earlier published
 release, including maintenance releases on divergent branches). Do not infer
 first-time status from merge time alone and do not silently render unresolved
 identities.
 
-```bash
-# earliest in-range PR for the contributor, from the generated data
-jq -r --arg login "<login>" '[.commits[]
-  | select(.pr_author_login == $login and .contributor_status == "true")
-  | .pr_number] | min' /tmp/commits-data.json
-```
-
 The template renders each entry as
-`[@login](https://github.com/login), with their first contribution in PR ([#N](...))`
-where #N is that earliest in-range PR. Exclude bot actors from this section.
+`[@login](https://github.com/login), with their first contribution in PR ([#first_pr](...))`.
+Exclude bot actors from this section.
 
 **`contributor_status` is authoritative and stateless.** It is computed from
 the authoritative PR author against local published release tags plus local git
@@ -496,6 +493,6 @@ reachability and GitHub PR history when needed: `true` = first shipped in this
 release, `false` = already shipped in an earlier published release, `bot` =
 automation, `unresolved` = a GitHub history query failed. A contributor already
 shipped in a maintenance release is `false` even if their feature-branch PR
-merged earlier. `unresolved` marks the run incomplete
-(`.metadata.contributor_detection.complete == false`) and blocks publication
-rather than becoming a new contributor by fallback.
+merged earlier. `unresolved` statuses and any PR enrichment failure mark the
+run incomplete (`.metadata.contributor_detection.complete == false`) and block
+publication rather than becoming a new contributor by fallback.

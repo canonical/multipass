@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Script to fetch all commits since the last Multipass release
 # Usage: ./get-commits-since-release.sh [options]
@@ -10,6 +10,11 @@
 #   -h, --help            Show this help message
 
 set -euo pipefail
+
+if (( BASH_VERSINFO[0] < 4 )); then
+  echo "Error: bash 4 or newer is required (found $BASH_VERSION). On macOS: brew install bash" >&2
+  exit 1
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -85,10 +90,9 @@ detect_commit_type() {
   echo "other"
 }
 
-# Decide whether a commit is release-notes noise that can be dropped BEFORE
-# enrichment (so we skip the gh fetch and keep it out of subagent context).
-# Uses only cheap fields: category, author, subject. Echoes a skip reason, or
-# nothing if the commit should be kept.
+# Decide whether a commit is release-notes noise to keep out of ranking and
+# subagent context. Uses only cheap fields: category, author, subject. Echoes a
+# skip reason, or nothing if the commit should be kept.
 classify_skip() {
   local category="$1"
   local author="$2"
@@ -264,8 +268,9 @@ fetch_one_pr() {
   done
 }
 
-# Bulk-warm the cache before the per-commit loop. Collects every not-yet-cached,
-# non-skip PR number in the range and fetches them ~30 at a time via a single
+# Bulk-warm the cache before the per-commit loop. Collects every not-yet-cached
+# PR number in the range (skipped ones too, since contributor detection needs
+# their PR author) and fetches them ~30 at a time via a single
 # GraphQL request using field aliases. Batching is what keeps us clear of the
 # secondary rate limit. Note: `gh api graphql` exits non-zero whenever the
 # response carries an errors[] array (any unresolved PR number triggers that),
@@ -274,19 +279,17 @@ fetch_one_pr() {
 prefetch_pr_cache() {
   command -v gh >/dev/null 2>&1 || return 0
 
-  # Candidate PR numbers: non-skip commits whose PR isn't cached yet.
+  # Candidate PR numbers: commits whose PR isn't cached yet.
   local -a prs=()
   local pr
   while IFS= read -r pr; do
     [[ -n $pr ]] && prs+=("$pr")
   done < <(
-    git log "$FROM_TAG..$TO_REF" --format="%h|%aN|%aE|%s" \
+    git log "$FROM_TAG..$TO_REF" $MERGE_FLAG --format="%h|%aN|%aE|%s" \
       | while IFS='|' read -r _h _author _email _subject; do
           [[ -z $_subject ]] && continue
 
           _pr=$(extract_pr_number "$_subject"); [[ -z $_pr ]] && continue
-          _cat=$(extract_category "$_subject")
-          _skip=$(classify_skip "$_cat" "$_author" "$_subject"); [[ -n $_skip ]] && continue
           _cache_file="$PR_CACHE_DIR/${PR_REPO//\//_}-${_pr}.json"
           if [[ -s $_cache_file ]] && jq -e \
               '.__notfound__ == true or (has("author_login") and has("author_type"))' \
@@ -463,24 +466,25 @@ if [[ $JSON_OUTPUT == false ]]; then
   echo ""
 fi
 
-# Build git log command
+# Build git log command. MERGE_FLAG is a fixed constant and is left unquoted on
+# purpose so that it expands to nothing when unset.
 MERGE_FLAG=""
 if [[ $MERGE_ONLY == true ]]; then
   MERGE_FLAG="--merges"
 fi
 
+LOG_CMD=(git log "$FROM_TAG..$TO_REF" $MERGE_FLAG)
 case $FORMAT in
   oneline)
-    LOG_CMD="git log $FROM_TAG..$TO_REF $MERGE_FLAG --oneline"
+    LOG_CMD+=(--oneline)
     ;;
   short)
-    LOG_CMD="git log $FROM_TAG..$TO_REF $MERGE_FLAG --format='%h%n%an%n%s%n'"
+    LOG_CMD+=("--format=%h%n%an%n%s%n")
     ;;
   medium)
-    LOG_CMD="git log $FROM_TAG..$TO_REF $MERGE_FLAG --format='%H%n%an <%ae>%naD%n%s%n%b%n'"
+    LOG_CMD+=("--format=%H%n%an <%ae>%n%aD%n%s%n%b%n")
     ;;
   full)
-    LOG_CMD="git log $FROM_TAG..$TO_REF $MERGE_FLAG"
     ;;
   *)
     echo -e "${RED}Error: Unknown format '$FORMAT'${NC}"
@@ -569,14 +573,6 @@ elif [[ $JSON_OUTPUT == true ]]; then
     author_email=$(echo "$line" | cut -d'|' -f3)
     subject=$(echo "$line" | cut -d'|' -f4-)
 
-    # Apply merge filter
-    if [[ $MERGE_ONLY == true ]]; then
-      IS_MERGE=$(git log -1 "$hash" --format=%b | grep -c "^Merge" || echo 0)
-      if [[ $IS_MERGE -eq 0 ]]; then
-        continue
-      fi
-    fi
-
     pr_number=$(extract_pr_number "$subject")
     category=$(extract_category "$subject")
 
@@ -586,9 +582,10 @@ elif [[ $JSON_OUTPUT == true ]]; then
     [[ -n $skip_reason ]] && skip=true
 
     # Fetch PR metadata (title, body, labels, diffstat, files). Skipped commits
-    # are never enriched: no gh call, no body in context. The bulk prefetch
-    # above usually populated the cache already; the per-PR call here is a
-    # backoff-guarded fallback for anything a batch missed.
+    # are fetched too so their PR author counts for contributor detection, but
+    # their body is dropped from the record. The bulk prefetch above usually
+    # populated the cache already; the per-PR call here is a backoff-guarded
+    # fallback for anything a batch missed.
     enrich="{}"
     if [[ -n $pr_number ]]; then
       cache_file="$PR_CACHE_DIR/${PR_REPO//\//_}-${pr_number}.json"
@@ -682,7 +679,7 @@ elif [[ $JSON_OUTPUT == true ]]; then
       + (if $author_login != "" then {author_login: $author_login} else {} end)
       + (if ($enrich | type) == "object" and ($enrich | keys | length) > 0 then {
           pr_title: ($enrich.title // null),
-          pr_body: (($enrich.body // "") | .[0:4000]),
+          pr_body: (if $skip then null else (($enrich.body // "") | .[0:4000]) end),
           pr_author_login: ($enrich.author_login // null),
           pr_author_type: ($enrich.author_type // null),
           labels: [ (($enrich.labels // [])[] | .name) ],
@@ -695,7 +692,7 @@ elif [[ $JSON_OUTPUT == true ]]; then
             | sort_by(-.count) | .[0:6]
           )
         } else {} end)' >> "$RECORDS_FILE"
-  done < <(git log "$FROM_TAG..$TO_REF" --format="%h|%aN|%aE|%s")
+  done < <(git log "$FROM_TAG..$TO_REF" $MERGE_FLAG --format="%h|%aN|%aE|%s")
 
   # Surface enrichment problems on stderr (stdout stays valid JSON). Permanent
   # "not a PR" results are excluded from these counts (see ENRICH_NOTFOUND), so
@@ -759,6 +756,7 @@ elif [[ $JSON_OUTPUT == true ]]; then
     --argjson prior_releases "$PRIOR_RELEASE_COUNT" \
     --argjson prior_shipped_prs "${#SHIPPED_PR[@]}" \
     --argjson contributor_unresolved "$CONTRIBUTOR_UNRESOLVED" \
+    --argjson enrich_failed "$ENRICH_FAILED" \
     --slurpfile commits "$RECORDS_FILE" \
     '{
       metadata: {
@@ -771,7 +769,8 @@ elif [[ $JSON_OUTPUT == true ]]; then
           prior_releases: $prior_releases,
           prior_shipped_prs: $prior_shipped_prs,
           unresolved: $contributor_unresolved,
-          complete: ($prior_releases > 0 and $contributor_unresolved == 0)
+          enrich_failed: $enrich_failed,
+          complete: ($prior_releases > 0 and $contributor_unresolved == 0 and $enrich_failed == 0)
         }
       },
       commits: $commits
@@ -779,5 +778,5 @@ elif [[ $JSON_OUTPUT == true ]]; then
 
 else
   # Execute the log command for human-readable output
-  eval "$LOG_CMD"
+  "${LOG_CMD[@]}"
 fi
