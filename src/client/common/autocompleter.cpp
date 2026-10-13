@@ -96,9 +96,20 @@ void AutoCompleter::complete(std::vector<std::string>& completions,
     auto next_parameter_idx = size_t{0};
     auto last_option_it = _specs.optional_parameters.end();
     auto last_option_params_count = size_t{0};
+    auto skip_options = false;
+
     for (auto idx = size_t{0}; idx < previous.size(); ++idx)
     {
         const auto& prev = previous[idx];
+        if (prev == "--")
+        {
+            next_parameter_idx += previous.size() - idx - 1;
+            last_option_it = _specs.optional_parameters.end();
+            last_option_params_count = 0;
+            skip_options = true;
+            break;
+        }
+
         if (prev.starts_with("--") || (prev.starts_with("-") && prev.size() == 2))
         {
             last_option_it = _specs.optional_parameters.find(option_key(prev));
@@ -125,11 +136,14 @@ void AutoCompleter::complete(std::vector<std::string>& completions,
         return;
     }
 
-    for (const auto& [key, option] : _specs.optional_parameters)
+    if (!skip_options)
     {
-        if (!is_excluded(key, previous, next_parameter_idx))
+        for (const auto& [key, option] : _specs.optional_parameters)
         {
-            completions.push_back(key);
+            if (!is_excluded(key, previous, next_parameter_idx))
+            {
+                completions.push_back(key);
+            }
         }
     }
 

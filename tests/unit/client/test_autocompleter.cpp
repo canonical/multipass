@@ -162,6 +162,27 @@ TEST(AutoCompleter, canSetMutuallyExclusiveOptionAndParameter)
     EXPECT_THAT(completer.complete({"v2"}), ElementsAre());
 }
 
+TEST(AutoCompleter, autoCompletesAfterDoubleDash)
+{
+    auto completer = AutoCompleter{AutoCompleteCommandSpecs{
+        .optional_parameters =
+            {
+                {"--opt", {}},
+                {"--args", AutoCompleteOptionSpecs{.parameters = single_parameter("a1", "a2")}},
+            },
+        .positional_parameters = {AutoCompleteParameterSpecs{make_arguments_provider("x1", "x2")},
+                                  AutoCompleteParameterSpecs{make_arguments_provider("y1", "y2")}},
+    }};
+
+    EXPECT_THAT(completer.complete({"--"}), ElementsAre("x1", "x2"));
+    EXPECT_THAT(completer.complete({"--opt", "--"}), ElementsAre("x1", "x2"));
+    EXPECT_THAT(completer.complete({"--args", "--"}), ElementsAre("x1", "x2"));
+    EXPECT_THAT(completer.complete({"--args", "a1", "--"}), ElementsAre("x1", "x2"));
+    EXPECT_THAT(completer.complete({"x1", "--"}), ElementsAre("y1", "y2"));
+    EXPECT_THAT(completer.complete({"--", "x2"}), ElementsAre("y1", "y2"));
+    EXPECT_THAT(completer.complete({"--", "x1", "y2"}), ElementsAre());
+}
+
 TEST(AutoCompleter, complexAutoComplete)
 {
     auto completer = AutoCompleter{AutoCompleteCommandSpecs{
