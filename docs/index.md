@@ -73,7 +73,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 {doc}`Instance states <reference/instance-states>`
 ```
 
-```{slice} Instances: snapshots, cloning
+```{slice} Snapshots and cloning
 
 {doc}`Snapshot <explanation/snapshot>`
 {doc}`Snapshot CLI <reference/command-line-interface/snapshot>`
