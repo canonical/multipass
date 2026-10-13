@@ -18,7 +18,6 @@
 #include "base_virtual_machine_factory.h"
 #include "multipass/platform.h"
 
-#include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/memory_size.h>
@@ -27,7 +26,6 @@
 #include <multipass/utils/qemu_img_utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
-#include <multipass/yaml_node_utils.h>
 
 namespace mp = multipass;
 namespace mpu = multipass::utils;
@@ -38,27 +36,6 @@ const std::unordered_set<std::string> cloneable_files{".iso", ".img", ".qcow2", 
 mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir,
                                                          AvailabilityZoneManager& az_manager)
     : az_manager{az_manager}, instances_dir{instances_dir} {};
-
-void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc,
-                                              const CloudInitConfig& cloud_init)
-{
-    auto instance_dir{mpu::base_dir(MP_PLATFORM.path_to_qstr(vm_desc.image.image_path))};
-    const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
-
-    if (!QFile::exists(cloud_init_iso))
-    {
-        mp::CloudInitIso iso;
-        iso.add_file("meta-data", mpu::emit_cloud_config(cloud_init.meta_data));
-        iso.add_file("vendor-data", mpu::emit_cloud_config(cloud_init.vendor_data));
-        iso.add_file("user-data", mpu::emit_cloud_config(cloud_init.user_data));
-        if (!cloud_init.network_data.IsNull())
-            iso.add_file("network-config", mpu::emit_cloud_config(cloud_init.network_data));
-
-        iso.write_to(cloud_init_iso.toStdString());
-    }
-
-    vm_desc.cloud_init_iso = cloud_init_iso;
-}
 
 void mp::BaseVirtualMachineFactory::prepare_networking(
     std::vector<NetworkInterface>& extra_interfaces)

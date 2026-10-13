@@ -3573,7 +3573,12 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 checked_args.extra_interfaces);
 
             vm_desc.image = vm_image;
-            config->factory->configure(vm_desc, cloud_init);
+            const auto cloud_init_iso =
+                MP_PLATFORM.qstr_to_path(config->factory->get_instance_directory(name)) /
+                cloud_init_file_name;
+            if (!MP_FILEOPS.exists(cloud_init_iso))
+                CloudInitIso{cloud_init}.write_to(cloud_init_iso);
+            vm_desc.cloud_init_iso = MP_PLATFORM.path_to_qstr(cloud_init_iso);
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
             // Everything went well, add the MAC addresses used in this instance.

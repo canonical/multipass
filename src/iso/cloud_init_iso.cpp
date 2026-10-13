@@ -17,6 +17,7 @@
  *
  */
 
+#include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
@@ -469,6 +470,15 @@ void pad_to_end(std::ofstream& f)
     f.put('\0');
 }
 } // namespace
+
+mp::CloudInitIso::CloudInitIso(const CloudInitConfig& config)
+{
+    add_file("meta-data", mpu::emit_cloud_config(config.meta_data));
+    add_file("vendor-data", mpu::emit_cloud_config(config.vendor_data));
+    add_file("user-data", mpu::emit_cloud_config(config.user_data));
+    if (!config.network_data.IsNull())
+        add_file("network-config", mpu::emit_cloud_config(config.network_data));
+}
 
 void mp::CloudInitIso::add_file(const std::string& name, const std::string& data)
 {

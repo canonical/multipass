@@ -26,7 +26,6 @@
 
 #include <shared/base_virtual_machine_factory.h>
 
-#include <multipass/cloud_init_config.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/utils/qemu_img_utils.h>
@@ -192,40 +191,6 @@ TEST_F(BaseFactory, virtualSizeForThrowsWhenVirtualSizeIsNotANumber)
     MockBaseFactory factory{az_manager};
 
     EXPECT_THROW(factory.virtual_size_for(image.path()), mp::InvalidMemorySizeException);
-}
-
-// Ideally, we'd define some unique YAML for each node and test the contents of the ISO image,
-// but we'd need a cross-platform library to read files in an ISO image and that is beyond scope
-// at this time.  Instead, just make sure an ISO image is created and has the expected path.
-TEST_F(BaseFactory, createsCloudInitIsoImage)
-{
-    MockBaseFactory factory{az_manager};
-    const std::string name{"foo"};
-    mp::CloudInitConfig cloud_init{};
-    cloud_init.meta_data = YAML::Load({fmt::format("name: {}", name)});
-
-    mp::VMImage image;
-    image.image_path = QString("%1/%2")
-                           .arg(factory.tmp_dir->path())
-                           .arg(QString::fromStdString(name))
-                           .toStdString();
-
-    mp::VirtualMachineDescription vm_desc{2,
-                                          mp::MemorySize{"3M"},
-                                          mp::MemorySize{}, // not used
-                                          name,
-                                          "zone1",
-                                          "00:16:3e:fe:f2:b9",
-                                          {},
-                                          "yoda",
-                                          image,
-                                          ""};
-
-    factory.configure(vm_desc, cloud_init);
-
-    EXPECT_EQ(vm_desc.cloud_init_iso,
-              QString("%1/cloud-init-config.iso").arg(factory.tmp_dir->path()));
-    EXPECT_TRUE(QFile::exists(vm_desc.cloud_init_iso));
 }
 
 TEST_F(BaseFactory, createBridgeNotImplemented)

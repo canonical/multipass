@@ -44,7 +44,7 @@
 #include <src/daemon/default_vm_image_vault.h>
 #include <src/daemon/instance_settings_handler.h>
 
-#include <multipass/cloud_init_config.h>
+#include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/image_host/vm_image_host.h>
@@ -717,6 +717,37 @@ TEST_P(DaemonCreateLaunchTestSuite, generatesNameOnCreationWhenClientDoesNotProv
     EXPECT_THAT(stream.str(), HasSubstr(expected_name));
 }
 
+TEST_P(DaemonCreateLaunchTestSuite, writesCloudInitIsoToInstanceDirectory)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto expected_iso = QDir{instance_dir.path()}.filePath(mp::cloud_init_file_name);
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(WithArg<0>([&expected_iso](const mp::VirtualMachineDescription& desc) {
+            EXPECT_EQ(desc.cloud_init_iso, expected_iso);
+            EXPECT_TRUE(QFile::exists(desc.cloud_init_iso));
+            return std::make_unique<mpt::StubVirtualMachine>();
+        }));
+
+    send_command({GetParam()});
+}
+
+YAML::Node cloud_init_file_in(const mp::Path& cloud_init_iso, const std::string& file_name)
+{
+    mp::CloudInitIso iso;
+    iso.read_from(cloud_init_iso.toStdString());
+    return YAML::Load(iso.at(file_name));
+}
+
+auto saves_cloud_init_iso_to(mp::Path& cloud_init_iso)
+{
+    return WithArg<0>([&cloud_init_iso](const mp::VirtualMachineDescription& desc) {
+        cloud_init_iso = desc.cloud_init_iso;
+        return std::make_unique<mpt::StubVirtualMachine>();
+    });
+}
+
 MATCHER_P2(YAMLNodeContainsString, key, val, "")
 {
     if (!arg.IsMap())
@@ -841,24 +872,20 @@ TEST_P(DaemonCreateLaunchTestSuite, defaultCloudInitGrowsRootFs)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, configure(_, _))
-        .WillOnce([](mp::VirtualMachineDescription&, const mp::CloudInitConfig& cloud_init) {
-            EXPECT_THAT(cloud_init.vendor_data, YAMLNodeContainsMap("growpart"));
-
-            if (cloud_init.vendor_data["growpart"])
-            {
-                auto const& growpart_stanza = cloud_init.vendor_data["growpart"];
-
-                EXPECT_THAT(growpart_stanza, YAMLNodeContainsString("mode", "auto"));
-                EXPECT_THAT(
-                    growpart_stanza,
-                    YAMLNodeContainsStringArray("devices", std::vector<std::string>({"/"})));
-                EXPECT_THAT(growpart_stanza,
-                            YAMLNodeContainsString("ignore_growroot_disabled", "false"));
-            }
-        });
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
     send_command({GetParam()});
+
+    const auto vendor_data = cloud_init_file_in(cloud_init_iso, "vendor-data");
+    ASSERT_THAT(vendor_data, YAMLNodeContainsMap("growpart"));
+
+    auto const& growpart_stanza = vendor_data["growpart"];
+    EXPECT_THAT(growpart_stanza, YAMLNodeContainsString("mode", "auto"));
+    EXPECT_THAT(growpart_stanza,
+                YAMLNodeContainsStringArray("devices", std::vector<std::string>({"/"})));
+    EXPECT_THAT(growpart_stanza, YAMLNodeContainsString("ignore_growroot_disabled", "false"));
 }
 
 TEST_P(DaemonCreateLaunchTestSuite, addsSshKeysToCloudInitConfig)
@@ -868,15 +895,15 @@ TEST_P(DaemonCreateLaunchTestSuite, addsSshKeysToCloudInitConfig)
     config_builder.ssh_key_provider = std::make_unique<mpt::DummyKeyProvider>(expected_key);
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, configure(_, _))
-        .WillOnce([&expected_key](mp::VirtualMachineDescription&,
-                                  const mp::CloudInitConfig& cloud_init) {
-            ASSERT_THAT(cloud_init.vendor_data, YAMLNodeContainsSequence("ssh_authorized_keys"));
-            auto const& ssh_keys_stanza = cloud_init.vendor_data["ssh_authorized_keys"];
-            EXPECT_THAT(ssh_keys_stanza, YAMLNodeContainsSubString(expected_key));
-        });
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
     send_command({GetParam()});
+
+    const auto vendor_data = cloud_init_file_in(cloud_init_iso, "vendor-data");
+    ASSERT_THAT(vendor_data, YAMLNodeContainsSequence("ssh_authorized_keys"));
+    EXPECT_THAT(vendor_data["ssh_authorized_keys"], YAMLNodeContainsSubString(expected_key));
 }
 
 TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudInitConfig)
@@ -896,20 +923,15 @@ TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudIn
                      alias.empty() ? "default" : alias)}};
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, configure(_, _))
-        .WillOnce([&expected_pollinate_map](mp::VirtualMachineDescription&,
-                                            const mp::CloudInitConfig& cloud_init) {
-            EXPECT_THAT(cloud_init.vendor_data, YAMLNodeContainsSequence("write_files"));
-
-            if (cloud_init.vendor_data["write_files"])
-            {
-                auto const& write_stanza = cloud_init.vendor_data["write_files"];
-
-                EXPECT_THAT(write_stanza, YAMLSequenceContainsStringMap(expected_pollinate_map));
-            }
-        });
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
     send_command({command, alias});
+
+    const auto vendor_data = cloud_init_file_in(cloud_init_iso, "vendor-data");
+    ASSERT_THAT(vendor_data, YAMLNodeContainsSequence("write_files"));
+    EXPECT_THAT(vendor_data["write_files"], YAMLSequenceContainsStringMap(expected_pollinate_map));
 }
 
 TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
@@ -919,14 +941,16 @@ TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
 
     const auto launch_args = GetParam();
 
-    EXPECT_CALL(*mock_factory, configure(_, _))
-        .WillOnce([](mp::VirtualMachineDescription&, const mp::CloudInitConfig& cloud_init) {
-            ASSERT_TRUE(cloud_init.network_data["ethernets"]);
-            EXPECT_TRUE(cloud_init.network_data["ethernets"]["eth0"]);
-            EXPECT_FALSE(cloud_init.network_data["ethernets"]["eth1"].IsDefined());
-        });
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
     send_command(launch_args);
+
+    const auto network_data = cloud_init_file_in(cloud_init_iso, "network-config");
+    ASSERT_TRUE(network_data["ethernets"]);
+    EXPECT_TRUE(network_data["ethernets"]["eth0"]);
+    EXPECT_FALSE(network_data["ethernets"]["eth1"].IsDefined());
 }
 
 std::vector<std::string> make_args(const std::vector<std::string>& args)
@@ -964,49 +988,9 @@ TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
     const auto args = test_params.first;
     const auto forbidden_names = test_params.second;
 
-    EXPECT_CALL(*mock_factory, configure(_, _))
-        .WillOnce([&args, &forbidden_names](mp::VirtualMachineDescription&,
-                                            const mp::CloudInitConfig& cloud_init) {
-            EXPECT_THAT(cloud_init.network_data, YAMLNodeContainsMap("ethernets"));
-
-            EXPECT_THAT(cloud_init.network_data["ethernets"], YAMLNodeContainsMap("eth0"));
-            auto const& default_network_stanza = cloud_init.network_data["ethernets"]["eth0"];
-            EXPECT_THAT(default_network_stanza, YAMLNodeContainsMap("match"));
-            EXPECT_THAT(default_network_stanza["match"],
-                        YAMLNodeContainsStringStartingWith("macaddress", "52:54:00:"));
-            EXPECT_THAT(default_network_stanza, YAMLNodeContainsString("dhcp4", "true"));
-
-            for (const auto& arg : args)
-            {
-                std::string name = std::get<1>(arg);
-                if (!name.empty())
-                {
-                    EXPECT_THAT(cloud_init.network_data["ethernets"], YAMLNodeContainsMap(name));
-                    auto const& extra_stanza = cloud_init.network_data["ethernets"][name];
-                    EXPECT_THAT(extra_stanza, YAMLNodeContainsMap("match"));
-
-                    std::string mac = std::get<2>(arg);
-                    if (mac.size() == 17)
-                        EXPECT_THAT(extra_stanza["match"],
-                                    YAMLNodeContainsString("macaddress", mac));
-                    else
-                        EXPECT_THAT(extra_stanza["match"],
-                                    YAMLNodeContainsStringStartingWith("macaddress", mac));
-
-                    EXPECT_THAT(extra_stanza, YAMLNodeContainsString("dhcp4", "true"));
-                    EXPECT_THAT(extra_stanza, YAMLNodeContainsMap("dhcp4-overrides"));
-                    EXPECT_THAT(extra_stanza["dhcp4-overrides"],
-                                YAMLNodeContainsString("route-metric", "200"));
-                    EXPECT_THAT(extra_stanza, YAMLNodeContainsString("optional", "true"));
-                }
-            }
-
-            for (const auto& forbidden : forbidden_names)
-            {
-                EXPECT_THAT(cloud_init.network_data["ethernets"],
-                            Not(YAMLNodeContainsMap(forbidden)));
-            }
-        });
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
     std::vector<std::string> command(1, "launch");
 
@@ -1017,6 +1001,45 @@ TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
     }
 
     send_command(command);
+
+    const auto network_data = cloud_init_file_in(cloud_init_iso, "network-config");
+    EXPECT_THAT(network_data, YAMLNodeContainsMap("ethernets"));
+
+    EXPECT_THAT(network_data["ethernets"], YAMLNodeContainsMap("eth0"));
+    auto const& default_network_stanza = network_data["ethernets"]["eth0"];
+    EXPECT_THAT(default_network_stanza, YAMLNodeContainsMap("match"));
+    EXPECT_THAT(default_network_stanza["match"],
+                YAMLNodeContainsStringStartingWith("macaddress", "52:54:00:"));
+    EXPECT_THAT(default_network_stanza, YAMLNodeContainsString("dhcp4", "true"));
+
+    for (const auto& arg : args)
+    {
+        std::string name = std::get<1>(arg);
+        if (!name.empty())
+        {
+            EXPECT_THAT(network_data["ethernets"], YAMLNodeContainsMap(name));
+            auto const& extra_stanza = network_data["ethernets"][name];
+            EXPECT_THAT(extra_stanza, YAMLNodeContainsMap("match"));
+
+            std::string mac = std::get<2>(arg);
+            if (mac.size() == 17)
+                EXPECT_THAT(extra_stanza["match"], YAMLNodeContainsString("macaddress", mac));
+            else
+                EXPECT_THAT(extra_stanza["match"],
+                            YAMLNodeContainsStringStartingWith("macaddress", mac));
+
+            EXPECT_THAT(extra_stanza, YAMLNodeContainsString("dhcp4", "true"));
+            EXPECT_THAT(extra_stanza, YAMLNodeContainsMap("dhcp4-overrides"));
+            EXPECT_THAT(extra_stanza["dhcp4-overrides"],
+                        YAMLNodeContainsString("route-metric", "200"));
+            EXPECT_THAT(extra_stanza, YAMLNodeContainsString("optional", "true"));
+        }
+    }
+
+    for (const auto& forbidden : forbidden_names)
+    {
+        EXPECT_THAT(network_data["ethernets"], Not(YAMLNodeContainsMap(forbidden)));
+    }
 }
 
 typedef typename std::pair<std::vector<std::tuple<std::string, std::string, std::string>>,

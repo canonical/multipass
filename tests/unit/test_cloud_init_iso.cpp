@@ -19,11 +19,14 @@
 #include "mock_file_ops.h"
 #include "temp_dir.h"
 
+#include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/network_interface.h>
+#include <multipass/yaml_node_utils.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
+namespace mpu = multipass::utils;
 using namespace testing;
 
 namespace
@@ -135,6 +138,32 @@ TEST_F(CloudInitIso, checkIndexOperatorFoundKey)
     mp::CloudInitIso iso;
     iso.add_file("test", "test data");
     EXPECT_EQ(iso["test"], "test data");
+}
+
+TEST_F(CloudInitIso, constructsFilesFromConfig)
+{
+    mp::CloudInitConfig config{};
+    config.meta_data["instance-id"] = "vm1";
+    config.vendor_data["timezone"] = "UTC";
+    config.user_data["packages"].push_back("vim");
+    config.network_data["version"] = "2";
+
+    const mp::CloudInitIso iso{config};
+
+    EXPECT_EQ(iso.at("meta-data"), mpu::emit_cloud_config(config.meta_data));
+    EXPECT_EQ(iso.at("vendor-data"), mpu::emit_cloud_config(config.vendor_data));
+    EXPECT_EQ(iso.at("user-data"), mpu::emit_cloud_config(config.user_data));
+    EXPECT_EQ(iso.at("network-config"), mpu::emit_cloud_config(config.network_data));
+}
+
+TEST_F(CloudInitIso, constructsWithoutNetworkConfigWhenAbsent)
+{
+    const mp::CloudInitIso iso{mp::CloudInitConfig{}};
+
+    EXPECT_TRUE(iso.contains("meta-data"));
+    EXPECT_TRUE(iso.contains("vendor-data"));
+    EXPECT_TRUE(iso.contains("user-data"));
+    EXPECT_FALSE(iso.contains("network-config"));
 }
 
 TEST_F(CloudInitIso, createsIsoFile)

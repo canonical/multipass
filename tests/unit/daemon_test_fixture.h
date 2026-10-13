@@ -123,6 +123,7 @@ struct DaemonTestFixture : public ::Test
     QEventLoop loop; // needed as signal/slots used internally by mp::Daemon
     TempDir cache_dir;
     TempDir data_dir;
+    TempDir instance_dir;
     DaemonConfigBuilder config_builder;
     inline static std::stringstream
         trash_stream{}; // this may have contents (that we don't care about)
