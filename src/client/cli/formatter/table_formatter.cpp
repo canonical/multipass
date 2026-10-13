@@ -263,10 +263,10 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
         [](const auto& instance) -> int { return instance.name().length(); },
         name_col_header.length(),
         24);
-    const std::string::size_type state_column_width = 18;
-    const std::string::size_type ip_column_width = 17;
-    const std::string::size_type image_column_width = 20;
-    const std::string::size_type mounts_column_width = 8;
+    constexpr std::string::size_type state_column_width = 18;
+    constexpr std::string::size_type ip_column_width = 17;
+    constexpr std::string::size_type image_column_width = 20;
+    constexpr std::string::size_type mounts_column_width = 8;
 
     constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
@@ -633,7 +633,7 @@ std::string mp::TableFormatter::format(const ZonesReply& reply) const
         [](const auto& zone) -> int { return zone.name().length(); },
         name_col_header.length());
 
-    const std::string::size_type state_column_width = 14;
+    constexpr std::string::size_type state_column_width = 14;
 
     constexpr auto row_format = "{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
