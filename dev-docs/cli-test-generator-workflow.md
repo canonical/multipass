@@ -1,19 +1,12 @@
 # CLI Behavior Test Generator — quick guide
 
-Turns a single GH issue and/or PR into a reviewed Gherkin spec, then into a
-matching `tests/cli` pytest. All instructions and prompts live in the agent
-definition, [.github/agents/cli-test-generator.agent.md](../.github/agents/cli-test-generator.agent.md);
-this page only shows how to invoke it. The agent never runs git — staging and
-committing are up to you.
+Turns a single GH issue and/or PR into a reviewed Gherkin spec, then into a matching `tests/cli` pytest. All instructions and prompts live in the agent definition, [.github/agents/cli-test-generator.agent.md](../.github/agents/cli-test-generator.agent.md); this page only shows how to invoke it. The agent never runs git — staging and committing are up to you.
 
 ## Prerequisites
 
-- `gh` (authenticated: `gh auth status`) and `jq` in your `PATH`, used by
-  [tools/cli-test-generator/fetch-context.sh](../tools/cli-test-generator/fetch-context.sh).
-- To compile/collect-check generated tests, set up the `tests/cli` Python
-  environment per its [README](../tests/cli/README.md#installing-the-tests).
-- To run generated tests for real, a local Multipass build
-  (`--daemon-controller=standalone --bin-dir=<path-to-build/bin>`).
+- `gh` (authenticated: `gh auth status`) and `jq` in your `PATH`, used by [tools/cli-test-generator/fetch-context.sh](../tools/cli-test-generator/fetch-context.sh).
+- To compile/collect-check generated tests, set up the `tests/cli` Python environment per its [README](../tests/cli/README.md#installing-the-tests).
+- To run generated tests for real, a local Multipass build (`--daemon-controller=standalone --bin-dir=<path-to-build/bin>`).
 
 ## Select the agent
 
@@ -25,31 +18,20 @@ committing are up to you.
 
 **VS Code Copilot Chat**
 
-Open the Chat view, open the agent picker (the mode dropdown next to the input
-box) and select **CLI Behavior Test Generator**. It is listed because the
-definition is in `.github/agents/`.
+Open the Chat view, open the agent picker (the mode dropdown next to the input box) and select **CLI Behavior Test Generator**. It is listed because the definition is in `.github/agents/`.
 
-Then just write your request in the chat, as below. Every request is a plain
-prompt; no flags or scripts are needed.
+Then just write your request in the chat, as below. Every request is a plain prompt; no flags or scripts are needed.
 
 ## VS Code integration: prompt files
 
-Two prompt files in `.github/prompts/` give one-step entry points in VS Code
-Copilot Chat. Type the slash command in the chat; it selects the agent for you
-and asks for its inputs:
+Two prompt files in `.github/prompts/` give one-step entry points in VS Code Copilot Chat. Type the slash command in the chat; it selects the agent for you and asks for its inputs:
 
 | Slash command | Mode | Asks for |
 |---|---|---|
 | `/cli-test-gherkin` | Mode 1 — Generate Gherkin | issue/PR (optionally `in owner/repo`), extra guidance |
 | `/cli-test-from-gherkin` | Mode 2 — Generate test from Gherkin | `.feature` path, extra guidance or forced destination file |
 
-Notes:
-- These prompt files are a VS Code feature. Copilot CLI does **not** load
-  `.github/prompts/`; in the CLI, select the agent as above and type the
-  prompt yourself, or use the scripts below.
-- The agent's tools come from its own definition, and VS Code does not
-  restrict them the way the scripts do, so the "no diff, no git" rules rely on
-  the agent's instructions.
+The agent's tools come from its own definition, and VS Code does not restrict them the way the scripts do, so the "no diff, no git" rules rely on the agent's instructions.
 
 ## Mode 1 — Generate Gherkin
 
@@ -60,10 +42,7 @@ Prompt examples (typed into the agent in Copilot CLI or VS Code chat):
 > Generate Gherkin for PR #5099 in canonical/multipass. Focus on the `--all`
 > flag.
 
-The agent fetches the issue/PR text (never the diff), asks you clarifying
-questions, writes `tests/cli/<slug>.feature` (`issue_<N>`, `pr_<N>` or
-`pr_<N>_issue_<M>`; ask for another name if you want one), shows it, and
-waits. Review it, ask for changes, or edit the file yourself, and approve it.
+The agent fetches the issue/PR text (never the diff), asks you clarifying questions, writes `tests/cli/<slug>.feature` (`issue_<N>`, `pr_<N>` or `pr_<N>_issue_<M>`; ask for another name if you want one), shows it, and waits. Review it, ask for changes, or edit the file yourself, and approve it.
 
 ## Mode 2 — Generate test from Gherkin
 
@@ -74,16 +53,11 @@ Prompt examples:
 > Generate the test from `tests/cli/issue_1234.feature` and put it in
 > `tests/cli/cli_mount_test.py`.
 
-The agent adds one pytest method per scenario to the most pertinent existing
-`tests/cli/cli_*_test.py` file (or a new aptly-named one), with the Gherkin
-copied above the test class, then runs a compile and collection check and
-tells you how to validate.
+The agent adds one pytest method per scenario to the most pertinent existing `tests/cli/cli_*_test.py` file (or a new aptly-named one), with the Gherkin copied above the test class, then runs a compile and collection check and tells you how to validate.
 
 ## Run it from the shell (scripts)
 
-Two thin wrappers launch `copilot --agent cli-test-generator` for you with a
-short request; all instructions stay in the agent file. They restrict the
-model's tools (no `bash`/`git`/`gh`), so it cannot read a diff.
+Two thin wrappers launch `copilot --agent cli-test-generator` for you with a short request; all instructions stay in the agent file. They restrict the model's tools (no `bash`/`git`/`gh`), so it cannot read a diff.
 
 ```bash
 # Mode 1: writes tests/cli/<slug>.feature, then stops
@@ -95,16 +69,12 @@ model's tools (no `bash`/`git`/`gh`), so it cannot read a diff.
     [--prompt "extra guidance"] [--test-path tests/cli/cli_mount_test.py]
 ```
 
-- `--interactive` opens a live session so the agent can ask you questions;
-  without it the run is headless and ambiguities become `# TODO(clarify)`
-  comments.
-- `generate-test.sh` detects which file changed and runs the compile and
-  collection checks. Review the `.feature` file before running it.
+- `--interactive` opens a live session so the agent can ask you questions; without it the run is headless and ambiguities become `# TODO(clarify)` comments.
+- `generate-test.sh` detects which file changed and runs the compile and collection checks. Review the `.feature` file before running it.
 
 ## Validate red-before-green yourself
 
-The agent never runs the test against a real daemon. Run it against a build of
-the **unfixed** code:
+The agent never runs the test against a real daemon. Run it against a build of the **unfixed** code:
 
 ```bash
 pytest tests/cli/<file> --daemon-controller=standalone --bin-dir=<path-to-build/bin> -rA -v
@@ -114,11 +84,4 @@ pytest tests/cli/<file> --daemon-controller=standalone --bin-dir=<path-to-build/
   control cases (unchanged behavior) may pass.
 - A bare `pytest` without those two flags tests the system snap, not your
   build.
-- If a scenario passes when it shouldn't, see the "red-before-green" steps in
-  the agent file.
-
-## Not implemented yet
-
-Treating generated tests differently in CI (markers, RC-only runs) and
-triggering the agent automatically from a GitHub Action are deliberately out
-of scope; they are follow-up proposals.
+- If a scenario passes when it shouldn't, see the "red-before-green" steps in the agent file.
