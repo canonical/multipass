@@ -69,7 +69,7 @@ public:
         return images_info;
     }
 
-    std::vector<std::string> fetch_remotes() const override
+    std::vector<std::string> get_remotes() const override
     {
         std::vector<std::string> remotes;
         for (const auto& [name, host] : remote_image_host_map)

@@ -71,7 +71,7 @@ TEST_F(DaemonRemotes, returnsKnownRemotesExceptUnspecified)
     const auto remote1 = std::string{"remote1"};
     const auto remote2 = std::string{"remote2"};
 
-    EXPECT_CALL(*mock_vault, fetch_remotes())
+    EXPECT_CALL(*mock_vault, get_remotes())
         .WillOnce(Return(std::vector<std::string>{remote1, unspecified_remote, remote2}));
 
     auto daemon = mp::Daemon{config_builder.build()};

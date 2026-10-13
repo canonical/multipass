@@ -1745,7 +1745,7 @@ try
 
     auto response = RemotesReply{};
 
-    for (auto remote : config->vault->fetch_remotes())
+    for (auto remote : config->vault->get_remotes())
     {
         if (remote != unspecified_remote)
         {
