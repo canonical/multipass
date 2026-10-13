@@ -127,13 +127,13 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     fmt::memory_buffer buf;
 
     fmt::format_to(std::back_inserter(buf),
-                   "Name,State,IPv4,Release,AllIPv4,Zone,Zone available\n");
+                   "Name,State,IPv4,Release,AllIPv4,Zone,Zone available,Mounts\n");
 
     for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
         fmt::format_to(
             std::back_inserter(buf),
-            "{},{},{},{},\"{}\",{},{}\n",
+            "{},{},{},{},\"{}\",{},{},{}\n",
             instance.name(),
             mp::format::status_string_for(instance.instance_status()),
             instance.ipv4_size() ? instance.ipv4(0) : "",
@@ -143,7 +143,8 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
             fmt::join(instance.ipv4(), ","),
             !instance.zone().name().empty() ? instance.zone().name() : std::string{"n/a"},
             !instance.zone().name().empty() ? fmt::to_string(instance.zone().available())
-                                            : std::string{});
+                                            : std::string{},
+            instance.mount_count());
     }
 
     return fmt::to_string(buf);

@@ -1632,7 +1632,8 @@ TEST_F(BaseFormatterSuite, formatters_render_unsupported_zone_as_na_in_list)
     const auto csv_output = csv_formatter.format(list_reply);
     EXPECT_THAT(
         csv_output,
-        HasSubstr("foo,Running,10.168.32.2,Ubuntu 16.04 LTS,\"10.168.32.2,200.3.123.30\",n/a,\n"));
+        HasSubstr(
+            "foo,Running,10.168.32.2,Ubuntu 16.04 LTS,\"10.168.32.2,200.3.123.30\",n/a,,2\n"));
     EXPECT_THAT(csv_output, Not(HasSubstr("zone1")));
 
     const auto json_output = json_formatter.format(list_reply);
