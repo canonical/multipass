@@ -237,6 +237,8 @@ linkcheck_retries = 3
 
 linkcheck_anchors_ignore_for_url = [r"https://github\.com/", r"https://matrix\.to/"]
 
+# Excluded documents; past release notes are not maintained, but the index is
+linkcheck_exclude_documents = [r"reference/release-notes/(?!index$)"]
 
 ########################
 # Configuration extras #
@@ -280,6 +282,7 @@ extensions = [
 
 exclude_patterns = [
     "doc-cheat-sheet*",
+    "reference/release-notes/RELEASE_NOTES_TEMPLATE.md",
 ]
 
 # Adds custom CSS files, located under 'html_static_path'
