@@ -4218,7 +4218,7 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
     }
     catch (const StartException& e)
     {
-        if (!std::is_same_v<Reply, LaunchReply> || !e.was_intentional())
+        if (!std::is_same_v<LogMsgReply, LaunchReply> || !e.was_intentional())
         {
             return {name, ReadinessError::UNPLUGGED, e.what()};
         }
