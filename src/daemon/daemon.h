@@ -19,6 +19,7 @@
 
 #include "daemon_config.h"
 #include "daemon_rpc.h"
+#include "readiness_result.h"
 
 #include <multipass/async_periodic_download_task.h>
 #include <multipass/delayed_shutdown_timer.h>
@@ -234,13 +235,6 @@ private:
         DaemonRpcContext* context;
     };
 
-    struct ReadinessResult
-    {
-        std::string instance_name;
-        ReadinessError::ErrorCode error;
-        std::string message;
-    };
-
     // These async_* methods need to operate on instance names and look up the VMs again, lest they
     // be gone or moved.
     template <typename Reply, typename Request>
@@ -277,16 +271,6 @@ private:
     VMSpecs clone_spec(const VMSpecs& src_vm_spec,
                        const std::string& src_name,
                        const std::string& dest_name);
-
-    template <typename Reply>
-    grpc::Status grpc_status_for_readiness(const std::vector<ReadinessResult>& results,
-                                           const std::string& start_errors);
-    grpc::StatusCode grpc_status_code_for_readiness(const std::vector<ReadinessResult>& results,
-                                                    const std::string& start_errors);
-    std::string grpc_error_message_for_readiness(const std::vector<ReadinessResult>& results,
-                                                 const std::string& start_errors);
-    template <typename Reply>
-    std::string grpc_error_details_for_readiness(const std::vector<ReadinessResult>& results);
 
     std::unique_ptr<const DaemonConfig> config;
 

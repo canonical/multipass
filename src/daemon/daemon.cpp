@@ -83,6 +83,7 @@
 #include <functional>
 #include <future>
 #include <optional>
+#include <ranges>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -3832,7 +3833,7 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
 }
 
 template <typename Reply, typename Request>
-mp::Daemon::ReadinessResult
+mp::ReadinessResult
 mp::Daemon::async_wait_vm_ready(const std::string& name,
                                 const std::chrono::seconds& timeout,
                                 grpc::ServerReaderWriterInterface<Reply, Request>* server)
@@ -3991,7 +3992,7 @@ mp::Daemon::async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Repl
         }
     }
 
-    return {grpc_status_for_readiness<Reply>(results, start_errors), context};
+    return {mp::grpc_status_for_readiness<Reply>(results, start_errors), context};
 }
 
 void mp::Daemon::finish_async_operation(const std::string& async_future_key)
@@ -4259,88 +4260,4 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
                                          instance_name,
                                          preferred_net);
     }
-}
-
-grpc::StatusCode mp::Daemon::grpc_status_code_for_readiness(
-    const std::vector<ReadinessResult>& results,
-    const std::string& start_errors)
-{
-    const auto is_error = [](const ReadinessResult& result) {
-        return result.error != ReadinessError::OK;
-    };
-
-    if (start_errors.empty() && std::none_of(results.begin(), results.end(), is_error))
-        return grpc::StatusCode::OK;
-
-    // If there is only one VM and that VM timed-out with no other errors, return DEADLINE_EXCEEDED
-    if ((start_errors.empty() && results.size() == 1) &&
-        (results[0].error == ReadinessError::SSH_TIMEOUT ||
-         results[0].error == ReadinessError::CLOUD_INIT_TIMEOUT))
-        return grpc::StatusCode::DEADLINE_EXCEEDED;
-
-    return grpc::StatusCode::INVALID_ARGUMENT;
-}
-
-template <typename Reply>
-std::string mp::Daemon::grpc_error_details_for_readiness(const std::vector<ReadinessResult>&)
-{
-    return {};
-}
-
-template <>
-std::string mp::Daemon::grpc_error_details_for_readiness<mp::LaunchReply>(
-    const std::vector<ReadinessResult>& results)
-{
-    assert(results.size() == 1);
-
-    LaunchError launch_error;
-    launch_error.set_readiness_error(results.at(0).error);
-
-    return launch_error.SerializeAsString();
-}
-
-template <>
-std::string mp::Daemon::grpc_error_details_for_readiness<mp::StartReply>(
-    const std::vector<ReadinessResult>& results)
-{
-    StartError start_error;
-
-    auto* readiness_errors = start_error.mutable_readiness_errors();
-    for (const auto& result : results)
-        if (result.error != ReadinessError::OK)
-            (*readiness_errors)[result.instance_name] = result.error;
-
-    return start_error.SerializeAsString();
-}
-
-std::string mp::Daemon::grpc_error_message_for_readiness(
-    const std::vector<ReadinessResult>& results,
-    const std::string& start_errors)
-{
-    fmt::memory_buffer collective_errors;
-    add_fmt_to(collective_errors, "The following errors occurred:");
-
-    if (!start_errors.empty())
-        add_fmt_to(collective_errors, "{}", start_errors);
-
-    for (const auto& result : results)
-        if (result.error != ReadinessError::OK)
-            add_fmt_to(collective_errors, "{}", result.message);
-
-    return fmt::to_string(collective_errors);
-}
-
-template <typename Reply>
-grpc::Status mp::Daemon::grpc_status_for_readiness(const std::vector<ReadinessResult>& results,
-                                                   const std::string& start_errors)
-{
-    const grpc::StatusCode status_code = grpc_status_code_for_readiness(results, start_errors);
-    if (status_code == grpc::StatusCode::OK)
-    {
-        return grpc::Status::OK;
-    }
-
-    return {status_code,
-            grpc_error_message_for_readiness(results, start_errors),
-            grpc_error_details_for_readiness<Reply>(results)};
 }
