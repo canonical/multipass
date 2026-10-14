@@ -296,6 +296,11 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
     return output;
 }
 
+std::string mp::YamlFormatter::format(const SnapshotsReply& reply) const
+{
+    return generate_snapshots_list(reply.snapshot_list());
+}
+
 std::string mp::YamlFormatter::format(const NetworksReply& reply) const
 {
     YAML::Node list;
@@ -312,7 +317,7 @@ std::string mp::YamlFormatter::format(const NetworksReply& reply) const
     return mpu::emit_yaml(list);
 }
 
-std::string mp::YamlFormatter::format(const FindReply& reply) const
+std::string mp::YamlFormatter::format(const ImagesReply& reply) const
 {
     YAML::Node find;
     find["errors"] = std::vector<YAML::Node>{};

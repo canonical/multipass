@@ -9,9 +9,9 @@
             }
         }
     },
-    "vmStatusLabel": "{status, select, running{Running} stopped{Stopped} suspended{Suspended} restarting{Restarting} starting{Starting} suspending{Suspending} deleted{Deleted} delayed_shutdown{Delayed shutdown} launching{Launching} unavailable{Unavailable} other{}}",
+    "vmStatusLabel": "{status, select, running{Running} stopped{Stopped} suspended{Suspended} restarting{Restarting} starting{Starting} suspending{Suspending} deleted{Deleted} delayed_shutdown{Delayed shutdown} launching{Launching} unavailable{Unavailable} other{Unknown}}",
     "@vmStatusLabel": {
-        "description": "Display label for a VM status. The 'status' parameter is the lowercase protobuf enum name (running, stopped, suspended, restarting, starting, suspending, deleted, delayed_shutdown) or 'launching'.",
+        "description": "Display label for a VM status. The 'status' parameter is the lowercase protobuf enum name (running, stopped, suspended, restarting, starting, suspending, deleted, delayed_shutdown, unavailable) or 'launching'. Any other value, including 'unknown', falls back to 'other'.",
         "placeholders": {
             "status": {
                 "type": "String"

@@ -185,9 +185,7 @@ QString mp::platform::Platform::multipass_storage_location() const
 
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
 {
-    struct stat st
-    {
-    };
+    struct stat st{};
 
     auto ret = lstat(path, &st);
 

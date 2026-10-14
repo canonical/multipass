@@ -61,13 +61,8 @@ public:
     void suspend() override;
     bool set_available(bool available) override;
     State current_state() override;
-    int ssh_port() override;
-    std::string ssh_hostname() override;
-    std::string ssh_username() override;
     std::optional<IPAddress> management_ipv4() override;
     void handle_state_update() override;
-    void update_cpus(int num_cores) override;
-    void resize_memory(const MemorySize& new_size) override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
@@ -81,6 +76,8 @@ protected:
                                                      const std::string& instance_id,
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
+    void update_cpus_impl(int num_cores) override;
+    void resize_memory_impl(const MemorySize& new_size) override;
     void resize_disk_impl(const MemorySize& new_size) override;
 
 private:
@@ -99,7 +96,6 @@ private:
 
     const QString name;
     std::unique_ptr<PowerShell> power_shell;
-    VMStatusMonitor* monitor;
     bool update_suspend_status{true};
     // LUID of the Default Switch host vNIC, where the management IP's neighbor entry lives.
     // Resolved again on every start, since the host vNIC can be recreated in the meantime.

@@ -22,9 +22,10 @@ service Rpc {
     rpc create (stream LaunchRequest) returns (stream LaunchReply);
     rpc launch (stream LaunchRequest) returns (stream LaunchReply);
     rpc purge (stream PurgeRequest) returns (stream PurgeReply);
-    rpc find (stream FindRequest) returns (stream FindReply);
+    rpc images (stream ImagesRequest) returns (stream ImagesReply);
     rpc info (stream InfoRequest) returns (stream InfoReply);
     rpc list (stream ListRequest) returns (stream ListReply);
+    rpc snapshots (stream SnapshotsRequest) returns (stream SnapshotsReply);
     rpc networks (stream NetworksRequest) returns (stream NetworksReply);
     rpc mount (stream MountRequest) returns (stream MountReply);
     rpc ping (PingRequest) returns (PingReply);
@@ -140,7 +141,7 @@ message PurgeReply {
     repeated string purged_instances = 2;
 }
 
-message FindRequest {
+message ImagesRequest {
     string search_string = 1;
     string remote_name = 2;
     int32 verbosity_level = 3;
@@ -148,7 +149,7 @@ message FindRequest {
     bool force_manifest_network_download = 5;
 }
 
-message FindReply {
+message ImagesReply {
     message ImageInfo {
         string os = 1;
         string release = 2;
@@ -299,6 +300,15 @@ message ListReply {
 
     string log_line = 3;
     UpdateInfo update_info = 4;
+}
+
+message SnapshotsRequest {
+    int32 verbosity_level = 1;
+}
+
+message SnapshotsReply {
+    string log_line = 1;
+    SnapshotsList snapshot_list = 2;
 }
 
 message NetworksRequest {

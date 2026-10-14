@@ -107,11 +107,18 @@ private:
         return ret;
     }();
 
+    // The output of commands like `free` and `uptime` is translated in guests with a non-English
+    // locale (e.g. "Mem:" becomes "内存："), which breaks parsing it, so use the C locale for all
+    // of them.
+    static constexpr auto locale_prefix = "export LC_ALL=C; ";
+
 public:
-    inline static const std::string sequential_composite_cmd =
-        fmt::to_string(fmt::join(cmds, "; "));
-    inline static const std::string parallel_composite_cmd =
-        fmt::format("{} & wait", fmt::join(cmds, "& "));
+    inline static const std::string sequential_composite_cmd = fmt::format("{}{}",
+                                                                           locale_prefix,
+                                                                           fmt::join(cmds, "; "));
+    inline static const std::string parallel_composite_cmd = fmt::format("{}{} & wait",
+                                                                         locale_prefix,
+                                                                         fmt::join(cmds, "& "));
 };
 } // namespace
 

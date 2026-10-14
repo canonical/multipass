@@ -36,9 +36,7 @@ auto fmt::formatter<HcnIpam, Char>::format(const HcnIpam& ipam, FormatContext& c
         }}
     )json");
 
-    return json_template.format_to(ctx,
-                                   ipam.type,
-                                   fmt::join(ipam.subnets, string_literal<Char>(",")));
+    return json_template.format_to(ctx, ipam.type, fmt::join(ipam.subnets, comma_view<Char>));
 }
 
 template auto fmt::formatter<HcnIpam, char>::format<fmt::format_context>(const HcnIpam&,

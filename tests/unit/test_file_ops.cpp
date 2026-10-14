@@ -270,8 +270,7 @@ TEST_F(HighLevelFileOps, writesTransactionallyEventually)
     auto commit_called_times = 0;
     EXPECT_CALL(mock_file_ops, commit(mpt::FileNameMatches<QSaveFile&>(Eq(file_path))))
         .Times(expected_retry_attempts)
-        .WillRepeatedly(
-            InvokeWithoutArgs([&]() { return ++commit_called_times == expected_retry_attempts; }));
+        .WillRepeatedly([&]() { return ++commit_called_times == expected_retry_attempts; });
 
     EXPECT_NO_THROW(mock_file_ops.write_transactionally(file_path, file_text));
 }

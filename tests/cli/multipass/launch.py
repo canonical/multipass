@@ -104,9 +104,10 @@ def launch(cfg_override=None):
     assert mounts(vm_cfg["name"]) == {}
     assert state(vm_cfg["name"]) == "Running"
 
-    yield VMHandle(vm_cfg)
-
-    if vm_cfg["autopurge"]:
-        with multipass("delete", vm_cfg["name"], "--purge") as result:
-            if vm_cfg["assert"]["purge"]:
-                assert result, f"Failed to purge VM `{vm_cfg['name']}`: {str(result)}"
+    try:
+        yield VMHandle(vm_cfg)
+    finally:
+        if vm_cfg["autopurge"]:
+            with multipass("delete", vm_cfg["name"], "--purge") as result:
+                if vm_cfg["assert"]["purge"]:
+                    assert result, f"Failed to purge VM `{vm_cfg['name']}`: {str(result)}"

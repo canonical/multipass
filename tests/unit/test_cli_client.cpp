@@ -86,9 +86,9 @@ struct MockDaemonRpc : public mp::DaemonRpc
                  (grpc::ServerReaderWriter<mp::PurgeReply, mp::PurgeRequest> * server)),
                 (override));
     MOCK_METHOD(grpc::Status,
-                find,
+                images,
                 (grpc::ServerContext * context,
-                 (grpc::ServerReaderWriter<mp::FindReply, mp::FindRequest> * server)),
+                 (grpc::ServerReaderWriter<mp::ImagesReply, mp::ImagesRequest> * server)),
                 (override));
     MOCK_METHOD(grpc::Status,
                 info,
@@ -99,6 +99,11 @@ struct MockDaemonRpc : public mp::DaemonRpc
                 list,
                 (grpc::ServerContext * context,
                  (grpc::ServerReaderWriter<mp::ListReply, mp::ListRequest> * server)),
+                (override));
+    MOCK_METHOD(grpc::Status,
+                snapshots,
+                (grpc::ServerContext * context,
+                 (grpc::ServerReaderWriter<mp::SnapshotsReply, mp::SnapshotsRequest> * server)),
                 (override));
     MOCK_METHOD(grpc::Status,
                 mount,
@@ -2167,6 +2172,42 @@ TEST_F(Client, listCmdFailsWithIpv4AndSnapshots)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, listCmdSnapshotsDeprecationWarning)
+{
+    std::stringstream cerr_stream;
+    mp::ListReply reply;
+    reply.mutable_snapshot_list();
+
+    EXPECT_CALL(mock_daemon, list)
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::ListReply, mp::ListRequest>(_, ok, reply)));
+    EXPECT_THAT(send_command({"list", "--snapshots"}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("`multipass list --snapshots` is deprecated"));
+}
+
+// snapshots cli tests
+TEST_F(Client, snapshotsCmdOkNoArgs)
+{
+    mp::SnapshotsReply reply;
+    reply.mutable_snapshot_list();
+
+    EXPECT_CALL(mock_daemon, snapshots)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::SnapshotsReply, mp::SnapshotsRequest>(_, ok, reply)));
+    EXPECT_THAT(send_command({"snapshots"}), Eq(mp::ReturnCode::Ok));
+}
+
+TEST_F(Client, snapshotsCmdFailsWithArgs)
+{
+    EXPECT_THAT(send_command({"snapshots", "foo"}), Eq(mp::ReturnCode::CommandLineError));
+}
+
+TEST_F(Client, snapshotsCmdHelpOk)
+{
+    EXPECT_THAT(send_command({"snapshots", "-h"}), Eq(mp::ReturnCode::Ok));
+}
+
 // mount cli tests
 // Note: mpt::test_data_path() returns an absolute path
 TEST_F(Client, mountCmdGoodAbsoluteSourcePath)
@@ -3337,44 +3378,51 @@ TEST_F(Client, deleteCmdWrongVmState)
     EXPECT_THAT(send_command({"delete", "foo"}), Eq(mp::ReturnCode::CommandFail));
 }
 
-// find cli tests
-TEST_F(Client, findCmdUnsupportedOptionOk)
+// images cli tests
+struct ImagesCmdClient : public Client, public WithParamInterface<std::string>
 {
-    EXPECT_CALL(mock_daemon, find(_, _));
-    EXPECT_THAT(send_command({"find", "--show-unsupported"}), Eq(mp::ReturnCode::Ok));
+    inline static const auto command_names = Values("images", "find");
+};
+
+INSTANTIATE_TEST_SUITE_P(Client, ImagesCmdClient, ImagesCmdClient::command_names);
+
+TEST_P(ImagesCmdClient, findCmdUnsupportedOptionOk)
+{
+    EXPECT_CALL(mock_daemon, images(_, _));
+    EXPECT_THAT(send_command({GetParam(), "--show-unsupported"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, findCmdForceUpdateOk)
+TEST_P(ImagesCmdClient, findCmdForceUpdateOk)
 {
-    EXPECT_CALL(mock_daemon, find(_, _));
-    EXPECT_EQ(send_command({"find", "--force-update"}), mp::ReturnCode::Ok);
+    EXPECT_CALL(mock_daemon, images(_, _));
+    EXPECT_EQ(send_command({GetParam(), "--force-update"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, findCmdForceUpdateWithRemoteOk)
+TEST_P(ImagesCmdClient, findCmdForceUpdateWithRemoteOk)
 {
-    EXPECT_CALL(mock_daemon, find(_, _));
-    EXPECT_EQ(send_command({"find", "foo:", "--force-update"}), mp::ReturnCode::Ok);
+    EXPECT_CALL(mock_daemon, images(_, _));
+    EXPECT_EQ(send_command({GetParam(), "foo:", "--force-update"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, findCmdForceUpdateWithRemoteAndSearchNameOk)
+TEST_P(ImagesCmdClient, findCmdForceUpdateWithRemoteAndSearchNameOk)
 {
-    EXPECT_CALL(mock_daemon, find(_, _));
-    EXPECT_EQ(send_command({"find", "foo:bar", "--force-update"}), mp::ReturnCode::Ok);
+    EXPECT_CALL(mock_daemon, images(_, _));
+    EXPECT_EQ(send_command({GetParam(), "foo:bar", "--force-update"}), mp::ReturnCode::Ok);
 }
 
-TEST_F(Client, findCmdTooManyArgsFails)
+TEST_P(ImagesCmdClient, findCmdTooManyArgsFails)
 {
-    EXPECT_THAT(send_command({"find", "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({GetParam(), "foo", "bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, findCmdMultipleColonsFails)
+TEST_P(ImagesCmdClient, findCmdMultipleColonsFails)
 {
-    EXPECT_THAT(send_command({"find", "foo::bar"}), Eq(mp::ReturnCode::CommandLineError));
+    EXPECT_THAT(send_command({GetParam(), "foo::bar"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, findCmdHelpOk)
+TEST_P(ImagesCmdClient, findCmdHelpOk)
 {
-    EXPECT_THAT(send_command({"find", "-h"}), Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(send_command({GetParam(), "-h"}), Eq(mp::ReturnCode::Ok));
 }
 
 // wait-ready cli tests

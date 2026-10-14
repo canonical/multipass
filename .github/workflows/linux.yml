@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   GetMatrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -95,7 +95,7 @@ jobs:
 
     # Free some disk space to avoid the "No space left on device" error.
     - name: Free Disk Space
-      uses: jlumbroso/free-disk-space@v1.3.1
+      uses: jlumbroso/free-disk-space@v2.0.0
       with:
         large-packages: false
         swap-storage: false
@@ -430,7 +430,7 @@ jobs:
     needs: BuildAndTest
     if: ${{ !cancelled() && !success() && github.event_name == 'schedule' }}
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
     - name: Report workflow failure

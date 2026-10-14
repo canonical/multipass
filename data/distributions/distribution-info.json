@@ -3,22 +3,22 @@
         "aliases": "debian, trixie",
         "items": {
             "arm64": {
-                "id": "sha512:bef60fa5c4f5511cf83fe1ade0279edd5318dccbbb44f14eb0aa7f3b467e038d7a7c0b6f837be0ad1c3b2e06c5ed8e27adfdf0fd111a201b8f4c9347cd414863",
-                "image_location": "https://cloud.debian.org/images/cloud/trixie/20260914-2601/debian-13-generic-arm64-20260914-2601.qcow2",
-                "size": 431685632,
-                "version": "20260914"
+                "id": "sha512:001e742c14a69f3f506c1663b271b4aeed7fa766f7471a13d49ee22d338b8a637b5206a75bf994435af7b26ce3794a255dcf22e312b0d4b8d7b7f96076fe925f",
+                "image_location": "https://cloud.debian.org/images/cloud/trixie/20261001-2618/debian-13-generic-arm64-20261001-2618.qcow2",
+                "size": 430374912,
+                "version": "20261001"
             },
             "power64le": {
-                "id": "sha512:11fba3418ddca74c37cc044b3123bacfb18075e0e611e3bc2488aedd3e1436818ce0be5055d0ffa920dc1c1267d8327f795db71ba3c87fc3454e0e8ec722ddac",
-                "image_location": "https://cloud.debian.org/images/cloud/trixie/20260914-2601/debian-13-generic-ppc64el-20260914-2601.qcow2",
-                "size": 397541376,
-                "version": "20260914"
+                "id": "sha512:cccaea1204047c78cd0427a4d71f1a6ff2dde57b9ae25fa9c221bfcdef91301455fe88f922455cf02f8fdbfa4b75b5adec53760a81fd53b3f810b4b3de7a8658",
+                "image_location": "https://cloud.debian.org/images/cloud/trixie/20261001-2618/debian-13-generic-ppc64el-20261001-2618.qcow2",
+                "size": 396427264,
+                "version": "20261001"
             },
             "x86_64": {
-                "id": "sha512:a733e7d49442a03e70d03e4eb5aaf3967f3efc69ef70952f9bb10fc1ee2c4876eb95956b5ad2d31350e5fada768feb651352535fb8cd1233f61998a5a7d2e93c",
-                "image_location": "https://cloud.debian.org/images/cloud/trixie/20260914-2601/debian-13-generic-amd64-20260914-2601.qcow2",
-                "size": 433651712,
-                "version": "20260914"
+                "id": "sha512:6f0f93335bdef4ccf523c4317cc663ea52ca23b862667785f3d6d186ab4674a937385ccff0c55996b4b2e4c19e440cdf211e2a75ffa2f6548037ab43950c841d",
+                "image_location": "https://cloud.debian.org/images/cloud/trixie/20261001-2618/debian-13-generic-amd64-20261001-2618.qcow2",
+                "size": 435355648,
+                "version": "20261001"
             }
         },
         "os": "Debian",

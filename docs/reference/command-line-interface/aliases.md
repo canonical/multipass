@@ -25,6 +25,10 @@ The value will be `default` only if the alias was created with the `--no-map-wor
 
 The command can be used in conjunction with the `--format` or `-f` options to specify the desired output format: `csv`, `json`, `table` or `yaml`.
 
+```{note}
+The `json`, `csv` and `yaml` formats cover regular output only. Errors and log messages are printed to the standard error stream as plain text, with failures signaled by a non-zero exit status.
+```
+
 ---
 
 The full `multipass help aliases` output explains the available options:
@@ -39,8 +43,11 @@ Options:
                      option for more detail. Maximum verbosity is obtained with
                      4 (or more) v's, i.e. -vvvv.
   --format <format>  Output list in the requested format. Valid formats are:
-                     table (default), json, csv and yaml. The output working
-                     directory states whether the alias runs in the instance's
-                     default directory or the alias running directory should try
-                     to be mapped to a mounted one.
+                     table (default), json, csv and yaml. The json, csv and yaml
+                     formats cover regular output only. Errors and log messages
+                     are printed to the standard error stream as plain text,
+                     with failures signaled by a non-zero exit status. The
+                     output working directory states whether the alias runs in
+                     the instance's default directory or the alias running
+                     directory should try to be mapped to a mounted one.
 ```

@@ -12,7 +12,9 @@ class MemoryUsage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var value = (double.tryParse(used) ?? 0) / (double.tryParse(total) ?? 1);
+    final usedBytes = int.tryParse(used) ?? 0;
+    final totalBytes = int.tryParse(total) ?? 0;
+    var value = usedBytes / totalBytes;
     value = value.isFinite ? value : 0.0;
 
     final indicator = LinearProgressIndicator(
@@ -22,7 +24,9 @@ class MemoryUsage extends StatelessWidget {
     );
 
     final label = Text(
-      value != 0 ? '${_formatMemory(used)} / ${_formatMemory(total)}' : '-',
+      value != 0
+          ? '${_formatMemory(usedBytes)} / ${_formatMemory(totalBytes)}'
+          : '-',
       style: const TextStyle(fontSize: 11),
     );
 
@@ -34,7 +38,7 @@ class MemoryUsage extends StatelessWidget {
   }
 }
 
-String _formatMemory(String data) {
+String _formatMemory(int size) {
   const divider = 1024;
   const units = {
     'GiB': divider * divider * divider,
@@ -42,7 +46,6 @@ String _formatMemory(String data) {
     'KiB': divider,
   };
 
-  final size = int.parse(data);
   for (final MapEntry(key: suffix, value: unit) in units.entries) {
     if (size >= unit) return '${(size / unit).toStringAsFixed(1)}$suffix';
   }

@@ -366,7 +366,7 @@ void mp::DefaultVMImageVault::remove(const std::string& name)
 
 bool mp::DefaultVMImageVault::has_record_for(const std::string& name)
 {
-    return instance_image_records.find(name) != instance_image_records.end();
+    return instance_image_records.contains(name);
 }
 
 void mp::DefaultVMImageVault::prune_expired_images()
@@ -426,9 +426,7 @@ void mp::DefaultVMImageVault::update_images(const PrepareAction& prepare,
     for (const auto& record : prepared_image_records)
     {
         if (record.second.query.query_type == Query::Type::Alias &&
-            record.first.compare(0,
-                                 record.second.query.release.length(),
-                                 record.second.query.release) != 0)
+            !record.first.starts_with(record.second.query.release))
         {
             try
             {
@@ -491,7 +489,7 @@ void mp::DefaultVMImageVault::clone(const std::string& source_instance_name,
         throw std::runtime_error(source_instance_name + " does not exist in the image records");
     }
 
-    if (instance_image_records.find(destination_instance_name) != instance_image_records.end())
+    if (instance_image_records.contains(destination_instance_name))
     {
         throw std::runtime_error(destination_instance_name +
                                  " already exists in the image records");

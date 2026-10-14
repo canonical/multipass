@@ -169,7 +169,7 @@ std::vector<std::pair<std::string, mp::VMImageInfo>> mp::UbuntuVMImageHost::all_
             {
                 const auto id = entry.id;
                 if (id.starts_with(key) && (entry.supported || query.allow_unsupported) &&
-                    found_hashes.find(id) == found_hashes.end())
+                    !found_hashes.contains(id))
                 {
                     images.emplace_back(remote_name, entry);
                     found_hashes.insert(id);

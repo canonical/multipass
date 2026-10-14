@@ -27,7 +27,7 @@ namespace
 {
 template <typename Dest>
 void format_images(Dest&& dest,
-                   const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
+                   const google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>& images_info,
                    std::string type)
 {
     for (const auto& image : images_info)
@@ -203,6 +203,11 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
     return output;
 }
 
+std::string mp::CSVFormatter::format(const SnapshotsReply& reply) const
+{
+    return generate_snapshots_list(reply.snapshot_list());
+}
+
 std::string mp::CSVFormatter::format(const NetworksReply& reply) const
 {
     fmt::memory_buffer buf;
@@ -222,7 +227,7 @@ std::string mp::CSVFormatter::format(const NetworksReply& reply) const
     return fmt::to_string(buf);
 }
 
-std::string mp::CSVFormatter::format(const FindReply& reply) const
+std::string mp::CSVFormatter::format(const ImagesReply& reply) const
 {
     fmt::memory_buffer buf;
 

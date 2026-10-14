@@ -106,10 +106,8 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
                                      const SSHKeyProvider& key_provider,
                                      AvailabilityZone& zone,
                                      const Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir},
-      description(desc),
-      primary_network_guid(network_guid),
-      monitor(monitor)
+    : BaseVirtualMachine{desc.vm_name, desc, monitor, key_provider, zone, instance_dir},
+      primary_network_guid(network_guid)
 {
     const auto created_from_scratch = maybe_create_compute_system();
     const auto compute_state = fetch_state_from_api();
@@ -171,17 +169,16 @@ void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* co
 
 std::filesystem::path HCSVirtualMachine::get_guest_state_file_path() const
 {
-    return std::filesystem::path{description.image.image_path}.replace_extension(".vmgs");
+    return std::filesystem::path{desc.image.image_path}.replace_extension(".vmgs");
 }
 std::filesystem::path HCSVirtualMachine::get_runtime_state_file_path() const
 {
-    return std::filesystem::path{description.image.image_path}.replace_extension(".vmrs");
+    return std::filesystem::path{desc.image.image_path}.replace_extension(".vmrs");
 }
 
 std::filesystem::path HCSVirtualMachine::get_saved_state_file_path() const
 {
-    return std::filesystem::path{description.image.image_path}.replace_extension(
-        ".SavedState.vmrs");
+    return std::filesystem::path{desc.image.image_path}.replace_extension(".SavedState.vmrs");
 }
 
 bool HCSVirtualMachine::has_saved_state_file() const
@@ -191,7 +188,7 @@ bool HCSVirtualMachine::has_saved_state_file() const
 
 std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
 {
-    return description.image.image_path;
+    return desc.image.image_path;
 }
 
 void HCSVirtualMachine::grant_access_to_scsi_device(const hcs::HcsScsiDevice& device) const
@@ -258,18 +255,18 @@ std::vector<hcn::CreateEndpointParameters> HCSVirtualMachine::make_endpoint_para
     // Deterministic, instance-based name tagged onto every endpoint that belongs to this
     // VM. It allows the endpoints to be discovered and removed by name later on (e.g. during
     // instance purge), without needing to reopen the compute system to retrieve its RuntimeId.
-    const auto endpoint_name = hcn::endpoint_name_for(description.vm_name);
+    const auto endpoint_name = hcn::endpoint_name_for(desc.vm_name);
 
     std::vector<hcn::CreateEndpointParameters> params{
         // The primary endpoint (management)
         {.network_guid = primary_network_guid,
-         .endpoint_guid = endpoint_guid_for_mac(description.default_mac_address),
-         .mac_address = replace_colon_with_dash(description.default_mac_address),
+         .endpoint_guid = endpoint_guid_for_mac(desc.default_mac_address),
+         .mac_address = replace_colon_with_dash(desc.default_mac_address),
          .name = endpoint_name}};
 
     // Additional endpoints, a.k.a. extra interfaces. Their networks are referred to by name, and
     // are looked up since only networks Multipass created have GUIDs derived from their names.
-    for (const auto& extra : description.extra_interfaces)
+    for (const auto& extra : desc.extra_interfaces)
     {
         const auto network_guid = network_guid_for_name(extra.id);
         if (!network_guid)
@@ -311,7 +308,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
 
     // Create the VM from scratch.
     if (!has_saved_state_file() &&
-        !remove_management_ipv4_neighbors(primary_network_guid, description.default_mac_address))
+        !remove_management_ipv4_neighbors(primary_network_guid, desc.default_mac_address))
         mpl::warn(get_name(), "Could not remove all stale management IP entries");
 
     const auto endpoints = make_endpoint_parameters();
@@ -328,16 +325,16 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     });
 
     const hcs::CreateComputeSystemParameters create_compute_system_params{
-        .name = description.vm_name,
-        .memory_size_mb = static_cast<uint32_t>(description.mem_size.in_megabytes()),
-        .processor_count = static_cast<uint32_t>(description.num_cores),
+        .name = desc.vm_name,
+        .memory_size_mb = static_cast<uint32_t>(desc.mem_size.in_megabytes()),
+        .processor_count = static_cast<uint32_t>(desc.num_cores),
         .scsi_devices = {{.type = hcs::HcsScsiDeviceType::VirtualDisk(),
                           .name = "Primary disk",
                           .path = get_primary_disk_path(),
                           .read_only = false},
                          {.type = hcs::HcsScsiDeviceType::Iso(),
                           .name = "cloud-init ISO file",
-                          .path = description.cloud_init_iso.toStdString(),
+                          .path = desc.cloud_init_iso.toStdString(),
                           .read_only = true}},
         .network_adapters =
             [&] {
@@ -433,7 +430,7 @@ void HCSVirtualMachine::start()
     const auto is_cold_start = hcs_state == hcs::ComputeSystemState::created ||
                                hcs_state == hcs::ComputeSystemState::stopped;
     if (!created_from_scratch && is_cold_start && !has_saved_state_file() &&
-        !remove_management_ipv4_neighbors(primary_network_guid, description.default_mac_address))
+        !remove_management_ipv4_neighbors(primary_network_guid, desc.default_mac_address))
     {
         mpl::warn(get_name(), "Could not remove all stale management IP entries");
     }
@@ -463,7 +460,9 @@ void HCSVirtualMachine::start()
     if (!result)
     {
         set_state(prev_state);
-        throw StartComputeSystemException{"Could not start the VM: {}", result};
+        const auto error_msg{fmt::format("Could not start the VM: {}", result)};
+        save_error_msg(error_msg);
+        throw StartComputeSystemException{"{}", error_msg};
     }
     else if (has_saved_state_file())
     {
@@ -599,22 +598,9 @@ void HCSVirtualMachine::update_current_state()
     set_state(fetch_state_from_api());
 }
 
-int HCSVirtualMachine::ssh_port()
-{
-    return default_ssh_port;
-}
-std::string HCSVirtualMachine::ssh_hostname()
-{
-    return require_management_ipv4().as_string();
-}
-std::string HCSVirtualMachine::ssh_username()
-{
-    return description.ssh_username;
-}
-
 std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
 {
-    const auto endpoint_guid = endpoint_guid_for_mac(description.default_mac_address);
+    const auto endpoint_guid = endpoint_guid_for_mac(desc.default_mac_address);
     hcn::HcnEndpointInfo endpoint_info;
     if (const auto query_result = HCN().query_endpoint(endpoint_guid, endpoint_info); !query_result)
     {
@@ -689,35 +675,20 @@ hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api() const
     return compute_system_state;
 }
 
-void HCSVirtualMachine::update_cpus(int num_cores)
-{
-    mpl::debug(get_name(), "update_cpus() -> num_cores `{}`", num_cores);
-    description.num_cores = num_cores;
-}
-
-void HCSVirtualMachine::resize_memory(const MemorySize& new_size)
-{
-    mpl::debug(get_name(), "resize_memory() -> new_size `{}` MiB", new_size.in_megabytes());
-    description.mem_size = new_size;
-}
-
 void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
-    mpl::debug(get_name(), "resize_disk() -> new_size `{}` MiB", new_size.in_megabytes());
-
     if (get_num_snapshots() > 0)
     {
         throw ResizeDiskException{"Cannot resize the primary disk while there are "
                                   "snapshots. To resize, delete the snapshots first."};
     }
 
-    if (const auto result = VirtDisk().resize_virtual_disk(description.image.image_path,
+    if (const auto result = VirtDisk().resize_virtual_disk(desc.image.image_path,
                                                            new_size.in_bytes());
         !result)
     {
         throw ResizeDiskException{"Disk resize failed, details: {}", result};
     }
-    description.disk_space = new_size;
 }
 
 void HCSVirtualMachine::add_network_interface(int index,
@@ -769,14 +740,12 @@ std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(
                                                         parent,
                                                         specs,
                                                         *this,
-                                                        description);
+                                                        desc);
 }
 
 std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const QString& filename)
 {
-    return std::make_shared<virtdisk::VirtDiskSnapshot>(filename.toStdWString(),
-                                                        *this,
-                                                        description);
+    return std::make_shared<virtdisk::VirtDiskSnapshot>(filename.toStdWString(), *this, desc);
 }
 
 std::error_code HCSVirtualMachine::remove_saved_state_file_if_exists()

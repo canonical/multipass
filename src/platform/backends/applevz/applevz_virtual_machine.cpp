@@ -41,7 +41,7 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              const SSHKeyProvider& key_provider,
                                              AvailabilityZone& zone,
                                              const Path& instance_dir)
-    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir}, monitor{&monitor}
+    : BaseVirtualMachine{desc.vm_name, desc, monitor, key_provider, zone, instance_dir}
 {
     initialize_vm_handle();
 }
@@ -94,16 +94,19 @@ void AppleVZVirtualMachine::start()
     }
     else
     {
-        mpl::error(log_category,
-                   "start() -> VM `{}` cannot be started. Current state `{}`",
-                   vm_name,
-                   current_state());
+        const auto error_msg{fmt::format("start() -> VM `{}` cannot be started. Current state `{}`",
+                                         vm_name,
+                                         current_state())};
+        mpl::log_message(mpl::Level::error, log_category, error_msg);
+        save_error_msg(error_msg);
         return;
     }
 
     if (error)
     {
-        mpl::error(log_category, "start() -> VM '{}' failed to start: {}", vm_name, error);
+        const auto error_msg{fmt::format("start() -> VM '{}' failed to start: {}", vm_name, error)};
+        mpl::log_message(mpl::Level::error, log_category, error_msg);
+        save_error_msg(error_msg);
         throw std::runtime_error(
             fmt::format("VM '{}' failed to start, check logs for more details", vm_name));
     }
@@ -252,21 +255,6 @@ VirtualMachine::State AppleVZVirtualMachine::current_state()
     return state;
 }
 
-int AppleVZVirtualMachine::ssh_port()
-{
-    return 22;
-}
-
-std::string AppleVZVirtualMachine::ssh_hostname()
-{
-    return require_management_ipv4().as_string();
-}
-
-std::string AppleVZVirtualMachine::ssh_username()
-{
-    return desc.ssh_username;
-}
-
 std::optional<IPAddress> AppleVZVirtualMachine::management_ipv4()
 {
     if (!management_ip)
@@ -278,26 +266,12 @@ std::optional<IPAddress> AppleVZVirtualMachine::management_ipv4()
 void AppleVZVirtualMachine::handle_state_update()
 {
     if (update_shutdown_status)
-        monitor->persist_state_for(vm_name, state);
-}
-
-void AppleVZVirtualMachine::update_cpus(int num_cores)
-{
-    assert(num_cores > 0);
-    desc.num_cores = num_cores;
-}
-
-void AppleVZVirtualMachine::resize_memory(const MemorySize& new_size)
-{
-    desc.mem_size = new_size;
+        monitor.persist_state_for(vm_name, state);
 }
 
 void AppleVZVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
-    assert(new_size > desc.disk_space);
-
     MP_APPLEVZ_UTILS.resize_image(new_size, desc.image.image_path);
-    desc.disk_space = new_size;
 }
 
 void AppleVZVirtualMachine::set_state(applevz::AppleVMState vm_state)

@@ -274,9 +274,28 @@ void mp::Libssh::ssh_connector_set_out_fd(ssh_connector connector, socket_t fd) 
 }
 
 // --- pki / keys -------------------------------------------------------------
-int mp::Libssh::ssh_pki_generate(enum ssh_keytypes_e type, int parameter, ssh_key* pkey) const
+ssh_pki_ctx mp::Libssh::ssh_pki_ctx_new() const
 {
-    return ::ssh_pki_generate(type, parameter, pkey);
+    return ::ssh_pki_ctx_new();
+}
+
+void mp::Libssh::ssh_pki_ctx_free(ssh_pki_ctx context) const
+{
+    ::ssh_pki_ctx_free(context);
+}
+
+int mp::Libssh::ssh_pki_ctx_options_set(ssh_pki_ctx context,
+                                        enum ssh_pki_options_e option,
+                                        const void* value) const
+{
+    return ::ssh_pki_ctx_options_set(context, option, value);
+}
+
+int mp::Libssh::ssh_pki_generate_key(enum ssh_keytypes_e type,
+                                     ssh_pki_ctx context,
+                                     ssh_key* pkey) const
+{
+    return ::ssh_pki_generate_key(type, context, pkey);
 }
 
 int mp::Libssh::ssh_pki_export_privkey_file(const ssh_key privkey,

@@ -169,7 +169,7 @@ auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name
                                                 bool deleted_ok) const
     -> std::shared_ptr<const VirtualMachine>
 {
-    if (preparing_instances.find(instance_name) != preparing_instances.end())
+    if (preparing_instances.contains(instance_name))
         throw SnapshotSettingsException{instance_name, "instance is being prepared"};
 
     try

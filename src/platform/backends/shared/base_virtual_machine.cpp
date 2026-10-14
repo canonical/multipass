@@ -96,12 +96,14 @@ mpu::TimeoutAction log_and_retry(const ExceptionT& e,
 
 mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
                                            const VirtualMachineDescription& vm_desc,
+                                           VMStatusMonitor& monitor,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
     : BaseVirtualMachine(zone.is_available() ? State::off : State::unavailable,
                          vm_name,
                          vm_desc,
+                         monitor,
                          key_provider,
                          zone,
                          instance_dir)
@@ -111,21 +113,21 @@ mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
 mp::BaseVirtualMachine::BaseVirtualMachine(State state,
                                            const std::string& vm_name,
                                            const VirtualMachineDescription& vm_desc,
+                                           VMStatusMonitor& monitor,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
     : VirtualMachine{state},
       vm_name{vm_name},
       desc{vm_desc},
+      monitor{monitor},
       key_provider{key_provider},
       zone{zone},
       instance_dir{instance_dir}
 {
 }
 
-mp::BaseVirtualMachine::~BaseVirtualMachine()
-{
-}
+mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
     const std::string& default_mac_addr,
@@ -161,7 +163,7 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
     return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_path);
 }
 
-void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy)
+void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy) const
 {
     // A mutex should already be locked by the caller here
     if (state == State::off || state == State::stopped || state == State::unavailable)
@@ -286,6 +288,16 @@ std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::make_ssh_process(const s
     return ssh_session->exec(cmd, whisper);
 }
 
+int mp::BaseVirtualMachine::ssh_port()
+{
+    return default_ssh_port;
+}
+
+std::string mp::BaseVirtualMachine::ssh_hostname()
+{
+    return require_management_ipv4().as_string();
+}
+
 void mp::BaseVirtualMachine::renew_ssh_session()
 {
     auto new_session = new_ssh_session();
@@ -325,11 +337,18 @@ void mp::BaseVirtualMachine::detect_aborted_start()
         state_wait.notify_all();
 
         std::string msg{"Instance shutdown during start"};
-        if (!saved_error_msg.empty())
-            msg += ": " + saved_error_msg;
+        bool error_occurred{!saved_error_msg.empty()};
 
-        saved_error_msg.clear();
-        throw StartException(vm_name, msg);
+        if (error_occurred)
+        {
+            msg += ": " + saved_error_msg;
+            saved_error_msg.clear();
+        }
+
+        throw StartException(vm_name,
+                             msg,
+                             !error_occurred &&
+                                 mpu::expects_shutdown_from_cloud_init(desc.user_data_config));
     }
 }
 
@@ -386,9 +405,32 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
     mpu::try_action_for(on_timeout, timeout, action);
 }
 
+void mp::BaseVirtualMachine::update_cpus(int num_cores)
+{
+    assert(num_cores > 0);
+    mpl::debug(vm_name, "update_cpus() -> num_cores `{}`", num_cores);
+
+    update_cpus_impl(num_cores);
+    desc.num_cores = num_cores;
+}
+
+void mp::BaseVirtualMachine::resize_memory(const MemorySize& new_size)
+{
+    assert(new_size.in_bytes() > 0);
+    mpl::debug(vm_name, "resize_memory() -> new_size `{}` MiB", new_size.in_megabytes());
+
+    resize_memory_impl(new_size);
+    desc.mem_size = new_size;
+}
+
 void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMessages& messages)
 {
+    assert(new_size > desc.disk_space);
+    mpl::debug(vm_name, "resize_disk() -> new_size `{}` MiB", new_size.in_megabytes());
+
     resize_disk_impl(new_size);
+    desc.disk_space = new_size;
+
     if (is_core())
         messages.add_message(core_image_disk_resize_message());
 }
@@ -653,7 +695,7 @@ void mp::BaseVirtualMachine::rename_snapshot(const std::string& old_name,
     if (old_it == snapshots.end())
         throw NoSuchSnapshotException{vm_name, old_name};
 
-    if (snapshots.find(new_name) != snapshots.end())
+    if (snapshots.contains(new_name))
         throw SnapshotNameTakenException{vm_name, new_name};
 
     auto snapshot_node = snapshots.extract(old_it);

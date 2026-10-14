@@ -162,12 +162,9 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
         if (auto& net = item.second; net.type == br_nomenclature)
         { // bridge descriptions and links depend on what other networks we recognized
             auto& links = net.links;
-            auto is_unknown = [&networks](const std::string& id) {
-                auto same_as = [&id](const auto& other) { return other.first == id; };
-                return std::find_if(networks.cbegin(), networks.cend(), same_as) == networks.cend();
-            };
-            links.erase(std::remove_if(links.begin(), links.end(), is_unknown),
-                        links.end()); // filter links to networks we don't recognize
+            // filter links to networks we don't recognize
+            std::erase_if(links,
+                          [&networks](const std::string& id) { return !networks.contains(id); });
 
             net.description = links.empty()
                                   ? "Network bridge"

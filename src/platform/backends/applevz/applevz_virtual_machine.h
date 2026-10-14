@@ -45,15 +45,9 @@ public:
 
     State current_state() override;
 
-    int ssh_port() override;
-    std::string ssh_hostname() override;
-    std::string ssh_username() override;
     std::optional<IPAddress> management_ipv4() override;
 
     void handle_state_update() override;
-
-    void update_cpus(int num_cores) override;
-    void resize_memory(const MemorySize& new_size) override;
 
     std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& /*specs*/,
                                                   const std::string& /*snapshot_name*/,
@@ -70,7 +64,6 @@ private:
     void set_state(applevz::AppleVMState vm_state);
 
 private:
-    VMStatusMonitor* monitor;
     VMHandle vm_handle{nullptr};
     bool update_shutdown_status{true};
 };

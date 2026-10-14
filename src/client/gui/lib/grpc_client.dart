@@ -14,7 +14,7 @@ export 'generated/multipass.pbgrpc.dart';
 
 typedef Status = InstanceStatus_Status;
 typedef VmInfo = DetailedInfoItem;
-typedef ImageInfo = FindReply_ImageInfo;
+typedef ImageInfo = ImagesReply_ImageInfo;
 typedef MountPaths = MountInfo_MountPaths;
 typedef RpcMessage = GeneratedMessage;
 
@@ -193,10 +193,10 @@ class GrpcClient {
     );
   }
 
-  Future<FindReply> find() {
+  Future<ImagesReply> images() {
     return doRpc(
-      _client.find,
-      FindRequest(),
+      _client.images,
+      ImagesRequest(),
     ).then((r) => r!);
   }
 

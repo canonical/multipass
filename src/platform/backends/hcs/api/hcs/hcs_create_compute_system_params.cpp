@@ -65,6 +65,7 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
         "ShouldTerminateOnLastHandleClosed": false,
         "VirtualMachine": {{
             "Chipset": {{
+                "UseUtc": true,
                 "Uefi": {{
                     "BootThis": {{
                         "DevicePath": "Primary disk",
@@ -104,7 +105,8 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
                   return string_literal<Char>(R"json(
                     "Services": {
                         "Shutdown": {},
-                        "Heartbeat": {}
+                        "Heartbeat": {},
+                        "Timesync": {}
                     })json");
               });
 
@@ -137,10 +139,10 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
                                    params.memory_size_mb,
                                    params.processor_count,
                                    params.name,
-                                   fmt::join(params.scsi_devices, string_literal<Char>(",")),
-                                   fmt::join(params.network_adapters, string_literal<Char>(",")),
-                                   fmt::join(optional_devices, string_literal<Char>(",")),
-                                   fmt::join(optional_sections, string_literal<Char>(",")));
+                                   fmt::join(params.scsi_devices, comma_view<Char>),
+                                   fmt::join(params.network_adapters, comma_view<Char>),
+                                   fmt::join(optional_devices, comma_view<Char>),
+                                   fmt::join(optional_sections, comma_view<Char>));
 }
 
 template auto fmt::formatter<CreateComputeSystemParameters, char>::format<fmt::format_context>(

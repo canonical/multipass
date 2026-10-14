@@ -24,9 +24,9 @@
 #include "cmd/disable_zones.h"
 #include "cmd/enable_zones.h"
 #include "cmd/exec.h"
-#include "cmd/find.h"
 #include "cmd/get.h"
 #include "cmd/help.h"
+#include "cmd/images.h"
 #include "cmd/info.h"
 #include "cmd/launch.h"
 #include "cmd/list.h"
@@ -41,6 +41,7 @@
 #include "cmd/set.h"
 #include "cmd/shell.h"
 #include "cmd/snapshot.h"
+#include "cmd/snapshots.h"
 #include "cmd/start.h"
 #include "cmd/stop.h"
 #include "cmd/suspend.h"
@@ -92,7 +93,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Launch>(aliases);
     add_command<cmd::Purge>(aliases);
     add_command<cmd::Exec>(aliases);
-    add_command<cmd::Find>();
+    add_command<cmd::Images>();
     add_command<cmd::Get>();
     add_command<cmd::Help>();
     add_command<cmd::Info>();
@@ -105,6 +106,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Set>();
     add_command<cmd::Shell>();
     add_command<cmd::Snapshot>();
+    add_command<cmd::Snapshots>();
     add_command<cmd::Start>();
     add_command<cmd::Stop>();
     add_command<cmd::Suspend>();
@@ -157,8 +159,8 @@ mp::ReturnCodeVariant mp::Client::run(const QStringList& arguments)
                                                     *stub,
                                                     term,
                                                     verbosity));
-        auto handler_unregisterer =
-            make_handler_unregisterer(handler); // remove handler before its dependencies expire
+        auto handler_unregisterer = make_handler_unregisterer(
+            handler); // remove handler before its dependencies expire
 
         try
         {

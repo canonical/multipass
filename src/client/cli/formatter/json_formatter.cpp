@@ -28,7 +28,7 @@ namespace mp = multipass;
 namespace
 {
 boost::json::value format_images(
-    const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info)
+    const google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>& images_info)
 {
     boost::json::object result;
     for (const auto& image : images_info)
@@ -274,6 +274,11 @@ std::string mp::JsonFormatter::format(const ListReply& reply) const
     return pretty_print(output);
 }
 
+std::string mp::JsonFormatter::format(const SnapshotsReply& reply) const
+{
+    return pretty_print(generate_snapshots_list(reply.snapshot_list()));
+}
+
 std::string mp::JsonFormatter::format(const NetworksReply& reply) const
 {
     boost::json::array interfaces;
@@ -287,7 +292,7 @@ std::string mp::JsonFormatter::format(const NetworksReply& reply) const
     return pretty_print({{"list", std::move(interfaces)}});
 }
 
-std::string mp::JsonFormatter::format(const FindReply& reply) const
+std::string mp::JsonFormatter::format(const ImagesReply& reply) const
 {
     return pretty_print(
         {{"errors", boost::json::array{}}, {"images", format_images(reply.images_info())}});

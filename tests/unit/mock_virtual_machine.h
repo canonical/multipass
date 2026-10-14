@@ -83,7 +83,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(VirtualMachine::State, current_state, (), (override));
     MOCK_METHOD(int, ssh_port, (), (override));
     MOCK_METHOD(std::string, ssh_hostname, (), (override));
-    MOCK_METHOD(std::string, ssh_username, (), (override));
+    MOCK_METHOD(std::string, ssh_username, (), (const, override));
     MOCK_METHOD(std::optional<IPAddress>, management_ipv4, (), (override));
     MOCK_METHOD(std::vector<IPAddress>, get_all_ipv4, (), (override));
     MOCK_METHOD(std::string, ssh_exec, (const std::string& cmd, bool whisper), (override));
@@ -136,9 +136,9 @@ struct MockVirtualMachineT : public T
                 (const Snapshot*),
                 (const, override));
     MOCK_METHOD(int, get_snapshot_count, (), (const, override));
-    MOCK_METHOD(QDir, instance_directory, (), (const, override));
-    MOCK_METHOD(const std::string&, get_name, (), (const, override));
-    MOCK_METHOD(AvailabilityZone&, get_zone, (), (const, override));
+    MOCK_METHOD(QDir, instance_directory, (), (const, noexcept, override));
+    MOCK_METHOD(const std::string&, get_name, (), (const, noexcept, override));
+    MOCK_METHOD(AvailabilityZone&, get_zone, (), (const, noexcept, override));
 
     std::string ssh_exec(const std::string& cmd)
     {

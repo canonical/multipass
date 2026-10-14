@@ -56,30 +56,16 @@ struct HCSVirtualMachine : public BaseVirtualMachine
                       const SSHKeyProvider& key_provider,
                       AvailabilityZone& zone,
                       const Path& instance_dir);
-
-    HCSVirtualMachine(const std::string& source_vm_name,
-                      const multipass::VMSpecs& src_vm_specs,
-                      const VirtualMachineDescription& desc,
-                      VMStatusMonitor& monitor,
-                      const SSHKeyProvider& key_provider,
-                      AvailabilityZone& zone,
-                      const Path& dest_instance_dir);
-
     ~HCSVirtualMachine();
 
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy) override;
     void suspend() override;
     [[nodiscard]] State current_state() override;
-    int ssh_port() override;
-    [[nodiscard]] std::string ssh_hostname() override;
-    [[nodiscard]] std::string ssh_username() override;
     [[nodiscard]] std::optional<IPAddress> management_ipv4() override;
     void restore_snapshot(const std::string& name, VMSpecs& specs) override;
 
     void handle_state_update() override;
-    void update_cpus(int num_cores) override;
-    void resize_memory(const MemorySize& new_size) override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
@@ -98,9 +84,7 @@ protected:
     void resize_disk_impl(const MemorySize& new_size) override;
 
 private:
-    VirtualMachineDescription description{};
     const std::string primary_network_guid{};
-    VMStatusMonitor& monitor;
     Signal termination_signal;
 
     hcs::HcsSystemHandle hcs_system{nullptr};

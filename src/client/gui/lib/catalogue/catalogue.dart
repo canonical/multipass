@@ -41,7 +41,7 @@ final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
 
   final images = await ref
       .watch(grpcClientProvider)
-      .find()
+      .images()
       .then((r) => sortImages(r.imagesInfo));
 
   // artificial delay so that we can see the loading spinner a bit

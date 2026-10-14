@@ -435,6 +435,93 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
 
+TEST_F(QemuBackend, shutdownWhileStartingWithCloudInitPoweroffIsIntentional)
+{
+    mpt::MockProcess* vmproc = nullptr;
+    process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") &&
+            !process->arguments().contains(
+                "-dump-vmstate")) // we only care about the actual vm process
+        {
+            vmproc = process; // save this to control later
+        }
+    });
+
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    // configure cloud-init to request an unconditional poweroff, which should make the resulting
+    // StartException be flagged as intentional once BaseVirtualMachine detects the shutdown
+    auto description = default_description;
+    description.user_data_config["power_state"]["mode"] = "poweroff";
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    auto machine = backend.create_virtual_machine(description, key_provider, stub_monitor);
+
+    machine->start();
+    ASSERT_EQ(machine->state, mp::VirtualMachine::State::starting);
+
+    mp::AutoJoinThread thread{[&machine, &vmproc] {
+        ON_CALL(*vmproc, running()).WillByDefault(Return(false));
+        machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
+    }};
+
+    using namespace std::chrono_literals;
+    while (machine->state != mp::VirtualMachine::State::off)
+        std::this_thread::sleep_for(1ms);
+
+    MP_EXPECT_THROW_THAT(machine->wait_for_cloud_init(1ms),
+                         mp::StartException,
+                         AllOf(Property(&mp::StartException::name, Eq(machine->get_name())),
+                               Property(&mp::StartException::was_intentional, IsTrue())));
+}
+
+TEST_F(QemuBackend, shutdownWhileStartingWithCloudInitPoweroffFalseConditionIsNotIntentional)
+{
+    mpt::MockProcess* vmproc = nullptr;
+    process_factory->register_callback([&vmproc](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") &&
+            !process->arguments().contains(
+                "-dump-vmstate")) // we only care about the actual vm process
+        {
+            vmproc = process; // save this to control later
+        }
+    });
+
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    // a poweroff guarded by a condition that evaluates to false means the shutdown was not
+    // actually requested by cloud-init, so the resulting StartException must not be intentional
+    auto description = default_description;
+    description.user_data_config["power_state"]["mode"] = "poweroff";
+    description.user_data_config["power_state"]["condition"] = false;
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    auto machine = backend.create_virtual_machine(description, key_provider, stub_monitor);
+
+    machine->start();
+    ASSERT_EQ(machine->state, mp::VirtualMachine::State::starting);
+
+    mp::AutoJoinThread thread{[&machine, &vmproc] {
+        ON_CALL(*vmproc, running()).WillByDefault(Return(false));
+        machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
+    }};
+
+    using namespace std::chrono_literals;
+    while (machine->state != mp::VirtualMachine::State::off)
+        std::this_thread::sleep_for(1ms);
+
+    MP_EXPECT_THROW_THAT(machine->wait_for_cloud_init(1ms),
+                         mp::StartException,
+                         AllOf(Property(&mp::StartException::name, Eq(machine->get_name())),
+                               Property(&mp::StartException::was_intentional, IsFalse())));
+}
+
 TEST_F(QemuBackend, throwsOnShutdownTimeout)
 {
     static const std::string sub_error_msg1{"The QEMU process did not finish within "};
@@ -1136,7 +1223,7 @@ TEST_F(QemuBackend, sshHostnameThrowsImmediatelyWhenIPUnavailable)
     machine.start();
     machine.state = mp::VirtualMachine::State::running;
 
-    EXPECT_THROW(machine.ssh_hostname(), mp::IPUnavailableException);
+    EXPECT_THROW((void)machine.ssh_hostname(), mp::IPUnavailableException);
     EXPECT_EQ(machine.state, mp::VirtualMachine::State::running);
 }
 
@@ -1150,7 +1237,11 @@ struct MockQemuVM : public mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
 
 TEST_F(QemuBackend, dropsSSHSessionWhenStopping)
 {
-    NiceMock<MockQemuVM> machine{"mock-qemu-vm", key_provider, zone};
+    NiceMock<MockQemuVM> machine{default_description,
+                                 mock_qemu_platform.get(),
+                                 stub_monitor,
+                                 key_provider,
+                                 zone};
     machine.state = multipass::VirtualMachine::State::running;
 
     EXPECT_CALL(machine, drop_ssh_session());
@@ -1161,7 +1252,11 @@ TEST_F(QemuBackend, dropsSSHSessionWhenStopping)
 
 TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
 {
-    MockQemuVM machine{"mock-qemu-vm", key_provider, zone};
+    MockQemuVM machine{default_description,
+                       mock_qemu_platform.get(),
+                       stub_monitor,
+                       key_provider,
+                       zone};
 
     auto snapshot_name = "elvis";
     auto snapshot_comment = "has left the building";
@@ -1198,7 +1293,11 @@ TEST_F(QemuBackend, createsQemuSnapshotsFromSpecs)
 
 TEST_F(QemuBackend, createsQemuSnapshotsFromJsonFile)
 {
-    MockQemuVM machine{"mock-qemu-vm", key_provider, zone};
+    MockQemuVM machine{default_description,
+                       mock_qemu_platform.get(),
+                       stub_monitor,
+                       key_provider,
+                       zone};
 
     const auto parent = std::make_shared<mpt::MockSnapshot>();
     EXPECT_CALL(machine, get_snapshot(2)).WillOnce(Return(parent));
