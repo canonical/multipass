@@ -514,9 +514,9 @@ The result shows that you have two instances running, the "primary" instance and
 
 ```{code-block} text
 $ multipass list
-Name           State        IPv4             Image              Mounts  Zone
-primary        Running      10.110.66.242    Ubuntu 26.04 LTS   1       zone1
-ltsInstance    Running      10.110.66.139    Ubuntu 26.04 LTS   0       zone3
+Name               State     IPv4            Image              Mounts  Zone
+primary            Running   10.110.66.242   Ubuntu 26.04 LTS   1       zone1
+ltsInstance        Running   10.110.66.139   Ubuntu 26.04 LTS   0       zone3
 ```
 
 ````
@@ -538,9 +538,9 @@ The result shows that you have two instances running, the "primary" instance and
 
 ```{code-block} text
 $ multipass list
-Name           State        IPv4             Image              Mounts  Zone
-primary        Running      10.110.66.242    Ubuntu 26.04 LTS   1       zone1
-ltsInstance    Running      10.110.66.139    Ubuntu 26.04 LTS   0       zone3
+Name               State     IPv4            Image              Mounts  Zone
+primary            Running   10.110.66.242   Ubuntu 26.04 LTS   1       zone1
+ltsInstance        Running   10.110.66.139   Ubuntu 26.04 LTS   0       zone3
 ```
 
 ````
@@ -562,9 +562,9 @@ The result shows that you have two instances running, the "primary" instance and
 
 ```{code-block} text
 C:\WINDOWS\system32> multipass list
-Name           State        IPv4             Image              Mounts  Zone
-primary        Running      10.110.66.242    Ubuntu 26.04 LTS   0       zone1
-ltsInstance    Running      10.110.66.139    Ubuntu 26.04 LTS   0       zone3
+Name               State     IPv4            Image              Mounts  Zone
+primary            Running   10.110.66.242   Ubuntu 26.04 LTS   0       zone1
+ltsInstance        Running   10.110.66.139   Ubuntu 26.04 LTS   0       zone3
 ```
 
 ````
