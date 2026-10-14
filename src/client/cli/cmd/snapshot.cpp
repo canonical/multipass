@@ -78,7 +78,7 @@ mp::ReturnCodeVariant cmd::Snapshot::run(mp::ArgParser* parser)
         spinner.stop();
         fmt::print(cout, "Snapshot '{}' of '{}' created.\n", reply.snapshot(), request.instance());
         if (auto warnings = reply.warnings(); !warnings.empty())
-            fmt::print(cout, "warning: {}\n", warnings);
+            fmt::print(cout, "Warning: {}\n", warnings);
         return ReturnCode::Ok;
     };
 
@@ -158,13 +158,13 @@ bool cmd::Snapshot::confirm_restart(const std::string& instance_name, bool is_su
 {
     const auto running_prompt_text = fmt::format(
         "Instance '{}' is running. Would you like to stop it, take a snapshot, and restart the "
-        "instance?[y/N]",
+        "instance? (yes/No)",
         instance_name);
     const auto suspended_prompt_text = fmt::format(
         "Instance '{}' is suspended. Would you like to resume and stop it, take a snapshot, and "
-        "then restart the instance?[y/N]",
+        "then restart the instance? (yes/No)",
         instance_name);
-    static constexpr auto invalid_input = "Please answer [y/N]";
+    static constexpr auto invalid_input = "Please answer yes/No";
     mp::PlainPrompter prompter(term);
 
     auto answer = prompter.prompt(is_suspended ? suspended_prompt_text : running_prompt_text);

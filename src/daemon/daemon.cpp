@@ -4035,7 +4035,7 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
     }
     catch (const StartException& e)
     {
-        if (!std::is_same_v<Reply, LaunchReply> || !e.was_intentional())
+        if (!std::is_same_v<LogMsgReply, LaunchReply> || !e.was_intentional())
         {
             fmt::format_to(std::back_inserter(errors), "{}", e.what());
         }
