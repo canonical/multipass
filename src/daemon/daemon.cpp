@@ -2566,7 +2566,6 @@ try
     for (const auto& path_entry : request->target_paths())
     {
         const auto& name = path_entry.instance_name();
-        const auto target_path = mpu::normalize_path(path_entry.target_path());
 
         auto vm = operative_instances.find(name);
         if (vm == operative_instances.end())
@@ -2603,7 +2602,8 @@ try
         };
 
         // Empty target path indicates removing all mounts for the VM instance
-        if (target_path.empty())
+        if (path_entry.target_path().empty())
+        {
             for (auto expiring_it = vm_mounts.begin(); expiring_it != vm_mounts.end();)
             {
                 // iterator must be advanced before used in order to prevent iterator invalidation
@@ -2611,10 +2611,17 @@ try
                 // do_unmount, so it must not be used after this point
                 do_unmount(expiring_it++);
             }
-        else if (auto it = vm_mounts.find(target_path); it != vm_mounts.end())
-            do_unmount(it);
+        }
         else
-            add_fmt_to(errors, "path \"{}\" is not mounted in '{}'", target_path, name);
+        {
+            const auto q_target_path = QString::fromStdString(path_entry.target_path());
+            const auto target_path = MP_UTILS.normalize_mount_target(q_target_path).toStdString();
+
+            if (auto it = vm_mounts.find(target_path); it != vm_mounts.end())
+                do_unmount(it);
+            else
+                add_fmt_to(errors, "path \"{}\" is not mounted in '{}'", target_path, name);
+        }
     }
 
     persist_instances();

@@ -176,10 +176,46 @@ TEST_F(TestDaemonUmount, umountWithTargetOnlyStopsItsHandlers)
     EXPECT_TRUE(status.ok());
 }
 
+TEST_F(TestDaemonUmount, umountExpandsTildes)
+{
+    std::unordered_map<std::string, mp::VMMount> mounts{
+        {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
+
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
+    config_builder.data_directory = temp_dir->path();
+
+    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
+    EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));
+    EXPECT_CALL(*mock_mount_handler, deactivate_impl(false));
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
+    EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
+        .WillOnce(Return(std::move(mock_mount_handler)));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::UmountRequest request;
+    auto entry = request.add_target_paths();
+    entry->set_instance_name(mock_instance_name);
+    entry->set_target_path("~/foo");
+
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::umount,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::UmountReply, mp::UmountRequest>>{});
+
+    EXPECT_TRUE(status.ok());
+}
+
 TEST_F(TestDaemonUmount, mountNotFound)
 {
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
