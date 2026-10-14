@@ -215,6 +215,34 @@ TEST_F(QemuBackend, createsInOffState)
     EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
 }
 
+TEST_F(QemuBackend, createsInOffStateWhenSnapshotListingFails)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot") &&
+            process->arguments().contains("-l"))
+        {
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 1;
+            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
+        }
+    };
+
+    process_factory->register_callback(callback);
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "Could not check the image for a suspension snapshot");
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::off));
+}
+
 TEST_F(QemuBackend, machineInOffStateHandlesShutdown)
 {
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {

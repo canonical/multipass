@@ -216,6 +216,18 @@ QStringList extract_snapshot_tags(const QByteArray& snapshot_list_output_stream)
     return snapshot_tags;
 }
 
+bool image_has_suspend_snapshot(const std::filesystem::path& image_path, const std::string& vm_name)
+try
+{
+    return mp::backend::instance_image_has_snapshot(image_path, suspend_tag);
+}
+catch (const std::exception& e)
+{
+    // A corrupt image must not prevent the daemon from loading the remaining instances
+    mpl::warn(vm_name, "Could not check the image for a suspension snapshot: {}", e.what());
+    return false;
+}
+
 } // namespace
 
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc,
@@ -227,8 +239,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                                            bool remove_snapshots)
     : BaseVirtualMachine{!zone.is_available()
                              ? State::unavailable
-                             : (mp::backend::instance_image_has_snapshot(desc.image.image_path,
-                                                                         suspend_tag)
+                             : (image_has_suspend_snapshot(desc.image.image_path, desc.vm_name)
                                     ? State::suspended
                                     : State::off),
                          desc.vm_name,
