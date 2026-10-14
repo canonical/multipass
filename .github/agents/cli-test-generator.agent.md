@@ -321,9 +321,15 @@ scenarios. If no approved feature file exists, send the user to Mode 1.
    yourself. A generated test is only trustworthy once it has been seen to
    FAIL before the described fix exists. Tell the user to run:
    ```bash
-   pytest tests/cli/<destination file> --daemon-controller=standalone --bin-dir=<path-to-build/bin> -rA -v
+   pytest tests/cli/<destination file>::<AddedTestClass> --daemon-controller=standalone --bin-dir=<path-to-build/bin> -rA -v
    ```
-   (adjusting per `tests/cli/README.md`) and explain how to read it:
+   **Select only the tests you added, never the whole file** (an existing file
+   may contain many unrelated, slow tests). Use the exact class you added as
+   `<destination file>::<AddedTestClass>`; if you only appended methods to an
+   existing class, use `<destination file>::<ExistingClass>::<method>` for each
+   (or `<destination file> -k "method_one or method_two"`). Fill in the real
+   names in the command you give the user, except `<path-to-build/bin>`.
+   (Adjust the flags per `tests/cli/README.md`.) Then explain how to read it:
    - **Judge each scenario individually, not the aggregate exit code.** If
      even one scenario fails the exit code is non-zero; treating that as
      "fully red, all good" would hide other scenarios that passed when they
