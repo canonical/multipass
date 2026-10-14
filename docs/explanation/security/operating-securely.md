@@ -19,7 +19,7 @@ Some risks come with what Multipass does and cannot be removed by Multipass itse
 
 ## Hardening benchmarks
 
-Multipass does not follow a formal hardening benchmark, such as CIS or FIPS 140-3.
+Multipass does not follow a formal host hardening benchmark, such as CIS.
 
 ## Logging and monitoring
 
