@@ -73,6 +73,17 @@ snapshot_tests_dir() {
 }
 BEFORE_SNAPSHOT="$(snapshot_tests_dir | sort)"
 
+# Keep a copy of the files as they were, to work out afterwards which test
+# classes/methods the agent added (so only those are run, not the whole file).
+BACKUP_DIR="$(mktemp -d)"
+trap 'rm -rf "$BACKUP_DIR"' EXIT
+for f in "$REPO_ROOT"/tests/cli/cli_*_test.py; do
+  [[ -f "$f" ]] && cp "$f" "$BACKUP_DIR/"
+done
+if [[ -n "$TEST_PATH" && -f "$REPO_ROOT/$TEST_PATH" ]]; then
+  cp "$REPO_ROOT/$TEST_PATH" "$BACKUP_DIR/"
+fi
+
 PROMPT="Mode 2 — Generate test from Gherkin, as defined in your agent instructions.
 The approved feature file is ${FEATURE_PATH}; read it with the view tool.
 This is a headless run with no command execution: skip steps 6 and 7 (the
@@ -150,9 +161,30 @@ else
   echo "==> Skipping collection-check (pytest not found or compile failed)." >&2
 fi
 
+# Select only the added tests: classes added in the diff (or the whole file's
+# classes if it is new); if the agent only appended methods to an existing
+# class, select those methods by name with -k instead.
+ADDED_LINES="$(diff "$BACKUP_DIR/$(basename "$TEST_PATH")" "$REPO_ROOT/$TEST_PATH" 2>/dev/null \
+  | sed -n 's/^> //p' || true)"
+if [[ ! -f "$BACKUP_DIR/$(basename "$TEST_PATH")" ]]; then
+  ADDED_LINES="$(cat "$REPO_ROOT/$TEST_PATH")"
+fi
+ADDED_CLASSES="$(sed -n 's/^class \([A-Za-z0-9_]*\).*/\1/p' <<<"$ADDED_LINES")"
+ADDED_METHODS="$(sed -n 's/^ *def \(test_[A-Za-z0-9_]*\).*/\1/p' <<<"$ADDED_LINES")"
+if [[ -n "$ADDED_CLASSES" ]]; then
+  SELECTOR=""
+  while read -r cls; do SELECTOR+=" ${TEST_PATH}::${cls}"; done <<<"$ADDED_CLASSES"
+elif [[ -n "$ADDED_METHODS" ]]; then
+  SELECTOR=" ${TEST_PATH} -k \"$(paste -sd' ' <<<"$ADDED_METHODS" | sed 's/ / or /g')\""
+else
+  SELECTOR=" ${TEST_PATH}"
+  echo "==> Could not tell which tests were added; the command below runs the whole file." >&2
+fi
+
 echo "==> Not running the test for real (needs sudo/a VM backend). Validate" >&2
-echo "    red-before-green yourself against a build of the UNFIXED code:" >&2
-echo "        pytest ${TEST_PATH} --daemon-controller=standalone --bin-dir=<path-to-build/bin> -rA -v" >&2
+echo "    red-before-green yourself against a build of the UNFIXED code" >&2
+echo "    (this runs only the tests that were added):" >&2
+echo "        pytest${SELECTOR} --daemon-controller=standalone --bin-dir=<path-to-build/bin> -rA -v" >&2
 echo "    Judge each scenario individually; a bare pytest without those" >&2
 echo "    flags tests the system snap. See the agent file for details." >&2
 

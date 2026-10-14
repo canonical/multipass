@@ -77,9 +77,12 @@ Two thin wrappers launch `copilot --agent cli-test-generator` for you with a sho
 The agent never runs the test against a real daemon. Run it against a build of the **unfixed** code:
 
 ```bash
-pytest tests/cli/<file> --daemon-controller=standalone --bin-dir=<path-to-build/bin> -rA -v
+pytest tests/cli/<file>::<AddedTestClass> --daemon-controller=standalone --bin-dir=<path-to-build/bin> -rA -v
 ```
 
+- Only the added tests are selected (`file::Class`, or `-k` for appended
+  methods), not the whole file. The agent and `generate-test.sh` fill in the
+  real class/method names for you.
 - Judge every scenario individually: scenarios for new behavior must FAIL,
   control cases (unchanged behavior) may pass.
 - A bare `pytest` without those two flags tests the system snap, not your
