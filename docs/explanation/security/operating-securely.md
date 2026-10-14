@@ -3,7 +3,7 @@
 
 Multipass is secure by default. Each default below exists for a reason, and changing it has a cost:
 
-- **Only administrators can connect at first.** The daemon socket is limited to the administrator group until the first client is trusted.
+- **Linux and macOS initially restrict socket access to administrators.** On Windows, the local TCP socket is reachable by all local users, but commands require an authenticated client certificate.
 - **Other users need a passphrase.** No [passphrase](reference-settings-local-passphrase) is set by default, so no other user can connect. When you set one, anyone who knows it can fully control Multipass. Choose a strong passphrase and share it only with trusted users. See [How to authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service).
 - **Mounts are disabled on Windows.** Enabling [`local.privileged-mounts`](reference-settings-local-privileged-mounts) lets instances write to host folders with `SYSTEM` privileges.
 - **The daemon listens only locally by default.** It uses a Unix socket on Linux and macOS, and `localhost` on Windows.
