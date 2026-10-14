@@ -78,7 +78,7 @@ mp::ReturnCodeVariant cmd::Snapshot::run(mp::ArgParser* parser)
         spinner.stop();
         fmt::print(cout, "Snapshot '{}' of '{}' created.\n", reply.snapshot(), request.instance());
         if (auto warnings = reply.warnings(); !warnings.empty())
-            fmt::print(cout, "Warning: {}\n", warnings);
+            fmt::print(cout, "warning: {}\n", warnings);
         return ReturnCode::Ok;
     };
 
