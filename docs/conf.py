@@ -279,6 +279,7 @@ extensions = [
 
 exclude_patterns = [
     "doc-cheat-sheet*",
+    "reference/release-notes/RELEASE_NOTES_TEMPLATE.md",
 ]
 
 # Adds custom CSS files, located under 'html_static_path'
