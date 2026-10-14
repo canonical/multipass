@@ -2858,6 +2858,7 @@ void mp::Daemon::snapshot(const mp::SnapshotRequest* request,
                           DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO@deprecations remove
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
                                                             deleted_instances,
@@ -2908,6 +2909,7 @@ void mp::Daemon::restore(const mp::RestoreRequest* request,
                          DaemonRpcContext* context)
 try
 {
+    warn_driver_deprecation(*server); // TODO@deprecations remove
     RestoreReply reply;
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,

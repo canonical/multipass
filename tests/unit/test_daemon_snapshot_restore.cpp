@@ -27,6 +27,7 @@
 #include "multipass/exceptions/snapshot_exceptions.h"
 #include "stub_mount_handler.h"
 
+#include <multipass/constants.h> // TODO@deprecations remove
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 
 namespace mp = multipass;
@@ -42,6 +43,8 @@ struct TestDaemonSnapshotRestoreBase : public mpt::DaemonTestFixture
     {
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        // TODO@deprecations remove
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("senna"));
         config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     }
 
