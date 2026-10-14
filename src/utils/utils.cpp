@@ -667,6 +667,12 @@ mp::Path mp::Utils::default_mount_target(const Path& source) const
 
 QString mp::Utils::normalize_mount_target(QString target_mount_path) const
 {
+    // If the path explicitly references the home directory, strip it so that we have a relative
+    // path. Below, we'll add the in-instance home directory. TODO: It would be nice to support
+    // other users' home directories here, like "~user/dir".
+    const QRegularExpression tilde_regex("^~(/+|$)");
+    target_mount_path.replace(tilde_regex, "");
+
     std::filesystem::path target_mount = target_mount_path.toStdString();
     if (target_mount.is_relative())
         target_mount = home_in_instance / target_mount;
