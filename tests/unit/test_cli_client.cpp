@@ -3963,7 +3963,7 @@ TEST_F(SnapshotCommandClient, snapshotCmdPromptConfirmedRestartsInstance)
 
     EXPECT_EQ(setup_client_and_run({"snapshot", "foo"}, mock_terminal), mp::ReturnCode::Ok);
     EXPECT_NE(cout.str().find("is running. Would you like to stop it"), std::string::npos);
-    EXPECT_NE(cout.str().find("Please answer [y/N]"), std::string::npos);
+    EXPECT_NE(cout.str().find("Please answer yes/No"), std::string::npos);
     EXPECT_NE(cout.str().find("Snapshot 'snapshot1' of 'foo' created."), std::string::npos);
 }
 
@@ -4052,7 +4052,7 @@ TEST_F(SnapshotCommandClient, snapshotCmdPromptDeclinedFailsPrecondition)
 
     EXPECT_EQ(setup_client_and_run({"snapshot", "foo"}, mock_terminal),
               mp::ReturnCode::CommandFail);
-    EXPECT_NE(cout.str().find("Please answer [y/N]"), std::string::npos);
+    EXPECT_NE(cout.str().find("Please answer yes/No"), std::string::npos);
     EXPECT_NE(cerr.str().find("Multipass can only take snapshots of stopped instances."),
               std::string::npos);
 }
