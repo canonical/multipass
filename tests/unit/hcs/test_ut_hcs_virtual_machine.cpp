@@ -87,11 +87,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
         {},
         "",
         {dummy_instances_dir.filePath("base.vhdx").toStdString(), "", "", "", {}, {}},
-        dummy_cloud_init_iso.name(),
-        {},
-        {},
-        {},
-        {}};
+        dummy_cloud_init_iso.name()};
 
     mpt::StubSSHKeyProvider stub_key_provider{};
     mpt::StubVMStatusMonitor stub_monitor{};

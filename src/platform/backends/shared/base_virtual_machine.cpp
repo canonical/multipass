@@ -28,6 +28,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/snapshot.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/plain_ssh_session.h>
@@ -35,6 +36,8 @@
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_specs.h>
 #include <scope_guard.hpp>
+
+#include <yaml-cpp/yaml.h>
 
 #include <QDir>
 #include <QRegularExpression>
@@ -92,6 +95,21 @@ mpu::TimeoutAction log_and_retry(const ExceptionT& e,
     mpl::log_message(log_level, vm->get_name(), e.what());
     return mpu::TimeoutAction::retry;
 };
+
+bool cloud_init_expects_shutdown(const mp::Path& cloud_init_iso, const std::string& vm_name)
+{
+    try
+    {
+        mp::CloudInitIso iso;
+        iso.read_from(MP_PLATFORM.qstr_to_path(cloud_init_iso));
+        return mpu::expects_shutdown_from_cloud_init(YAML::Load(iso.at("user-data")));
+    }
+    catch (const std::exception& e)
+    {
+        mpl::warn(vm_name, "Could not read cloud-init user-data: {}", e.what());
+        return false;
+    }
+}
 } // namespace
 
 mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
@@ -348,7 +366,7 @@ void mp::BaseVirtualMachine::detect_aborted_start()
         throw StartException(vm_name,
                              msg,
                              !error_occurred &&
-                                 mpu::expects_shutdown_from_cloud_init(desc.user_data_config));
+                                 cloud_init_expects_shutdown(desc.cloud_init_iso, vm_name));
     }
 }
 

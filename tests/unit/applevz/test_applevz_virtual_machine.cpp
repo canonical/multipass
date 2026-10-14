@@ -52,11 +52,7 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
                                        {},
                                        "",
                                        {dummy_image.path(), "", "", "", {}, {}},
-                                       dummy_cloud_init_iso.name(),
-                                       {},
-                                       {},
-                                       {},
-                                       {}};
+                                       dummy_cloud_init_iso.name()};
 
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
 

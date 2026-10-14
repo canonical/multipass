@@ -16,7 +16,6 @@
  */
 
 #include "daemon.h"
-#include "base_cloud_init_config.h"
 #include "daemon_init_settings.h"
 #include "hyperv_driver_transition.h"
 #include "instance_settings_handler.h"
@@ -24,9 +23,9 @@
 #include "snapshot_settings_handler.h"
 
 #include <multipass/alias_definition.h>
+#include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
-
 #include <multipass/daemon_rpc_context.h>
 #include <multipass/exceptions/availability_zone_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
@@ -137,6 +136,14 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
     return {name, image, false, request->remote_name(), query_type, true};
 }
 
+constexpr auto base_vendor_data = "growpart:\n"
+                                  "    mode: auto\n"
+                                  "    devices: [\"/\"]\n"
+                                  "    ignore_growroot_disabled: false\n"
+                                  "users:\n"
+                                  "    - default\n"
+                                  "manage_etc_hosts: true\n";
+
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
                                    const std::string& username,
                                    const std::string& backend_version_string,
@@ -161,7 +168,7 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
     }
 
     auto remote_name = request->remote_name();
-    auto config = YAML::Load(mp::base_cloud_init_config);
+    auto config = YAML::Load(base_vendor_data);
     config["ssh_authorized_keys"].push_back(ssh_key_line);
     config["timezone"] = request->time_zone();
     config["system_info"]["default_user"]["name"] = username;
@@ -299,6 +306,13 @@ auto fetch_image_for(const std::string& name,
                              stub_progress,
                              std::nullopt,
                              factory.get_instance_directory(name));
+}
+
+std::filesystem::path cloud_init_iso_path(const mp::VirtualMachineFactory& factory,
+                                          const std::string& name)
+{
+    return MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)) /
+           mp::cloud_init_file_name;
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -1456,9 +1470,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        const auto instance_dir = mp::utils::base_dir(
-            MP_PLATFORM.path_to_qstr(vm_image.image_path));
-        const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
+        const auto cloud_init_iso = MP_PLATFORM.path_to_qstr(
+            cloud_init_iso_path(*config->factory, name));
         mp::VirtualMachineDescription vm_desc{spec_copy.num_cores,
                                               spec_copy.mem_size,
                                               spec_copy.disk_space,
@@ -1468,11 +1481,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               spec_copy.extra_interfaces,
                                               spec_copy.ssh_username,
                                               vm_image,
-                                              cloud_init_iso,
-                                              {},
-                                              {},
-                                              {},
-                                              {}};
+                                              cloud_init_iso};
 
         auto& instance_records_table = spec_copy.deleted ? deleted_instances : operative_instances;
 
@@ -3488,15 +3497,14 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 {},
                 config->ssh_username,
                 VMImage{},
-                "",
-                YAML::Node{},
-                YAML::Node{},
-                make_cloud_init_vendor_config(
-                    *config->ssh_key_provider,
-                    config->ssh_username,
-                    config->factory->get_backend_version_string().toStdString(),
-                    request),
-                YAML::Node{}};
+                ""};
+
+            CloudInitConfig cloud_init{};
+            cloud_init.vendor_data = make_cloud_init_vendor_config(
+                *config->ssh_key_provider,
+                config->ssh_username,
+                config->factory->get_backend_version_string().toStdString(),
+                request);
 
             query = query_from(request, name);
             vm_desc.mem_size = checked_args.mem_size;
@@ -3559,19 +3567,21 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
             vm_desc.extra_interfaces = checked_args.extra_interfaces;
 
-            vm_desc.meta_data_config = mpu::make_cloud_init_meta_config(name);
-            vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
-            prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
+            cloud_init.meta_data = mpu::make_cloud_init_meta_config(name);
+            cloud_init.user_data = YAML::Load(request->cloud_init_user_data());
+            prepare_user_data(cloud_init.user_data, cloud_init.vendor_data);
 
             if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
                 vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 
-            vm_desc.network_data_config = mpu::make_cloud_init_network_config(
+            cloud_init.network_data = mpu::make_cloud_init_network_config(
                 vm_desc.default_mac_address,
                 checked_args.extra_interfaces);
 
             vm_desc.image = vm_image;
-            config->factory->configure(vm_desc);
+            const auto cloud_init_iso = cloud_init_iso_path(*config->factory, name);
+            CloudInitIso{cloud_init}.write_to(cloud_init_iso);
+            vm_desc.cloud_init_iso = MP_PLATFORM.path_to_qstr(cloud_init_iso);
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
             // Everything went well, add the MAC addresses used in this instance.

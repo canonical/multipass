@@ -18,7 +18,6 @@
 #include "virtualbox_virtual_machine_factory.h"
 #include "virtualbox_virtual_machine.h"
 
-#include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>

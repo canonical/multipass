@@ -73,8 +73,6 @@ public:
                                                      days_to_expire);
     };
 
-    void configure(VirtualMachineDescription& vm_desc) override;
-
     std::vector<NetworkInterfaceInfo> networks() const override
     {
         throw NotImplementedOnThisBackendException("networks");

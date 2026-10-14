@@ -14,15 +14,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
+
+#include <yaml-cpp/yaml.h>
 
 namespace multipass
 {
-constexpr auto base_cloud_init_config = "growpart:\n"
-                                        "    mode: auto\n"
-                                        "    devices: [\"/\"]\n"
-                                        "    ignore_growroot_disabled: false\n"
-                                        "users:\n"
-                                        "    - default\n"
-                                        "manage_etc_hosts: true\n";
-}
+struct CloudInitConfig
+{
+    YAML::Node meta_data;
+    YAML::Node user_data;
+    YAML::Node vendor_data;
+    YAML::Node network_data;
+};
+} // namespace multipass
