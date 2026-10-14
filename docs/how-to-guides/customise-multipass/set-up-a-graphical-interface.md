@@ -50,8 +50,8 @@ multipass list
 Sample output:
 
 ```{code-block} text
-Name                    State             IPv4             Image
-headbanging-squid       Running           10.49.93.209     Ubuntu 26.04 LTS
+Name                State      IPv4           Image              Mounts  Zone
+headbanging-squid   Running    10.49.93.209   Ubuntu 26.04 LTS   0       zone1
 ```
 
 Next, open a shell into the running instance:
