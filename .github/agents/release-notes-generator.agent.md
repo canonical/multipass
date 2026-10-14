@@ -163,8 +163,9 @@ can include maintenance backports later merged back to `main`. For a
 maintenance range, it also prevents PRs from earlier releases from being
 reintroduced through branch history.
 
-**The enriched fields are the whole point.** `type` is now classified using the
-PR body (not just the subject), and `pr_body` / `labels` / `top_dirs` /
+**The enriched fields are the whole point.** `type` is a keyword heuristic on
+the subject, falling back to the PR body (minus its checklist) when the subject
+is inconclusive. Treat it as a hint; `pr_body` / `labels` / `top_dirs` /
 diffstat are the evidence subagents must reason over. Never evaluate a PR from
 its `subject` alone when enriched fields are available.
 

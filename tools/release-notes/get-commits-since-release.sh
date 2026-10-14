@@ -52,42 +52,36 @@ extract_category() {
   fi
 }
 
+classify_text() {
+  local text="$1"
+
+  if grep -iqE 'BREAKING|breaking change|remove|deprecat' <<<"$text"; then
+    echo "breaking"
+  # Whole words, so e.g. "address" or "renew" don't match
+  elif grep -iqwE '\[feature\]|add(s|ed|ing)?|implement(s|ed|ing)?|new' <<<"$text"; then
+    echo "feature"
+  elif grep -iqwE '\[fix\]|\[bug\]|fix(es|ed|ing)?|resolve[sd]?' <<<"$text"; then
+    echo "fix"
+  elif grep -iqE '\[doc\]|\[docs\]|documentation' <<<"$text"; then
+    echo "docs"
+  elif grep -iqE 'performance|optimize|perf' <<<"$text"; then
+    echo "performance"
+  else
+    echo "other"
+  fi
+}
+
 detect_commit_type() {
   local subject="$1"
   local body="$2"
-  local combined="$subject"$'\n'"$body"
+  local type
 
-  # Check for breaking changes
-  if echo "$combined" | grep -iqE 'BREAKING|breaking change|remove|deprecat'; then
-    echo "breaking"
-    return
+  type=$(classify_text "$subject")
+  if [[ $type == "other" && -n $body ]]; then
+    # Drop the PR template checklist, whose boilerplate ("added", "new") reads as a feature
+    type=$(classify_text "$(awk '/^##[[:space:]]+Checklist/ {skip = 1; next} /^##[[:space:]]/ {skip = 0} !skip' <<<"$body")")
   fi
-
-  # Check for feature/new
-  if echo "$combined" | grep -iqE '\[feature\]|add|implement|new'; then
-    echo "feature"
-    return
-  fi
-
-  # Check for fixes
-  if echo "$combined" | grep -iqE '\[fix\]|\[bug\]|fix|resolve|resolves'; then
-    echo "fix"
-    return
-  fi
-
-  # Check for docs
-  if echo "$combined" | grep -iqE '\[doc\]|\[docs\]|documentation'; then
-    echo "docs"
-    return
-  fi
-
-  # Check for performance
-  if echo "$combined" | grep -iqE 'performance|optimize|perf'; then
-    echo "performance"
-    return
-  fi
-
-  echo "other"
+  echo "$type"
 }
 
 # Decide whether a commit is release-notes noise to keep out of ranking and
