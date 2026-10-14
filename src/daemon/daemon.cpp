@@ -3908,8 +3908,8 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
 
             persist_instances();
 
-            if (mount_error)
-                return *mount_error;
+            if (mount_error.has_value())
+                return mount_error.value();
         }
     }
     catch (const StartException& e)
