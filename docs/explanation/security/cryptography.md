@@ -8,7 +8,7 @@ Cryptography technology in use within Multipass:
 | Where | What it protects | Technology |
 | ----- | ---------------- | ---------- |
 | Client and daemon | Commands, payloads, and credentials | TLS through gRPC. Clients and the daemon identify themselves with X.509 certificates using EC P-256 keys, signed with SHA-256. |
-| Daemon and instances | Control commands, `multipass shell`, `exec`, and `transfer` | SSH with a 2048-bit RSA key that Multipass generates. Ciphers: ChaCha20-Poly1305, with AES-256-CTR as a fallback. |
+| Daemon and instances | Commands the daemon runs inside instances, for example during `launch`, `info`, and `stop`, plus `multipass shell`, `exec`, and `transfer` | SSH with a 2048-bit RSA key that Multipass generates. Ciphers: ChaCha20-Poly1305, with AES-256-CTR as a fallback. |
 | Classic mounts | Files shared with an instance | SFTP over the same SSH connection. |
 | Native mounts | Files shared with an instance | 9P on QEMU and SMB on Hyper-V. Multipass does not add encryption to these, but their traffic stays on the host machine. |
 | Image downloads | Images and image metadata | HTTPS with certificate validation. |
