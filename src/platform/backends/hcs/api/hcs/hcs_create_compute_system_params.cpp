@@ -65,6 +65,7 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
         "ShouldTerminateOnLastHandleClosed": false,
         "VirtualMachine": {{
             "Chipset": {{
+                "UseUtc": true,
                 "Uefi": {{
                     "BootThis": {{
                         "DevicePath": "Primary disk",
@@ -104,7 +105,8 @@ auto fmt::formatter<CreateComputeSystemParameters, Char>::format(
                   return string_literal<Char>(R"json(
                     "Services": {
                         "Shutdown": {},
-                        "Heartbeat": {}
+                        "Heartbeat": {},
+                        "Timesync": {}
                     })json");
               });
 
