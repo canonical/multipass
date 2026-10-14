@@ -27,7 +27,7 @@ Multipass logs to the platform's standard logging system: `systemd-journald` on 
 
 ## Decommissioning Multipass
 
-Uninstalling Multipass removes the application, but it only removes your instances, images, certificates, and keys if you ask it to:
+Uninstalling Multipass removes the application. Instances, images, certificates, and keys are removed using best efforts using platform specific solutions and only if you ask it to. Data stored in custom location(s) is likely to remain untouched and needs to be deleted separately.
 
 - **Linux:** run `sudo snap remove --purge multipass`. Without `--purge`, snapd keeps a snapshot of all Multipass data, including instances and keys, for 31 days.
 - **macOS:** run the uninstall script and answer "Yes" when it asks whether to delete your VMs and daemon data.
