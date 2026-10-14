@@ -901,8 +901,10 @@ TEST_P(NormalizeMountTargetTest, mountTargetsNormalizeCorrectly)
 
 std::vector<StringPairParam> normalize_mount_target_values = {
     {"Documents", "/home/ubuntu/Documents"},
+    {"~/Documents", "/home/ubuntu/Documents"},
     {"", "/home/ubuntu"},
     {".", "/home/ubuntu"},
+    {"~", "/home/ubuntu"},
     {"..", "/home"},
     {"./", "/home/ubuntu"},
     {"folder/", "/home/ubuntu/folder"},
@@ -920,6 +922,8 @@ std::vector<StringPairParam> normalize_mount_target_values = {
     {"folder/./subfolder", "/home/ubuntu/folder/subfolder"},
     {"folder/../other-folder", "/home/ubuntu/other-folder"},
     {"//", "/"},
+    {"~//Documents", "/home/ubuntu/Documents"},
+    {"~/../Documents", "/home/Documents"},
 };
 
 INSTANTIATE_TEST_SUITE_P(Utils, NormalizeMountTargetTest, ValuesIn(normalize_mount_target_values));
