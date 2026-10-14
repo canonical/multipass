@@ -361,7 +361,7 @@ TEST_P(TestDaemonStartSshReadinessError, returnsStructuredReadinessError)
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
     EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::off));
     EXPECT_CALL(*mock_vm, start).Times(1);
-    EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillOnce(InvokeWithoutArgs(std::get<1>(GetParam())));
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillOnce(std::get<1>(GetParam()));
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
     config_builder.data_directory = temp_dir->path();
