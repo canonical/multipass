@@ -26,6 +26,7 @@
 #include "tests/unit/temp_dir.h"
 #include "tests/unit/windows/powershell_test_helper.h"
 
+#include <daemon/default_vm_image_vault.h>
 #include <daemon/hyperv_migration.h>
 
 #include <hyperv_migration/hyperv_target_transaction.h>

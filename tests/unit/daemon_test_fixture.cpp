@@ -24,6 +24,7 @@
 #include "mock_daemon_rpc_context.h"
 #include "mock_server_reader_writer.h"
 #include "mock_standard_paths.h"
+#include "mock_virtual_machine_factory.h"
 #include "stub_availability_zone_manager.h"
 #include "stub_cert_store.h"
 #include "stub_image_host.h"
@@ -463,31 +464,31 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const fake_vm_properties&
     QStringList array_elements;
     for (auto extra_interface : vm_properties.extra_ifaces)
     {
-        array_elements +=
-            QString::fromStdString(fmt::format("            {{\n"
-                                               "                \"auto_mode\": {},\n"
-                                               "                \"id\": \"{}\",\n"
-                                               "                \"mac_address\": \"{}\"\n"
-                                               "            }}\n",
-                                               extra_interface.auto_mode,
-                                               extra_interface.id,
-                                               extra_interface.mac_address));
+        array_elements += QString::fromStdString(
+            fmt::format("            {{\n"
+                        "                \"auto_mode\": {},\n"
+                        "                \"id\": \"{}\",\n"
+                        "                \"mac_address\": \"{}\"\n"
+                        "            }}\n",
+                        extra_interface.auto_mode,
+                        extra_interface.id,
+                        extra_interface.mac_address));
     }
     contents += array_elements.join(',');
 
-    contents +=
-        QString::fromStdString(fmt::format("        ],\n"
-                                           "        \"mac_addr\": \"{}\",\n"
-                                           "        \"mem_size\": \"1073741824\",\n"
-                                           "        \"metadata\": {{\n"
-                                           "            \"arguments\": [\n"
-                                           "                \"many\",\n"
-                                           "                \"arguments\"\n"
-                                           "            ],\n"
-                                           "            \"machine_type\": \"dmc-de-lorean\"\n"
-                                           "        }},\n"
-                                           "        \"mounts\": [\n",
-                                           vm_properties.default_mac));
+    contents += QString::fromStdString(
+        fmt::format("        ],\n"
+                    "        \"mac_addr\": \"{}\",\n"
+                    "        \"mem_size\": \"1073741824\",\n"
+                    "        \"metadata\": {{\n"
+                    "            \"arguments\": [\n"
+                    "                \"many\",\n"
+                    "                \"arguments\"\n"
+                    "            ],\n"
+                    "            \"machine_type\": \"dmc-de-lorean\"\n"
+                    "        }},\n"
+                    "        \"mounts\": [\n",
+                    vm_properties.default_mac));
 
     QStringList mount_array_elements;
     for (const auto& mount_pair : vm_properties.mounts)
@@ -503,22 +504,22 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const fake_vm_properties&
         QStringList gid_array_elements;
         for (const auto& gid_pair : mount.get_gid_mappings())
         {
-            gid_array_elements +=
-                QString::fromStdString(fmt::format("\n                    {{\n"
-                                                   "                        \"host_gid\": {},\n"
-                                                   "                        \"instance_gid\": {}\n"
-                                                   "                    }}",
-                                                   gid_pair.first,
-                                                   gid_pair.second));
+            gid_array_elements += QString::fromStdString(
+                fmt::format("\n                    {{\n"
+                            "                        \"host_gid\": {},\n"
+                            "                        \"instance_gid\": {}\n"
+                            "                    }}",
+                            gid_pair.first,
+                            gid_pair.second));
         }
         mount_element += gid_array_elements.join(',');
 
-        mount_element +=
-            QString::fromStdString(fmt::format("\n                ],\n"
-                                               "                \"source_path\": {:?},\n"
-                                               "                \"target_path\": {:?},\n",
-                                               mount.get_source_path(),
-                                               mountpoint));
+        mount_element += QString::fromStdString(
+            fmt::format("\n                ],\n"
+                        "                \"source_path\": {:?},\n"
+                        "                \"target_path\": {:?},\n",
+                        mount.get_source_path(),
+                        mountpoint));
         mount_element += QString::fromStdString(fmt::format("                \"mount_type\": {},\n"
                                                             "                \"uid_mappings\": [",
                                                             mount.get_mount_type()));
@@ -526,13 +527,13 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const fake_vm_properties&
         QStringList uid_array_elements;
         for (const auto& uid_pair : mount.get_uid_mappings())
         {
-            uid_array_elements +=
-                QString::fromStdString(fmt::format("\n                    {{\n"
-                                                   "                        \"host_uid\": {},\n"
-                                                   "                        \"instance_uid\": {}\n"
-                                                   "                    }}",
-                                                   uid_pair.first,
-                                                   uid_pair.second));
+            uid_array_elements += QString::fromStdString(
+                fmt::format("\n                    {{\n"
+                            "                        \"host_uid\": {},\n"
+                            "                        \"instance_uid\": {}\n"
+                            "                    }}",
+                            uid_pair.first,
+                            uid_pair.second));
         }
         mount_element += uid_array_elements.join(',');
 

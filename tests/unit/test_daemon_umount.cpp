@@ -24,6 +24,7 @@
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
+#include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
 
 #include <multipass/utils.h>
@@ -143,8 +144,8 @@ TEST_F(TestDaemonUmount, noTargetsUnmountsAll)
         {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}},
         {fake_target_path + "2", {"foo2", {}, {}, mp::VMMount::MountType::Native}}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
@@ -181,8 +182,8 @@ TEST_F(TestDaemonUmount, umountWithTargetOnlyStopsItsHandlers)
         {fake_target_path + "2", {"foo2", {}, {}, mp::VMMount::MountType::Native}},
         {fake_target_path + "3", {"foo3", {}, {}, mp::VMMount::MountType::Native}}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
@@ -223,8 +224,8 @@ TEST_F(TestDaemonUmount, umountWithTargetOnlyStopsItsHandlers)
 
 TEST_F(TestDaemonUmount, mountNotFound)
 {
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
@@ -297,8 +298,8 @@ TEST_P(TestDaemonUmountFailure, stoppingMountFailsAndCanBeRetried)
     std::unordered_map<std::string, mp::VMMount> mounts{
         {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
     config_builder.data_directory = temp_dir->path();
 
     auto error = "device is busy";

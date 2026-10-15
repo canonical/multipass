@@ -22,6 +22,7 @@
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h" // TODO@deprecations remove
 #include "mock_virtual_machine.h"
+#include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
 #include "multipass/constants.h" // TODO@deprecations remove
 #include "stub_availability_zone.h"
@@ -53,8 +54,8 @@ struct TestDaemonClone : public mpt::DaemonTestFixture
         EXPECT_CALL(mock_factory, create_virtual_machine)
             .WillOnce(Return(std::move(instance_unique_ptr)));
 
-        const auto [temp_dir, _] =
-            plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+        const auto [temp_dir,
+                    _] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
         config_builder.data_directory = temp_dir->path();
         auto daemon = std::make_unique<mp::Daemon>(config_builder.build());
 
@@ -87,11 +88,11 @@ TEST_F(TestDaemonClone, missingOnSrcInstance)
     request.set_source_name(src_instance_name);
 
     mp::Daemon daemon{config_builder.build()};
-    const auto status =
-        call_daemon_slot(daemon,
-                         &mp::Daemon::clone,
-                         request,
-                         NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
+    const auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::clone,
+        request,
+        NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::NOT_FOUND);
     EXPECT_EQ(status.error_message(),
@@ -107,11 +108,11 @@ TEST_F(TestDaemonClone, invalidDestVmName)
     request.set_source_name(mock_src_instance_name);
     request.set_destination_name(std::string{dest_instance_name});
 
-    const auto status =
-        call_daemon_slot(*daemon,
-                         &mp::Daemon::clone,
-                         request,
-                         NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
+    const auto status = call_daemon_slot(
+        *daemon,
+        &mp::Daemon::clone,
+        request,
+        NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), HasSubstr("Invalid destination instance name"));
@@ -125,11 +126,11 @@ TEST_F(TestDaemonClone, alreadyExistDestVmName)
     request.set_source_name(mock_src_instance_name);
     request.set_destination_name(mock_src_instance_name);
 
-    const auto status =
-        call_daemon_slot(*daemon,
-                         &mp::Daemon::clone,
-                         request,
-                         NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
+    const auto status = call_daemon_slot(
+        *daemon,
+        &mp::Daemon::clone,
+        request,
+        NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), HasSubstr("already exists"));
@@ -145,11 +146,11 @@ TEST_F(TestDaemonClone, successfulCloneGenerateDestNameOkStatus)
     mp::CloneRequest request{};
     request.set_source_name(mock_src_instance_name);
 
-    const auto status =
-        call_daemon_slot(*daemon,
-                         &mp::Daemon::clone,
-                         request,
-                         NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
+    const auto status = call_daemon_slot(
+        *daemon,
+        &mp::Daemon::clone,
+        request,
+        NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::OK);
 }
@@ -163,11 +164,11 @@ TEST_F(TestDaemonClone, successfulCloneSpecifyDestNameOkStatus)
     request.set_source_name(mock_src_instance_name);
     request.set_destination_name("valid-dest-instance-name");
 
-    const auto status =
-        call_daemon_slot(*daemon,
-                         &mp::Daemon::clone,
-                         request,
-                         NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
+    const auto status = call_daemon_slot(
+        *daemon,
+        &mp::Daemon::clone,
+        request,
+        NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::OK);
 }
@@ -180,11 +181,11 @@ TEST_F(TestDaemonClone, failsOnCloneOnNonStoppedInstance)
     mp::CloneRequest request{};
     request.set_source_name(mock_src_instance_name);
 
-    const auto status =
-        call_daemon_slot(*daemon,
-                         &mp::Daemon::clone,
-                         request,
-                         NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
+    const auto status = call_daemon_slot(
+        *daemon,
+        &mp::Daemon::clone,
+        request,
+        NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
     EXPECT_EQ(status.error_message(), fmt::format("Multipass can only clone stopped instances."));
@@ -199,11 +200,11 @@ TEST_F(TestDaemonClone, successfulCloneGenerateDestNameButThrowLater)
     mp::CloneRequest request{};
     request.set_source_name(mock_src_instance_name);
 
-    const auto status =
-        call_daemon_slot(*daemon,
-                         &mp::Daemon::clone,
-                         request,
-                         NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
+    const auto status = call_daemon_slot(
+        *daemon,
+        &mp::Daemon::clone,
+        request,
+        NiceMock<mpt::MockServerReaderWriter<mp::CloneReply, mp::CloneRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_EQ(status.error_message(), "intentional");

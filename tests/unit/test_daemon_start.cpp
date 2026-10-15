@@ -25,6 +25,7 @@
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
+#include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
 
 #include <src/daemon/daemon.h>
@@ -65,8 +66,8 @@ struct TestDaemonStart : public mpt::DaemonTestFixture
 TEST_F(TestDaemonStart, successfulStartOkStatus)
 {
     auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
     auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce([&instance_ptr](auto&&...) {
@@ -102,8 +103,8 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     std::vector<mp::NetworkInterface> extra_interfaces{{"eth7", "52:54:00:99:99:99", true}};
 
     auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
     auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce([&instance_ptr](auto&&...) {
@@ -139,8 +140,8 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
 TEST_F(TestDaemonStart, unknownStateDoesNotStart)
 {
     auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
     auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce([&instance_ptr](auto&&...) {
@@ -171,8 +172,8 @@ TEST_F(TestDaemonStart, unknownStateDoesNotStart)
 TEST_F(TestDaemonStart, suspendingStateDoesNotStartHasError)
 {
     auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
     auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce([&instance_ptr](auto&&...) {
@@ -215,8 +216,8 @@ TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
     std::unordered_map<std::string, mp::VMMount> mounts{{fake_target_path, mount}};
 
     auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
 
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
     EXPECT_CALL(*mock_mount_handler, activate_impl).Times(1);
@@ -258,8 +259,8 @@ TEST_F(TestDaemonStart, removingMountOnFailedStart)
     std::unordered_map<std::string, mp::VMMount> mounts{{fake_target_path, mount}};
 
     auto mock_factory = use_a_mock_vm_factory();
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
 
     auto error = "failed to start mount";
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
