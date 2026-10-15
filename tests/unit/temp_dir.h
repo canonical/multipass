@@ -42,14 +42,14 @@ public:
         return MP_PLATFORM.qstr_to_path(the_path);
     }
 
-    QString filePath(const QString& fileName)
+    QString filePath(const QString& fileName) const
     {
         return dir.filePath(fileName);
     }
 
-    std::filesystem::path operator/(const std::filesystem::path& fileName)
+    std::filesystem::path operator/(const std::filesystem::path& file_name) const
     {
-        return static_cast<std::filesystem::path>(*this) / fileName;
+        return static_cast<std::filesystem::path>(*this) / file_name;
     }
 
 private:
