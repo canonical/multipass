@@ -285,6 +285,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
         {
             auto description = record.as_object();
             description["vm_name"] = name;
+            description["schema_version"] = mp::vm_description_schema_version;
             MP_FILEOPS.write_transactionally(
                 MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)) /
                     mp::vm_description_file_name,

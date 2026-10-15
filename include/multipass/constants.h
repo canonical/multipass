@@ -70,6 +70,7 @@ constexpr auto mirror_key = "local.image.mirror"; // the mirror of simple stream
 
 constexpr auto cloud_init_file_name = "cloud-init-config.iso";
 constexpr auto vm_description_file_name = "vm-description.json";
+constexpr auto vm_description_schema_version = 1;
 
 [[maybe_unused]] // hands off clang-format
 constexpr auto key_examples = {petenv_key, driver_key, mounts_key};
