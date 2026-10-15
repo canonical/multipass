@@ -13,13 +13,14 @@ import '../providers.dart';
 import '../sidebar.dart';
 import '../switch.dart';
 import '../tooltip.dart';
-import 'zone_dropdown.dart';
 import '../vm_details/cpus_slider.dart';
 import '../vm_details/disk_slider.dart';
 import '../vm_details/mapping_slider.dart';
 import '../vm_details/mount_points.dart';
 import '../vm_details/ram_slider.dart';
 import '../vm_details/spec_input.dart';
+import 'cloud_init_input.dart';
+import 'zone_dropdown.dart';
 
 class LaunchingImageNotifier extends Notifier<ImageInfo> {
   @override
@@ -316,6 +317,9 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       ),
     );
 
+    final cloudInitInput = CloudInitInput(
+        onSaved: (value) => launchRequest.cloudInitUserData = value ?? "");
+
     final formBody = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -449,6 +453,13 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         mountPointsView,
         if (mountRequests.isNotEmpty) const SizedBox(height: 20),
         addingMount ? mountForm : addMountButton,
+        const Divider(height: 60),
+        SizedBox(
+          height: 50,
+          child: Text(l10n.launchFormCloudInitTitle,
+              style: const TextStyle(fontSize: 24)),
+        ),
+        cloudInitInput,
       ],
     );
 
