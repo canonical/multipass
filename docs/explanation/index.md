@@ -45,7 +45,7 @@ In Multipass, an **alias** is a shortcut for a command that runs inside a given 
 
 Technical background on protecting your environment and ensuring it runs efficiently.
 
-- [About security](explanation-about-security)
+- [Security](explanation-security-index)
 - [Authentication](explanation-authentication)
 - [ID mapping](explanation-id-mapping)
 - [About performance](explanation-about-performance)
@@ -85,7 +85,7 @@ settings-keys-values
 multipass-exec-and-shells
 mount
 snapshot
-about-security
+security/index
 authentication
 id-mapping
 about-performance

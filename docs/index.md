@@ -62,7 +62,7 @@ Learn the complete lifecycle of a virtual machine.
 
 ### Security and performance
 
-- **Security:** [Authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service) • [Authentication](explanation-authentication) • [About security](explanation-about-security)
+- **Security:** [Authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service) • [Authentication](explanation-authentication) • [Security architecture](explanation-security-security-architecture) • [Operating securely](explanation-security-operating-securely) • [Cryptography](explanation-security-cryptography)
 
 - **Performance:** [About performance](explanation-about-performance)
 
