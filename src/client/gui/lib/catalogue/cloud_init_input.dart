@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:re_highlight/languages/yaml.dart';
 import 'package:re_highlight/styles/atom-one-light.dart';
+import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
 import 'package:multipass_gui/l10n/app_localizations.dart';
@@ -46,20 +47,27 @@ class CloudInitInput extends ConsumerStatefulWidget {
   ConsumerState<CloudInitInput> createState() => _CloudInitInputState();
 }
 
-String? validateCloudInitUserData(String? value) {
+String? validateCloudInitUserData(
+    String? value, ValueChanged<SourceSpan?>? onErrorSpan) {
   // TODO: Validate using the actual cloud-init user-data schema
   // https://github.com/canonical/multipass/issues/2400
   const marker = "#cloud-config";
+  onErrorSpan?.call(null);
   try {
     if (value == null) return null;
 
     // Check that the first line is #cloud-config
-    if (!value.startsWith(marker)) {
-      return "Expected first line to be: #cloud-config";
-    }
-    if (value.length > marker.length &&
-        value[marker.length] != '\n' &&
-        value[marker.length] != '\r') {
+    final markerIsMissing = !value.startsWith(marker) ||
+        (value.length > marker.length &&
+            value[marker.length] != '\n' &&
+            value[marker.length] != '\r');
+
+    if (markerIsMissing) {
+      onErrorSpan?.call(SourceSpan(
+        SourceLocation(0, line: 0, column: 0),
+        SourceLocation(marker.length, line: 0, column: marker.length),
+        marker,
+      ));
       return "Expected first line to be: #cloud-config";
     }
 
@@ -69,13 +77,53 @@ String? validateCloudInitUserData(String? value) {
     }
     return null;
   } on YamlException catch (error) {
+    onErrorSpan?.call(error.span);
     return error.message;
   }
 }
 
 class _CloudInitInputState extends ConsumerState<CloudInitInput> {
-  final CodeLineEditingController _controller =
-      CodeLineEditingController.fromText(initialUserData);
+  late final CodeLineEditingController _controller;
+  SourceSpan? _yamlErrorSpan;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = CodeLineEditingController(
+      codeLines: CodeLines.fromText(initialUserData),
+      spanBuilder: _buildCodeLineSpan,
+    );
+  }
+
+  void _setYamlErrorSpan(SourceSpan? span) {
+    _yamlErrorSpan = span;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _yamlErrorSpan != span) return;
+      _controller.forceRepaint();
+    });
+  }
+
+  TextSpan _buildCodeLineSpan({
+    required BuildContext context,
+    required int index,
+    required CodeLine codeLine,
+    required TextSpan textSpan,
+    required TextStyle style,
+  }) {
+    if (index != _yamlErrorSpan?.start.line) {
+      return textSpan;
+    }
+
+    return TextSpan(
+      style: TextStyle(
+        backgroundColor: Theme.of(context)
+            .colorScheme
+            .errorContainer
+            .withValues(alpha: 0.10),
+      ),
+      children: [textSpan],
+    );
+  }
 
   @override
   void dispose() {
@@ -140,7 +188,7 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
           // If this proves to be slow, we can use a debouncer to delay
           // validation
           validator: (value) {
-            final error = validateCloudInitUserData(value);
+            final error = validateCloudInitUserData(value, _setYamlErrorSpan);
             return error == null
                 ? null
                 : l10n.launchFormCloudInitInvalidYaml(error);
