@@ -1720,6 +1720,12 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
                 create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _, _))
         .Times(0);
 
+    EXPECT_CALL(*mock_file_ops,
+                write_transactionally(Truly([](const QString& f) {
+                                          return f.endsWith(mp::vm_description_file_name);
+                                      }),
+                                      _))
+        .Times(2);
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
         .WillOnce(WithArg<1>([&stayed, &gone](const QByteArrayView& data) {
@@ -2839,6 +2845,12 @@ TEST_F(Daemon, purgePersistsInstances)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
     EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
         .WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops,
+                write_transactionally(Truly([](const QString& f) {
+                                          return f.endsWith(mp::vm_description_file_name);
+                                      }),
+                                      _))
+        .Times(2);
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
         .WillOnce(Return())
