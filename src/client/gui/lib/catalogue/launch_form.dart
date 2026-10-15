@@ -13,14 +13,14 @@ import '../providers.dart';
 import '../sidebar.dart';
 import '../switch.dart';
 import '../tooltip.dart';
-import 'zone_dropdown.dart';
-import 'cloud_init_input.dart';
 import '../vm_details/cpus_slider.dart';
 import '../vm_details/disk_slider.dart';
 import '../vm_details/mapping_slider.dart';
 import '../vm_details/mount_points.dart';
 import '../vm_details/ram_slider.dart';
 import '../vm_details/spec_input.dart';
+import 'cloud_init_input.dart';
+import 'zone_dropdown.dart';
 
 class LaunchingImageNotifier extends Notifier<ImageInfo> {
   @override

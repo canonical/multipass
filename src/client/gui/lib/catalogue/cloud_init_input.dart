@@ -1,16 +1,14 @@
-import 'dart:async';
-
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:re_highlight/languages/yaml.dart';
 import 'package:re_highlight/styles/atom-one-light.dart';
 import 'package:yaml/yaml.dart';
-import 'package:file_selector/file_selector.dart';
 
 import 'package:multipass_gui/l10n/app_localizations.dart';
-import 'package:multipass_gui/platform/platform.dart';
 import 'package:multipass_gui/notifications.dart';
+import 'package:multipass_gui/platform/platform.dart';
 
 final initialUserData = '''
 #cloud-config
