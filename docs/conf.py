@@ -207,6 +207,10 @@ redirects = {
     "explanation/about-security": "../security/",
     "reference/command-line-interface/find": "../images/",
     "reference/command-line-interface/umount": "../unmount/",
+    # These are URLs inherited from the Discourse-hosted documentation at https://discourse.ubuntu.com/t/multipass-documentation/8294.
+    "mount": "../explanation/mount/",
+    "platform": "../explanation/platform/",
+    "explanation/host": "../platform/",
 }
 
 
