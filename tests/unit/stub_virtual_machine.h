@@ -66,7 +66,7 @@ struct StubVirtualMachine final : public VirtualMachine
 
     State current_state() override
     {
-        return State::off;
+        return State::stopped;
     }
 
     int ssh_port() override

@@ -152,10 +152,11 @@ TEST_F(HyperVBackend, createsInOffState)
 {
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence());
 
-    auto machine =
-        backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor);
+    auto machine = backend.create_virtual_machine(default_description,
+                                                  stub_key_provider,
+                                                  stub_monitor);
     ASSERT_THAT(machine.get(), NotNull());
-    EXPECT_THAT(machine->state, Eq(mp::VirtualMachine::State::off));
+    EXPECT_THAT(machine->state, Eq(mp::VirtualMachine::State::stopped));
 }
 
 // Neighbor entries on the Default Switch host vNIC, or on another network's host vNIC.

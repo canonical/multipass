@@ -151,7 +151,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
 struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 {
 
-    StubBaseVirtualMachine(mp::AvailabilityZone& zone, St s = St::off)
+    StubBaseVirtualMachine(mp::AvailabilityZone& zone, St s = St::stopped)
         : StubBaseVirtualMachine{s, zone, std::make_unique<mpt::TempDir>()}
     {
     }
@@ -178,7 +178,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 
     void shutdown(ShutdownPolicy = ShutdownPolicy::Powerdown) override
     {
-        state = St::off;
+        state = St::stopped;
     }
 
     void suspend() override
@@ -324,7 +324,7 @@ TEST_F(BaseVM, getAllIpv4WorksWhenSshThrowsExecuting)
 
 TEST_F(BaseVM, getAllIpv4WorksWhenInstanceIsOff)
 {
-    vm.simulate_state(St::off);
+    vm.simulate_state(St::stopped);
 
     EXPECT_EQ(vm.get_all_ipv4().size(), 0u);
 }
@@ -333,14 +333,14 @@ TEST_F(BaseVM, providesInstanceDirectory)
 {
     auto vm_dir = std::make_unique<mpt::TempDir>();
     const auto vm_path = vm_dir->path();
-    const StubBaseVirtualMachine vm{St::off, zone, std::move(vm_dir)};
+    const StubBaseVirtualMachine vm{St::stopped, zone, std::move(vm_dir)};
 
     EXPECT_EQ(vm.instance_directory().absolutePath(), vm_path);
 }
 
 TEST_F(BaseVM, addNetworkInterfaceThrows)
 {
-    StubBaseVirtualMachine base_vm(zone, St::off);
+    StubBaseVirtualMachine base_vm(zone, St::stopped);
 
     MP_EXPECT_THROW_THAT(base_vm.add_network_interface(1, "", {"eth1", "52:54:00:00:00:00", true}),
                          mp::NotImplementedOnThisBackendException,
@@ -838,7 +838,7 @@ TEST_F(BaseVM, restoresSnapshots)
         "12:12:12:12:12:12",
         {},
         "user",
-        St::off,
+        St::stopped,
         {{"dst", mount}},
         false,
         metadata,
@@ -1307,7 +1307,7 @@ TEST_F(BaseVM, rollsbackFailedRestore)
         "ab:ab:ab:ab:ab:ab",
         {},
         "me",
-        St::off,
+        St::stopped,
         {},
         false,
         {},
@@ -1541,8 +1541,7 @@ TEST_F(BaseVM, sshExecProcessPropagatesNonSSHExceptions)
 TEST_F(BaseVM, newSshSessionThrowsIfNotRunning)
 {
     StubBaseVirtualMachine stub{zone};
-    ASSERT_THAT(stub.current_state(),
-                AnyOf(mp::VirtualMachine::State::off, mp::VirtualMachine::State::stopped));
+    ASSERT_EQ(stub.current_state(), mp::VirtualMachine::State::stopped);
 
     try
     {
@@ -1612,18 +1611,18 @@ TEST_F(BaseVM, setAvailableRemembersRunning)
     ASSERT_EQ(base_vm.current_state(), St::unavailable);
 
     EXPECT_TRUE(base_vm.set_available(true));
-    EXPECT_EQ(base_vm.current_state(), St::off);
+    EXPECT_EQ(base_vm.current_state(), St::stopped);
 }
 
 TEST_F(BaseVM, setAvailableRemembersStopped)
 {
-    StubBaseVirtualMachine base_vm(zone, St::off);
+    StubBaseVirtualMachine base_vm(zone, St::stopped);
 
     EXPECT_FALSE(base_vm.set_available(false));
     ASSERT_EQ(base_vm.current_state(), St::unavailable);
 
     EXPECT_FALSE(base_vm.set_available(true));
-    EXPECT_EQ(base_vm.current_state(), St::off);
+    EXPECT_EQ(base_vm.current_state(), St::stopped);
 }
 
 TEST_F(BaseVM, coreImageDiskResizeReturnsAMessage)
@@ -1631,7 +1630,7 @@ TEST_F(BaseVM, coreImageDiskResizeReturnsAMessage)
     multipass::VirtualMachineDescription desc{};
     desc.image.original_release = "Ubuntu Core 24";
 
-    StubBaseVirtualMachine vm{St::off, zone, std::make_unique<mpt::TempDir>(), desc};
+    StubBaseVirtualMachine vm{St::stopped, zone, std::make_unique<mpt::TempDir>(), desc};
     mp::UserMessages messages{};
     mp::UserMessages expected_messages{};
     vm.resize_disk(mp::MemorySize{"1G"}, messages);
