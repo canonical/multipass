@@ -63,23 +63,26 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
   String? validateCloudInitUserData(String? value) {
     // TODO: Validate using the actual cloud-init user-data schema
     // https://github.com/canonical/multipass/issues/2400
-    const marker = "#cloud-config";
-    _setYamlErrorSpan(null);
-    try {
-      if (value == null) return null;
 
+    // Avoid setState here to prevent a build -> validate -> setState -> build loop.
+    // Validation already triggers a rebuild that picks up the new value.
+    _yamlErrorSpan = null;
+    if (value == null) return null;
+
+    try {
       // Check that the first line is #cloud-config
+      const marker = "#cloud-config";
       final markerIsMissing = !value.startsWith(marker) ||
           (value.length > marker.length &&
               value[marker.length] != '\n' &&
               value[marker.length] != '\r');
 
       if (markerIsMissing) {
-        _setYamlErrorSpan.call(SourceSpan(
+        _yamlErrorSpan = SourceSpan(
           SourceLocation(0, line: 0, column: 0),
           SourceLocation(marker.length, line: 0, column: marker.length),
           marker,
-        ));
+        );
         return "Expected first line to be: #cloud-config";
       }
 
@@ -89,17 +92,9 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
       }
       return null;
     } on YamlException catch (error) {
-      _setYamlErrorSpan.call(error.span);
+      _yamlErrorSpan = error.span;
       return error.message;
     }
-  }
-
-  void _setYamlErrorSpan(SourceSpan? span) {
-    _yamlErrorSpan = span;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _yamlErrorSpan != span) return;
-      _controller.forceRepaint();
-    });
   }
 
   TextSpan _buildCodeLineSpan({
