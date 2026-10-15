@@ -1,6 +1,7 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:re_highlight/languages/yaml.dart';
 import 'package:re_highlight/styles/atom-one-light.dart';
@@ -116,6 +117,7 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
           codeTheme: CodeHighlightTheme(
               languages: {'yaml': CodeHighlightThemeMode(mode: langYaml)},
               theme: atomOneLightTheme)),
+      shortcutsActivatorsBuilder: const CloudInitShortcutsActivatorsBuilder(),
       indicatorBuilder:
           (context, editingController, chunkController, notifier) =>
               Row(children: [
@@ -166,5 +168,40 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
         ),
       ])
     ]);
+  }
+}
+
+class CloudInitShortcutsActivatorsBuilder
+    extends DefaultCodeShortcutsActivatorsBuilder {
+  const CloudInitShortcutsActivatorsBuilder();
+
+  @override
+  List<ShortcutActivator>? build(CodeShortcutType type) {
+    switch (type) {
+      case CodeShortcutType.selectionExtendWordBoundaryForward:
+        return [
+          SingleActivator(LogicalKeyboardKey.arrowLeft,
+              shift: true, control: true)
+        ];
+      case CodeShortcutType.selectionExtendWordBoundaryBackward:
+        return [
+          SingleActivator(LogicalKeyboardKey.arrowRight,
+              shift: true, control: true)
+        ];
+      case CodeShortcutType.selectionExtendUp:
+        return [
+          SingleActivator(LogicalKeyboardKey.arrowUp, shift: true),
+          SingleActivator(LogicalKeyboardKey.arrowUp,
+              shift: true, control: true)
+        ];
+      case CodeShortcutType.selectionExtendDown:
+        return [
+          SingleActivator(LogicalKeyboardKey.arrowDown, shift: true),
+          SingleActivator(LogicalKeyboardKey.arrowDown,
+              shift: true, control: true)
+        ];
+      default:
+        return super.build(type);
+    }
   }
 }
