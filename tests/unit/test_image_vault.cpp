@@ -177,6 +177,7 @@ struct ImageVault : public testing::Test
     mpt::TempDir save_dir;
     std::string instance_name{"valley-pied-piper"};
     std::filesystem::path instance_dir = save_dir / "instances" / instance_name;
+    std::filesystem::path images_dir = cache_dir / "vault" / "images";
     mp::Query default_query{instance_name, "xenial", false, "", mp::Query::Type::Alias};
 };
 } // namespace
@@ -542,10 +543,9 @@ TEST_F(ImageVault, usesImageFromPrepare)
 TEST_F(ImageVault, imagePurgedExpired)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{0}};
-
-    auto images_dir = cache_dir / "images";
-    auto file_name = images_dir / "mock_image.img";
     create_directories(images_dir);
+
+    auto file_name = images_dir / "mock_image.img";
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
@@ -567,10 +567,9 @@ TEST_F(ImageVault, imagePurgedExpired)
 TEST_F(ImageVault, imageExistsNotExpired)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{1}};
-
-    auto images_dir = cache_dir / "images";
-    auto file_name = images_dir / "mock_image.img";
     create_directories(images_dir);
+
+    auto file_name = images_dir / "mock_image.img";
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
         mpt::make_file_with_content(file_name);
@@ -601,7 +600,6 @@ TEST_F(ImageVault, inProgressDownloadDirectoryNotPrunedDuringFetch)
     // Wait for download to start
     blocking_downloader.started.get_future().wait();
 
-    auto images_dir = cache_dir / "vault" / "images";
     create_directories(images_dir);
 
     using namespace std::filesystem;
@@ -622,7 +620,7 @@ TEST_F(ImageVault, invalidImageDirIsRemoved)
 {
     mp::DefaultVMImageVault vault{hosts, &url_downloader, cache_dir, data_dir, mp::days{1}};
 
-    auto invalid_image_dir = cache_dir / "vault" / "images" / "invalid_image";
+    auto invalid_image_dir = images_dir / "invalid_image";
     auto file_name = invalid_image_dir / "mock_image.img";
     std::filesystem::create_directories(cache_dir);
 
