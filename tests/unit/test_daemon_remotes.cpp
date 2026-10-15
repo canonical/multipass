@@ -46,7 +46,7 @@ struct DaemonRemotes : public DaemonTestFixture
         mock_vault = vault.get();
         config_builder.vault = std::move(vault);
 
-        EXPECT_CALL(*mock_settings_guard.first, get(Eq(mp::driver_key)))
+        EXPECT_CALL(*mock_settings_guard.first, get(Eq(driver_key)))
             .WillRepeatedly(Return("senna"));
     }
 
@@ -74,7 +74,7 @@ TEST_F(DaemonRemotes, returnsKnownRemotesExceptUnspecified)
     EXPECT_CALL(*mock_vault, get_remotes())
         .WillOnce(Return(std::vector<std::string>{remote1, unspecified_remote, remote2}));
 
-    auto daemon = mp::Daemon{config_builder.build()};
+    auto daemon = Daemon{config_builder.build()};
     EXPECT_THAT(process_request(daemon, RemotesRequest{}, &Daemon::remotes),
                 Success(Remotes(ElementsAre(remote1, remote2))));
 }

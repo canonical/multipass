@@ -64,7 +64,6 @@ class VMImage;
 class VMImageVault : private DisabledCopyMove
 {
 public:
-    using UPtr = std::unique_ptr<VMImageVault>;
     using PrepareAction = std::function<VMImage(const VMImage&)>;
 
     virtual ~VMImageVault() = default;

@@ -36,6 +36,7 @@
 #include "mock_standard_paths.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
+#include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
 #include "stub_availability_zone.h"
 #include "stub_availability_zone_manager.h"

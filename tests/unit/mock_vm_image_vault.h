@@ -26,10 +26,9 @@
 
 using namespace testing;
 
-namespace multipass
+namespace multipass::test
 {
-namespace test
-{
+
 class MockVMImageVault : public VMImageVault
 {
 public:
@@ -41,20 +40,20 @@ public:
         ON_CALL(*this, has_record_for(_)).WillByDefault(Return(true));
 
         ON_CALL(*this, all_info_for(_))
-            .WillByDefault(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
-                std::pair<std::string, mp::VMImageInfo>{"default",
-                                                        {{default_alias},
-                                                         "Ubuntu",
-                                                         "bionic",
-                                                         default_release_info,
-                                                         "Bionic Beaver",
-                                                         true,
-                                                         dummy_image.url().toStdString(),
-                                                         default_id,
-                                                         default_stream_location,
-                                                         default_version,
-                                                         1,
-                                                         true}}}));
+            .WillByDefault(Return(std::vector<std::pair<std::string, VMImageInfo>>{
+                std::pair<std::string, VMImageInfo>{"default",
+                                                    {{default_alias},
+                                                     "Ubuntu",
+                                                     "bionic",
+                                                     default_release_info,
+                                                     "Bionic Beaver",
+                                                     true,
+                                                     dummy_image.url().toStdString(),
+                                                     default_id,
+                                                     default_stream_location,
+                                                     default_version,
+                                                     1,
+                                                     true}}}));
     };
 
     MOCK_METHOD(VMImage,
@@ -63,7 +62,7 @@ public:
                  const PrepareAction&,
                  const ProgressMonitor&,
                  const std::optional<std::string>&,
-                 const mp::Path&),
+                 const Path&),
                 (override));
     MOCK_METHOD(void, remove, (const std::string&), (override));
     MOCK_METHOD(bool, has_record_for, (const std::string&), (override));
@@ -80,5 +79,5 @@ public:
 private:
     TempFile dummy_image;
 };
-} // namespace test
-} // namespace multipass
+
+} // namespace multipass::test

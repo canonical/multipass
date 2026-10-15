@@ -24,6 +24,7 @@
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
+#include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
 #include "multipass/exceptions/availability_zone_exceptions.h"
 

@@ -22,7 +22,8 @@
 #include "path.h"
 #include "virtual_machine.h"
 #include "vm_image.h"
-#include "vm_image_vault.h"
+
+#include <memory>
 
 namespace YAML
 {
@@ -35,6 +36,7 @@ class SSHKeyProvider;
 class URLDownloader;
 class VirtualMachineDescription;
 class VMImageHost;
+class VMImageVault;
 class VMStatusMonitor;
 class MemorySize;
 struct NetworkInterface;
@@ -43,7 +45,6 @@ struct NetworkInterfaceInfo;
 class VirtualMachineFactory : private DisabledCopyMove
 {
 public:
-    using UPtr = std::unique_ptr<VirtualMachineFactory>;
     virtual ~VirtualMachineFactory() = default;
     virtual VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                         const SSHKeyProvider& key_provider,
@@ -73,11 +74,11 @@ public:
     virtual QString get_backend_directory_name() const = 0;
     virtual Path get_instance_directory(const std::string& name) const = 0;
     virtual QString get_backend_version_string() const = 0;
-    virtual VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
-                                                  URLDownloader* downloader,
-                                                  const Path& cache_dir_path,
-                                                  const Path& data_dir_path,
-                                                  const days& days_to_expire) = 0;
+    virtual std::unique_ptr<VMImageVault> create_image_vault(std::vector<VMImageHost*> image_hosts,
+                                                             URLDownloader* downloader,
+                                                             const Path& cache_dir_path,
+                                                             const Path& data_dir_path,
+                                                             const days& days_to_expire) = 0;
 
     // List all the network interfaces seen by the backend.
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;

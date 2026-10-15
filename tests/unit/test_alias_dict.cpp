@@ -33,6 +33,7 @@
 #include "mock_platform.h"
 #include "mock_settings.h"
 #include "mock_utils.h"
+#include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
 #include "stub_terminal.h"
 
@@ -100,8 +101,8 @@ TEST_F(AliasDictionary, worksWithBrokenFile)
 
 TEST_F(AliasDictionary, skipsCorrectlyBrokenEntriesOldFormat)
 {
-    auto file_contents =
-        mpt::load_test_file("alias_dict/broken_entries_old_format.json").toStdString();
+    auto file_contents = mpt::load_test_file("alias_dict/broken_entries_old_format.json")
+                             .toStdString();
 
     auto dict = value_to<mp::AliasDict>(boost::json::parse(file_contents), json_context);
 
@@ -164,9 +165,9 @@ TEST_F(AliasDictionary, mapDirMissingTranslatesToDefault)
 
 TEST_F(AliasDictionary, mapDirEmptyStringTranslatesToDefault)
 {
-    auto file_contents =
-        mpt::load_test_file("alias_dict/map_dir_empty_string_translates_to_default.json")
-            .toStdString();
+    auto file_contents = mpt::load_test_file(
+                             "alias_dict/map_dir_empty_string_translates_to_default.json")
+                             .toStdString();
 
     auto dict = value_to<mp::AliasDict>(boost::json::parse(file_contents), json_context);
 
@@ -461,8 +462,10 @@ struct DaemonAliasTestsuite
 
 TEST_P(DaemonAliasTestsuite, purgeRemovesPurgedInstanceAliasesAndScripts)
 {
-    auto [commands, expected_output, expected_removed_aliases, expected_failed_removal] =
-        GetParam();
+    auto [commands,
+          expected_output,
+          expected_removed_aliases,
+          expected_failed_removal] = GetParam();
 
     auto mock_image_vault = std::make_unique<NaggyMock<mpt::MockVMImageVault>>();
 
@@ -566,8 +569,8 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_F(AliasDictionary, unexistingActiveContextThrows)
 {
-    auto file_contents =
-        mpt::load_test_file("alias_dict/unexisting_active_context.json").toStdString();
+    auto file_contents = mpt::load_test_file("alias_dict/unexisting_active_context.json")
+                             .toStdString();
 
     auto dict = value_to<mp::AliasDict>(boost::json::parse(file_contents), json_context);
 

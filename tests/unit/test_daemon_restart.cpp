@@ -22,6 +22,7 @@
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
+#include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
 
 #include <multipass/constants.h>
@@ -47,8 +48,8 @@ struct TestDaemonRestart : public mpt::DaemonTestFixture
 
     auto build_daemon_with_mock_instance(VMState state)
     {
-        const auto [temp_dir, filename] =
-            plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+        const auto [temp_dir,
+                    filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
         auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
         auto* ret_instance = instance_ptr.get();

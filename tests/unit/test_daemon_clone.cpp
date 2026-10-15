@@ -22,6 +22,7 @@
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h" // TODO@deprecations remove
 #include "mock_virtual_machine.h"
+#include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
 #include "multipass/constants.h" // TODO@deprecations remove
 #include "stub_availability_zone.h"

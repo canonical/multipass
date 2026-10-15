@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include "daemon_config.h"
 #include "daemon_rpc.h"
 #include "readiness_result.h"
 
