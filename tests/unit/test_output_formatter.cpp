@@ -67,6 +67,7 @@ auto construct_single_instance_list_reply()
     list_entry->set_os("Ubuntu");
     list_entry->add_ipv4("10.168.32.2");
     list_entry->add_ipv4("200.3.123.30");
+    list_entry->set_mount_count(2);
     const auto zone = list_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
@@ -84,6 +85,7 @@ auto construct_multiple_instances_list_reply()
     list_entry->set_current_release("16.04 LTS");
     list_entry->set_os("Ubuntu");
     list_entry->add_ipv4("10.21.124.56");
+    list_entry->set_mount_count(1);
     auto zone = list_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
@@ -109,6 +111,7 @@ auto construct_unsorted_list_reply()
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("12");
     list_entry->set_os("Debian");
+    list_entry->set_mount_count(3);
     auto zone = list_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
@@ -118,6 +121,7 @@ auto construct_unsorted_list_reply()
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("42");
     list_entry->set_os("Fedora");
+    list_entry->set_mount_count(1);
     zone = list_entry->mutable_zone();
     zone->set_name("zone2");
     zone->set_available(false);
@@ -1622,13 +1626,14 @@ TEST_F(BaseFormatterSuite, formatters_render_unsupported_zone_as_na_in_list)
     const auto table_output = table_formatter.format(list_reply);
     EXPECT_THAT(table_output,
                 HasSubstr("foo                     Running           10.168.32.2      Ubuntu 16.04 "
-                          "LTS    n/a\n"));
+                          "LTS    2       n/a\n"));
     EXPECT_THAT(table_output, Not(HasSubstr("zone1")));
 
     const auto csv_output = csv_formatter.format(list_reply);
     EXPECT_THAT(
         csv_output,
-        HasSubstr("foo,Running,10.168.32.2,Ubuntu 16.04 LTS,\"10.168.32.2,200.3.123.30\",n/a,\n"));
+        HasSubstr(
+            "foo,Running,10.168.32.2,Ubuntu 16.04 LTS,\"10.168.32.2,200.3.123.30\",n/a,,2\n"));
     EXPECT_THAT(csv_output, Not(HasSubstr("zone1")));
 
     const auto json_output = json_formatter.format(list_reply);

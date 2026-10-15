@@ -266,8 +266,9 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     const std::string::size_type state_column_width = 18;
     const std::string::size_type ip_column_width = 17;
     [[maybe_unused]] const std::string::size_type image_column_width = 20;
+    const std::string::size_type mounts_column_width = 8;
 
-    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
+    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
                    row_format,
                    name_col_header,
@@ -278,6 +279,8 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                    ip_column_width,
                    "Image",
                    image_column_width,
+                   "Mounts",
+                   mounts_column_width,
                    "Zone");
 
     for (const auto& instance : mp::format::sorted(instance_list.instances()))
@@ -297,6 +300,8 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                 ? "Not Available"
                 : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release())),
             image_column_width,
+            instance.mount_count(),
+            mounts_column_width,
             !instance.zone().name().empty()
                 ? fmt::format("{}{}",
                               instance.zone().name(),
@@ -313,6 +318,8 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                            state_column_width,
                            instance.ipv4(i),
                            instance.ipv4(i).size(),
+                           "",
+                           0,
                            "",
                            0,
                            "");

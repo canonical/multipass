@@ -1329,7 +1329,8 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
         mp::ListReply list_reply;
 
         auto instance_matcher = UnorderedElementsAre(
-            Property(&mp::ListVMInstance::name, "real-zebraphant"));
+            AllOf(Property(&mp::ListVMInstance::name, "real-zebraphant"),
+                  Property(&mp::ListVMInstance::mount_count, 3)));
         EXPECT_CALL(mock_server, Write(_, _))
             .WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 

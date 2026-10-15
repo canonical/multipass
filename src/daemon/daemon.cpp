@@ -1983,6 +1983,7 @@ try
 
         entry->set_current_release(current_release);
         entry->set_os(os);
+        entry->set_mount_count(static_cast<int>(vm_instance_specs[name].mounts.size()));
 
         auto management_ip = vm.management_ipv4();
         // FIXME: Remove the mgmt IP gate when VSOCK lands

@@ -220,6 +220,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                                      : mp::utils::trim(fmt::format("{} {}",
                                                                    instance.os(),
                                                                    instance.current_release()));
+        instance_node["mounts"] = instance.mount_count();
 
         list[instance.name()].push_back(instance_node);
     }

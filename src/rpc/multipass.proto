@@ -276,6 +276,7 @@ message ListVMInstance {
     string current_release = 5;
     string os = 6;
     Zone zone = 7;
+    int32 mount_count = 8;
 }
 
 message ListVMSnapshot {

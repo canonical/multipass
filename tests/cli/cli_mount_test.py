@@ -38,6 +38,7 @@ from cli.multipass import (
     path_exists,
     read_file,
     move_path,
+    validate_list_output,
 )
 
 
@@ -212,6 +213,7 @@ class TestMount:
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 },
             }
+            validate_list_output(instance, {"mounts": 2})
 
             assert path_exists(instance, mount_dst1)
             assert path_exists(instance, mount_dst2)
@@ -232,6 +234,7 @@ class TestMount:
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 },
             }
+            validate_list_output(instance, {"mounts": 1})
 
             assert multipass(
                 "unmount",
@@ -239,6 +242,7 @@ class TestMount:
             )
 
             assert mounts(instance) == {}
+            validate_list_output(instance, {"mounts": 0})
 
             # FIXME: Right now the mount folder is not removed after umount.
             # assert not multipass(
