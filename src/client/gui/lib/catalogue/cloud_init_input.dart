@@ -47,6 +47,7 @@ class CloudInitInput extends ConsumerStatefulWidget {
 
 String? validateCloudInitUserData(String? value) {
   // TODO: Validate using the actual cloud-init user-data schema
+  // https://github.com/canonical/multipass/issues/2400
   const marker = "#cloud-config";
   try {
     if (value == null) return null;
@@ -72,13 +73,8 @@ String? validateCloudInitUserData(String? value) {
 }
 
 class _CloudInitInputState extends ConsumerState<CloudInitInput> {
-  late final CodeLineEditingController _controller;
-
-  @override
-  void initState() {
-    _controller = CodeLineEditingController.fromText(initialUserData);
-    super.initState();
-  }
+  final CodeLineEditingController _controller =
+      CodeLineEditingController.fromText(initialUserData);
 
   @override
   void dispose() {
@@ -117,7 +113,6 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
       style: CodeEditorStyle(
           fontFamily: 'UbuntuMono',
           fontSize: 16,
-          backgroundColor: const Color(0xfff2f2f2),
           codeTheme: CodeHighlightTheme(
               languages: {'yaml': CodeHighlightThemeMode(mode: langYaml)},
               theme: atomOneLightTheme)),
@@ -126,7 +121,7 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
               Row(children: [
                 DefaultCodeLineNumber(
                     controller: editingController, notifier: notifier),
-                const VerticalDivider(color: Color(0xffcccccc))
+                VerticalDivider()
               ]));
 
   @override
