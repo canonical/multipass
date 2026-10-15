@@ -24,11 +24,6 @@
 #include "vm_image.h"
 #include "vm_image_vault.h"
 
-namespace YAML
-{
-class Node;
-}
-
 namespace multipass
 {
 class SSHKeyProvider;

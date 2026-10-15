@@ -22,8 +22,6 @@
 #include <multipass/path.h>
 #include <multipass/vm_image.h>
 
-#include <yaml-cpp/yaml.h>
-
 #include <string>
 #include <vector>
 
@@ -34,8 +32,6 @@ namespace multipass
 class VirtualMachineDescription
 {
 public:
-    using MBytes = size_t;
-
     int num_cores;
     MemorySize mem_size;
     MemorySize disk_space;
