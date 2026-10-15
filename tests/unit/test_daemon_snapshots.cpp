@@ -25,6 +25,7 @@
 #include "mock_vm_image_vault.h"
 
 #include <src/daemon/daemon.h>
+#include <tests/unit/matchers/snapshots_matchers.h>
 
 #include <QDateTime>
 
@@ -90,19 +91,12 @@ struct TestDaemonSnapshots : public mpt::DaemonTestFixture
     const std::string mock_instance_name{"real-zebraphant"};
 };
 
-TEST_F(TestDaemonSnapshots, snapshotsCmdReturnsStatusOk)
+TEST_F(TestDaemonSnapshots, snapshotsCmdReturnsEmptySnapshots)
 {
     mp::Daemon daemon{config_builder.build()};
-    StrictMock<mpt::MockServerReaderWriter<mp::SnapshotsReply, mp::SnapshotsRequest>> mock_server;
 
-    mp::SnapshotsRequest request;
-    mp::SnapshotsReply reply;
-    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&reply), Return(true)));
-
-    const auto status = call_daemon_slot(daemon, &mp::Daemon::snapshots, request, mock_server);
-
-    ASSERT_TRUE(status.ok());
-    EXPECT_THAT(reply.snapshot_list().snapshots(), IsEmpty());
+    EXPECT_THAT(process_request(daemon, mp::SnapshotsRequest{}, &mp::Daemon::snapshots),
+                Success(mpt::Snapshots(IsEmpty())));
 }
 
 TEST_F(TestDaemonSnapshots, snapshotsCmdReturnsInstanceSnapshots)
@@ -114,29 +108,16 @@ TEST_F(TestDaemonSnapshots, snapshotsCmdReturnsInstanceSnapshots)
             make_mock_snapshot("snapshot1", "", "the first one"),
             make_mock_snapshot("snapshot2", "snapshot1", "the second one")}));
 
-    StrictMock<mpt::MockServerReaderWriter<mp::SnapshotsReply, mp::SnapshotsRequest>> mock_server;
-    mp::SnapshotsReply reply;
-    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&reply), Return(true)));
-
-    mp::SnapshotsRequest request;
-    const auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshots, request, mock_server);
-
-    ASSERT_TRUE(status.ok());
-    EXPECT_THAT(
-        reply.snapshot_list().snapshots(),
-        UnorderedElementsAre(
-            AllOf(
-                Property(&mp::ListVMSnapshot::name, Eq(mock_instance_name)),
-                Property(&mp::ListVMSnapshot::fundamentals,
-                         AllOf(Property(&mp::SnapshotFundamentals::snapshot_name, Eq("snapshot1")),
-                               Property(&mp::SnapshotFundamentals::parent, IsEmpty()),
-                               Property(&mp::SnapshotFundamentals::comment, Eq("the first one"))))),
-            AllOf(Property(&mp::ListVMSnapshot::name, Eq(mock_instance_name)),
-                  Property(
-                      &mp::ListVMSnapshot::fundamentals,
-                      AllOf(Property(&mp::SnapshotFundamentals::snapshot_name, Eq("snapshot2")),
-                            Property(&mp::SnapshotFundamentals::parent, Eq("snapshot1")),
-                            Property(&mp::SnapshotFundamentals::comment, Eq("the second one")))))));
+    EXPECT_THAT(process_request(*daemon, mp::SnapshotsRequest{}, &mp::Daemon::snapshots),
+                Success(mpt::Snapshots(
+                    UnorderedElementsAre(AllOf(mpt::SnapshotInstance(Eq(mock_instance_name)),
+                                               mpt::SnapshotName(Eq("snapshot1")),
+                                               mpt::SnapshotParent(IsEmpty()),
+                                               mpt::SnapshotComment(Eq("the first one"))),
+                                         AllOf(mpt::SnapshotInstance(Eq(mock_instance_name)),
+                                               mpt::SnapshotName(Eq("snapshot2")),
+                                               mpt::SnapshotParent(Eq("snapshot1")),
+                                               mpt::SnapshotComment(Eq("the second one")))))));
 }
 
 TEST_F(TestDaemonSnapshots, snapshotsCmdIncludesDeletedInstanceSnapshots)
@@ -147,17 +128,8 @@ TEST_F(TestDaemonSnapshots, snapshotsCmdIncludesDeletedInstanceSnapshots)
         .WillOnce(Return(
             mp::VirtualMachine::SnapshotVista{make_mock_snapshot("snapshot1", "", "on a corpse")}));
 
-    StrictMock<mpt::MockServerReaderWriter<mp::SnapshotsReply, mp::SnapshotsRequest>> mock_server;
-    mp::SnapshotsReply reply;
-    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&reply), Return(true)));
-
-    mp::SnapshotsRequest request;
-    const auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshots, request, mock_server);
-
-    EXPECT_TRUE(status.ok());
-    EXPECT_THAT(reply.snapshot_list().snapshots(),
-                ElementsAre(AllOf(Property(&mp::ListVMSnapshot::name, Eq(mock_instance_name)),
-                                  Property(&mp::ListVMSnapshot::fundamentals,
-                                           Property(&mp::SnapshotFundamentals::snapshot_name,
-                                                    Eq("snapshot1"))))));
+    EXPECT_THAT(
+        process_request(*daemon, mp::SnapshotsRequest{}, &mp::Daemon::snapshots),
+        Success(mpt::Snapshots(ElementsAre(AllOf(mpt::SnapshotInstance(Eq(mock_instance_name)),
+                                                 mpt::SnapshotName(Eq("snapshot1")))))));
 }
