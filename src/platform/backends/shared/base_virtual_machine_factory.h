@@ -36,11 +36,8 @@ class BaseVirtualMachineFactory : public VirtualMachineFactory
 public:
     explicit BaseVirtualMachineFactory(const Path& instances_dir,
                                        AvailabilityZoneManager& az_manager);
-    VirtualMachine::UPtr clone_bare_vm(const VMSpecs& src_spec,
-                                       const VMSpecs& dest_spec,
-                                       const std::string& src_name,
-                                       const std::string& dest_name,
-                                       const VMImage& dest_image,
+    VirtualMachine::UPtr clone_bare_vm(const VirtualMachineDescription& src_desc,
+                                       const VirtualMachineDescription& dest_desc,
                                        const SSHKeyProvider& key_provider,
                                        VMStatusMonitor& monitor) override final;
 
@@ -63,17 +60,16 @@ public:
     VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
                                           URLDownloader* downloader,
                                           const Path& cache_dir_path,
-                                          const Path& data_dir_path,
                                           const days& days_to_expire) override
     {
         return std::make_unique<DefaultVMImageVault>(image_hosts,
                                                      downloader,
                                                      cache_dir_path,
-                                                     data_dir_path,
                                                      days_to_expire);
     };
 
-    void configure(VirtualMachineDescription& vm_desc) override;
+    void configure(const VirtualMachineDescription& vm_desc,
+                   const CloudInitConfig& cloud_init) override;
 
     std::vector<NetworkInterfaceInfo> networks() const override
     {
@@ -103,7 +99,7 @@ protected:
 
 private:
     virtual VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
-                                               const multipass::VMSpecs& src_vm_specs,
+                                               const VirtualMachineDescription& src_desc,
                                                const VirtualMachineDescription& desc,
                                                VMStatusMonitor& monitor,
                                                const SSHKeyProvider& key_provider);
@@ -124,7 +120,7 @@ inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std
 
 inline multipass::VirtualMachine::UPtr multipass::BaseVirtualMachineFactory::clone_vm_impl(
     const std::string&,
-    const VMSpecs&,
+    const VirtualMachineDescription&,
     const VirtualMachineDescription&,
     VMStatusMonitor&,
     const SSHKeyProvider&)

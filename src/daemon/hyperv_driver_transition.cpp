@@ -108,10 +108,14 @@ grpc::Status mhv::DriverTransition::release_hcs_instances() const
                 fmt::format("{} must be stopped first", fmt::join(not_stopped, ", "))};
     }
 
-    for (const auto& [name, spec] : context.specs)
+    for (const auto* instances : {&context.operative_instances, &context.deleted_instances})
     {
-        if (!release_hcs_resources(name))
-            throw std::runtime_error{fmt::format("Could not release HCS resources for '{}'", name)};
+        for (const auto& [name, _] : *instances)
+        {
+            if (!release_hcs_resources(name))
+                throw std::runtime_error{
+                    fmt::format("Could not release HCS resources for '{}'", name)};
+        }
     }
 
     return grpc::Status::OK;
@@ -123,8 +127,7 @@ grpc::Status mhv::DriverTransition::complete(
     if (!migration_records)
         return grpc::Status::OK;
 
-    DaemonHyperVInstanceMigrator migrator{context.specs,
-                                          context.operative_instances,
+    DaemonHyperVInstanceMigrator migrator{context.operative_instances,
                                           context.deleted_instances,
                                           *context.config.factory,
                                           *context.config.az_manager,

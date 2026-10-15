@@ -24,16 +24,12 @@
 #include "vm_image.h"
 #include "vm_image_vault.h"
 
-namespace YAML
-{
-class Node;
-}
-
 namespace multipass
 {
+struct CloudInitConfig;
 class SSHKeyProvider;
 class URLDownloader;
-class VirtualMachineDescription;
+struct VirtualMachineDescription;
 class VMImageHost;
 class VMStatusMonitor;
 class MemorySize;
@@ -48,11 +44,8 @@ public:
     virtual VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                         const SSHKeyProvider& key_provider,
                                                         VMStatusMonitor& monitor) = 0;
-    virtual VirtualMachine::UPtr clone_bare_vm(const VMSpecs& src_spec,
-                                               const VMSpecs& dest_spec,
-                                               const std::string& src_name,
-                                               const std::string& dest_name,
-                                               const VMImage& dest_image,
+    virtual VirtualMachine::UPtr clone_bare_vm(const VirtualMachineDescription& src_desc,
+                                               const VirtualMachineDescription& dest_desc,
                                                const SSHKeyProvider& key_provider,
                                                VMStatusMonitor& monitor) = 0;
 
@@ -76,9 +69,9 @@ public:
     virtual VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
                                                   URLDownloader* downloader,
                                                   const Path& cache_dir_path,
-                                                  const Path& data_dir_path,
                                                   const days& days_to_expire) = 0;
-    virtual void configure(VirtualMachineDescription& vm_desc) = 0;
+    virtual void configure(const VirtualMachineDescription& vm_desc,
+                           const CloudInitConfig& cloud_init) = 0;
 
     // List all the network interfaces seen by the backend.
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;

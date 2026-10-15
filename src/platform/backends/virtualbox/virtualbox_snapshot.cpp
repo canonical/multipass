@@ -50,10 +50,9 @@ mp::VirtualBoxSnapshot::VirtualBoxSnapshot(const std::string& name,
                                            const std::string& cloud_init_instance_id,
                                            std::shared_ptr<Snapshot> parent,
                                            const std::string& vm_name,
-                                           const VMSpecs& specs,
                                            VirtualBoxVirtualMachine& vm,
                                            VirtualMachineDescription& desc)
-    : BaseSnapshot{name, comment, cloud_init_instance_id, std::move(parent), specs, vm, desc},
+    : BaseSnapshot{name, comment, cloud_init_instance_id, std::move(parent), vm, desc},
       vm_name{vm_name}
 {
 }

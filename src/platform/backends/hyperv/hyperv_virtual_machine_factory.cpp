@@ -24,7 +24,6 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/platform.h>
 #include <multipass/virtual_machine_description.h>
-#include <multipass/vm_specs.h>
 
 #include <shared/windows/powershell.h>
 
@@ -475,14 +474,14 @@ auto mp::HyperVVirtualMachineFactory::get_adapters() -> std::vector<NetworkInter
 
 mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::clone_vm_impl(
     const std::string& src_name,
-    const multipass::VMSpecs& src_spec,
+    const VirtualMachineDescription& src_desc,
     const VirtualMachineDescription& dest_vm_desc,
     VMStatusMonitor& monitor,
     const SSHKeyProvider& key_provider)
 {
     return std::make_unique<mp::HyperVVirtualMachine>(
         src_name,
-        src_spec,
+        src_desc,
         dest_vm_desc,
         monitor,
         key_provider,

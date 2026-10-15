@@ -27,13 +27,13 @@
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
+#include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/snapshot.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/top_catch_all.h>
-#include <multipass/vm_specs.h>
 #include <scope_guard.hpp>
 
 #include <QDir>
@@ -41,11 +41,13 @@
 #include <QString>
 
 #include <chrono>
+#include <filesystem>
 #include <functional>
 #include <mutex>
 #include <ranges>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -125,42 +127,61 @@ mp::BaseVirtualMachine::BaseVirtualMachine(State state,
       zone{zone},
       instance_dir{instance_dir}
 {
+    persist_description();
 }
 
 mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
+
+void mp::BaseVirtualMachine::persist_description() const
+{
+    MP_FILEOPS.write_transactionally(instance_dir.filePath(vm_description_file_name),
+                                     pretty_print(boost::json::value_from(desc)));
+}
+
+void mp::BaseVirtualMachine::persist_state()
+{
+    update_description([this](auto& d) { d.state = state; });
+}
+
+void mp::BaseVirtualMachine::increment_clone_count()
+{
+    update_description([](auto& d) { ++d.clone_count; });
+}
+
+void mp::BaseVirtualMachine::set_deleted(bool deleted)
+{
+    update_description([deleted](auto& d) { d.deleted = deleted; });
+}
+
+void mp::BaseVirtualMachine::set_mounts(const std::unordered_map<std::string, VMMount>& mounts)
+{
+    update_description([&mounts](auto& d) { d.mounts = mounts; });
+}
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
     const std::string& default_mac_addr,
     const std::vector<NetworkInterface>& extra_interfaces,
     const std::string& new_instance_id) const
 {
-    const std::filesystem::path cloud_init_path =
-        std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
-
-    MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(default_mac_addr,
-                                                                                  extra_interfaces,
-                                                                                  new_instance_id,
-                                                                                  cloud_init_path);
+    MP_CLOUD_INIT_FILE_OPS.update_cloud_init_with_new_extra_interfaces_and_new_id(
+        default_mac_addr,
+        extra_interfaces,
+        new_instance_id,
+        desc.cloud_init_iso);
 }
 
 void mp::BaseVirtualMachine::add_extra_interface_to_instance_cloud_init(
     const std::string& default_mac_addr,
     const NetworkInterface& extra_interface) const
 {
-    const std::filesystem::path cloud_init_path =
-        std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
-
     MP_CLOUD_INIT_FILE_OPS.add_extra_interface_to_cloud_init(default_mac_addr,
                                                              extra_interface,
-                                                             cloud_init_path);
+                                                             desc.cloud_init_iso);
 }
 
 std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
 {
-    const std::filesystem::path cloud_init_path =
-        std::filesystem::path{instance_dir.absolutePath().toStdString()} / cloud_init_file_name;
-
-    return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_path);
+    return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(desc.cloud_init_iso);
 }
 
 void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy) const
@@ -404,7 +425,7 @@ void mp::BaseVirtualMachine::update_cpus(int num_cores)
     mpl::debug(vm_name, "update_cpus() -> num_cores `{}`", num_cores);
 
     update_cpus_impl(num_cores);
-    desc.num_cores = num_cores;
+    update_description([num_cores](auto& d) { d.num_cores = num_cores; });
 }
 
 void mp::BaseVirtualMachine::resize_memory(const MemorySize& new_size)
@@ -413,7 +434,7 @@ void mp::BaseVirtualMachine::resize_memory(const MemorySize& new_size)
     mpl::debug(vm_name, "resize_memory() -> new_size `{}` MiB", new_size.in_megabytes());
 
     resize_memory_impl(new_size);
-    desc.mem_size = new_size;
+    update_description([&new_size](auto& d) { d.mem_size = new_size; });
 }
 
 void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMessages& messages)
@@ -422,10 +443,19 @@ void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMes
     mpl::debug(vm_name, "resize_disk() -> new_size `{}` MiB", new_size.in_megabytes());
 
     resize_disk_impl(new_size);
-    desc.disk_space = new_size;
+    update_description([&new_size](auto& d) { d.disk_space = new_size; });
 
     if (is_core())
         messages.add_message(core_image_disk_resize_message());
+}
+
+void mp::BaseVirtualMachine::add_network_interface(const NetworkInterface& extra_interface)
+{
+    add_network_interface_impl(static_cast<int>(desc.extra_interfaces.size()),
+                               desc.default_mac_address,
+                               extra_interface);
+    update_description(
+        [&extra_interface](auto& d) { d.extra_interfaces.push_back(extra_interface); });
 }
 
 auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
@@ -542,10 +572,8 @@ auto mp::BaseVirtualMachine::make_take_snapshot_rollback(SnapshotMap::iterator i
         });
 }
 
-std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
-    const VMSpecs& specs,
-    const std::string& snapshot_name,
-    const std::string& comment)
+std::shared_ptr<const mp::Snapshot>
+mp::BaseVirtualMachine::take_snapshot(const std::string& snapshot_name, const std::string& comment)
 {
     std::unique_lock lock{snapshot_mutex};
     assert_vm_stopped(state); // precondition
@@ -566,7 +594,6 @@ std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
         sname,
         comment,
         get_instance_id_from_the_cloud_init(),
-        specs,
         head_snapshot);
     ret->capture();
 
@@ -853,27 +880,21 @@ std::string mp::BaseVirtualMachine::generate_snapshot_name() const
     return fmt::format("snapshot{}", snapshot_count + 1);
 }
 
-auto mp::BaseVirtualMachine::make_restore_rollback(const Path& head_path, VMSpecs& specs)
+auto mp::BaseVirtualMachine::make_restore_rollback(const Path& head_path)
 {
-    return sg::make_scope_guard(
-        [this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
-            top_catch_all(vm_name,
-                          &BaseVirtualMachine::restore_rollback_helper,
-                          this,
-                          head_path,
-                          old_head,
-                          old_specs,
-                          specs);
-        });
+    return sg::make_scope_guard([this, &head_path, old_head = head_snapshot]() noexcept {
+        top_catch_all(vm_name,
+                      &BaseVirtualMachine::restore_rollback_helper,
+                      this,
+                      head_path,
+                      old_head);
+    });
 }
 
 void mp::BaseVirtualMachine::restore_rollback_helper(const Path& head_path,
-                                                     const std::shared_ptr<Snapshot>& old_head,
-                                                     const VMSpecs& old_specs,
-                                                     VMSpecs& specs)
+                                                     const std::shared_ptr<Snapshot>& old_head)
 {
     // best effort only
-    specs = old_specs;
     if (old_head != head_snapshot)
     {
         head_snapshot = old_head;
@@ -881,7 +902,7 @@ void mp::BaseVirtualMachine::restore_rollback_helper(const Path& head_path,
     }
 }
 
-void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs)
+void mp::BaseVirtualMachine::restore_snapshot(const std::string& name)
 {
     const std::unique_lock lock{snapshot_mutex};
 
@@ -891,17 +912,10 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
     assert_vm_stopped(snapshot->get_state()); // precondition
 
     const auto head_path = derive_head_path(instance_dir);
-    auto rollback = make_restore_rollback(head_path, specs);
+    auto rollback = make_restore_rollback(head_path);
 
-    specs.state = snapshot->get_state();
-    specs.num_cores = snapshot->get_num_cores();
-    specs.mem_size = snapshot->get_mem_size();
-    specs.disk_space = snapshot->get_disk_space();
-    const bool are_extra_interfaces_different = specs.extra_interfaces !=
+    const bool are_extra_interfaces_different = desc.extra_interfaces !=
                                                 snapshot->get_extra_interfaces();
-    specs.extra_interfaces = snapshot->get_extra_interfaces();
-    specs.mounts = snapshot->get_mounts();
-    specs.metadata = snapshot->get_metadata();
 
     if (head_snapshot != snapshot)
     {
@@ -909,17 +923,19 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
         persist_head_snapshot_index(head_path);
     }
 
-    snapshot->apply();
+    update_description([&](auto& d) {
+        snapshot->apply(); // writes d through the snapshot's reference
 
-    if (are_extra_interfaces_different)
-    {
-        // here we can use default_mac_address of the current state because it is an immutable
-        // variable.
-        apply_extra_interfaces_and_instance_id_to_cloud_init(
-            specs.default_mac_address,
-            snapshot->get_extra_interfaces(),
-            snapshot->get_cloud_init_instance_id());
-    }
+        if (are_extra_interfaces_different)
+        {
+            // here we can use default_mac_address of the current state because it is an immutable
+            // variable.
+            apply_extra_interfaces_and_instance_id_to_cloud_init(
+                d.default_mac_address,
+                snapshot->get_extra_interfaces(),
+                snapshot->get_cloud_init_instance_id());
+        }
+    });
 
     rollback.dismiss();
 }
@@ -928,7 +944,6 @@ std::shared_ptr<mp::Snapshot> mp::BaseVirtualMachine::make_specific_snapshot(
     const std::string& /*snapshot_name*/,
     const std::string& /*comment*/,
     const std::string& /*instance_id*/,
-    const VMSpecs& /*specs*/,
     std::shared_ptr<Snapshot> /*parent*/)
 {
     throw NotImplementedOnThisBackendException{"snapshots"};

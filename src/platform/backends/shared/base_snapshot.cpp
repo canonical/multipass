@@ -23,7 +23,6 @@
 #include <multipass/platform.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_mount.h>
-#include <multipass/vm_specs.h>
 #include <scope_guard.hpp>
 
 #include <QFile>
@@ -123,7 +122,6 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                                const std::string& comment,
                                const std::string& cloud_init_instance_id,
                                std::shared_ptr<Snapshot> parent,
-                               const VMSpecs& specs,
                                const VirtualMachine& vm,
                                VirtualMachineDescription& vm_desc)
     : BaseSnapshot{{name,
@@ -132,13 +130,13 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                     cloud_init_instance_id,
                     vm.get_snapshot_count() + 1,
                     QDateTime::currentDateTimeUtc(),
-                    specs.num_cores,
-                    specs.mem_size,
-                    specs.disk_space,
-                    specs.extra_interfaces,
-                    specs.state,
-                    specs.mounts,
-                    specs.metadata},
+                    vm.get_num_cores(),
+                    vm.get_mem_size(),
+                    vm.get_disk_space(),
+                    vm_desc.extra_interfaces,
+                    vm_desc.state,
+                    vm_desc.mounts,
+                    vm_desc.metadata},
                    std::move(parent),
                    vm,
                    vm_desc,
@@ -202,13 +200,19 @@ void mp::BaseSnapshot::erase()
 void mp::BaseSnapshot::apply()
 {
     const std::unique_lock lock{mutex};
-    auto extra_interfaces = desc.extra_interfaces; // copy first, so nothing throws after apply_impl
+    // copy first, so nothing throws after apply_impl
+    auto extra_interfaces = desc.extra_interfaces;
+    auto metadata = desc.metadata;
+    auto mounts = desc.mounts;
     apply_impl();
 
     vm_desc.num_cores = desc.num_cores;
     vm_desc.mem_size = desc.mem_size;
     vm_desc.disk_space = desc.disk_space;
     vm_desc.extra_interfaces = std::move(extra_interfaces);
+    vm_desc.metadata = std::move(metadata);
+    vm_desc.mounts = std::move(mounts);
+    vm_desc.state = desc.state;
     // no need to persist here for the time being: only private fields of the base class are
     // persisted for now, and those cannot be affected by apply_impl (except by setters, which
     // already persist)

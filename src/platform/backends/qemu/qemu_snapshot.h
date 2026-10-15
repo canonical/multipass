@@ -24,7 +24,7 @@
 namespace multipass
 {
 class QemuVirtualMachine;
-class VirtualMachineDescription;
+struct VirtualMachineDescription;
 
 class QemuSnapshot : public BaseSnapshot
 {
@@ -33,7 +33,6 @@ public:
                  const std::string& comment,
                  const std::string& cloud_init_instance_id,
                  std::shared_ptr<Snapshot> parent,
-                 const VMSpecs& specs,
                  QemuVirtualMachine& vm,
                  VirtualMachineDescription& desc);
     QemuSnapshot(const std::filesystem::path& filename,
@@ -46,7 +45,7 @@ protected:
     void apply_impl() override;
 
 private:
-    const std::filesystem::path& image_path;
+    const std::filesystem::path image_path;
 };
 
 } // namespace multipass

@@ -20,10 +20,12 @@
 #include "daemon_init_settings.h"
 #include "hyperv_driver_transition.h"
 #include "instance_settings_handler.h"
+#include "legacy_instance_migration.h"
 #include "runtime_instance_info_helper.h"
 #include "snapshot_settings_handler.h"
 
 #include <multipass/alias_definition.h>
+#include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 
@@ -31,7 +33,6 @@
 #include <multipass/exceptions/availability_zone_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
-#include <multipass/exceptions/ghost_instance_exception.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
@@ -39,6 +40,7 @@
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/file_ops.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
@@ -70,6 +72,7 @@
 
 #include <QDir>
 #include <QEventLoop>
+#include <QFileInfo>
 #include <QFutureSynchronizer>
 #include <QStorageInfo>
 #include <QString>
@@ -79,6 +82,7 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <filesystem>
 #include <functional>
 #include <future>
 #include <optional>
@@ -235,9 +239,30 @@ auto name_from(const std::string& requested_name,
     }
 }
 
-std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
-                                                     const mp::Path& cache_path,
-                                                     const mp::AvailabilityZoneManager& az_manager)
+mp::VirtualMachineDescription load_vm_description(const std::string& name, const QDir& instance_dir)
+{
+    const auto path = instance_dir.filePath(mp::vm_description_file_name);
+    try
+    {
+        const auto data = MP_FILEOPS.try_read_file(std::filesystem::path{path.toStdU16String()});
+        if (!data)
+            throw std::runtime_error{"file not found"};
+
+        return value_to<mp::VirtualMachineDescription>(boost::json::parse(*data));
+    }
+    catch (const std::exception& e)
+    {
+        throw std::runtime_error{fmt::format("Could not load the description of '{}' from {}: {}",
+                                             name,
+                                             path,
+                                             e.what())};
+    }
+}
+
+std::set<std::string> load_db(const mp::Path& data_path,
+                              const mp::Path& cache_path,
+                              const mp::AvailabilityZoneManager& az_manager,
+                              const mp::VirtualMachineFactory& factory)
 {
     QDir data_dir{data_path};
     QDir cache_dir{cache_path};
@@ -260,44 +285,33 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
         return {};
     }
 
-    std::unordered_map<std::string, mp::VMSpecs> reconstructed_records;
+    std::set<std::string> names;
+    const mp::LegacyInstanceMigrator legacy_migrator{data_path, az_manager.get_default_zone_name()};
     for (const auto& [key, record] : records.as_object())
     {
-        if (record.as_object().empty())
-            return {};
-
-        try
-        {
-            reconstructed_records.emplace(key, value_to<mp::VMSpecs>(record, az_manager));
-        }
-        catch (mp::GhostInstanceException&)
+        if (legacy_migrator.is_ghost(record))
         {
             mpl::warn(category, "Ignoring ghost instance in database: {}", key);
             continue;
         }
+
+        const std::string name{key};
+        try
+        {
+            legacy_migrator.migrate(name, record, factory.get_instance_directory(name));
+        }
+        catch (const std::exception& e)
+        {
+            mpl::warn(category, "{}", e.what());
+        }
+        names.insert(name);
     }
-    return reconstructed_records;
+    return names;
 }
 
 std::string generate_next_clone_name(int clone_count, const std::string& source_name)
 {
     return fmt::format("{}-clone{}", source_name, clone_count + 1);
-}
-
-auto fetch_image_for(const std::string& name,
-                     mp::VirtualMachineFactory& factory,
-                     mp::VMImageVault& vault)
-{
-    auto stub_prepare = [](const mp::VMImage&) -> mp::VMImage { return {}; };
-    auto stub_progress = [](int /*progress_type*/, int /*progress*/) { return true; };
-
-    mp::Query query{name, "", false, "", mp::Query::Type::Alias, false};
-
-    return vault.fetch_image(query,
-                             stub_prepare,
-                             stub_progress,
-                             std::nullopt,
-                             factory.get_instance_directory(name));
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -326,15 +340,15 @@ std::string get_bridged_interface_name()
     return bridged_id.toStdString();
 }
 
-bool is_bridged_impl(const mp::VMSpecs& specs,
+bool is_bridged_impl(const std::vector<mp::NetworkInterface>& extra_interfaces,
                      const std::vector<mp::NetworkInterfaceInfo>& host_nets,
                      const std::string& preferred_net)
 {
     const auto& matching_bridge = mpu::find_bridge_with(host_nets,
                                                         preferred_net,
                                                         MP_PLATFORM.bridge_nomenclature());
-    return std::any_of(specs.extra_interfaces.cbegin(),
-                       specs.extra_interfaces.cend(),
+    return std::any_of(extra_interfaces.cbegin(),
+                       extra_interfaces.cend(),
                        [&preferred_net, &matching_bridge](const auto& network) -> bool {
                            return network.id == preferred_net ||
                                   (matching_bridge && network.id == matching_bridge->id);
@@ -1006,13 +1020,13 @@ mp::MemorySize compute_final_image_size(const mp::MemorySize image_size,
     return disk_space;
 }
 
-std::unordered_set<std::string> mac_set_from(const mp::VMSpecs& spec)
+std::unordered_set<std::string> mac_set_from(const mp::VirtualMachineDescription& desc)
 {
     std::unordered_set<std::string> macs{};
 
-    macs.insert(spec.default_mac_address);
+    macs.insert(desc.default_mac_address);
 
-    for (const auto& extra_iface : spec.extra_interfaces)
+    for (const auto& extra_iface : desc.extra_interfaces)
         if (!extra_iface.mac_address.empty())
             macs.insert(extra_iface.mac_address);
 
@@ -1136,20 +1150,16 @@ auto timeout_for(const int requested_timeout)
 }
 
 mp::SettingsHandler* register_instance_mod(
-    std::unordered_map<std::string, mp::VMSpecs>& vm_instance_specs,
     InstanceTable& operative_instances,
     const InstanceTable& deleted_instances,
     const std::unordered_set<std::string>& preparing_instances,
-    std::function<void()> instance_persister,
     std::function<bool(const std::string&)> is_bridged,
     std::function<void(const std::string&)> add_interface)
 {
     return MP_SETTINGS.register_handler(
-        std::make_unique<mp::InstanceSettingsHandler>(vm_instance_specs,
-                                                      operative_instances,
+        std::make_unique<mp::InstanceSettingsHandler>(operative_instances,
                                                       deleted_instances,
                                                       preparing_instances,
-                                                      std::move(instance_persister),
                                                       is_bridged,
                                                       add_interface));
 }
@@ -1408,22 +1418,21 @@ void mp::Daemon::connect_rpc(DaemonRpc& rpc)
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
-      vm_instance_specs{
+      instance_names{
           load_db(mp::utils::backend_directory_path(config->data_directory,
                                                     config->factory->get_backend_directory_name()),
                   mp::utils::backend_directory_path(config->cache_directory,
                                                     config->factory->get_backend_directory_name()),
-                  *config->az_manager)},
+                  *config->az_manager,
+                  *config->factory)},
       daemon_rpc{config->server_address,
                  *config->cert_provider,
                  config->client_cert_store.get(),
                  config->logger},
       instance_mod_handler{register_instance_mod(
-          vm_instance_specs,
           operative_instances,
           deleted_instances,
           preparing_instances,
-          [this] { persist_instances(); },
           [this](const std::string& n) { return is_bridged(n); },
           [this](const std::string& n) { return add_bridged_interface(n); })},
       snapshot_mod_handler{
@@ -1432,7 +1441,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     using e_state = VirtualMachine::State;
 
     connect_rpc(daemon_rpc);
-    std::vector<std::string> invalid_specs;
+    std::vector<std::string> invalid_instances;
 
     try
     {
@@ -1443,61 +1452,70 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         mpl::warn(category, "Hypervisor health check failed: {}", e.what());
     }
 
-    for (const auto& entry : vm_instance_specs)
+    for (const auto& name : instance_names)
     {
-        const auto& name = entry.first;
-        const auto spec_copy = entry.second;
+        const auto instance_dir = config->factory->get_instance_directory(name);
 
-        if (!config->vault->has_record_for(name))
+        VirtualMachineDescription vm_desc{};
+        try
         {
-            invalid_specs.push_back(name);
+            vm_desc = load_vm_description(name, instance_dir);
+        }
+        catch (const std::exception& e)
+        {
+            mpl::warn(category, "{}", e.what());
+            invalid_instances.push_back(name);
             continue;
         }
 
-        // Check that all the interfaces in the instance have different MAC address, and that they
-        // were not used in the other instances. String validity was already checked in load_db().
-        // Add these MAC's to the daemon's set only if this instance is not invalid.
-        auto new_macs = mac_set_from(spec_copy);
-
-        if (new_macs.size() <= spec_copy.extra_interfaces.size() ||
-            !merge_if_disjoint(new_macs, allocated_mac_addrs))
+        if (vm_desc.vm_name != name)
         {
-            // There is at least one repeated address in new_macs.
-            mpl::warn(category, "{} has repeated MAC addresses", name);
-            invalid_specs.push_back(name);
+            mpl::warn(category,
+                      "The description of '{}' names a different instance: '{}'",
+                      name,
+                      vm_desc.vm_name);
+            invalid_instances.push_back(name);
             continue;
         }
 
-        auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
-        if (!vm_image.image_path.empty() && !MP_FILEOPS.exists(vm_image.image_path))
+        if (!MP_FILEOPS.exists(vm_desc.image.image_path))
         {
             mpl::warn(category,
                       "Could not find image for '{}'. Expected location: {}",
                       name,
-                      vm_image.image_path);
-            invalid_specs.push_back(name);
+                      vm_desc.image.image_path);
+            invalid_instances.push_back(name);
             continue;
         }
 
-        const auto instance_dir = mp::utils::base_dir(
-            MP_PLATFORM.path_to_qstr(vm_image.image_path));
-        const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
-        mp::VirtualMachineDescription vm_desc{spec_copy.num_cores,
-                                              spec_copy.mem_size,
-                                              spec_copy.disk_space,
-                                              name,
-                                              spec_copy.zone,
-                                              spec_copy.default_mac_address,
-                                              spec_copy.extra_interfaces,
-                                              spec_copy.ssh_username,
-                                              vm_image,
-                                              cloud_init_iso,
-                                              {},
-                                              {},
-                                              {},
-                                              {}};
+        // Check that all the interfaces in the instance have different MAC address, and that they
+        // were not used in the other instances. String validity was already checked when loading
+        // the description. Add these MAC's to the daemon's set only if this instance is not
+        // invalid.
+        auto new_macs = mac_set_from(vm_desc);
 
-        auto& instance_records_table = spec_copy.deleted ? deleted_instances : operative_instances;
+        if (new_macs.size() <= vm_desc.extra_interfaces.size() ||
+            !merge_if_disjoint(new_macs, allocated_mac_addrs))
+        {
+            // There is at least one repeated address in new_macs.
+            mpl::warn(category, "{} has repeated MAC addresses", name);
+            invalid_instances.push_back(name);
+            continue;
+        }
+
+        auto& instance_records_table = vm_desc.deleted ? deleted_instances : operative_instances;
+
+        // FIXME: somehow we're writing contradictory state to disk.
+        if (vm_desc.deleted && vm_desc.state != e_state::stopped && vm_desc.state != e_state::off)
+        {
+            mpl::warn(
+                category,
+                "{} is deleted but has incompatible state {}, resetting state to {} (stopped)",
+                name,
+                static_cast<int>(vm_desc.state),
+                static_cast<int>(e_state::stopped));
+            vm_desc.state = e_state::stopped;
+        }
 
         auto instance = instance_records_table[name] = config->factory->create_virtual_machine(
             vm_desc,
@@ -1508,32 +1526,17 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         // Add the new macs to the daemon's list only if we got this far
         allocated_mac_addrs = std::move(new_macs);
 
-        // FIXME: somehow we're writing contradictory state to disk.
-        if (spec_copy.deleted)
-        {
-            if (spec_copy.state != e_state::stopped && spec_copy.state != e_state::off)
-            {
-                mpl::warn(
-                    category,
-                    "{} is deleted but has incompatible state {}, resetting state to {} (stopped)",
-                    name,
-                    static_cast<int>(spec_copy.state),
-                    static_cast<int>(e_state::stopped));
-                assert(vm_instance_specs.contains(name));
-                auto& mutable_spec = vm_instance_specs[name];
-                mutable_spec.state = e_state::stopped;
-            }
+        if (vm_desc.deleted)
             continue;
-        }
 
         // No deleted spec must cross this boundary.
-        assert(!spec_copy.deleted);
+        assert(!vm_desc.deleted);
         init_mounts(name);
 
         std::unique_lock lock{start_mutex};
 
         // Was running before shutdown?
-        if (spec_copy.state == e_state::running)
+        if (vm_desc.state == e_state::running)
         {
             assert(operative_instances.contains(name));
             // If the VM was in running state before, we need to do some additional
@@ -1567,15 +1570,13 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         }
     }
 
-    for (const auto& bad_spec : invalid_specs)
+    for (const auto& bad_instance : invalid_instances)
     {
-        mpl::warn(category, "Removing invalid instance: {}", bad_spec);
-        vm_instance_specs.erase(bad_spec);
-        config->vault->remove(bad_spec);
+        mpl::warn(category, "Removing invalid instance: {}", bad_instance);
+        instance_names.erase(bad_instance);
     }
 
-    if (!invalid_specs.empty())
-        persist_instances();
+    persist_instances(); // also drops any migrated resources from the db
 
     config->vault->prune_expired_images();
 
@@ -1978,7 +1979,7 @@ try
         else
             entry->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
-        auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
+        auto vm_image = vm.get_description().image;
         auto current_release = vm_image.original_release;
         auto os = vm_image.os;
 
@@ -2170,10 +2171,10 @@ try
             }
         }
 
-        vm_instance_specs[name].mounts[target_path] = vm_mount;
+        auto mount_specs = vm->get_description().mounts;
+        mount_specs[target_path] = vm_mount;
+        vm->set_mounts(mount_specs);
     }
-
-    persist_instances();
 
     context->set_value(grpc_status_for(errors));
 }
@@ -2204,8 +2205,7 @@ try
         for (const auto& vm_it : instance_selection.deleted_selection)
         {
             const auto name = vm_it->first;
-            assert(vm_instance_specs[name].deleted);
-            vm_instance_specs[name].deleted = false;
+            vm_it->second->set_deleted(false);
             operative_instances[name] = std::move(vm_it->second);
             deleted_instances.erase(vm_it);
             init_mounts(name);
@@ -2321,7 +2321,7 @@ try
         case VirtualMachine::State::restarting:
             break;
         default:
-            if (complain_disabled_mounts && !vm_instance_specs[name].mounts.empty())
+            if (complain_disabled_mounts && !vm.get_description().mounts.empty())
             {
                 complain_disabled_mounts = false; // I shall say zis only once
                 mpl::error(category, "Mounts have been disabled on this instance of Multipass");
@@ -2581,7 +2581,7 @@ try
             continue;
         }
 
-        auto& vm_spec_mounts = vm_instance_specs[name].mounts;
+        auto vm_spec_mounts = vm->second->get_description().mounts;
         auto& vm_mounts = mounts[name];
 
         auto do_unmount = [&](auto expiring_it) {
@@ -2615,9 +2615,9 @@ try
             do_unmount(it);
         else
             add_fmt_to(errors, "path \"{}\" is not mounted in '{}'", target_path, name);
-    }
 
-    persist_instances();
+        vm->second->set_mounts(vm_spec_mounts);
+    }
 
     context->set_value(grpc_status_for(errors));
 }
@@ -2676,7 +2676,6 @@ try
 // TODO hyperv migration, remove
 #if defined(HCS_ENABLED)
     mp::hyperv::DriverTransition transition{{*config,
-                                             vm_instance_specs,
                                              operative_instances,
                                              deleted_instances,
                                              migration_in_progress,
@@ -2861,12 +2860,8 @@ try
                 grpc::Status{grpc::INVALID_ARGUMENT,
                              fmt::format(R"(Invalid snapshot name: "{}".)", snapshot_name)});
 
-        const auto spec_it = vm_instance_specs.find(instance_name);
-        assert(spec_it != vm_instance_specs.end() && "missing instance specs");
-
         SnapshotReply reply;
-        reply.set_snapshot(
-            vm_ptr->take_snapshot(spec_it->second, snapshot_name, request->comment())->get_name());
+        reply.set_snapshot(vm_ptr->take_snapshot(snapshot_name, request->comment())->get_name());
 
         server->Write(reply);
     }
@@ -2910,10 +2905,6 @@ try
                 grpc::Status{grpc::FAILED_PRECONDITION,
                              "Multipass can only restore snapshots of stopped instances."});
 
-        auto spec_it = vm_instance_specs.find(instance_name);
-        assert(spec_it != vm_instance_specs.end() && "missing instance specs");
-        auto& vm_specs = spec_it->second;
-
         if (!request->destructive())
         {
             RestoreReply confirm_action{};
@@ -2933,7 +2924,6 @@ try
                           fmt::format("Taking snapshot before restoring {}", instance_name));
 
                 const auto snapshot = vm_ptr->take_snapshot(
-                    vm_specs,
                     "",
                     fmt::format("Before restoring {}", request->snapshot()));
 
@@ -2945,14 +2935,12 @@ try
 
         // Actually restore snapshot
         reply_msg(server, "Restoring snapshot");
-        auto old_specs = vm_specs;
-        vm_ptr->restore_snapshot(request->snapshot(), vm_specs);
+        vm_ptr->restore_snapshot(request->snapshot());
 
         auto mounts_it = mounts.find(instance_name);
         assert(mounts_it != mounts.end() && "uninitialized mounts");
 
-        if (update_mounts(vm_specs, mounts_it->second, vm_ptr) || vm_specs != old_specs)
-            persist_instances();
+        update_mounts(mounts_it->second, *vm_ptr);
 
         server->Write(reply);
     }
@@ -3006,27 +2994,19 @@ try
 
         // signal that the new instance is being cooked up
         preparing_instances.insert(destination_name);
-        auto& src_spec = vm_instance_specs[source_name];
-        auto dest_spec = clone_spec(src_spec, source_name, destination_name);
+        const auto src_desc = source_vm_ptr->get_description();
+        auto dest_desc = clone_description(src_desc, destination_name);
+        auto release_dest_macs = sg::make_scope_guard(
+            [this, macs = mac_set_from(dest_desc)]() noexcept {
+                for (const auto& mac : macs)
+                    allocated_mac_addrs.erase(mac);
+            });
 
-        config->vault->clone(source_name, destination_name);
-
-        const mp::VMImage dest_vm_image = fetch_image_for(destination_name,
-                                                          *config->factory,
-                                                          *config->vault);
-
-        // Specs need to be in place before the factory can create the VM
-        // Notice that we are passing `this`, which can be used to retrieve further info
-        vm_instance_specs.emplace(destination_name, dest_spec);
-        operative_instances[destination_name] = config->factory->clone_bare_vm(
-            src_spec,
-            dest_spec,
-            source_name,
-            destination_name,
-            dest_vm_image,
-            *config->ssh_key_provider,
-            *this);
-        ++src_spec.clone_count;
+        instance_names.insert(destination_name);
+        operative_instances[destination_name] =
+            config->factory->clone_bare_vm(src_desc, dest_desc, *config->ssh_key_provider, *this);
+        release_dest_macs.dismiss();
+        source_vm_ptr->increment_clone_count();
         // preparing instance is done
         preparing_instances.erase(destination_name);
         persist_instances();
@@ -3256,46 +3236,27 @@ void mp::Daemon::on_restart(const std::string& name)
                           std::string()));
 }
 
-void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine::State& state)
-{
-    vm_instance_specs[name].state = state;
-    persist_instances();
-}
-
-void mp::Daemon::update_metadata_for(const std::string& name, const boost::json::object& metadata)
-{
-    vm_instance_specs[name].metadata = metadata;
-
-    persist_instances();
-}
-
-boost::json::object mp::Daemon::retrieve_metadata_for(const std::string& name)
-{
-    return vm_instance_specs[name].metadata;
-}
-
 void mp::Daemon::persist_instances()
 {
-    auto instance_records_json = boost::json::value_from(vm_instance_specs);
+    boost::json::object records;
+    for (const auto& name : instance_names)
+        records[name] = boost::json::object{};
+
     QDir data_dir{mp::utils::backend_directory_path(config->data_directory,
                                                     config->factory->get_backend_directory_name())};
-    MP_FILEOPS.write_transactionally(data_dir.filePath(instance_db_name),
-                                     pretty_print(instance_records_json));
+    MP_FILEOPS.write_transactionally(data_dir.filePath(instance_db_name), pretty_print(records));
 }
 
 void mp::Daemon::release_resources(const std::string& instance)
 {
-    config->vault->remove(instance);
     config->factory->remove_resources_for(instance);
 
-    auto spec_it = vm_instance_specs.find(instance);
-    if (spec_it != cend(vm_instance_specs))
-    {
-        for (const auto& mac : mac_set_from(spec_it->second))
-            allocated_mac_addrs.erase(mac);
+    for (const auto* instances : {&operative_instances, &deleted_instances})
+        if (const auto it = instances->find(instance); it != instances->end() && it->second)
+            for (const auto& mac : mac_set_from(it->second->get_description()))
+                allocated_mac_addrs.erase(mac);
 
-        vm_instance_specs.erase(spec_it);
-    }
+    instance_names.erase(instance);
 }
 
 void mp::Daemon::create_vm(const CreateRequest* request,
@@ -3373,25 +3334,18 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                          try
                          {
                              auto vm_desc = prepare_future_watcher->future().result();
+                             auto release_macs = sg::make_scope_guard(
+                                 [this, macs = mac_set_from(vm_desc)]() noexcept {
+                                     for (const auto& mac : macs)
+                                         allocated_mac_addrs.erase(mac);
+                                 });
 
-                             vm_instance_specs[name] = {
-                                 vm_desc.num_cores,
-                                 vm_desc.mem_size,
-                                 vm_desc.disk_space,
-                                 vm_desc.default_mac_address,
-                                 vm_desc.extra_interfaces,
-                                 config->ssh_username,
-                                 VirtualMachine::State::off,
-                                 {},
-                                 false,
-                                 {},
-                                 0,
-                                 vm_desc.zone,
-                             };
+                             instance_names.insert(name);
                              operative_instances[name] = config->factory->create_virtual_machine(
                                  vm_desc,
                                  *config->ssh_key_provider,
                                  *this);
+                             release_macs.dismiss();
                              preparing_instances.erase(name);
 
                              persist_instances();
@@ -3467,15 +3421,15 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 {},
                 config->ssh_username,
                 VMImage{},
-                "",
-                YAML::Node{},
-                YAML::Node{},
-                make_cloud_init_vendor_config(
-                    *config->ssh_key_provider,
-                    config->ssh_username,
-                    config->factory->get_backend_version_string().toStdString(),
-                    request),
-                YAML::Node{}};
+                MP_PLATFORM.qstr_to_path(config->factory->get_instance_directory(name)) /
+                    cloud_init_file_name};
+
+            CloudInitConfig cloud_init{};
+            cloud_init.vendor_data = make_cloud_init_vendor_config(
+                *config->ssh_key_provider,
+                config->ssh_username,
+                config->factory->get_backend_version_string().toStdString(),
+                request);
 
             query = query_from(request, name);
             vm_desc.mem_size = checked_args.mem_size;
@@ -3538,19 +3492,19 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
             vm_desc.extra_interfaces = checked_args.extra_interfaces;
 
-            vm_desc.meta_data_config = mpu::make_cloud_init_meta_config(name);
-            vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
-            prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
+            cloud_init.meta_data = mpu::make_cloud_init_meta_config(name);
+            cloud_init.user_data = YAML::Load(request->cloud_init_user_data());
+            prepare_user_data(cloud_init.user_data, cloud_init.vendor_data);
 
             if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
                 vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 
-            vm_desc.network_data_config = mpu::make_cloud_init_network_config(
+            cloud_init.network_data = mpu::make_cloud_init_network_config(
                 vm_desc.default_mac_address,
                 checked_args.extra_interfaces);
 
             vm_desc.image = vm_image;
-            config->factory->configure(vm_desc);
+            config->factory->configure(vm_desc, cloud_init);
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
             // Everything went well, add the MAC addresses used in this instance.
@@ -3573,7 +3527,7 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
     auto* erase_from = purge ? &deleted_instances : nullptr; // to begin with
     auto instances_dirty = false;
 
-    if (!vm_instance_specs[name].deleted)
+    if (!instance->get_description().deleted)
     {
         mpl::debug(category, "Deleting instance: {}", name);
         erase_from = &operative_instances;
@@ -3586,7 +3540,7 @@ bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteRepl
                                          : VirtualMachine::ShutdownPolicy::Halt);
         if (!purge)
         {
-            vm_instance_specs[name].deleted = true;
+            instance->set_deleted(true);
             deleted_instances[name] = std::move(instance);
 
             instances_dirty = true;
@@ -3719,11 +3673,11 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
 
 void mp::Daemon::init_mounts(const std::string& name)
 {
-    auto& vm_mounts = mounts[name];
-    auto& vm_spec_mounts = vm_instance_specs[name].mounts;
+    auto& vm = *operative_instances[name];
+    auto mount_specs = vm.get_description().mounts;
 
-    if (!create_missing_mounts(vm_spec_mounts, vm_mounts, operative_instances[name].get()))
-        persist_instances();
+    if (!create_missing_mounts(mount_specs, mounts[name], &vm))
+        vm.set_mounts(mount_specs);
 }
 
 void mp::Daemon::stop_mounts(const std::string& name)
@@ -3737,15 +3691,14 @@ void mp::Daemon::stop_mounts(const std::string& name)
     }
 }
 
-bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
-                               std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
-                               mp::VirtualMachine* vm)
+void mp::Daemon::update_mounts(std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
+                               mp::VirtualMachine& vm)
 {
-    auto& mount_specs = vm_specs.mounts;
-    const auto mounts_pruned = prune_obsolete_mounts(mount_specs, vm_mounts);
-    const auto all_mount_handlers_created = create_missing_mounts(mount_specs, vm_mounts, vm);
+    auto mount_specs = vm.get_description().mounts;
+    prune_obsolete_mounts(mount_specs, vm_mounts);
 
-    return mounts_pruned || !all_mount_handlers_created;
+    if (!create_missing_mounts(mount_specs, vm_mounts, &vm))
+        vm.set_mounts(mount_specs);
 }
 
 bool mp::Daemon::create_missing_mounts(
@@ -3778,7 +3731,7 @@ bool mp::Daemon::create_missing_mounts(
     });
 
     assert(mount_specs.size() <= initial_mount_count);
-    return mount_specs.size() != initial_mount_count;
+    return mount_specs.size() == initial_mount_count;
 }
 
 mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
@@ -3872,12 +3825,15 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
                     invalid_mounts.push_back(target);
                 }
 
-            auto& vm_spec_mounts = vm_instance_specs[name].mounts;
+            auto mount_specs = vm->get_description().mounts;
             for (const auto& target : invalid_mounts)
             {
                 vm_mounts.erase(target);
-                vm_spec_mounts.erase(target);
+                mount_specs.erase(target);
             }
+
+            if (!invalid_mounts.empty())
+                vm->set_mounts(mount_specs);
 
             if (server && warnings.size() > 0)
             {
@@ -3885,8 +3841,6 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
                 reply.set_log_line(fmt::to_string(warnings));
                 server->Write(reply);
             }
-
-            persist_instances();
         }
     }
     catch (const std::exception& e)
@@ -4047,7 +4001,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     else
         info->mutable_instance_status()->set_status(grpc_instance_status_for(present_state));
 
-    auto vm_image = fetch_image_for(name, *config->factory, *config->vault);
+    auto vm_image = vm.get_description().image;
     auto original_release = vm_image.original_release;
     auto os = vm_image.os;
 
@@ -4077,10 +4031,8 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     instance_info->set_os(os);
     instance_info->set_id(vm_image.id);
 
-    auto vm_specs = vm_instance_specs[name];
-
     auto mount_info = info->mutable_mount_info();
-    populate_mount_info(vm_specs.mounts, mount_info, have_mounts);
+    populate_mount_info(vm.get_description().mounts, mount_info, have_mounts);
 
     const auto created_time = QFileInfo{vm.instance_directory().path()}.birthTime();
     auto timestamp = instance_info->mutable_creation_timestamp();
@@ -4093,15 +4045,16 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
                                                          info,
                                                          instance_info,
                                                          original_release,
-                                                         vm_specs.num_cores != 1);
+                                                         vm.get_num_cores() != 1);
 }
 
 std::string mp::Daemon::dest_name_for_clone(const CloneRequest& request)
 {
     return request.has_destination_name()
              ? request.destination_name()
-             : generate_next_clone_name(vm_instance_specs.at(request.source_name()).clone_count,
-                                        request.source_name());
+             : generate_next_clone_name(
+                   operative_instances.at(request.source_name())->get_description().clone_count,
+                   request.source_name());
 };
 
 grpc::Status mp::Daemon::validate_dest_name(const std::string& name)
@@ -4132,16 +4085,19 @@ grpc::Status mp::Daemon::validate_dest_name(const std::string& name)
     return dest_vm_status;
 }
 
-mp::VMSpecs mp::Daemon::clone_spec(const VMSpecs& src_vm_spec,
-                                   const std::string& src_name,
-                                   const std::string& dest_name)
+mp::VirtualMachineDescription mp::Daemon::clone_description(
+    const VirtualMachineDescription& src_desc,
+    const std::string& dest_name)
 {
-    mp::VMSpecs dest_vm_spec{src_vm_spec};
-    dest_vm_spec.clone_count = 0;
-
-    // update default mac addr and extra_interface mac addr
-    dest_vm_spec.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
-    for (auto& extra_interface : dest_vm_spec.extra_interfaces)
+    auto dest_desc = src_desc;
+    dest_desc.vm_name = dest_name;
+    const auto dest_dir = MP_PLATFORM.qstr_to_path(
+        config->factory->get_instance_directory(dest_name));
+    dest_desc.image.image_path = dest_dir / src_desc.image.image_path.filename();
+    dest_desc.cloud_init_iso = dest_dir / src_desc.cloud_init_iso.filename();
+    dest_desc.clone_count = 0;
+    dest_desc.default_mac_address = generate_unused_mac_address(allocated_mac_addrs);
+    for (auto& extra_interface : dest_desc.extra_interfaces)
     {
         if (!extra_interface.mac_address.empty())
         {
@@ -4150,33 +4106,32 @@ mp::VMSpecs mp::Daemon::clone_spec(const VMSpecs& src_vm_spec,
     }
 
     // non qemu snapshot files do not have metadata
-    if (!dest_vm_spec.metadata.empty())
-    {
-        dest_vm_spec.metadata = update_unique_identifiers_of_metadata(dest_vm_spec.metadata,
-                                                                      src_vm_spec,
-                                                                      dest_vm_spec,
-                                                                      src_name,
-                                                                      dest_name);
-    }
-    return dest_vm_spec;
+    if (!dest_desc.metadata.empty())
+        dest_desc.metadata = update_unique_identifiers_of_metadata(dest_desc.metadata,
+                                                                   src_desc,
+                                                                   dest_desc);
+
+    return dest_desc;
 }
 
 bool mp::Daemon::is_bridged(const std::string& instance_name) const
 {
-    return is_bridged_impl(vm_instance_specs.at(instance_name),
+    const auto it = operative_instances.find(instance_name);
+    const auto& instance = it != operative_instances.end() ? it->second
+                                                           : deleted_instances.at(instance_name);
+    return is_bridged_impl(instance->get_description().extra_interfaces,
                            config->factory->networks(),
                            get_bridged_interface_name());
 }
 
 void mp::Daemon::add_bridged_interface(const std::string& instance_name)
 {
-    mp::VMSpecs& specs = vm_instance_specs.at(instance_name);
     mp::VirtualMachine::ShPtr instance = operative_instances.at(instance_name);
 
     const auto& host_nets = config->factory
                                 ->networks(); // This will throw if not implemented on this backend.
     const auto& preferred_net = get_bridged_interface_name();
-    if (is_bridged_impl(specs, host_nets, preferred_net))
+    if (is_bridged_impl(instance->get_description().extra_interfaces, host_nets, preferred_net))
     {
         mpl::warn(category, "{} is already bridged", instance_name);
         return;
@@ -4198,38 +4153,29 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
                                                        preferred_net);
     }
 
-    mp::NetworkInterface new_if{preferred_net,
-                                generate_unused_mac_address(allocated_mac_addrs),
-                                true};
+    std::vector<mp::NetworkInterface> new_ifs{
+        {preferred_net, generate_unused_mac_address(allocated_mac_addrs), true}};
     mpl::debug(category,
                "New interface {{\"{}\", \"{}\", {}}}",
-               new_if.id,
-               new_if.mac_address,
-               new_if.auto_mode);
-
-    // Add the new interface to the spec.
-    specs.extra_interfaces.push_back(new_if);
+               new_ifs.front().id,
+               new_ifs.front().mac_address,
+               new_ifs.front().auto_mode);
 
     mpl::trace(category, "Prepare networking");
-    config->factory->prepare_networking(specs.extra_interfaces);
-    new_if = specs.extra_interfaces
-                 .back(); // prepare_networking can modify the id of the new interface.
+    config->factory->prepare_networking(new_ifs); // can modify the id of the new interface
+    const auto& new_if = new_ifs.front();
     mpl::trace(category, "Done preparation, new interface id is now \"{}\"", new_if.id);
 
     // Add the new interface to the VM.
     mpl::trace(category, "Adding new interface to instance");
     try
     {
-        instance->add_network_interface(specs.extra_interfaces.size() - 1,
-                                        specs.default_mac_address,
-                                        new_if);
+        instance->add_network_interface(new_if);
         mpl::trace(category, "Done adding");
     }
     catch (const std::exception& e)
     {
-        mpl::debug(category, "Failure adding interface to instance, rolling back");
-
-        specs.extra_interfaces.pop_back();
+        mpl::debug(category, "Failure adding interface to instance: {}", e.what());
 
         throw mp::BridgeFailureException("Cannot update instance settings",
                                          instance_name,

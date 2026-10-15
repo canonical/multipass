@@ -38,7 +38,6 @@ public:
                      const std::string& comment,
                      const std::string& cloud_init_instance_id,
                      std::shared_ptr<Snapshot> parent,
-                     const VMSpecs& specs,
                      const VirtualMachine& vm,
                      VirtualMachineDescription& desc);
     VirtDiskSnapshot(const std::filesystem::path& filename,

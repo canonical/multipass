@@ -185,8 +185,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
             hosts,
             url_downloader.get(),
             MP_UTILS.make_dir(cache_directory, factory->get_backend_directory_name()),
-            mp::utils::backend_directory_path(data_directory,
-                                              factory->get_backend_directory_name()),
             days_to_expire);
     }
     if (name_generator == nullptr)

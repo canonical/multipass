@@ -18,12 +18,10 @@
 
 #pragma once
 
-#include "default_vm_image_vault.h"
-
 #include <multipass/network_interface_info.h>
 #include <multipass/path.h>
 #include <multipass/virtual_machine.h>
-#include <multipass/vm_specs.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <boost/json.hpp>
 
@@ -97,10 +95,9 @@ public:
     void prepare();
 
     [[nodiscard]] bool target_exists(const std::string& name) const;
-    [[nodiscard]] VaultRecord source_image_record(const std::string& name) const;
     [[nodiscard]] std::filesystem::path instance_dir(const std::string& name) const;
 
-    void commit(const std::string& name, const VMSpecs& spec, VaultRecord image_record);
+    void commit(const std::string& name, const VirtualMachineDescription& desc);
 
 private:
     static boost::json::object load_records(const std::filesystem::path& path);
@@ -111,11 +108,8 @@ private:
 
     std::filesystem::path target_root;
     std::filesystem::path target_vm_db;
-    std::filesystem::path target_image_db;
     std::filesystem::path instances_root;
-    boost::json::object source_image_records;
     boost::json::object target_vm_records;
-    boost::json::object target_image_records;
 };
 
 class DaemonHyperVInstanceMigrator final
@@ -123,8 +117,7 @@ class DaemonHyperVInstanceMigrator final
 public:
     using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
 
-    DaemonHyperVInstanceMigrator(const std::unordered_map<std::string, VMSpecs>& specs,
-                                 const InstanceTable& operative_instances,
+    DaemonHyperVInstanceMigrator(const InstanceTable& operative_instances,
                                  const InstanceTable& deleted_instances,
                                  VirtualMachineFactory& source_factory,
                                  AvailabilityZoneManager& az_manager,
@@ -143,7 +136,6 @@ private:
         const std::vector<NetworkInterface>& source_interfaces);
     HCSVirtualMachineFactory& target_factory();
 
-    const std::unordered_map<std::string, VMSpecs>& specs;
     const InstanceTable& operative_instances;
     const InstanceTable& deleted_instances;
     VirtualMachineFactory& source_factory;

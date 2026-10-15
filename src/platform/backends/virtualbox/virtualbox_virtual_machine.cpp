@@ -249,7 +249,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                      "--type",
                                      "dvddrive",
                                      "--medium",
-                                     desc.cloud_init_iso},
+                                     MP_PLATFORM.path_to_qstr(desc.cloud_init_iso)},
                                     "Could not storageattach DVD: {}",
                                     name);
 
@@ -321,7 +321,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                  "--type",
                                  "dvddrive",
                                  "--medium",
-                                 desc.cloud_init_iso},
+                                 MP_PLATFORM.path_to_qstr(desc.cloud_init_iso)},
                                 "Could not attach the cloud-init file to: {}",
                                 name);
     // 4. reset the mac addresses of vm to the spec addres
@@ -498,7 +498,7 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
 
 void mp::VirtualBoxVirtualMachine::handle_state_update()
 {
-    monitor.persist_state_for(vm_name, state);
+    persist_state();
 }
 
 std::string mp::VirtualBoxVirtualMachine::ssh_hostname()
@@ -550,9 +550,10 @@ void mp::VirtualBoxVirtualMachine::resize_disk_impl(const MemorySize& new_size)
                                 name);
 }
 
-void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
-                                                         const std::string& default_mac_addr,
-                                                         const NetworkInterface& extra_interface)
+void mp::VirtualBoxVirtualMachine::add_network_interface_impl(
+    int index,
+    const std::string& default_mac_addr,
+    const NetworkInterface& extra_interface)
 {
     auto arguments = QStringList{"modifyvm", name} + extra_net_args(index + 2, extra_interface);
 
@@ -604,7 +605,6 @@ auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const QString& 
 auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
                                                                  const std::string& comment,
                                                                  const std::string& instance_id,
-                                                                 const multipass::VMSpecs& specs,
                                                                  std::shared_ptr<Snapshot> parent)
     -> std::shared_ptr<Snapshot>
 {
@@ -613,7 +613,6 @@ auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const std::stri
                                                 instance_id,
                                                 std::move(parent),
                                                 name.toStdString(),
-                                                specs,
                                                 *this,
                                                 desc);
 }

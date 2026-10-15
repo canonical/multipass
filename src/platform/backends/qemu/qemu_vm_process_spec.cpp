@@ -114,7 +114,7 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
              // TODO Add a debugging mode with access to console
              << "-nographic";
         // Cloud-init disk
-        args << "-cdrom" << desc.cloud_init_iso;
+        args << "-cdrom" << MP_PLATFORM.path_to_qstr(desc.cloud_init_iso);
         // To make `/sys/class/dmi/id/product_uuid` present
         args << "-uuid" << vm_uuid;
         // clang-format on
@@ -247,8 +247,8 @@ profile %1 flags=(attach_disconnected) {
                                 firmware,
                                 root_dir,
                                 program(),
-                                QString::fromStdString(desc.image.image_path),
-                                desc.cloud_init_iso,
+                                MP_PLATFORM.path_to_qstr(desc.image.image_path),
+                                MP_PLATFORM.path_to_qstr(desc.cloud_init_iso),
                                 mount_dirs);
 }
 

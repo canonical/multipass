@@ -20,7 +20,6 @@
 
 #include <multipass/disabled_copy_move.h>
 #include <multipass/virtual_machine.h>
-#include <multipass/vm_specs.h>
 
 #include <fmt/format.h>
 #include <grpcpp/support/status.h>
@@ -64,7 +63,6 @@ using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
 struct DriverTransitionContext
 {
     const DaemonConfig& config;
-    const std::unordered_map<std::string, VMSpecs>& specs;
     const InstanceTable& operative_instances;
     const InstanceTable& deleted_instances;
     std::atomic<bool>& migration_in_progress;

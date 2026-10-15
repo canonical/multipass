@@ -19,23 +19,23 @@
 
 #include <multipass/memory_size.h>
 #include <multipass/network_interface.h>
-#include <multipass/path.h>
+#include <multipass/virtual_machine.h>
 #include <multipass/vm_image.h>
+#include <multipass/vm_mount.h>
 
-#include <yaml-cpp/yaml.h>
+#include <boost/json.hpp>
 
+#include <filesystem>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <QMetaType>
 
 namespace multipass
 {
-class VirtualMachineDescription
+struct VirtualMachineDescription
 {
-public:
-    using MBytes = size_t;
-
     int num_cores;
     MemorySize mem_size;
     MemorySize disk_space;
@@ -45,12 +45,19 @@ public:
     std::vector<NetworkInterface> extra_interfaces;
     std::string ssh_username;
     VMImage image;
-    Path cloud_init_iso;
-    YAML::Node meta_data_config;
-    YAML::Node user_data_config;
-    YAML::Node vendor_data_config;
-    YAML::Node network_data_config;
+    std::filesystem::path cloud_init_iso;
+    boost::json::object metadata;
+    VirtualMachine::State state;
+    int clone_count; // tracks the number of clones made from this VM (regardless of deletes)
+    bool deleted;
+    std::unordered_map<std::string, VMMount> mounts;
 };
+
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const VirtualMachineDescription& desc);
+VirtualMachineDescription tag_invoke(const boost::json::value_to_tag<VirtualMachineDescription>&,
+                                     const boost::json::value& json);
 } // namespace multipass
 
 Q_DECLARE_METATYPE(multipass::VirtualMachineDescription)

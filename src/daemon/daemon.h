@@ -25,7 +25,6 @@
 #include <multipass/format.h>
 #include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
-#include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
 
 #include <atomic>
@@ -34,6 +33,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
@@ -67,9 +67,6 @@ protected:
     void on_shutdown() override;
     void on_suspend() override;
     void on_restart(const std::string& name) override;
-    void persist_state_for(const std::string& name, const VirtualMachine::State& state) override;
-    void update_metadata_for(const std::string& name, const boost::json::object& metadata) override;
-    boost::json::object retrieve_metadata_for(const std::string& name) override;
 
 public slots:
     virtual void create(const CreateRequest* request,
@@ -209,10 +206,8 @@ private:
     void init_mounts(const std::string& name);
     void stop_mounts(const std::string& name);
 
-    // This returns whether any specs were updated (and need persisting)
-    bool update_mounts(VMSpecs& vm_specs,
-                       std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
-                       VirtualMachine* vm);
+    void update_mounts(std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
+                       VirtualMachine& vm);
 
     // This returns whether all required mount handlers were successfully created
     bool create_missing_mounts(std::unordered_map<std::string, VMMount>& mount_specs,
@@ -264,14 +259,13 @@ private:
 
     std::string dest_name_for_clone(const CloneRequest& request);
     grpc::Status validate_dest_name(const std::string& name);
-    VMSpecs clone_spec(const VMSpecs& src_vm_spec,
-                       const std::string& src_name,
-                       const std::string& dest_name);
+    VirtualMachineDescription clone_description(const VirtualMachineDescription& src_desc,
+                                                const std::string& dest_name);
 
     std::unique_ptr<const DaemonConfig> config;
 
 protected:
-    std::unordered_map<std::string, VMSpecs> vm_instance_specs;
+    std::set<std::string> instance_names;
     InstanceTable operative_instances;
 
     // TODO hyperv migration, remove

@@ -49,7 +49,6 @@ public:
     DefaultVMImageVault(std::vector<VMImageHost*> image_host,
                         URLDownloader* downloader,
                         const multipass::Path& cache_dir_path,
-                        const multipass::Path& data_dir_path,
                         const multipass::days& days_to_expire);
     ~DefaultVMImageVault();
 
@@ -58,12 +57,8 @@ public:
                         const ProgressMonitor& monitor,
                         const std::optional<std::string>& checksum,
                         const Path& save_dir) override;
-    void remove(const std::string& name) override;
-    bool has_record_for(const std::string& name) override;
     void prune_expired_images() override;
     void update_images(const PrepareAction& prepare, const ProgressMonitor& monitor) override;
-    void clone(const std::string& source_instance_name,
-               const std::string& destination_instance_name) override;
 
 private:
     VMImage image_instance_from(const VMImage& prepared_image, const Path& dest_dir);
@@ -81,18 +76,15 @@ private:
                                    const std::string& id,
                                    const Path& dest_dir);
     void persist_image_records();
-    void persist_instance_records();
     void amend_db();
 
     URLDownloader* const url_downloader;
     const QDir cache_dir;
-    const QDir data_dir;
     const QDir images_dir;
     const days days_to_expire;
     std::mutex fetch_mutex;
 
     std::unordered_map<std::string, VaultRecord> prepared_image_records;
-    std::unordered_map<std::string, VaultRecord> instance_image_records;
     std::unordered_map<std::string, std::pair<QString, QFuture<VMImage>>> in_progress_image_fetches;
 };
 

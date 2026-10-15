@@ -334,7 +334,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
                           .read_only = false},
                          {.type = hcs::HcsScsiDeviceType::Iso(),
                           .name = "cloud-init ISO file",
-                          .path = desc.cloud_init_iso.toStdString(),
+                          .path = desc.cloud_init_iso,
                           .read_only = true}},
         .network_adapters =
             [&] {
@@ -645,7 +645,7 @@ std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
     return std::nullopt;
 }
 
-void HCSVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs)
+void HCSVirtualMachine::restore_snapshot(const std::string& name)
 {
     // Restoring replaces the active VHD chain, so discard the system configured for the old chain.
     const auto resources_released = release_hcs_resources(get_name());
@@ -658,12 +658,12 @@ void HCSVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs
             name};
     }
 
-    BaseVirtualMachine::restore_snapshot(name, specs);
+    BaseVirtualMachine::restore_snapshot(name);
 }
 
 void HCSVirtualMachine::handle_state_update()
 {
-    monitor.persist_state_for(get_name(), state);
+    persist_state();
 }
 
 hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api() const
@@ -689,9 +689,9 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
     }
 }
 
-void HCSVirtualMachine::add_network_interface(int index,
-                                              const std::string& default_mac_addr,
-                                              const NetworkInterface& extra_interface)
+void HCSVirtualMachine::add_network_interface_impl(int index,
+                                                   const std::string& default_mac_addr,
+                                                   const NetworkInterface& extra_interface)
 {
     mpl::debug(get_name(),
                "add_network_interface() -> index: {}, default_mac: {}, "
@@ -729,14 +729,12 @@ std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(
     const std::string& snapshot_name,
     const std::string& comment,
     const std::string& instance_id,
-    const VMSpecs& specs,
     std::shared_ptr<Snapshot> parent)
 {
     return std::make_shared<virtdisk::VirtDiskSnapshot>(snapshot_name,
                                                         comment,
                                                         instance_id,
                                                         parent,
-                                                        specs,
                                                         *this,
                                                         desc);
 }

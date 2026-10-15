@@ -17,15 +17,15 @@
 
 #pragma once
 
-#include <stdexcept>
+#include <yaml-cpp/yaml.h>
 
 namespace multipass
 {
-class GhostInstanceException : public std::runtime_error
+struct CloudInitConfig
 {
-public:
-    explicit GhostInstanceException() : runtime_error{"Ghost instance"}
-    {
-    }
+    YAML::Node meta_data;
+    YAML::Node user_data;
+    YAML::Node vendor_data;
+    YAML::Node network_data;
 };
 } // namespace multipass

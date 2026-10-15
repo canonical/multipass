@@ -31,6 +31,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace multipass
@@ -41,9 +42,9 @@ class MemorySize;
 class SSHProcess;
 class SSHSession;
 class VMMount;
-struct VMSpecs;
 class MountHandler;
 class Snapshot;
+struct VirtualMachineDescription;
 
 class VirtualMachine : private DisabledCopyMove
 {
@@ -96,12 +97,17 @@ public:
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;
     virtual void handle_state_update() = 0;
+    [[nodiscard]] virtual VirtualMachineDescription get_description() const = 0;
+    virtual void increment_clone_count() = 0;
+    virtual void set_deleted(bool deleted) = 0;
+    virtual void set_mounts(const std::unordered_map<std::string, VMMount>& mounts) = 0;
+    [[nodiscard]] virtual int get_num_cores() const = 0;
+    [[nodiscard]] virtual MemorySize get_mem_size() const = 0;
+    [[nodiscard]] virtual MemorySize get_disk_space() const = 0;
     virtual void update_cpus(int num_cores) = 0;
     virtual void resize_memory(const MemorySize& new_size) = 0;
     virtual void resize_disk(const MemorySize& new_size, UserMessages& messages) = 0;
-    virtual void add_network_interface(int index,
-                                       const std::string& default_mac_addr,
-                                       const NetworkInterface& extra_interface) = 0;
+    virtual void add_network_interface(const NetworkInterface& extra_interface) = 0;
     virtual std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
                                                                     const VMMount& mount) = 0;
 
@@ -118,14 +124,13 @@ public:
     [[nodiscard]] virtual std::shared_ptr<Snapshot> get_snapshot(const std::string& name) = 0;
     [[nodiscard]] virtual std::shared_ptr<Snapshot> get_snapshot(int index) = 0;
 
-    virtual std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
-                                                          const std::string& snapshot_name,
+    virtual std::shared_ptr<const Snapshot> take_snapshot(const std::string& snapshot_name,
                                                           const std::string& comment) = 0;
     virtual void rename_snapshot(
         const std::string& old_name,
         const std::string& new_name) = 0; // only VM can avoid repeated names
     virtual void delete_snapshot(const std::string& name) = 0;
-    virtual void restore_snapshot(const std::string& name, VMSpecs& specs) = 0;
+    virtual void restore_snapshot(const std::string& name) = 0;
     virtual void load_snapshots() = 0;
     [[nodiscard]] virtual std::vector<std::string> get_childrens_names(
         const Snapshot* parent) const = 0;

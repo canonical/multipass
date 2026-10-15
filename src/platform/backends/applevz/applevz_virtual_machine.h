@@ -49,8 +49,7 @@ public:
 
     void handle_state_update() override;
 
-    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& /*specs*/,
-                                                  const std::string& /*snapshot_name*/,
+    std::shared_ptr<const Snapshot> take_snapshot(const std::string& /*snapshot_name*/,
                                                   const std::string& /*comment*/) override
     {
         throw NotImplementedOnThisBackendException{"snapshots"};

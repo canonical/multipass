@@ -29,7 +29,7 @@ namespace multipass
 {
 class PowerShell;
 class SSHKeyProvider;
-class VirtualMachineDescription;
+struct VirtualMachineDescription;
 class VMStatusMonitor;
 
 class VirtualBoxVirtualMachine final : public BaseVirtualMachine
@@ -59,16 +59,15 @@ public:
     std::optional<IPAddress> management_ipv4() override;
     std::vector<IPAddress> get_all_ipv4() override;
     void handle_state_update() override;
-    void add_network_interface(int index,
-                               const std::string& default_mac_addr,
-                               const NetworkInterface& extra_interface) override;
+    void add_network_interface_impl(int index,
+                                    const std::string& default_mac_addr,
+                                    const NetworkInterface& extra_interface) override;
 
 protected:
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,
                                                      const std::string& instance_id,
-                                                     const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
     void update_cpus_impl(int num_cores) override;
     void resize_memory_impl(const MemorySize& new_size) override;

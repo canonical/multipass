@@ -100,7 +100,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
                        const mp::QemuVirtualMachine::MountArgs& mount_args,
                        const QStringList& platform_args)
 {
-    if (!MP_FILEOPS.exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
+    if (!MP_FILEOPS.exists(desc.image.image_path) || !MP_FILEOPS.exists(desc.cloud_init_iso))
     {
         throw std::runtime_error("cannot start VM without an image");
     }
@@ -114,8 +114,10 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
                                                         get_arguments(data)};
     }
 
-    auto process_spec =
-        std::make_unique<mp::QemuVMProcessSpec>(desc, platform_args, mount_args, resume_data);
+    auto process_spec = std::make_unique<mp::QemuVMProcessSpec>(desc,
+                                                                platform_args,
+                                                                mount_args,
+                                                                resume_data);
     auto process = mp::platform::make_process(std::move(process_spec));
 
     mpl::debug(desc.vm_name, "process working dir '{}'", process->working_directory());
@@ -238,7 +240,7 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                          zone,
                          instance_dir},
       qemu_platform{qemu_platform},
-      mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
+      mount_args{mount_args_from_json(this->desc.metadata)}
 {
     connect_vm_signals();
 
@@ -289,9 +291,10 @@ void mp::QemuVirtualMachine::start()
             for (const auto& arg : mount_data.second)
                 proc_args.removeOne(arg);
 
-        monitor.update_metadata_for(
-            vm_name,
-            generate_metadata(qemu_platform->vmstate_platform_args(), proc_args, mount_args));
+        auto metadata = generate_metadata(qemu_platform->vmstate_platform_args(),
+                                          proc_args,
+                                          mount_args);
+        update_description([&metadata](auto& d) { d.metadata = std::move(metadata); });
     }
 
     vm_process->start();
@@ -431,7 +434,7 @@ mp::VirtualMachine::State mp::QemuVirtualMachine::current_state()
 
 void mp::QemuVirtualMachine::handle_state_update()
 {
-    monitor.persist_state_for(vm_name, state);
+    persist_state();
 }
 
 void mp::QemuVirtualMachine::on_started()
@@ -505,12 +508,11 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 
 void mp::QemuVirtualMachine::initialize_vm_process()
 {
-    vm_process = make_qemu_process(desc,
-                                   ((state == State::suspended)
-                                        ? std::make_optional(monitor.retrieve_metadata_for(vm_name))
-                                        : std::nullopt),
-                                   mount_args,
-                                   qemu_platform->vm_platform_args(desc));
+    vm_process = make_qemu_process(
+        desc,
+        ((state == State::suspended) ? std::make_optional(desc.metadata) : std::nullopt),
+        mount_args,
+        qemu_platform->vm_platform_args(desc));
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::info(vm_name, "process started");
@@ -703,11 +705,10 @@ void mp::QemuVirtualMachine::resize_disk_impl(const MemorySize& new_size)
     mp::backend::resize_instance_image(new_size, desc.image.image_path);
 }
 
-void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backend */,
-                                                   const std::string& default_mac_addr,
-                                                   const NetworkInterface& extra_interface)
+void mp::QemuVirtualMachine::add_network_interface_impl(int /* not used on this backend */,
+                                                        const std::string& default_mac_addr,
+                                                        const NetworkInterface& extra_interface)
 {
-    desc.extra_interfaces.push_back(extra_interface);
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
@@ -736,7 +737,6 @@ mp::QemuVirtualMachine::MountArgs& mp::QemuVirtualMachine::modifiable_mount_args
 auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
                                                     const std::string& comment,
                                                     const std::string& instance_id,
-                                                    const VMSpecs& specs,
                                                     std::shared_ptr<Snapshot> parent)
     -> std::shared_ptr<Snapshot>
 {
@@ -746,7 +746,6 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_
                                           comment,
                                           instance_id,
                                           std::move(parent),
-                                          specs,
                                           *this,
                                           desc);
 }

@@ -27,7 +27,6 @@
 #include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
-#include <multipass/vm_specs.h>
 
 #include <QCoreApplication>
 #include <QFileInfo>
@@ -277,7 +276,7 @@ void multipass::VirtualBoxVirtualMachineFactory::prepare_networking(std::vector<
 
 mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::clone_vm_impl(
     const std::string& src_name,
-    const multipass::VMSpecs& /*src_spec*/,
+    const VirtualMachineDescription& /*src_desc*/,
     const VirtualMachineDescription& dest_vm_desc,
     VMStatusMonitor& monitor,
     const SSHKeyProvider& key_provider)

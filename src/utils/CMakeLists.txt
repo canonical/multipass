@@ -24,10 +24,10 @@ function(add_target TARGET_NAME)
     standard_paths.cpp
     timer.cpp
     utils.cpp
+    virtual_machine_description.cpp
     vm_image_info.cpp
     vm_image_vault_utils.cpp
     vm_mount.cpp
-    vm_specs.cpp
     yaml_node_utils.cpp
     semver_compare.cpp)
 

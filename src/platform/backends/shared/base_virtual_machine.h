@@ -68,14 +68,18 @@ public:
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
+    [[nodiscard]] VirtualMachineDescription get_description() const override;
+    void increment_clone_count() override;
+    void set_deleted(bool deleted) override;
+    void set_mounts(const std::unordered_map<std::string, VMMount>& mounts) override;
+    [[nodiscard]] int get_num_cores() const override;
+    [[nodiscard]] MemorySize get_mem_size() const override;
+    [[nodiscard]] MemorySize get_disk_space() const override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size, UserMessages& messages) override;
     [[nodiscard]] std::vector<IPAddress> get_all_ipv4() override;
-    void add_network_interface(int, const std::string&, const NetworkInterface&) override
-    {
-        throw NotImplementedOnThisBackendException("networks");
-    }
+    void add_network_interface(const NetworkInterface& extra_interface) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string&,
                                                             const VMMount&) override
     {
@@ -94,12 +98,11 @@ public:
 
     // TODO: the VM should know its directory, but that is true of everything in its VMDescription;
     // pulling that from derived classes is a big refactor
-    std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
-                                                  const std::string& snapshot_name,
+    std::shared_ptr<const Snapshot> take_snapshot(const std::string& snapshot_name,
                                                   const std::string& comment) override;
     void rename_snapshot(const std::string& old_name, const std::string& new_name) override;
     void delete_snapshot(const std::string& name) override;
-    void restore_snapshot(const std::string& name, VMSpecs& specs) override;
+    void restore_snapshot(const std::string& name) override;
     void load_snapshots() override;
     [[nodiscard]] std::vector<std::string> get_childrens_names(
         const Snapshot* parent) const override;
@@ -114,7 +117,6 @@ protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                              const std::string& comment,
                                                              const std::string& instance_id,
-                                                             const VMSpecs& specs,
                                                              std::shared_ptr<Snapshot> parent);
 
     virtual void drop_ssh_session(); // virtual to allow mocking
@@ -131,6 +133,12 @@ protected:
     virtual void update_cpus_impl(int /*num_cores*/) {};
     virtual void resize_memory_impl(const MemorySize& /*new_size*/) {};
     virtual void resize_disk_impl(const MemorySize& new_size) = 0;
+    virtual void add_network_interface_impl(int /*index*/,
+                                            const std::string& /*default_mac_addr*/,
+                                            const NetworkInterface& /*extra_interface*/)
+    {
+        throw NotImplementedOnThisBackendException("networks");
+    }
 
     /**
      * Refresh the VM, if possible, when the startup appears stuck.
@@ -185,11 +193,8 @@ private:
     template <typename NodeT>
     auto make_reinsert_guard(NodeT& snapshot_node);
 
-    auto make_restore_rollback(const Path& head_path, VMSpecs& specs);
-    void restore_rollback_helper(const Path& head_path,
-                                 const std::shared_ptr<Snapshot>& old_head,
-                                 const VMSpecs& old_specs,
-                                 VMSpecs& specs);
+    auto make_restore_rollback(const Path& head_path);
+    void restore_rollback_helper(const Path& head_path, const std::shared_ptr<Snapshot>& old_head);
 
     bool updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const Path& head_path);
     auto make_deleted_head_rollback(const Path& head_path, const bool& wrote_head);
@@ -209,6 +214,10 @@ private:
     void timeout_ssh();
 
 protected:
+    template <typename Mutate>
+    void update_description(Mutate&& mutate);
+    void persist_state();
+
     const std::string vm_name;
     VirtualMachineDescription desc;
     VMStatusMonitor& monitor;
@@ -219,21 +228,56 @@ protected:
     bool shutdown_while_starting = false;
 
 private:
+    void persist_description() const; // requires desc_mutex, except during construction
+
     std::string saved_error_msg = "";
     std::unique_ptr<SSHSession> ssh_session = nullptr;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;
     int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless of deletes)
     mutable std::recursive_mutex snapshot_mutex;
+    mutable std::mutex desc_mutex; // acquire after snapshot_mutex and state_mutex
     bool was_running{false};
 };
 
 } // namespace multipass
 
+template <typename Mutate>
+void multipass::BaseVirtualMachine::update_description(Mutate&& mutate)
+{
+    const std::lock_guard lock{desc_mutex};
+    std::forward<Mutate>(mutate)(desc);
+    persist_description();
+}
+
 inline int multipass::BaseVirtualMachine::get_num_snapshots() const
 {
     const std::unique_lock lock{snapshot_mutex};
     return static_cast<int>(snapshots.size());
+}
+
+inline multipass::VirtualMachineDescription multipass::BaseVirtualMachine::get_description() const
+{
+    const std::lock_guard lock{desc_mutex};
+    return desc;
+}
+
+inline int multipass::BaseVirtualMachine::get_num_cores() const
+{
+    const std::lock_guard lock{desc_mutex};
+    return desc.num_cores;
+}
+
+inline multipass::MemorySize multipass::BaseVirtualMachine::get_mem_size() const
+{
+    const std::lock_guard lock{desc_mutex};
+    return desc.mem_size;
+}
+
+inline multipass::MemorySize multipass::BaseVirtualMachine::get_disk_space() const
+{
+    const std::lock_guard lock{desc_mutex};
+    return desc.disk_space;
 }
 
 inline std::shared_ptr<const multipass::Snapshot>

@@ -18,14 +18,15 @@
 #include "base_virtual_machine_factory.h"
 #include "multipass/platform.h"
 
+#include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
+#include <multipass/file_ops.h>
 #include <multipass/memory_size.h>
 #include <multipass/network_interface.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/utils/qemu_img_utils.h>
 #include <multipass/virtual_machine_description.h>
-#include <multipass/vm_specs.h>
 #include <multipass/yaml_node_utils.h>
 
 namespace mp = multipass;
@@ -38,24 +39,20 @@ mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_d
                                                          AvailabilityZoneManager& az_manager)
     : az_manager{az_manager}, instances_dir{instances_dir} {};
 
-void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
+void mp::BaseVirtualMachineFactory::configure(const VirtualMachineDescription& vm_desc,
+                                              const CloudInitConfig& cloud_init)
 {
-    auto instance_dir{mpu::base_dir(MP_PLATFORM.path_to_qstr(vm_desc.image.image_path))};
-    const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
-
-    if (!QFile::exists(cloud_init_iso))
+    if (!MP_FILEOPS.exists(vm_desc.cloud_init_iso))
     {
         mp::CloudInitIso iso;
-        iso.add_file("meta-data", mpu::emit_cloud_config(vm_desc.meta_data_config));
-        iso.add_file("vendor-data", mpu::emit_cloud_config(vm_desc.vendor_data_config));
-        iso.add_file("user-data", mpu::emit_cloud_config(vm_desc.user_data_config));
-        if (!vm_desc.network_data_config.IsNull())
-            iso.add_file("network-config", mpu::emit_cloud_config(vm_desc.network_data_config));
+        iso.add_file("meta-data", mpu::emit_cloud_config(cloud_init.meta_data));
+        iso.add_file("vendor-data", mpu::emit_cloud_config(cloud_init.vendor_data));
+        iso.add_file("user-data", mpu::emit_cloud_config(cloud_init.user_data));
+        if (!cloud_init.network_data.IsNull())
+            iso.add_file("network-config", mpu::emit_cloud_config(cloud_init.network_data));
 
-        iso.write_to(cloud_init_iso.toStdString());
+        iso.write_to(vm_desc.cloud_init_iso);
     }
-
-    vm_desc.cloud_init_iso = cloud_init_iso;
 }
 
 void mp::BaseVirtualMachineFactory::prepare_networking(
@@ -99,43 +96,24 @@ void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
 }
 
 mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
-    const VMSpecs& src_spec,
-    const VMSpecs& dest_spec,
-    const std::string& src_name,
-    const std::string& dest_name,
-    const VMImage& dest_image,
+    const VirtualMachineDescription& src_desc,
+    const VirtualMachineDescription& dest_desc,
     const multipass::SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    const std::filesystem::path src_instance_dir{get_instance_directory(src_name).toStdString()};
-    const std::filesystem::path dest_instance_dir{get_instance_directory(dest_name).toStdString()};
+    const std::filesystem::path src_instance_dir{
+        get_instance_directory(src_desc.vm_name).toStdString()};
+    const std::filesystem::path dest_instance_dir{
+        get_instance_directory(dest_desc.vm_name).toStdString()};
 
     copy_instance_dir_with_essential_files(src_instance_dir, dest_instance_dir);
 
-    const fs::path cloud_init_path = dest_instance_dir / cloud_init_file_name;
+    MP_CLOUD_INIT_FILE_OPS.update_identifiers(dest_desc.default_mac_address,
+                                              dest_desc.extra_interfaces,
+                                              dest_desc.vm_name,
+                                              dest_desc.cloud_init_iso);
 
-    MP_CLOUD_INIT_FILE_OPS.update_identifiers(dest_spec.default_mac_address,
-                                              dest_spec.extra_interfaces,
-                                              dest_name,
-                                              cloud_init_path);
-
-    // start to construct VirtualMachineDescription
-    mp::VirtualMachineDescription dest_vm_desc{dest_spec.num_cores,
-                                               dest_spec.mem_size,
-                                               dest_spec.disk_space,
-                                               dest_name,
-                                               dest_spec.zone,
-                                               dest_spec.default_mac_address,
-                                               dest_spec.extra_interfaces,
-                                               dest_spec.ssh_username,
-                                               dest_image,
-                                               cloud_init_path.string().c_str(),
-                                               {},
-                                               {},
-                                               {},
-                                               {}};
-
-    return clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
+    return clone_vm_impl(src_desc.vm_name, src_desc, dest_desc, monitor, key_provider);
 }
 
 void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(

@@ -22,7 +22,7 @@
 #include <multipass/format.h>
 #include <multipass/json_utils.h>
 #include <multipass/utils.h>
-#include <multipass/vm_specs.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <boost/algorithm/string/replace.hpp>
 
@@ -80,32 +80,31 @@ void pretty_print_scalar(std::ostream& os, const boost::json::value& value)
 }
 } // namespace
 
-boost::json::object mp::update_unique_identifiers_of_metadata(const boost::json::object& metadata,
-                                                              const multipass::VMSpecs& src_specs,
-                                                              const multipass::VMSpecs& dest_specs,
-                                                              const std::string& src_vm_name,
-                                                              const std::string& dest_vm_name)
+boost::json::object mp::update_unique_identifiers_of_metadata(
+    const boost::json::object& metadata,
+    const multipass::VirtualMachineDescription& src_desc,
+    const multipass::VirtualMachineDescription& dest_desc)
 {
-    assert(src_specs.extra_interfaces.size() == dest_specs.extra_interfaces.size());
+    assert(src_desc.extra_interfaces.size() == dest_desc.extra_interfaces.size());
 
     boost::json::object result_metadata = metadata;
     for (auto& item : result_metadata.at("arguments").as_array())
     {
         auto str = value_to<std::string>(item);
-        boost::replace_all(str, src_specs.default_mac_address, dest_specs.default_mac_address);
-        for (size_t i = 0; i < src_specs.extra_interfaces.size(); ++i)
+        boost::replace_all(str, src_desc.default_mac_address, dest_desc.default_mac_address);
+        for (size_t i = 0; i < src_desc.extra_interfaces.size(); ++i)
         {
-            const std::string& src_mac = src_specs.extra_interfaces[i].mac_address;
+            const std::string& src_mac = src_desc.extra_interfaces[i].mac_address;
             if (!src_mac.empty())
             {
-                const std::string& dest_mac = dest_specs.extra_interfaces[i].mac_address;
+                const std::string& dest_mac = dest_desc.extra_interfaces[i].mac_address;
                 boost::replace_all(str, src_mac, dest_mac);
             }
         }
         // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
         // "<src_name>"->"<dest_name>", because the second one might match other substrings of
         // the metadata.
-        boost::replace_all(str, "instances/" + src_vm_name, "instances/" + dest_vm_name);
+        boost::replace_all(str, "instances/" + src_desc.vm_name, "instances/" + dest_desc.vm_name);
         item = boost::json::string(str);
     }
 
