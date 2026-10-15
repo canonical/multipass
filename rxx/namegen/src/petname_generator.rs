@@ -47,7 +47,7 @@ impl PetnameBackend {
     ) -> Result<Box<Self>, PetnameError> {
         let separator = separator_c as u8 as char;
         if !matches!(separator, '-' | '_') {
-            return Err(PetnameError::InvalidSeparator(separator_c as i8));
+            return Err(PetnameError::InvalidSeparator(separator_c));
         }
         if !matches!(num_words, NumWords::One | NumWords::Two | NumWords::Three) {
             return Err(PetnameError::InvalidWordNumber(num_words.repr));
