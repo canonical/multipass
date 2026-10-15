@@ -31,10 +31,6 @@
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #endif
 
-#ifdef VIRTUALBOX_ENABLED
-#include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
-#endif
-
 #ifdef APPLEVZ_ENABLED
 #include "backends/applevz/applevz_virtual_machine_factory.h"
 #endif
@@ -224,9 +220,6 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
         (backend == "qemu" &&
          QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSBigSur) ||
 #endif
-#ifdef VIRTUALBOX_ENABLED
-        backend == "virtualbox" ||
-#endif
 #ifdef APPLEVZ_ENABLED
         backend == "applevz" ||
 #endif
@@ -316,19 +309,7 @@ mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_m
 {
     auto driver = MP_SETTINGS.get(mp::driver_key);
 
-    if (driver == QStringLiteral("virtualbox"))
-    {
-#if VIRTUALBOX_ENABLED
-        qputenv("PATH", qgetenv("PATH") + ":/usr/local/bin"); /*
-          This is where the Virtualbox installer puts things, and relying on PATH
-          allows the user to do something about it, if the binaries are not found
-          there.
-        */
-
-        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
-#endif
-    }
-    else if (driver == QStringLiteral("qemu"))
+    if (driver == QStringLiteral("qemu"))
     {
 #if QEMU_ENABLED
         return std::make_unique<QemuVirtualMachineFactory>(data_dir, az_manager);
@@ -346,8 +327,7 @@ mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_m
 
 bool mp::platform::backend_supports_availability_zones()
 {
-    const auto driver = MP_SETTINGS.get(mp::driver_key);
-    return driver != QStringLiteral("virtualbox");
+    return true;
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(

@@ -91,9 +91,6 @@ class _AppState extends ConsumerState<App> with WindowListener {
           'hyperv' => Uri.parse(
               '${deprecationDocsPrefix}migrate-from-hyperv-to-hcs-on-windows',
             ),
-          'virtualbox' => Uri.parse(
-              '${deprecationDocsPrefix}move-from-virtualbox-to-another-driver',
-            ),
           _ => null,
         };
         if (learnMoreUrl != null) {

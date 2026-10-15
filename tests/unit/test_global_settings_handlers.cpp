@@ -305,21 +305,6 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatTransformsHyperVDri
     ASSERT_NO_THROW(handler->set(key, val, messages));
 }
 
-TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatTransformsVBoxDriver)
-{
-    const auto key = mp::driver_key;
-    const auto val = "vbox";
-    const auto transformed_val = "virtualbox";
-
-    mp::daemon::register_global_settings_handlers();
-
-    EXPECT_CALL(*mock_qsettings, setValue(Eq(key), Eq(transformed_val))).Times(1);
-    inject_mock_qsettings();
-
-    [[maybe_unused]] mp::UserMessages messages{};
-    ASSERT_NO_THROW(handler->set(key, val, messages));
-}
-
 TEST_F(TestGlobalSettingsHandlers, driverInterpreterNormalizesCase)
 {
     mp::daemon::register_global_settings_handlers();
