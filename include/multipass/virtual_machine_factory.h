@@ -25,11 +25,6 @@
 
 #include <memory>
 
-namespace YAML
-{
-class Node;
-}
-
 namespace multipass
 {
 class SSHKeyProvider;
