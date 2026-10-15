@@ -1036,15 +1036,6 @@
     "@launchFormCloudInitReset": {
         "description": "Button label for resetting cloud-init content"
     },
-    "launchFormCloudInitInvalidYaml": "Invalid YAML: {error}",
-    "@launchFormCloudInitInvalidYaml": {
-        "description": "Validation error shown for malformed cloud-init YAML",
-        "placeholders": {
-            "error": {
-                "type": "String"
-            }
-        }
-    },
     "launchFormCloudInitFileError": "Could not read cloud-init file: {error}",
     "@launchFormCloudInitFileError": {
         "description": "Error shown when a selected cloud-init file cannot be read",

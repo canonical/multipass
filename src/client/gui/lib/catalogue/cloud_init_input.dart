@@ -47,41 +47,6 @@ class CloudInitInput extends ConsumerStatefulWidget {
   ConsumerState<CloudInitInput> createState() => _CloudInitInputState();
 }
 
-String? validateCloudInitUserData(
-    String? value, ValueChanged<SourceSpan?>? onErrorSpan) {
-  // TODO: Validate using the actual cloud-init user-data schema
-  // https://github.com/canonical/multipass/issues/2400
-  const marker = "#cloud-config";
-  onErrorSpan?.call(null);
-  try {
-    if (value == null) return null;
-
-    // Check that the first line is #cloud-config
-    final markerIsMissing = !value.startsWith(marker) ||
-        (value.length > marker.length &&
-            value[marker.length] != '\n' &&
-            value[marker.length] != '\r');
-
-    if (markerIsMissing) {
-      onErrorSpan?.call(SourceSpan(
-        SourceLocation(0, line: 0, column: 0),
-        SourceLocation(marker.length, line: 0, column: marker.length),
-        marker,
-      ));
-      return "Expected first line to be: #cloud-config";
-    }
-
-    final document = loadYaml(value);
-    if (document != null && document is! YamlMap) {
-      return 'Expected a mapping at the document root.';
-    }
-    return null;
-  } on YamlException catch (error) {
-    onErrorSpan?.call(error.span);
-    return error.message;
-  }
-}
-
 class _CloudInitInputState extends ConsumerState<CloudInitInput> {
   late final CodeLineEditingController _controller;
   SourceSpan? _yamlErrorSpan;
@@ -93,6 +58,40 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
       codeLines: CodeLines.fromText(initialUserData),
       spanBuilder: _buildCodeLineSpan,
     );
+  }
+
+  String? validateCloudInitUserData(String? value) {
+    // TODO: Validate using the actual cloud-init user-data schema
+    // https://github.com/canonical/multipass/issues/2400
+    const marker = "#cloud-config";
+    _setYamlErrorSpan(null);
+    try {
+      if (value == null) return null;
+
+      // Check that the first line is #cloud-config
+      final markerIsMissing = !value.startsWith(marker) ||
+          (value.length > marker.length &&
+              value[marker.length] != '\n' &&
+              value[marker.length] != '\r');
+
+      if (markerIsMissing) {
+        _setYamlErrorSpan.call(SourceSpan(
+          SourceLocation(0, line: 0, column: 0),
+          SourceLocation(marker.length, line: 0, column: marker.length),
+          marker,
+        ));
+        return "Expected first line to be: #cloud-config";
+      }
+
+      final document = loadYaml(value);
+      if (document != null && document is! YamlMap) {
+        return 'Expected a mapping at the document root.';
+      }
+      return null;
+    } on YamlException catch (error) {
+      _setYamlErrorSpan.call(error.span);
+      return error.message;
+    }
   }
 
   void _setYamlErrorSpan(SourceSpan? span) {
@@ -187,17 +186,15 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
           // autovalidateMode being set to always in `launch_form.dart`.
           // If this proves to be slow, we can use a debouncer to delay
           // validation
-          validator: (value) {
-            final error = validateCloudInitUserData(value, _setYamlErrorSpan);
-            return error == null
-                ? null
-                : l10n.launchFormCloudInitInvalidYaml(error);
-          },
+          validator: validateCloudInitUserData,
           onSaved: widget.onSaved,
           builder: (field) => InputDecorator(
               decoration: InputDecoration(
                   labelText: l10n.launchFormCloudInitUserDataLabel,
                   errorText: field.errorText,
+                  // Reserve space for errorText so that widgets underneath
+                  // don't get pushed down.
+                  helperText: ' ',
                   labelStyle:
                       TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               child: SizedBox(height: 220, child: _createEditor(field)))),

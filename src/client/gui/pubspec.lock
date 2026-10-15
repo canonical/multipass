@@ -909,7 +909,7 @@ packages:
     source: hosted
     version: "0.10.13"
   source_span:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: source_span
       sha256: "56a02f1f4cd1a2d96303c0144c93bd6d909eea6bee6bf5a0e0b685edbd4c47ab"
