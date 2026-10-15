@@ -3845,7 +3845,7 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
         {
             return {name,
                     ReadinessError::NOT_OPERATIVE,
-                    fmt::format("Error starting mounts for VM `{}`, the VM is not in a operative "
+                    fmt::format("Error starting mounts for VM `{}`, the VM is not in an operative "
                                 "state!",
                                 name)};
         }
