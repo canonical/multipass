@@ -19,7 +19,7 @@ On Linux and macOS, the daemon listens on a Unix socket. At first, only members 
 
 Multipass uses defense in depth, so that the failure of one layer does not expose the whole host:
 
-- The hypervisor (QEMU, Hyper-V, Apple Virtualization, or VirtualBox) isolates each instance from the host.
+- The hypervisor (QEMU, Hyper-V, or Apple Virtualization) isolates each instance from the host.
 - On Linux, the Multipass snap runs under strict [snap confinement](https://snapcraft.io/docs/snap-confinement), which limits what the daemon can reach on the host, including where mounts can point.
 - On Windows, mounts are disabled by default.
 

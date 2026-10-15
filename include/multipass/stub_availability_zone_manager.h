@@ -24,10 +24,10 @@
 namespace multipass
 {
 // An AvailabilityZoneManager for backends that do not support the concept of availability zones
-// (e.g. legacy VirtualBox and Hyper-V). It hands out a single, always-available
-// StubAvailabilityZone regardless of the name requested, so that stale or empty zone names
-// persisted by an older build (or coming in over the wire) never cause a lookup failure -- the
-// name argument is intentionally ignored rather than validated.
+// (e.g. legacy Hyper-V). It hands out a single, always-available StubAvailabilityZone regardless of
+// the name requested, so that stale or empty zone names persisted by an older build (or coming in
+// over the wire) never cause a lookup failure -- the name argument is intentionally ignored rather
+// than validated.
 class StubAvailabilityZoneManager final : public AvailabilityZoneManager
 {
 public:

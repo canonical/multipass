@@ -62,34 +62,16 @@ multipass set local.driver=applevz
 
 From now on, all instances started with `multipass launch` will use the Apple Virtualization framework behind the scenes.
 
-On Intel/x86 architectures, an additional option is to use VirtualBox.
-
-```{note}
-VirtualBox is deprecated as of Multipass 1.17 and will be removed in a future release, with no migration planned. See [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver).
-```
-
-To switch the Multipass driver to VirtualBox, run this command:
-
-```{code-block} text
-multipass set local.driver=virtualbox
-```
-
-From now on, all instances started with `multipass launch` will use VirtualBox behind the scenes.
-
 ````
 
 ````{tab-item} Windows
 :sync: Windows
 
-You can change the hypervisor that Multipass uses to Hyper-V or VirtualBox.
+You can change the hypervisor that Multipass uses to Hyper-V.
 
 ```{note}
 The Hyper-V driver is deprecated as of Multipass version 1.17 (see
 [Migrate from Hyper-V to the HCS driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows)).
-
-VirtualBox is deprecated as of Multipass 1.17 and will be removed in a future release, with no
-migration planned. See
-[Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver).
 ```
 
 To switch the Multipass driver to Hyper-V, run this command:
@@ -99,21 +81,6 @@ multipass set local.driver=hyperv
 ```
 
 From then on, all instances started with multipass launch will use Hyper-V behind the scenes.
-
-To use VirtualBox, you first have to install VirtualBox. You may find that you need to
-<a href="https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658">run the VirtualBox installer as administrator</a>.
-
-<!-- Sphinx doesn't like the & character in the above link, the only way to make it work is using basic HTML syntax. The link was:
-[run the VirtualBox installer as administrator](https://forums.virtualbox.org/viewtopic.php?f=6&t=88405#p423658)
--->
-
-To switch the Multipass driver to VirtualBox (also with Administrator privileges), run this command:
-
-```{code-block} powershell
-multipass set local.driver=virtualbox
-```
-
-From then on, all instances started with `multipass launch` will use VirtualBox behind the scenes.
 
 ````
 
@@ -155,250 +122,6 @@ multipass set local.driver=hcs
 ```
 
 Instances are tied to the driver they were created with; after switching, they won't be visible until you switch back.
-
-````
-
-`````
-
-## Use VirtualBox to view Multipass instances
-
-```{note}
-VirtualBox is deprecated as of Multipass 1.17 (see [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver)). This section, and the two below, remain useful for as long as you keep using it.
-```
-
-`````{tab-set}
-
-````{tab-item} Linux
-:sync: Linux
-
-This option does not apply to Linux systems.
-
-````
-
-````{tab-item} macOS
-:sync: macOS
-
-```{note}
-The VirtualBox driver is only available on Intel/x86 architectures.
-```
-
-Multipass runs as the `root` user, so to see the instances in VirtualBox, or through the `VBoxManage` command, you have to run those as `root`, too. To see the instances in VirtualBox, use the command:
-
-```{code-block} text
-sudo VirtualBox
-```
-
-```{figure} /images/multipass-macos-virtualbox-manager.png
-   :width: 720px
-   :alt: Multipass instances in VirtualBox
-```
-
-<!-- Original image on the Asset Manager
-![Multipass instances in VirtualBox](https://assets.ubuntu.com/v1/9c959eed-multipass-macos-virtualbox-manager.png)
--->
-
-And, to list the instances on the command line, run:
-
-```{code-block} text
-sudo VBoxManage list vms
-```
-
-Sample output:
-```{code-block} text
-"primary" {395d5300-557d-4640-a43a-48100b10e098}
-```
-
-```{note}
-You can still use the `multipass` client and the system menu icon, and any changes you make to the configuration of the instances in VirtualBox will be persistent. They may not be represented in Multipass commands such as `multipass info` , though.
-[/note]
-
-````
-
-````{tab-item} Windows
-:sync: Windows
-
-Multipass runs as the _System_ account, so to see the instances in VirtualBox, or through the `VBoxManage` command, you have to run those as that user via [`PsExec -s`](https://docs.microsoft.com/en-us/sysinternals/downloads/psexec). Download and unpack [PSTools.zip](https://download.sysinternals.com/files/PSTools.zip) in your *Downloads* folder, and in an administrative PowerShell, run:
-
-```{code-block} powershell
-& $env:USERPROFILE\Downloads\PSTools\PsExec.exe -s -i $env:VBOX_MSI_INSTALL_PATH\VirtualBox.exe
-```
-
-```{figure} /images/multipass-windows-virtualbox-manager.png
-   :width: 720px
-   :alt: Multipass instances in VirtualBox
-```
-
-<!-- Original image on the Asset Manager
-![Multipass instances in VirtualBox](https://assets.ubuntu.com/v1/edce2443-multipass-windows-virtualbox-manager.png)
--->
-
-To list the instances on the command line:
-
-```{code-block} powershell
-& $env:USERPROFILE\Downloads\PSTools\PsExec.exe -s $env:VBOX_MSI_INSTALL_PATH\VBoxManage.exe list vms
-```
-
-Sample output:
-
-```{code-block} powershell
-"primary" {05a04fa0-8caf-4c35-9d21-ceddfe031e6f}
-```
-
-```{note}
-You can still use the `multipass` client and the system menu icon, and any changes you make to the configuration of the instances in VirtualBox will be persistent. They may not be represented in Multipass commands such as `multipass info`, though.
-[/note]
-
-````
-
-`````
-
-
-## Use VirtualBox to set up port forwarding for a Multipass instance
-
-`````{tab-set}
-
-````{tab-item} Linux
-:sync: Linux
-
-This option only applies to macOS and Windows systems.
-
-````
-
-````{tab-item} macOS
-:sync: macOS
-
-To expose a service running inside the instance on your host, you can use [VirtualBox's port forwarding feature](https://www.virtualbox.org/manual/ch06.html#natforward), for example:
-
-```{code-block} text
-sudo VBoxManage controlvm "primary" natpf1 "myservice,tcp,,8080,,8081"
-```
-
-You can then open, say, https://localhost:8081/, and the service running inside the instance on port 8080 will be exposed.
-
-````
-
-````{tab-item} Windows
-:sync: Windows
-
-To expose a service running inside the instance on your host, you can use [VirtualBox's port forwarding feature](https://www.virtualbox.org/manual/ch06.html#natforward), for example:
-
-```{code-block} powershell
-& $env:USERPROFILE\Downloads\PSTools\PsExec.exe -s $env:VBOX_MSI_INSTALL_PATH\VBoxManage.exe controlvm "primary" natpf1 "myservice,tcp,,8080,,8081"
-```
-
-You can then open, say, https://localhost:8081/, and the service running inside the instance on port 8080 will be exposed.
-
-````
-
-`````
-
-## Use VirtualBox to set up network bridging for a Multipass instance
-
-`````{tab-set}
-
-````{tab-item} Linux
-:sync: Linux
-
-This option only applies to macOS and Windows systems.
-
-````
-
-````{tab-item} macOS
-:sync: macOS
-
-An often requested Multipass feature is network bridging. You can add a second network interface to the instance and expose it on your physical network.
-
-First, stop the instance:
-
-```{code-block} text
-multipass stop primary
-```
-
-Now, find the network interface you want to bridge with, running the command:
-
-```{code-block} text
-VBoxManage list bridgedifs | grep ^Name:
-```
-
-You want the identifier before the second colon; for example `en0` in the following sample output:
-
-```{code-block} text
-Name:            en0: Ethernet
-Name:            en1: Wi-Fi (AirPort)
-Name:            en2: Thunderbolt 1
-Name:            en3: Thunderbolt 2
-...
-```
-
-Finally, tell VirtualBox to use it as the "parent" for the second interface (for more information on this topic, see [VirtualBox documentation](https://www.virtualbox.org/manual/ch06.html#network_bridged)):
-
-```{code-block} text
-sudo VBoxManage modifyvm primary --nic2 bridged --bridgeadapter2 en0
-```
-
-```{caution}
-Do not touch --nic1 as that's used by Multipass.
-```
-
-You can then start the instance again:
-
-```{code-block} text
-multipass start primary
-```
-
-To find the name of the new interface, run this command:
-
-```{code-block} text
-multipass exec primary ip link | grep DOWN
-```
-
-In the following sample output, the name of the interface that we are looking for is `enp0s8`:
-
-```{code-block} text
-3: enp0s8: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
-```
-
-Now, configure that new interface (Ubuntu uses [Netplan](https://netplan.io/) for that):
-
-```{code-block} text
-multipass exec -- primary sudo bash -c "cat > /etc/netplan/60-bridge.yaml" <<EOF
-network:
-  ethernets:
-    enp0s8:                  # this is the interface name from above
-      dhcp4: true
-      dhcp4-overrides:       # this is needed so the default gateway
-        route-metric: 200    # remains with the first interface
-  version: 2
-EOF
-
-multipass exec primary sudo Netplan apply
-```
-
-Finally, find the IP of the instance given by your router:
-
-```{code-block} text
-multipass exec primary ip address show dev enp0s8 up
-```
-
-For example:
-
-```{code-block} text
-3: enp0s8: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
-    link/ether 08:00:27:2a:5f:55 brd ff:ff:ff:ff:ff:ff
-    inet <b>10.2.0.39</b>/24 brd 10.2.0.255 scope global dynamic enp0s8
-       valid_lft 86119sec preferred_lft 86119sec
-    inet6 fe80::a00:27ff:fe2a:5f55/64 scope link
-       valid_lft forever preferred_lft forever
-```
-
-All the services running inside the instance should now be available on your physical network under https://&lt;instance IP&gt;/.
-
-````
-
-````{tab-item} Windows
-:sync: Windows
-
-This option only applies to macOS systems.
 
 ````
 

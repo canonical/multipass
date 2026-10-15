@@ -35,8 +35,6 @@
                             Text="!(loc.WixHyperVApi)" />
                         <RadioButton Value="hyperv" X="0" Y="20" Width="295" Height="16"
                             Text="!(loc.WixHyperV)" />
-                        <RadioButton Value="virtualbox" X="0" Y="40" Width="295" Height="16"
-                            Text="!(loc.WixVirtualBox)" />
                     </RadioButtonGroup>
                 </Control>
 
@@ -47,8 +45,6 @@
                     <RadioButtonGroup Property="DRIVER_LIMITED">
                         <RadioButton Value="hcs" X="0" Y="0" Width="295" Height="16"
                             Text="!(loc.WixHyperVApi)" />
-                        <RadioButton Value="virtualbox" X="0" Y="20" Width="295" Height="16"
-                            Text="!(loc.WixVirtualBox)" />
                     </RadioButtonGroup>
                 </Control>
             </Dialog>
