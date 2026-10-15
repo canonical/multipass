@@ -29,4 +29,4 @@ sphinx-sitemap
 
 # Vale dependencies
 rst2html
-vale==3.13.0.0
+vale==3.20.0.0

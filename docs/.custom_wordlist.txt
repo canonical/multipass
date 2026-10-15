@@ -1,5 +1,6 @@
 # Leave a black line at the bottom
 backend's
+BBCode
 boolean
 CPU
 CPUs
@@ -8,8 +9,10 @@ echoless
 ethernet
 Hyperkit
 IPs
+jellyfin
 Junos
 Kaspersky
+minikube
 misconfiguration
 multipassd
 NIC
@@ -19,7 +22,10 @@ passwordless
 Portainer
 Symantec
 teardown
+umount
+unalias
 unmount
+unmounting
 unmounts
 vcpkg
 VM's
