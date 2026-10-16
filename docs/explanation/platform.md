@@ -5,6 +5,36 @@
 
 In Multipass, **platform** refers to the host computer's operating system. This can be Windows, macOS, or Linux.
 
+## Minimal requirements
+
+`````{tab-set}
+
+````{tab-item} Linux
+:sync: Linux
+
+Multipass for Linux is published as a [snap package](https://snapcraft.io/docs/), available on the [Snap Store](https://snapcraft.io/multipass). Before you can use it, you need to [install `snapd`](https://snapcraft.io/docs/tutorials/install-the-daemon/). `snapd` is included in Ubuntu by default.
+
+````
+
+````{tab-item} macOS
+:sync: macOS
+
+You can use any Mac (M-series or Intel based) with **macOS 14 Sonoma or later** installed.
+
+````
+
+````{tab-item} Windows
+:sync: Windows
+
+Multipass supports Windows 10 or 11 on Home, Pro, and Enterprise editions.
+The minimal required version is 1809 (October 2018 Update).
+The [Virtual Machine Platform feature](https://support.microsoft.com/en-us/windows/experience/enable-virtualization-on-windows)
+needs to be enabled.
+
+````
+
+`````
+
 ## Feature disparities
 
 While we strive to offer a uniform interface across the board, not all features are available on all platforms and there are some behaviour differences:
