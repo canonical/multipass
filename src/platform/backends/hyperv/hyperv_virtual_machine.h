@@ -60,7 +60,7 @@ public:
     void shutdown(ShutdownPolicy shutdown_policy) override;
     void suspend() override;
     bool set_available(bool available) override;
-    State current_state() override;
+    std::optional<State> get_backend_state() override;
     std::optional<IPAddress> management_ipv4() override;
     void handle_state_update() override;
     void add_network_interface(int index,
