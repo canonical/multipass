@@ -245,7 +245,8 @@ auto name_from(const std::string& requested_name,
 
 std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
                                                      const mp::Path& cache_path,
-                                                     const mp::AvailabilityZoneManager& az_manager)
+                                                     const mp::AvailabilityZoneManager& az_manager,
+                                                     const mp::VirtualMachineFactory& factory)
 {
     QDir data_dir{data_path};
     QDir cache_dir{cache_path};
@@ -273,6 +274,27 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
     {
         if (record.as_object().empty())
             return {};
+
+        // TODO remove once no supported upgrade path predates vm-description.json
+        // This splits up the daemon's database by writing each of the VM's specific pieces into
+        // their own respective `vm-description.json` file. The daemon's database remains as the
+        // source of truth, but the VM's file is placed for so the VM is able to take responsibility
+        // for its own resources in the future.
+        const std::string name{key};
+        try
+        {
+            auto description = record.as_object();
+            description["vm_name"] = name;
+            description["schema_version"] = mp::vm_description_schema_version;
+            MP_FILEOPS.write_transactionally(
+                MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)) /
+                    mp::vm_description_file_name,
+                mp::pretty_print(description));
+        }
+        catch (const std::exception& e)
+        {
+            mpl::warn(category, "Could not migrate the instance record of {}: {}", name, e.what());
+        }
 
         try
         {
@@ -1405,7 +1427,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                                     config->factory->get_backend_directory_name()),
                   mp::utils::backend_directory_path(config->cache_directory,
                                                     config->factory->get_backend_directory_name()),
-                  *config->az_manager)},
+                  *config->az_manager,
+                  *config->factory)},
       daemon_rpc{config->server_address,
                  *config->cert_provider,
                  config->client_cert_store.get(),
@@ -1482,7 +1505,12 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               spec_copy.extra_interfaces,
                                               spec_copy.ssh_username,
                                               vm_image,
-                                              cloud_init_iso};
+                                              cloud_init_iso,
+                                              spec_copy.metadata,
+                                              spec_copy.state,
+                                              spec_copy.clone_count,
+                                              spec_copy.deleted,
+                                              spec_copy.mounts};
 
         auto& instance_records_table = spec_copy.deleted ? deleted_instances : operative_instances;
 
@@ -3521,7 +3549,12 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 {},
                 config->ssh_username,
                 VMImage{},
-                ""};
+                "",
+                {},
+                VirtualMachine::State::stopped,
+                0,
+                false,
+                {}};
 
             CloudInitConfig cloud_init{};
             cloud_init.vendor_data = make_cloud_init_vendor_config(
