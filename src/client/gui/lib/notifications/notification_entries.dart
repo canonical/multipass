@@ -319,7 +319,9 @@ class LaunchingNotification extends ConsumerWidget {
                     OutlinedButton(
                       onPressed: () {
                         closeNotification(context);
-                        cancelCompleter.complete();
+                        if (!cancelCompleter.isCompleted) {
+                          cancelCompleter.complete();
+                        }
                       },
                       child: Text(l10n.commonCancel),
                     ),
