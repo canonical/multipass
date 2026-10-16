@@ -109,6 +109,9 @@ public:
     const std::string& get_name() const noexcept override;
     const AvailabilityZone& get_zone() const noexcept override;
 
+    [[nodiscard]] State current_state() override;
+    void set_state(State state) override;
+
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
@@ -155,6 +158,12 @@ protected:
     virtual std::string get_instance_id_from_the_cloud_init() const;
 
     void check_state_for_shutdown(ShutdownPolicy shutdown_policy) const;
+
+    // Backend state fetching and conversion to VM::State
+    [[nodiscard]] virtual std::optional<State> get_backend_state() = 0;
+    // Direct fetch to avoid infinite recursion in current_state()
+    State get_state() const;
+    void handle_state_update() override;
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
@@ -207,6 +216,12 @@ private:
     utils::TimeoutAction try_to_ssh();
     void ssh_and_cross_to_running();
     void timeout_ssh();
+    /**
+     * Update the state with the backend state without overriding multipass' state management. This
+     * function only updates the state if the backend state is not compatible with the
+     * multipass-managed state
+     */
+    void update_backend_state();
 
 protected:
     const std::string vm_name;
@@ -219,6 +234,7 @@ protected:
     bool shutdown_while_starting = false;
 
 private:
+    VirtualMachine::State state;
     std::string saved_error_msg = "";
     std::unique_ptr<SSHSession> ssh_session = nullptr;
     SnapshotMap snapshots;
@@ -295,4 +311,9 @@ inline std::string multipass::BaseVirtualMachine::core_image_disk_resize_message
                        "/dev/<disk_device><partition_number>\n\n"
                        "Check the resize status with the command below:\n\n"
                        "        multipass info <instance>\n");
+}
+
+inline multipass::VirtualMachine::State multipass::BaseVirtualMachine::get_state() const
+{
+    return state;
 }

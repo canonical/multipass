@@ -80,6 +80,7 @@ public:
     virtual void suspend() = 0;
     virtual bool set_available(bool available) = 0;
     virtual State current_state() = 0;
+    virtual void set_state(State state) = 0;
     [[nodiscard]] virtual int ssh_port() = 0;
     [[nodiscard]] virtual std::string ssh_hostname() = 0;
     [[nodiscard]] virtual std::string ssh_username() const = 0;
@@ -135,14 +136,11 @@ public:
     virtual const std::string& get_name() const noexcept = 0;
     virtual const AvailabilityZone& get_zone() const noexcept = 0;
 
-    VirtualMachine::State state;
     std::condition_variable state_wait;
     std::mutex state_mutex;
 
 protected:
-    explicit VirtualMachine(State state = State::stopped) : state{state}
-    {
-    }
+    VirtualMachine() = default;
 };
 } // namespace multipass
 
