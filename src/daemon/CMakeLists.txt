@@ -38,6 +38,19 @@ endif()
 include_directories(daemon
   ${CMAKE_SOURCE_DIR}/src/platform/backends)
 
+# Bake the mount MOTD script in, as a raw string literal
+set(MOUNT_MOTD_SCRIPT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/mount_motd.sh)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${MOUNT_MOTD_SCRIPT_FILE})
+file(READ ${MOUNT_MOTD_SCRIPT_FILE} MOUNT_MOTD_SCRIPT)
+if(MOUNT_MOTD_SCRIPT MATCHES "\\)sh\"")
+  message(FATAL_ERROR "${MOUNT_MOTD_SCRIPT_FILE} contains the raw string delimiter `)sh\"`")
+endif()
+file(CONFIGURE
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mount_motd.sh.inc
+  CONTENT "R\"sh(@MOUNT_MOTD_SCRIPT@)sh\"\n"
+  @ONLY)
+target_include_directories(daemon PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
 target_link_libraries(daemon
   cert
   delayed_shutdown
