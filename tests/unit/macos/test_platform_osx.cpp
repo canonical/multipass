@@ -269,7 +269,7 @@ TEST(PlatformOSX, testEmptySyncWintermProfiles)
 
 TEST(PlatformOSX, testDefaultDriver)
 {
-    EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("qemu", "virtualbox"));
+    EXPECT_THAT(MP_PLATFORM.default_driver(), Eq("qemu"));
 }
 
 TEST(PlatformOSX, testDefaultPrivilegedMounts)

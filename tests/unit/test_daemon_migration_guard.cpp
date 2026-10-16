@@ -445,17 +445,17 @@ TEST_F(TestDaemonMigrationGuard, requestAfterDriverChangeIsRejectedUntilRestart)
 TEST_F(TestDaemonMigrationGuard, driverChangeReleasesGuardWhenSettingsWriteFails)
 {
     GuardTestDaemon daemon{config_builder.build()};
-    EXPECT_CALL(*mock_platform, is_backend_supported(QStringLiteral("virtualbox")))
+    EXPECT_CALL(*mock_platform, is_backend_supported(QStringLiteral("hyperv")))
         .WillOnce(Return(true));
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
-    EXPECT_CALL(mock_settings, set(Eq(mp::driver_key), Eq("virtualbox"), _)).WillOnce([&daemon] {
+    EXPECT_CALL(mock_settings, set(Eq(mp::driver_key), Eq("hyperv"), _)).WillOnce([&daemon] {
         EXPECT_TRUE(daemon.is_migrating());
         throw std::runtime_error{"settings write failed"};
     });
 
     mp::SetRequest request;
     request.set_key(mp::driver_key);
-    request.set_val("virtualbox");
+    request.set_val("hyperv");
     StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>> server;
 
     const auto status = call_daemon_slot(daemon, &mp::Daemon::set, request, server);
@@ -575,18 +575,6 @@ TEST_F(TestHyperVDriverTransition, unrelatedSettingDoesNotAcquireGuardOrReadDriv
     auto change = transition(*config);
 
     EXPECT_TRUE(change.prepare("local.mounts", "true").ok());
-    EXPECT_FALSE(migrating);
-    EXPECT_TRUE(change.complete(&server).ok());
-}
-
-TEST_F(TestHyperVDriverTransition, unrelatedDriverChangeDoesNotAcquireGuard)
-{
-    const auto config = config_builder.build();
-    auto change = transition(*config);
-    EXPECT_CALL(mock_settings, get(Eq(mp::driver_key)))
-        .WillOnce(Return(QStringLiteral("virtualbox")));
-
-    EXPECT_TRUE(change.prepare(mp::driver_key, "hyperv").ok());
     EXPECT_FALSE(migrating);
     EXPECT_TRUE(change.complete(&server).ok());
 }

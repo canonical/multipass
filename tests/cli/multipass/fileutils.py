@@ -19,20 +19,7 @@
 
 import shutil
 import contextlib
-import sys
-import subprocess
 from pathlib import Path
-
-
-def _nuke_vbox_frontends():
-    """
-    Kill VBoxHeadless processes on Windows.
-    """
-
-    if sys.platform != "win32":
-        return
-    # We cannot remove the instances folder while the instances are in use.
-    subprocess.run(["taskkill", "/IM", "VBoxHeadless.exe", "/F"], check=False)
 
 
 def nuke_all_instances(data_dir, driver):
@@ -41,10 +28,7 @@ def nuke_all_instances(data_dir, driver):
 
     data_dir = Path(data_dir)
 
-    backend_dirs = [data_dir / "qemu", data_dir / "virtualbox"]
-
-    if driver == "virtualbox":
-        _nuke_vbox_frontends()
+    backend_dirs = [data_dir / "qemu"]
 
     for instance_root in [data_dir, *backend_dirs]:
         vault_dir = instance_root / "vault"

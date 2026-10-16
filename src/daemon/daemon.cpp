@@ -1298,16 +1298,13 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
     // settings call tree (which would run on every GUI poll)
     static const auto current_driver = MP_SETTINGS.get(mp::driver_key).toStdString();
 
-    if (current_driver == "virtualbox" || current_driver == "hyperv")
+    if (current_driver == "hyperv")
     {
-        const auto [current_name, migrationful] = current_driver == "hyperv"
-                                                    ? std::pair{"Hyper-V", true}
-                                                    : std::pair{"VirtualBox", false};
+        const auto current_name = "Hyper-V";
 
         auto deprecation_warning = mp::make_driver_deprecation_warning(current_name,
                                                                        recommended.first,
-                                                                       recommended.second,
-                                                                       migrationful);
+                                                                       recommended.second);
 
         W reply{};
         reply.set_log_line(std::move(deprecation_warning));

@@ -68,13 +68,6 @@ To find out if something is failing during boot, you'd need to attach to the VM'
     ```
     This will open a QEMU window where you can see the boot output. You may need to select the correct display output (Serial or VGA) from the QEMU menu.
 
-- *(macOS/Windows, VirtualBox driver)* Observe the output in the VirtualBox GUI:
-    1. Run the VirtualBox GUI as admin/root:
-        - \[macOS] `sudo VirtualBox`
-        - \[Windows] Run with `psexec.exe` as explained in {ref}`launch-start-issues-windows-run-virtualbox`.
-    2. Start or launch the instance with `multipass start|launch`.
-    3. Select and attach to the VM in the VirtualBox GUI and observe the boot output. If it eventually arrives at a login screen, it means that the instance should've started correctly.
-
 - *(Windows, Hyper-V driver)*
     1. Open the Hyper-V Manager GUI (look for it in your Start menu).
     2. Start or launch the instance with `multipass start|launch`.
@@ -227,18 +220,6 @@ chpasswd: { expire: false }
     * Consider passing a longer timeout to the `launch` command. For example, `multipass launch --timeout 1000` sets the launch timeout to 1000 seconds.
 
 * You can use `multipass shell` to get a shell in the instance when Multipass is waiting for cloud-init to finish. To diagnose problems, inspect cloud-init's logs in `/var/log/cloud-init*log`.
-
-(launch-start-issues-windows-run-virtualbox)=
-### [Windows, VirtualBox driver] Running VirtualBox with the system account
-
-To run the VirtualBox GUI with the system account, you will need a Windows tool called PsExec:
-
-1. Install [PsExec](https://docs.microsoft.com/en-us/sysinternals/downloads/psexec).
-1. Add it to your `PATH`.
-1. Run PowerShell as Administrator.
-1. Execute `psexec.exe -s -i "C:\Program Files\Oracle\VirtualBox\VirtualBox.exe"` (adapt the path to the VirtualBox executable as needed).
-
-When successful, you should see Multipass's instances in VirtualBox
 
 (launch-start-issues-stale-network-cache)=
 ### Stale network cache

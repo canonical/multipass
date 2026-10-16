@@ -350,10 +350,10 @@ def pytest_collection_modifyitems(config, items):
     def maybe_skip_az_test(item):
         if not item.get_closest_marker("az"):
             return
-        # hcs is the successor of the deprecated `hyperv` backend and
-        # does support availability zones -- only the legacy `hyperv` and
-        # `virtualbox` backends are excluded here.
-        if cfg.driver in ("hyperv", "virtualbox"):
+        # hcs is the successor of the deprecated `hyperv` backend and does
+        # support availability zones -- only the legacy `hyperv` backend is
+        # excluded here.
+        if cfg.driver == "hyperv":
             item.add_marker(
                 pytest.mark.skip(
                     f"Skipped -- {cfg.driver} driver does not "
