@@ -17,6 +17,7 @@ NICs
 overallocate
 passwordless
 Portainer
+Sonoma
 Symantec
 teardown
 unmount
@@ -24,4 +25,3 @@ unmounts
 vcpkg
 VM's
 VPNs
-Sonoma
