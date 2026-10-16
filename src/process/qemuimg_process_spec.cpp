@@ -44,7 +44,7 @@ QStringList mp::QemuImgProcessSpec::arguments() const
     return args;
 }
 
-QString mp::QemuImgProcessSpec::apparmor_profile() const
+QString mp::QemuImgProcessSpec::apparmor_profile(const QString& profile_name) const
 {
     QString profile_template(R"END(
 #include <tunables/global>
@@ -95,5 +95,5 @@ profile %1 flags=(attach_disconnected) {
         images.append(QString("  %1 rwk,\n").arg(target_image));
 
     return profile_template
-        .arg(apparmor_profile_name(), extra_capabilities, root_dir, program(), images, signal_peer);
+        .arg(profile_name, extra_capabilities, root_dir, program(), images, signal_peer);
 }
