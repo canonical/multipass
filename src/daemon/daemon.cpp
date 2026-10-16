@@ -3683,7 +3683,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 VMImage{},
                 "",
                 {},
-                VirtualMachine::State::off,
+                VirtualMachine::State::stopped,
                 0,
                 false,
                 {}};
