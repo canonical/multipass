@@ -151,7 +151,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 {doc}`Launch customized instances with Multipass and cloud-init <how-to-guides/manage-instances/launch-customized-instances-with-multipass-and-cloud-init>`
 ```
 
-```{slice} Availability zones
+```{slice} Availability Zones (AZ)
 
 {doc}`AZ web servers tutorial <tutorial/availability-zones>`
 {doc}`Explanation <explanation/availability-zone>`
