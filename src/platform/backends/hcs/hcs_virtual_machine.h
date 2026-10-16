@@ -61,11 +61,9 @@ struct HCSVirtualMachine : public BaseVirtualMachine
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy) override;
     void suspend() override;
-    [[nodiscard]] State current_state() override;
     [[nodiscard]] std::optional<IPAddress> management_ipv4() override;
     void restore_snapshot(const std::string& name, VMSpecs& specs) override;
 
-    void handle_state_update() override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
@@ -90,9 +88,7 @@ private:
     hcs::HcsSystemHandle hcs_system{nullptr};
 
     [[nodiscard]] hcs::ComputeSystemState fetch_state_from_api() const;
-    void set_state(hcs::ComputeSystemState state);
-    void set_state(State state);
-    void update_current_state();
+    [[nodiscard]] std::optional<State> get_backend_state() override;
 
     /**
      * Open the compute system if it's present.

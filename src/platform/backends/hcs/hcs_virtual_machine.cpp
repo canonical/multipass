@@ -118,12 +118,11 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
                compute_state);
 
     // Reflect compute system's state
-    const auto prev_state = state;
-    set_state(compute_state);
+    const auto prev_state = get_state();
 
     // Persist initial state even if unchanged
-    if (prev_state == this->state)
-        HCSVirtualMachine::handle_state_update();
+    if (prev_state == current_state())
+        handle_state_update();
 }
 
 HCSVirtualMachine::~HCSVirtualMachine()
@@ -131,7 +130,7 @@ HCSVirtualMachine::~HCSVirtualMachine()
     top_catch_all(vm_name, [this]() {
         // Use the last known state: querying HCS here would persist any state change, which
         // resurrects the record of an instance that was just purged.
-        if (state != State::running)
+        if (get_state() != State::running)
             return;
 
         // Auto-suspend if running
@@ -373,52 +372,49 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     return true;
 }
 
-void HCSVirtualMachine::set_state(hcs::ComputeSystemState compute_system_state)
+std::optional<mp::VirtualMachine::State> HCSVirtualMachine::get_backend_state()
 {
-    mpl::debug(get_name(), "set_state() -> HCS state `{}`", compute_system_state);
 
-    if (state == State::unavailable)
+    hcs::ComputeSystemState compute_system_state;
+    try
     {
-        mpl::debug(get_name(), "set_state() -> Zone is unavailable");
-        return;
+        if (!hcs_system && !maybe_open_compute_system())
+            // Equivalent to previous implementation of current_state()
+            compute_system_state = hcs::ComputeSystemState::stopped;
+        else
+            compute_system_state = fetch_state_from_api();
     }
+    catch (const OpenComputeSystemException& e)
+    {
+        // Callers such as daemon startup and `list` do not expect state queries to throw.
+        mpl::warn(get_name(), "current_state() > {}", e.what());
+        compute_system_state = hcs::ComputeSystemState::unknown;
+    }
+
+    mpl::debug(get_name(), "get_backend_state() -> HCS state `{}`", compute_system_state);
 
     switch (compute_system_state)
     {
     case hcs::ComputeSystemState::created:
-        set_state(State::stopped);
-        break;
+        return State::stopped;
     case hcs::ComputeSystemState::paused:
         mpl::debug(vm_name, "VM is paused but not completely suspended");
-        set_state(State::suspended);
-        break;
+        return State::suspended;
     case hcs::ComputeSystemState::running:
         // Let wait_until_ssh_up decide when we are running
-        if (state != State::starting)
-            set_state(State::running);
-        break;
+        return State::running;
     case hcs::ComputeSystemState::saved_as_template:
     case hcs::ComputeSystemState::stopped:
-        set_state(has_saved_state_file() ? State::suspended : State::stopped);
-        break;
+        return has_saved_state_file() ? State::suspended : State::stopped;
     case hcs::ComputeSystemState::unknown:
-        set_state(State::unknown);
-        break;
+        return std::nullopt;
     }
-}
-
-void HCSVirtualMachine::set_state(VirtualMachine::State new_state)
-{
-    if (state == new_state)
-        return;
-
-    mpl::info(get_name(), "set_state() -> State changed from {} to {}", state, new_state);
-    state = new_state;
-    handle_state_update();
+    return std::nullopt;
 }
 
 void HCSVirtualMachine::start()
 {
+    const auto state{get_state()};
     mpl::debug(get_name(), "start() -> Starting VM, current state {}", state);
 
     // Create the compute system, if not created yet.
@@ -481,6 +477,7 @@ void HCSVirtualMachine::start()
 
 void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
+    const auto state{get_state()};
     mpl::debug(get_name(), "shutdown() -> Shutting down, current state {}", state);
     termination_signal.reset();
     try
@@ -523,7 +520,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
                 throw ShutdownComputeSystemException("Could not remove state file '{}': {}",
                                                      get_saved_state_file_path(),
                                                      ec);
-            update_current_state();
+            (void)current_state();
             return;
         }
         // These are non-graceful variants. Just terminate the system immediately.
@@ -551,7 +548,7 @@ void HCSVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
 void HCSVirtualMachine::suspend()
 {
-    mpl::debug(get_name(), "suspend() -> Suspending, current state {}", state);
+    mpl::debug(get_name(), "suspend() -> Suspending, current state {}", get_state());
 
     if (const auto pause_result = HCS().pause_compute_system(hcs_system); !pause_result)
         throw SaveComputeSystemException{"Could not pause VM for suspend: {}", pause_result};
@@ -568,33 +565,6 @@ void HCSVirtualMachine::suspend()
     // "suspended", causing shutdown to remove the newly saved state file.
     shutdown(ShutdownPolicy::Poweroff);
     return;
-}
-
-HCSVirtualMachine::State HCSVirtualMachine::current_state()
-try
-{
-    if (!hcs_system && !maybe_open_compute_system())
-    {
-        if (state != State::unavailable)
-            state = has_saved_state_file() ? State::suspended : State::stopped;
-
-        return state;
-    }
-
-    update_current_state();
-    return state;
-}
-catch (const OpenComputeSystemException& e)
-{
-    // Callers such as daemon startup and `list` do not expect state queries to throw.
-    mpl::warn(get_name(), "current_state() > {}", e.what());
-    set_state(hcs::ComputeSystemState::unknown);
-    return state;
-}
-
-void HCSVirtualMachine::update_current_state()
-{
-    set_state(fetch_state_from_api());
 }
 
 std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
@@ -662,11 +632,6 @@ void HCSVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& specs
     BaseVirtualMachine::restore_snapshot(name, specs);
 }
 
-void HCSVirtualMachine::handle_state_update()
-{
-    monitor.persist_state_for(get_name(), state);
-}
-
 hcs::ComputeSystemState HCSVirtualMachine::fetch_state_from_api() const
 {
     hcs::ComputeSystemState compute_system_state{hcs::ComputeSystemState::unknown};
@@ -704,7 +669,7 @@ void HCSVirtualMachine::add_network_interface(int index,
                extra_interface.auto_mode,
                extra_interface.id);
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
-    if (!(state == VirtualMachine::State::stopped))
+    if (get_state() != VirtualMachine::State::stopped)
     {
         // No need to do it for stopped machines
         mpl::info(get_name(),
@@ -772,7 +737,7 @@ void HCSVirtualMachine::recover_from_failed_save()
     const auto resume_result = HCS().resume_compute_system(hcs_system);
     if (resume_result)
     {
-        update_current_state();
+        (void)current_state();
         return;
     }
 
