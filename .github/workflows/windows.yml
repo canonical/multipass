@@ -66,6 +66,7 @@ jobs:
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
+      MULTIPASS_UPSTREAM: ${{ github.repository == 'canonical/multipass' && 'origin' || 'upstream' }}
       SCCACHE_DIR: ${{ github.workspace }}/.sccache
       #RUSTC_WRAPPER: "sccache" Removed due to concurrency issues between C++ and Rust
 
@@ -75,6 +76,13 @@ jobs:
       with:
         fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
+
+    - name: Fetch canonical upstream tags for fork builds
+      if: ${{ github.repository != 'canonical/multipass' }}
+      shell: bash
+      run: |
+        git remote get-url upstream >/dev/null 2>&1 || git remote add upstream https://github.com/canonical/multipass.git
+        git fetch --tags --force upstream
 
     - name: Enable symlinks
       run: git config --local core.symlinks true
@@ -203,7 +211,7 @@ jobs:
         -B${{ env.BUILD_DIR }}
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -GNinja
-        -DMULTIPASS_UPSTREAM=origin
+        -DMULTIPASS_UPSTREAM=${{ env.MULTIPASS_UPSTREAM }}
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
         ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
         ${{ github.event_name == 'schedule' && '-DMP_ALLOW_OPTIONAL_FEATURES=OFF' || '' }}

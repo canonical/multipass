@@ -86,6 +86,7 @@ jobs:
 
     env:
       FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+      MULTIPASS_UPSTREAM: ${{ github.repository == 'canonical/multipass' && 'origin' || 'upstream' }}
       SNAPCRAFT_BUILD_INFO: 1
       USERNAME: ${{ github.repository_owner }}
       VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
@@ -112,6 +113,13 @@ jobs:
         fetch-depth: 0 # Need full history to derive version
         submodules: 'recursive'
 
+    - name: Use canonical upstream refs for fork builds
+      if: ${{ github.repository != 'canonical/multipass' }}
+      shell: bash
+      run: |
+        git remote get-url upstream >/dev/null 2>&1 || git remote add upstream https://github.com/canonical/multipass.git
+        git fetch --tags --force upstream
+
     - name: Determine build parameters
       id: build-params
       uses: ./.github/actions/build-params
@@ -128,6 +136,7 @@ jobs:
     - name: Apply snapcraft-ci-override.yaml
       env:
         MULTIPASS_BUILD_LABEL:  ${{ steps.build-params.outputs.label }}
+        MULTIPASS_UPSTREAM: ${{ env.MULTIPASS_UPSTREAM }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         CMAKE_PRESET: ${{ matrix.cmake-preset }}
         MP_ALLOW_OPTIONAL_FEATURES: ${{ github.event_name == 'schedule' && 'OFF' || 'ON' }}
