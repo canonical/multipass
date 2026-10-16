@@ -260,7 +260,7 @@ std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::ssh_exec_process(const s
     std::optional<std::string> log_details = std::nullopt;
     bool reconnect = true;
 
-    // Fail fast: a stale cached session would block forever (established timeout is LONG_MAX).
+    // Fail fast: a stale cached session would otherwise block until timeout
     if (!MP_UTILS.is_running(current_state()))
     {
         drop_ssh_session();
