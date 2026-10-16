@@ -1505,7 +1505,12 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               spec_copy.extra_interfaces,
                                               spec_copy.ssh_username,
                                               vm_image,
-                                              cloud_init_iso};
+                                              cloud_init_iso,
+                                              spec_copy.metadata,
+                                              spec_copy.state,
+                                              spec_copy.clone_count,
+                                              spec_copy.deleted,
+                                              spec_copy.mounts};
 
         auto& instance_records_table = spec_copy.deleted ? deleted_instances : operative_instances;
 
@@ -3544,7 +3549,12 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 {},
                 config->ssh_username,
                 VMImage{},
-                ""};
+                "",
+                {},
+                VirtualMachine::State::off,
+                0,
+                false,
+                {}};
 
             CloudInitConfig cloud_init{};
             cloud_init.vendor_data = make_cloud_init_vendor_config(
