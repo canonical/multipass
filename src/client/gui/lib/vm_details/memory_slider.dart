@@ -115,7 +115,7 @@ class _MemorySliderState extends State<MemorySlider> {
     final sliderFormField = FormField<int>(
       key: formKey,
       initialValue: widget.initialValue,
-      onSaved: (value) => widget.onSaved(value!.clamp(widget.min, widget.max)),
+      onSaved: (value) => widget.onSaved(value?.clamp(widget.min, widget.max)),
       builder: (field) {
         return Column(
           children: [
