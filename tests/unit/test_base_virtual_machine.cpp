@@ -113,13 +113,14 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                 make_ssh_process,
                 (const std::string& cmd, bool whisper),
                 (override));
+    MOCK_METHOD(std::optional<St>, get_backend_state, (), (override));
 
     using mp::BaseVirtualMachine::desc;
     using mp::BaseVirtualMachine::renew_ssh_session; // promote to public
 
     void simulate_state(St state)
     {
-        this->state = state;
+        mp::BaseVirtualMachine::set_state(state);
         ON_CALL(*this, current_state).WillByDefault(Return(state));
     }
 
@@ -173,22 +174,22 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 
     void start() override
     {
-        state = St::running;
+        set_state(St::running);
     }
 
     void shutdown(ShutdownPolicy = ShutdownPolicy::Powerdown) override
     {
-        state = St::stopped;
+        set_state(St::stopped);
     }
 
     void suspend() override
     {
-        state = St::suspended;
+        set_state(St::suspended);
     }
 
-    St current_state() override
+    std::optional<St> get_backend_state() override
     {
-        return state;
+        return std::nullopt;
     }
 
     int ssh_port() override
