@@ -19,7 +19,10 @@
 
 #include <multipass/cli/command.h>
 
-namespace multipass::cmd
+namespace multipass
+{
+class AnimatedSpinner;
+namespace cmd
 {
 class Snapshot : public Command
 {
@@ -34,6 +37,11 @@ public:
 private:
     ParseCode parse_args(ArgParser* parser);
     bool confirm_restart(const std::string& name, bool is_suspended);
+    void handle_snapshot_restart_prompt(
+        const SnapshotReply& reply,
+        grpc::ClientReaderWriterInterface<SnapshotRequest, SnapshotReply>* client,
+        AnimatedSpinner& spinner);
     SnapshotRequest request;
 };
-} // namespace multipass::cmd
+} // namespace cmd
+} // namespace multipass

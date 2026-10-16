@@ -53,25 +53,7 @@ mp::ReturnCodeVariant cmd::Snapshot::run(mp::ArgParser* parser)
             spinner.start();
         }
 
-        if (reply.needs_prompt())
-        {
-            spinner.stop();
-
-            if (!term->is_live())
-            {
-                spinner.print(
-                    cerr,
-                    "Unable to query client for confirmation. Use '--restart' to automatically "
-                    "stop the running instance, take the snapshot and restart it.\n");
-                client->WritesDone();
-                return;
-            }
-
-            SnapshotRequest client_response;
-            client_response.set_restart(confirm_restart(request.instance(), reply.is_suspended()));
-            client->Write(client_response);
-            spinner.start();
-        }
+        handle_snapshot_restart_prompt(reply, client, spinner);
     };
 
     auto on_success = [this, &spinner](mp::SnapshotReply& reply) -> ReturnCodeVariant {
@@ -173,4 +155,29 @@ bool cmd::Snapshot::confirm_restart(const std::string& instance_name, bool is_su
         answer = prompter.prompt(invalid_input);
 
     return std::regex_match(answer, mp::client::yes_answer);
+}
+void cmd::Snapshot::handle_snapshot_restart_prompt(
+    const mp::SnapshotReply& reply,
+    grpc::ClientReaderWriterInterface<SnapshotRequest, SnapshotReply>* client,
+    AnimatedSpinner& spinner)
+{
+    if (reply.needs_prompt())
+    {
+        spinner.stop();
+
+        if (!term->is_live())
+        {
+            spinner.print(
+                cerr,
+                "Unable to query client for confirmation. Use '--restart' to automatically "
+                "stop the running instance, take the snapshot and restart it.\n");
+            client->WritesDone();
+            return;
+        }
+
+        SnapshotRequest client_response;
+        client_response.set_restart(confirm_restart(request.instance(), reply.is_suspended()));
+        client->Write(client_response);
+        spinner.start();
+    }
 }
