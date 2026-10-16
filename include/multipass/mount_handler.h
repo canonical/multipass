@@ -87,8 +87,7 @@ protected:
         : vm{vm},
           ssh_key_provider{ssh_key_provider},
           mount_spec{std::move(mount_spec)},
-          target{target},
-          active{false}
+          target{target}
     {
         std::error_code err;
         auto source_status = MP_FILEOPS.status(source, err);
@@ -123,12 +122,12 @@ protected:
         return Request{};
     }
 
-    VirtualMachine* vm;
-    const SSHKeyProvider* ssh_key_provider;
+    VirtualMachine* vm = nullptr;
+    const SSHKeyProvider* ssh_key_provider = nullptr;
     const VMMount mount_spec = {};
     const std::string target;
     const std::string& source = mount_spec.get_source_path();
-    bool active;
+    bool active = false;
     std::mutex active_mutex;
 };
 } // namespace multipass
