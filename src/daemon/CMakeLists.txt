@@ -39,7 +39,7 @@ include_directories(daemon
   ${CMAKE_SOURCE_DIR}/src/platform/backends)
 
 # Bake the mount MOTD script in, as a raw string literal
-set(MOUNT_MOTD_SCRIPT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/mount_motd.sh)
+set(MOUNT_MOTD_SCRIPT_FILE ${CMAKE_SOURCE_DIR}/data/guest/mount_motd.sh)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${MOUNT_MOTD_SCRIPT_FILE})
 file(READ ${MOUNT_MOTD_SCRIPT_FILE} MOUNT_MOTD_SCRIPT)
 if(MOUNT_MOTD_SCRIPT MATCHES "\\)sh\"")
