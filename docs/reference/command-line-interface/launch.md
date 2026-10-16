@@ -41,7 +41,7 @@ Use the `--timeout` option to change how long Multipass waits for the machine to
 The full `multipass help launch` output explains the available options:
 
 ```{code-block} text
-Usage: multipass launch [options] [[<remote:>]<image> | <url>]
+Usage: multipass launch [options] [[<remote>:]<image> | <url>]
 Create and start a new instance.
 
 Options:

@@ -463,31 +463,31 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const fake_vm_properties&
     QStringList array_elements;
     for (auto extra_interface : vm_properties.extra_ifaces)
     {
-        array_elements +=
-            QString::fromStdString(fmt::format("            {{\n"
-                                               "                \"auto_mode\": {},\n"
-                                               "                \"id\": \"{}\",\n"
-                                               "                \"mac_address\": \"{}\"\n"
-                                               "            }}\n",
-                                               extra_interface.auto_mode,
-                                               extra_interface.id,
-                                               extra_interface.mac_address));
+        array_elements += QString::fromStdString(
+            fmt::format("            {{\n"
+                        "                \"auto_mode\": {},\n"
+                        "                \"id\": \"{}\",\n"
+                        "                \"mac_address\": \"{}\"\n"
+                        "            }}\n",
+                        extra_interface.auto_mode,
+                        extra_interface.id,
+                        extra_interface.mac_address));
     }
     contents += array_elements.join(',');
 
-    contents +=
-        QString::fromStdString(fmt::format("        ],\n"
-                                           "        \"mac_addr\": \"{}\",\n"
-                                           "        \"mem_size\": \"1073741824\",\n"
-                                           "        \"metadata\": {{\n"
-                                           "            \"arguments\": [\n"
-                                           "                \"many\",\n"
-                                           "                \"arguments\"\n"
-                                           "            ],\n"
-                                           "            \"machine_type\": \"dmc-de-lorean\"\n"
-                                           "        }},\n"
-                                           "        \"mounts\": [\n",
-                                           vm_properties.default_mac));
+    contents += QString::fromStdString(
+        fmt::format("        ],\n"
+                    "        \"mac_addr\": \"{}\",\n"
+                    "        \"mem_size\": \"1073741824\",\n"
+                    "        \"metadata\": {{\n"
+                    "            \"arguments\": [\n"
+                    "                \"many\",\n"
+                    "                \"arguments\"\n"
+                    "            ],\n"
+                    "            \"machine_type\": \"dmc-de-lorean\"\n"
+                    "        }},\n"
+                    "        \"mounts\": [\n",
+                    vm_properties.default_mac));
 
     QStringList mount_array_elements;
     for (const auto& mount_pair : vm_properties.mounts)
@@ -503,22 +503,22 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const fake_vm_properties&
         QStringList gid_array_elements;
         for (const auto& gid_pair : mount.get_gid_mappings())
         {
-            gid_array_elements +=
-                QString::fromStdString(fmt::format("\n                    {{\n"
-                                                   "                        \"host_gid\": {},\n"
-                                                   "                        \"instance_gid\": {}\n"
-                                                   "                    }}",
-                                                   gid_pair.first,
-                                                   gid_pair.second));
+            gid_array_elements += QString::fromStdString(
+                fmt::format("\n                    {{\n"
+                            "                        \"host_gid\": {},\n"
+                            "                        \"instance_gid\": {}\n"
+                            "                    }}",
+                            gid_pair.first,
+                            gid_pair.second));
         }
         mount_element += gid_array_elements.join(',');
 
-        mount_element +=
-            QString::fromStdString(fmt::format("\n                ],\n"
-                                               "                \"source_path\": {:?},\n"
-                                               "                \"target_path\": {:?},\n",
-                                               mount.get_source_path(),
-                                               mountpoint));
+        mount_element += QString::fromStdString(
+            fmt::format("\n                ],\n"
+                        "                \"source_path\": {:?},\n"
+                        "                \"target_path\": {:?},\n",
+                        mount.get_source_path(),
+                        mountpoint));
         mount_element += QString::fromStdString(fmt::format("                \"mount_type\": {},\n"
                                                             "                \"uid_mappings\": [",
                                                             mount.get_mount_type()));
@@ -526,13 +526,13 @@ std::string mpt::DaemonTestFixture::fake_json_contents(const fake_vm_properties&
         QStringList uid_array_elements;
         for (const auto& uid_pair : mount.get_uid_mappings())
         {
-            uid_array_elements +=
-                QString::fromStdString(fmt::format("\n                    {{\n"
-                                                   "                        \"host_uid\": {},\n"
-                                                   "                        \"instance_uid\": {}\n"
-                                                   "                    }}",
-                                                   uid_pair.first,
-                                                   uid_pair.second));
+            uid_array_elements += QString::fromStdString(
+                fmt::format("\n                    {{\n"
+                            "                        \"host_uid\": {},\n"
+                            "                        \"instance_uid\": {}\n"
+                            "                    }}",
+                            uid_pair.first,
+                            uid_pair.second));
         }
         mount_element += uid_array_elements.join(',');
 
@@ -567,7 +567,7 @@ std::pair<std::unique_ptr<mpt::TempDir>, QString> mpt::DaemonTestFixture::plant_
 }
 
 template <typename R>
-bool mpt::DaemonTestFixture::is_ready(std::future<R> const& f)
+bool mpt::DaemonTestFixture::is_ready(std::future<R> const& f) const
 {
     // 5 seconds should be plenty of time for the work to be complete
     return f.wait_for(std::chrono::seconds(5)) == std::future_status::ready;
@@ -577,7 +577,7 @@ template <typename DaemonSlotPtr, typename Request, typename Server>
 grpc::Status mpt::DaemonTestFixture::call_daemon_slot(Daemon& daemon,
                                                       DaemonSlotPtr slot,
                                                       const Request& request,
-                                                      Server&& server)
+                                                      Server&& server) const
 {
     std::promise<grpc::Status> status_promise;
     auto status_future = status_promise.get_future();
@@ -604,55 +604,52 @@ grpc::Status mpt::DaemonTestFixture::call_daemon_slot(Daemon& daemon,
     return status_future.get();
 }
 
-template bool mpt::DaemonTestFixture::is_ready(std::future<grpc::Status> const&);
-
-template <class Reply, class Request>
-using DaemonSlotPtr = void (mp::Daemon::*)(const Request*,
-                                           grpc::ServerReaderWriterInterface<Reply, Request>*,
-                                           mp::DaemonRpcContext*);
-
-template <template <class> class MockT, class Reply, class Request>
-using Server = MockT<mpt::MockServerReaderWriter<Reply, Request>>;
+template bool mpt::DaemonTestFixture::is_ready(std::future<grpc::Status> const&) const;
 
 // Instantiate call_daemon_slot for each slot/mock/ref-qualifier the tests exercise.
 // Relies on every RPC message following the <cmd>Reply / <cmd>Request naming convention.
-#define MP_INSTANTIATE_CALL_DAEMON_SLOT(cmd, mock, ref)                                            \
+#define MP_INSTANTIATE_CALL_DAEMON_SLOT_(TYPE, SERVER_MOCK, SERVER_MOCK_REF)                       \
     template grpc::Status mpt::DaemonTestFixture::call_daemon_slot(                                \
         mp::Daemon&,                                                                               \
-        DaemonSlotPtr<mp::cmd##Reply, mp::cmd##Request>,                                           \
-        const mp::cmd##Request&,                                                                   \
-        Server<mock, mp::cmd##Reply, mp::cmd##Request> ref)
+        void (mp::Daemon::*)(                                                                      \
+            const mp::TYPE##Request*,                                                              \
+            grpc::ServerReaderWriterInterface<mp::TYPE##Reply, mp::TYPE##Request>*,                \
+            mp::DaemonRpcContext*),                                                                \
+        const mp::TYPE##Request&,                                                                  \
+        SERVER_MOCK##Mock<mpt::MockServerReaderWriter<mp::TYPE##Reply, mp::TYPE##Request>>         \
+            SERVER_MOCK_REF) const;
 
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Authenticate, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Version, StrictMock, &);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(List, StrictMock, &);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Keys, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Keys, StrictMock, &);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Get, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Get, StrictMock, &);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Set, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Set, StrictMock, &);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Networks, StrictMock, &);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Networks, NiceMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Purge, NiceMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Mount, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Umount, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Launch, StrictMock, &);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Start, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Restart, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Info, StrictMock, &);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Suspend, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Stop, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Snapshot, StrictMock, &);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Snapshot, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Restore, StrictMock, &);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Restore, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Clone, NiceMock, &);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Clone, NiceMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Snapshots, StrictMock, &);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Zones, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(Zones, StrictMock, &);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(ZonesState, StrictMock, &&);
-MP_INSTANTIATE_CALL_DAEMON_SLOT(ZonesState, StrictMock, &);
+#define MP_INSTANTIATE_CALL_DAEMON_SLOTS(TYPE)                                                     \
+    MP_INSTANTIATE_CALL_DAEMON_SLOT_(TYPE, Strict, &)                                              \
+    MP_INSTANTIATE_CALL_DAEMON_SLOT_(TYPE, Strict, &&)                                             \
+    MP_INSTANTIATE_CALL_DAEMON_SLOT_(TYPE, Nice, &)                                                \
+    MP_INSTANTIATE_CALL_DAEMON_SLOT_(TYPE, Nice, &&)
 
-#undef MP_INSTANTIATE_CALL_DAEMON_SLOT
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Authenticate)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Clone)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Delete)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Get)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Keys)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Images)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Info)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Launch)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(List)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Mount)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Networks)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Purge)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Remotes)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Restart)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Restore)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Set)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Snapshot)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Snapshots)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Start)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Stop)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Suspend)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Umount)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Version)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Zones)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(ZonesState)
+
+#undef MP_INSTANTIATE_CALL_DAEMON_SLOTS
+#undef MP_INSTANTIATE_CALL_DAEMON_SLOT_
