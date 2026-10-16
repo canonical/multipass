@@ -259,6 +259,7 @@ struct HyperVHCSVirtualMachine_UnitTests : public ::testing::Test
                     ASSERT_EQ(params.processor_count, 2);
                     ASSERT_EQ(params.scsi_devices.size(), 2);
                     EXPECT_EQ(params.scsi_devices.front().path.get(), desc.image.image_path);
+                    ASSERT_EQ(params.shares.size(), 0);
                 },
                 SetArgReferee<1>(mock_handle),
                 Return(hcs_op_result_t{0, L""})));
@@ -1323,6 +1324,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, update_cpus)
                 ASSERT_EQ(params.network_adapters.size(), 1);
                 ASSERT_EQ(params.processor_count, 55);
                 ASSERT_EQ(params.scsi_devices.size(), 2);
+                ASSERT_EQ(params.shares.size(), 0);
             },
             SetArgReferee<1>(mock_handle),
             Return(hcs_op_result_t{0, L""})));
@@ -1352,6 +1354,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_memory)
                 ASSERT_EQ(params.network_adapters.size(), 1);
                 ASSERT_EQ(params.processor_count, 2);
                 ASSERT_EQ(params.scsi_devices.size(), 2);
+                ASSERT_EQ(params.shares.size(), 0);
             },
             SetArgReferee<1>(mock_handle),
             Return(hcs_op_result_t{0, L""})));
@@ -1385,6 +1388,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, resize_disk)
                 ASSERT_EQ(params.network_adapters.size(), 1);
                 ASSERT_EQ(params.processor_count, 2);
                 ASSERT_EQ(params.scsi_devices.size(), 2);
+                ASSERT_EQ(params.shares.size(), 0);
             },
             SetArgReferee<1>(mock_handle),
             Return(hcs_op_result_t{0, L""})));

@@ -80,7 +80,7 @@ std::string command_get_existing_parent(const std::string& path)
 
 std::string tag_from_target(const std::string& target)
 {
-    return multipass::QemuMountHandler::make_tag(target);
+    return multipass::utils::make_mount_tag(target);
 }
 
 std::string command_mount(const std::string& target)
