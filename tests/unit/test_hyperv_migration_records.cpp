@@ -306,7 +306,6 @@ struct HyperVMigrationEligibility : Test
             data_dir / "hcs" / "multipassd-vm-instances.json",
             mp::pretty_print(boost::json::object{{"vm", boost::json::value_from(vm_spec())}}));
 
-        vm->state = mp::VirtualMachine::State::stopped;
         EXPECT_CALL(*vm, current_state()).Times(0);
     }
 
@@ -352,7 +351,7 @@ struct HyperVMigrationEligibility : Test
     mpt::StubAvailabilityZoneManager az_manager;
     mpt::StubVirtualMachineFactory factory{az_manager};
     std::shared_ptr<StrictMock<mpt::MockVirtualMachine>> vm =
-        std::make_shared<StrictMock<mpt::MockVirtualMachine>>();
+        std::make_shared<StrictMock<mpt::MockVirtualMachine>>(mp::VirtualMachine::State::stopped);
     std::unordered_map<std::string, mp::VMSpecs> specs{{"vm", vm_spec()}};
     mhv::DaemonHyperVInstanceMigrator::InstanceTable instances{{"vm", vm}};
     mhv::DaemonHyperVInstanceMigrator::InstanceTable deleted_instances;
@@ -370,7 +369,8 @@ TEST_F(HyperVMigrationEligibility, confirmsStoppedStateBeforeCheckingTargetColli
 
 TEST_F(HyperVMigrationEligibility, acceptsHostStoppedStateDespiteStaleRunningState)
 {
-    vm->state = mp::VirtualMachine::State::running;
+    EXPECT_CALL(*vm, set_state(mp::VirtualMachine::State::running));
+    vm->set_state(mp::VirtualMachine::State::running);
     mock_query("Off");
 
     EXPECT_EQ(migrate(), "name already taken by a hcs instance");
@@ -508,8 +508,8 @@ struct HyperVBulkMigration : Test
 
     void add_instance(const std::string& name)
     {
-        auto vm = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
-        vm->state = mp::VirtualMachine::State::stopped;
+        auto vm = std::make_shared<NiceMock<mpt::MockVirtualMachine>>(
+            mp::VirtualMachine::State::stopped);
         ON_CALL(*vm, instance_directory())
             .WillByDefault(Return(QDir{QString::fromStdWString(source_dir(name).wstring())}));
         EXPECT_CALL(*vm, current_state()).Times(0);

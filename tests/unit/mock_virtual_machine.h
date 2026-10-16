@@ -46,10 +46,11 @@ struct MockVirtualMachineT : public T
     {
     }
 
-    template <typename... Args>
+    explicit MockVirtualMachineT(
+        std::unique_ptr<TempDir>&& tmp_dir,
+        VirtualMachine::State initial_state = VirtualMachine::State::stopped)
         requires(std::same_as<VirtualMachine, T>)
-    explicit MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
-        : T{std::forward<Args>(args)...}, tmp_dir{std::move(tmp_dir)}
+        : tmp_dir{std::move(tmp_dir)}, state{initial_state}
     {
         setup_default_actions();
     }
@@ -65,8 +66,21 @@ struct MockVirtualMachineT : public T
     void setup_default_actions()
     {
         ON_CALL(*this, get_name).WillByDefault(ReturnRefOfCopy(std::string{"mock-vm"}));
-        ON_CALL(*this, current_state)
-            .WillByDefault(Return(multipass::VirtualMachine::State::stopped));
+        if constexpr (std::same_as<VirtualMachine, T>)
+        {
+            ON_CALL(*this, current_state).WillByDefault([this] { return state; });
+            ON_CALL(*this, set_state).WillByDefault([this](VirtualMachine::State new_state) {
+                state = new_state;
+            });
+        }
+        else
+        {
+            ON_CALL(*this, current_state)
+                .WillByDefault(Return(multipass::VirtualMachine::State::stopped));
+            ON_CALL(*this, set_state).WillByDefault([this](VirtualMachine::State new_state) {
+                T::set_state(new_state);
+            });
+        }
         ON_CALL(*this, ssh_port).WillByDefault(Return(42));
         ON_CALL(*this, ssh_hostname()).WillByDefault(Return("localhost"));
         ON_CALL(*this, ssh_username).WillByDefault(Return("ubuntu"));
@@ -82,6 +96,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(void, suspend, (), (override));
     MOCK_METHOD(bool, set_available, (bool), (override));
     MOCK_METHOD(VirtualMachine::State, current_state, (), (override));
+    MOCK_METHOD(void, set_state, (VirtualMachine::State), (override));
     MOCK_METHOD(int, ssh_port, (), (override));
     MOCK_METHOD(std::string, ssh_hostname, (), (override));
     MOCK_METHOD(std::string, ssh_username, (), (const, override));
@@ -152,6 +167,10 @@ struct MockVirtualMachineT : public T
     }
 
     std::unique_ptr<TempDir> tmp_dir;
+
+private:
+    // Only used when mocking the plain VirtualMachine interface; backend mocks use their own state
+    VirtualMachine::State state{VirtualMachine::State::stopped};
 };
 
 using MockVirtualMachine = MockVirtualMachineT<>;
