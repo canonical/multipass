@@ -21,6 +21,7 @@
 #include <multipass/process/process_spec.h>
 #include <multipass/singleton.h>
 
+#include <atomic>
 #include <memory>
 #include <optional>
 
@@ -42,6 +43,7 @@ public:
 
 private:
     const std::optional<AppArmor> apparmor;
+    mutable std::atomic_uint64_t process_counter{0};
 };
 
 } // namespace multipass

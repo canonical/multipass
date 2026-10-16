@@ -29,6 +29,11 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
+namespace
+{
+const QString apparmor_profile_name{"multipass.dnsmasq"};
+}
+
 struct TestDnsmasqProcessSpec : public Test
 {
     const QString data_dir{"/data"};
@@ -63,27 +68,28 @@ TEST_F(TestDnsmasqProcessSpec, defaultArgumentsCorrect)
                            "1.2.3.2,1.2.3.254,infinite"}));
 }
 
-TEST_F(TestDnsmasqProcessSpec, apparmorProfileHasCorrectName)
+TEST_F(TestDnsmasqProcessSpec, apparmorProfileUsesProvidedName)
 {
     mp::DNSMasqProcessSpec spec(data_dir, subnets, conf_file_path);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains("profile multipass.dnsmasq"));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString{"profile %1"}.arg(apparmor_profile_name)));
 }
 
 TEST_F(TestDnsmasqProcessSpec, apparmorProfilePermitsDataDirs)
 {
     mp::DNSMasqProcessSpec spec(data_dir, subnets, conf_file_path);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains("/data/dnsmasq.leases rw,"));
-    EXPECT_TRUE(spec.apparmor_profile().contains("/data/dnsmasq.hosts r,"));
-    EXPECT_TRUE(spec.apparmor_profile().contains("/path/to/file.conf r,"));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name).contains("/data/dnsmasq.leases rw,"));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name).contains("/data/dnsmasq.hosts r,"));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name).contains("/path/to/file.conf r,"));
 }
 
 TEST_F(TestDnsmasqProcessSpec, apparmorProfileIdentifier)
 {
     mp::DNSMasqProcessSpec spec(data_dir, subnets, conf_file_path);
 
-    EXPECT_EQ(spec.identifier(), "");
+    EXPECT_TRUE(spec.identifier().isNull());
 }
 
 TEST_F(TestDnsmasqProcessSpec, apparmorProfileRunningAsSnapCorrect)
@@ -95,10 +101,10 @@ TEST_F(TestDnsmasqProcessSpec, apparmorProfileRunningAsSnapCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::DNSMasqProcessSpec spec(data_dir, subnets, conf_file_path);
 
-    EXPECT_TRUE(
-        spec.apparmor_profile().contains("signal (receive) peer=snap.multipass.multipassd"));
-    EXPECT_TRUE(
-        spec.apparmor_profile().contains(QString("%1/usr/sbin/dnsmasq ixr,").arg(snap_dir.path())));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains("signal (receive) peer=snap.multipass.multipassd"));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString("%1/usr/sbin/dnsmasq ixr,").arg(snap_dir.path())));
 }
 
 TEST_F(TestDnsmasqProcessSpec, apparmorProfileRunningAsSymlinkedSnapCorrect)
@@ -113,8 +119,8 @@ TEST_F(TestDnsmasqProcessSpec, apparmorProfileRunningAsSymlinkedSnapCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::DNSMasqProcessSpec spec(data_dir, subnets, conf_file_path);
 
-    EXPECT_TRUE(
-        spec.apparmor_profile().contains(QString("%1/usr/sbin/dnsmasq ixr,").arg(snap_dir.path())));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString("%1/usr/sbin/dnsmasq ixr,").arg(snap_dir.path())));
 }
 
 TEST_F(TestDnsmasqProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
@@ -125,6 +131,8 @@ TEST_F(TestDnsmasqProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::DNSMasqProcessSpec spec(data_dir, subnets, conf_file_path);
 
-    EXPECT_TRUE(spec.apparmor_profile().contains("signal (receive) peer=unconfined"));
-    EXPECT_TRUE(spec.apparmor_profile().contains(" /usr/sbin/dnsmasq ixr,")); // space wanted
+    EXPECT_TRUE(
+        spec.apparmor_profile(apparmor_profile_name).contains("signal (receive) peer=unconfined"));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(" /usr/sbin/dnsmasq ixr,")); // space wanted
 }

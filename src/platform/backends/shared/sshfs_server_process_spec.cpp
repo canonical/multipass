@@ -84,7 +84,7 @@ mp::logging::Level mp::SSHFSServerProcessSpec::error_log_level() const
     return mp::logging::Level::debug;
 }
 
-QString mp::SSHFSServerProcessSpec::apparmor_profile() const
+QString mp::SSHFSServerProcessSpec::apparmor_profile(const QString& profile_name) const
 {
     QString profile_template(R"END(
 #include <tunables/global>
@@ -147,7 +147,7 @@ profile %1 flags=(attach_disconnected) {
         signal_peer = "unconfined";
     }
 
-    return profile_template.arg(apparmor_profile_name(),
+    return profile_template.arg(profile_name,
                                 signal_peer,
                                 root_dir,
                                 QString::fromStdString(config.source_path));

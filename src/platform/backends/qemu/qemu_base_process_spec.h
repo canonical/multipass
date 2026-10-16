@@ -29,7 +29,7 @@ public:
 
     QString program() const override;
     QString working_directory() const override;
-    QString apparmor_profile() const override;
+    QString apparmor_profile(const QString& profile_name) const override;
     virtual QString firmware_path() const;
 };
 

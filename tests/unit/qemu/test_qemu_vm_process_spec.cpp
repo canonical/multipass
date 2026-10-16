@@ -31,6 +31,11 @@ namespace mpt = multipass::test;
 namespace mpu = multipass::utils;
 using namespace testing;
 
+namespace
+{
+const QString apparmor_profile_name{"multipass.vm_name.qemu-system-test"};
+}
+
 struct TestQemuVMProcessSpec : public Test
 {
     const mp::VirtualMachineDescription desc{2 /*cores*/,
@@ -151,24 +156,28 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileIncludesFileMountPerms)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr("path/to/source/ rw"));
-    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr("path/to/source/** rwlk"));
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
+                HasSubstr("path/to/source/ rw"));
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
+                HasSubstr("path/to/source/** rwlk"));
 }
 
-TEST_F(TestQemuVMProcessSpec, apparmorProfileHasCorrectName)
+TEST_F(TestQemuVMProcessSpec, apparmorProfileUsesProvidedName)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_THAT(spec.apparmor_profile().toStdString(),
-                HasSubstr("profile multipass.vm_name.qemu-system-"));
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
+                HasSubstr(QString{"profile %1"}.arg(apparmor_profile_name).toStdString()));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileIncludesDiskImages)
 {
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr("/path/to/image rwk,"));
-    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr("/path/to/cloud_init.iso rk,"));
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
+                HasSubstr("/path/to/image rwk,"));
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
+                HasSubstr("/path/to/cloud_init.iso rk,"));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileIdentifier)
@@ -187,11 +196,12 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileRunningAsSnapCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
                 HasSubstr("signal (receive) peer=snap.multipass.multipassd"));
-    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
                 HasSubstr(spec.firmware_path().toStdString()));
-    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr(spec.program().toStdString()));
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
+                HasSubstr(spec.program().toStdString()));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileRunningAsSymlinkedSnapCorrect)
@@ -206,9 +216,10 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileRunningAsSymlinkedSnapCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
                 HasSubstr(spec.firmware_path().toStdString()));
-    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr(spec.program().toStdString()));
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
+                HasSubstr(spec.program().toStdString()));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
@@ -218,11 +229,12 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
     mpt::UnsetEnvScope e("SNAP");
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
-    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
                 HasSubstr("signal (receive) peer=unconfined"));
-    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
                 HasSubstr(spec.firmware_path().toStdString()));
-    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr(spec.program().toStdString()));
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
+                HasSubstr(spec.program().toStdString()));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileLetsBridgeHelperRunInSnap)
@@ -234,7 +246,7 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileLetsBridgeHelperRunInSnap)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_THAT(spec.apparmor_profile().toStdString(),
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
                 HasSubstr(QString(" %1/bin/bridge_helper").arg(mpu::snap_dir()).toStdString()));
 }
 
@@ -246,5 +258,6 @@ TEST_F(TestQemuVMProcessSpec, apparmorProfileLetsBridgeHelperRunOutsideSnap)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, std::nullopt);
 
-    EXPECT_THAT(spec.apparmor_profile().toStdString(), HasSubstr(" /bin/bridge_helper"));
+    EXPECT_THAT(spec.apparmor_profile(apparmor_profile_name).toStdString(),
+                HasSubstr(" /bin/bridge_helper"));
 }

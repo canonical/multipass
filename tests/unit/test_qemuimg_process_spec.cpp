@@ -34,6 +34,11 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
+namespace
+{
+const QString apparmor_profile_name{"multipass.qemu-img"};
+}
+
 TEST(TestQemuImgProcessSpec, programCorrect)
 {
     mp::QemuImgProcessSpec spec({}, "");
@@ -56,18 +61,20 @@ TEST(TestQemuImgProcessSpec, argumentsSetCorrectly)
     EXPECT_EQ(spec.arguments(), args);
 }
 
-TEST(TestQemuImgProcessSpec, apparmorProfileHasCorrectName)
-{
-    mp::QemuImgProcessSpec spec({}, "");
-
-    EXPECT_TRUE(spec.apparmor_profile().contains("profile multipass.qemu-img"));
-}
-
 TEST(TestQemuImgProcessSpec, noApparmorProfileIdentifier)
 {
     mp::QemuImgProcessSpec spec({}, "");
 
-    EXPECT_EQ(spec.identifier(), "");
+    EXPECT_TRUE(spec.identifier().isNull());
+}
+
+TEST(TestQemuImgProcessSpec, apparmorProfileUsesProvidedName)
+{
+    mp::QemuImgProcessSpec spec({}, "");
+    const QString profile_name{"multipass.42.qemu-img"};
+
+    EXPECT_TRUE(
+        spec.apparmor_profile(profile_name).contains(QString{"profile %1"}.arg(profile_name)));
 }
 
 TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapCorrect)
@@ -80,8 +87,10 @@ TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, source_image.toStdString());
 
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 ixr,").arg(spec.program())));
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString("%1 ixr,").arg(spec.program())));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString("%1 rwk,").arg(source_image)));
 }
 
 TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapWithTargetCorrect)
@@ -94,9 +103,12 @@ TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapWithTargetCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, source_image.toStdString(), target_image.toStdString());
 
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 ixr,").arg(spec.program())));
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(target_image)));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString("%1 ixr,").arg(spec.program())));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString("%1 rwk,").arg(source_image)));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString("%1 rwk,").arg(target_image)));
 }
 
 TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapWithOnlyTargetCorrect)
@@ -109,8 +121,10 @@ TEST(TestQemuImgProcessSpec, apparmorProfileRunningAsSnapWithOnlyTargetCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, "", target_image.toStdString());
 
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 ixr,").arg(spec.program())));
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(target_image)));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString("%1 ixr,").arg(spec.program())));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString("%1 rwk,").arg(target_image)));
 }
 
 TEST(TestQemuImgProcessSpec,
@@ -131,8 +145,10 @@ TEST(TestQemuImgProcessSpec,
     mpt::SetEnvScope e3("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, source_image.toStdString());
 
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 ixr,").arg(spec.program())));
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 rwk,").arg(source_image)));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString("%1 ixr,").arg(spec.program())));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString("%1 rwk,").arg(source_image)));
 }
 
 TEST(TestQemuImgProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
@@ -143,6 +159,8 @@ TEST(TestQemuImgProcessSpec, apparmorProfileNotRunningAsSnapCorrect)
     mpt::SetEnvScope e2("SNAP_NAME", snap_name);
     mp::QemuImgProcessSpec spec({}, "");
 
-    EXPECT_TRUE(spec.apparmor_profile().contains("capability dac_read_search,"));
-    EXPECT_TRUE(spec.apparmor_profile().contains(QString("%1 ixr,").arg(spec.program())));
+    EXPECT_TRUE(
+        spec.apparmor_profile(apparmor_profile_name).contains("capability dac_read_search,"));
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString("%1 ixr,").arg(spec.program())));
 }
