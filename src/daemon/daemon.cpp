@@ -98,6 +98,7 @@ namespace
 using namespace std::chrono_literals;
 
 using error_string = std::string;
+using St = mp::VirtualMachine::State;
 
 constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
@@ -1355,7 +1356,7 @@ suspend_validate_args(const InstanceTrail& instance_trail, const mp::SnapshotReq
 
     return {vm_ptr, grpc::Status::OK};
 }
-using St = mp::VirtualMachine::State;
+
 std::pair<bool, grpc::Status> snapshot_check_request(
     St state,
     bool restart,
@@ -1394,6 +1395,7 @@ std::pair<bool, grpc::Status> snapshot_check_request(
     }
     return {restart, grpc::Status::OK};
 }
+
 grpc::Status take_snapshot(mp::VirtualMachine& vm,
                            const mp::SnapshotRequest& request,
                            const mp::VMSpecs& specs,
