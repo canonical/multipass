@@ -30,6 +30,7 @@
 #include <multipass/format.h>
 #include <multipass/process/process.h>
 
+#include <QCoreApplication>
 #include <QFile>
 
 #include <utility>
@@ -215,8 +216,11 @@ TEST_F(ApparmoredProcessTest, identifiedProcessesUseSequenceAndIdentifierInAppar
     auto [second_process, second_policy] = setup_apparmored_process("test-identifier");
     ASSERT_NE(second_process, nullptr);
 
-    EXPECT_EQ(first_process->apparmor_profile_name(), "multipass.0.test-identifier.mock_process");
-    EXPECT_EQ(second_process->apparmor_profile_name(), "multipass.1.test-identifier.mock_process");
+    const auto process_id = QCoreApplication::applicationPid();
+    EXPECT_EQ(first_process->apparmor_profile_name(),
+              QString{"multipass.%1.0.test-identifier.mock_process"}.arg(process_id));
+    EXPECT_EQ(second_process->apparmor_profile_name(),
+              QString{"multipass.%1.1.test-identifier.mock_process"}.arg(process_id));
     EXPECT_NE(first_policy, second_policy);
 }
 

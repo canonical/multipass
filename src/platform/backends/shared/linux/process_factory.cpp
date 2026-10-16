@@ -26,6 +26,7 @@
 #include <multipass/process/simple_process_spec.h>
 #include <multipass/snap_utils.h>
 
+#include <QCoreApplication>
 #include <QFileInfo>
 
 namespace mp = multipass;
@@ -64,11 +65,16 @@ QString make_apparmor_profile_name(const mp::ProcessSpec& process_spec, uint64_t
 {
     const QString identifier = process_spec.identifier();
     const QString exe_path = QFileInfo{process_spec.program()}.fileName();
+    const qint64 pid = QCoreApplication::applicationPid();
 
     if (identifier.isNull())
-        return QString{"multipass.%1.%2"}.arg(process_num).arg(exe_path);
+        return QString{"multipass.%1.%2.%3"}.arg(pid).arg(process_num).arg(exe_path);
     else
-        return QString{"multipass.%1.%2.%3"}.arg(process_num).arg(identifier).arg(exe_path);
+        return QString{"multipass.%1.%2.%3.%4"}
+            .arg(pid)
+            .arg(process_num)
+            .arg(identifier)
+            .arg(exe_path);
 }
 } // namespace
 
