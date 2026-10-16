@@ -25,6 +25,7 @@
 
 #include <QProcess>
 
+#include <optional>
 #include <ranges>
 #include <string>
 #include <vector>
@@ -35,12 +36,15 @@ using namespace testing;
 
 namespace
 {
+const auto replacement = std::string{"\uFFFD"}; // replacement character: �
+
 struct Record
 {
     QString name; // the percent-encoded target
     std::string target;
     std::string source;
     std::string terminator = "\n";
+    std::optional<std::string> shown_source = std::nullopt; // when not shown verbatim
 };
 
 struct Scenario
@@ -65,7 +69,9 @@ struct MountMotdScript : public Test
 
         auto ret = std::string{"\nHost directories mounted by Multipass:\n\n"};
         for (const auto& record : records)
-            ret += fmt::format(" * {} (on {})\n", record.source, record.target);
+            ret += fmt::format(" * {} (on {})\n",
+                               record.shown_source.value_or(record.source),
+                               record.target);
 
         return ret;
     }
@@ -125,6 +131,11 @@ INSTANTIATE_TEST_SUITE_P(
                     {{"%2Fhome%2Fubuntu%2Fmy data", "/home/ubuntu/my data", "/a"},
                      {"%2Fz%25%2525", "/z%%25", "/b"}}},
            Scenario{"verbatimSources", {{"%2Fdata", "/data", "C:\\Users\\alice\\my data"}}},
-           Scenario{"noTrailingNewline", {{"%2Fdata", "/data", "/src", /*terminator=*/""}}}),
+           Scenario{"noTrailingNewline", {{"%2Fdata", "/data", "/src", /*terminator=*/""}}},
+           Scenario{"neutralizedControlCharacters",
+                    {{.name = "%2Fx\x1b[2Jy",
+                      .target = fmt::format("/x{}[2Jy", replacement),
+                      .source = "/a\x1b]0;title\ab",
+                      .shown_source = fmt::format("/a{0}]0;title{0}b", replacement)}}}),
     [](const TestParamInfo<Scenario>& info) { return info.param.name; });
 } // namespace
