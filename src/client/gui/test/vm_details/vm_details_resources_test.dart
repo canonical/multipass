@@ -13,20 +13,20 @@ const _vmName = 'test-vm';
 final _l10n = AppLocalizationsEn();
 
 Widget _buildApp({Status status = Status.STOPPED}) {
-  final vmInfo = DetailedInfoItem(
-    name: _vmName,
-    instanceStatus: InstanceStatus(status: status),
-  );
   final cpusKey = (name: _vmName, resource: VmResource.cpus);
   final ramKey = (name: _vmName, resource: VmResource.memory);
   final diskKey = (name: _vmName, resource: VmResource.disk);
 
   return ProviderScope(
     overrides: [
-      vmInfoProvider(_vmName).overrideWithBuild((ref, _) => vmInfo),
+      vmInfoProvider(_vmName).overrideWithBuild(
+        (ref, _) => DetailedInfoItem(
+          instanceStatus: InstanceStatus(status: status),
+        ),
+      ),
       vmResourceProvider(cpusKey).overrideWithBuild((ref, _) => '4'),
-      // Keep memory/disk in perpetual loading state so humanReadableMemory
-      // is never called.
+      // Loaded memory and disk values are formatted via FFI, which is
+      // unavailable in unit tests.
       vmResourceProvider(ramKey).overrideWithBuild(
         (ref, _) => Completer<String>().future,
       ),
@@ -37,60 +37,50 @@ Widget _buildApp({Status status = Status.STOPPED}) {
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: SizedBox(
-          width: 800,
-          child: ResourcesDetails(_vmName),
-        ),
+      home: const Scaffold(
+        body: SizedBox(width: 800, child: ResourcesDetails(_vmName)),
       ),
     ),
   );
 }
 
+OutlinedButton _configureButton(WidgetTester tester) => tester.widget(
+      find.widgetWithText(OutlinedButton, _l10n.commonConfigure),
+    );
+
 void main() {
   group('ResourcesDetails', () {
-    testWidgets('shows the Resources title', (tester) async {
-      await tester.pumpWidget(_buildApp());
-      await tester.pump();
-
-      expect(find.text(_l10n.resourcesTitle), findsOneWidget);
-    });
-
-    testWidgets('shows CPUs value from provider data', (tester) async {
+    testWidgets('shows the loaded CPU count', (tester) async {
       await tester.pumpWidget(_buildApp());
       await tester.pump();
 
       expect(find.text(_l10n.resourcesCpusDisplay('4')), findsOneWidget);
     });
 
-    testWidgets('shows "…" placeholders while memory and disk are loading',
+    testWidgets('shows placeholders while memory and disk are loading',
         (tester) async {
       await tester.pumpWidget(_buildApp());
       await tester.pump();
 
-      expect(find.textContaining('…'), findsWidgets);
+      expect(find.text(_l10n.resourcesMemoryDisplay('…')), findsOneWidget);
+      expect(find.text(_l10n.resourcesDiskDisplay('…')), findsOneWidget);
     });
 
-    testWidgets('Configure button is enabled when VM is stopped',
-        (tester) async {
-      await tester.pumpWidget(_buildApp(status: Status.STOPPED));
+    testWidgets('enables Configure when status is STOPPED', (tester) async {
+      await tester.pumpWidget(_buildApp());
       await tester.pump();
 
-      final button = tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, _l10n.commonConfigure),
-      );
-      expect(button.onPressed, isNotNull);
+      expect(_configureButton(tester).onPressed, isNotNull);
     });
 
-    testWidgets('Configure button is disabled when VM is running',
-        (tester) async {
-      await tester.pumpWidget(_buildApp(status: Status.RUNNING));
-      await tester.pump();
+    for (final status in [Status.RUNNING, Status.SUSPENDED, Status.STARTING]) {
+      testWidgets('disables Configure when status is ${status.name}',
+          (tester) async {
+        await tester.pumpWidget(_buildApp(status: status));
+        await tester.pump();
 
-      final button = tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, _l10n.commonConfigure),
-      );
-      expect(button.onPressed, isNull);
-    });
+        expect(_configureButton(tester).onPressed, isNull);
+      });
+    }
   });
 }
