@@ -21,9 +21,12 @@
 
 #include <src/daemon/mount_motd_cloud_init.h>
 
+#include <multipass/format.h>
+
 #include <QProcess>
 
 #include <string>
+#include <vector>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -31,13 +34,28 @@ using namespace testing;
 
 namespace
 {
-constexpr auto header = "\nHost directories mounted by Multipass:\n\n";
+struct Record
+{
+    QString name; // the percent-encoded target
+    std::string target;
+    std::string source;
+};
 
 struct MountMotdScript : public Test
 {
-    void plant(const QString& name, const std::string& source)
+    void plant(const Record& record, const std::string& terminator = "\n")
     {
-        mpt::make_file_with_content(records_dir.filePath(name), source);
+        mpt::make_file_with_content(records_dir.filePath(record.name), record.source + terminator);
+    }
+
+    // The output expected for the given records, in order
+    static std::string listing(const std::vector<Record>& records)
+    {
+        auto ret = std::string{"\nHost directories mounted by Multipass:\n\n"};
+        for (const auto& record : records)
+            ret += fmt::format(" * {} (on {})\n", record.source, record.target);
+
+        return ret;
     }
 
     // Run the script against the given records directory, returning its output
@@ -77,37 +95,42 @@ TEST_F(MountMotdScript, printsNothingWithoutRecordsDir)
 
 TEST_F(MountMotdScript, listsMountsSortedByTarget)
 {
-    plant("%2Fhome%2Fubuntu%2Fsrc", "/home/alice/src\n");
-    plant("%2Fhome%2Fubuntu%2Fdata", "/home/alice/data\n");
-    plant("%2Fmnt", "/srv\n");
+    const Record src{"%2Fhome%2Fubuntu%2Fsrc", "/home/ubuntu/src", "/home/alice/src"};
+    const Record data{"%2Fhome%2Fubuntu%2Fdata", "/home/ubuntu/data", "/home/alice/data"};
+    const Record mnt{"%2Fmnt", "/mnt", "/srv"};
 
-    EXPECT_EQ(run(),
-              std::string{header} + " * /home/alice/data (on /home/ubuntu/data)\n"
-                                    " * /home/alice/src (on /home/ubuntu/src)\n"
-                                    " * /srv (on /mnt)\n");
+    for (const auto& record : {src, data, mnt})
+        plant(record);
+
+    EXPECT_EQ(run(), listing({data, src, mnt}));
 }
 
 TEST_F(MountMotdScript, decodesTargets)
 {
-    plant("%2Fhome%2Fubuntu%2Fmy data", "/a\n");
-    plant("%2Fz%25%2525", "/b\n");
+    const Record spaced{"%2Fhome%2Fubuntu%2Fmy data", "/home/ubuntu/my data", "/a"};
+    const Record percent{"%2Fz%25%2525", "/z%%25", "/b"};
 
-    EXPECT_EQ(run(),
-              std::string{header} + " * /a (on /home/ubuntu/my data)\n"
-                                    " * /b (on /z%%25)\n");
+    plant(spaced);
+    plant(percent);
+
+    EXPECT_EQ(run(), listing({spaced, percent}));
 }
 
 TEST_F(MountMotdScript, printsSourcesVerbatim)
 {
-    plant("%2Fdata", "C:\\Users\\alice\\my data\n");
+    const Record windows{"%2Fdata", "/data", "C:\\Users\\alice\\my data"};
 
-    EXPECT_EQ(run(), std::string{header} + " * C:\\Users\\alice\\my data (on /data)\n");
+    plant(windows);
+
+    EXPECT_EQ(run(), listing({windows}));
 }
 
 TEST_F(MountMotdScript, acceptsRecordsWithoutTrailingNewline)
 {
-    plant("%2Fdata", "/src");
+    const Record record{"%2Fdata", "/data", "/src"};
 
-    EXPECT_EQ(run(), std::string{header} + " * /src (on /data)\n");
+    plant(record, /*terminator=*/"");
+
+    EXPECT_EQ(run(), listing({record}));
 }
 } // namespace
