@@ -79,7 +79,8 @@ mp::DelayedShutdownTimer::~DelayedShutdownTimer()
         {
             shutdown_timer.stop();
             mpl::info(virtual_machine->get_name(), "Cancelling delayed shutdown");
-            virtual_machine->state = VirtualMachine::State::running;
+            if (virtual_machine->current_state() == VirtualMachine::State::delayed_shutdown)
+                virtual_machine->set_state(VirtualMachine::State::running);
             attempt_ssh_exec(*virtual_machine, "wall The system shutdown has been cancelled");
         }
     });
@@ -87,7 +88,8 @@ mp::DelayedShutdownTimer::~DelayedShutdownTimer()
 
 void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
 {
-    if (virtual_machine->state == VirtualMachine::State::stopped)
+    const auto state{virtual_machine->current_state()};
+    if (state == VirtualMachine::State::stopped)
         return;
 
     if (delay > decltype(delay)(0))
@@ -122,7 +124,7 @@ void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
             }
         });
 
-        virtual_machine->state = VirtualMachine::State::delayed_shutdown;
+        virtual_machine->set_state(VirtualMachine::State::delayed_shutdown);
 
         shutdown_timer.start(delay < std::chrono::minutes(1) ? delay : std::chrono::minutes(1));
     }
