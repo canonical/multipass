@@ -23,19 +23,10 @@ namespace
 {
 constexpr auto script_path = "/etc/update-motd.d/60-multipass-mounts";
 
-// Lists the mounts recorded in the guest, one file per mount: the file name is the
-// percent-encoded target (only '%' and '/' are encoded) and its contents are the source.
-constexpr auto script = R"sh(#!/bin/sh
-# Written by Multipass
-set -- /run/multipass/mounts/*
-[ -e "$1" ] || exit 0
-
-printf '\nHost directories mounted by Multipass:\n\n'
-for record in "$@"; do
-    target=$(printf '%s' "${record##*/}" | sed 's|%2F|/|g; s|%25|%|g')
-    printf ' * %s (on %s)\n' "$(cat "$record")" "$target"
-done
-)sh";
+// mount_motd.sh, baked in at configure time
+constexpr auto script =
+#include "mount_motd.sh.inc"
+    ;
 } // namespace
 
 YAML::Node mp::mount_motd_cloud_init()
