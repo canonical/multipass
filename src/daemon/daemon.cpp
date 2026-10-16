@@ -3424,8 +3424,7 @@ void mp::Daemon::on_restart(const std::string& name)
 
             std::lock_guard<decltype(virtual_machine->state_mutex)> lock{
                 virtual_machine->state_mutex};
-            virtual_machine->state = VirtualMachine::State::running;
-            virtual_machine->handle_state_update();
+            virtual_machine->set_state(VirtualMachine::State::running);
         }
         catch (const std::out_of_range&)
         {
@@ -3903,7 +3902,7 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
         return grpc::Status{grpc::StatusCode::ABORTED,
                             fmt::format("instance \"{}\" is not running", name)};
 
-    if (vm.state == VirtualMachine::State::delayed_shutdown &&
+    if (vm.current_state() == VirtualMachine::State::delayed_shutdown &&
         delayed_shutdown_instances[name]->get_time_remaining() <= std::chrono::minutes(1))
         return grpc::Status{
             grpc::StatusCode::FAILED_PRECONDITION,
