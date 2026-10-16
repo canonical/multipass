@@ -43,7 +43,7 @@ namespace fs = std::filesystem;
 
 namespace
 {
-auto instance_state_for(const QString& name)
+std::optional<mp::VirtualMachine::State> instance_state_for(const QString& name)
 {
     QRegularExpression vmstate_re("VMState=\"([a-z]+)\"");
 
@@ -97,7 +97,7 @@ auto instance_state_for(const QString& name)
                    vminfo_output.toStdString());
     }
 
-    return mp::VirtualMachine::State::unknown;
+    return std::nullopt;
 }
 
 QStringList extra_net_args(int index, const mp::NetworkInterface& net)
@@ -253,11 +253,11 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                     "Could not storageattach DVD: {}",
                                     name);
 
-        state = State::stopped;
+        set_state(State::stopped);
     }
     else
     {
-        state = instance_state_for(name);
+        (void)current_state();
     }
 }
 
@@ -352,15 +352,13 @@ mp::VirtualBoxVirtualMachine::~VirtualBoxVirtualMachine()
 
 void mp::VirtualBoxVirtualMachine::start()
 {
-    state = State::starting;
-    handle_state_update();
-
     try
     {
         mpu::process_throw_on_error("VBoxManage",
                                     {"startvm", name, "--type", "headless"},
                                     "Could not start VM: {}",
                                     name);
+        set_state(State::starting);
     }
     catch (const std::exception& e)
     {
@@ -390,9 +388,9 @@ void mp::VirtualBoxVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     {
         mpl::info(vm_name, "Forcing shutdown");
         // virtualbox needs the discardstate command to shutdown in the suspend state, it discards
-        // the saved state of the vm, which is akin to resetting it to the off state without a
+        // the saved state of the vm, which is akin to resetting it to the stopped state without a
         // proper shutdown process
-        if (state == State::suspended)
+        if (get_state() == State::suspended)
         {
             mpu::process_throw_on_error("VBoxManage",
                                         {"discardstate", name},
@@ -415,7 +413,7 @@ void mp::VirtualBoxVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
                                     name);
     }
 
-    state = State::stopped;
+    set_state(State::stopped);
 
     // If it wasn't force, we wouldn't be here
     if (present_state == State::starting)
@@ -424,7 +422,6 @@ void mp::VirtualBoxVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     }
 
     port = std::nullopt;
-    handle_state_update();
 }
 
 void mp::VirtualBoxVirtualMachine::suspend()
@@ -440,10 +437,7 @@ void mp::VirtualBoxVirtualMachine::suspend()
 
         drop_ssh_session();
         if (update_suspend_status)
-        {
-            state = State::suspended;
-            handle_state_update();
-        }
+            set_state(State::suspended);
     }
     else if (present_state == State::stopped)
     {
@@ -459,19 +453,15 @@ bool mp::VirtualBoxVirtualMachine::set_available(bool /*available*/)
     return false;
 }
 
-mp::VirtualMachine::State mp::VirtualBoxVirtualMachine::current_state()
+std::optional<mp::VirtualMachine::State> mp::VirtualBoxVirtualMachine::get_backend_state()
 {
     auto present_state = instance_state_for(name);
 
-    if ((state == State::delayed_shutdown && present_state == State::running) ||
-        state == State::starting)
-        return state;
-
-    state = present_state;
-    if (state == State::suspended || state == State::suspending)
+    if (present_state.has_value() &&
+        (present_state.value() == State::suspended || present_state.value() == State::suspending))
         drop_ssh_session();
 
-    return state;
+    return present_state;
 }
 
 int mp::VirtualBoxVirtualMachine::ssh_port()
@@ -502,11 +492,6 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
         port.emplace(socket.serverPort());
     }
     return *port;
-}
-
-void mp::VirtualBoxVirtualMachine::handle_state_update()
-{
-    monitor.persist_state_for(vm_name, state);
 }
 
 std::string mp::VirtualBoxVirtualMachine::ssh_hostname()
