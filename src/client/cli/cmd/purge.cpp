@@ -20,6 +20,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/platform.h>
+#include <multipass/user_messages/deprecation_warning.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -101,6 +102,10 @@ mp::ParseCode cmd::Purge::parse_args(mp::ArgParser* parser)
         cerr << "This command takes no arguments\n";
         return ParseCode::CommandLineError;
     }
+
+    cerr << mp::make_deprecation_warning(
+        "`multipass purge`",
+        "Use `multipass delete <instance>` to permanently delete an instance");
 
     return status;
 }
