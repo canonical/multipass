@@ -71,6 +71,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 {doc}`Use instance command aliases <how-to-guides/manage-instances/use-instance-command-aliases>` slice
 {doc}`Remove an instance <how-to-guides/manage-instances/remove-an-instance>`
 {doc}`Instance states <reference/instance-states>`
+{doc}`Instance name format <reference/instance-name-format>`
 ```
 
 ```{slice} Snapshots and cloning
@@ -90,7 +91,6 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 {doc}`Available settings <reference/settings/index>`
 {doc}`Settings keys and values <explanation/settings-keys-values>`
-{doc}`Instance name format <reference/instance-name-format>`
 ```
 
 ```{slice} Deinstallation
