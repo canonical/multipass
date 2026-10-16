@@ -18,6 +18,8 @@
 
 #include "hyperv_migration.h"
 
+#include "default_vm_image_vault.h"
+
 #include <hcs/hcs_virtual_machine_factory.h>
 #include <hyperv_migration/hyperv_disk_layout.h>
 #include <hyperv_migration/hyperv_target_transaction.h>

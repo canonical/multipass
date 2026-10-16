@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include "default_vm_image_vault.h"
-
 #include <multipass/network_interface_info.h>
 #include <multipass/path.h>
 #include <multipass/virtual_machine.h>
@@ -39,6 +37,7 @@
 namespace multipass
 {
 class AvailabilityZoneManager;
+class VaultRecord;
 class VirtualMachineFactory;
 } // namespace multipass
 

@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include "daemon_config.h"
 #include "daemon_rpc.h"
 
 #include <multipass/async_periodic_download_task.h>

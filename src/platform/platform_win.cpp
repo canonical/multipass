@@ -267,10 +267,10 @@ Json::Value update_profiles(const QString& path,
     Json::Value ret = json_root;
     auto& profiles = edit_profiles(path, ret);
 
-    auto primary_profile_it =
-        std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
-            return profile["guid"] == mp::winterm_profile_guid;
-        });
+    auto primary_profile_it = std::find_if(
+        std::begin(profiles),
+        std::end(profiles),
+        [](const auto& profile) { return profile["guid"] == mp::winterm_profile_guid; });
 
     Json::Value* primary_profile_ptr = nullptr;
     if (primary_profile_it != std::end(profiles))
@@ -673,14 +673,14 @@ std::vector<std::string> unicast_addrs_to_net_addrs(
         switch (sa.sa_family)
         {
         case AF_INET:
-            network_addr =
-                ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN*>(&sa)->sin_addr,
-                                      unicast_addr->OnLinkPrefixLength);
+            network_addr = ip_utils().to_network(
+                reinterpret_cast<const SOCKADDR_IN*>(&sa)->sin_addr,
+                unicast_addr->OnLinkPrefixLength);
             break;
         case AF_INET6:
-            network_addr =
-                ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN6*>(&sa)->sin6_addr,
-                                      unicast_addr->OnLinkPrefixLength);
+            network_addr = ip_utils().to_network(
+                reinterpret_cast<const SOCKADDR_IN6*>(&sa)->sin6_addr,
+                unicast_addr->OnLinkPrefixLength);
             break;
         }
 
@@ -917,8 +917,8 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
     }
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir,
-                                                         AvailabilityZoneManager& az_manager)
+std::unique_ptr<mp::VirtualMachineFactory>
+mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_manager)
 {
     const auto driver = MP_SETTINGS.get(mp::driver_key);
 
@@ -1258,8 +1258,8 @@ QString mp::platform::Platform::multipass_storage_location() const
     }
 
     auto program_data_path = program_data_multipass_path();
-    auto systemprofile_roaming_path =
-        QDir{systemprofile_app_data_path()}.absoluteFilePath("Roaming");
+    auto systemprofile_roaming_path = QDir{systemprofile_app_data_path()}.absoluteFilePath(
+        "Roaming");
 
     // If %PROGRAMDATA%\Multipass exists or if
     // %SYSTEMROOT%\system32\config\AppData\Roaming\multipassd doesn't exist, use

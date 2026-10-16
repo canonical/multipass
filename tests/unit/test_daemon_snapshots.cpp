@@ -22,6 +22,7 @@
 #include "mock_settings.h"
 #include "mock_snapshot.h"
 #include "mock_virtual_machine.h"
+#include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
 
 #include <src/daemon/daemon.h>

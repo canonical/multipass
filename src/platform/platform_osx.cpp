@@ -109,9 +109,9 @@ QStringList get_bridged_interfaces(const QString& if_name, const QString& ifconf
     // Search the substring of the full ifconfig output containing only the interface if_name.
     int start = ifconfig_output.indexOf(QRegularExpression{QStringLiteral("^%1:").arg(if_name),
                                                            QRegularExpression::MultilineOption});
-    int end =
-        ifconfig_output.indexOf(QRegularExpression("^\\w+:", QRegularExpression::MultilineOption),
-                                start + 1);
+    int end = ifconfig_output.indexOf(
+        QRegularExpression("^\\w+:", QRegularExpression::MultilineOption),
+        start + 1);
     auto ifconfig_entry = ifconfig_output.mid(start, end - start);
 
     // Search for the bridged interfaces in the resulting string ref.
@@ -200,8 +200,8 @@ mp::platform::Platform::get_network_interfaces_info() const
     mpl::trace(category, "Got the following output from networksetup:\n{}", nsetup_output);
 
     // split the output of networksetup in multiple entries (one per interface)
-    auto empty_line_regex =
-        QRegularExpression(QStringLiteral("^$"), QRegularExpression::MultilineOption);
+    auto empty_line_regex = QRegularExpression(QStringLiteral("^$"),
+                                               QRegularExpression::MultilineOption);
     auto nsetup_entries = nsetup_output.split(empty_line_regex, Qt::SkipEmptyParts);
 
     // Parse the output we got to obtain each interface's properties
@@ -311,8 +311,8 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
     return ret;
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir,
-                                                         AvailabilityZoneManager& az_manager)
+std::unique_ptr<mp::VirtualMachineFactory>
+mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_manager)
 {
     auto driver = MP_SETTINGS.get(mp::driver_key);
 
@@ -388,8 +388,8 @@ QDir mp::platform::Platform::get_alias_scripts_folder() const
 {
     QDir aliases_folder;
 
-    QString location =
-        MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) + "/bin";
+    QString location = MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) +
+                       "/bin";
     aliases_folder = QDir{location};
 
     return aliases_folder;

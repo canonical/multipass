@@ -22,14 +22,15 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
+#include <multipass/vm_image_vault.h>
 #include <multipass/vm_status_monitor.h>
 
-namespace multipass
+namespace multipass::test
 {
-namespace test
+
+class MockVirtualMachineFactory : public VirtualMachineFactory
 {
-struct MockVirtualMachineFactory : public VirtualMachineFactory
-{
+public:
     MOCK_METHOD(VirtualMachine::UPtr,
                 create_virtual_machine,
                 (const VirtualMachineDescription&, const SSHKeyProvider&, VMStatusMonitor&),
@@ -57,7 +58,7 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     MOCK_METHOD(QString, get_backend_directory_name, (), (const, override));
     MOCK_METHOD(QString, get_instance_directory, (const std::string&), (const, override));
     MOCK_METHOD(QString, get_backend_version_string, (), (const, override));
-    MOCK_METHOD(VMImageVault::UPtr,
+    MOCK_METHOD(std::unique_ptr<VMImageVault>,
                 create_image_vault,
                 (std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&),
                 (override));
@@ -67,5 +68,5 @@ struct MockVirtualMachineFactory : public VirtualMachineFactory
     // originally protected:
     MOCK_METHOD(std::string, create_bridge_with, (const NetworkInterfaceInfo&), (override));
 };
-} // namespace test
-} // namespace multipass
+
+} // namespace multipass::test
