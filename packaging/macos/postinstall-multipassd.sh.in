@@ -17,6 +17,16 @@ chown -R root:wheel "${3}@CPACK_PACKAGING_INSTALL_PREFIX@"
 # Create log dir and ensure correct permissions
 mkdir -p "$3/Library/Logs/Multipass" -m 755
 
+# Install the DNS resolver for the *.multipass domain
+RESOLVER_DIR="$3/etc/resolver"
+RESOLVER_FILE="$RESOLVER_DIR/multipass"
+mkdir -p -m 755 "$RESOLVER_DIR"
+cat > "$RESOLVER_FILE" <<'EOF'
+nameserver 127.0.0.1
+port 5380
+EOF
+chmod 644 "$RESOLVER_FILE"
+
 # Install launch agent
 cp -v "$LAUNCH_AGENT_SRC" "$LAUNCH_AGENT_DEST"
 launchctl load -w "$LAUNCH_AGENT_DEST"
