@@ -5,23 +5,25 @@ import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/providers.dart';
 import 'package:multipass_gui/vm_details/cpus_slider.dart';
 
-Widget _buildSlider(
-    {required int cpus, int? initialValue, void Function(int?)? onSaved}) {
+Widget buildWidget({
+  required int cores,
+  int? initialValue,
+  FormFieldSetter<int>? onSaved,
+}) {
   return ProviderScope(
     overrides: [
-      daemonInfoProvider.overrideWith((_) async => DaemonInfoReply(cpus: cpus)),
+      daemonInfoProvider.overrideWith(
+        (_) async => DaemonInfoReply(cpus: cores),
+      ),
     ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
-        body: SizedBox(
-          width: 600,
-          child: Form(
-            child: CpusSlider(
-              initialValue: initialValue,
-              onSaved: onSaved ?? (_) {},
-            ),
+        body: Form(
+          child: CpusSlider(
+            initialValue: initialValue,
+            onSaved: onSaved ?? (_) {},
           ),
         ),
       ),
@@ -29,88 +31,84 @@ Widget _buildSlider(
   );
 }
 
+String fieldText(WidgetTester tester) =>
+    tester.widget<TextField>(find.byType(TextField)).controller!.text;
+
+void saveForm(WidgetTester tester) =>
+    tester.state<FormState>(find.byType(Form)).save();
+
 void main() {
   group('CpusSlider', () {
-    testWidgets('initial value shown in text field', (tester) async {
-      await tester.pumpWidget(_buildSlider(cpus: 8, initialValue: 3));
-      await tester.pumpAndSettle();
-
-      final textField = tester.widget<TextField>(find.byType(TextField).first);
-      expect(textField.controller?.text, equals('3'));
-    });
-
-    testWidgets('text field rejects non-integer input', (tester) async {
-      await tester.pumpWidget(_buildSlider(cpus: 4, initialValue: 2));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextField).first, 'abc');
-      await tester.pump();
-
-      final textField = tester.widget<TextField>(find.byType(TextField).first);
-      // 'abc' should be rejected by the input formatter; the field stays at '2'
-      expect(textField.controller?.text, equals('2'));
-    });
-
-    testWidgets('over-provisioning warning shown when value exceeds cores',
+    testWidgets('labels the range from 1 to the number of cores',
         (tester) async {
-      await tester.pumpWidget(_buildSlider(cpus: 2, initialValue: 4));
-      await tester.pumpAndSettle();
-
-      expect(find.byIcon(Icons.warning_rounded), findsOneWidget);
-    });
-
-    testWidgets('no over-provisioning warning when value equals cores',
-        (tester) async {
-      await tester.pumpWidget(_buildSlider(cpus: 4, initialValue: 4));
-      await tester.pumpAndSettle();
-
-      expect(find.byIcon(Icons.warning_rounded), findsNothing);
-    });
-
-    testWidgets('onSaved is called with current value when form is saved',
-        (tester) async {
-      int? savedValue;
-      final formKey = GlobalKey<FormState>();
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            daemonInfoProvider.overrideWith(
-              (_) async => DaemonInfoReply(cpus: 8),
-            ),
-          ],
-          child: MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(
-              body: SizedBox(
-                width: 600,
-                child: Form(
-                  key: formKey,
-                  child: CpusSlider(
-                    initialValue: 3,
-                    onSaved: (v) => savedValue = v,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      formKey.currentState!.save();
-      await tester.pump();
-
-      expect(savedValue, equals(3));
-    });
-
-    testWidgets('min and max range labels are displayed', (tester) async {
-      await tester.pumpWidget(_buildSlider(cpus: 6, initialValue: 2));
+      await tester.pumpWidget(buildWidget(cores: 6, initialValue: 2));
       await tester.pumpAndSettle();
 
       expect(find.text('1'), findsOneWidget);
       expect(find.text('6'), findsOneWidget);
+    });
+
+    for (final (value, warns) in [(5, true), (4, false)]) {
+      testWidgets(
+          '${warns ? 'warns' : 'does not warn'} about over-provisioning '
+          'at $value CPUs with 4 cores', (tester) async {
+        await tester.pumpWidget(buildWidget(cores: 4, initialValue: value));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byIcon(Icons.warning_rounded),
+          warns ? findsOneWidget : findsNothing,
+        );
+      });
+    }
+
+    testWidgets('rejects non-integer input', (tester) async {
+      await tester.pumpWidget(buildWidget(cores: 4, initialValue: 2));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'abc');
+
+      expect(fieldText(tester), '2');
+    });
+
+    testWidgets('saves the initial value when untouched', (tester) async {
+      int? saved;
+      await tester.pumpWidget(
+        buildWidget(cores: 8, initialValue: 3, onSaved: (v) => saved = v),
+      );
+      await tester.pumpAndSettle();
+
+      saveForm(tester);
+
+      expect(saved, 3);
+    });
+
+    for (final (input, expected) in [('3', 3), ('99', 4), ('0', 1)]) {
+      testWidgets('saves typed "$input" as $expected with 4 cores',
+          (tester) async {
+        int? saved;
+        await tester.pumpWidget(
+          buildWidget(cores: 4, initialValue: 2, onSaved: (v) => saved = v),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField), input);
+        saveForm(tester);
+
+        expect(saved, expected);
+      });
+    }
+
+    testWidgets('snaps the field to the clamped value when focus is lost',
+        (tester) async {
+      await tester.pumpWidget(buildWidget(cores: 4, initialValue: 2));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), '99');
+      FocusManager.instance.primaryFocus!.unfocus();
+      await tester.pump();
+
+      expect(fieldText(tester), '4');
     });
   });
 }
