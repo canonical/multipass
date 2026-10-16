@@ -19,6 +19,7 @@
 #include "daemon_init_settings.h"
 #include "hyperv_driver_transition.h"
 #include "instance_settings_handler.h"
+#include "mount_motd_script.h"
 #include "runtime_instance_info_helper.h"
 #include "snapshot_settings_handler.h"
 
@@ -195,6 +196,14 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
         pollinate_user_agent_node["content"] = pollinate_user_agent_string;
 
         config["write_files"].push_back(pollinate_user_agent_node);
+
+        // Fedora's pam_motd does not run update-motd.d scripts
+        YAML::Node mount_motd_node;
+        mount_motd_node["path"] = mp::mount_motd_script_path;
+        mount_motd_node["permissions"] = "0755";
+        mount_motd_node["content"] = mp::mount_motd_script;
+
+        config["write_files"].push_back(mount_motd_node);
     }
 
     return config;
