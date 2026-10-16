@@ -46,8 +46,8 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 ```{slice} Use a virtual machine:
 
+{doc}`General usage <how-to-guides/manage-instances/use-an-instance>` slice
 {doc}`Multipass exec and shells <explanation/multipass-exec-and-shells>`
-{doc}`Use an instance <how-to-guides/manage-instances/use-an-instance>` slice
 ```
 
 ````
