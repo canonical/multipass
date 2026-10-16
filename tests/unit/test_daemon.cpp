@@ -601,6 +601,24 @@ struct DaemonCreateLaunchTestSuite : public Daemon, public WithParamInterface<st
 
         return ret;
     }
+
+    static void verify_motd_filename(const YAML::Node& script)
+    {
+        const auto name = fs::path{script["path"].as<std::string>()}.filename().string();
+        EXPECT_THAT(name, Not(IsEmpty()));
+        EXPECT_TRUE(std::ranges::all_of(name, [](unsigned char c) {
+            return std::isalnum(c) || c == '_' || c == '-'; // run-parts skips other files
+        })) << name;
+    }
+
+    static void verify_motd_permissions(const YAML::Node& script)
+    {
+        const auto mode = script["permissions"].as<std::string>();
+        const auto perms = fs::perms(std::stoi(mode, nullptr, 8));
+        EXPECT_NE(perms & fs::perms::owner_exec, fs::perms::none) << mode;
+        EXPECT_EQ(perms & (fs::perms::group_write | fs::perms::others_write), fs::perms::none)
+            << mode;
+    }
 };
 
 struct DaemonCreateLaunchPollinateDataTestSuite
@@ -956,18 +974,8 @@ TEST_P(DaemonCreateLaunchTestSuite, addsMountMotdScriptToCloudInitConfig)
             ASSERT_THAT(motd_scripts, SizeIs(1));
             const auto& script = motd_scripts.front();
 
-            const auto name = fs::path{script["path"].as<std::string>()}.filename().string();
-            EXPECT_THAT(name, Not(IsEmpty()));
-            EXPECT_TRUE(std::ranges::all_of(name, [](unsigned char c) {
-                return std::isalnum(c) || c == '_' || c == '-'; // run-parts skips other files
-            })) << name;
-
-            const auto mode = script["permissions"].as<std::string>();
-            const auto perms = fs::perms(std::stoi(mode, nullptr, 8));
-            EXPECT_NE(perms & fs::perms::owner_exec, fs::perms::none) << mode;
-            EXPECT_EQ(perms & (fs::perms::group_write | fs::perms::others_write), fs::perms::none)
-                << mode;
-
+            verify_motd_filename(script);
+            verify_motd_permissions(script);
             EXPECT_THAT(script["content"].as<std::string>(), StartsWith("#!"));
         });
 
