@@ -53,12 +53,11 @@ public:
     void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
     void suspend() override;
     bool set_available(bool available) override;
-    State current_state() override;
+    std::optional<State> get_backend_state() override;
     [[nodiscard]] int ssh_port() override;
     [[nodiscard]] std::string ssh_hostname() override;
     std::optional<IPAddress> management_ipv4() override;
     std::vector<IPAddress> get_all_ipv4() override;
-    void handle_state_update() override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;

@@ -54,10 +54,8 @@ public:
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
     void suspend() override;
-    State current_state() override;
     std::optional<IPAddress> management_ipv4() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
-    void handle_state_update() override;
     virtual void add_network_interface(int index,
                                        const std::string& default_mac_addr,
                                        const NetworkInterface& extra_interface) override;
@@ -80,6 +78,8 @@ protected:
 
     bool unplugged() override;
     void refresh_start() override;
+
+    std::optional<State> get_backend_state() override;
 
 private:
     void on_started();

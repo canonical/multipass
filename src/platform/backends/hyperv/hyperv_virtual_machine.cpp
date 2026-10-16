@@ -87,7 +87,8 @@ catch (...)
     return std::nullopt;
 }
 
-auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
+std::optional<mp::VirtualMachine::State> instance_state_for(mp::PowerShell* power_shell,
+                                                            const QString& name)
 {
     QString state;
 
@@ -115,7 +116,7 @@ auto instance_state_for(mp::PowerShell* power_shell, const QString& name)
         }
     }
 
-    return mp::VirtualMachine::State::unknown;
+    return std::nullopt;
 }
 
 void add_extra_net(mp::PowerShell& ps,
@@ -202,11 +203,11 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 
         setup_network_interfaces();
 
-        state = State::stopped;
+        set_state(State::stopped);
     }
     else
     {
-        state = instance_state_for(power_shell.get(), name);
+        (void)current_state();
     }
 }
 
@@ -271,7 +272,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
     // 6. Reset the default address, and extra interface addresses
     update_network_interfaces(src_vm_specs);
 
-    state = State::stopped;
+    set_state(State::stopped);
 
     remove_snapshots_from_backend();
     fs::remove_all(exported_vm_path);
@@ -363,17 +364,14 @@ void mp::HyperVVirtualMachine::start()
             mpl::warn(vm_name, "Could not remove all stale management IP entries");
     }
 
-    state = State::starting;
-    handle_state_update();
-
     QString output_err;
     if (!power_shell->run({"Start-VM", "-Name", name}, nullptr, &output_err))
     {
-        state = instance_state_for(power_shell.get(), name);
-        handle_state_update();
+        (void)current_state();
         save_error_msg(output_err.toStdString());
         throw StartException{vm_name, output_err.toStdString(), false};
     }
+    set_state(State::starting);
 }
 
 void mp::HyperVVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
@@ -403,15 +401,13 @@ void mp::HyperVVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         power_shell->run({"Stop-VM", "-Name", name});
     }
 
-    state = State::stopped;
+    set_state(State::stopped);
 
     // If it wasn't force, we wouldn't be here
     if (present_state == State::starting)
     {
         state_wait.wait(lock, [this] { return shutdown_while_starting; });
     }
-
-    handle_state_update();
 }
 
 void mp::HyperVVirtualMachine::suspend()
@@ -424,10 +420,7 @@ void mp::HyperVVirtualMachine::suspend()
 
         drop_ssh_session();
         if (update_suspend_status)
-        {
-            state = State::suspended;
-            handle_state_update();
-        }
+            set_state(State::suspended);
     }
     else if (present_state == State::stopped || present_state == State::unavailable)
     {
@@ -446,29 +439,22 @@ bool mp::HyperVVirtualMachine::set_available(bool /*available*/)
     return false;
 }
 
-mp::VirtualMachine::State mp::HyperVVirtualMachine::current_state()
+std::optional<mp::VirtualMachine::State> mp::HyperVVirtualMachine::get_backend_state()
 {
-    auto present_state = instance_state_for(power_shell.get(), name);
-
-    if ((state == State::delayed_shutdown && present_state == State::running) ||
-        state == State::starting)
-        return state;
-
-    state = present_state;
-    return state;
+    return instance_state_for(power_shell.get(), name);
 }
 
 void mp::HyperVVirtualMachine::handle_state_update()
 {
     // Invalidate the management IP address on state update.
-    if (current_state() == VirtualMachine::State::running)
+    if (get_state() == VirtualMachine::State::running)
     {
         // Cached IPs become stale when the guest is restarted from within. By resetting them here
         // we at least cover multipass's restart initiatives, which include state updates.
         mpl::debug(vm_name, "Invalidating cached mgmt IP address upon state update");
         management_ip = std::nullopt;
     }
-    monitor.persist_state_for(vm_name, state);
+    BaseVirtualMachine::handle_state_update();
 }
 
 std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
