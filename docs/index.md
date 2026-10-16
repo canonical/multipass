@@ -119,7 +119,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 {doc}`Mount an encrypted home folder <how-to-guides/troubleshoot/mount-an-encrypted-home-folder>`
 {doc}`Transfer files <reference/command-line-interface/transfer>`
 {doc}`Security considerations <explanation/mount>`
-{doc}`ID mapping <explanation/id-mapping>`
+{doc}`User and group ID mapping <explanation/id-mapping>`
 ```
 
 ```{slice} Network
