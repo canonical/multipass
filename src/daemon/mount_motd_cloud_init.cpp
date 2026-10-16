@@ -14,15 +14,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#pragma once
 
-namespace multipass
+#include "mount_motd_cloud_init.h"
+
+namespace mp = multipass;
+
+namespace
 {
-constexpr auto mount_motd_script_path = "/etc/update-motd.d/60-multipass-mounts";
+constexpr auto script_path = "/etc/update-motd.d/60-multipass-mounts";
 
 // Lists the mounts recorded in the guest, one file per mount: the file name is the
 // percent-encoded target (only '%' and '/' are encoded) and its contents are the source.
-constexpr auto mount_motd_script = R"sh(#!/bin/sh
+constexpr auto script = R"sh(#!/bin/sh
 # Written by Multipass
 set -- /run/multipass/mounts/*
 [ -e "$1" ] || exit 0
@@ -33,4 +36,14 @@ for record in "$@"; do
     printf ' * %s (on %s)\n' "$(cat "$record")" "$target"
 done
 )sh";
-} // namespace multipass
+} // namespace
+
+YAML::Node mp::mount_motd_cloud_init()
+{
+    YAML::Node entry;
+    entry["path"] = script_path;
+    entry["permissions"] = "0755";
+    entry["content"] = script;
+
+    return entry;
+}
