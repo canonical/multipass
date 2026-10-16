@@ -66,17 +66,21 @@ def get_boot_id(name):
 
 
 def restart_prologue(args, kwargs):
+    from .helpers import state
     logging.debug(f"restart_prologue: args: {args}, kwargs: {kwargs}")
     filtered_args = _restart_hook_common(args)
 
     boot_ids = {}
     for vm_name in filtered_args:
-        boot_ids[vm_name] = get_boot_id(vm_name)
-
+        if state(vm_name) == "Running":
+            boot_ids[vm_name] = get_boot_id(vm_name)
+        else:
+            boot_ids[vm_name] = None
     return boot_ids
 
 
 def restart_epilogue(args, kwargs, result, prologue_result):
+    from .helpers import state
     logging.debug(
         f"epilogue: args: {args}, kwargs: {kwargs}, result: {result}, prologue_result: {prologue_result}")
     filtered_args = _restart_hook_common(args)
@@ -93,7 +97,8 @@ def restart_epilogue(args, kwargs, result, prologue_result):
                         f"prev boot id {prologue_result[vm_name]} matches the current {boot_id}, VM hasn't restarted yet.")
                 return v
 
-        assert attempt_ssh(vm_name)
+        if state(vm_name) == "Running":
+            assert attempt_ssh(vm_name)
 
 
 @wrap_call_if("restart", restart_prologue, restart_epilogue)
