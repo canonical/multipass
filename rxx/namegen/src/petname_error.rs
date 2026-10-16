@@ -16,11 +16,12 @@
  */
 
 use std::fmt;
+use std::os::raw::c_char;
 
 #[derive(Debug, PartialEq)]
 pub enum PetnameError {
     InvalidWordNumber(i32),
-    InvalidSeparator(i8),
+    InvalidSeparator(c_char),
     PoisonedMutex,
 }
 
