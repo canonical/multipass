@@ -19,84 +19,53 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/client_common.h>
 #include <multipass/cli/prompters.h>
 #include <multipass/platform.h>
+
+#include <unordered_set>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-namespace
-{
-constexpr auto snapshot_purge_notice_msg =
-    "Snapshots can only be purged (after deletion, they cannot be recovered)";
-}
-
 mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
 {
-    auto ret = parse_args(parser);
-    if (ret != ParseCode::Ok)
-    {
+    if (const auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
+
+    if (ask_for_confirmation)
+    {
+        if (!term->is_live())
+            throw std::runtime_error{"Unable to query client for confirmation. Use '--force' to "
+                                     "delete without confirmation."};
+
+        if (!confirm())
+            return ReturnCode::CommandFail;
     }
 
-    auto on_success = [this](mp::DeleteReply& reply) -> ReturnCodeVariant {
-        auto size = reply.purged_instances_size();
-        for (auto i = 0; i < size; ++i)
-        {
-            const auto purged_instance = reply.purged_instances(i);
-            const auto removed_aliases = aliases.remove_aliases_for_instance(purged_instance);
-
-            for (const auto& removed_alias : removed_aliases)
-            {
-                const auto& [removal_context, removed_alias_name] = removed_alias;
-                try
-                {
-                    MP_PLATFORM.remove_alias_script(removal_context + "." + removed_alias_name);
-
-                    if (!aliases.exists_alias(removed_alias_name))
-                    {
-                        MP_PLATFORM.remove_alias_script(removed_alias_name);
-                    }
-                }
-                catch (const std::runtime_error& e)
-                {
-                    cerr << fmt::format("Warning: '{}' when removing alias script for {}.{}\n",
-                                        e.what(),
-                                        removal_context,
-                                        removed_alias_name);
-                }
-            }
-        }
+    auto on_success = [this](mp::DeleteReply&) -> ReturnCodeVariant {
+        for (const auto& item : request.instance_snapshot_pairs())
+            if (item.has_snapshot_name())
+                cout << fmt::format("{}.{} is deleted.\n",
+                                    item.instance_name(),
+                                    item.snapshot_name());
 
         return mp::ReturnCode::Ok;
     };
 
     auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
-        // grpc::StatusCode::FAILED_PRECONDITION matches mp::VMStateInvalidException
-        return status.error_code() == grpc::StatusCode::FAILED_PRECONDITION
-                   ? standard_failure_handler_for(name(),
-                                                  cerr,
-                                                  status,
-                                                  "Use --purge to forcefully delete it.")
-                   : standard_failure_handler_for(name(), cerr, status);
+        return standard_failure_handler_for(name(), cerr, status);
     };
 
     using Client = grpc::ClientReaderWriterInterface<DeleteRequest, DeleteReply>;
-    auto streaming_callback = [this](const mp::DeleteReply& reply, Client* client) {
+    auto streaming_callback = [this](const mp::DeleteReply& reply, Client*) {
         if (!reply.log_line().empty())
             cerr << reply.log_line();
 
-        // TODO refactor with bridging and restore prompts
-        if (reply.confirm_snapshot_purging())
+        for (const auto& instance : reply.deleted_instances())
         {
-            DeleteRequest client_response;
-
-            if (term->is_live())
-                client_response.set_purge_snapshots(confirm_snapshot_purge());
-            else
-                throw std::runtime_error{generate_snapshot_purge_msg()};
-
-            client->Write(client_response);
+            remove_aliases_for(instance);
+            cout << fmt::format("{} is deleted.\n", instance);
         }
     };
 
@@ -115,12 +84,8 @@ QString cmd::Delete::short_help() const
 
 QString cmd::Delete::description() const
 {
-    return QStringLiteral(
-        "Delete instances and snapshots (in stopped instances). Instances can be purged "
-        "immediately or later on,\n"
-        "with the \"purge\" command. Until they are purged, instances can be recovered\n"
-        "with the \"recover\" command. Snapshots cannot be recovered after deletion and must be "
-        "purged at once.");
+    return QStringLiteral("Permanently delete instances and snapshots (in stopped instances).\n"
+                          "Deleted instances and snapshots cannot be recovered after deletion.");
 }
 
 mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
@@ -130,10 +95,8 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
                                   "<instance>[.snapshot] [<instance>[.snapshot] ...]");
 
     QCommandLineOption all_option(all_option_name, "Delete all instances and snapshots");
-    QCommandLineOption purge_option(
-        {"p", "purge"},
-        "Permanently delete specified instances and snapshots immediately");
-    parser->addOptions({all_option, purge_option});
+    QCommandLineOption force_option{force_option_name, "Do not ask for confirmation"};
+    parser->addOptions({all_option, force_option});
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -143,58 +106,87 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
     if (status != ParseCode::Ok)
         return status;
 
-    request.set_purge(parser->isSet(purge_option));
     request.set_verbosity_level(parser->verbosityLevel());
+    delete_all = parser->isSet(all_option);
+    ask_for_confirmation = !parser->isSet(force_option);
 
-    status = parse_instances_snapshots(parser);
+    const auto items = cmd::add_instance_and_snapshot_names(parser);
+    std::unordered_set<std::string> instances;
+    for (const auto& item : items)
+        if (!item.has_snapshot_name())
+            instances.insert(item.instance_name());
 
-    return status;
+    // snapshots of instances being deleted go away with them
+    for (const auto& item : items)
+        if (!item.has_snapshot_name() || !instances.contains(item.instance_name()))
+            request.add_instance_snapshot_pairs()->CopyFrom(item);
+
+    return ParseCode::Ok;
 }
 
-mp::ParseCode cmd::Delete::parse_instances_snapshots(mp::ArgParser* parser)
+bool cmd::Delete::confirm() const
 {
-    for (const auto& item : cmd::add_instance_and_snapshot_names(parser))
+    std::string subject = "All instances";
+    if (!delete_all)
     {
-        if (!item.has_snapshot_name())
-            instance_args.append(fmt::format("{} ", item.instance_name()));
-        else
-            snapshot_args.append(fmt::format("{}.{} ", item.instance_name(), item.snapshot_name()));
+        std::vector<std::string> instances, snapshots;
+        for (const auto& item : request.instance_snapshot_pairs())
+        {
+            if (item.has_snapshot_name())
+                snapshots.push_back(
+                    fmt::format("{}.{}", item.instance_name(), item.snapshot_name()));
+            else
+                instances.push_back(item.instance_name());
+        }
 
-        request.add_instance_snapshot_pairs()->CopyFrom(item);
+        // joins items by comma with an 'and' for the last one e.g. "'a', 'b' and 'c'"
+        const auto format_list = [](const std::vector<std::string>& items) {
+            if (items.size() == 1)
+                return fmt::format("'{}'", items.front());
+
+            return fmt::format("'{}' and '{}'",
+                               fmt::join(items.begin(), items.end() - 1, "', '"),
+                               items.back());
+        };
+
+        std::vector<std::string> parts;
+        if (!instances.empty())
+            parts.push_back(fmt::format("Instance{} {}",
+                                        instances.size() == 1 ? "" : "s",
+                                        format_list(instances)));
+        if (!snapshots.empty())
+            parts.push_back(fmt::format("{}napshot{} {}",
+                                        instances.empty() ? "S" : "s",
+                                        snapshots.size() == 1 ? "" : "s",
+                                        format_list(snapshots)));
+
+        subject = fmt::format("{}", fmt::join(parts, ", and "));
     }
 
-    return mp::ParseCode::Ok;
+    static constexpr auto prompt_text =
+        "{} will be deleted permanently. Would you like to proceed?";
+
+    return YesNoPrompter{term}.prompt(fmt::format(prompt_text, subject), false);
 }
 
-// TODO refactor with bridging and restore prompts
-bool multipass::cmd::Delete::confirm_snapshot_purge() const
+void cmd::Delete::remove_aliases_for(const std::string& instance)
 {
-    static constexpr auto prompt_text = "{}. Are you sure you want to continue? (yes/No)";
-    static constexpr auto invalid_input = "Please answer yes/No";
-    mp::PlainPrompter prompter{term};
+    for (const auto& [removal_context, removed_alias_name] :
+         aliases.remove_aliases_for_instance(instance))
+    {
+        try
+        {
+            MP_PLATFORM.remove_alias_script(removal_context + "." + removed_alias_name);
 
-    auto answer = prompter.prompt(fmt::format(prompt_text, snapshot_purge_notice_msg));
-    while (!answer.empty() && !std::regex_match(answer, mp::client::yes_answer) &&
-           !std::regex_match(answer, mp::client::no_answer))
-        answer = prompter.prompt(invalid_input);
-
-    return std::regex_match(answer, mp::client::yes_answer);
-}
-
-std::string multipass::cmd::Delete::generate_snapshot_purge_msg() const
-{
-    const auto no_purge_base_error_msg =
-        fmt::format("{}. Unable to query client for confirmation. Please use the "
-                    "`--purge` flag if that is what you want",
-                    snapshot_purge_notice_msg);
-
-    if (!instance_args.empty())
-        return fmt::format(
-            "{}:\n\n\tmultipass delete --purge {}\n\nYou can use a separate command to delete "
-            "instances without purging them:\n\n\tmultipass delete {}\n",
-            no_purge_base_error_msg,
-            snapshot_args,
-            instance_args);
-    else
-        return fmt::format("{}.\n", no_purge_base_error_msg);
+            if (!aliases.exists_alias(removed_alias_name))
+                MP_PLATFORM.remove_alias_script(removed_alias_name);
+        }
+        catch (const std::runtime_error& e)
+        {
+            cerr << fmt::format("Warning: '{}' when removing alias script for {}.{}\n",
+                                e.what(),
+                                removal_context,
+                                removed_alias_name);
+        }
+    }
 }

@@ -173,6 +173,45 @@ INSTANTIATE_TEST_SUITE_P(CLIPrompters,
                          CLIPromptersBadCinState,
                          Values(std::ios::eofbit, std::ios::failbit, std::ios::badbit));
 
+class YesNoPrompterTests : public CLIPrompters,
+                           public WithParamInterface<std::tuple<std::string, bool, bool>>
+{
+};
+
+TEST_P(YesNoPrompterTests, returnsAnswerOrDefault)
+{
+    const auto& [answer, default_answer, expected] = GetParam();
+    cin.str(answer + "\n");
+
+    EXPECT_EQ(mp::YesNoPrompter{&term}.prompt("foo", default_answer), expected);
+    EXPECT_EQ(cout.str(), default_answer ? "foo [Y/n]: " : "foo [y/N]: ");
+}
+
+INSTANTIATE_TEST_SUITE_P(CLIPrompters,
+                         YesNoPrompterTests,
+                         Values(std::make_tuple("", true, true),
+                                std::make_tuple("", false, false),
+                                std::make_tuple("y", false, true),
+                                std::make_tuple("Yes", false, true),
+                                std::make_tuple("n", true, false),
+                                std::make_tuple("No", true, false)));
+
+TEST_F(CLIPrompters, yesNoReasksOnInvalidAnswer)
+{
+    cin.str("maybe\nyes\n");
+
+    EXPECT_TRUE(mp::YesNoPrompter{&term}.prompt("foo", false));
+    EXPECT_EQ(cout.str(), "foo [y/N]: Please answer [y/N]: ");
+}
+
+TEST_F(CLIPrompters, yesNoReaskMentionsYesDefault)
+{
+    cin.str("maybe\n\n");
+
+    EXPECT_TRUE(mp::YesNoPrompter{&term}.prompt("foo", true));
+    EXPECT_EQ(cout.str(), "foo [Y/n]: Please answer [Y/n]: ");
+}
+
 class BridgePrompterTests
     : public CLIPrompters,
       public WithParamInterface<std::tuple<std::vector<std::string>, std::string, bool>>
@@ -216,7 +255,8 @@ INSTANTIATE_TEST_SUITE_P(
     Values(std::make_tuple(std::vector<std::string>{"eth1"}, "yes", true),
            std::make_tuple(std::vector<std::string>{"eth1", "eth3"}, "y", true),
            std::make_tuple(std::vector<std::string>{"eth1", "eth3"}, "no", false),
-           std::make_tuple(std::vector<std::string>{"eth1"}, "n", false)));
+           std::make_tuple(std::vector<std::string>{"eth1"}, "n", false),
+           std::make_tuple(std::vector<std::string>{"eth1"}, "", false)));
 
 TEST_F(CLIPrompters, handlesWrongAnswer)
 {

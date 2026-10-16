@@ -459,7 +459,7 @@ struct DaemonAliasTestsuite
         mpt::MockPermissionUtils::inject<NiceMock>();
 };
 
-TEST_P(DaemonAliasTestsuite, purgeRemovesPurgedInstanceAliasesAndScripts)
+TEST_P(DaemonAliasTestsuite, deleteRemovesDeletedInstanceAliasesAndScripts)
 {
     auto [commands, expected_output, expected_removed_aliases, expected_failed_removal] =
         GetParam();
@@ -515,7 +515,7 @@ TEST_P(DaemonAliasTestsuite, purgeRemovesPurgedInstanceAliasesAndScripts)
 
     std::stringstream cout, cerr;
     for (const auto& command : commands)
-        send_command(command, cout, cerr);
+        send_command(command, trash_stream, cerr);
 
     for (const auto& removed_alias : expected_failed_removal)
         EXPECT_THAT(
@@ -532,37 +532,63 @@ const std::string csv_head{"Alias,Instance,Command,Working directory,Context\n"}
 INSTANTIATE_TEST_SUITE_P(
     AliasDictionary,
     DaemonAliasTestsuite,
-    Values(std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
+    Values(std::make_tuple(CmdList{{"delete", "--force", "real-zebraphant"}},
                            csv_head + "lsp,primary,ls,map,default*\n",
                            std::vector<std::string>{"lsz"},
                            std::vector<std::string>{}),
-           std::make_tuple(CmdList{{"delete", "--purge", "real-zebraphant"}},
-                           csv_head + "lsp,primary,ls,map,default*\n",
-                           std::vector<std::string>{"lsz"},
-                           std::vector<std::string>{}),
-           std::make_tuple(CmdList{{"delete", "primary"},
-                                   {"delete", "primary", "real-zebraphant", "--purge"}},
+           std::make_tuple(CmdList{{"delete", "--force", "primary", "real-zebraphant"}},
                            csv_head,
                            std::vector<std::string>{"lsp", "lsz"},
                            std::vector<std::string>{}),
-           std::make_tuple(CmdList{{"delete", "primary"},
-                                   {"delete", "primary", "real-zebraphant", "--purge"}},
+           std::make_tuple(CmdList{{"delete", "--force", "primary"},
+                                   {"delete", "--force", "real-zebraphant"}},
                            csv_head,
                            std::vector<std::string>{},
                            std::vector<std::string>{"lsp", "lsz"}),
-           std::make_tuple(CmdList{{"delete", "primary"},
-                                   {"delete", "primary", "real-zebraphant", "--purge"}},
+           std::make_tuple(CmdList{{"delete", "--force", "primary", "real-zebraphant"}},
                            csv_head,
                            std::vector<std::string>{"lsp"},
                            std::vector<std::string>{"lsz"}),
-           std::make_tuple(CmdList{{"delete", "real-zebraphant"}, {"purge"}},
+           std::make_tuple(CmdList{{"delete", "--force", "real-zebraphant"}},
                            csv_head + "lsp,primary,ls,map,default*\n",
                            std::vector<std::string>{},
                            std::vector<std::string>{"lsz"}),
-           std::make_tuple(CmdList{{"delete", "real-zebraphant", "primary"}, {"purge"}},
+           std::make_tuple(CmdList{{"delete", "--force", "real-zebraphant", "primary"}},
                            csv_head,
                            std::vector<std::string>{},
                            std::vector<std::string>{"lsz", "lsp"})));
+
+TEST_F(DaemonAliasTestsuite, keepsAliasesOfInstancesThatFailedToDelete)
+{
+    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+    EXPECT_CALL(*mock_image_vault, has_record_for(_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_image_vault, remove(_)).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_image_vault, remove("primary")).WillOnce(Throw(std::runtime_error{"stuck"}));
+
+    const auto [mock_utils, guard] = mpt::MockUtils::inject<NiceMock>();
+    EXPECT_CALL(*mock_utils, contents_of(_)).WillRepeatedly(Return(mpt::root_cert));
+
+    config_builder.vault = std::move(mock_image_vault);
+    use_a_mock_vm_factory();
+
+    populate_db_file(AliasesVector{{"lsp", {"primary", "ls", "map"}},
+                                   {"lsz", {"real-zebraphant", "ls", "map"}}});
+
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
+
+    mpt::TempDir temp_dir;
+    mpt::make_file_with_content(temp_dir.path() + "/multipassd-vm-instances.json",
+                                make_instance_json(std::nullopt, {}, {"primary"}));
+    config_builder.data_directory = temp_dir.path();
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream cout, cerr;
+    send_command({"delete", "--force", "real-zebraphant", "primary"}, trash_stream, cerr);
+    EXPECT_THAT(cerr.str(), HasSubstr("stuck"));
+
+    send_command({"aliases", "--format", "csv"}, cout);
+    EXPECT_EQ(cout.str(), csv_head + "lsp,primary,ls,map,default*\n");
+}
 
 TEST_F(AliasDictionary, unexistingActiveContextThrows)
 {

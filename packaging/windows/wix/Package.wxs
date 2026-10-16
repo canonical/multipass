@@ -74,7 +74,7 @@
             DllEntry="WixQuietExec" Execute="deferred" Return="ignore" Impersonate="no" />
         <CustomAction Id="RemoveMPInstances.SetCmdLine" Execute="immediate"
             Property="WixQuietExecCmdLine"
-            Value="&quot;[%ComSpec]&quot; /c &quot;[BinFolder]multipass.exe&quot; delete -p --all" />
+            Value="&quot;[%ComSpec]&quot; /c &quot;[BinFolder]multipass.exe&quot; delete --all --force" />
         <CustomAction Id="RemoveMPInstances" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
             DllEntry="WixQuietExec" Return="ignore" Execute="immediate" />
 

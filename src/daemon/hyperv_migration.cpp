@@ -579,7 +579,7 @@ multipass::hyperv::MigrationOutcome multipass::hyperv::DaemonHyperVInstanceMigra
                 "hcs copy at the same time because they share guest identity and MAC addresses.\n\n"
                 "After validating the migrated instances, remove the originals with:\n"
                 "  multipass set local.driver=hyperv\n"
-                "  multipass delete --purge <instance-name>\n"
+                "  multipass delete --force <instance-name>\n"
                 "  multipass set local.driver=hcs\n",
                 separator,
                 fmt::join(migrated, separator)));

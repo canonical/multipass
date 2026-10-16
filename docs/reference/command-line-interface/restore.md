@@ -14,7 +14,7 @@ multipass restore relative-lion.snapshot2
 the system will ask you if you want to save a snapshot of your instance before proceeding:
 
 ```{code-block} text
-Do you want to take a snapshot of relative-lion before discarding its current state? (Yes/no):
+Do you want to take a snapshot of relative-lion before discarding its current state? [Y/n]:
 ```
 
 If you confirm, the output will be similar to the following:

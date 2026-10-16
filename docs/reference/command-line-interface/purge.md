@@ -3,7 +3,7 @@
 
 > See also: [`delete`](/reference/command-line-interface/delete), [`recover`](/reference/command-line-interface/recover)
 
-The `multipass purge` command will permanently remove all instances deleted with the `multipass delete` command. This will destroy all the traces of the instance, and cannot be undone.
+The `multipass purge` command will permanently remove all instances that are in the `Deleted` state. This will destroy all the traces of the instance, and cannot be undone.
 
 ---
 
