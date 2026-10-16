@@ -25,6 +25,7 @@
 
 #include <QProcess>
 
+#include <ranges>
 #include <string>
 #include <vector>
 
@@ -39,18 +40,29 @@ struct Record
     QString name; // the percent-encoded target
     std::string target;
     std::string source;
+    std::string terminator = "\n";
+};
+
+struct Scenario
+{
+    std::string name;
+    std::vector<Record> records; // in the expected output order
 };
 
 struct MountMotdScript : public Test
 {
-    void plant(const Record& record, const std::string& terminator = "\n")
+    void plant(const Record& record)
     {
-        mpt::make_file_with_content(records_dir.filePath(record.name), record.source + terminator);
+        mpt::make_file_with_content(records_dir.filePath(record.name),
+                                    record.source + record.terminator);
     }
 
     // The output expected for the given records, in order
     static std::string listing(const std::vector<Record>& records)
     {
+        if (records.empty())
+            return {};
+
         auto ret = std::string{"\nHost directories mounted by Multipass:\n\n"};
         for (const auto& record : records)
             ret += fmt::format(" * {} (on {})\n", record.source, record.target);
@@ -83,54 +95,36 @@ struct MountMotdScript : public Test
     mpt::TempDir records_dir;
 };
 
-TEST_F(MountMotdScript, printsNothingWithoutRecords)
+struct MountMotdScriptListing : public MountMotdScript, public WithParamInterface<Scenario>
 {
-    EXPECT_THAT(run(), IsEmpty());
-}
+};
 
 TEST_F(MountMotdScript, printsNothingWithoutRecordsDir)
 {
     EXPECT_THAT(run(records_dir.filePath("missing")), IsEmpty());
 }
 
-TEST_F(MountMotdScript, listsMountsSortedByTarget)
+TEST_P(MountMotdScriptListing, listsRecordedMounts)
 {
-    const Record src{"%2Fhome%2Fubuntu%2Fsrc", "/home/ubuntu/src", "/home/alice/src"};
-    const Record data{"%2Fhome%2Fubuntu%2Fdata", "/home/ubuntu/data", "/home/alice/data"};
-    const Record mnt{"%2Fmnt", "/mnt", "/srv"};
-
-    for (const auto& record : {src, data, mnt})
+    const auto& records = GetParam().records;
+    for (const auto& record : records | std::views::reverse) // so that order is up to the script
         plant(record);
 
-    EXPECT_EQ(run(), listing({data, src, mnt}));
+    EXPECT_EQ(run(), listing(records));
 }
 
-TEST_F(MountMotdScript, decodesTargets)
-{
-    const Record spaced{"%2Fhome%2Fubuntu%2Fmy data", "/home/ubuntu/my data", "/a"};
-    const Record percent{"%2Fz%25%2525", "/z%%25", "/b"};
-
-    plant(spaced);
-    plant(percent);
-
-    EXPECT_EQ(run(), listing({spaced, percent}));
-}
-
-TEST_F(MountMotdScript, printsSourcesVerbatim)
-{
-    const Record windows{"%2Fdata", "/data", "C:\\Users\\alice\\my data"};
-
-    plant(windows);
-
-    EXPECT_EQ(run(), listing({windows}));
-}
-
-TEST_F(MountMotdScript, acceptsRecordsWithoutTrailingNewline)
-{
-    const Record record{"%2Fdata", "/data", "/src"};
-
-    plant(record, /*terminator=*/"");
-
-    EXPECT_EQ(run(), listing({record}));
-}
+INSTANTIATE_TEST_SUITE_P(
+    MountMotdScript,
+    MountMotdScriptListing,
+    Values(Scenario{"noRecords", {}},
+           Scenario{"sortedByTarget",
+                    {{"%2Fhome%2Fubuntu%2Fdata", "/home/ubuntu/data", "/home/alice/data"},
+                     {"%2Fhome%2Fubuntu%2Fsrc", "/home/ubuntu/src", "/home/alice/src"},
+                     {"%2Fmnt", "/mnt", "/srv"}}},
+           Scenario{"decodedTargets",
+                    {{"%2Fhome%2Fubuntu%2Fmy data", "/home/ubuntu/my data", "/a"},
+                     {"%2Fz%25%2525", "/z%%25", "/b"}}},
+           Scenario{"verbatimSources", {{"%2Fdata", "/data", "C:\\Users\\alice\\my data"}}},
+           Scenario{"noTrailingNewline", {{"%2Fdata", "/data", "/src", /*terminator=*/""}}}),
+    [](const TestParamInfo<Scenario>& info) { return info.param.name; });
 } // namespace
