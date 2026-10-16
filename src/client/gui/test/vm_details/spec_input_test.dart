@@ -3,79 +3,90 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/vm_details/spec_input.dart';
 
-Widget buildWidget({
-  String? label,
-  String? hint,
-  String? helper,
-  String? initialValue,
-  bool enabled = true,
-  double width = 170,
-  FormFieldSetter<String>? onSaved,
-  FormFieldValidator<String>? validator,
-  List<TextInputFormatter>? inputFormatters,
-}) {
-  return MaterialApp(
-    home: Scaffold(
-      body: Form(
-        child: SpecInput(
-          label: label,
-          hint: hint,
-          helper: helper,
-          initialValue: initialValue,
-          enabled: enabled,
-          width: width,
-          onSaved: onSaved,
-          validator: validator,
-          inputFormatters: inputFormatters,
-        ),
-      ),
-    ),
-  );
+Widget buildWidget(SpecInput input) {
+  return MaterialApp(home: Scaffold(body: Form(child: input)));
 }
+
+FormState formState(WidgetTester tester) =>
+    tester.state<FormState>(find.byType(Form));
 
 void main() {
   group('SpecInput', () {
-    testWidgets('renders label text when label is provided', (tester) async {
-      await tester.pumpWidget(buildWidget(label: 'Instance Name'));
-      expect(find.text('Instance Name'), findsOneWidget);
+    testWidgets('shows the label when provided', (tester) async {
+      await tester.pumpWidget(buildWidget(const SpecInput(label: 'Name')));
+
+      expect(find.text('Name'), findsOneWidget);
     });
 
-    testWidgets('does not render label when label is null', (tester) async {
-      await tester.pumpWidget(buildWidget());
+    testWidgets('omits the label when null', (tester) async {
+      await tester.pumpWidget(buildWidget(const SpecInput()));
+
       expect(find.byType(Text), findsNothing);
     });
 
-    testWidgets('shows hint text in the text field', (tester) async {
-      await tester.pumpWidget(buildWidget(hint: 'Enter name'));
+    testWidgets('shows hint and helper text', (tester) async {
+      await tester.pumpWidget(
+        buildWidget(const SpecInput(hint: 'Enter name', helper: 'Be unique')),
+      );
+
       expect(find.text('Enter name'), findsOneWidget);
+      expect(find.text('Be unique'), findsOneWidget);
     });
 
-    testWidgets('shows helper text', (tester) async {
-      await tester.pumpWidget(buildWidget(helper: 'Must be unique'));
-      expect(find.text('Must be unique'), findsOneWidget);
+    testWidgets('takes the given width', (tester) async {
+      await tester.pumpWidget(buildWidget(const SpecInput(width: 250)));
+
+      expect(tester.getSize(find.byType(SpecInput)).width, 250);
     });
 
-    testWidgets('populates initial value', (tester) async {
-      await tester.pumpWidget(buildWidget(initialValue: 'my-vm'));
-      expect(find.text('my-vm'), findsOneWidget);
+    testWidgets('saves the initial value when untouched', (tester) async {
+      String? saved;
+      await tester.pumpWidget(buildWidget(
+        SpecInput(initialValue: 'my-vm', onSaved: (v) => saved = v),
+      ));
+
+      formState(tester).save();
+
+      expect(saved, 'my-vm');
     });
 
-    testWidgets('applies the given width via SizedBox', (tester) async {
-      await tester.pumpWidget(buildWidget(width: 250));
-      final sizedBox = tester.widget<SizedBox>(find.byType(SizedBox).first);
-      expect(sizedBox.width, equals(250));
+    testWidgets('saves the entered text', (tester) async {
+      String? saved;
+      await tester.pumpWidget(buildWidget(
+        SpecInput(initialValue: 'my-vm', onSaved: (v) => saved = v),
+      ));
+
+      await tester.enterText(find.byType(TextFormField), 'other-vm');
+      formState(tester).save();
+
+      expect(saved, 'other-vm');
     });
 
-    testWidgets('text field is enabled when enabled is true', (tester) async {
-      await tester.pumpWidget(buildWidget(enabled: true));
-      final field = tester.widget<TextFormField>(find.byType(TextFormField));
-      expect(field.enabled, isTrue);
+    testWidgets('shows the validator error', (tester) async {
+      await tester.pumpWidget(buildWidget(
+        SpecInput(validator: (v) => v!.isEmpty ? 'Required' : null),
+      ));
+
+      formState(tester).validate();
+      await tester.pump();
+
+      expect(find.text('Required'), findsOneWidget);
     });
 
-    testWidgets('text field is disabled when enabled is false', (tester) async {
-      await tester.pumpWidget(buildWidget(enabled: false));
-      final field = tester.widget<TextFormField>(find.byType(TextFormField));
-      expect(field.enabled, isFalse);
+    testWidgets('applies input formatters', (tester) async {
+      await tester.pumpWidget(buildWidget(
+        SpecInput(inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
+      ));
+
+      await tester.enterText(find.byType(TextFormField), 'a1b2');
+
+      expect(find.text('12'), findsOneWidget);
+    });
+
+    testWidgets('disables the field when enabled is false', (tester) async {
+      await tester.pumpWidget(buildWidget(const SpecInput(enabled: false)));
+
+      expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
     });
   });
 }
