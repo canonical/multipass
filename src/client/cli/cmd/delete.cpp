@@ -16,9 +16,13 @@
  */
 
 #include "delete.h"
+
+#include "autocomplete_from_rpc_provider.h"
+#include "command_specs_builder.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/cli/autocompleter.h>
 #include <multipass/cli/prompters.h>
 #include <multipass/platform.h>
 
@@ -29,6 +33,54 @@ namespace
 {
 constexpr auto snapshot_purge_notice_msg =
     "Snapshots can only be purged (after deletion, they cannot be recovered)";
+
+constexpr auto purge_option = "purge";
+
+mp::CommandSpecs make_command_specs(mp::Rpc::StubInterface& stub)
+{
+    auto builder = mp::CommandSpecsBuilder{};
+
+    builder.set_name("delete")
+        .set_short_help("Delete instances and snapshots")
+        .set_description(
+            "Delete instances and snapshots (in stopped instances). Instances can be purged "
+            "immediately or later on,\n"
+            "with the \"purge\" command. Until they are purged, instances can be recovered\n"
+            "with the \"recover\" command. Snapshots cannot be recovered after deletion and must "
+            "be purged at once.");
+
+    builder.add_optional_argument("verbose")
+        .set_description(
+            "Increase logging verbosity. Repeat the 'v' in the short option for more detail. "
+            "Maximum verbosity is obtained with 4 (or more) v's, i.e. -vvvv.")
+        .set_repeatable(true);
+
+    builder.add_optional_argument(purge_option)
+        .add_alias("p")
+        .set_description("Permanently delete specified instances and snapshots immediately");
+
+    auto all_option = builder.add_optional_argument(cmd::all_option_name.toStdString());
+    all_option.set_description("Delete all instances and snapshots");
+
+    auto target_param = builder.add_positional_argument();
+    target_param.set_name("name")
+        .set_description("Names of instances and snapshots to delete")
+        .set_syntax("<instance>[.snapshot] [<instance>[.snapshot] ...]")
+        .set_arguments_provider([provider = cmd::AutoCompleteFromRpcProvider{&stub}]() {
+            return provider.provide(cmd::make_snapshots_request(), cmd::make_instances_request());
+        });
+
+    builder.set_repeatable_last_parameter(true);
+    builder.add_mutual_exclusion(target_param.id(), all_option.id());
+
+    return std::move(builder).build();
+}
+
+} // namespace
+
+cmd::Delete::Delete(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
+    : Command(stub, term), aliases(dict), specs{make_command_specs(stub)}
+{
 }
 
 mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
@@ -74,11 +126,11 @@ mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
     auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
         // grpc::StatusCode::FAILED_PRECONDITION matches mp::VMStateInvalidException
         return status.error_code() == grpc::StatusCode::FAILED_PRECONDITION
-                   ? standard_failure_handler_for(name(),
-                                                  cerr,
-                                                  status,
-                                                  "Use --purge to forcefully delete it.")
-                   : standard_failure_handler_for(name(), cerr, status);
+                 ? standard_failure_handler_for(name(),
+                                                cerr,
+                                                status,
+                                                "Use --purge to forcefully delete it.")
+                 : standard_failure_handler_for(name(), cerr, status);
     };
 
     using Client = grpc::ClientReaderWriterInterface<DeleteRequest, DeleteReply>;
@@ -105,35 +157,27 @@ mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
 
 std::string cmd::Delete::name() const
 {
-    return "delete";
+    return specs.name;
 }
 
 QString cmd::Delete::short_help() const
 {
-    return QStringLiteral("Delete instances and snapshots");
+    return QString::fromStdString(specs.short_help);
 }
 
 QString cmd::Delete::description() const
 {
-    return QStringLiteral(
-        "Delete instances and snapshots (in stopped instances). Instances can be purged "
-        "immediately or later on,\n"
-        "with the \"purge\" command. Until they are purged, instances can be recovered\n"
-        "with the \"recover\" command. Snapshots cannot be recovered after deletion and must be "
-        "purged at once.");
+    return QString::fromStdString(specs.description);
+}
+
+std::vector<std::string> cmd::Delete::autocomplete(const std::vector<std::string>& previous) const
+{
+    return specs.make_completer().complete(previous);
 }
 
 mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name",
-                                  "Names of instances and snapshots to delete",
-                                  "<instance>[.snapshot] [<instance>[.snapshot] ...]");
-
-    QCommandLineOption all_option(all_option_name, "Delete all instances and snapshots");
-    QCommandLineOption purge_option(
-        {"p", "purge"},
-        "Permanently delete specified instances and snapshots immediately");
-    parser->addOptions({all_option, purge_option});
+    specs.configure_parser(*parser);
 
     auto status = parser->commandParse(this);
     if (status != ParseCode::Ok)
@@ -183,10 +227,10 @@ bool multipass::cmd::Delete::confirm_snapshot_purge() const
 
 std::string multipass::cmd::Delete::generate_snapshot_purge_msg() const
 {
-    const auto no_purge_base_error_msg =
-        fmt::format("{}. Unable to query client for confirmation. Please use the "
-                    "`--purge` flag if that is what you want",
-                    snapshot_purge_notice_msg);
+    const auto no_purge_base_error_msg = fmt::format(
+        "{}. Unable to query client for confirmation. Please use the "
+        "`--purge` flag if that is what you want",
+        snapshot_purge_notice_msg);
 
     if (!instance_args.empty())
         return fmt::format(

@@ -73,8 +73,11 @@ QString format_short_help_for(const std::vector<cmd::Command::UPtr>& commands)
     QString output;
     for (const auto& c : commands)
     {
-        output += QString::fromStdString(format_into_column(c->name(), column_size));
-        output += c->short_help() + "\n";
+        if (!c->is_hidden())
+        {
+            output += QString::fromStdString(format_into_column(c->name(), column_size));
+            output += c->short_help() + "\n";
+        }
     }
     return output;
 }

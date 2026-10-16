@@ -19,6 +19,7 @@
 #include "cmd/alias.h"
 #include "cmd/aliases.h"
 #include "cmd/authenticate.h"
+#include "cmd/autocomplete.h"
 #include "cmd/clone.h"
 #include "cmd/delete.h"
 #include "cmd/disable_zones.h"
@@ -90,6 +91,7 @@ mp::Client::Client(ClientConfig& config)
     add_command<cmd::Alias>(aliases);
     add_command<cmd::Aliases>(aliases);
     add_command<cmd::Authenticate>();
+    add_command<cmd::AutoComplete>();
     add_command<cmd::Launch>(aliases);
     add_command<cmd::Purge>(aliases);
     add_command<cmd::Exec>(aliases);

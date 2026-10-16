@@ -19,6 +19,10 @@
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
+#include <multipass/cli/command_specs.h>
+
+#include <string>
+#include <vector>
 
 namespace multipass
 {
@@ -27,12 +31,7 @@ namespace cmd
 class Delete final : public Command
 {
 public:
-    using Command::Command;
-
-    Delete(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
-        : Command(stub, term), aliases(dict)
-    {
-    }
+    Delete(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict);
 
     ReturnCodeVariant run(ArgParser* parser) override;
 
@@ -40,8 +39,12 @@ public:
     QString short_help() const override;
     QString description() const override;
 
+    std::vector<std::string> autocomplete(const std::vector<std::string>& previous) const override;
+
 private:
     AliasDict aliases;
+    CommandSpecs specs;
+
     DeleteRequest request;
     std::string instance_args;
     std::string snapshot_args;
@@ -50,6 +53,8 @@ private:
     ParseCode parse_instances_snapshots(ArgParser* parser);
     std::string generate_snapshot_purge_msg() const;
     bool confirm_snapshot_purge() const;
+
+    std::vector<std::string> fetch_eligible_targets() const;
 };
 } // namespace cmd
 } // namespace multipass

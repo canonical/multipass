@@ -17,7 +17,11 @@ add_library(commands STATIC
   aliases.cpp
   animated_spinner.cpp
   authenticate.cpp
+  autocomplete.cpp
+  autocomplete_from_rpc_provider.cpp
   clone.cpp
+  command_specs_builder.cpp
+  command_specs.cpp
   common_cli.cpp
   create_alias.cpp
   delete.cpp
