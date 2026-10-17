@@ -47,11 +47,31 @@ The list of available images is updated periodically. The option `--force-update
 
 The option `--show-unsupported` includes old Ubuntu images, which were available at some point but are not supported anymore. This means that some features of Multipass might not work on these images and no user support is given. However, they are still available for testing.
 
-The command also supports searching through available images. For example, `multipass images resolute` returns:
+The command also supports searching through available images by providing a filter.
+This filter can be:
+- the name or an alias of the image,
+- its major version number,
+- a prefix of either its name or one of its alias.
+
+The matching is performed case-insensitively.
+
+For example:
 
 ```{code-block} text
+$ multipass images res
 Image             Aliases                     Version          Description
 26.04             resolute,lts,ubuntu         20260927         Ubuntu 26.04 LTS
+
+$ multipass images Lts --all
+Remote              Image             Aliases                     Version          Description
+(default)           26.04             resolute,lts,ubuntu         20260927         Ubuntu 26.04 LTS
+daily               26.04             resolute,lts                20260927         Ubuntu 26.04 LTS
+snapcraft           26.04             resolute,lts,core26         20260802         Ubuntu 26.04 LTS
+
+$ multipass images 22 --show-unsupported
+Image             Aliases                     Version          Description
+22.04             jammy                       20261004         Ubuntu 22.04 LTS
+22.10             kinetic                     20230716         Ubuntu 22.10
 ```
 
 To search images within a specific remote, `<remote>:` can be passed as parameter.
@@ -88,7 +108,7 @@ The full `multipass help images` output explains the available options:
 ```{code-block} text
 Usage: multipass images [options] [<remote>:][<filter>]
 Lists available images matching <filter> for creating instances from.
-With no search string, lists all aliases for supported releases.
+With no search string, lists images available from default remotes.
 
 Options:
   -h, --help          Displays help on commandline options
@@ -110,6 +130,6 @@ Arguments:
   query               An optional value to search for in [<remote>:][<filter>]
                       format, where <remote> is one of the available remotes. If
                       <remote> is omitted, it will search default remotes.
-                      <filter> can be a partial image hash or a release version,
-                      codename or alias.
+                      <filter> can be a codename, an alias, a major version, or
+                      an alias prefix.
 ```
