@@ -19,6 +19,7 @@
 
 #include "daemon_config.h"
 #include "daemon_rpc.h"
+#include "readiness_result.h"
 
 #include <multipass/async_periodic_download_task.h>
 #include <multipass/delayed_shutdown_timer.h>
@@ -241,18 +242,16 @@ private:
     // These async_* methods need to operate on instance names and look up the VMs again, lest they
     // be gone or moved.
     template <typename Reply, typename Request>
-    std::string async_wait_for_ssh_and_start_mounts_for(
-        const std::string& name,
-        const std::chrono::seconds& timeout,
-        grpc::ServerReaderWriterInterface<Reply, Request>* server);
+    ReadinessResult async_wait_vm_ready(const std::string& name,
+                                        const std::chrono::seconds& timeout,
+                                        grpc::ServerReaderWriterInterface<Reply, Request>* server);
     template <typename Reply, typename Request>
     AsyncOperationStatus
-    async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                             const std::vector<std::string>& vms,
-                             const std::chrono::seconds& timeout,
-                             DaemonRpcContext* context,
-                             const std::string& errors,
-                             const std::string& start_warnings);
+    async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                                  const std::vector<std::string>& vms,
+                                  const std::chrono::seconds& timeout,
+                                  DaemonRpcContext* context,
+                                  const std::string& errors);
     void finish_async_operation(const std::string& async_future_key);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(
         std::function<void()> const& finished_op = []() {});
@@ -309,7 +308,7 @@ private:
         false};
     std::unordered_map<std::string, std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>>
         async_future_watchers;
-    std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
+    std::unordered_map<std::string, QFuture<ReadinessResult>> async_running_futures;
     std::mutex start_mutex;
     std::unordered_set<std::string> preparing_instances;
     QFuture<void> image_update_future;
