@@ -75,7 +75,7 @@ multipass list
 Sample output:
 
 ```{code-block} text
-Name                    State             IPv4             Image
-calm-chimaera           Running           10.122.139.63    Ubuntu 26.04 LTS
-first                   Stopped           --               Ubuntu 26.04 LTS
+Name             State        IPv4             Image              Mounts  Zone
+calm-chimaera    Running      10.122.139.63    Ubuntu 26.04 LTS   0       zone2
+first            Stopped      --               Ubuntu 26.04 LTS   1       zone1
 ```

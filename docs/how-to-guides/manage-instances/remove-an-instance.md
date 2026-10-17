@@ -18,8 +18,8 @@ multipass delete keen-yak
 Now, if you run `multipass list` to list the instances, you will see that it is actually just marked for deletion (or to put it in other words, moved to the recycle bin):
 
 ```{code-block} text
-Name                    State             IPv4             Release
-keen-yak                DELETED           --               Not Available
+Name        State        IPv4             Image              Mounts  Zone
+keen-yak    Deleted      --               Not Available      0       zone1
 ```
 
 You can move all instances to the recycle bin at once using the `--all` option:
@@ -37,8 +37,8 @@ multipass recover keen-yak
 If you try `multipass list` again, you'll see that the instance is no longer marked for deletion:
 
 ```{code-block} text
-Name                    State             IPv4             Image
-keen-yak                Stopped           --               Ubuntu 26.04 LTS
+Name        State        IPv4             Image              Mounts  Zone
+keen-yak    Stopped      --               Ubuntu 26.04 LTS   0       zone1
 ```
 
 ## Remove an instance permanently

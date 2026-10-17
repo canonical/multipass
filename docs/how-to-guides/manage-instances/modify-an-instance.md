@@ -110,7 +110,7 @@ From now on, the "second" instance will be used as the *primary* instance, so fo
 When listing instances, the primary one is displayed first. For example, if you run `multipass list` now, you'll see:
 
 ```{code-block} text
-Name                    State             IPv4             Image
-second                  Suspended         --               Ubuntu 26.04 LTS
-first                   Stopped           --               Ubuntu 26.04 LTS
+Name      State        IPv4             Image              Mounts  Zone
+second    Suspended    --               Ubuntu 26.04 LTS   0       zone2
+first     Stopped      --               Ubuntu 26.04 LTS   1       zone1
 ```
