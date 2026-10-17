@@ -33,15 +33,15 @@ public:
     GuestMountRecord(const std::string& source, const std::string& target);
 
     void deploy(VirtualMachine& vm) const;
-    void erase(VirtualMachine& vm) const;
+    void undeploy(VirtualMachine& vm) const;
 
 private:
     std::string make_deploy_cmd() const;
-    std::string make_erase_cmd() const;
+    std::string make_undeploy_cmd() const;
 
     const std::string source;         // keeping this around to ease debugging
     const std::string encoded_target; // idem
     const std::string deploy_cmd;
-    const std::string erase_cmd;
+    const std::string undeploy_cmd;
 };
 } // namespace multipass

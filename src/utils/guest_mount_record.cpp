@@ -56,7 +56,7 @@ mp::GuestMountRecord::GuestMountRecord(const std::string& source, const std::str
     : source{source},
       encoded_target{encode_path(target)},
       deploy_cmd{make_deploy_cmd()},
-      erase_cmd{make_erase_cmd()}
+      undeploy_cmd{make_undeploy_cmd()}
 {
 }
 
@@ -71,11 +71,11 @@ std::string mp::GuestMountRecord::make_deploy_cmd() const
                        escaped_record_path(encoded_target));
 }
 
-std::string mp::GuestMountRecord::make_erase_cmd() const
+std::string mp::GuestMountRecord::make_undeploy_cmd() const
 {
-    static constexpr auto erase_cmd_template = "sudo rm -f {}";
+    static constexpr auto undeploy_cmd_template = "sudo rm -f {}";
 
-    return fmt::format(erase_cmd_template, escaped_record_path(encoded_target));
+    return fmt::format(undeploy_cmd_template, escaped_record_path(encoded_target));
 }
 
 void mp::GuestMountRecord::deploy(VirtualMachine& vm) const
@@ -83,7 +83,7 @@ void mp::GuestMountRecord::deploy(VirtualMachine& vm) const
     vm.ssh_exec(deploy_cmd);
 }
 
-void mp::GuestMountRecord::erase(VirtualMachine& vm) const
+void mp::GuestMountRecord::undeploy(VirtualMachine& vm) const
 {
-    vm.ssh_exec(erase_cmd);
+    vm.ssh_exec(undeploy_cmd);
 }
