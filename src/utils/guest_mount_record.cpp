@@ -22,9 +22,22 @@ namespace mp = multipass;
 
 namespace
 {
+// Encode a path as a unique, reversible file name, by replacing slashes with %2F and % (the escape
+// character) with %25
 std::string encode_path(const std::string& path)
 {
-    return path; // TODO@ricab
+    std::string ret;
+    for (const auto c : path)
+    {
+        if (c == '%')
+            ret += "%25";
+        else if (c == '/')
+            ret += "%2F";
+        else
+            ret += c;
+    }
+
+    return ret;
 }
 } // namespace
 
