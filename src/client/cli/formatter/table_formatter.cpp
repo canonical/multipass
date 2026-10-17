@@ -76,6 +76,13 @@ std::string to_usage(const std::string& usage, const std::string& total)
                        mp::MemorySize{total}.human_readable());
 }
 
+std::string format_zone(const mp::Zone& zone)
+{
+    if (zone.name().empty())
+        return "n/a";
+    return fmt::format("{}{}", zone.name(), zone.available() ? "" : "(n/a)");
+}
+
 template <typename Dest>
 void generate_snapshot_details(Dest&& dest, const mp::DetailedInfoItem& item)
 {
@@ -144,13 +151,7 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
                    "{:<16}{}\n",
                    "State:",
                    mp::format::status_string_for(item.instance_status()));
-    fmt::format_to(
-        dest,
-        "{:<16}{}\n",
-        "Zone:",
-        !item.zone().name().empty()
-            ? fmt::format("{}{}", item.zone().name(), item.zone().available() ? "" : "(n/a)")
-            : std::string{"n/a"});
+    fmt::format_to(dest, "{:<16}{}\n", "Zone:", format_zone(item.zone()));
 
     if (instance_details.has_num_snapshots())
         fmt::format_to(dest, "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
@@ -263,10 +264,10 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
         [](const auto& instance) -> int { return instance.name().length(); },
         name_col_header.length(),
         24);
-    const std::string::size_type state_column_width = 18;
-    const std::string::size_type ip_column_width = 17;
-    [[maybe_unused]] const std::string::size_type image_column_width = 20;
-    const std::string::size_type mounts_column_width = 8;
+    constexpr std::string::size_type state_column_width = 18;
+    constexpr std::string::size_type ip_column_width = 17;
+    constexpr std::string::size_type image_column_width = 20;
+    constexpr std::string::size_type mounts_column_width = 8;
 
     constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
@@ -302,11 +303,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
             image_column_width,
             instance.mount_count(),
             mounts_column_width,
-            !instance.zone().name().empty()
-                ? fmt::format("{}{}",
-                              instance.zone().name(),
-                              instance.zone().available() ? "" : "(n/a)")
-                : std::string{"n/a"});
+            format_zone(instance.zone()));
 
         for (int i = 1; i < ipv4_size; ++i)
         {
@@ -655,7 +652,7 @@ std::string mp::TableFormatter::format(const ZonesReply& reply) const
         [](const auto& zone) -> int { return zone.name().length(); },
         name_col_header.length());
 
-    const std::string::size_type state_column_width = 14;
+    constexpr std::string::size_type state_column_width = 14;
 
     constexpr auto row_format = "{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
