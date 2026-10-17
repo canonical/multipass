@@ -16,12 +16,18 @@
  */
 
 #include <multipass/guest_mount_record.h>
+
+#include <multipass/format.h>
+#include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
 namespace mp = multipass;
+namespace mpu = mp::utils;
 
 namespace
 {
+constexpr auto records_dir = "/run/multipass/mounts";
+
 // Encode a path as a unique, reversible file name, by replacing slashes with %2F and % (the escape
 // character) with %25
 std::string encode_path(const std::string& path)
@@ -38,6 +44,11 @@ std::string encode_path(const std::string& path)
     }
 
     return ret;
+}
+
+std::string escaped_record_path(const std::string& encoded_target)
+{
+    return mpu::escape_for_shell(fmt::format("{}/{}", records_dir, encoded_target));
 }
 } // namespace
 
@@ -56,7 +67,9 @@ std::string mp::GuestMountRecord::make_deploy_cmd() const
 
 std::string mp::GuestMountRecord::make_erase_cmd() const
 {
-    return "TODO"; // TODO@ricab
+    static constexpr auto erase_cmd_template = "sudo rm -f {}";
+
+    return fmt::format(erase_cmd_template, escaped_record_path(encoded_target));
 }
 
 void mp::GuestMountRecord::deploy(VirtualMachine& vm) const
