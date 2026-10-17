@@ -16,6 +16,7 @@ function(add_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
     alias_definition.cpp
     file_ops.cpp
+    guest_mount_record.cpp
     memory_size.cpp
     permission_utils.cpp
     json_utils.cpp
