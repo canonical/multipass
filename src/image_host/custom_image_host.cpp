@@ -107,60 +107,20 @@ mp::CustomVMImageHost::CustomVMImageHost(URLDownloader* downloader)
 {
 }
 
-std::optional<mp::VMImageInfo> mp::CustomVMImageHost::info_for_impl(const Query& query) const
-{
-    const auto& custom_manifest = manifest_from(query.remote_name);
-
-    auto it = custom_manifest.image_records.find(query.release);
-
-    if (it == custom_manifest.image_records.end())
-        return std::nullopt;
-
-    return *it->second;
-}
-
-std::vector<std::pair<std::string, mp::VMImageInfo>> mp::CustomVMImageHost::all_info_for_impl(
-    const Query& query) const
-{
-    std::vector<std::pair<std::string, mp::VMImageInfo>> images;
-
-    if (auto image = info_for_impl(query))
-        images.emplace_back(query.remote_name, std::move(*image));
-
-    return images;
-}
-
-std::vector<mp::VMImageInfo> mp::CustomVMImageHost::all_images_for_impl(
-    const std::string& remote_name,
-    bool /*allow_unsupported*/) const
-{
-    return manifest_from(remote_name).products;
-}
-
 std::vector<std::string> mp::CustomVMImageHost::supported_remotes() const
 {
     return {remote};
 }
 
-void mp::CustomVMImageHost::for_each_entry_do_impl(const Action& action) const
+const std::vector<mp::VMImageInfo>* mp::CustomVMImageHost::images_for_remote(
+    const std::string& remote) const
 {
-    for (const auto& info : manifest.second->products)
+    if (remote != manifest.first || !manifest.second)
     {
-        action(manifest.first, info);
-    }
-}
-
-mp::VMImageInfo mp::CustomVMImageHost::info_for_full_hash_impl(const std::string& full_hash) const
-{
-    for (const auto& product : manifest.second->products)
-    {
-        if (multipass::utils::iequals(product.id, full_hash))
-        {
-            return product;
-        }
+        return nullptr;
     }
 
-    throw mp::ImageNotFoundException(full_hash);
+    return &manifest.second->products;
 }
 
 void mp::CustomVMImageHost::fetch_manifests(bool force_update)
