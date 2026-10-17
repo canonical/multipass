@@ -62,7 +62,13 @@ mp::GuestMountRecord::GuestMountRecord(const std::string& source, const std::str
 
 std::string mp::GuestMountRecord::make_deploy_cmd() const
 {
-    return "TODO"; // TODO@ricab
+    static constexpr auto deploy_cmd_template =
+        "sudo mkdir -p {} && printf '%s\\n' {} | sudo tee {} >/dev/null";
+
+    return fmt::format(deploy_cmd_template,
+                       records_dir,
+                       mpu::escape_for_shell(source),
+                       escaped_record_path(encoded_target));
 }
 
 std::string mp::GuestMountRecord::make_erase_cmd() const
