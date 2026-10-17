@@ -22,7 +22,7 @@ replacement=$'\xef\xbf\xbd' # U+FFFD, shown for control characters
 set -- /run/multipass/mounts/*
 [[ -e "$1" ]] || exit 0
 
-printf '\nHost directories mounted by Multipass:\n\n'
+printf '\nHost folders mounted by Multipass:\n\n'
 for record in "$@"; do
     IFS= read -r source_dir < "${record}"
 
