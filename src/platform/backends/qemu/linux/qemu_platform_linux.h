@@ -33,7 +33,7 @@ namespace multipass
 class QemuPlatformLinux : public QemuPlatform
 {
 public:
-    explicit QemuPlatformLinux(const Path& data_dir, const AvailabilityZoneManager::Zones& zones);
+    explicit QemuPlatformLinux(const Path& data_dir, const AvailabilityZoneManager& az_manager);
     ~QemuPlatformLinux() override;
 
     std::optional<IPAddress> get_ip_for(const std::string& hw_addr) override;
@@ -59,7 +59,7 @@ private:
     };
     using Bridges = std::unordered_map<std::string, Bridge>;
 
-    [[nodiscard]] static Bridges get_bridges(const AvailabilityZoneManager::Zones& zones);
+    [[nodiscard]] static Bridges get_bridges(const AvailabilityZoneManager::ConstZones& zones);
 
     [[nodiscard]] static BridgeSubnetList get_bridge_list(const Bridges&);
 

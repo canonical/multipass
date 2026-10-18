@@ -22,6 +22,8 @@
 #include <multipass/memory_size.h>
 #include <multipass/utils/qemu_img_utils.h>
 
+#include <QCoreApplication>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
@@ -34,6 +36,11 @@ const auto failure = mp::ProcessState{1, std::nullopt};
 const auto crash =
     mp::ProcessState{std::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
 const auto null_string_matcher = static_cast<std::optional<decltype(_)>>(std::nullopt);
+
+auto expected_qemu_img_path()
+{
+    return QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img");
+}
 
 using ImageConversionParamType = std::tuple<const char*,
                                             const char*,
@@ -50,7 +57,7 @@ void simulate_qemuimg_info_with_json(const mpt::MockProcess* process,
                                      const mp::ProcessState& produce_result,
                                      const QByteArray& produce_output = {})
 {
-    ASSERT_EQ(process->program().toStdString(), "qemu-img");
+    ASSERT_EQ(process->program().toStdString(), expected_qemu_img_path());
 
     const auto args = process->arguments();
     ASSERT_EQ(args.size(), 3);
@@ -75,7 +82,7 @@ void simulate_qemuimg_resize(mpt::MockProcess* process,
                              const mp::MemorySize& expect_size,
                              const mp::ProcessState& produce_result)
 {
-    ASSERT_EQ(process->program().toStdString(), "qemu-img");
+    ASSERT_EQ(process->program().toStdString(), expected_qemu_img_path());
 
     const auto args = process->arguments();
     ASSERT_EQ(args.size(), 5);
@@ -98,7 +105,7 @@ void simulate_qemuimg_convert(const mpt::MockProcess* process,
                               const QString& expected_img_path,
                               const mp::ProcessState& produce_result)
 {
-    ASSERT_EQ(process->program().toStdString(), "qemu-img");
+    ASSERT_EQ(process->program().toStdString(), expected_qemu_img_path());
 
     const auto args = process->arguments();
     ASSERT_EQ(args.size(), 6);
@@ -118,7 +125,7 @@ void simulate_qemuimg_convert_to_raw(const mpt::MockProcess* process,
                                      const QString& expected_img_path,
                                      const mp::ProcessState& produce_result)
 {
-    ASSERT_EQ(process->program().toStdString(), "qemu-img");
+    ASSERT_EQ(process->program().toStdString(), expected_qemu_img_path());
 
     const auto args = process->arguments();
     ASSERT_EQ(args.size(), 6);
@@ -137,7 +144,7 @@ void simulate_qemuimg_amend(const mpt::MockProcess* process,
                             const QString& expect_img,
                             const mp::ProcessState& produce_result)
 {
-    ASSERT_EQ(process->program().toStdString(), "qemu-img");
+    ASSERT_EQ(process->program().toStdString(), expected_qemu_img_path());
 
     const auto args = process->arguments();
     ASSERT_EQ(args.size(), 4);

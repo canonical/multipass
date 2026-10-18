@@ -8,6 +8,7 @@ import 'package:window_manager/window_manager.dart';
 import 'before_quit_dialog.dart';
 import 'l10n/app_localizations.dart';
 import 'catalogue/catalogue.dart';
+import 'confirmation_dialog.dart';
 import 'daemon_unavailable.dart';
 import 'help.dart';
 import 'logger.dart';
@@ -15,6 +16,7 @@ import 'notifications.dart';
 import 'providers.dart';
 import 'settings/hotkey.dart';
 import 'settings/settings.dart';
+import 'settings/virtualization_settings.dart';
 import 'sidebar.dart';
 import 'tray_menu.dart';
 import 'update_available.dart';
@@ -76,8 +78,35 @@ class App extends ConsumerStatefulWidget {
 }
 
 class _AppState extends ConsumerState<App> with WindowListener {
+  var beforeQuitDialogShowing = false;
+
   @override
   Widget build(BuildContext context) {
+    ref.listen(daemonSettingProvider(driverKey), (_, driver) {
+      // TODO@deprecations remove
+      if (!driver.isLoading && ref.read(daemonAvailableProvider)) {
+        const deprecationDocsPrefix =
+            'https://canonical.com/multipass/docs/how-to-guides/customise-multipass/';
+        final learnMoreUrl = switch (driver.value) {
+          'hyperv' => Uri.parse(
+              '${deprecationDocsPrefix}migrate-from-hyperv-to-hcs-on-windows',
+            ),
+          'virtualbox' => Uri.parse(
+              '${deprecationDocsPrefix}move-from-virtualbox-to-another-driver',
+            ),
+          _ => null,
+        };
+        if (learnMoreUrl != null) {
+          ref.read(notificationsProvider.notifier).add(
+                DeprecationNotification(
+                  text: 'Your current driver is deprecated.',
+                  learnMoreUrl: learnMoreUrl,
+                ),
+              );
+        }
+      }
+    });
+
     final currentKey = ref.watch(sidebarKeyProvider);
     final sidebarExpanded = ref.watch(sidebarExpandedProvider);
     final sidebarPushContent = ref.watch(sidebarPushContentProvider);
@@ -172,6 +201,40 @@ class _AppState extends ConsumerState<App> with WindowListener {
   @override
   void onWindowClose() async {
     if (!await windowManager.isPreventClose()) return;
+
+    // TODO hyperv migration, remove
+    // Quitting drops the migration's stream, which makes the daemon stop migrating.
+    if (ref.read(migrationInProgressProvider)) {
+      if (beforeQuitDialogShowing) return;
+      beforeQuitDialogShowing = true;
+
+      if (!await windowManager.isVisible() ||
+          await windowManager.isMinimized() ||
+          !await windowManager.isFocused()) {
+        windowManager.showAndRestore();
+      }
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          final l10n = AppLocalizations.of(context)!;
+          return ConfirmationDialog(
+            title: l10n.migrationQuitTitle,
+            body: Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Text(l10n.migrationQuitMessage),
+            ),
+            actionText: l10n.migrationQuitAction,
+            onAction: windowManager.destroy,
+            inactionText: l10n.migrationQuitKeepAction,
+            onInaction: () => Navigator.pop(context),
+          );
+        },
+      ).whenComplete(() => beforeQuitDialogShowing = false);
+      return;
+    }
+
     final daemonAvailable = ref.read(daemonAvailableProvider);
     final vmsRunning =
         ref.read(vmStatusesProvider).values.contains(Status.RUNNING);
@@ -184,7 +247,9 @@ class _AppState extends ConsumerState<App> with WindowListener {
     }
 
     // checking the need to restore the window
-    if (!await windowManager.isVisible() || await windowManager.isMinimized()) {
+    if (!await windowManager.isVisible() ||
+        await windowManager.isMinimized() ||
+        !await windowManager.isFocused()) {
       windowManager.showAndRestore();
     }
 
@@ -208,6 +273,9 @@ class _AppState extends ConsumerState<App> with WindowListener {
     }
 
     if (closeJob == 'ask') {
+      if (beforeQuitDialogShowing) return;
+      beforeQuitDialogShowing = true;
+
       // Get running instances count
       final vmInfos = ref.read(vmInfosProvider);
       final runningCount = vmInfos
@@ -233,7 +301,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
             windowManager.destroy();
           },
         ),
-      );
+      ).whenComplete(() => beforeQuitDialogShowing = false);
     } else {
       stopAllInstances();
     }

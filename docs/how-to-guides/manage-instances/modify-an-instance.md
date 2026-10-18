@@ -111,6 +111,6 @@ When listing instances, the primary one is displayed first. For example, if you 
 
 ```{code-block} text
 Name                    State             IPv4             Image
-second                  Suspended         --               Ubuntu 18.04 LTS
-first                   Stopped           --               Ubuntu 18.04 LTS
+second                  Suspended         --               Ubuntu 26.04 LTS
+first                   Stopped           --               Ubuntu 26.04 LTS
 ```

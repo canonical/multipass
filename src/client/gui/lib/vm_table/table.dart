@@ -34,13 +34,13 @@ class TableHeader<T> {
 class Table<T> extends StatefulWidget {
   final List<TableHeader<T>> headers;
   final List<T> data;
-  final List<Widget> finalRow;
+  final List<Widget>? finalRow;
 
   const Table({
     super.key,
     required this.headers,
     required this.data,
-    required this.finalRow,
+    this.finalRow,
   });
 
   @override
@@ -157,7 +157,11 @@ class _TableState<T> extends State<Table<T>> {
     final headerCells = [
       for (final (i, header) in widget.headers.indexed) buildHeader(i, header),
     ];
-    final cells = [headerCells, ...data.map(buildRow), widget.finalRow];
+    final cells = [
+      headerCells,
+      ...data.map(buildRow),
+      if (widget.finalRow != null) widget.finalRow,
+    ];
 
     final table = TableView.builder(
       horizontalDetails: ScrollableDetails.horizontal(controller: horizontal),

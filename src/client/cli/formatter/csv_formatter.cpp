@@ -27,7 +27,7 @@ namespace
 {
 template <typename Dest>
 void format_images(Dest&& dest,
-                   const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
+                   const google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>& images_info,
                    std::string type)
 {
     for (const auto& image : images_info)
@@ -88,45 +88,35 @@ std::string generate_instance_details(const mp::InfoReply reply)
 
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf),
-                   "Name,State,"
-#ifdef AVAILABILITY_ZONES_FEATURE
-                   "Zone,Zone available,"
-#endif
-                   "Ipv4,Release,Image hash,Image release,Load,Disk usage,Disk "
-                   "total,Memory usage,Memory "
-                   "total,Mounts,AllIPv4,CPU(s){}\n",
+                   "Name,State,Zone,Zone available,Ipv4,Release,Image hash,"
+                   "Image release,Load,Disk usage,Disk total,Memory usage,"
+                   "Memory total,Mounts,AllIPv4,CPU(s){}\n",
                    have_num_snapshots ? ",Snapshots" : "");
 
     for (const auto& info : mp::format::sorted(reply.details()))
     {
         const auto& instance_details = info.instance_info();
 
-        fmt::format_to(std::back_inserter(buf),
-                       "{},{},"
-#ifdef AVAILABILITY_ZONES_FEATURE
-                       "{},{},"
-#endif
-                       "{},{},{},{},{},{},{},{},{},{},{},{}{}\n",
-                       info.name(),
-                       mp::format::status_string_for(info.instance_status()),
-#ifdef AVAILABILITY_ZONES_FEATURE
-                       info.zone().name(),
-                       info.zone().available(),
-#endif
-                       instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
-                       instance_details.current_release(),
-                       instance_details.id(),
-                       instance_details.image_release(),
-                       instance_details.load(),
-                       instance_details.disk_usage(),
-                       info.disk_total(),
-                       instance_details.memory_usage(),
-                       info.memory_total(),
-                       info.mount_info(),
-                       fmt::join(instance_details.ipv4(), ";"),
-                       info.cpu_count(),
-                       have_num_snapshots ? fmt::format(",{}", instance_details.num_snapshots())
-                                          : "");
+        fmt::format_to(
+            std::back_inserter(buf),
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}{}\n",
+            info.name(),
+            mp::format::status_string_for(info.instance_status()),
+            !info.zone().name().empty() ? info.zone().name() : std::string{"n/a"},
+            !info.zone().name().empty() ? fmt::to_string(info.zone().available()) : std::string{},
+            instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
+            instance_details.current_release(),
+            instance_details.id(),
+            instance_details.image_release(),
+            instance_details.load(),
+            instance_details.disk_usage(),
+            info.disk_total(),
+            instance_details.memory_usage(),
+            info.memory_total(),
+            info.mount_info(),
+            fmt::join(instance_details.ipv4(), ";"),
+            info.cpu_count(),
+            have_num_snapshots ? fmt::format(",{}", instance_details.num_snapshots()) : "");
     }
 
     return fmt::to_string(buf);
@@ -137,34 +127,24 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     fmt::memory_buffer buf;
 
     fmt::format_to(std::back_inserter(buf),
-                   "Name,State,IPv4,Release,AllIPv4"
-#ifdef AVAILABILITY_ZONES_FEATURE
-                   ",Zone,Zone available"
-#endif
-                   "\n");
+                   "Name,State,IPv4,Release,AllIPv4,Zone,Zone available,Mounts\n");
 
     for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
         fmt::format_to(
             std::back_inserter(buf),
-            "{},{},{},{},\"{}\""
-#ifdef AVAILABILITY_ZONES_FEATURE
-            ",{},{}"
-#endif
-            "\n",
+            "{},{},{},{},\"{}\",{},{},{}\n",
             instance.name(),
             mp::format::status_string_for(instance.instance_status()),
             instance.ipv4_size() ? instance.ipv4(0) : "",
             instance.current_release().empty()
                 ? "Not Available"
                 : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release())),
-            fmt::join(instance.ipv4(), ",")
-#ifdef AVAILABILITY_ZONES_FEATURE
-                ,
-            instance.zone().name(),
-            instance.zone().available()
-#endif
-        );
+            fmt::join(instance.ipv4(), ","),
+            !instance.zone().name().empty() ? instance.zone().name() : std::string{"n/a"},
+            !instance.zone().name().empty() ? fmt::to_string(instance.zone().available())
+                                            : std::string{},
+            instance.mount_count());
     }
 
     return fmt::to_string(buf);
@@ -224,6 +204,11 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
     return output;
 }
 
+std::string mp::CSVFormatter::format(const SnapshotsReply& reply) const
+{
+    return generate_snapshots_list(reply.snapshot_list());
+}
+
 std::string mp::CSVFormatter::format(const NetworksReply& reply) const
 {
     fmt::memory_buffer buf;
@@ -243,7 +228,23 @@ std::string mp::CSVFormatter::format(const NetworksReply& reply) const
     return fmt::to_string(buf);
 }
 
-std::string mp::CSVFormatter::format(const FindReply& reply) const
+std::string mp::CSVFormatter::format(const RemotesReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    fmt::format_to(std::back_inserter(buf), "Remote\n");
+
+    auto sorted_remotes = reply.remotes();
+    std::ranges::sort(sorted_remotes);
+    for (const auto& remote : sorted_remotes)
+    {
+        fmt::format_to(std::back_inserter(buf), "{}\n", remote);
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string mp::CSVFormatter::format(const ImagesReply& reply) const
 {
     fmt::memory_buffer buf;
 
@@ -279,8 +280,8 @@ std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
     for (const auto& [context_name, context_contents] : sorted_map_view(aliases))
     {
         std::string shown_context = context_name.get() == aliases.active_context_name()
-                                        ? context_name.get() + "*"
-                                        : context_name.get();
+                                      ? context_name.get() + "*"
+                                      : context_name.get();
 
         for (const auto& [name, def] : sorted_map_view(context_contents.get()))
         {

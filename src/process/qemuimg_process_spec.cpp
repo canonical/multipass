@@ -19,6 +19,9 @@
 #include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/snap_utils.h>
 
+#include <QCoreApplication>
+#include <QDir>
+
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 
@@ -33,7 +36,7 @@ mp::QemuImgProcessSpec::QemuImgProcessSpec(const QStringList& args,
 
 QString mp::QemuImgProcessSpec::program() const
 {
-    return "qemu-img";
+    return QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img");
 }
 
 QStringList mp::QemuImgProcessSpec::arguments() const
@@ -53,7 +56,7 @@ profile %1 flags=(attach_disconnected) {
   %2
 
   # binary and its libs
-  %3/usr/bin/%4 ixr,
+  %4 ixr,
   %3/{usr/,}lib/@{multiarch}/{,**/}*.so* rm,
 
   # CLASSIC ONLY: need to specify required libs from core snap

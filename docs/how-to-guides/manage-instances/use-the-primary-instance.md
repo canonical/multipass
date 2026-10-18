@@ -19,7 +19,7 @@ In the command line, it is used as the default when no instance name is specifie
 
 ## Automatic home mount
 
-When launching the primary instance, whether implicitly or explicitly, Multipass automatically mounts the user's home inside it, in the folder `Home`. As with any other mount, you can unmount it with `multipass umount`. For instance, `multipass umount primary` will unmount all mounts made by Multipass inside `primary`, including the auto-mounted `Home`.
+When launching the primary instance, whether implicitly or explicitly, Multipass automatically mounts the user's home inside it, in the folder `Home`. As with any other mount, you can unmount it with `multipass unmount`. For instance, `multipass unmount primary` will unmount all mounts made by Multipass inside `primary`, including the auto-mounted `Home`.
 
 ```{note}
 On Windows mounts are disabled by default for security reasons. See [`set`](reference-command-line-interface-set) and [local.privileged-mounts](reference-settings-local-privileged-mounts) for information on how to enable them if needed.
@@ -76,6 +76,6 @@ Sample output:
 
 ```{code-block} text
 Name                    State             IPv4             Image
-calm-chimaera           Running           10.122.139.63    Ubuntu 19.04 LTS
-first                   Stopped           --               Ubuntu 18.04 LTS
+calm-chimaera           Running           10.122.139.63    Ubuntu 26.04 LTS
+first                   Stopped           --               Ubuntu 26.04 LTS
 ```

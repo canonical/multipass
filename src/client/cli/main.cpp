@@ -23,6 +23,8 @@
 #include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/top_catch_all.h>
 
+#include <openssl/crypto.h>
+
 #include <QCoreApplication>
 
 namespace mp = multipass;
@@ -52,6 +54,11 @@ int main(int argc, char* argv[])
     // Verify that the version of the library that we linked against is
     // compatible with the version of the headers we compiled against.
     GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+    // Prevent OpenSSL from registering an atexit() cleanup handler; this avoids shutdown races with
+    // gRPC cleanup.
+    if (OPENSSL_init_crypto(OPENSSL_INIT_NO_ATEXIT, nullptr) != 1)
+        return EXIT_FAILURE;
 
     multipass::LibsshScopeGuard libssh_guard;
 

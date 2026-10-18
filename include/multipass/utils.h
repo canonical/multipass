@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <multipass/logging/level.h>
+#include <multipass/logging/log_location.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/path.h>
 #include <multipass/singleton.h>
@@ -28,11 +28,14 @@
 #include <yaml-cpp/yaml.h>
 
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <functional>
 #include <future>
 #include <ranges>
+#include <source_location>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <QDir>
@@ -52,6 +55,17 @@ class SSHSession;
 
 namespace utils
 {
+
+// Marks code that should never be reached: logs the location and aborts.
+[[noreturn]] inline void UNREACHABLE(std::string_view message,
+                                     std::source_location loc = std::source_location::current())
+{
+    logging::log_location(logging::Level::error,
+                          logging::detail::with_source_location<std::string_view>("FATAL", loc),
+                          "Reached unreachable code: {}",
+                          message);
+    std::abort();
+}
 
 // enum types
 enum class QuoteType
@@ -107,6 +121,8 @@ bool process_log_on_error(const QString& program,
                           const QString& category,
                           multipass::logging::Level level = multipass::logging::Level::debug,
                           const int timeout = 30000);
+
+bool expects_shutdown_from_cloud_init(const YAML::Node& user_data_config);
 
 // networking helpers
 void validate_server_address(const std::string& value);

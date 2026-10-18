@@ -72,7 +72,7 @@ public:
 private:
     void setup_process(MockProcess* process, bool auto_exit);
     void add_mocked_run(MockProcess* process, const RunSpec& run);
-
+    void expect_drain(MockProcess* process) const;
     bool forked = false;
     std::unique_ptr<MockProcessFactory::Scope> factory_scope = MockProcessFactory::Inject();
     inline static constexpr auto psexe = "powershell.exe";

@@ -14,7 +14,7 @@ export 'generated/multipass.pbgrpc.dart';
 
 typedef Status = InstanceStatus_Status;
 typedef VmInfo = DetailedInfoItem;
-typedef ImageInfo = FindReply_ImageInfo;
+typedef ImageInfo = ImagesReply_ImageInfo;
 typedef MountPaths = MountInfo_MountPaths;
 typedef RpcMessage = GeneratedMessage;
 
@@ -193,10 +193,10 @@ class GrpcClient {
     );
   }
 
-  Future<FindReply> find() {
+  Future<ImagesReply> images() {
     return doRpc(
-      _client.find,
-      FindRequest(),
+      _client.images,
+      ImagesRequest(),
     ).then((r) => r!);
   }
 
@@ -224,6 +224,15 @@ class GrpcClient {
     return doRpc(_client.set, SetRequest(key: key, val: value));
   }
 
+  // TODO hyperv migration, remove
+  // Like set, but exposes every reply, e.g. to report the progress of a driver
+  // migration.
+  Stream<SetReply> setStreaming(String key, String value) {
+    final request = SetRequest(key: key, val: value);
+    logger.i('Sent ${request.repr}');
+    return _client.set(Stream.value(request)).doOnEach(logGrpc(request));
+  }
+
   Future<SSHInfo?> sshInfo(String name) {
     return doRpc(
       _client.ssh_info,
@@ -233,6 +242,24 @@ class GrpcClient {
 
   Future<DaemonInfoReply> daemonInfo() {
     return doRpc(_client.daemon_info, DaemonInfoRequest()).then((r) => r!);
+  }
+
+  Future<ZonesStateReply?> zonesState(List<String> zones, bool available) {
+    return doRpc(
+      _client.zones_state,
+      ZonesStateRequest(zones: zones, available: available),
+    );
+  }
+
+  Future<List<Zone>> zones() {
+    return doRpc(_client.zones, ZonesRequest(), log: false)
+        .then<List<Zone>>((r) => r!.zones)
+        .onError<GrpcError>(
+          (_, __) => <Zone>[],
+          test: (e) =>
+              e.code == StatusCode.failedPrecondition &&
+              (e.message?.contains('not supported') ?? false),
+        );
   }
 }
 

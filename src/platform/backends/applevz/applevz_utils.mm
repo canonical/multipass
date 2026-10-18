@@ -78,8 +78,49 @@ bool is_asif_image(const std::filesystem::path& image_path)
     return file->gcount() == 4 && std::equal(magic.begin(), magic.end(), "shdw");
 }
 
+std::int64_t asif_image_capacity(const std::filesystem::path& image_path)
+{
+    const auto output = run_process(QStringLiteral("diskutil"),
+                                    QStringList() << "image" << "info" << "--plist"
+                                                  << MP_PLATFORM.path_to_qstr(image_path),
+                                    fmt::format("query capacity of ASIF image: {}", image_path));
+
+    const auto data = [NSData dataWithBytes:output.data() length:output.size()];
+    NSError* error = nil;
+    id plist = [NSPropertyListSerialization propertyListWithData:data
+                                                         options:0
+                                                          format:nullptr
+                                                           error:&error];
+
+    if (error || ![plist isKindOfClass:NSDictionary.class])
+        throw std::runtime_error(
+            fmt::format("Could not parse diskutil info for ASIF image {}: {}",
+                        image_path,
+                        error ? error.localizedDescription.UTF8String : "not a dictionary"));
+
+    // The capacity lives at "Size Info" -> "Total Bytes".
+    NSNumber* total_bytes = static_cast<NSDictionary*>(plist)[@"Size Info"][@"Total Bytes"];
+    if (![total_bytes isKindOfClass:NSNumber.class])
+        throw std::runtime_error(
+            fmt::format("Could not determine capacity of ASIF image: {}", image_path));
+
+    return total_bytes.longLongValue;
+}
+
 void resize_asif_image(const std::filesystem::path& image_path, const mp::MemorySize& disk_space)
 {
+    const auto current_capacity = asif_image_capacity(image_path);
+    if (disk_space.in_bytes() <= current_capacity)
+    {
+        mpl::debug(category,
+                   "Skipping resize of {}: requested size {} does not exceed current capacity {}",
+                   image_path,
+                   disk_space.human_readable(),
+                   mp::MemorySize::from_bytes(current_capacity).human_readable());
+        return;
+    }
+
+    // diskutil will also grow the partition table making cloud-init's growpart redundant
     run_process(
         QStringLiteral("diskutil"),
         QStringList() << "image" << "resize" << "--size" << QString::number(disk_space.in_bytes())
@@ -107,7 +148,7 @@ void make_sparse(const std::filesystem::path& raw_image_path, const mp::MemorySi
         throw std::runtime_error(fmt::format("Failed to resize file: {}", ec.message()));
 }
 
-std::filesystem::path convert_to_asif(const std::filesystem::path& source_path, bool destructive)
+std::filesystem::path convert_to_asif(const std::filesystem::path& source_path)
 {
     if (is_asif_image(source_path))
         return source_path;
@@ -138,10 +179,9 @@ std::filesystem::path convert_to_asif(const std::filesystem::path& source_path, 
 namespace multipass::applevz
 {
 std::filesystem::path AppleVZUtils::convert_to_supported_format(
-    const std::filesystem::path& image_path,
-    bool destructive) const
+    const std::filesystem::path& image_path) const
 {
-    return macos_at_least(26, 0) ? convert_to_asif(image_path, destructive)
+    return macos_at_least(26, 0) ? convert_to_asif(image_path)
                                  : backend::convert(image_path, "raw");
 }
 
@@ -154,6 +194,14 @@ void AppleVZUtils::resize_image(const MemorySize& disk_space,
                               : make_sparse(image_path, disk_space);
 
     mpl::trace(category, "Successfully resized image: {}", image_path);
+}
+
+mp::MemorySize AppleVZUtils::image_capacity(const std::filesystem::path& image_path) const
+{
+    return is_asif_image(image_path)
+             ? mp::MemorySize::from_bytes(asif_image_capacity(image_path))
+             : mp::MemorySize(
+                   mp::backend::get_image_info(image_path, "virtual-size").toStdString());
 }
 
 bool AppleVZUtils::macos_at_least(int major, int minor, int patch) const

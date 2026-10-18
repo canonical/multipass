@@ -22,9 +22,10 @@
 #include <libssh/libssh.h>
 
 #include <mutex>
-#include <thread>
 
 #include <windows.h>
+
+class Socket;
 
 namespace multipass
 {

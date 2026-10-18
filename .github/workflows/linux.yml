@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   GetMatrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -95,7 +95,7 @@ jobs:
 
     # Free some disk space to avoid the "No space left on device" error.
     - name: Free Disk Space
-      uses: jlumbroso/free-disk-space@v1.3.1
+      uses: jlumbroso/free-disk-space@v2.0.0
       with:
         large-packages: false
         swap-storage: false
@@ -232,7 +232,7 @@ jobs:
     - name: Run unit tests
       id: test
       if: ${{ matrix.build-type == 'Debug' }}
-      timeout-minutes: 2
+      timeout-minutes: 5
       run: |
         instance_name=$(/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass)
         trap '
@@ -278,7 +278,7 @@ jobs:
     - name: Measure coverage
       id: measure-coverage
       if: ${{ matrix.build-type == 'Coverage' }}
-      timeout-minutes: 5
+      timeout-minutes: 10
       run: |
 
         trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
@@ -430,7 +430,7 @@ jobs:
     needs: BuildAndTest
     if: ${{ !cancelled() && !success() && github.event_name == 'schedule' }}
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
     - name: Report workflow failure

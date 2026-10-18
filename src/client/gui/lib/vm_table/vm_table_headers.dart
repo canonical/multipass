@@ -55,6 +55,22 @@ final headers = <TableHeader<VmInfo>>[
     ),
   ),
   TableHeader(
+    name: 'ZONE',
+    width: 100,
+    minWidth: 70,
+    // Sorting is data-only and has no BuildContext, so this fallback is not user-visible.
+    sortKey: (info) => info.zone.name.isEmpty ? 'n/a' : info.zone.name,
+    cellBuilder: (info) => Builder(
+      builder: (context) => Text(
+        (info.zone.name.isEmpty
+                ? AppLocalizations.of(context)!.vmTableZoneUnsupported
+                : info.zone.name)
+            .nonBreaking,
+        overflow: TextOverflow.ellipsis,
+      ),
+    ),
+  ),
+  TableHeader(
     name: 'CPU USAGE',
     childBuilder: _l10nHeader((l10n) => l10n.vmStatCpuUsage),
     width: 130,

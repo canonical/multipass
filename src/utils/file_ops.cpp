@@ -20,6 +20,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/posix.h>
+#include <multipass/utils.h>
 
 #include <chrono>
 #include <random>
@@ -151,7 +152,7 @@ void mp::FileOps::write_transactionally(const QString& file_name, const QByteArr
         std::this_thread::sleep_for(delay);
     }
 
-    assert(false && "We should never get here");
+    mp::utils::UNREACHABLE("We should never get here");
 }
 
 void mp::FileOps::write_transactionally(const fs::path& file_name, std::string_view data) const
@@ -473,6 +474,17 @@ fs::path mp::FileOps::relative(const fs::path& path,
                                std::error_code& ec) const
 {
     return fs::relative(path, base, ec);
+}
+
+// TODO hyperv migration, remove (file_size and space)
+std::uintmax_t mp::FileOps::file_size(const fs::path& path, std::error_code& err) const
+{
+    return fs::file_size(path, err);
+}
+
+fs::space_info mp::FileOps::space(const fs::path& path, std::error_code& err) const
+{
+    return fs::space(path, err);
 }
 
 fs::path mp::FileOps::remove_extension(const fs::path& path) const

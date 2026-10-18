@@ -24,10 +24,12 @@
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/exceptions/timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/snapshot.h>
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/plain_ssh_session.h>
@@ -35,6 +37,8 @@
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_specs.h>
 #include <scope_guard.hpp>
+
+#include <yaml-cpp/yaml.h>
 
 #include <QDir>
 #include <QRegularExpression>
@@ -63,7 +67,7 @@ constexpr auto yes_overwrite = true;
 
 void assert_vm_stopped([[maybe_unused]] St state)
 {
-    assert(state == St::off || state == St::stopped);
+    assert(state == St::stopped);
 }
 
 mp::Path derive_head_path(const QDir& snapshot_dir)
@@ -92,35 +96,57 @@ mpu::TimeoutAction log_and_retry(const ExceptionT& e,
     mpl::log_message(log_level, vm->get_name(), e.what());
     return mpu::TimeoutAction::retry;
 };
+
+bool cloud_init_expects_shutdown(const mp::Path& cloud_init_iso, const std::string& vm_name)
+{
+    try
+    {
+        mp::CloudInitIso iso;
+        iso.read_from(MP_PLATFORM.qstr_to_path(cloud_init_iso));
+        return mpu::expects_shutdown_from_cloud_init(YAML::Load(iso.at("user-data")));
+    }
+    catch (const std::exception& e)
+    {
+        mpl::warn(vm_name, "Could not read cloud-init user-data: {}", e.what());
+        return false;
+    }
+}
 } // namespace
 
 mp::BaseVirtualMachine::BaseVirtualMachine(const std::string& vm_name,
+                                           const VirtualMachineDescription& vm_desc,
+                                           VMStatusMonitor& monitor,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
-    : vm_name{vm_name}, key_provider{key_provider}, zone{zone}, instance_dir{instance_dir}
+    : BaseVirtualMachine(zone.is_available() ? State::stopped : State::unavailable,
+                         vm_name,
+                         vm_desc,
+                         monitor,
+                         key_provider,
+                         zone,
+                         instance_dir)
 {
-    zone.add_vm(*this);
 }
 
 mp::BaseVirtualMachine::BaseVirtualMachine(State state,
                                            const std::string& vm_name,
+                                           const VirtualMachineDescription& vm_desc,
+                                           VMStatusMonitor& monitor,
                                            const SSHKeyProvider& key_provider,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
     : VirtualMachine{state},
       vm_name{vm_name},
+      desc{vm_desc},
+      monitor{monitor},
       key_provider{key_provider},
       zone{zone},
       instance_dir{instance_dir}
 {
-    zone.add_vm(*this);
 }
 
-mp::BaseVirtualMachine::~BaseVirtualMachine()
-{
-    mp::top_catch_all(vm_name, [this] { zone.remove_vm(*this); });
-}
+mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
     const std::string& default_mac_addr,
@@ -156,10 +182,10 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
     return MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(cloud_init_path);
 }
 
-void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy)
+void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy) const
 {
     // A mutex should already be locked by the caller here
-    if (state == State::off || state == State::stopped || state == State::unavailable)
+    if (state == State::stopped || state == State::unavailable)
     {
         // TODO: format state directly
         throw VMStateIdempotentException{
@@ -200,31 +226,25 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
     }
 }
 
-void mp::BaseVirtualMachine::set_available(bool available)
+bool mp::BaseVirtualMachine::set_available(bool available)
 {
     // Ignore idempotent calls
     if (available == (state != State::unavailable))
-        return;
+        return false;
 
     if (available)
     {
-        state = State::off;
+        assert(state == State::unavailable);
+        state = State::stopped;
         handle_state_update();
-        if (was_running)
-        {
-            start();
-
-            // normally the daemon sets the state to running...
-            state = State::running;
-            handle_state_update();
-        }
-        return;
+        return was_running;
     }
 
     was_running = state == State::running || state == State::starting || state == State::restarting;
     shutdown(ShutdownPolicy::Poweroff);
     state = State::unavailable;
     handle_state_update();
+    return false;
 }
 
 std::string mp::BaseVirtualMachine::ssh_exec(const std::string& cmd, bool whisper)
@@ -240,6 +260,14 @@ std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::ssh_exec_process(const s
 
     std::optional<std::string> log_details = std::nullopt;
     bool reconnect = true;
+
+    // Fail fast: a stale cached session would otherwise block until timeout
+    if (!MP_UTILS.is_running(current_state()))
+    {
+        drop_ssh_session();
+        throw SSHVMNotRunning{"SSH unavailable on instance {}: not running", vm_name};
+    }
+
     while (true)
     {
         assert(reconnect && "we should have thrown otherwise");
@@ -270,13 +298,23 @@ std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::ssh_exec_process(const s
         }
     }
 
-    assert(false && "we should never reach here");
+    mp::utils::UNREACHABLE("we should never reach here");
 }
 
 std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::make_ssh_process(const std::string& cmd,
                                                                          bool whisper)
 {
     return ssh_session->exec(cmd, whisper);
+}
+
+int mp::BaseVirtualMachine::ssh_port()
+{
+    return default_ssh_port;
+}
+
+std::string mp::BaseVirtualMachine::ssh_hostname()
+{
+    return require_management_ipv4().as_string();
 }
 
 void mp::BaseVirtualMachine::renew_ssh_session()
@@ -306,7 +344,7 @@ std::unique_ptr<multipass::SSHSession> multipass::BaseVirtualMachine::new_ssh_se
 bool multipass::BaseVirtualMachine::unplugged()
 {
     auto st = current_state();
-    return st == State::off || st == State::stopped;
+    return st == State::stopped;
 }
 
 void mp::BaseVirtualMachine::detect_aborted_start()
@@ -318,11 +356,18 @@ void mp::BaseVirtualMachine::detect_aborted_start()
         state_wait.notify_all();
 
         std::string msg{"Instance shutdown during start"};
-        if (!saved_error_msg.empty())
-            msg += ": " + saved_error_msg;
+        bool error_occurred{!saved_error_msg.empty()};
 
-        saved_error_msg.clear();
-        throw StartException(vm_name, msg);
+        if (error_occurred)
+        {
+            msg += ": " + saved_error_msg;
+            saved_error_msg.clear();
+        }
+
+        throw StartException(vm_name,
+                             msg,
+                             !error_occurred &&
+                                 cloud_init_expects_shutdown(desc.cloud_init_iso, vm_name));
     }
 }
 
@@ -374,9 +419,39 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
     };
 
     auto on_timeout = [] {
-        throw std::runtime_error("timed out waiting for initialization to complete");
+        throw CloudInitTimeoutException("timed out waiting for initialization to complete");
     };
     mpu::try_action_for(on_timeout, timeout, action);
+}
+
+void mp::BaseVirtualMachine::update_cpus(int num_cores)
+{
+    assert(num_cores > 0);
+    mpl::debug(vm_name, "update_cpus() -> num_cores `{}`", num_cores);
+
+    update_cpus_impl(num_cores);
+    desc.num_cores = num_cores;
+}
+
+void mp::BaseVirtualMachine::resize_memory(const MemorySize& new_size)
+{
+    assert(new_size.in_bytes() > 0);
+    mpl::debug(vm_name, "resize_memory() -> new_size `{}` MiB", new_size.in_megabytes());
+
+    resize_memory_impl(new_size);
+    desc.mem_size = new_size;
+}
+
+void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMessages& messages)
+{
+    assert(new_size > desc.disk_space);
+    mpl::debug(vm_name, "resize_disk() -> new_size `{}` MiB", new_size.in_megabytes());
+
+    resize_disk_impl(new_size);
+    desc.disk_space = new_size;
+
+    if (is_core())
+        messages.add_message(core_image_disk_resize_message());
 }
 
 auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
@@ -513,12 +588,12 @@ std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
     auto rollback_on_failure = make_take_snapshot_rollback(it);
 
     // get instance id from cloud-init file and pass to make_specific_snapshot
-    auto ret = head_snapshot = it->second =
-        make_specific_snapshot(sname,
-                               comment,
-                               get_instance_id_from_the_cloud_init(),
-                               specs,
-                               head_snapshot);
+    auto ret = head_snapshot = it->second = make_specific_snapshot(
+        sname,
+        comment,
+        get_instance_id_from_the_cloud_init(),
+        specs,
+        head_snapshot);
     ret->capture();
 
     ++snapshot_count;
@@ -639,12 +714,12 @@ void mp::BaseVirtualMachine::rename_snapshot(const std::string& old_name,
     if (old_it == snapshots.end())
         throw NoSuchSnapshotException{vm_name, old_name};
 
-    if (snapshots.find(new_name) != snapshots.end())
+    if (snapshots.contains(new_name))
         throw SnapshotNameTakenException{vm_name, new_name};
 
     auto snapshot_node = snapshots.extract(old_it);
-    const auto reinsert_guard =
-        make_reinsert_guard(snapshot_node); // we want this to execute both on failure & success
+    const auto reinsert_guard = make_reinsert_guard(
+        snapshot_node); // we want this to execute both on failure & success
 
     snapshot_node.key() = new_name;
     snapshot_node.mapped()->set_name(new_name);
@@ -773,10 +848,10 @@ void mp::BaseVirtualMachine::persist_generic_snapshot_info() const
     auto count_path = instance_dir.filePath(count_filename);
 
     QFile head_file{head_path};
-    auto head_file_rollback =
-        make_common_file_rollback(head_path,
-                                  head_file,
-                                  std::to_string(head_snapshot->get_parents_index()) + "\n");
+    auto head_file_rollback = make_common_file_rollback(
+        head_path,
+        head_file,
+        std::to_string(head_snapshot->get_parents_index()) + "\n");
     persist_head_snapshot_index(head_path);
 
     QFile count_file{count_path};
@@ -848,8 +923,8 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
     specs.num_cores = snapshot->get_num_cores();
     specs.mem_size = snapshot->get_mem_size();
     specs.disk_space = snapshot->get_disk_space();
-    const bool are_extra_interfaces_different =
-        specs.extra_interfaces != snapshot->get_extra_interfaces();
+    const bool are_extra_interfaces_different = specs.extra_interfaces !=
+                                                snapshot->get_extra_interfaces();
     specs.extra_interfaces = snapshot->get_extra_interfaces();
     specs.mounts = snapshot->get_mounts();
     specs.metadata = snapshot->get_metadata();
@@ -921,8 +996,10 @@ auto mp::BaseVirtualMachine::try_to_ssh() -> utils::TimeoutAction
 
 void mp::BaseVirtualMachine::ssh_and_cross_to_running()
 {
-    auto new_session =
-        std::make_unique<PlainSSHSession>(ssh_hostname(), ssh_port(), ssh_username(), key_provider);
+    auto new_session = std::make_unique<PlainSSHSession>(ssh_hostname(),
+                                                         ssh_port(),
+                                                         ssh_username(),
+                                                         key_provider);
 
     std::lock_guard lock{state_mutex};
     ssh_session = std::move(new_session);
@@ -936,5 +1013,5 @@ void mp::BaseVirtualMachine::timeout_ssh()
     std::lock_guard lock{state_mutex};
     state = State::unknown;
     handle_state_update();
-    throw std::runtime_error(fmt::format("{}: timed out waiting for response", vm_name));
+    throw SSHTimeoutException("{}: timed out waiting for response", vm_name);
 }

@@ -53,8 +53,9 @@ auto max_command_string_length(const std::vector<cmd::Command::UPtr>& commands)
         auto string_len_compare = [](const cmd::Command::UPtr& a, const cmd::Command::UPtr& b) {
             return a->name().length() < b->name().length();
         };
-        const auto& max_elem =
-            *std::max_element(commands.begin(), commands.end(), string_len_compare);
+        const auto& max_elem = *std::max_element(commands.begin(),
+                                                 commands.end(),
+                                                 string_len_compare);
         ret = max_elem->name().length();
     }
 
@@ -158,8 +159,8 @@ mp::ParseCode mp::ArgParser::parse(const std::optional<mp::AliasDict>& aliases)
     }
 
     const QString requested_command = parser.isSet(version_option)
-                                          ? QStringLiteral("version")
-                                          : parser.positionalArguments().first();
+                                        ? QStringLiteral("version")
+                                        : parser.positionalArguments().first();
 
     chosen_command = findCommand(requested_command);
 
@@ -370,6 +371,12 @@ QString mp::ArgParser::value(const QString& option) const
 QStringList mp::ArgParser::values(const QCommandLineOption& option) const
 {
     return parser.values(option);
+}
+
+QString mp::ArgParser::commandName() const
+{
+    const auto& args = parser.positionalArguments();
+    return args.isEmpty() ? QString() : args.first();
 }
 
 QStringList mp::ArgParser::positionalArguments() const

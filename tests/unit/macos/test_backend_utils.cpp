@@ -17,8 +17,11 @@
 
 #include "tests/unit/mock_process_factory.h"
 #include "tests/unit/mock_utils.h"
+#include "tests/unit/stub_availability_zone_manager.h"
 
 #include <src/platform/backends/shared/macos/backend_utils.h>
+
+#include <multipass/subnet.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -114,3 +117,60 @@ TEST_P(GetNeighbourIPInvalidInputsTests, inValidInputCases)
 INSTANTIATE_TEST_SUITE_P(GetNeighbourIPTestsInstantiation,
                          GetNeighbourIPInvalidInputsTests,
                          Values("11:11:11:11:11:11", "ee:ee:ee:ee:ee:ee"));
+
+TEST(EnableCrossZoneRouting, singleZoneDoesNotTouchForwardingOrPf)
+{
+    const auto mock_process_factory = mpt::MockProcessFactory::Inject();
+    auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
+
+    const mpt::StubAvailabilityZoneManager az_manager;
+
+    // Neither IP forwarding nor pf rules should be touched with fewer than two zones.
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(_, _, _)).Times(0);
+
+    mp::backend::enable_cross_zone_routing(az_manager);
+
+    EXPECT_TRUE(mock_process_factory->process_list().empty());
+}
+
+TEST(EnableCrossZoneRouting, multipleZonesEnablesForwardingAndInstallsPfRules)
+{
+    const auto mock_process_factory = mpt::MockProcessFactory::Inject();
+    auto [mock_utils, utils_guard] = mpt::MockUtils::inject();
+
+    const auto zones = {mp::Subnet{"192.168.64.0/24"},
+                        mp::Subnet{"192.168.65.0/24"},
+                        mp::Subnet{"192.168.66.0/24"}};
+    const mpt::StubAvailabilityZoneManager az_manager{zones};
+
+    EXPECT_CALL(
+        *mock_utils,
+        run_cmd_for_status(QString("sysctl"), Contains(QString("net.inet.ip.forwarding=1")), _))
+        .WillOnce(Return(true));
+
+    std::string captured_rules;
+    mock_process_factory->register_callback([&captured_rules](mpt::MockProcess* process) {
+        if (process->program() == "pfctl")
+        {
+            EXPECT_THAT(process->arguments(), Contains(QString("-f")));
+            EXPECT_CALL(*process, write(_)).WillOnce([&captured_rules](const QByteArray& data) {
+                captured_rules = data.toStdString();
+                return data.size();
+            });
+            EXPECT_CALL(*process, wait_for_finished(_)).WillRepeatedly(Return(true));
+        }
+    });
+
+    mp::backend::enable_cross_zone_routing(az_manager);
+
+    EXPECT_EQ(captured_rules,
+              fmt::format(("pass quick inet from {0} to {1} flags any keep state\n"
+                           "pass quick inet from {0} to {2} flags any keep state\n"
+                           "pass quick inet from {1} to {0} flags any keep state\n"
+                           "pass quick inet from {1} to {2} flags any keep state\n"
+                           "pass quick inet from {2} to {0} flags any keep state\n"
+                           "pass quick inet from {2} to {1} flags any keep state\n"),
+                          "192.168.64.0/24",
+                          "192.168.65.0/24",
+                          "192.168.66.0/24"));
+}

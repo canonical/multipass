@@ -24,12 +24,13 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/utils.h>
 
 #include <QCommandLineOption>
-#include <QString>
 
+#include <algorithm>
+#include <charconv>
 #include <chrono>
-#include <fmt/ostream.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -233,4 +234,42 @@ std::unique_ptr<multipass::utils::Timer> multipass::cmd::make_timer(int timeout,
                                                            });
 
     return timer;
+}
+
+bool multipass::cmd::detail::do_normalize_zone_name(std::string& zone, const ZonesReply& reply)
+{
+    auto zone_name = [](const auto& zone) { return zone.name(); };
+    if (utils::has_only_digits(zone))
+    {
+        int zone_index;
+        const auto res = std::from_chars(zone.data(), zone.data() + zone.size(), zone_index);
+        // TODO@C++26: Use `!res`, since it converts to bool.
+        if (res.ec != std::errc{} || zone_index < 1 || zone_index > reply.zones().size())
+            return false;
+        zone = reply.zones()[zone_index - 1].name();
+    }
+    // TODO@C++23: Use `std::ranges::contains`.
+    else if (std::ranges::find(reply.zones(), zone, zone_name) == reply.zones().end())
+        return false;
+    return true;
+}
+
+multipass::ReturnCodeVariant multipass::cmd::normalize_zone_name(RpcMethod* iface,
+                                                                 std::string& zone_name,
+                                                                 std::ostream& cerr)
+{
+    auto on_success = [&cerr, &zone_name](const ZonesReply& reply) -> ReturnCodeVariant {
+        if (!detail::do_normalize_zone_name(zone_name, reply))
+        {
+            cerr << fmt::format("No AZ with name: {}\n", zone_name);
+            return ReturnCode::CommandFail;
+        }
+        return Ok;
+    };
+    auto on_failure = [&cerr](const grpc::Status& status) -> ReturnCodeVariant {
+        return standard_failure_handler_for("normalize-zone-name", cerr, status);
+    };
+
+    ZonesRequest request{};
+    return dispatch_rpc(iface, &RpcMethod::zones, request, on_success, on_failure, cerr);
 }

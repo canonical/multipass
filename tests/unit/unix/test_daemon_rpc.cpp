@@ -112,6 +112,23 @@ TEST_F(TestDaemonRpc, setsUnrestrictedPermissionsWhenCertAlreadyExists)
     mpt::MockDaemon daemon{make_secure_server()};
 }
 
+TEST_F(TestDaemonRpc, shutdownServicesQueuedRequestsWhileWaitingForGrpc)
+{
+    EXPECT_CALL(*mock_cert_store, empty()).WillOnce(Return(false));
+
+    mpt::MockDaemon daemon{make_secure_server()};
+    auto queued_request_serviced = false;
+
+    QMetaObject::invokeMethod(
+        &daemon,
+        [&queued_request_serviced] { queued_request_serviced = true; },
+        Qt::QueuedConnection);
+
+    EXPECT_FALSE(queued_request_serviced);
+    daemon.shutdown_grpc_server();
+    EXPECT_TRUE(queued_request_serviced);
+}
+
 TEST_F(TestDaemonRpc, authenticateCompletesSuccessfully)
 {
     EXPECT_CALL(*mock_platform, set_server_socket_restrictions(_, true)).Times(1);

@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Explanation of the key Multipass concepts: its reference architecture, service and driver, virtual machine instances, images, snapshots, mounts and security."
+---
+
 (explanation-index)=
 # Explanation
 
@@ -20,6 +26,7 @@ These topics cover the foundations of how Multipass operates on your machine, pr
 These guides explain the lifecycle, identity, and resources of the virtual machines you create.
 
 - [Instance](explanation-instance)
+- {ref}`Availability zone <explanation-availability-zone>`
 - [Image](explanation-image)
 - [Settings keys and values](explanation-settings-keys-values)
 
@@ -38,7 +45,7 @@ In Multipass, an **alias** is a shortcut for a command that runs inside a given 
 
 Technical background on protecting your environment and ensuring it runs efficiently.
 
-- [About security](explanation-about-security)
+- [Security](explanation-security-index)
 - [Authentication](explanation-authentication)
 - [ID mapping](explanation-id-mapping)
 - [About performance](explanation-about-performance)
@@ -72,12 +79,13 @@ platform
 service
 driver
 instance
+availability-zone
 image
 settings-keys-values
 multipass-exec-and-shells
 mount
 snapshot
-about-security
+security/index
 authentication
 id-mapping
 about-performance

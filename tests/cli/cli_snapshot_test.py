@@ -22,11 +22,14 @@ import pytest
 
 from cli.utilities import (
     find_lineage,
+    is_within_tolerance,
 )
 
 from cli.multipass import (
     build_snapshot_tree,
     collapse_to_snapshot_tree,
+    get_core_count,
+    get_ram_size,
     path_exists,
     take_snapshot,
     multipass,
@@ -96,6 +99,48 @@ class TestSnapshot:
             assert (
                 "Multipass can only restore snapshots of stopped instances." in result
             )
+
+    @pytest.mark.parametrize(
+        "instance",
+        [
+            {"cpus": 1, "memory": "1G"},
+        ],
+        indirect=True,
+    )
+    def test_restore_snapshot_resources(self, instance):
+        """Ensure restored resources are used when the instance starts."""
+
+        assert multipass("stop", instance)
+        original_cpus = multipass("get", f"local.{instance}.cpus")
+        original_memory = multipass("get", f"local.{instance}.memory")
+        assert original_cpus
+        assert original_memory
+
+        assert multipass(
+            "snapshot",
+            "--name",
+            "original-resources",
+            "--comment",
+            "original resources",
+            instance,
+        )
+
+        assert multipass("set", f"local.{instance}.cpus=2")
+        assert multipass("set", f"local.{instance}.memory=3G")
+        assert multipass("start", instance)
+        assert get_core_count(instance) == 2
+        assert is_within_tolerance(get_ram_size(instance), 3072)
+
+        assert multipass("stop", instance)
+        assert multipass(
+            "restore", "--destructive", f"{instance}.original-resources"
+        )
+        assert multipass("get", f"local.{instance}.cpus") == original_cpus
+        assert multipass("get", f"local.{instance}.memory") == original_memory
+
+        assert multipass("start", instance)
+        assert get_core_count(instance) == 1
+        assert is_within_tolerance(get_ram_size(instance), 1024)
 
     def test_take_snapshot_linear_history(self, instance):
         """Verify that a linear chain of snapshots can be created, each

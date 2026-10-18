@@ -47,11 +47,6 @@ struct StubVMImageVault final : public multipass::VMImageVault
     void prune_expired_images() override{};
     void update_images(const PrepareAction&, const ProgressMonitor&) override {};
 
-    MemorySize minimum_image_size_for(const std::string& /*image*/) override
-    {
-        return MemorySize{};
-    }
-
     VMImageHost* image_host_for(const std::string& /*remote_name*/) const override
     {
         return nullptr;
@@ -73,6 +68,11 @@ struct StubVMImageVault final : public multipass::VMImageVault
                                                             default_version,
                                                             1,
                                                             true}}};
+    }
+
+    std::vector<std::string> get_remotes() const override
+    {
+        return {"default"};
     }
 
     void clone(const std::string& /*src*/, const std::string& /*dst*/) override

@@ -16,7 +16,7 @@
  */
 
 #include "tests/unit/common.h"
-#include "tests/unit/stub_availability_zone.h"
+#include "tests/unit/stub_availability_zone_manager.h"
 
 #include <src/platform/backends/qemu/macos/qemu_platform_macos.h>
 
@@ -60,12 +60,11 @@ struct TestQemuPlatformMacOS : public Test
     static inline const mp::Subnet zone2_subnet{"192.168.96.0/24"};
     static inline const mp::Subnet zone3_subnet{"192.168.128.0/24"};
 
-    mpt::StubAvailabilityZone stub_zone1{"zone1", zone1_subnet};
-    mpt::StubAvailabilityZone stub_zone2{"zone2", zone2_subnet};
-    mpt::StubAvailabilityZone stub_zone3{"zone3", zone3_subnet};
-    const multipass::AvailabilityZoneManager::Zones stub_zones{stub_zone1, stub_zone2, stub_zone3};
+    const mpt::StubAvailabilityZoneManager stub_az_manager{zone1_subnet,
+                                                           zone2_subnet,
+                                                           zone3_subnet};
 
-    mp::QemuPlatformMacOS qemu_platform_macos{stub_zones};
+    mp::QemuPlatformMacOS qemu_platform_macos{stub_az_manager};
 };
 } // namespace
 

@@ -23,7 +23,7 @@
 #include "tests/unit/mock_file_ops.h"
 #include "tests/unit/mock_logger.h"
 #include "tests/unit/mock_utils.h"
-#include "tests/unit/stub_availability_zone.h"
+#include "tests/unit/stub_availability_zone_manager.h"
 #include "tests/unit/temp_dir.h"
 
 #include <multipass/process/process.h>
@@ -131,10 +131,7 @@ struct QemuPlatformLinux : public Test
                                         "192.168.128.255",
                                         "baz"}};
 
-    mpt::StubAvailabilityZone stub_zone1{"zone1", zone1_subnet};
-    mpt::StubAvailabilityZone stub_zone2{"zone2", zone2_subnet};
-    mpt::StubAvailabilityZone stub_zone3{"zone3", zone3_subnet};
-    const multipass::AvailabilityZoneManager::Zones stub_zones{stub_zone1, stub_zone2, stub_zone3};
+    mpt::StubAvailabilityZoneManager stub_az_manager{zone1_subnet, zone2_subnet, zone3_subnet};
 
     mpt::TempDir data_dir;
 
@@ -198,7 +195,7 @@ TEST_F(QemuPlatformLinux, ctorSetsUpExpectedVirtualSwitches)
             .WillOnce(Return(true));
     }
 
-    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_zones};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
 }
 
 TEST_F(QemuPlatformLinux, getIpForReturnsExpectedInfo)
@@ -210,7 +207,7 @@ TEST_F(QemuPlatformLinux, getIpForReturnsExpectedInfo)
             .WillOnce([ip = ip_address](auto...) { return ip; });
     }
 
-    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_zones};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
 
     for (const auto& vswitch : switches)
     {
@@ -246,7 +243,7 @@ TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected
             _))
         .WillOnce(DoAll(SaveArg<1>(&saved_opts), Return(false)));
 
-    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_zones};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
 
     const auto platform_args = qemu_platform_linux.vm_platform_args(vm_desc);
 
@@ -260,8 +257,9 @@ TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected
     std::vector<QString> expected_platform_args{
     // clang-format off
 #if defined Q_PROCESSOR_X86
-        "-bios",
-        "OVMF.fd",
+        "-drive",
+        QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on,file.locking=off")
+            .arg(mp::QemuPlatform::firmware_path()),
 #elif defined Q_PROCESSOR_ARM
         "-bios",
         "QEMU_EFI.fd",
@@ -333,7 +331,7 @@ TEST_F(QemuPlatformLinux, tapDevicesAreRemovedOnDestruction)
             _))
         .WillOnce(DoAll(SaveArg<1>(&saved_opts), Return(false)));
 
-    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_zones};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
 
     const auto platform_args = qemu_platform_linux.vm_platform_args(vm_desc);
 
@@ -350,6 +348,59 @@ TEST_F(QemuPlatformLinux, tapDevicesAreRemovedOnDestruction)
         .WillOnce(Return(true));
 }
 
+TEST_F(QemuPlatformLinux, createTapDeviceReconfiguresExistingDevice)
+{
+    mp::VirtualMachineDescription vm_desc;
+
+    const auto& vswitch = switches.front();
+    vm_desc.vm_name = vswitch.name;
+    vm_desc.zone = "zone1";
+    vm_desc.default_mac_address = vswitch.hw_addr;
+
+    QString tap_name;
+
+    auto addr_show_args = ElementsAre(QString("addr"),
+                                      QString("show"),
+                                      mpt::match_qstring(StartsWith("tap-")));
+    auto tuntap_add_args = ElementsAre(QString("tuntap"),
+                                       QString("add"),
+                                       mpt::match_qstring(StartsWith("tap-")),
+                                       QString("mode"),
+                                       QString("tap"));
+
+    auto tap_name_matcher = mpt::match_qstring(
+        Truly([&tap_name](const std::string& s) { return s == tap_name.toStdString(); }));
+    auto link_set_master_args = ElementsAre(QString("link"),
+                                            QString("set"),
+                                            tap_name_matcher,
+                                            QString("master"),
+                                            vswitch.bridge_name);
+    auto link_set_up_args = ElementsAre(QString("link"),
+                                        QString("set"),
+                                        tap_name_matcher,
+                                        QString("up"));
+
+    // The tap device already exists, so creation must be skipped...
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), addr_show_args, _))
+        .WillOnce([&tap_name](auto&, auto& opts, auto...) {
+            tap_name = opts.last();
+            return true;
+        })
+        .WillOnce(Return(true));
+
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), tuntap_add_args, _)).Times(0);
+
+    // ...but the device must still be (re)linked to the bridge and brought up.
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), link_set_master_args, _))
+        .WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils, run_cmd_for_status(QString("ip"), link_set_up_args, _))
+        .WillOnce(Return(true));
+
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
+
+    qemu_platform_linux.vm_platform_args(vm_desc);
+}
+
 TEST_F(QemuPlatformLinux, platformHealthCheckCallsExpectedMethods)
 {
     EXPECT_CALL(*mock_backend, check_for_kvm_support()).WillOnce(Return());
@@ -361,7 +412,7 @@ TEST_F(QemuPlatformLinux, platformHealthCheckCallsExpectedMethods)
         EXPECT_CALL(*vswitch.mock_firewall_config, verify_firewall_rules()).WillOnce(Return());
     }
 
-    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_zones};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
 
     qemu_platform_linux.platform_health_check();
 }
@@ -375,7 +426,7 @@ TEST_F(QemuPlatformLinux, openingIpforwardFileFailureLogsExpectedMessage)
 
     EXPECT_CALL(*mock_file_ops, open(_, _)).WillOnce(Return(false));
 
-    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_zones};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
 }
 
 TEST_F(QemuPlatformLinux, writingIpforwardFileFailureLogsExpectedMessage)
@@ -387,12 +438,12 @@ TEST_F(QemuPlatformLinux, writingIpforwardFileFailureLogsExpectedMessage)
 
     EXPECT_CALL(*mock_file_ops, write(_, QByteArray("1"))).WillOnce(Return(-1));
 
-    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_zones};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
 }
 
 TEST_F(QemuPlatformLinux, platformCorrectlySetsAuthorization)
 {
-    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_zones};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
 
     std::vector<mp::NetworkInterfaceInfo> networks{
         mp::NetworkInterfaceInfo{"br-en0", "bridge", "", {"en0"}, false},
@@ -412,7 +463,7 @@ TEST_F(QemuPlatformLinux, createBridgeWithCallsExpectedMethods)
 {
     EXPECT_CALL(*mock_backend, create_bridge_with("en0")).WillOnce(Return("br-en0"));
 
-    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_zones};
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
 
     EXPECT_EQ(qemu_platform_linux.create_bridge_with(
                   mp::NetworkInterfaceInfo{"en0", "ethernet", "", {}, true}),

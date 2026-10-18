@@ -169,8 +169,8 @@ mp::ParseCode cmd::Delete::parse_instances_snapshots(mp::ArgParser* parser)
 // TODO refactor with bridging and restore prompts
 bool multipass::cmd::Delete::confirm_snapshot_purge() const
 {
-    static constexpr auto prompt_text = "{}. Are you sure you want to continue? (Yes/no)";
-    static constexpr auto invalid_input = "Please answer Yes/no";
+    static constexpr auto prompt_text = "{}. Are you sure you want to continue? (yes/No)";
+    static constexpr auto invalid_input = "Please answer yes/No";
     mp::PlainPrompter prompter{term};
 
     auto answer = prompter.prompt(fmt::format(prompt_text, snapshot_purge_notice_msg));

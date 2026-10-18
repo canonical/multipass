@@ -1,3 +1,0 @@
-Image                       Aliases           Version          Description
-snapcraft:core18                              20190520         Snapcraft builder for core18
-

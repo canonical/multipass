@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: How to install Multipass on Linux, macOS and Windows, and how to upgrade or uninstall Multipass on each platform.
+---
+
 (how-to-guides-install-multipass)=
 # Install Multipass
 
@@ -25,22 +31,17 @@ Multipass for Linux is published as a [snap package](https://snapcraft.io/docs/)
 ````{tab-item} macOS
 :sync: macOS
 
-<!--### Hypervisor.framework / hyperkit-->
-
-The default backend on macOS is `qemu`, wrapping Apple's Hypervisor framework. You can use any Mac (M-series or Intel based) with **macOS 13.3 Ventura or later** installed.
+The default backend on macOS is `qemu`, wrapping Apple's Hypervisor framework. You can use any Mac (M-series or Intel based) with **macOS 14 Sonoma or later** installed.
 
 ````
 
 ````{tab-item} Windows
 :sync: Windows
 
-### Hyper-V
-
-Only **Windows 10 Pro** or **Enterprise** version **1803** ("April 2018 Update") **or later** are currently supported, due to the necessary version of Hyper-V only being available on those versions.
-
-### VirtualBox
-
-Multipass also supports using VirtualBox as a virtualisation provider. You can download the latest version from the [VirtualBox download page](https://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html).
+Multipass supports Windows 10 or 11 on Home, Pro, and Enterprise editions. The minimal required
+version is **1809** ("October 2018 Update"). You will need the
+[Virtual Machine Platform feature](https://support.microsoft.com/en-us/windows/experience/enable-virtualization-on-windows)
+enabled.
 
 ````
 
@@ -152,7 +153,7 @@ Run the downloaded installer and follow the guided procedure.
 :sync: Windows
 
 ```{note}
-You will need either Hyper-V enabled (only Windows 10 Professional or Enterprise), or VirtualBox installed. See {ref}`install-multipass-prerequisites`.
+You will need the Virtual Machine Platform enabled on Windows. See {ref}`install-multipass-prerequisites`.
 ```
 
 Download the latest installer from [our download page](https://canonical.com/multipass/download/windows). You can also get pre-release versions from the [GitHub releases](https://github.com/canonical/multipass/releases/) page, look for the `.msi` file.
@@ -181,7 +182,7 @@ You've installed Multipass. Time to run your first commands! Use `multipass vers
 
 You've installed Multipass. Time to run your first commands! Use `multipass version` to check your version or `multipass launch` to create your first instance.
 
-Multipass defaults to using QEMU as its virtualisation provider. If you'd like to use AppleVZ, you can do so using the following command:
+Multipass defaults to using QEMU as its virtualisation provider. If you'd like to use the Apple Virtualization framework, you can do so using the following command:
 
 ```{code-block} text
 multipass set local.driver=applevz
@@ -197,14 +198,6 @@ multipass set local.driver=applevz
 :sync: Windows
 
 You've installed Multipass. Time to run your first commands! Launch a **Command Prompt** (`cmd.exe`) or **PowerShell** as a regular user. Use `multipass version` to check your version or `multipass launch` to create your first instance.
-
-Multipass defaults to using Hyper-V as its virtualisation provider. If you'd like to use VirtualBox, you can do so using the following command:
-
-```{code-block} text
-multipass set local.driver=virtualbox
-```
-
-> See also: [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver).
 
 ````
 

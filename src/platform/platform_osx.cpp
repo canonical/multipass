@@ -69,6 +69,7 @@ namespace
 {
 constexpr auto category = "osx platform";
 constexpr auto br_nomenclature = "bridge";
+const mp::Subnet preferred_subnet = {"192.168.252.0/16"};
 
 QString get_networksetup_output()
 {
@@ -284,7 +285,7 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
     //
     // After a couple of Multipass versions, we can remove this. Instances that end up with a
     // different subnet still work, just with a different IP address.
-    if (subnet.address() == get_preferred_subnet().address())
+    if (subnet.address() == preferred_subnet.address())
         return false;
 
     // ip routes?
@@ -297,9 +298,9 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
     return can_reach_gateway(subnet.min_address()) || can_reach_gateway(subnet.max_address());
 }
 
-mp::Subnet mp::platform::Platform::get_preferred_subnet() const
+mp::Subnet mp::platform::Platform::get_preferred_subnet(const std::filesystem::path& data_dir) const
 {
-    return {"192.168.252.0/16"};
+    return preferred_subnet;
 }
 
 QString mp::platform::Platform::daemon_config_home() const // temporary
@@ -341,6 +342,12 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
     }
 
     throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
+}
+
+bool mp::platform::backend_supports_availability_zones()
+{
+    const auto driver = MP_SETTINGS.get(mp::driver_key);
+    return driver != QStringLiteral("virtualbox");
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(
@@ -422,6 +429,7 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 
 std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
 {
+    // Remember to update the uninstall script on changes:
     static const std::filesystem::path base_dir = "/usr/local/etc";
     return base_dir / daemon_name;
 }

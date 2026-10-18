@@ -130,7 +130,7 @@ bool mp::AliasDict::exists_alias(const std::string& alias) const
 {
     for (const auto& [_, context_dict] : aliases)
     {
-        if (context_dict.find(alias) != context_dict.cend())
+        if (context_dict.contains(alias))
         {
             return true;
         }
@@ -213,7 +213,7 @@ std::optional<mp::ContextAliasPair> mp::AliasDict::get_context_and_alias(
     const std::string& alias) const
 {
     // This will never throw because we already checked that the active context exists.
-    if (aliases.at(active_context).count(alias) > 0)
+    if (aliases.at(active_context).contains(alias))
         return std::make_pair(active_context, alias);
 
     std::string::size_type dot_pos = alias.rfind('.');
@@ -223,14 +223,14 @@ std::optional<mp::ContextAliasPair> mp::AliasDict::get_context_and_alias(
 
     std::string context = alias.substr(0, dot_pos);
 
-    if (aliases.count(context) == 0)
+    if (!aliases.contains(context))
         return std::nullopt;
 
     std::string alias_only = alias.substr(dot_pos + 1);
 
-    return (aliases.at(context).count(alias_only) == 0
-                ? std::nullopt
-                : std::make_optional(std::make_pair(context, alias_only)));
+    return aliases.at(context).contains(alias_only)
+             ? std::make_optional(std::make_pair(context, alias_only))
+             : std::nullopt;
 }
 
 std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_current_context(
@@ -299,26 +299,12 @@ void mp::AliasDict::save_file()
 // This function removes the contexts which do not contain aliases, except the active context.
 void mp::AliasDict::sanitize_contexts()
 {
-    // To avoid invalidating iterators, the function works in two stages. First, the aliases which
-    // need to be removed are determined and, second, they are effectively removed.
-    std::vector<std::string> empty_contexts;
+    const auto removed = std::erase_if(aliases, [this](const auto& context) {
+        return context.first != active_context && context.second.empty();
+    });
 
-    for (auto& context : aliases)
-    {
-        if (context.first != active_context && context.second.empty())
-        {
-            empty_contexts.push_back(context.first);
-        }
-    }
-
-    if (!empty_contexts.empty())
-    {
+    if (removed > 0)
         modified = true;
-        for (const auto& context : empty_contexts)
-        {
-            aliases.erase(context);
-        }
-    }
 }
 
 // Returns an alias definition iff the given alias name is unique across all the contexts. The given

@@ -46,7 +46,7 @@ env:
 
 jobs:
   GetMatrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     outputs:
       matrix: ${{ steps.neo.outputs.matrix }}
       has_targets: ${{ steps.neo.outputs.has_targets }}
@@ -67,8 +67,9 @@ jobs:
 
             if (SNAP_CHANNEL !== '<undefined>') {
               for (const runner of [
-                'ubuntu-latest',
-                'self-hosted-linux-arm64-noble-edge']) {
+                'ubuntu-latest'
+                // 'self-hosted-linux-arm64-noble-edge'
+                ]) {
                 matrix.include.push({
                   os: runner,
                   label: `Snap (${runner})`,
@@ -140,7 +141,7 @@ jobs:
             tests/cli
 
       # Install specific python
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
 
@@ -236,12 +237,14 @@ jobs:
           echo "=== Memory ==="
           vm_stat | head -10
           sysctl hw.memsize
+
       - name: Run cli-tests
         id: run-cli-tests
         shell: bash
         run: |
           ${{ matrix.cmd-prologue }} pytest -s tests/cli --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }} || PYTEST_EXIT=$?
           echo "pytest-exit=${PYTEST_EXIT:-0}" >> "$GITHUB_OUTPUT"
+          exit "${PYTEST_EXIT:-0}"
 
       - name: Check resources after
         if: always() && runner.os == 'macOS'
@@ -254,6 +257,7 @@ jobs:
           multipass list 2>/dev/null || echo "Could not list"
           echo "=== Multipass data size ==="
           sudo du -sh /var/root/Library/Application\ Support/multipassd/ 2>/dev/null || true
+
       - name: Report cli-tests results to Github Checks
         if: success() || failure()
         uses: dorny/test-reporter@v3

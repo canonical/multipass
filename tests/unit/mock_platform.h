@@ -68,6 +68,7 @@ public:
     MOCK_METHOD(QString, get_username, (), (const, override));
     MOCK_METHOD(std::string, bridge_nomenclature, (), (const, override));
     MOCK_METHOD(bool, subnet_used_locally, (Subnet), (const, override));
+    MOCK_METHOD(Subnet, get_preferred_subnet, (const std::filesystem::path&), (const, override));
     MOCK_METHOD(std::filesystem::path, get_root_cert_dir, (), (const, override));
     MOCK_METHOD(void, shutdown_socket, (Socket), (const, override));
 

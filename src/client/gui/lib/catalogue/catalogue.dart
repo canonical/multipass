@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:basics/basics.dart';
 import 'package:collection/collection.dart';
@@ -40,7 +41,7 @@ final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
 
   final images = await ref
       .watch(grpcClientProvider)
-      .find()
+      .images()
       .then((r) => sortImages(r.imagesInfo));
 
   // artificial delay so that we can see the loading spinner a bit
@@ -226,7 +227,7 @@ class CatalogueScreen extends ConsumerWidget {
             builder: (_, constraints) {
               const minCardWidth = 285;
               const spacing = 32.0;
-              final nCards = constraints.maxWidth ~/ minCardWidth;
+              final nCards = max(1, constraints.maxWidth ~/ minCardWidth);
               final whiteSpace = spacing * (nCards - 1);
               final cardWidth = (constraints.maxWidth - whiteSpace) / nCards;
               final cards = _groupAndCreateCards(images, cardWidth);

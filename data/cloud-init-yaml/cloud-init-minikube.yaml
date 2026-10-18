@@ -1,3 +1,4 @@
+#cloud-config
 apt:
   sources:
     docker:

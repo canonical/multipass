@@ -10,7 +10,8 @@
             "zone": {
                 "name": "zone1",
                 "available": true
-            }
+            },
+            "mounts": 1
         },
         {
             "name": "bombastic",
@@ -21,7 +22,8 @@
             "zone": {
                 "name": "zone2",
                 "available": false
-            }
+            },
+            "mounts": 0
         }
     ]
 }

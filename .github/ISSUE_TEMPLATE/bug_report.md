@@ -20,7 +20,7 @@ How, and what happened?
 What did you expect to happen?
 
 **Logs**
-Please provide logs from the daemon, see [accessing logs](https://canonical.com/multipass/docs/accessing-logs) on where to find them on your platform.
+Please provide logs from the daemon, see [Access logs](https://canonical.com/multipass/docs/stable/how-to-guides/troubleshoot/access-logs/) on where to find them on your platform.
 
 **Additional info**
 - OS: [e.g. macOS 10.15]

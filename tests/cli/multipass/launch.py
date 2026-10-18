@@ -57,7 +57,7 @@ def launch(cfg_override=None):
 
     assert not vm_exists(vm_cfg["name"])
 
-    with multipass(
+    launch_args = [
         "launch",
         "--cpus",
         vm_cfg["cpus"],
@@ -69,7 +69,13 @@ def launch(cfg_override=None):
         vm_cfg["name"],
         "--timeout",
         getattr(cfg.timeouts, "launch", 300),
-        vm_cfg["image"],
+    ]
+    if "zone" in vm_cfg:
+        launch_args.extend(["--zone", vm_cfg["zone"]])
+    launch_args.append(vm_cfg["image"])
+
+    with multipass(
+        *launch_args,
         retry=vm_cfg["retry"],
     ) as launch_r:
         # The launch does not have a dedicated exit code for the "already exists".
@@ -98,9 +104,10 @@ def launch(cfg_override=None):
     assert mounts(vm_cfg["name"]) == {}
     assert state(vm_cfg["name"]) == "Running"
 
-    yield VMHandle(vm_cfg)
-
-    if vm_cfg["autopurge"]:
-        with multipass("delete", vm_cfg["name"], "--purge") as result:
-            if vm_cfg["assert"]["purge"]:
-                assert result, f"Failed to purge VM `{vm_cfg['name']}`: {str(result)}"
+    try:
+        yield VMHandle(vm_cfg)
+    finally:
+        if vm_cfg["autopurge"]:
+            with multipass("delete", vm_cfg["name"], "--purge") as result:
+                if vm_cfg["assert"]["purge"]:
+                    assert result, f"Failed to purge VM `{vm_cfg['name']}`: {str(result)}"

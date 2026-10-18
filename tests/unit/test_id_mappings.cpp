@@ -37,6 +37,19 @@ TEST_P(UniqueIdMappingsTestSuite, uniqueIdMappingsWorks)
     ASSERT_EQ(input_mappings, expected_mappings);
 }
 
+TEST(UniqueIdMappings, retainsConflictsFromDroppedMappings)
+{
+    mp::id_mappings mappings{{1, 10}, {1, 11}, {2, 11}, {3, 30}, {4, 40}, {3, 31}};
+
+    const auto [duplicate_ids, duplicate_reverse_ids] = mp::unique_id_mappings(mappings);
+
+    EXPECT_THAT(mappings, ElementsAre(Pair(1, 10), Pair(3, 30), Pair(4, 40)));
+    EXPECT_THAT(duplicate_ids,
+                UnorderedElementsAre(Pair(1, UnorderedElementsAre(10, 11)),
+                                     Pair(3, UnorderedElementsAre(30, 31))));
+    EXPECT_THAT(duplicate_reverse_ids, UnorderedElementsAre(Pair(11, UnorderedElementsAre(1, 2))));
+}
+
 INSTANTIATE_TEST_SUITE_P(IdMappings,
                          UniqueIdMappingsTestSuite,
                          Values(std::make_pair(mp::id_mappings{{1, 1}, {2, 1}, {1, 1}, {1, 2}},

@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: Reference for Multipass, covering the clients for the Command Line Interface (CLI), the Graphical User Interface (GUI), along with settings and logging levels.
+---
+
 (reference-index)=
 # Reference
 
@@ -7,7 +13,7 @@ This section provides detailed reference material for Multipass, such as all ava
 
 Multipass offers a powerful command-line interface for creating and managing virtual machines effortlessly.
 
-For a complete list of Multipass CLI commands and their usage, see [Command-line interface].(command-line-interface/index).
+For a complete list of Multipass CLI commands and their usage, see [Command-line interface](command-line-interface/index).
 
 ## GUI client
 

@@ -44,7 +44,10 @@
 #include <src/daemon/default_vm_image_vault.h>
 #include <src/daemon/instance_settings_handler.h>
 
+#include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/timeout_exception.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
@@ -132,6 +135,7 @@ struct Daemon : public mpt::DaemonTestFixture
     {
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("senna"));
         EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return("pet-instance"));
         EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key)))
             .WillRepeatedly(Return("true")); /* TODO should probably add
@@ -177,9 +181,15 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
     EXPECT_CALL(daemon, get)
         .WillOnce(
             Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::GetRequest, mp::GetReply>));
-    EXPECT_CALL(daemon, set)
-        .WillOnce(
-            Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::SetRequest, mp::SetReply>));
+    EXPECT_CALL(daemon, set).WillOnce([](auto, auto server, auto status_promise) {
+        mp::SetReply reply;
+        reply.set_reply_message("Message");
+
+        server->Write(reply);
+        status_promise->set_value(grpc::Status::OK);
+
+        return grpc::Status{};
+    });
     EXPECT_CALL(daemon, create(_, _, _))
         .WillOnce(Invoke(&daemon,
                          &mpt::MockDaemon::set_promise_value<mp::CreateRequest, mp::CreateReply>));
@@ -189,9 +199,9 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
     EXPECT_CALL(daemon, purge(_, _, _))
         .WillOnce(
             Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::PurgeRequest, mp::PurgeReply>));
-    EXPECT_CALL(daemon, find(_, _, _))
-        .WillOnce(
-            Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::FindRequest, mp::FindReply>));
+    EXPECT_CALL(daemon, images(_, _, _))
+        .WillOnce(Invoke(&daemon,
+                         &mpt::MockDaemon::set_promise_value<mp::ImagesRequest, mp::ImagesReply>));
     EXPECT_CALL(daemon, ssh_info(_, _, _))
         .WillOnce(
             Invoke(&daemon,
@@ -258,17 +268,27 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
         .WillOnce(
             Invoke(&daemon,
                    &mpt::MockDaemon::set_promise_value<mp::WaitReadyRequest, mp::WaitReadyReply>));
-#ifdef AVAILABILITY_ZONES_FEATURE
     EXPECT_CALL(daemon, zones)
-        .WillOnce(
-            Invoke(&daemon, &mpt::MockDaemon::set_promise_value<mp::ZonesRequest, mp::ZonesReply>));
+        .Times(3) // zones, enable-zone, disable-zone
+        .WillRepeatedly([](auto, auto server, auto status_promise) {
+            mp::ZonesReply reply;
+            for (const auto& name : {"zone1", "zone2", "zone3"})
+            {
+                const auto reply_zone = reply.add_zones();
+                reply_zone->set_name(name);
+                reply_zone->set_subnet("192.168.0.0/24");
+                reply_zone->set_available(true);
+            }
+
+            server->Write(reply);
+            status_promise->set_value(grpc::Status::OK);
+        });
     EXPECT_CALL(daemon, zones_state)
-        .Times(2)
+        .Times(2) // enable-zone, disable-zone
         .WillRepeatedly(Invoke(
             &daemon,
             &mpt::MockDaemon::set_promise_value<mp::ZonesStateRequest, mp::ZonesStateReply>));
     EXPECT_CALL(mock_settings, get(Eq("foo"))).WillRepeatedly(Return("bar"));
-#endif
 
     send_commands({
         {"test_keys"},
@@ -289,17 +309,15 @@ TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
         {"restart", "foo"},
         {"restore", "foo.bar"},
         {"version"},
-        {"find", "something"},
+        {"images", "something"},
         {"mount", ".", "target"},
         {"umount", "instance"},
         {"networks"},
         {"clone", "foo"},
         {"wait-ready"},
-#ifdef AVAILABILITY_ZONES_FEATURE
         {"zones"},
-        {"enable-zones", "foo"},
-        {"disable-zones", "foo", "--force"},
-#endif
+        {"enable-zones", "zone1"},
+        {"disable-zones", "zone1", "--force"},
     });
 }
 
@@ -434,9 +452,7 @@ TEST_F(Daemon, ensureThatOnRestartFutureCompletes)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{"yakety-yak"}));
-    EXPECT_CALL(*mock_vm, current_state)
-        .Times(1)
-        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
 
     mp::Signal sig;
@@ -476,7 +492,15 @@ TEST_F(Daemon, startsPreviouslyRunningVmsBack)
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
-    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce([vm = std::move(mock_vm)](
+                      const mp::VirtualMachineDescription& desc,
+                      const mp::SSHKeyProvider&,
+                      mp::VMStatusMonitor& monitor) mutable -> mp::VirtualMachine::UPtr {
+            // This will update the saved state on the VM spec
+            monitor.persist_state_for(desc.vm_name, mp::VirtualMachine::State::suspended);
+            return std::move(vm);
+        });
 
     mp::Daemon daemon{config_builder.build()};
 }
@@ -636,6 +660,58 @@ struct DaemonLaunchTimeoutValueTestSuite : public Daemon,
 {
 };
 
+TEST_F(Daemon, launchReturnsStructuredSshTimeoutError)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
+        .WillOnce(Throw(mp::SSHTimeoutException{"ssh timeout"}));
+    EXPECT_CALL(*mock_vm, wait_for_cloud_init).Times(0);
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+    mp::LaunchRequest request;
+    request.set_instance_name("coherent-trumpetfish");
+
+    StrictMock<mpt::MockServerReaderWriter<mp::LaunchReply, mp::LaunchRequest>> server;
+    EXPECT_CALL(server, Write(_, _)).Times(AtLeast(1));
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::launch, request, server);
+
+    ASSERT_EQ(status.error_code(), grpc::StatusCode::DEADLINE_EXCEEDED);
+    mp::LaunchError launch_error;
+    ASSERT_TRUE(launch_error.ParseFromString(status.error_details()));
+    EXPECT_EQ(launch_error.readiness_error(), mp::ReadinessError::SSH_TIMEOUT);
+}
+
+TEST_F(Daemon, launchReturnsStructuredCloudInitTimeoutError)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillOnce(Return());
+    EXPECT_CALL(*mock_vm, wait_for_cloud_init)
+        .WillOnce(Throw(mp::CloudInitTimeoutException{"cloud-init timeout"}));
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+    mp::LaunchRequest request;
+    request.set_instance_name("coherent-trumpetfish");
+
+    StrictMock<mpt::MockServerReaderWriter<mp::LaunchReply, mp::LaunchRequest>> server;
+    EXPECT_CALL(server, Write(_, _)).Times(AtLeast(1));
+
+    const auto status = call_daemon_slot(daemon, &mp::Daemon::launch, request, server);
+
+    ASSERT_EQ(status.error_code(), grpc::StatusCode::DEADLINE_EXCEEDED);
+    mp::LaunchError launch_error;
+    ASSERT_TRUE(launch_error.ParseFromString(status.error_details()));
+    EXPECT_EQ(launch_error.readiness_error(), mp::ReadinessError::CLOUD_INIT_TIMEOUT);
+}
+
 TEST_P(DaemonCreateLaunchTestSuite, createsVirtualMachines)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -692,6 +768,37 @@ TEST_P(DaemonCreateLaunchTestSuite, generatesNameOnCreationWhenClientDoesNotProv
     EXPECT_THAT(stream.str(), HasSubstr(expected_name));
 }
 
+TEST_P(DaemonCreateLaunchTestSuite, writesCloudInitIsoToInstanceDirectory)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto expected_iso = QDir{instance_dir.path()}.filePath(mp::cloud_init_file_name);
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(WithArg<0>([&expected_iso](const mp::VirtualMachineDescription& desc) {
+            EXPECT_EQ(desc.cloud_init_iso, expected_iso);
+            EXPECT_TRUE(QFile::exists(desc.cloud_init_iso));
+            return std::make_unique<mpt::StubVirtualMachine>();
+        }));
+
+    send_command({GetParam()});
+}
+
+YAML::Node cloud_init_file_in(const mp::Path& cloud_init_iso, const std::string& file_name)
+{
+    mp::CloudInitIso iso;
+    iso.read_from(cloud_init_iso.toStdString());
+    return YAML::Load(iso.at(file_name));
+}
+
+auto saves_cloud_init_iso_to(mp::Path& cloud_init_iso)
+{
+    return WithArg<0>([&cloud_init_iso](const mp::VirtualMachineDescription& desc) {
+        cloud_init_iso = desc.cloud_init_iso;
+        return std::make_unique<mpt::StubVirtualMachine>();
+    });
+}
+
 MATCHER_P2(YAMLNodeContainsString, key, val, "")
 {
     if (!arg.IsMap())
@@ -723,7 +830,7 @@ MATCHER_P2(YAMLNodeContainsStringStartingWith, key, val, "")
     {
         return false;
     }
-    return arg[key].Scalar().find(val) == 0;
+    return arg[key].Scalar().starts_with(val);
 }
 
 MATCHER_P(YAMLNodeContainsSubString, val, "")
@@ -816,24 +923,20 @@ TEST_P(DaemonCreateLaunchTestSuite, defaultCloudInitGrowsRootFs)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
-        .WillOnce([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
-            EXPECT_THAT(desc.vendor_data_config, YAMLNodeContainsMap("growpart"));
-
-            if (desc.vendor_data_config["growpart"])
-            {
-                auto const& growpart_stanza = desc.vendor_data_config["growpart"];
-
-                EXPECT_THAT(growpart_stanza, YAMLNodeContainsString("mode", "auto"));
-                EXPECT_THAT(
-                    growpart_stanza,
-                    YAMLNodeContainsStringArray("devices", std::vector<std::string>({"/"})));
-                EXPECT_THAT(growpart_stanza,
-                            YAMLNodeContainsString("ignore_growroot_disabled", "false"));
-            }
-        });
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
     send_command({GetParam()});
+
+    const auto vendor_data = cloud_init_file_in(cloud_init_iso, "vendor-data");
+    ASSERT_THAT(vendor_data, YAMLNodeContainsMap("growpart"));
+
+    auto const& growpart_stanza = vendor_data["growpart"];
+    EXPECT_THAT(growpart_stanza, YAMLNodeContainsString("mode", "auto"));
+    EXPECT_THAT(growpart_stanza,
+                YAMLNodeContainsStringArray("devices", std::vector<std::string>({"/"})));
+    EXPECT_THAT(growpart_stanza, YAMLNodeContainsString("ignore_growroot_disabled", "false"));
 }
 
 TEST_P(DaemonCreateLaunchTestSuite, addsSshKeysToCloudInitConfig)
@@ -843,15 +946,15 @@ TEST_P(DaemonCreateLaunchTestSuite, addsSshKeysToCloudInitConfig)
     config_builder.ssh_key_provider = std::make_unique<mpt::DummyKeyProvider>(expected_key);
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
-        .WillOnce([&expected_key](const multipass::VMImage&,
-                                  const mp::VirtualMachineDescription& desc) {
-            ASSERT_THAT(desc.vendor_data_config, YAMLNodeContainsSequence("ssh_authorized_keys"));
-            auto const& ssh_keys_stanza = desc.vendor_data_config["ssh_authorized_keys"];
-            EXPECT_THAT(ssh_keys_stanza, YAMLNodeContainsSubString(expected_key));
-        });
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
     send_command({GetParam()});
+
+    const auto vendor_data = cloud_init_file_in(cloud_init_iso, "vendor-data");
+    ASSERT_THAT(vendor_data, YAMLNodeContainsSequence("ssh_authorized_keys"));
+    EXPECT_THAT(vendor_data["ssh_authorized_keys"], YAMLNodeContainsSubString(expected_key));
 }
 
 TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudInitConfig)
@@ -871,20 +974,15 @@ TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudIn
                      alias.empty() ? "default" : alias)}};
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
-        .WillOnce([&expected_pollinate_map](const multipass::VMImage&,
-                                            const mp::VirtualMachineDescription& desc) {
-            EXPECT_THAT(desc.vendor_data_config, YAMLNodeContainsSequence("write_files"));
-
-            if (desc.vendor_data_config["write_files"])
-            {
-                auto const& write_stanza = desc.vendor_data_config["write_files"];
-
-                EXPECT_THAT(write_stanza, YAMLSequenceContainsStringMap(expected_pollinate_map));
-            }
-        });
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
     send_command({command, alias});
+
+    const auto vendor_data = cloud_init_file_in(cloud_init_iso, "vendor-data");
+    ASSERT_THAT(vendor_data, YAMLNodeContainsSequence("write_files"));
+    EXPECT_THAT(vendor_data["write_files"], YAMLSequenceContainsStringMap(expected_pollinate_map));
 }
 
 TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
@@ -894,14 +992,16 @@ TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
 
     const auto launch_args = GetParam();
 
-    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
-        .WillOnce([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
-            ASSERT_TRUE(desc.network_data_config["ethernets"]);
-            EXPECT_TRUE(desc.network_data_config["ethernets"]["eth0"]);
-            EXPECT_FALSE(desc.network_data_config["ethernets"]["eth1"].IsDefined());
-        });
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
     send_command(launch_args);
+
+    const auto network_data = cloud_init_file_in(cloud_init_iso, "network-config");
+    ASSERT_TRUE(network_data["ethernets"]);
+    EXPECT_TRUE(network_data["ethernets"]["eth0"]);
+    EXPECT_FALSE(network_data["ethernets"]["eth1"].IsDefined());
 }
 
 std::vector<std::string> make_args(const std::vector<std::string>& args)
@@ -939,49 +1039,9 @@ TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
     const auto args = test_params.first;
     const auto forbidden_names = test_params.second;
 
-    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
-        .WillOnce([&args, &forbidden_names](const multipass::VMImage&,
-                                            const mp::VirtualMachineDescription& desc) {
-            EXPECT_THAT(desc.network_data_config, YAMLNodeContainsMap("ethernets"));
-
-            EXPECT_THAT(desc.network_data_config["ethernets"], YAMLNodeContainsMap("eth0"));
-            auto const& default_network_stanza = desc.network_data_config["ethernets"]["eth0"];
-            EXPECT_THAT(default_network_stanza, YAMLNodeContainsMap("match"));
-            EXPECT_THAT(default_network_stanza["match"],
-                        YAMLNodeContainsStringStartingWith("macaddress", "52:54:00:"));
-            EXPECT_THAT(default_network_stanza, YAMLNodeContainsString("dhcp4", "true"));
-
-            for (const auto& arg : args)
-            {
-                std::string name = std::get<1>(arg);
-                if (!name.empty())
-                {
-                    EXPECT_THAT(desc.network_data_config["ethernets"], YAMLNodeContainsMap(name));
-                    auto const& extra_stanza = desc.network_data_config["ethernets"][name];
-                    EXPECT_THAT(extra_stanza, YAMLNodeContainsMap("match"));
-
-                    std::string mac = std::get<2>(arg);
-                    if (mac.size() == 17)
-                        EXPECT_THAT(extra_stanza["match"],
-                                    YAMLNodeContainsString("macaddress", mac));
-                    else
-                        EXPECT_THAT(extra_stanza["match"],
-                                    YAMLNodeContainsStringStartingWith("macaddress", mac));
-
-                    EXPECT_THAT(extra_stanza, YAMLNodeContainsString("dhcp4", "true"));
-                    EXPECT_THAT(extra_stanza, YAMLNodeContainsMap("dhcp4-overrides"));
-                    EXPECT_THAT(extra_stanza["dhcp4-overrides"],
-                                YAMLNodeContainsString("route-metric", "200"));
-                    EXPECT_THAT(extra_stanza, YAMLNodeContainsString("optional", "true"));
-                }
-            }
-
-            for (const auto& forbidden : forbidden_names)
-            {
-                EXPECT_THAT(desc.network_data_config["ethernets"],
-                            Not(YAMLNodeContainsMap(forbidden)));
-            }
-        });
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
     std::vector<std::string> command(1, "launch");
 
@@ -992,6 +1052,45 @@ TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
     }
 
     send_command(command);
+
+    const auto network_data = cloud_init_file_in(cloud_init_iso, "network-config");
+    EXPECT_THAT(network_data, YAMLNodeContainsMap("ethernets"));
+
+    EXPECT_THAT(network_data["ethernets"], YAMLNodeContainsMap("eth0"));
+    auto const& default_network_stanza = network_data["ethernets"]["eth0"];
+    EXPECT_THAT(default_network_stanza, YAMLNodeContainsMap("match"));
+    EXPECT_THAT(default_network_stanza["match"],
+                YAMLNodeContainsStringStartingWith("macaddress", "52:54:00:"));
+    EXPECT_THAT(default_network_stanza, YAMLNodeContainsString("dhcp4", "true"));
+
+    for (const auto& arg : args)
+    {
+        std::string name = std::get<1>(arg);
+        if (!name.empty())
+        {
+            EXPECT_THAT(network_data["ethernets"], YAMLNodeContainsMap(name));
+            auto const& extra_stanza = network_data["ethernets"][name];
+            EXPECT_THAT(extra_stanza, YAMLNodeContainsMap("match"));
+
+            std::string mac = std::get<2>(arg);
+            if (mac.size() == 17)
+                EXPECT_THAT(extra_stanza["match"], YAMLNodeContainsString("macaddress", mac));
+            else
+                EXPECT_THAT(extra_stanza["match"],
+                            YAMLNodeContainsStringStartingWith("macaddress", mac));
+
+            EXPECT_THAT(extra_stanza, YAMLNodeContainsString("dhcp4", "true"));
+            EXPECT_THAT(extra_stanza, YAMLNodeContainsMap("dhcp4-overrides"));
+            EXPECT_THAT(extra_stanza["dhcp4-overrides"],
+                        YAMLNodeContainsString("route-metric", "200"));
+            EXPECT_THAT(extra_stanza, YAMLNodeContainsString("optional", "true"));
+        }
+    }
+
+    for (const auto& forbidden : forbidden_names)
+    {
+        EXPECT_THAT(network_data["ethernets"], Not(YAMLNodeContainsMap(forbidden)));
+    }
 }
 
 typedef typename std::pair<std::vector<std::tuple<std::string, std::string, std::string>>,
@@ -1050,15 +1149,13 @@ TEST_P(LaunchImgSizeSuite, launchesWithCorrectDiskSize)
     const auto& img_size_str = std::get<2>(param);
     const auto img_size = mp::MemorySize(img_size_str);
 
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    ON_CALL(*mock_image_vault, minimum_image_size_for(_)).WillByDefault([&img_size_str](auto...) {
+    ON_CALL(*mock_factory, virtual_size_for(_)).WillByDefault([&img_size_str](auto...) {
         return mp::MemorySize{img_size_str};
     });
 
     EXPECT_CALL(mock_utils, filesystem_bytes_available(_))
         .WillRepeatedly(Return(default_total_bytes));
 
-    config_builder.vault = std::move(mock_image_vault);
     mp::Daemon daemon{config_builder.build()};
 
     std::vector<std::string> all_parameters{first_command_line_parameter};
@@ -1102,12 +1199,9 @@ TEST_P(LaunchStorageCheckSuite, launchWarnsWhenOvercommittingDisk)
 TEST_P(LaunchStorageCheckSuite, launchFailsWhenSpaceLessThanImage)
 {
     auto mock_factory = use_a_mock_vm_factory();
-
-    auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    ON_CALL(*mock_image_vault.get(), minimum_image_size_for(_)).WillByDefault([](auto...) {
+    ON_CALL(*mock_factory, virtual_size_for(_)).WillByDefault([](auto...) {
         return mp::MemorySize{"1"};
     });
-    config_builder.vault = std::move(mock_image_vault);
 
     mp::Daemon daemon{config_builder.build()};
 
@@ -1118,6 +1212,20 @@ TEST_P(LaunchStorageCheckSuite, launchFailsWhenSpaceLessThanImage)
     send_command({GetParam()}, trash_stream, stream);
     EXPECT_THAT(stream.str(),
                 HasSubstr("Available disk (0 bytes) below minimum for this image (1 bytes)"));
+}
+
+TEST_F(Daemon, launchFailsWhenRequestedDiskBelowImageVirtualSize)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, virtual_size_for(_))
+        .WillByDefault(Return(mp::MemorySize::from_bytes(5LL * 1024 * 1024 * 1024)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0);
+    send_command({"launch", "--disk", "1G"}, trash_stream, stream);
+    EXPECT_THAT(stream.str(), HasSubstr("below minimum for this image"));
 }
 
 TEST_P(LaunchStorageCheckSuite, launchFailsWithInvalidDataDirectory)
@@ -1140,11 +1248,16 @@ INSTANTIATE_TEST_SUITE_P(Daemon, DaemonCreateLaunchTestSuite, Values("launch", "
 INSTANTIATE_TEST_SUITE_P(Daemon,
                          DaemonCreateLaunchPollinateDataTestSuite,
                          Combine(Values("launch", "test_create"), Values("foo", "")));
-INSTANTIATE_TEST_SUITE_P(Daemon,
+INSTANTIATE_TEST_SUITE_P(DaemonMemory,
                          MinSpaceRespectedSuite,
                          Combine(Values("test_create", "launch"),
-                                 Values("--memory", "--disk"),
-                                 Values("1024m", "2Gb", "987654321")));
+                                 Values("--memory"),
+                                 Values("512m", "1024m", "2Gb", "987654321")));
+INSTANTIATE_TEST_SUITE_P(DaemonDisk,
+                         MinSpaceRespectedSuite,
+                         Combine(Values("test_create", "launch"),
+                                 Values("--disk"),
+                                 Values("1024m", "2Gb", "1073741824", "9876543210")));
 INSTANTIATE_TEST_SUITE_P(Daemon,
                          MinSpaceViolatedSuite,
                          Combine(Values("test_create", "launch"),
@@ -1167,8 +1280,8 @@ TEST_F(Daemon, readsMacAddressesFromJson)
         mp::NetworkInterface{"wlx60e3270f55fe", "52:54:00:bd:19:41", true},
         mp::NetworkInterface{"enp3s0", "01:23:45:67:89:ab", false}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
     EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine)
         .WillRepeatedly(WithArg<0>([](const auto& desc) {
@@ -1185,8 +1298,8 @@ TEST_F(Daemon, readsMacAddressesFromJson)
         StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
         mp::ListReply list_reply;
 
-        auto instance_matcher =
-            UnorderedElementsAre(Property(&mp::ListVMInstance::name, "real-zebraphant"));
+        auto instance_matcher = UnorderedElementsAre(
+            Property(&mp::ListVMInstance::name, "real-zebraphant"));
         EXPECT_CALL(mock_server, Write(_, _))
             .WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 
@@ -1248,8 +1361,8 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
         "target_3",
         mp::VMMount{temp_mount_3, uid_mappings_3, gid_mappings_3, mp::VMMount::MountType::Classic});
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
 
     EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine)
         .WillRepeatedly(WithArg<0>([](const auto& desc) {
@@ -1266,8 +1379,9 @@ TEST_F(Daemon, writesAndReadsMountsInJson)
         StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
         mp::ListReply list_reply;
 
-        auto instance_matcher =
-            UnorderedElementsAre(Property(&mp::ListVMInstance::name, "real-zebraphant"));
+        auto instance_matcher = UnorderedElementsAre(
+            AllOf(Property(&mp::ListVMInstance::name, "real-zebraphant"),
+                  Property(&mp::ListVMInstance::mount_count, 3)));
         EXPECT_CALL(mock_server, Write(_, _))
             .WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
 
@@ -1495,8 +1609,8 @@ TEST_F(Daemon, skipsOverInstanceGhostsInDb)
 TEST_F(Daemon, ctorLetsExceptionsArisingFromVmCreationThrough)
 {
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents("ab:ab:ab:ab:ab:ab", {}));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents("ab:ab:ab:ab:ab:ab", {}));
     config_builder.data_directory = temp_dir->path();
 
     const std::string msg = "asdf";
@@ -1519,7 +1633,7 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
     EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
-        .WillRepeatedly(Invoke([](const auto& p) { return p.filename() != "nowhere"; }));
+        .WillRepeatedly([](const auto& p) { return p.filename() != "nowhere"; });
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     EXPECT_CALL(*mock_image_vault, fetch_image(Field(&mp::Query::name, stayed), _, _, _, _))
@@ -1599,12 +1713,265 @@ INSTANTIATE_TEST_SUITE_P(Daemon,
                                 std::make_tuple(mp::VirtualMachine::State::running,
                                                 std::vector<std::string>{"list", "--no-ipv4"},
                                                 std::vector<std::string>{"Running", "--"}),
-                                std::make_tuple(mp::VirtualMachine::State::off,
+                                std::make_tuple(mp::VirtualMachine::State::stopped,
                                                 std::vector<std::string>{"list"},
                                                 std::vector<std::string>{"Stopped", "--"}),
-                                std::make_tuple(mp::VirtualMachine::State::off,
+                                std::make_tuple(mp::VirtualMachine::State::stopped,
                                                 std::vector<std::string>{"list", "--no-ipv4"},
                                                 std::vector<std::string>{"Stopped", "--"})));
+
+TEST_F(Daemon, disableZonesStopsInstance)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    mpt::fake_vm_properties vm_props{};
+    vm_props.state = mp::VirtualMachine::State::running;
+    const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
+    EXPECT_CALL(*mock_vm, get_zone).WillRepeatedly(ReturnRef(zone));
+    EXPECT_CALL(*mock_vm, set_available(false)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(vm_props.state));
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
+    EXPECT_CALL(*mock_vm, start).Times(0);
+    EXPECT_CALL(*mock_vm, shutdown).Times(0);
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"disable-zones", "zone1", "--force"});
+}
+
+TEST_F(Daemon, enableZonesRestoresRunningInstanceState)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    mpt::fake_vm_properties vm_props{};
+    vm_props.state = mp::VirtualMachine::State::unavailable;
+    const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
+    EXPECT_CALL(*mock_vm, get_zone).WillRepeatedly(ReturnRef(zone));
+    EXPECT_CALL(*mock_vm, set_available(true)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(0);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, shutdown).Times(0);
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"enable-zones", "zone1"});
+}
+
+TEST_F(Daemon, enableZonesRestoresStoppedInstanceState)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    mpt::fake_vm_properties vm_props{};
+    vm_props.state = mp::VirtualMachine::State::unavailable;
+    const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
+    EXPECT_CALL(*mock_vm, get_zone).WillRepeatedly(ReturnRef(zone));
+    EXPECT_CALL(*mock_vm, set_available(true)).WillOnce(Return(false));
+    EXPECT_CALL(*mock_vm, handle_state_update).Times(0);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(0);
+    EXPECT_CALL(*mock_vm, start).Times(0);
+    EXPECT_CALL(*mock_vm, shutdown).Times(0);
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"enable-zones", "zone1"});
+}
+
+TEST_F(Daemon, listOmitsZoneWhenBackendDoesNotSupportAvailabilityZones)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(false));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+
+    send_command({"launch"});
+
+    StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
+    mp::ListReply list_reply;
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+    ASSERT_THAT(list_reply.instance_list().instances(), SizeIs(1));
+    EXPECT_FALSE(list_reply.instance_list().instances(0).has_zone());
+}
+
+TEST_F(Daemon, listIncludesZoneWhenBackendSupportsAvailabilityZones)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(true));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+
+    send_command({"launch"});
+
+    StrictMock<mpt::MockServerReaderWriter<mp::ListReply, mp::ListRequest>> mock_server;
+    mp::ListReply list_reply;
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&list_reply), Return(true)));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::list, mp::ListRequest{}, mock_server).ok());
+    ASSERT_THAT(list_reply.instance_list().instances(), SizeIs(1));
+    EXPECT_TRUE(list_reply.instance_list().instances(0).has_zone());
+    EXPECT_EQ(list_reply.instance_list().instances(0).zone().name(), zone.get_name());
+}
+
+TEST_F(Daemon, infoOmitsZoneWhenBackendDoesNotSupportAvailabilityZones)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(false));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+
+    send_command({"launch"});
+
+    StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server;
+    mp::InfoReply info_reply;
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&info_reply), Return(true)));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server).ok());
+    ASSERT_THAT(info_reply.details(), SizeIs(1));
+    EXPECT_FALSE(info_reply.details(0).has_zone());
+}
+
+TEST_F(Daemon, infoIncludesZoneWhenBackendSupportsAvailabilityZones)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(true));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+
+    send_command({"launch"});
+
+    StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server;
+    mp::InfoReply info_reply;
+    EXPECT_CALL(mock_server, Write(_, _)).WillOnce(DoAll(SaveArg<0>(&info_reply), Return(true)));
+
+    EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server).ok());
+    ASSERT_THAT(info_reply.details(), SizeIs(1));
+    EXPECT_TRUE(info_reply.details(0).has_zone());
+    EXPECT_EQ(info_reply.details(0).zone().name(), zone.get_name());
+}
+
+TEST_F(Daemon, launchPersistsRealZoneNameEvenWhenBackendDoesNotSupportAvailabilityZones)
+{
+    // Regression test: create_vm() used to force zone_name to "" for backends that don't
+    // support availability zones, defeating the purpose of naming the stub zone "zone1" and
+    // meaning such instances would be persisted with an empty zone forever. The zone name
+    // that ends up on disk should always be a real, non-empty name (e.g. "zone1"), regardless
+    // of whether the backend advertises AZ support; it's the client-facing surface (list/info
+    // replies, LaunchReply.zone) that is gated on supports_availability_zones(), not the
+    // internal/persisted zone name.
+    const std::string expected_name{"pied-piper-valley"};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    ON_CALL(*mock_factory, supports_availability_zones()).WillByDefault(Return(false));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillRepeatedly(WithArg<0>([](const auto& desc) {
+            return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
+        }));
+
+    mpt::TempDir temp_dir;
+    config_builder.data_directory = temp_dir.path();
+    config_builder.name_generator = std::make_unique<StubNameGenerator>(expected_name);
+    mp::Daemon daemon{config_builder.build()};
+
+    send_command({"launch"});
+
+    const auto filename = temp_dir.path() + "/multipassd-vm-instances.json";
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
+        .WillOnce(WithArg<1>([&expected_name](const QByteArrayView& data) {
+            auto obj = boost::json::parse({data.begin(), data.end()});
+            const auto instance_object = obj.at(expected_name).as_object();
+            EXPECT_EQ(value_to<std::string>(instance_object.at("zone")), "zone1");
+        }));
+
+    daemon.persist_instances();
+}
+
+struct RunningInstanceWithoutIP : public Daemon, public WithParamInterface<std::vector<std::string>>
+{
+};
+
+TEST_P(RunningInstanceWithoutIP, doesNotFailListOrInfo)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillRepeatedly([&instance_ptr](auto&&...) {
+        return std::move(instance_ptr);
+    });
+
+    EXPECT_CALL(*instance_ptr, current_state())
+        .WillRepeatedly(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
+    EXPECT_CALL(*instance_ptr, management_ipv4()).WillRepeatedly(Return(std::nullopt));
+    EXPECT_CALL(*instance_ptr, get_all_ipv4()).Times(0);
+    EXPECT_CALL(*instance_ptr, ssh_exec(_, _)).Times(0);
+
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, is_running, mp::Utils);
+
+    send_command({"launch"});
+
+    std::stringstream stream, err_stream;
+    send_command(GetParam(), stream, err_stream);
+
+    EXPECT_THAT(stream.str(), HasSubstr("Running"));
+    EXPECT_THAT(err_stream.str(), Not(HasSubstr("IP not available")));
+}
+
+INSTANTIATE_TEST_SUITE_P(Daemon,
+                         RunningInstanceWithoutIP,
+                         Values(std::vector<std::string>{"list"},
+                                std::vector<std::string>{"info"}));
 
 TEST_F(Daemon, preventsRepetitionOfLoadedMacAddresses)
 {
@@ -1632,8 +1999,8 @@ TEST_F(Daemon, doesNotHoldOnToRepeatedMacAddressesWhenLoading)
     std::vector<mp::NetworkInterface> extra_interfaces{
         mp::NetworkInterface{"eth0", mac_addr, true}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_factory = use_a_mock_vm_factory();
@@ -1648,8 +2015,8 @@ TEST_F(Daemon, doesNotHoldOnToMacsWhenLoadingFails)
     std::string mac1{"52:54:00:73:76:28"}, mac2{"52:54:00:bd:19:41"};
     std::vector<mp::NetworkInterface> extra_interfaces{mp::NetworkInterface{"eth0", mac2, true}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac1, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac1, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_image_vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -1700,6 +2067,85 @@ TEST_F(Daemon, releasesMacsWhenLaunchFails)
     auto cmd = std::vector<std::string>{"launch", "--network", "mac=52:54:00:73:76:28,name=wlan0"};
     send_command(cmd); // we cause this one to fail
     send_command(cmd); // and confirm we can repeat the same mac
+}
+
+TEST_F(Daemon, launchSuppressesErrorFromIntentionalStartException)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    const std::string instance_name{"asustere-manul"};
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(instance_name));
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
+        .WillOnce(
+            Throw(mp::StartException{instance_name, "shutdown requested by cloud-init", true}));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream out_stream, err_stream;
+    send_command({"launch", "--name", instance_name}, out_stream, err_stream);
+
+    EXPECT_THAT(err_stream.str(), IsEmpty());
+}
+
+TEST_F(Daemon, launchReportsErrorFromNonIntentionalStartException)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    const std::string instance_name{"asustere-manul"};
+    const std::string error_msg{"ssh timed out"};
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(instance_name));
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
+        .WillOnce(Throw(mp::StartException{instance_name, error_msg, false}));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream out_stream, err_stream;
+    send_command({"launch", "--name", instance_name}, out_stream, err_stream);
+
+    EXPECT_THAT(err_stream.str(), HasSubstr(error_msg));
+}
+
+TEST_F(Daemon, startReportsErrorEvenWhenStartExceptionIsIntentional)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+
+    mpt::fake_vm_properties vm_props{};
+    vm_props.state = mp::VirtualMachine::State::stopped;
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    const std::string error_msg{"shutdown requested by cloud-init"};
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
+    EXPECT_CALL(*mock_vm, current_state())
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, start()).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
+        .WillOnce(Throw(mp::StartException{vm_props.name, error_msg, true}));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::StartRequest request;
+    request.mutable_instance_names()->add_instance_name(vm_props.name);
+
+    StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> mock_server{};
+    EXPECT_CALL(mock_server, Write(_, _)).Times(1);
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(mock_server));
+
+    EXPECT_FALSE(status.ok());
+    EXPECT_THAT(status.error_message(), HasSubstr(error_msg));
 }
 
 TEST_F(Daemon, releasesMacsOfPurgedInstancesButKeepsTheRest)
@@ -1829,11 +2275,11 @@ TEST_F(Daemon, keysReportsException)
     const auto e = std::runtime_error{"some error"};
     EXPECT_CALL(mock_settings, keys).WillOnce(Throw(e));
 
-    auto status =
-        call_daemon_slot(daemon,
-                         &mp::Daemon::keys,
-                         mp::KeysRequest{},
-                         StrictMock<mpt::MockServerReaderWriter<mp::KeysReply, mp::KeysRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::keys,
+        mp::KeysRequest{},
+        StrictMock<mpt::MockServerReaderWriter<mp::KeysReply, mp::KeysRequest>>{});
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_THAT(status.error_message(), HasSubstr(e.what()));
 }
@@ -1866,11 +2312,11 @@ TEST_F(Daemon, getHandlesEmptyKey)
     request.set_key(key);
 
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
-    auto status =
-        call_daemon_slot(daemon,
-                         &mp::Daemon::get,
-                         request,
-                         StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::get,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr("''")));
@@ -1885,11 +2331,11 @@ TEST_F(Daemon, getHandlesInvalidKey)
     request.set_key(key);
 
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(mp::UnrecognizedSettingException{key}));
-    auto status =
-        call_daemon_slot(daemon,
-                         &mp::Daemon::get,
-                         request,
-                         StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::get,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(), AllOf(HasSubstr("Unrecognized"), HasSubstr(request.key())));
@@ -1905,11 +2351,11 @@ TEST_F(Daemon, getReportsException)
 
     EXPECT_CALL(mock_settings, get(Eq(key))).WillOnce(Throw(std::runtime_error{"exception"}));
 
-    auto status =
-        call_daemon_slot(daemon,
-                         &mp::Daemon::get,
-                         request,
-                         StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::get,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::GetReply, mp::GetRequest>>{});
 
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
     EXPECT_THAT(status.error_message(), HasSubstr("exception"));
@@ -1926,7 +2372,7 @@ TEST_F(Daemon, setSetsSetting)
     request.set_key(key);
     request.set_val(val);
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val))).Times(1);
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(val), _)).Times(1);
 
     auto mock_server = StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{};
     EXPECT_TRUE(call_daemon_slot(daemon, &mp::Daemon::set, request, mock_server).ok());
@@ -1953,11 +2399,11 @@ TEST_P(DaemonSetExceptions, setHandlesSettingsException)
     })); /*
 lambda capture with initializer works around forbidden capture of structured binding */
 
-    auto status =
-        call_daemon_slot(daemon,
-                         &mp::Daemon::set,
-                         mp::SetRequest{},
-                         StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{});
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::set,
+        mp::SetRequest{},
+        StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{});
 
     EXPECT_EQ(status.error_code(), expected_code);
     EXPECT_THAT(status.error_message(), msg_matcher);
@@ -2038,7 +2484,7 @@ TEST_F(Daemon, setWorksIfBridgedInterfaceIsEmpty)
 
     EXPECT_CALL(mock_settings, get(Eq(mp::bridged_interface_key))).WillOnce(Return(""));
 
-    EXPECT_CALL(mock_settings, set(Eq(key), Eq(value))).Times(1);
+    EXPECT_CALL(mock_settings, set(Eq(key), Eq(value), _)).Times(1);
 
     auto mock_server = StrictMock<mpt::MockServerReaderWriter<mp::SetReply, mp::SetRequest>>{};
 
@@ -2293,8 +2739,8 @@ TEST_F(Daemon, requestsNetworks)
         return std::tie(proto_net.name(), proto_net.type(), proto_net.description()) ==
                std::tie(net_info.id, net_info.type, net_info.description);
     };
-    auto same_net_matcher =
-        Truly(mpt::with_arg_tuple(are_same_net)); // matches pairs (2-tuples) of equivalent nets
+    auto same_net_matcher = Truly(
+        mpt::with_arg_tuple(are_same_net)); // matches pairs (2-tuples) of equivalent nets
 
     EXPECT_CALL(mock_server,
                 Write(Property(&mp::NetworksReply::interfaces,
@@ -2355,8 +2801,9 @@ TEST_F(Daemon, infoAllReturnsAllInstances)
         deleted_instance_name{"deleted-instance"};
     const auto good_instance_json = fmt::format(valid_template, good_instance_name, "10");
     const auto deleted_instance_json = fmt::format(deleted_template, deleted_instance_name, "11");
-    const auto instances_json =
-        fmt::format("{{{}, {}}}", good_instance_json, deleted_instance_json);
+    const auto instances_json = fmt::format("{{{}, {}}}",
+                                            good_instance_json,
+                                            deleted_instance_json);
     const auto [temp_dir, __] = plant_instance_json(instances_json);
     config_builder.data_directory = temp_dir->path();
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
@@ -2366,9 +2813,9 @@ TEST_F(Daemon, infoAllReturnsAllInstances)
             return std::make_unique<mpt::StubVirtualMachine>(desc.vm_name);
         }));
 
-    const auto names_matcher =
-        UnorderedElementsAre(Property(&mp::DetailedInfoItem::name, good_instance_name),
-                             Property(&mp::DetailedInfoItem::name, deleted_instance_name));
+    const auto names_matcher = UnorderedElementsAre(
+        Property(&mp::DetailedInfoItem::name, good_instance_name),
+        Property(&mp::DetailedInfoItem::name, deleted_instance_name));
 
     StrictMock<mpt::MockServerReaderWriter<mp::InfoReply, mp::InfoRequest>> mock_server{};
     EXPECT_CALL(mock_server, Write(Property(&mp::InfoReply::details, names_matcher), _))

@@ -18,13 +18,17 @@
 #include "common.h"
 #include "mock_logger.h"
 #include "mock_platform.h"
+#include "mock_process_factory.h"
 #include "stub_availability_zone_manager.h"
 #include "stub_url_downloader.h"
 #include "temp_dir.h"
+#include "temp_file.h"
 
 #include <shared/base_virtual_machine_factory.h>
 
+#include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/network_interface_info.h>
+#include <multipass/utils/qemu_img_utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
 
@@ -124,42 +128,69 @@ TEST_F(BaseFactory, networksThrows)
                  mp::NotImplementedOnThisBackendException);
 }
 
-// Ideally, we'd define some unique YAML for each node and test the contents of the ISO image,
-// but we'd need a cross-platform library to read files in an ISO image and that is beyond scope
-// at this time.  Instead, just make sure an ISO image is created and has the expected path.
-TEST_F(BaseFactory, createsCloudInitIsoImage)
+namespace
 {
+std::unique_ptr<mpt::MockProcessFactory::Scope> fake_qemuimg_info(const mp::ProcessState& state,
+                                                                  QByteArray output)
+{
+    auto scope = mpt::MockProcessFactory::Inject();
+    scope->register_callback([state, output = std::move(output)](mpt::MockProcess* process) {
+        ASSERT_TRUE(process->program().endsWith("qemu-img"));
+        EXPECT_CALL(*process, execute).WillOnce(Return(state));
+        if (state.completed_successfully())
+            EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(output));
+        else if (state.exit_code)
+            EXPECT_CALL(*process, read_all_standard_error).WillOnce(Return(output));
+        else
+            ON_CALL(*process, read_all_standard_error).WillByDefault(Return(output));
+    });
+    return scope;
+}
+} // namespace
+
+TEST_F(BaseFactory, virtualSizeForReturnsQemuImgVirtualSize)
+{
+    constexpr qint64 virtual_size = 5368709120;
+    auto scope = fake_qemuimg_info(
+        {0, std::nullopt},
+        QByteArray::fromStdString(fmt::format(R"({{"virtual-size": {}}})", virtual_size)));
+
+    mpt::TempFile image;
     MockBaseFactory factory{az_manager};
-    const std::string name{"foo"};
-    const YAML::Node metadata{YAML::Load({fmt::format("name: {}", name)})}, vendor_data{metadata},
-        user_data{metadata}, network_data{metadata};
 
-    mp::VMImage image;
-    image.image_path = QString("%1/%2")
-                           .arg(factory.tmp_dir->path())
-                           .arg(QString::fromStdString(name))
-                           .toStdString();
+    EXPECT_EQ(factory.virtual_size_for(image.path()).in_bytes(), virtual_size);
+}
 
-    mp::VirtualMachineDescription vm_desc{2,
-                                          mp::MemorySize{"3M"},
-                                          mp::MemorySize{}, // not used
-                                          name,
-                                          "zone1",
-                                          "00:16:3e:fe:f2:b9",
-                                          {},
-                                          "yoda",
-                                          image,
-                                          "",
-                                          metadata,
-                                          user_data,
-                                          vendor_data,
-                                          network_data};
+TEST_F(BaseFactory, virtualSizeForThrowsWhenQemuImgFails)
+{
+    auto scope = fake_qemuimg_info({1, std::nullopt}, "Could not find");
 
-    factory.configure(vm_desc);
+    mpt::TempFile image;
+    MockBaseFactory factory{az_manager};
 
-    EXPECT_EQ(vm_desc.cloud_init_iso,
-              QString("%1/cloud-init-config.iso").arg(factory.tmp_dir->path()));
-    EXPECT_TRUE(QFile::exists(vm_desc.cloud_init_iso));
+    EXPECT_THROW(factory.virtual_size_for(image.path()), mp::backend::QemuImgException);
+}
+
+TEST_F(BaseFactory, virtualSizeForThrowsWhenQemuImgCrashes)
+{
+    auto scope = fake_qemuimg_info(
+        {std::nullopt, mp::ProcessState::Error{QProcess::Crashed, "core dumped"}},
+        "about to crash");
+
+    mpt::TempFile image;
+    MockBaseFactory factory{az_manager};
+
+    EXPECT_THROW(factory.virtual_size_for(image.path()), mp::backend::QemuImgException);
+}
+
+TEST_F(BaseFactory, virtualSizeForThrowsWhenVirtualSizeIsNotANumber)
+{
+    auto scope = fake_qemuimg_info({0, std::nullopt}, R"({"format": "qcow2"})");
+
+    mpt::TempFile image;
+    MockBaseFactory factory{az_manager};
+
+    EXPECT_THROW(factory.virtual_size_for(image.path()), mp::InvalidMemorySizeException);
 }
 
 TEST_F(BaseFactory, createBridgeNotImplemented)

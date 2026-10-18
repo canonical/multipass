@@ -16,6 +16,7 @@
  */
 
 #include <multipass/logging/log.h>
+#include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_client.h>
 #include <multipass/ssh/throw_on_error.h>
@@ -28,6 +29,8 @@
 #include <thread>
 #endif
 
+#include <functional>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -35,12 +38,14 @@ namespace
 {
 mp::SSHClient::ChannelUPtr make_channel(ssh_session session)
 {
-    mp::SSHClient::ChannelUPtr channel{ssh_channel_new(session), ssh_channel_free};
+    mp::SSHClient::ChannelUPtr channel{MP_LIBSSH.ssh_channel_new(session),
+                                       [](ssh_channel ch) { MP_LIBSSH.ssh_channel_free(ch); }};
 
-    mp::SSH::throw_on_error(channel,
-                            session,
-                            "[ssh client] channel creation failed",
-                            ssh_channel_open_session);
+    mp::SSH::throw_on_error(
+        channel,
+        session,
+        "[ssh client] channel creation failed",
+        std::bind_front(&mp::Libssh::ssh_channel_open_session, &mp::Libssh::instance()));
 
     return channel;
 }
@@ -97,45 +102,59 @@ void mp::SSHClient::handle_ssh_events()
 {
 #ifndef MULTIPASS_PLATFORM_WINDOWS
     using ConnectorUPtr = std::unique_ptr<ssh_connector_struct, void (*)(ssh_connector)>;
-    std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{ssh_event_new(), ssh_event_free};
+    std::unique_ptr<ssh_event_struct, void (*)(ssh_event)> event{
+        MP_LIBSSH.ssh_event_new(),
+        [](ssh_event e) { MP_LIBSSH.ssh_event_free(e); }};
 
     // stdin
-    ConnectorUPtr connector_in{ssh_connector_new(*ssh_session), ssh_connector_free};
-    ssh_connector_set_out_channel(connector_in.get(), channel.get(), SSH_CONNECTOR_STDOUT);
-    ssh_connector_set_in_fd(connector_in.get(), fileno(stdin));
-    ssh_event_add_connector(event.get(), connector_in.get());
+    ConnectorUPtr connector_in{MP_LIBSSH.ssh_connector_new(*ssh_session),
+                               [](ssh_connector c) { MP_LIBSSH.ssh_connector_free(c); }};
+    MP_LIBSSH.ssh_connector_set_out_channel(connector_in.get(),
+                                            channel.get(),
+                                            SSH_CONNECTOR_STDOUT);
+    MP_LIBSSH.ssh_connector_set_in_fd(connector_in.get(), fileno(stdin));
+    MP_LIBSSH.ssh_event_add_connector(event.get(), connector_in.get());
 
     // stdout
-    ConnectorUPtr connector_out{ssh_connector_new(*ssh_session), ssh_connector_free};
-    ssh_connector_set_out_fd(connector_out.get(), fileno(stdout));
-    ssh_connector_set_in_channel(connector_out.get(), channel.get(), SSH_CONNECTOR_STDOUT);
-    ssh_event_add_connector(event.get(), connector_out.get());
+    ConnectorUPtr connector_out{MP_LIBSSH.ssh_connector_new(*ssh_session),
+                                [](ssh_connector c) { MP_LIBSSH.ssh_connector_free(c); }};
+    MP_LIBSSH.ssh_connector_set_out_fd(connector_out.get(), fileno(stdout));
+    MP_LIBSSH.ssh_connector_set_in_channel(connector_out.get(),
+                                           channel.get(),
+                                           SSH_CONNECTOR_STDOUT);
+    MP_LIBSSH.ssh_event_add_connector(event.get(), connector_out.get());
 
     // stderr
-    ConnectorUPtr connector_err{ssh_connector_new(*ssh_session), ssh_connector_free};
-    ssh_connector_set_out_fd(connector_err.get(), fileno(stderr));
-    ssh_connector_set_in_channel(connector_err.get(), channel.get(), SSH_CONNECTOR_STDERR);
-    ssh_event_add_connector(event.get(), connector_err.get());
+    ConnectorUPtr connector_err{MP_LIBSSH.ssh_connector_new(*ssh_session),
+                                [](ssh_connector c) { MP_LIBSSH.ssh_connector_free(c); }};
+    MP_LIBSSH.ssh_connector_set_out_fd(connector_err.get(), fileno(stderr));
+    MP_LIBSSH.ssh_connector_set_in_channel(connector_err.get(),
+                                           channel.get(),
+                                           SSH_CONNECTOR_STDERR);
+    MP_LIBSSH.ssh_event_add_connector(event.get(), connector_err.get());
 
-    while (ssh_channel_is_open(channel.get()) && !ssh_channel_is_eof(channel.get()))
+    while (MP_LIBSSH.ssh_channel_is_open(channel.get()) &&
+           !MP_LIBSSH.ssh_channel_is_eof(channel.get()))
     {
-        ssh_event_dopoll(event.get(), 60000);
+        MP_LIBSSH.ssh_event_dopoll(event.get(), 60000);
         console->handle_runtime_events();
     }
 
-    ssh_event_remove_connector(event.get(), connector_in.get());
-    ssh_event_remove_connector(event.get(), connector_out.get());
-    ssh_event_remove_connector(event.get(), connector_err.get());
+    MP_LIBSSH.ssh_event_remove_connector(event.get(), connector_in.get());
+    MP_LIBSSH.ssh_event_remove_connector(event.get(), connector_out.get());
+    MP_LIBSSH.ssh_event_remove_connector(event.get(), connector_err.get());
 #else
     auto stdout_thread = std::thread([this]() {
-        while (ssh_channel_is_open(channel.get()) && !ssh_channel_is_eof(channel.get()))
+        while (MP_LIBSSH.ssh_channel_is_open(channel.get()) &&
+               !MP_LIBSSH.ssh_channel_is_eof(channel.get()))
         {
             console->write_console();
         }
         console->exit_console();
     });
 
-    while (ssh_channel_is_open(channel.get()) && !ssh_channel_is_eof(channel.get()))
+    while (MP_LIBSSH.ssh_channel_is_open(channel.get()) &&
+           !MP_LIBSSH.ssh_channel_is_eof(channel.get()))
     {
         console->read_console();
     }
@@ -148,15 +167,16 @@ int mp::SSHClient::exec_string(const std::string& cmd_line)
 {
     // All returned ints from this function can be considered to be VMReturnCodes
     if (cmd_line.empty())
-        SSH::throw_on_error(channel,
-                            *ssh_session,
-                            "[ssh client] shell request failed",
-                            ssh_channel_request_shell);
+        SSH::throw_on_error(
+            channel,
+            *ssh_session,
+            "[ssh client] shell request failed",
+            std::bind_front(&Libssh::ssh_channel_request_shell, &Libssh::instance()));
     else
         SSH::throw_on_error(channel,
                             *ssh_session,
                             "[ssh client] exec request failed",
-                            ssh_channel_request_exec,
+                            std::bind_front(&Libssh::ssh_channel_request_exec, &Libssh::instance()),
                             cmd_line.c_str());
 
     handle_ssh_events();
@@ -173,7 +193,7 @@ int mp::SSHClient::get_ssh_exit_code()
     SSH::throw_on_error(channel,
                         *ssh_session,
                         "[ssh client] could not obtain exit state",
-                        ssh_channel_get_exit_state,
+                        std::bind_front(&Libssh::ssh_channel_get_exit_state, &Libssh::instance()),
                         &exit_status,
                         &exit_signal_status,
                         &core_dumped);
@@ -185,7 +205,7 @@ int mp::SSHClient::get_ssh_exit_code()
                    exit_signal_status,
                    core_dumped ? " (core dumped)" : "");
 
-        ssh_string_free_char(exit_signal_status);
+        MP_LIBSSH.ssh_string_free_char(exit_signal_status);
     }
     return static_cast<int>(exit_status);
 }

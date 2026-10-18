@@ -1,0 +1,88 @@
+From 7af9369653ee828d3aa1593882f8bc1b9a3cad3b Mon Sep 17 00:00:00 2001
+From: Scott Harder <scott.harder@canonical.com>
+Date: Wed, 15 Jul 2026 17:41:13 -0500
+Subject: [PATCH] [migration] Remap legacy ID_AA64PFR1_EL1 key on cpu load
+
+QEMU releases before commit 19ed42e8 ("hvf: arm: Fix encodings for
+ID_AA64PFR1_EL1 and debug System registers") mapped ID_AA64PFR1_EL1 to the
+wrong HVF sysreg encoding (op2=2 instead of op2=1). An instance suspended by
+such a release records that register's value under the op2=2 key, so resuming
+it under a fixed QEMU aborts in cpu_post_load() ("register in their list but
+not ours").
+
+Rewrite the legacy op2=2 key to the correct op2=1 key when loading CPU state.
+The op2=2 encoding is architecturally ID_AA64PFR2_EL1, so guard the rewrite
+with hvf_enabled() -- the only accelerator that used the buggy mapping -- and
+only apply it when the correct op2=1 key is absent. This avoids corrupting a
+genuine ID_AA64PFR2_EL1 entry on TCG/KVM and avoids creating a duplicate key.
+The rewrite is order-preserving (no other cpreg sorts between the two keys)
+and a no-op for natively-suspended instances, which never contain the legacy
+key.
+
+Drop once instances suspended by the affected releases are no longer supported.
+---
+ target/arm/machine.c | 43 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 43 insertions(+)
+
+diff --git a/target/arm/machine.c b/target/arm/machine.c
+index 978249fb71..cb0269e5e4 100644
+--- a/target/arm/machine.c
++++ b/target/arm/machine.c
+@@ -5,6 +5,8 @@
+ #include "system/tcg.h"
+ #include "kvm_arm.h"
+ #include "internals.h"
++#include "cpregs.h"
++#include "system/hvf.h"
+ #include "cpu-features.h"
+ #include "migration/cpu.h"
+ #include "target/arm/gtimer.h"
+@@ -961,6 +963,47 @@ static int cpu_post_load(void *opaque, int version_id)
+      * entries with the right slots in our own values array.
+      */
+ 
++    /*
++     * Multipass suspend/resume compatibility across QEMU upgrades. QEMU
++     * releases before commit 19ed42e8 mapped ID_AA64PFR1_EL1 to the wrong HVF
++     * sysreg encoding (op2=2 instead of op2=1), so an instance suspended by
++     * such a release records that register's value under the op2=2 key. Rewrite
++     * the legacy key to the correct one on load so it matches this QEMU's
++     * register list. The rewrite is order-preserving (the two keys have no
++     * other list entry between them) and a no-op for native suspends, which
++     * never contain the legacy key.
++     *
++     * The op2=2 encoding is architecturally ID_AA64PFR2_EL1, so restrict this
++     * to HVF -- the only accelerator that used the buggy mapping -- and only
++     * when the correct op2=1 key is absent, to avoid corrupting a genuine
++     * ID_AA64PFR2_EL1 entry on other accelerators or creating a duplicate key.
++     * Drop once instances suspended by the affected releases are no longer
++     * supported.
++     */
++    if (hvf_enabled()) {
++        const uint64_t legacy_pfr1 = cpreg_to_kvm_id(
++            ENCODE_AA64_CP_REG(CP_REG_ARM64_SYSREG_CP, 0, 4, 3, 0, 2));
++        const uint64_t correct_pfr1 = cpreg_to_kvm_id(
++            ENCODE_AA64_CP_REG(CP_REG_ARM64_SYSREG_CP, 0, 4, 3, 0, 1));
++        bool have_correct = false;
++        int mi;
++
++        for (mi = 0; mi < cpu->cpreg_vmstate_array_len; mi++) {
++            if (cpu->cpreg_vmstate_indexes[mi] == correct_pfr1) {
++                have_correct = true;
++                break;
++            }
++        }
++        if (!have_correct) {
++            for (mi = 0; mi < cpu->cpreg_vmstate_array_len; mi++) {
++                if (cpu->cpreg_vmstate_indexes[mi] == legacy_pfr1) {
++                    cpu->cpreg_vmstate_indexes[mi] = correct_pfr1;
++                    break;
++                }
++            }
++        }
++    }
++
+     for (i = 0, v = 0; i < cpu->cpreg_array_len
+              && v < cpu->cpreg_vmstate_array_len; i++) {
+         if (cpu->cpreg_vmstate_indexes[v] > cpu->cpreg_indexes[i]) {
+-- 

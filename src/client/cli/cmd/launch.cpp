@@ -191,7 +191,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "codename or alias.\n"
         "<url> is a custom image URL that is in http://, https://, or file:// "
         "format.\n",
-        "[[<remote:>]<image> | <url>]");
+        "[[<remote>:]<image> | <url>]");
     QCommandLineOption cpusOption({"c", "cpus"},
                                   QString::fromStdString(fmt::format("Number of CPUs to allocate.\n"
                                                                      "Minimum: {}, default: {}.",
@@ -247,9 +247,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "You can also use a shortcut of \"<name>\" to mean \"name=<name>\".",
         "spec");
     QCommandLineOption bridgedOption("bridged", "Adds one `--network bridged` network.");
-#ifdef AVAILABILITY_ZONES_FEATURE
     QCommandLineOption zoneOption("zone", "The zone in which to launch the instance.", "zone");
-#endif
     QCommandLineOption mountOption(
         "mount",
         QStringLiteral("Mount a local directory inside the instance. If <target> is omitted, the "
@@ -266,9 +264,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         cloudInitOption,
         networkOption,
         bridgedOption,
-#ifdef AVAILABILITY_ZONES_FEATURE
         zoneOption,
-#endif
         mountOption,
     });
 
@@ -480,18 +476,20 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         spinner = std::make_unique<multipass::AnimatedSpinner>(
             cout); // Creating just in time to work around canonical/multipass#2075
 
-#ifdef AVAILABILITY_ZONES_FEATURE
     if (parser->isSet("zone"))
     {
-        auto zone = parser->value("zone").trimmed();
-        if (zone.isEmpty())
+        auto zone = parser->value("zone").trimmed().toStdString();
+        if (zone.empty())
         {
             cerr << "Error: Empty zone specified with --zone option\n";
             return ReturnCode::CommandLineError;
         }
-        request.set_zone(zone.toStdString());
+
+        if (const auto ret = normalize_zone_name(stub, zone, cerr); ret != Ok)
+            return ret;
+
+        request.set_zone(zone);
     }
-#endif
 
     if (timer)
         timer->resume();
@@ -561,11 +559,10 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             }
         }
 
-#ifdef AVAILABILITY_ZONES_FEATURE
-        cout << "Launched: " << reply.vm_instance_name() << " in " << reply.zone() << "\n";
-#else
-        cout << "Launched: " << reply.vm_instance_name() << "\n";
-#endif
+        if (reply.zone().empty())
+            cout << "Launched: " << reply.vm_instance_name() << "\n";
+        else
+            cout << "Launched: " << reply.vm_instance_name() << " in " << reply.zone() << "\n";
 
         if (term->is_live() && update_available(reply.update_info()))
         {
@@ -617,11 +614,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
                 error_details =
                     "Invalid network options. "
                     "To troubleshoot, see "
-                    "https://documentation.ubuntu.com/multipass/stable/how-to-guides/troubleshoot/";
-            }
-            else if (error == LaunchError::INVALID_ZONE)
-            {
-                error_details = fmt::format("Invalid zone name supplied: {}", request.zone());
+                    "https://canonical.com/multipass/docs/stable/how-to-guides/troubleshoot/";
             }
             else if (error == LaunchError::ZONE_UNAVAILABLE)
             {

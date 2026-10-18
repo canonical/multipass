@@ -134,7 +134,8 @@ TEST_F(RemoteSettingsTest, honorsVerbosityInSetRequest)
     EXPECT_CALL(mock_stub, setRaw).WillOnce(make_releaser(mock_client));
 
     mp::RemoteSettingsHandler handler{"", mock_stub, &mock_term, verbosity};
-    handler.set("whatever", "works");
+    [[maybe_unused]] mp::UserMessages messages{};
+    handler.set("whatever", "works", messages);
 }
 
 TEST_F(RemoteSettingsTest, keysEmptyByDefault)
@@ -285,7 +286,67 @@ TEST_F(RemoteSettingsTest, setRequestsSpecifiedSettingKeyAndValue)
     EXPECT_CALL(mock_stub, setRaw).WillOnce(make_releaser(mock_client));
 
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 22};
-    handler.set(key, val);
+    [[maybe_unused]] mp::UserMessages messages{};
+    handler.set(key, val, messages);
+    EXPECT_TRUE(fake_cout.str().empty());
+    EXPECT_TRUE(fake_cerr.str().empty());
+}
+
+// TODO hyperv migration, remove
+TEST_F(RemoteSettingsTest, setDisplaysMigrationProgressDiagnosticsAndSummary)
+{
+    auto mock_client = make_mock_reader_writer<mp::SetRequest, mp::SetReply>();
+    EXPECT_CALL(*mock_client, Write).WillOnce(Return(true));
+
+    auto read_count = 0;
+    EXPECT_CALL(*mock_client, Read).WillRepeatedly([&read_count](mp::SetReply* reply) {
+        reply->Clear(); // like gRPC, which parses each message into a cleared reply
+        switch (read_count++)
+        {
+        case 0:
+            reply->mutable_hcs_migration_report()->set_phase("Copying disks: vm");
+            return true;
+        case 1:
+            reply->set_log_line("Cannot migrate other: instance is running\n");
+            return true;
+        case 2:
+            reply->mutable_hcs_migration_report()->set_summary(
+                "The following instances were successfully migrated:\n  vm\n");
+            return true;
+        default:
+            return false;
+        }
+    });
+    EXPECT_CALL(mock_stub, setRaw).WillOnce(make_releaser(mock_client));
+
+    mp::RemoteSettingsHandler handler{"local.", mock_stub, &mock_term, 0};
+    [[maybe_unused]] mp::UserMessages messages{};
+    handler.set("local.driver", "hcs", messages);
+
+    EXPECT_THAT(fake_cerr.str(),
+                AllOf(HasSubstr("Copying disks: vm"),
+                      HasSubstr("Cannot migrate other: instance is running")));
+    EXPECT_THAT(fake_cout.str(), HasSubstr("successfully migrated"));
+}
+
+TEST_F(RemoteSettingsTest, setKeepsOrdinaryUserMessagesOnStdout)
+{
+    auto mock_client = make_mock_reader_writer<mp::SetRequest, mp::SetReply>();
+    EXPECT_CALL(*mock_client, Write).WillOnce(Return(true));
+    EXPECT_CALL(*mock_client, Read)
+        .WillOnce([](mp::SetReply* reply) {
+            reply->set_reply_message("Run resize2fs inside the instance.");
+            return true;
+        })
+        .WillOnce(Return(false));
+    EXPECT_CALL(mock_stub, setRaw).WillOnce(make_releaser(mock_client));
+
+    mp::RemoteSettingsHandler handler{"local.", mock_stub, &mock_term, 0};
+    [[maybe_unused]] mp::UserMessages messages{};
+    handler.set("local.instance.disk", "20G", messages);
+
+    EXPECT_THAT(fake_cout.str(), HasSubstr("Run resize2fs inside the instance."));
+    EXPECT_TRUE(fake_cerr.str().empty());
 }
 
 TEST_F(RemoteSettingsTest, setThrowsOnWrongPrefix)
@@ -293,7 +354,8 @@ TEST_F(RemoteSettingsTest, setThrowsOnWrongPrefix)
     constexpr auto prefix = "local.", key = "client.gui.something";
 
     mp::RemoteSettingsHandler handler{prefix, mock_stub, &mock_term, 2};
-    MP_EXPECT_THROW_THAT(handler.set(key, "val"),
+    [[maybe_unused]] mp::UserMessages messages{};
+    MP_EXPECT_THROW_THAT(handler.set(key, "val", messages),
                          mp::UnrecognizedSettingException,
                          mpt::match_what(HasSubstr(key)));
 }
@@ -313,7 +375,8 @@ TEST_F(RemoteSettingsTest, setThrowsOnOtherErrorFromRemote)
     EXPECT_CALL(mock_stub, setRaw).WillOnce(make_releaser(mock_client));
 
     mp::RemoteSettingsHandler handler{"a", mock_stub, &mock_term, 33};
-    MP_EXPECT_THROW_THAT(handler.set("a.ongajgsiffsgu", "dfoinig"),
+    [[maybe_unused]] mp::UserMessages messages{};
+    MP_EXPECT_THROW_THAT((void)handler.set("a.ongajgsiffsgu", "dfoinig", messages),
                          mp::RemoteHandlerException,
                          Property(&mp::RemoteHandlerException::get_status,
                                   make_status_matcher(error_code, error_msg, error_details)));

@@ -19,6 +19,8 @@
 #include "mock_client_rpc.h"
 #include "stub_terminal.h"
 
+#include <multipass/utils.h>
+
 #include <src/client/cli/cmd/animated_spinner.h>
 #include <src/client/cli/cmd/common_callbacks.h>
 
@@ -75,8 +77,7 @@ struct TestLoggingSpinnerCallbacks : public TestSpinnerCallbacks,
                                                                                          term);
             break;
         default:
-            assert(false && "shouldn't be here");
-            std::abort();
+            mp::utils::UNREACHABLE("shouldn't be here");
         }
     }
 };
@@ -128,8 +129,7 @@ struct TestReplySpinnerCallbacks : public TestSpinnerCallbacks,
                                                                                          term);
             break;
         default:
-            assert(false && "shouldn't be here");
-            throw std::runtime_error{"bad test instantiation"};
+            mp::utils::UNREACHABLE("shouldn't be here");
         }
     }
 };
@@ -198,4 +198,39 @@ TEST_F(TestSpinnerCallbacks, confirmationCallbackAnswers)
 
     EXPECT_THAT(err.str(), IsEmpty());
     EXPECT_THAT(out.str(), clearStreamMatcher());
+}
+
+TEST_F(TestSpinnerCallbacks, confirmationCallbackLogs)
+{
+    constexpr auto key = "local.instance-name.not-bridged";
+    constexpr auto log = "[error] The Death Star has detonated.";
+
+    mpt::MockClientReaderWriter<mp::SetRequest, mp::SetReply> mock_client;
+
+    mp::SetReply reply;
+    reply.set_log_line(log);
+
+    auto callback = mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(term, key);
+    callback(reply, &mock_client);
+
+    EXPECT_THAT(err.str(), StrEq(log));
+    EXPECT_THAT(out.str(), clearStreamMatcher());
+}
+
+TEST_F(TestSpinnerCallbacks, confirmationCallbackSendsMessages)
+{
+    constexpr auto key = "local.instance-name.not-bridged";
+    constexpr auto message = "THE END, Star Wars IV.";
+    constexpr auto printed_message = "THE END, Star Wars IV.\n";
+
+    mpt::MockClientReaderWriter<mp::SetRequest, mp::SetReply> mock_client;
+
+    mp::SetReply reply;
+    reply.set_reply_message(message);
+
+    auto callback = mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(term, key);
+    callback(reply, &mock_client);
+
+    EXPECT_THAT(err.str(), IsEmpty());
+    EXPECT_THAT(out.str(), StrEq(printed_message));
 }

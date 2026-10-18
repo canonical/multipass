@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:basics/basics.dart';
-import 'package:flutter/material.dart' hide Switch, ImageInfo;
+import 'package:flutter/material.dart' hide Switch, ImageInfo, Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -12,12 +12,15 @@ import '../platform/platform.dart';
 import '../providers.dart';
 import '../sidebar.dart';
 import '../switch.dart';
+import '../tooltip.dart';
 import '../vm_details/cpus_slider.dart';
 import '../vm_details/disk_slider.dart';
 import '../vm_details/mapping_slider.dart';
 import '../vm_details/mount_points.dart';
 import '../vm_details/ram_slider.dart';
 import '../vm_details/spec_input.dart';
+import 'cloud_init_input.dart';
+import 'zone_dropdown.dart';
 
 class LaunchingImageNotifier extends Notifier<ImageInfo> {
   @override
@@ -63,7 +66,45 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
   final launchRequest = LaunchRequest();
   final mountRequests = <MountRequest>[];
   var addingMount = false;
+  var selectedZoneAvailable = true; // Default to true for 'auto'
   final scrollController = ScrollController();
+
+  void updateZoneAvailability() {
+    if (!ref.read(azSupportedProvider)) {
+      launchRequest.zone = '';
+      if (!selectedZoneAvailable) {
+        setState(() => selectedZoneAvailable = true);
+      }
+      return;
+    }
+
+    final zones = ref.read(zonesProvider);
+    if (zones.isEmpty) {
+      return;
+    }
+    final hasAvailableZones = zones.any((z) => z.available);
+
+    // Check if the currently selected zone is available
+    final isCurrentZoneAvailable = launchRequest.zone.isEmpty
+        ? hasAvailableZones // Empty zone means we'll use the default
+        : zones.any((z) => z.name == launchRequest.zone && z.available);
+
+    setState(() {
+      selectedZoneAvailable = isCurrentZoneAvailable;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    updateZoneAvailability();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    updateZoneAvailability();
+  }
 
   @override
   void dispose() {
@@ -91,6 +132,27 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           loading: () => null,
           error: (_, __) => null,
         );
+    final zones = ref.watch(zonesProvider);
+    final azSupported = ref.watch(azSupportedProvider);
+
+    // Update availability whenever zones change
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!azSupported) {
+        launchRequest.zone = '';
+        updateZoneAvailability();
+        return;
+      }
+      if (zones.isEmpty) {
+        return;
+      }
+      final hasAvailableZones = zones.any((z) => z.available);
+      if (hasAvailableZones != selectedZoneAvailable ||
+          (hasAvailableZones &&
+              !zones.any((z) => z.name == launchRequest.zone && z.available))) {
+        updateZoneAvailability();
+      }
+    });
 
     final closeButton = IconButton(
       icon: const Icon(Icons.close),
@@ -106,6 +168,23 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       onSaved: (value) => launchRequest.instanceName =
           value.isNullOrBlank ? randomName : value!,
       width: 360,
+    );
+
+    final zoneDropdown = FormField<String>(
+      initialValue: '', // Start with empty to let ZoneDropdown set the default
+      onSaved: (value) => launchRequest.zone = value ?? '',
+      builder: (field) {
+        final hasAvailableZones = zones.any((z) => z.available);
+        return ZoneDropdown(
+          value: field.value!,
+          enabled: hasAvailableZones,
+          onChanged: (value) {
+            field.didChange(value);
+            launchRequest.zone = value ?? '';
+            updateZoneAvailability();
+          },
+        );
+      },
     );
 
     final chosenImageName = Text(
@@ -238,6 +317,9 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       ),
     );
 
+    final cloudInitInput = CloudInitInput(
+        onSaved: (value) => launchRequest.cloudInitUserData = value ?? "");
+
     final formBody = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -255,7 +337,91 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         const SizedBox(height: 16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [nameInput, const Spacer()],
+          children: [
+            nameInput,
+            if (azSupported) ...[
+              const SizedBox(width: 32),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      zoneDropdown,
+                      if (!selectedZoneAvailable &&
+                          launchRequest.zone.isNotEmpty &&
+                          !zones.any((z) =>
+                              z.name == launchRequest.zone && z.available))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () {
+                                final grpcClient = ref.read(grpcClientProvider);
+                                final zone = launchRequest.zone;
+                                grpcClient.zonesState([zone], true).then((_) {
+                                  updateZoneAvailability();
+                                  ref.read(notificationsProvider.notifier).add(
+                                        SuccessNotification(
+                                          child: Text(
+                                              l10n.launchFormEnableZoneSuccess(
+                                                  zone)),
+                                        ),
+                                      );
+                                });
+                              },
+                              child: Text(
+                                l10n.launchFormEnableZoneLabel,
+                                style: TextStyle(
+                                  color: Colors.blue[700],
+                                  decoration: TextDecoration.underline,
+                                  fontSize: 14,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (!selectedZoneAvailable &&
+                          !zones.any((z) => z.available))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () {
+                                final grpcClient = ref.read(grpcClientProvider);
+                                final allZones =
+                                    zones.map((z) => z.name).toList();
+                                grpcClient.zonesState(allZones, true).then((_) {
+                                  updateZoneAvailability();
+                                  ref.read(notificationsProvider.notifier).add(
+                                        SuccessNotification(
+                                          child: Text(l10n
+                                              .launchFormEnableAllZonesSuccess),
+                                        ),
+                                      );
+                                });
+                              },
+                              child: Text(
+                                l10n.launchFormEnableAllZonesLabel,
+                                style: TextStyle(
+                                  color: Colors.blue[700],
+                                  decoration: TextDecoration.underline,
+                                  fontSize: 14,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+            const Spacer(),
+          ],
         ),
         const Divider(height: 60),
         SizedBox(
@@ -287,17 +453,42 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         mountPointsView,
         if (mountRequests.isNotEmpty) const SizedBox(height: 20),
         addingMount ? mountForm : addMountButton,
+        const Divider(height: 60),
+        SizedBox(
+          height: 50,
+          child: Text(l10n.launchFormCloudInitTitle,
+              style: const TextStyle(fontSize: 24)),
+        ),
+        cloudInitInput,
       ],
     );
 
-    final launchButton = TextButton(
-      onPressed: () => launch(imageInfo),
-      child: Text(l10n.commonLaunch),
+    String? tooltipMessage;
+    if (!selectedZoneAvailable) {
+      final zones = ref.read(zonesProvider);
+      tooltipMessage = !zones.any((z) => z.available)
+          ? l10n.launchFormAllZonesUnavailableTooltip
+          : l10n.launchFormSelectedZoneUnavailableTooltip;
+    }
+
+    final launchButton = Tooltip(
+      message: tooltipMessage ?? '',
+      visible: !selectedZoneAvailable,
+      child: TextButton(
+        onPressed: selectedZoneAvailable ? () => launch(imageInfo) : null,
+        child: Text(l10n.commonLaunch),
+      ),
     );
 
-    final launchAndConfigureNextButton = OutlinedButton(
-      onPressed: () => launch(imageInfo, configureNext: true),
-      child: Text(l10n.launchFormLaunchAndConfigureNext),
+    final launchAndConfigureNextButton = Tooltip(
+      message: tooltipMessage ?? '',
+      visible: !selectedZoneAvailable,
+      child: OutlinedButton(
+        onPressed: selectedZoneAvailable
+            ? () => launch(imageInfo, configureNext: true)
+            : null,
+        child: Text(l10n.launchFormLaunchAndConfigureNext),
+      ),
     );
 
     final cancelButton = OutlinedButton(
@@ -305,52 +496,44 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       child: Text(l10n.commonCancel),
     );
 
-    return Stack(
-      fit: StackFit.loose,
-      children: [
-        Positioned.fill(
-          bottom: 80,
-          child: Container(
-            alignment: Alignment.topCenter,
-            color: Colors.white,
-            child: Form(
-              key: formKey,
-              autovalidateMode: AutovalidateMode.always,
-              child: SingleChildScrollView(
-                clipBehavior: Clip.none,
-                controller: scrollController,
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: formBody,
-                ),
+    return Stack(fit: StackFit.loose, children: [
+      Positioned.fill(
+        bottom: 80,
+        child: Container(
+          alignment: Alignment.topCenter,
+          color: Colors.white,
+          child: Form(
+            key: formKey,
+            autovalidateMode: AutovalidateMode.always,
+            child: SingleChildScrollView(
+              clipBehavior: Clip.none,
+              controller: scrollController,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: formBody,
               ),
             ),
           ),
         ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(16).copyWith(top: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Divider(height: 30),
-                Row(
-                  children: [
-                    launchButton,
-                    const SizedBox(width: 16),
-                    launchAndConfigureNextButton,
-                    const SizedBox(width: 16),
-                    cancelButton,
-                  ],
-                ),
-              ],
-            ),
-          ),
+      ),
+      Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          color: Colors.white,
+          padding: const EdgeInsets.all(16).copyWith(top: 4),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Divider(height: 30),
+            Row(children: [
+              launchButton,
+              const SizedBox(width: 16),
+              launchAndConfigureNextButton,
+              const SizedBox(width: 16),
+              cancelButton,
+            ]),
+          ]),
         ),
-      ],
-    );
+      ),
+    ]);
   }
 
   void launch(ImageInfo imageInfo, {bool configureNext = false}) {

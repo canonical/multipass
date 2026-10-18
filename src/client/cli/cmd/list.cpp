@@ -20,6 +20,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/formatter.h>
+#include <multipass/user_messages/deprecation_warning.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -61,20 +62,21 @@ std::vector<std::string> cmd::List::aliases() const
 
 QString cmd::List::short_help() const
 {
-    return QStringLiteral("List all available instances or snapshots");
+    return QStringLiteral("List all available instances");
 }
 
 QString cmd::List::description() const
 {
-    return QStringLiteral("List all instances or snapshots which have been created.");
+    return QStringLiteral("List all instances which have been created.");
 }
 
 mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
 {
     QCommandLineOption snapshotsOption("snapshots", "List all available snapshots");
+    snapshotsOption.setFlags(QCommandLineOption::HiddenFromHelp);
     QCommandLineOption formatOption("format",
-                                    "Output list in the requested format.\nValid formats are: "
-                                    "table (default), json, csv and yaml",
+                                    "Output list in the requested format.\n" +
+                                        format_option_details,
                                     "format",
                                     "table");
     QCommandLineOption noIpv4Option("no-ipv4",
@@ -101,6 +103,10 @@ mp::ParseCode cmd::List::parse_args(mp::ArgParser* parser)
         cerr << "IP addresses are not applicable in conjunction with listing snapshots\n";
         return ParseCode::CommandLineError;
     }
+
+    if (parser->isSet(snapshotsOption))
+        cerr << mp::make_deprecation_warning("`multipass list --snapshots`",
+                                             "Use `multipass snapshots` instead.");
 
     request.set_snapshots(parser->isSet(snapshotsOption));
     request.set_request_ipv4(!parser->isSet(noIpv4Option));

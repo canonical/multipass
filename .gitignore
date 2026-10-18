@@ -1,6 +1,6 @@
 .idea
 .vs
-.vscode
+.vscode/launch.json
 .clangd
 .cache
 cmake-build-*

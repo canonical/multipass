@@ -17,11 +17,10 @@
 
 #pragma once
 
+#include "unix_terminal.h"
+
 #include <multipass/console.h>
 
-#include <libssh/libssh.h>
-
-#include "unix_terminal.h"
 #include <csignal>
 #include <termios.h>
 

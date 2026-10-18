@@ -23,6 +23,7 @@
 #include <shared/windows/process_factory.h>
 
 #include <QProcess>
+#include <QThread>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -31,7 +32,18 @@ namespace mpu = multipass::utils;
 namespace
 {
 constexpr auto ps_cmd = "powershell.exe";
-const auto default_args = QStringList{"-NoProfile", "-NoExit", "-Command", "-"};
+const auto default_args = QStringList{"-NoProfile", "-NonInteractive", "-NoExit", "-Command", "-"};
+
+// One-shot processes skip the user's profile, whose output would corrupt what we parse.
+QStringList with_non_interactive_flags(const QStringList& args)
+{
+    auto ret = args;
+    for (const auto& flag : QStringList{"-NonInteractive", "-NoProfile"})
+        if (!args.contains(flag, Qt::CaseInsensitive))
+            ret.prepend(flag);
+
+    return ret;
+}
 
 void setup_powershell(mp::Process* power_shell, const std::string& name)
 {
@@ -94,6 +106,7 @@ mp::PowerShell::PowerShell(const std::string& name)
     setup_powershell(powershell_proc.get(), this->name);
 
     powershell_proc->start();
+    powershell_proc->wait_for_started();
 }
 
 mp::PowerShell::~PowerShell()
@@ -117,11 +130,35 @@ void mp::PowerShell::easy_run(const QStringList& args, std::string&& error_msg)
         throw std::runtime_error{std::move(error_msg)};
 }
 
+void mp::PowerShell::drain()
+{
+    assert(powershell_proc);
+    if (auto stale = powershell_proc->read_all_standard_output(); !stale.isEmpty())
+        mpl::trace(name, "[{}] Discarded stale stdout: {}", powershell_proc->process_id(), stale);
+    if (auto stale = powershell_proc->read_all_standard_error(); !stale.isEmpty())
+        mpl::trace(name, "[{}] Discarded stale stderr: {}", powershell_proc->process_id(), stale);
+}
+
 bool mp::PowerShell::run(const QStringList& args,
                          QString* output,
                          QString* output_err,
                          bool whisper)
 {
+    const bool is_foreign_call = (QThread::currentThread() != powershell_proc->thread());
+    // Callers on other threads get a fresh process instead of sharing the
+    // persistent one: that process can only be used safely from its owning thread.
+    if (!powershell_proc->running() || is_foreign_call)
+    {
+        mpl::trace(name,
+                   "Dispatching through exec (reason: {})",
+                   is_foreign_call ? "foreign thread" : "persistent process not running");
+        return exec(QStringList{"-Command"} + args, name, output, output_err);
+    }
+
+    // Discard leftovers from the previous transaction (e.g. late stderr)
+    // before sending a new command, so they can't leak into this reply.
+    drain();
+
     QString default_output, default_output_err;
     output = output ? output : &default_output;
     output_err = output_err ? output_err : &default_output_err;
@@ -141,7 +178,7 @@ bool mp::PowerShell::run(const QStringList& args,
         QString powershell_stdout;
         QString powershell_stderr;
         auto cmdlet_exit_found{false};
-        while (!cmdlet_exit_found)
+        while (powershell_proc->running() && !cmdlet_exit_found)
         {
             powershell_proc
                 ->wait_for_ready_read(); // ignore timeouts - will just loop back if no output
@@ -202,7 +239,7 @@ bool mp::PowerShell::exec(const QStringList& args,
     output = output ? output : &default_output;
     output_err = output_err ? output_err : &default_output_err;
 
-    auto power_shell = MP_PROCFACTORY.create_process(ps_cmd, args);
+    auto power_shell = MP_PROCFACTORY.create_process(ps_cmd, with_non_interactive_flags(args));
     setup_powershell(power_shell.get(), name);
 
     QObject::connect(

@@ -23,6 +23,10 @@
 #include "tests/unit/mock_standard_paths.h"
 #include "tests/unit/mock_utils.h"
 #include "tests/unit/temp_dir.h"
+#include "tests/unit/windows/mock_net_io_api.h"
+#include "tests/unit/windows/neighbor_table.h"
+
+#include "shared/windows/network_utils.h"
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
@@ -36,10 +40,16 @@
 
 #include <json/json.h>
 
+#include <fmt/format.h>
 #include <scope_guard.hpp>
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <initializer_list>
+#include <memory>
 #include <sstream>
 #include <utility>
 
@@ -50,6 +60,16 @@ using namespace testing;
 
 namespace
 {
+
+// Neighbor entries on the interface being queried, or on some other interface.
+constexpr ULONG64 mgmt_luid = 42;
+constexpr ULONG64 other_luid = 7;
+
+const NET_LUID mgmt_interface = [] {
+    NET_LUID luid{};
+    luid.Value = mgmt_luid;
+    return luid;
+}();
 
 auto expect_only_log(multipass::logging::Level lvl, const std::string& substr)
 {
@@ -144,9 +164,103 @@ TEST(PlatformWin, noExtraDaemonSettings)
     EXPECT_THAT(MP_PLATFORM.extra_daemon_settings(), IsEmpty());
 }
 
+struct PermanentIpv4Neighbor : public Test
+{
+    mpt::MockNetIOAPI::GuardedMock mock_net_io_api_injection =
+        mpt::MockNetIOAPI::inject<StrictMock>();
+    mpt::MockNetIOAPI& mock_net_io_api = *mock_net_io_api_injection.first;
+};
+
+TEST_F(PermanentIpv4Neighbor, rejectsInvalidMac)
+{
+    EXPECT_FALSE(mp::permanent_ipv4_neighbor("not-a-mac", mgmt_interface));
+}
+
+TEST_F(PermanentIpv4Neighbor, findsEntryByPhysicalAddress)
+{
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{10, 123, 45, 67}, mgmt_luid}}))));
+
+    EXPECT_EQ(mp::permanent_ipv4_neighbor("AA-BB-CC-DD-EE-FF", mgmt_interface), "10.123.45.67");
+}
+
+TEST_F(PermanentIpv4Neighbor, ignoresEntriesOnOtherInterfaces)
+{
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{10, 97, 0, 75}, other_luid},
+                                                          {{172, 19, 154, 10}, mgmt_luid},
+                                                          {{10, 97, 1, 11}, other_luid}}))));
+
+    EXPECT_EQ(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff", mgmt_interface), "172.19.154.10");
+}
+
+TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenOnlyOtherInterfacesMatch)
+{
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{10, 97, 0, 75}, other_luid}}))));
+
+    EXPECT_FALSE(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff", mgmt_interface));
+}
+
+TEST_F(PermanentIpv4Neighbor, usesFirstOfMultipleEntries)
+{
+    auto logger_scope = expect_only_log(mpl::Level::debug, "Multiple permanent IPv4 neighbors");
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table(
+            {{{172, 19, 154, 10}, mgmt_luid}, {{172, 19, 154, 11}, mgmt_luid}}))));
+
+    EXPECT_EQ(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff", mgmt_interface), "172.19.154.10");
+}
+
+TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenGetIpNetTableFails)
+{
+    auto logger_scope = expect_only_log(mpl::Level::error,
+                                        "GetIpNetTable2 failed with error code 5");
+    auto table = mp::hyperv::IpNetTable{nullptr, [](MIB_IPNET_TABLE2*) {}};
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(
+            Return(ByMove(mp::hyperv::IpNetTableResult{ERROR_ACCESS_DENIED, std::move(table)})));
+
+    EXPECT_FALSE(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff", mgmt_interface));
+}
+
+TEST_F(PermanentIpv4Neighbor, removesAllEntriesForMac)
+{
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{172, 19, 154, 10}, mgmt_luid},
+                                                          {{10, 97, 0, 75}, mgmt_luid},
+                                                          {{10, 97, 1, 11}, mgmt_luid}}))));
+    std::vector<std::string> removed_addresses;
+    EXPECT_CALL(mock_net_io_api, DeleteIpNetEntry2(_))
+        .Times(3)
+        .WillRepeatedly([&removed_addresses](const MIB_IPNET_ROW2* row) {
+            const auto& address = row->Address.Ipv4.sin_addr.S_un.S_un_b;
+            removed_addresses.push_back(
+                fmt::format("{}.{}.{}.{}", address.s_b1, address.s_b2, address.s_b3, address.s_b4));
+            return NO_ERROR;
+        });
+
+    EXPECT_TRUE(mp::remove_permanent_ipv4_neighbors("aa:bb:cc:dd:ee:ff", mgmt_interface));
+    EXPECT_THAT(removed_addresses, ElementsAre("172.19.154.10", "10.97.0.75", "10.97.1.11"));
+}
+
+TEST_F(PermanentIpv4Neighbor, removesOnlyEntriesOnInterface)
+{
+    EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
+        .WillOnce(Return(ByMove(mpt::make_neighbor_table({{{10, 97, 0, 75}, other_luid},
+                                                          {{172, 19, 154, 10}, mgmt_luid},
+                                                          {{10, 97, 1, 11}, other_luid}}))));
+    EXPECT_CALL(mock_net_io_api,
+                DeleteIpNetEntry2(Pointee(
+                    Field(&MIB_IPNET_ROW2::InterfaceLuid, Field(&NET_LUID::Value, mgmt_luid)))))
+        .WillOnce(Return(NO_ERROR));
+
+    EXPECT_TRUE(mp::remove_permanent_ipv4_neighbors("aa:bb:cc:dd:ee:ff", mgmt_interface));
+}
+
 TEST(PlatformWin, testDefaultDriver)
 {
-    EXPECT_THAT(MP_PLATFORM.default_driver(), AnyOf("hyperv", "hyperv_api", "virtualbox"));
+    EXPECT_THAT(MP_PLATFORM.default_driver(), "hcs");
 }
 
 TEST(PlatformWin, testDefaultPrivilegedMounts)

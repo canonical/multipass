@@ -21,6 +21,7 @@ add_library(logger STATIC
 )
 
 target_link_libraries(logger
+  rust
   fmt::fmt-header-only
   Qt6::Core
 )

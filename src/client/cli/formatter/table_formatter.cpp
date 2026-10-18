@@ -34,14 +34,14 @@ const std::regex newline("(\r\n|\n)");
 
 template <typename Dest>
 void format_images(Dest&& dest,
-                   const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info)
+                   const google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>& images_info)
 {
-    fmt::format_to(dest, "{:<28}{:<18}{:<17}{:<}\n", "Image", "Aliases", "Version", "Description");
+    fmt::format_to(dest, "{:<18}{:<28}{:<17}{:<}\n", "Image", "Aliases", "Version", "Description");
 
     auto sorted_images = images_info;
     std::sort(sorted_images.begin(),
               sorted_images.end(),
-              [](const mp::FindReply_ImageInfo& a, const mp::FindReply_ImageInfo& b) {
+              [](const mp::ImagesReply_ImageInfo& a, const mp::ImagesReply_ImageInfo& b) {
                   if (a.remote_name() == b.remote_name())
                   {
                       return (!a.aliases().empty() && !b.aliases().empty()) &&
@@ -58,7 +58,7 @@ void format_images(Dest&& dest,
 
         fmt::format_to(
             dest,
-            "{:<28}{:<18}{:<17}{:<}\n",
+            "{:<18}{:<28}{:<17}{:<}\n",
             mp::format::image_string_for(image.remote_name(), aliases[0]),
             fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")),
             image.version(),
@@ -144,12 +144,13 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
                    "{:<16}{}\n",
                    "State:",
                    mp::format::status_string_for(item.instance_status()));
-#ifdef AVAILABILITY_ZONES_FEATURE
-    fmt::format_to(dest,
-                   "{:<16}{}\n",
-                   "Zone:",
-                   fmt::format("{}{}", item.zone().name(), item.zone().available() ? "" : "(n/a)"));
-#endif
+    fmt::format_to(
+        dest,
+        "{:<16}{}\n",
+        "Zone:",
+        !item.zone().name().empty()
+            ? fmt::format("{}{}", item.zone().name(), item.zone().available() ? "" : "(n/a)")
+            : std::string{"n/a"});
 
     if (instance_details.has_num_snapshots())
         fmt::format_to(dest, "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
@@ -265,12 +266,9 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     const std::string::size_type state_column_width = 18;
     const std::string::size_type ip_column_width = 17;
     [[maybe_unused]] const std::string::size_type image_column_width = 20;
+    const std::string::size_type mounts_column_width = 8;
 
-    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}"
-#ifdef AVAILABILITY_ZONES_FEATURE
-                                "{:<{}}"
-#endif
-                                "{:<}\n";
+    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
                    row_format,
                    name_col_header,
@@ -279,13 +277,11 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                    state_column_width,
                    "IPv4",
                    ip_column_width,
-                   "Image"
-#ifdef AVAILABILITY_ZONES_FEATURE
-                   ,
+                   "Image",
                    image_column_width,
-                   "Zone"
-#endif
-    );
+                   "Mounts",
+                   mounts_column_width,
+                   "Zone");
 
     for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
@@ -302,13 +298,15 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
             ip_column_width,
             instance.current_release().empty()
                 ? "Not Available"
-                : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release()))
-#ifdef AVAILABILITY_ZONES_FEATURE
-                ,
+                : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release())),
             image_column_width,
-            fmt::format("{}{}", instance.zone().name(), instance.zone().available() ? "" : "(n/a)")
-#endif
-        );
+            instance.mount_count(),
+            mounts_column_width,
+            !instance.zone().name().empty()
+                ? fmt::format("{}{}",
+                              instance.zone().name(),
+                              instance.zone().available() ? "" : "(n/a)")
+                : std::string{"n/a"});
 
         for (int i = 1; i < ipv4_size; ++i)
         {
@@ -320,13 +318,11 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                            state_column_width,
                            instance.ipv4(i),
                            instance.ipv4(i).size(),
-                           ""
-#ifdef AVAILABILITY_ZONES_FEATURE
-                           ,
+                           "",
                            0,
-                           ""
-#endif
-            );
+                           "",
+                           0,
+                           "");
         }
     }
 
@@ -383,8 +379,8 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
                               fundamentals.comment().end(),
                               match,
                               newline))
-            max_comment_column_width =
-                std::min((size_t)(match.position(1)) + 1, max_comment_column_width);
+            max_comment_column_width = std::min((size_t)(match.position(1)) + 1,
+                                                max_comment_column_width);
 
         fmt::format_to(
             std::back_inserter(buf),
@@ -452,6 +448,11 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     return output;
 }
 
+std::string mp::TableFormatter::format(const SnapshotsReply& reply) const
+{
+    return generate_snapshots_list(reply.snapshot_list());
+}
+
 std::string mp::TableFormatter::format(const NetworksReply& reply) const
 {
     fmt::memory_buffer buf;
@@ -497,7 +498,29 @@ std::string mp::TableFormatter::format(const NetworksReply& reply) const
     return fmt::to_string(buf);
 }
 
-std::string mp::TableFormatter::format(const FindReply& reply) const
+std::string mp::TableFormatter::format(const RemotesReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    if (reply.remotes().empty())
+    {
+        fmt::format_to(std::back_inserter(buf), "No remotes available.\n");
+    }
+    else
+    {
+        fmt::format_to(std::back_inserter(buf), "Remote\n");
+
+        auto sorted_remotes = reply.remotes();
+        std::ranges::sort(sorted_remotes);
+        for (const auto& remote : sorted_remotes)
+        {
+            fmt::format_to(std::back_inserter(buf), "{}\n", remote);
+        }
+    }
+    return fmt::to_string(buf);
+}
+
+std::string mp::TableFormatter::format(const ImagesReply& reply) const
 {
     fmt::memory_buffer buf;
     if (reply.images_info().empty())
@@ -560,20 +583,20 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
     const std::string active_context = "*";
     const auto alias_width = width([](const auto& alias) -> int { return alias.first.length(); },
                                    alias_col_header.length());
-    const auto instance_width =
-        width([](const auto& alias) -> int { return alias.second.instance.length(); },
-              instance_col_header.length());
-    const auto command_width =
-        width([](const auto& alias) -> int { return alias.second.command.length(); },
-              command_col_header.length());
+    const auto instance_width = width(
+        [](const auto& alias) -> int { return alias.second.instance.length(); },
+        instance_col_header.length());
+    const auto command_width = width(
+        [](const auto& alias) -> int { return alias.second.command.length(); },
+        command_col_header.length());
     const auto context_width = mp::format::column_width(
         aliases.cbegin(),
         aliases.cend(),
         [&aliases, &active_context](const auto& alias) -> int {
             return alias.first == aliases.active_context_name() &&
                            !aliases.get_active_context().empty()
-                       ? alias.first.length() + active_context.length()
-                       : alias.first.length();
+                     ? alias.first.length() + active_context.length()
+                     : alias.first.length();
         },
         context_col_header.length());
 
@@ -594,8 +617,8 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
     for (const auto& [context_name, context_contents] : sorted_map_view(aliases))
     {
         std::string shown_context = context_name.get() == aliases.active_context_name()
-                                        ? context_name.get() + active_context
-                                        : context_name.get();
+                                      ? context_name.get() + active_context
+                                      : context_name.get();
 
         for (const auto& [name, def] : sorted_map_view(context_contents.get()))
         {

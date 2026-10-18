@@ -26,8 +26,22 @@ target_link_libraries(client
   shared
   Qt6::Core)
 
-add_executable(multipass
-  main.cpp)
+if(MSVC)
+  prepare_windows_version_resource(
+    MULTIPASS_RC_SOURCE
+    multipass
+    "Multipass CLI"
+    "multipass"
+    "multipass.exe"
+  )
+  add_executable(multipass
+    main.cpp
+    ${MULTIPASS_RC_SOURCE})
+else()
+  add_executable(multipass
+    main.cpp)
+endif()
+
 
 target_link_libraries(multipass
   client)

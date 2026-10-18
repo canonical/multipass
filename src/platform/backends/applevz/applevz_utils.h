@@ -32,10 +32,10 @@ public:
     using Singleton<AppleVZUtils>::Singleton;
 
     virtual std::filesystem::path convert_to_supported_format(
-        const std::filesystem::path& image_path,
-        bool destructive = true) const;
+        const std::filesystem::path& image_path) const;
     virtual void resize_image(const MemorySize& disk_space,
                               const std::filesystem::path& image_path) const;
+    virtual MemorySize image_capacity(const std::filesystem::path& image_path) const;
     virtual bool macos_at_least(int major, int minor, int patch = 0) const;
 };
 } // namespace multipass::applevz

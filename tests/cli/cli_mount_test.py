@@ -38,6 +38,7 @@ from cli.multipass import (
     path_exists,
     read_file,
     move_path,
+    validate_list_output,
 )
 
 
@@ -63,7 +64,8 @@ def src_to_dst(src_path):
 class TestMount:
     """Virtual machine mount tests."""
 
-    def test_mount(self, instance, mount_type):
+    @pytest.mark.parametrize("unmount_cmd", ["unmount", "umount"])
+    def test_mount(self, instance, mount_type, unmount_cmd):
         with TempDirectory() as mount_src, src_to_dst(mount_src) as mount_dst:
             if mount_type == "native":
                 assert multipass("stop", instance)
@@ -85,7 +87,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass(unmount_cmd, instance)
             assert mounts(instance) == {}
 
     def test_mount_to_specific_target(self, instance, mount_type):
@@ -118,7 +120,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
 
     def test_mount_same_src_again(self, instance, mount_type):
@@ -182,7 +184,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
 
     def test_mount_multiple(self, instance, mount_type):
@@ -211,6 +213,7 @@ class TestMount:
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 },
             }
+            validate_list_output(instance, {"mounts": 2})
 
             assert path_exists(instance, mount_dst1)
             assert path_exists(instance, mount_dst2)
@@ -220,7 +223,7 @@ class TestMount:
                 assert multipass("stop", instance)
 
             assert multipass(
-                "umount",
+                "unmount",
                 f"{instance}:{str(mount_dst1)}",
             )
 
@@ -231,13 +234,15 @@ class TestMount:
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 },
             }
+            validate_list_output(instance, {"mounts": 1})
 
             assert multipass(
-                "umount",
+                "unmount",
                 f"{instance}:{str(mount_dst2)}",
             )
 
             assert mounts(instance) == {}
+            validate_list_output(instance, {"mounts": 0})
 
             # FIXME: Right now the mount folder is not removed after umount.
             # assert not multipass(
@@ -313,7 +318,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
 
             assert mounts(instance) == {}
 
@@ -369,7 +374,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
             # NOTE: For some reason, this assert fails where it works fine
             # for other tests. The only difference I could tell is this test
@@ -431,7 +436,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
             # NOTE: For some reason, this assert fails where it works fine
             # for other tests. The only difference I could tell is this test
@@ -489,7 +494,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
             # NOTE: For some reason, this assert fails where it works fine
             # for other tests. The only difference I could tell is this test

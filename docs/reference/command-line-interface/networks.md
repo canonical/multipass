@@ -5,12 +5,6 @@
 
 The `multipass networks` command lists network interfaces that multipass can connect instances to. The result depends both on the platform and the driver in use.
 
-At this time, `multipass networks` can only find interfaces in the following scenarios:
-
-- on Linux, with QEMU
-- on Windows, with both Hyper-V and VirtualBox
-- on macOS, with the QEMU, AppleVZ, and VirtualBox drivers
-
 For example, on Windows with Hyper-V the `multipass networks` command returns:
 
 ```{code-block} text
@@ -22,6 +16,10 @@ PrivSwitch      switch  Private virtual switch
 ```
 
 Like [`list`](/reference/command-line-interface/list), `networks` supports the `--format` option.
+
+```{note}
+The `json`, `csv` and `yaml` formats cover regular output only. Errors and log messages are printed to the standard error stream as plain text, with failures signaled by a non-zero exit status.
+```
 
 Another example, running the command `multipass networks --format yaml` on macOS with VirtualBox returns:
 
@@ -61,5 +59,9 @@ Options:
                      option for more detail. Maximum verbosity is obtained with
                      4 (or more) v's, i.e. -vvvv.
   --format <format>  Output list in the requested format.
-                     Valid formats are: table (default), json, csv and yaml
+                     Valid formats are: table (default), json, csv and yaml. The
+                     json, csv and yaml formats cover regular output only.
+                     Errors and log messages are printed to the standard error
+                     stream as plain text, with failures signaled by a non-zero
+                     exit status.
 ```

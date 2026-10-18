@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
 import '../l10n/app_localizations.dart';
+import 'constants.dart';
 
 final hotkeySettingProvider = guiSettingProvider(hotkeyKey);
 
@@ -189,7 +190,7 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
         child: InputDecorator(
           decoration: InputDecoration(contentPadding: EdgeInsets.zero),
           child: Container(
-            width: 260,
+            width: settingFieldWidth,
             height: 42,
             alignment: Alignment.center,
             child: Text(keyCombination),

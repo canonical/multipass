@@ -25,6 +25,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
+#include <multipass/virtual_machine_description.h>
 
 #include <memory>
 #include <mutex>
@@ -34,32 +35,43 @@
 namespace multipass
 {
 class SSHKeyProvider;
+class VMStatusMonitor;
 
 class BaseVirtualMachine : public VirtualMachine
 {
 public:
     BaseVirtualMachine(VirtualMachine::State state,
                        const std::string& vm_name,
+                       const VirtualMachineDescription& vm_desc,
+                       VMStatusMonitor& monitor,
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
                        const Path& instance_dir);
     BaseVirtualMachine(const std::string& vm_name,
+                       const VirtualMachineDescription& vm_desc,
+                       VMStatusMonitor& monitor,
                        const SSHKeyProvider& key_provider,
                        AvailabilityZone& zone,
                        const Path& instance_dir);
-    ~BaseVirtualMachine();
+    ~BaseVirtualMachine() override;
 
     std::string ssh_exec(const std::string& cmd, bool whisper = false) override;
     std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
                                                  bool whisper = false) override;
     [[nodiscard]] std::unique_ptr<SSHSession> new_ssh_session() override;
+    [[nodiscard]] int ssh_port() override;
+    [[nodiscard]] std::string ssh_hostname() override;
+    [[nodiscard]] std::string ssh_username() const override;
 
-    void set_available(bool available) override;
+    bool set_available(bool available) override;
 
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
-    std::vector<IPAddress> get_all_ipv4() override;
+    void update_cpus(int num_cores) override;
+    void resize_memory(const MemorySize& new_size) override;
+    void resize_disk(const MemorySize& new_size, UserMessages& messages) override;
+    [[nodiscard]] std::vector<IPAddress> get_all_ipv4() override;
     void add_network_interface(int, const std::string&, const NetworkInterface&) override
     {
         throw NotImplementedOnThisBackendException("networks");
@@ -70,13 +82,15 @@ public:
         throw NotImplementedOnThisBackendException("native mounts");
     }
 
-    SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const override;
+    [[nodiscard]] SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const override;
     int get_num_snapshots() const override;
+    std::shared_ptr<const Snapshot> get_head_snapshot() const override;
 
-    std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const override;
-    std::shared_ptr<const Snapshot> get_snapshot(int index) const override;
-    std::shared_ptr<Snapshot> get_snapshot(const std::string& name) override;
-    std::shared_ptr<Snapshot> get_snapshot(int index) override;
+    [[nodiscard]] std::shared_ptr<const Snapshot> get_snapshot(
+        const std::string& name) const override;
+    [[nodiscard]] std::shared_ptr<const Snapshot> get_snapshot(int index) const override;
+    [[nodiscard]] std::shared_ptr<Snapshot> get_snapshot(const std::string& name) override;
+    [[nodiscard]] std::shared_ptr<Snapshot> get_snapshot(int index) override;
 
     // TODO: the VM should know its directory, but that is true of everything in its VMDescription;
     // pulling that from derived classes is a big refactor
@@ -87,12 +101,13 @@ public:
     void delete_snapshot(const std::string& name) override;
     void restore_snapshot(const std::string& name, VMSpecs& specs) override;
     void load_snapshots() override;
-    std::vector<std::string> get_childrens_names(const Snapshot* parent) const override;
+    [[nodiscard]] std::vector<std::string> get_childrens_names(
+        const Snapshot* parent) const override;
     int get_snapshot_count() const override;
 
-    QDir instance_directory() const override;
-    const std::string& get_name() const override;
-    const AvailabilityZone& get_zone() const override;
+    QDir instance_directory() const noexcept override;
+    const std::string& get_name() const noexcept override;
+    const AvailabilityZone& get_zone() const noexcept override;
 
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
@@ -109,6 +124,13 @@ protected:
     virtual std::unique_ptr<SSHProcess> make_ssh_process(const std::string& cmd, bool whisper);
 
     virtual bool unplugged();
+
+    [[nodiscard]] bool is_core() const;
+    static std::string core_image_disk_resize_message();
+
+    virtual void update_cpus_impl(int /*num_cores*/) {};
+    virtual void resize_memory_impl(const MemorySize& /*new_size*/) {};
+    virtual void resize_disk_impl(const MemorySize& new_size) = 0;
 
     /**
      * Refresh the VM, if possible, when the startup appears stuck.
@@ -132,7 +154,7 @@ protected:
         const std::string& new_instance_id) const;
     virtual std::string get_instance_id_from_the_cloud_init() const;
 
-    virtual void check_state_for_shutdown(ShutdownPolicy shutdown_policy);
+    void check_state_for_shutdown(ShutdownPolicy shutdown_policy) const;
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
@@ -158,7 +180,7 @@ private:
 
     void persist_generic_snapshot_info() const;
     void persist_head_snapshot_index(const Path& head_path) const;
-    std::string generate_snapshot_name() const;
+    [[nodiscard]] std::string generate_snapshot_name() const;
 
     template <typename NodeT>
     auto make_reinsert_guard(NodeT& snapshot_node);
@@ -188,6 +210,8 @@ private:
 
 protected:
     const std::string vm_name;
+    VirtualMachineDescription desc;
+    VMStatusMonitor& monitor;
     const SSHKeyProvider& key_provider;
     AvailabilityZone& zone;
     const QDir instance_dir;
@@ -208,7 +232,15 @@ private:
 
 inline int multipass::BaseVirtualMachine::get_num_snapshots() const
 {
+    const std::unique_lock lock{snapshot_mutex};
     return static_cast<int>(snapshots.size());
+}
+
+inline std::shared_ptr<const multipass::Snapshot>
+multipass::BaseVirtualMachine::get_head_snapshot() const
+{
+    const std::unique_lock lock{snapshot_mutex};
+    return head_snapshot;
 }
 
 inline int multipass::BaseVirtualMachine::get_snapshot_count() const
@@ -217,17 +249,22 @@ inline int multipass::BaseVirtualMachine::get_snapshot_count() const
     return snapshot_count;
 }
 
-inline QDir multipass::BaseVirtualMachine::instance_directory() const
+inline QDir multipass::BaseVirtualMachine::instance_directory() const noexcept
 {
     return instance_dir;
 }
 
-inline const std::string& multipass::BaseVirtualMachine::get_name() const
+inline const std::string& multipass::BaseVirtualMachine::get_name() const noexcept
 {
     return vm_name;
 }
 
-inline const multipass::AvailabilityZone& multipass::BaseVirtualMachine::get_zone() const
+inline std::string multipass::BaseVirtualMachine::ssh_username() const
+{
+    return desc.ssh_username;
+}
+
+inline const multipass::AvailabilityZone& multipass::BaseVirtualMachine::get_zone() const noexcept
 {
     return zone;
 }
@@ -240,4 +277,22 @@ inline void multipass::BaseVirtualMachine::save_error_msg(std::string error) noe
 inline void multipass::BaseVirtualMachine::refresh_start()
 {
     // nothing to do in the general case
+}
+
+inline bool multipass::BaseVirtualMachine::is_core() const
+{
+    return desc.image.original_release.find("Core") != std::string::npos;
+}
+
+inline std::string multipass::BaseVirtualMachine::core_image_disk_resize_message()
+{
+    return std::string("Disk resized. To make the new space available on this Ubuntu Core "
+                       "instance, use lsblk to find the /writable partition and run the "
+                       "following commands:\n\n"
+                       "        multipass exec <instance> -- sudo growpart /dev/<disk_device> "
+                       "<partition_number>\n"
+                       "        multipass exec <instance> -- sudo resize2fs "
+                       "/dev/<disk_device><partition_number>\n\n"
+                       "Check the resize status with the command below:\n\n"
+                       "        multipass info <instance>\n");
 }

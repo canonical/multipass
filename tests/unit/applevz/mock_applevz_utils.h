@@ -31,11 +31,15 @@ public:
 
     MOCK_METHOD(std::filesystem::path,
                 convert_to_supported_format,
-                (const std::filesystem::path& image_path, bool destructive),
+                (const std::filesystem::path& image_path),
                 (const, override));
     MOCK_METHOD(void,
                 resize_image,
                 (const multipass::MemorySize& disk_space, const std::filesystem::path& image_path),
+                (const, override));
+    MOCK_METHOD(multipass::MemorySize,
+                image_capacity,
+                (const std::filesystem::path& image_path),
                 (const, override));
     MOCK_METHOD(bool, macos_at_least, (int major, int minor, int patch), (const, override));
 

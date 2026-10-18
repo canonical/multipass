@@ -95,6 +95,32 @@ TEST_F(SSHProcess, readingOutputReturnsEmptyIfChannelClosed)
     EXPECT_TRUE(output.empty());
 }
 
+TEST_F(SSHProcess, readingOutputDrainsBufferedDataEvenIfChannelClosed)
+{
+    // Even after the channel is reported as closed, any output buffered by libssh before
+    // closure should still be returned rather than discarded.
+    std::string expected_output{"buffered content"};
+    auto remaining = expected_output.size();
+    auto channel_read = [&expected_output,
+                         &remaining](ssh_channel, void* dest, uint32_t count, int, int) {
+        const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
+        const auto begin = expected_output.begin() + expected_output.size() - remaining;
+        std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));
+        remaining -= num_to_copy;
+        return num_to_copy;
+    };
+    REPLACE(ssh_channel_new,
+            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_channel_free, [](auto...) { return; });
+    REPLACE(ssh_channel_read_timeout, channel_read);
+    REPLACE(ssh_channel_is_closed, [](auto...) { return 1; });
+
+    auto proc = session.exec("something");
+    auto output = proc->read_std_output();
+
+    EXPECT_THAT(output, StrEq(expected_output));
+}
+
 TEST_F(SSHProcess, readingFailureReturnsEmptyIfChannelClosed)
 {
     int channel_closed{0};

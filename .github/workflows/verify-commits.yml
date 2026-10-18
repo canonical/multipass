@@ -6,7 +6,7 @@ on:
 
 jobs:
   CheckCommits:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
       - name: Checkout repository
@@ -30,16 +30,19 @@ jobs:
           git rev-list --reverse $BASE_SHA..$HEAD_SHA | while read -r COMMIT_SHA; do
             echo "-- Verifying commit $COUNTER: $COMMIT_SHA --"
 
-            MSG="$(git log -n1 --format=%B $COMMIT_SHA | head -c -1)"
-            echo "$MSG"
-
-            if ! ./git-hooks/commit-msg.py --strict - <<< "$MSG"; then
-              echo "❌"
-              echo "1" > fail.txt
+            if git rev-parse -q --verify "${COMMIT_SHA}^2" >/dev/null; then
+              echo "⏩ Skipping merge commit"
             else
-              echo "✅"
-            fi
+              MSG="$(git log -n1 --format=%B $COMMIT_SHA | head -c -1)"
+              echo "$MSG"
 
+              if ! ./git-hooks/commit-msg.py --strict - <<< "$MSG"; then
+                echo "❌"
+                echo "1" > fail.txt
+              else
+                echo "✅"
+              fi
+            fi
             COUNTER=$((COUNTER + 1))
           done
 

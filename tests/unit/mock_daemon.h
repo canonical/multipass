@@ -31,7 +31,6 @@ struct MockDaemon : public Daemon
 {
     using Daemon::Daemon;
 
-    MOCK_METHOD(void, shutdown_grpc_server, (), (override));
     MOCK_METHOD(void,
                 create,
                 (const CreateRequest*,
@@ -51,9 +50,9 @@ struct MockDaemon : public Daemon
                  DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
-                find,
-                (const FindRequest* request,
-                 (grpc::ServerReaderWriterInterface<FindReply, FindRequest>*),
+                images,
+                (const ImagesRequest* request,
+                 (grpc::ServerReaderWriterInterface<ImagesReply, ImagesRequest>*),
                  DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,
@@ -66,6 +65,12 @@ struct MockDaemon : public Daemon
                 list,
                 (const ListRequest*,
                  (grpc::ServerReaderWriterInterface<ListReply, ListRequest>*),
+                 DaemonRpcContext*),
+                (override));
+    MOCK_METHOD(void,
+                snapshots,
+                (const SnapshotsRequest*,
+                 (grpc::ServerReaderWriterInterface<SnapshotsReply, SnapshotsRequest>*),
                  DaemonRpcContext*),
                 (override));
     MOCK_METHOD(void,

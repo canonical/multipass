@@ -52,6 +52,9 @@ class ActiveEditPageNotifier extends Notifier<ActiveEditPage?> {
 
         if (isBridgeOrResources && status != Status.STOPPED) {
           ref.invalidateSelf();
+        } else if (state == ActiveEditPage.mounts &&
+            status == Status.UNAVAILABLE) {
+          ref.invalidateSelf();
         }
       },
     );

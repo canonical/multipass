@@ -22,11 +22,17 @@ find_package(premock CONFIG REQUIRED)
 
 ##############################################################################
 # FIXME: Move unit and integration tests to their separate sub folders
-add_executable(multipass_integration_tests)
+add_executable(multipass_integration_tests
+  common.cpp
+  temp_dir.cpp
+  test_libssh.cpp
+)
 target_link_libraries(multipass_integration_tests
   PRIVATE
   GTest::gmock_main
-  Qt6::Core fmt::fmt-header-only)
+  Qt6::Core fmt::fmt-header-only
+  libssh_wrapper
+)
 target_include_directories(multipass_integration_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
   PRIVATE ${CMAKE_SOURCE_DIR}/src
@@ -58,6 +64,8 @@ add_executable(multipass_cpp_tests
   temp_file.cpp
   test_alias_dict.cpp
   test_argparser.cpp
+  test_base_availability_zone.cpp
+  test_base_availability_zone_manager.cpp
   test_base_snapshot.cpp
   test_base_virtual_machine.cpp
   test_base_virtual_machine_factory.cpp
@@ -74,11 +82,15 @@ add_executable(multipass_cpp_tests
   test_daemon.cpp
   test_daemon_authenticate.cpp
   test_daemon_clone.cpp
-  test_daemon_find.cpp
+  test_daemon_images.cpp
+  test_daemon_migration_guard.cpp # TODO hyperv migration, remove
   test_daemon_mount.cpp
+  test_daemon_remotes.cpp
   test_daemon_restart.cpp
   test_daemon_snapshot_restore.cpp
+  test_daemon_snapshots.cpp
   test_daemon_start.cpp
+  test_daemon_stop.cpp
   test_daemon_suspend.cpp
   test_daemon_umount.cpp
   test_daemon_wait_ready.cpp
@@ -111,6 +123,7 @@ add_executable(multipass_cpp_tests
   test_recursive_dir_iter.cpp
   test_remote_settings_handler.cpp
   test_rust_integration.cpp
+  test_semver_compare.cpp
   test_setting_specs.cpp
   test_settings.cpp
   test_sftp_client.cpp
@@ -135,16 +148,16 @@ add_executable(multipass_cpp_tests
   test_ubuntu_image_host.cpp
   test_url_downloader.cpp
   test_utils.cpp
+  test_vm_image_info.cpp
   test_vm_mount.cpp
   test_with_mocked_bin_path.cpp
   test_xz_image_decoder.cpp
   test_yaml_node_utils.cpp
 )
 
-if(AVAILABILITY_ZONES_ENABLED)
-  target_sources(multipass_cpp_tests PRIVATE
-    test_base_availability_zone.cpp
-    test_base_availability_zone_manager.cpp)
+# TODO hyperv migration, remove
+if(HCS_ENABLED)
+  target_sources(multipass_cpp_tests PRIVATE test_hyperv_migration_records.cpp)
 endif()
 
 target_include_directories(multipass_cpp_tests
@@ -154,13 +167,7 @@ target_include_directories(multipass_cpp_tests
 )
 
 add_definitions(-DWITH_SERVER)
-target_compile_definitions(ssh_test PRIVATE
-  ${c_mock_defines})
-target_compile_definitions(sshfs_mount_test PRIVATE
-  ${c_mock_defines})
-target_compile_definitions(sftp_test PRIVATE
-  ${c_mock_defines})
-target_compile_definitions(ssh_client_test PRIVATE
+target_compile_definitions(libssh_wrapper_test PRIVATE
   ${c_mock_defines})
 
 target_compile_definitions(utils_test PRIVATE
@@ -177,6 +184,7 @@ target_link_libraries(multipass_cpp_tests
   iso
   network
   namegen
+  rslogger
   settings
   simplestreams
   sftp_test
@@ -270,16 +278,16 @@ set_target_properties(mock_process
 
 add_dependencies(multipass_cpp_tests mock_process)
 
-add_executable(qemu-img
+add_executable(mock-qemu-img
   qemu/mock_qemuimg.cpp)
 
-set_target_properties(qemu-img
+set_target_properties(mock-qemu-img
   PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/mocks"
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/mocks")
 
-add_dependencies(multipass_cpp_tests qemu-img)
+add_dependencies(multipass_cpp_tests mock-qemu-img)
 
 if(MSVC)
   add_definitions(-DGTEST_LANG_CXX11=1)
@@ -299,6 +307,11 @@ add_subdirectory(${MULTIPASS_PLATFORM})
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})
 endforeach()
+
+# TODO hyperv migration, remove
+if(HCS_ENABLED)
+  add_subdirectory(hyperv_migration)
+endif()
 
 if (UNIX)
   add_subdirectory(unix)

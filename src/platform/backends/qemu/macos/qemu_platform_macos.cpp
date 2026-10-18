@@ -44,25 +44,11 @@ auto get_common_args(const QString& host_arch)
 }
 } // namespace
 
-[[nodiscard]] mp::QemuPlatformMacOS::Bridges mp::QemuPlatformMacOS::get_bridges(
-    const AvailabilityZoneManager::Zones& zones)
-{
-    Bridges bridges{};
-    bridges.reserve(zones.size());
-
-    for (const auto& zone_ref : zones)
-    {
-        const auto& zone = zone_ref.get();
-        bridges.emplace(zone.get_name(), zone.get_subnet());
-    }
-
-    return bridges;
-}
-
-mp::QemuPlatformMacOS::QemuPlatformMacOS(const AvailabilityZoneManager::Zones& zones)
-    : common_args{get_common_args(host_arch)}, bridges{get_bridges(zones)}
+mp::QemuPlatformMacOS::QemuPlatformMacOS(const AvailabilityZoneManager& az_manager)
+    : common_args{get_common_args(host_arch)}, az_manager{az_manager}
 
 {
+    mp::backend::enable_cross_zone_routing(az_manager);
 }
 
 std::optional<mp::IPAddress> mp::QemuPlatformMacOS::get_ip_for(const std::string& hw_addr)
@@ -77,6 +63,9 @@ void mp::QemuPlatformMacOS::remove_resources_for(const std::string& name)
 void mp::QemuPlatformMacOS::platform_health_check()
 {
     // TODO: Add appropriate health checks to ensure the QEMU backend will work as expected
+
+    // Re-assert cross-zone routing in case macOS reloaded its pf anchors
+    mp::backend::enable_cross_zone_routing(az_manager);
 }
 
 QStringList mp::QemuPlatformMacOS::vmstate_platform_args()
@@ -87,7 +76,7 @@ QStringList mp::QemuPlatformMacOS::vmstate_platform_args()
 QStringList mp::QemuPlatformMacOS::vm_platform_args(const VirtualMachineDescription& vm_desc)
 {
     QStringList qemu_args;
-    const Subnet& subnet = bridges.at(vm_desc.zone);
+    const Subnet& subnet = az_manager.get_zone(vm_desc.zone).get_subnet();
 
     // clang-format off
     qemu_args
@@ -143,9 +132,9 @@ void mp::QemuPlatformMacOS::set_authorization(std::vector<NetworkInterfaceInfo>&
 
 mp::QemuPlatform::UPtr mp::QemuPlatformFactory::make_qemu_platform(
     const Path& data_dir,
-    const mp::AvailabilityZoneManager::Zones& zones) const
+    const mp::AvailabilityZoneManager& az_manager) const
 {
-    return std::make_unique<mp::QemuPlatformMacOS>(zones);
+    return std::make_unique<mp::QemuPlatformMacOS>(az_manager);
 }
 
 std::string mp::QemuPlatformMacOS::create_bridge_with(const NetworkInterfaceInfo& interface) const

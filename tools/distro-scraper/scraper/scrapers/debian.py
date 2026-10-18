@@ -2,7 +2,7 @@ import base64
 import aiohttp
 import asyncio
 from email.parser import Parser
-from ..base import BaseScraper
+from ..base import BaseScraper, make_session
 from ..models import SUPPORTED_ARCHITECTURES
 
 RELEASE_FILE_URL = "https://deb.debian.org/debian/dists/stable/Release"
@@ -159,7 +159,7 @@ class DebianScraper(BaseScraper):
         """
         Fetch Debian Cloud images and return normalized metadata.
         """
-        async with aiohttp.ClientSession() as session:
+        async with make_session() as session:
             release_text = await self._fetch_text(session, RELEASE_FILE_URL)
 
             raw_version, codename = self._parse_release_file(release_text)

@@ -80,7 +80,7 @@ public:
     virtual QString default_privileged_mounts() const;
     [[nodiscard]] virtual std::string bridge_nomenclature() const;
     [[nodiscard]] virtual bool subnet_used_locally(Subnet subnet) const;
-    [[nodiscard]] virtual Subnet get_preferred_subnet() const;
+    [[nodiscard]] virtual Subnet get_preferred_subnet(const std::filesystem::path& data_dir) const;
 
     virtual int get_cpus() const;
     virtual long long get_total_ram() const;
@@ -101,6 +101,8 @@ void sync_winterm_profiles();
 std::string default_server_address();
 
 VirtualMachineFactory::UPtr vm_backend(const Path& data_dir, AvailabilityZoneManager& az_manager);
+// TODO@backends: remove once deprecated backends are removed
+bool backend_supports_availability_zones();
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();
 std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);

@@ -26,8 +26,10 @@ Closes # (issue number)
 ## Checklist
 
 <!-- Make sure your PR meets these requirements -->
-- [ ] My code follows the [contributing guidelines](https://github.com/canonical/multipass/blob/main/CONTRIBUTING.md)
-- [ ] I have signed the [Canonical CLA](https://canonical.com/legal/contributors)
+- [ ] My code follows the [contributing guidelines](
+https://github.com/canonical/multipass/blob/main/CONTRIBUTING.md)
+- [ ] I have signed the [Canonical CLA](
+https://canonical.com/legal/contributors)
 - [ ] I have added unit tests or no new ones were appropriate
 - [ ] I have added integration tests or no new ones were appropriate
 - [ ] I have updated documentation or no changes were appropriate

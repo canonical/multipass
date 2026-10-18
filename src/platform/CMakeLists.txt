@@ -16,7 +16,8 @@ function(add_target TARGET_NAME)
   if(LINUX)
     add_library(${TARGET_NAME} STATIC
       platform_linux.cpp
-      platform_unix.cpp)
+      platform_unix.cpp
+      platform_unix_signal_handlers.cpp)
 
     target_link_libraries(${TARGET_NAME}
       logger_linux)
@@ -36,7 +37,8 @@ function(add_target TARGET_NAME)
     add_library(${TARGET_NAME} STATIC
       platform_osx.cpp
       platform_proprietary.cpp
-      platform_unix.cpp)
+      platform_unix.cpp
+      platform_unix_signal_handlers.cpp)
     target_link_libraries(${TARGET_NAME}
       shared_macos)
   endif()

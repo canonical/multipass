@@ -24,24 +24,31 @@ runs:
   - name: Determine build parameters
     id: build-params
     shell: bash
+    #prevent (shell) code injection
+    env:
+      EVENT_NAME: ${{ github.event_name }}
+      GIT_REF: ${{ github.ref }}
+      PR_NUMBER: ${{ github.event.number }}
+      RUN_NUMBER: ${{ github.run_number }}
+      RELEASE_BRANCH_RE: ${{ inputs.release-branch-re }}
+      RELEASE_TAG_RE: ${{ inputs.release-tag-re }}
     run: |
       # If it's a pull request or `trying` push, annotate with `pr#` and publish to `edge/pr#`.
-      if [ ${{ github.event_name }} == "pull_request" ]; then
-        echo "label=pr${{ github.event.number }}" >> $GITHUB_OUTPUT
-        echo "channel=edge/pr${{ github.event.number }}" >> $GITHUB_OUTPUT
+      if [ "$EVENT_NAME" == "pull_request" ]; then
+        echo "label=pr${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+        echo "channel=edge/pr${PR_NUMBER}" >> "$GITHUB_OUTPUT"
 
       # If it's a merge group, annotate with `ci#` and publish to `edge/ci#`.
-      elif [ ${{ github.event_name }} == "merge_group" ]; then
-        echo "label=ci${{ github.run_number }}" >> $GITHUB_OUTPUT
-        echo "channel=edge/ci${{ github.run_number}}" >> $GITHUB_OUTPUT
+      elif [ "$EVENT_NAME" == "merge_group" ]; then
+        echo "label=ci${RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+        echo "channel=edge/ci${RUN_NUMBER}" >> "$GITHUB_OUTPUT"
 
       # If it's a release tag or branch, publish to the `beta` channel.
-      elif [[ ${{ github.ref }} =~ ${{ inputs.release-branch-re }} \
-        || ${{ github.ref }} =~ ${{ inputs.release-tag-re }} ]]; then
-        echo "channel=beta" >> $GITHUB_OUTPUT
+      elif [[ "$GIT_REF" =~ $RELEASE_BRANCH_RE || "$GIT_REF" =~ $RELEASE_TAG_RE ]]; then
+        echo "channel=beta" >> "$GITHUB_OUTPUT"
 
       # All other events annotate with the CI run number.
       # This includes `main`, as `edge` will get published from automatic builds on snapcraft.io.
       else
-        echo "label=ci${{ github.run_number }}" >> $GITHUB_OUTPUT
+        echo "label=ci${RUN_NUMBER}" >> "$GITHUB_OUTPUT"
       fi

@@ -57,11 +57,10 @@ mp::ParseCode cmd::Aliases::parse_args(mp::ArgParser* parser)
 {
     QCommandLineOption formatOption(
         "format",
-        "Output list in the requested format. Valid formats are: table (default), json, csv and "
-        "yaml. "
-        "The output working directory states whether the alias runs in the instance's default "
-        "directory "
-        "or the alias running directory should try to be mapped to a mounted one.\n",
+        "Output list in the requested format. " + format_option_details +
+            " The output working directory states whether the alias runs in the instance's "
+            "default directory or the alias running directory should try to be mapped to a "
+            "mounted one.",
         "format",
         "table");
 

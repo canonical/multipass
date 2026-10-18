@@ -124,6 +124,20 @@ TEST_F(DelayedShutdown, emitsFinishedWithNoTimer)
     EXPECT_TRUE(finish_invoked);
 }
 
+TEST_F(DelayedShutdown, stopsMountsBeforeShutdown)
+{
+    NiceMock<mpt::MockVirtualMachine> vm{mp::VirtualMachine::State::running};
+    MockFunction<void(const std::string&)> stop_mounts;
+    {
+        InSequence seq;
+        EXPECT_CALL(stop_mounts, Call(vm.get_name()));
+        EXPECT_CALL(vm, shutdown);
+    }
+
+    mp::DelayedShutdownTimer delayed_shutdown_timer{&vm, stop_mounts.AsStdFunction()};
+    delayed_shutdown_timer.start(std::chrono::milliseconds::zero());
+}
+
 TEST_F(DelayedShutdown, vmStateDelayedShutdownWhenTimerRunning)
 {
     auto add_channel_cbs = [this](ssh_channel, ssh_channel_callbacks cb) {

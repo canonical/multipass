@@ -1,9 +1,15 @@
+---
+myst:
+  html_meta:
+    description: Documentation for Multipass, a tool to create cloud-style virtual machines running Ubuntu on Linux, macOS and Windows.
+---
+
 (index)=
 # Multipass
 
 <!--Welcome to the *Multipass Guide!*
 
-Multipass is a mini-cloud on your workstation using native hypervisors of all the supported plaforms (Windows, macOS and Linux), it will give you an Ubuntu command line in just a click ("Open shell") or a simple `multipass shell` command, or even a keyboard shortcut. Find what images are available with `multipass find` and create new instances with `multipass launch`.
+Multipass is a mini-cloud on your workstation using native hypervisors of all the supported plaforms (Windows, macOS and Linux), it will give you an Ubuntu command line in just a click ("Open shell") or a simple `multipass shell` command, or even a keyboard shortcut. Find what images are available with `multipass images` and create new instances with `multipass launch`.
 
 You can initialise instances through [cloud-init](https://cloudinit.readthedocs.io/en/latest/) as you normally would on all the clouds Ubuntu is supported on, just pass the configuration to `multipass launch --cloud-init`.
 
@@ -26,7 +32,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 Start here to install and launch your first Multipass instance.
 
-- Tutorial: [Getting stated with Multipass](tutorial-index) • [Install Multipass](how-to-guides-install-multipass) •  [Setup the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Migrate from Hyperkit to QEMU](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos)
+- Tutorial: [Getting started with Multipass](tutorial-getting-started) • [Install Multipass](how-to-guides-install-multipass) •  [Setup the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Migrate from Hyperkit to QEMU](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos)
 
 ### Using Multipass
 
@@ -44,7 +50,7 @@ Learn the complete lifecycle of a virtual machine.
 
 - **Core concepts:** [Instance](explanation-instance) • [Image](explanation-image) • [Snapshot](explanation-snapshot) • [Alias](explanation-alias) • [Service](explanation-service) • [Multipass exec and shells](explanation-multipass-exec-and-shells) • [ID mapping](explanation-id-mapping) • [Reference architecture](explanation-reference-architecture)
 
-- **Virtualization:** [Driver](explanation-driver) • [How to set up the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Migrate from Hyperkit to QEMU on macOS](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos) • [Platform](explanation-platform) • [Host](explanation-host)
+- **Virtualization:** [Driver](explanation-driver) • [How to set up the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Migrate from Hyperkit to QEMU on macOS](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos) • [Migrate from Hyper-V to the HCS driver on Windows](how-to-guides-customise-multipass-migrate-from-hyperv-to-hcs-on-windows) • [Move from VirtualBox to another driver](how-to-guides-customise-multipass-move-from-virtualbox-to-another-driver) • [Platform](explanation-platform) • [Host](explanation-host)
 
 - **Configuration:** [Settings](reference-settings-index) • [Settings keys and values](explanation-settings-keys-values) • [Logging levels](reference-logging-levels) • [Configure Multipass's default logging level](how-to-guides-customise-multipass-configure-multipass-default-logging-level) • [Instance name format](reference-instance-name-format) • [Instance states](reference-instance-states)
 
@@ -56,7 +62,7 @@ Learn the complete lifecycle of a virtual machine.
 
 ### Security and performance
 
-- **Security:** [Authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service) • [Authentication](explanation-authentication) • [About security](explanation-about-security)
+- **Security:** [Authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service) • [Authentication](explanation-authentication) • [Security architecture](explanation-security-security-architecture) • [Operating securely](explanation-security-operating-securely) • [Cryptography](explanation-security-cryptography)
 
 - **Performance:** [About performance](explanation-about-performance)
 

@@ -42,10 +42,10 @@ public:
         auto it = remote_image_host_map.find(remote_name);
         if (it == remote_image_host_map.end())
         {
-            throw std::runtime_error(
-                fmt::format("Remote \'{}\' is not found. Please use `multipass find` for supported "
-                            "remotes and images.",
-                            remote_name));
+            throw std::runtime_error(fmt::format(
+                "Remote \'{}\' is not found. Please use `multipass images` for supported "
+                "remotes and images.",
+                remote_name));
         }
 
         return it->second;
@@ -67,7 +67,17 @@ public:
                                           grab_imgs)); // intentional discard
 
         return images_info;
-    };
+    }
+
+    std::vector<std::string> get_remotes() const override
+    {
+        std::vector<std::string> remotes;
+        for (const auto& [name, host] : remote_image_host_map)
+        {
+            remotes.emplace_back(name);
+        }
+        return remotes;
+    }
 
 protected:
     virtual std::optional<VMImageInfo> info_for(const Query& query) const

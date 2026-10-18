@@ -38,8 +38,6 @@ public:
     [[nodiscard]] virtual const Subnet& get_subnet() const = 0;
     [[nodiscard]] virtual bool is_available() const = 0;
     virtual void set_available(bool new_available) = 0;
-    virtual void add_vm(VirtualMachine& vm) = 0;
-    virtual void remove_vm(VirtualMachine& vm) = 0;
 };
 } // namespace multipass
 

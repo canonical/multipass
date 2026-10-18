@@ -67,6 +67,7 @@ auto construct_single_instance_list_reply()
     list_entry->set_os("Ubuntu");
     list_entry->add_ipv4("10.168.32.2");
     list_entry->add_ipv4("200.3.123.30");
+    list_entry->set_mount_count(2);
     const auto zone = list_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
@@ -84,6 +85,7 @@ auto construct_multiple_instances_list_reply()
     list_entry->set_current_release("16.04 LTS");
     list_entry->set_os("Ubuntu");
     list_entry->add_ipv4("10.21.124.56");
+    list_entry->set_mount_count(1);
     auto zone = list_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
@@ -109,6 +111,7 @@ auto construct_unsorted_list_reply()
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::RUNNING);
     list_entry->set_current_release("12");
     list_entry->set_os("Debian");
+    list_entry->set_mount_count(3);
     auto zone = list_entry->mutable_zone();
     zone->set_name("zone1");
     zone->set_available(true);
@@ -118,6 +121,7 @@ auto construct_unsorted_list_reply()
     list_entry->mutable_instance_status()->set_status(mp::InstanceStatus::STOPPED);
     list_entry->set_current_release("42");
     list_entry->set_os("Fedora");
+    list_entry->set_mount_count(1);
     zone = list_entry->mutable_zone();
     zone->set_name("zone2");
     zone->set_available(false);
@@ -211,6 +215,70 @@ auto construct_multiple_snapshots_list_reply()
     fundamentals->mutable_creation_timestamp()->CopyFrom(timestamp);
 
     return list_reply;
+}
+
+mp::SnapshotsReply construct_empty_snapshots_reply()
+{
+    mp::SnapshotsReply reply;
+    reply.mutable_snapshot_list();
+    return reply;
+}
+
+mp::SnapshotsReply construct_single_snapshots_reply()
+{
+    mp::SnapshotsReply reply;
+
+    auto entry = reply.mutable_snapshot_list()->add_snapshots();
+    entry->set_name("foo");
+    auto fundamentals = entry->mutable_fundamentals();
+    fundamentals->set_snapshot_name("snapshot1");
+    fundamentals->set_comment("This is a sample comment");
+
+    return reply;
+}
+
+mp::SnapshotsReply construct_multiple_snapshots_reply()
+{
+    mp::SnapshotsReply reply;
+    auto snapshot_list = reply.mutable_snapshot_list();
+
+    // Snapshots with the same instance name are sorted by creation timestamp, so the timestamps
+    // here determine the expected output order.
+    auto entry = snapshot_list->add_snapshots();
+    entry->set_name("prosperous-spadefish");
+    entry->mutable_fundamentals()->set_snapshot_name("snapshot10");
+    entry->mutable_fundamentals()->set_parent("snapshot2");
+    entry->mutable_fundamentals()->mutable_creation_timestamp()->set_seconds(1672531200);
+
+    entry = snapshot_list->add_snapshots();
+    entry->set_name("hale-roller");
+    entry->mutable_fundamentals()->set_snapshot_name("rolling");
+    entry->mutable_fundamentals()->set_parent("pristine");
+    entry->mutable_fundamentals()->set_comment("Loaded with stuff");
+    entry->mutable_fundamentals()->mutable_creation_timestamp()->set_seconds(25425952800);
+
+    entry = snapshot_list->add_snapshots();
+    entry->set_name("hale-roller");
+    entry->mutable_fundamentals()->set_snapshot_name("rocking");
+    entry->mutable_fundamentals()->set_parent("pristine");
+    entry->mutable_fundamentals()->set_comment(
+        "A very long comment that should be truncated by the table formatter");
+    entry->mutable_fundamentals()->mutable_creation_timestamp()->set_seconds(2209234259);
+
+    entry = snapshot_list->add_snapshots();
+    entry->set_name("hale-roller");
+    entry->mutable_fundamentals()->set_snapshot_name("pristine");
+    entry->mutable_fundamentals()->set_comment("A first snapshot");
+    entry->mutable_fundamentals()->mutable_creation_timestamp()->set_seconds(409298914);
+
+    entry = snapshot_list->add_snapshots();
+    entry->set_name("prosperous-spadefish");
+    entry->mutable_fundamentals()->set_snapshot_name("snapshot2");
+    entry->mutable_fundamentals()->set_comment(
+        "Before restoring snap1\nContains a newline that\r\nshould be truncated");
+    entry->mutable_fundamentals()->mutable_creation_timestamp()->set_seconds(1671840000);
+
+    return reply;
 }
 
 auto add_petenv_to_reply(mp::ListReply& reply)
@@ -666,15 +734,31 @@ auto add_petenv_to_reply(mp::InfoReply& reply, bool csv_format, bool snapshots)
     }
 }
 
-auto construct_empty_reply()
+auto construct_empty_remotes_reply()
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::RemotesReply();
     return reply;
 }
 
-auto construct_find_one_reply()
+auto construct_multiple_remotes_reply()
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::RemotesReply();
+    reply.add_remotes("core");
+    reply.add_remotes("daily");
+    reply.add_remotes("release");
+    reply.add_remotes("snapcraft");
+    return reply;
+}
+
+auto construct_empty_reply()
+{
+    auto reply = mp::ImagesReply();
+    return reply;
+}
+
+auto construct_images_one_reply()
+{
+    auto reply = mp::ImagesReply();
 
     auto image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
@@ -685,9 +769,9 @@ auto construct_find_one_reply()
     return reply;
 }
 
-auto construct_find_one_reply_no_os()
+auto construct_images_one_reply_no_os()
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::ImagesReply();
 
     auto image_entry = reply.add_images_info();
     image_entry->set_release("Snapcraft builder for core18");
@@ -698,9 +782,9 @@ auto construct_find_one_reply_no_os()
     return reply;
 }
 
-auto construct_find_multiple_reply()
+auto construct_images_multiple_reply()
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::ImagesReply();
 
     auto image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
@@ -731,9 +815,9 @@ auto construct_find_multiple_reply()
     return reply;
 }
 
-auto construct_find_multiple_reply_duplicate_image()
+auto construct_images_multiple_reply_duplicate_image()
 {
-    auto reply = mp::FindReply();
+    auto reply = mp::ImagesReply();
 
     auto image_entry = reply.add_images_info();
     image_entry->set_os("Ubuntu");
@@ -838,17 +922,6 @@ auto print_petenv_param_name(const testing::TestParamInfo<PetenvFormatterSuite::
                        prepend ? "prepend" : "append");
 }
 
-// TODO(az): When removing the AVAILABILITY_ZONES_FEATURE flag, remove this function.
-QByteArray load_formatter_file(const char* file_name)
-{
-#ifdef AVAILABILITY_ZONES_FEATURE
-    static std::string full_name = "formatters/";
-#else
-    static std::string full_name = "formatters/no-azs/";
-#endif
-    return mpt::load_test_file((full_name + file_name).c_str());
-}
-
 const mp::TableFormatter table_formatter;
 const mp::JsonFormatter json_formatter;
 const mp::CSVFormatter csv_formatter;
@@ -861,6 +934,10 @@ const auto multiple_instances_list_reply = construct_multiple_instances_list_rep
 const auto unsorted_list_reply = construct_unsorted_list_reply();
 const auto single_snapshot_list_reply = construct_single_snapshot_list_reply();
 const auto multiple_snapshots_list_reply = construct_multiple_snapshots_list_reply();
+
+const auto empty_snapshots_reply = construct_empty_snapshots_reply();
+const auto single_snapshots_reply = construct_single_snapshots_reply();
+const auto multiple_snapshots_reply = construct_multiple_snapshots_reply();
 
 const auto empty_networks_reply = mp::NetworksReply();
 const auto one_short_line_networks_reply = construct_one_short_line_networks_reply();
@@ -881,365 +958,459 @@ const auto multiple_mixed_instances_and_snapshots_info_reply =
 const std::vector<FormatterParamType> orderable_list_info_formatter_outputs{
     {&table_formatter,
      &empty_list_reply,
-     load_formatter_file("table/empty_list_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/empty_list_reply.txt").toStdString(),
      "table_list_empty"},
     {&table_formatter,
      &empty_list_snapshot_reply,
-     load_formatter_file("table/empty_list_snapshot_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/empty_list_snapshot_reply.txt").toStdString(),
      "table_list_snapshot_empty"},
     {&table_formatter,
      &single_instance_list_reply,
-     load_formatter_file("table/single_instance_list_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/single_instance_list_reply.txt").toStdString(),
      "table_list_single"},
     {&table_formatter,
      &multiple_instances_list_reply,
-     load_formatter_file("table/multiple_instances_list_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/multiple_instances_list_reply.txt").toStdString(),
      "table_list_multiple"},
     {&table_formatter,
      &unsorted_list_reply,
-     load_formatter_file("table/unsorted_list_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/unsorted_list_reply.txt").toStdString(),
      "table_list_unsorted"},
     {&table_formatter,
      &single_snapshot_list_reply,
-     load_formatter_file("table/single_snapshot_list_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/single_snapshot_list_reply.txt").toStdString(),
      "table_list_single_snapshot"},
     {&table_formatter,
      &multiple_snapshots_list_reply,
-     load_formatter_file("table/multiple_snapshots_list_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/multiple_snapshots_list_reply.txt").toStdString(),
      "table_list_multiple_snapshots"},
 
     {&table_formatter,
      &empty_info_reply,
-     load_formatter_file("table/empty_info_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/empty_info_reply.txt").toStdString(),
      "table_info_empty"},
     {&table_formatter,
      &empty_info_snapshot_reply,
-     load_formatter_file("table/empty_info_snapshot_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/empty_info_snapshot_reply.txt").toStdString(),
      "table_info_snapshot_empty"},
     {&table_formatter,
      &single_instance_info_reply,
-     load_formatter_file("table/single_instance_info_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/single_instance_info_reply.txt").toStdString(),
      "table_info_single_instance"},
     {&table_formatter,
      &multiple_instances_info_reply,
-     load_formatter_file("table/multiple_instances_info_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/multiple_instances_info_reply.txt").toStdString(),
      "table_info_multiple_instances"},
     {&table_formatter,
      &single_snapshot_info_reply,
-     load_formatter_file("table/single_snapshot_info_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/single_snapshot_info_reply.txt").toStdString(),
      "table_info_single_snapshot"},
     {&table_formatter,
      &multiple_snapshots_info_reply,
-     load_formatter_file("table/multiple_snapshots_info_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/multiple_snapshots_info_reply.txt").toStdString(),
      "table_info_multiple_snapshots"},
     {&table_formatter,
      &mixed_instance_and_snapshot_info_reply,
-     load_formatter_file("table/mixed_instance_and_snapshot_info_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/mixed_instance_and_snapshot_info_reply.txt")
+         .toStdString(),
      "table_info_mixed_instance_and_snapshot"},
     {&table_formatter,
      &multiple_mixed_instances_and_snapshots_info_reply,
-     load_formatter_file("table/multiple_mixed_instances_and_snapshots_info_reply.txt")
+     mpt::load_test_file("formatters/table/multiple_mixed_instances_and_snapshots_info_reply.txt")
          .toStdString(),
      "table_info_multiple_mixed_instances_and_snapshots"},
 
     {&csv_formatter,
      &empty_list_reply,
-     load_formatter_file("csv/empty_list_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/empty_list_reply.csv").toStdString(),
      "csv_list_empty"},
     {&csv_formatter,
      &single_instance_list_reply,
-     load_formatter_file("csv/single_instance_list_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/single_instance_list_reply.csv").toStdString(),
      "csv_list_single"},
     {&csv_formatter,
      &multiple_instances_list_reply,
-     load_formatter_file("csv/multiple_instances_list_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/multiple_instances_list_reply.csv").toStdString(),
      "csv_list_multiple"},
     {&csv_formatter,
      &unsorted_list_reply,
-     load_formatter_file("csv/unsorted_list_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/unsorted_list_reply.csv").toStdString(),
      "csv_list_unsorted"},
     {&csv_formatter,
      &empty_list_snapshot_reply,
-     load_formatter_file("csv/empty_list_snapshot_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/empty_list_snapshot_reply.csv").toStdString(),
      "csv_list_snapshot_empty"},
     {&csv_formatter,
      &single_snapshot_list_reply,
-     load_formatter_file("csv/single_snapshot_list_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/single_snapshot_list_reply.csv").toStdString(),
      "csv_list_single_snapshot"},
     {&csv_formatter,
      &multiple_snapshots_list_reply,
-     load_formatter_file("csv/multiple_snapshots_list_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/multiple_snapshots_list_reply.csv").toStdString(),
      "csv_list_multiple_snapshots"},
 
     {&csv_formatter, &empty_info_reply, "", "csv_info_empty"},
     {&csv_formatter,
      &single_instance_info_reply,
-     load_formatter_file("csv/single_instance_info_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/single_instance_info_reply.csv").toStdString(),
      "csv_info_single_instance"},
     {&csv_formatter,
      &single_snapshot_info_reply,
-     load_formatter_file("csv/single_snapshot_info_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/single_snapshot_info_reply.csv").toStdString(),
      "csv_info_single_snapshot_info_reply"},
     {&csv_formatter,
      &multiple_snapshots_info_reply,
-     load_formatter_file("csv/multiple_snapshots_info_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/multiple_snapshots_info_reply.csv").toStdString(),
      "csv_info_multiple_snapshot_info_reply"},
     {&csv_formatter,
      &multiple_instances_info_reply,
-     load_formatter_file("csv/multiple_instances_info_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/multiple_instances_info_reply.csv").toStdString(),
      "csv_info_multiple_instances"},
 
     {&yaml_formatter,
      &empty_list_reply,
-     load_formatter_file("yaml/empty_list_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/empty_list_reply.yaml").toStdString(),
      "yaml_list_empty"},
     {&yaml_formatter,
      &single_instance_list_reply,
-     load_formatter_file("yaml/single_instance_list_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/single_instance_list_reply.yaml").toStdString(),
      "yaml_list_single"},
     {&yaml_formatter,
      &multiple_instances_list_reply,
-     load_formatter_file("yaml/multiple_instances_list_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/multiple_instances_list_reply.yaml").toStdString(),
      "yaml_list_multiple"},
     {&yaml_formatter,
      &unsorted_list_reply,
-     load_formatter_file("yaml/unsorted_list_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/unsorted_list_reply.yaml").toStdString(),
      "yaml_list_unsorted"},
     {&yaml_formatter, &empty_list_snapshot_reply, "\n", "yaml_list_snapshot_empty"},
     {&yaml_formatter,
      &single_snapshot_list_reply,
-     load_formatter_file("yaml/single_snapshot_list_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/single_snapshot_list_reply.yaml").toStdString(),
      "yaml_list_single_snapshot"},
     {&yaml_formatter,
      &multiple_snapshots_list_reply,
-     load_formatter_file("yaml/multiple_snapshots_list_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/multiple_snapshots_list_reply.yaml").toStdString(),
      "yaml_list_multiple_snapshots"},
 
     {&yaml_formatter,
      &empty_info_reply,
-     load_formatter_file("yaml/empty_info_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/empty_info_reply.yaml").toStdString(),
      "yaml_info_empty"},
     {&yaml_formatter,
      &single_instance_info_reply,
-     load_formatter_file("yaml/single_instance_info_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/single_instance_info_reply.yaml").toStdString(),
      "yaml_info_single_instance"},
     {&yaml_formatter,
      &multiple_instances_info_reply,
-     load_formatter_file("yaml/multiple_instances_info_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/multiple_instances_info_reply.yaml").toStdString(),
      "yaml_info_multiple_instances"},
     {&yaml_formatter,
      &single_snapshot_info_reply,
-     load_formatter_file("yaml/single_snapshot_info_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/single_snapshot_info_reply.yaml").toStdString(),
      "yaml_info_single_snapshot_info_reply"},
     {&yaml_formatter,
      &multiple_snapshots_info_reply,
-     load_formatter_file("yaml/multiple_snapshots_info_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/multiple_snapshots_info_reply.yaml").toStdString(),
      "yaml_info_multiple_snapshots_info_reply"},
     {&yaml_formatter,
      &mixed_instance_and_snapshot_info_reply,
-     load_formatter_file("yaml/mixed_instance_and_snapshot_info_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/mixed_instance_and_snapshot_info_reply.yaml")
+         .toStdString(),
      "yaml_info_mixed_instance_and_snapshot_info_reply"},
     {&yaml_formatter,
      &multiple_mixed_instances_and_snapshots_info_reply,
-     load_formatter_file("yaml/multiple_mixed_instances_and_snapshots_info_reply.yaml")
+     mpt::load_test_file("formatters/yaml/multiple_mixed_instances_and_snapshots_info_reply.yaml")
          .toStdString(),
      "yaml_info_multiple_mixed_instances_and_snapshots"}};
 
 const std::vector<FormatterParamType> non_orderable_list_info_formatter_outputs{
     {&json_formatter,
      &empty_list_reply,
-     load_formatter_file("json/empty_list_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/empty_list_reply.json").toStdString(),
      "json_list_empty"},
     {&json_formatter,
      &single_instance_list_reply,
-     load_formatter_file("json/single_instance_list_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/single_instance_list_reply.json").toStdString(),
      "json_list_single"},
     {&json_formatter,
      &multiple_instances_list_reply,
-     load_formatter_file("json/multiple_instances_list_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/multiple_instances_list_reply.json").toStdString(),
      "json_list_multiple"},
     {&json_formatter,
      &single_snapshot_list_reply,
-     load_formatter_file("json/single_snapshot_list_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/single_snapshot_list_reply.json").toStdString(),
      "json_list_single_snapshot"},
     {&json_formatter,
      &multiple_snapshots_list_reply,
-     load_formatter_file("json/multiple_snapshots_list_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/multiple_snapshots_list_reply.json").toStdString(),
      "json_list_multiple_snapshots"},
     {&json_formatter,
      &empty_info_reply,
-     load_formatter_file("json/empty_info_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/empty_info_reply.json").toStdString(),
      "json_info_empty"},
     {&json_formatter,
      &single_instance_info_reply,
-     load_formatter_file("json/single_instance_info_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/single_instance_info_reply.json").toStdString(),
      "json_info_single_instance"},
     {&json_formatter,
      &multiple_instances_info_reply,
-     load_formatter_file("json/multiple_instances_info_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/multiple_instances_info_reply.json").toStdString(),
      "json_info_multiple_instances"},
     {&json_formatter,
      &single_snapshot_info_reply,
-     load_formatter_file("json/single_snapshot_info_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/single_snapshot_info_reply.json").toStdString(),
      "json_info_single_snapshot_info_reply"},
     {&json_formatter,
      &multiple_snapshots_info_reply,
-     load_formatter_file("json/multiple_snapshots_info_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/multiple_snapshots_info_reply.json").toStdString(),
      "json_info_multiple_snapshots_info_reply"},
     {&json_formatter,
      &mixed_instance_and_snapshot_info_reply,
-     load_formatter_file("json/mixed_instance_and_snapshot_info_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/mixed_instance_and_snapshot_info_reply.json")
+         .toStdString(),
      "json_info_mixed_instance_and_snapshot_info_reply"},
     {&json_formatter,
      &multiple_mixed_instances_and_snapshots_info_reply,
-     load_formatter_file("json/multiple_mixed_instances_and_snapshots_info_reply.json")
+     mpt::load_test_file("formatters/json/multiple_mixed_instances_and_snapshots_info_reply.json")
          .toStdString(),
      "json_info_multiple_mixed_instances_and_snapshots"}};
+
+const std::vector<FormatterParamType> snapshots_formatter_outputs{
+    {&table_formatter,
+     &empty_snapshots_reply,
+     mpt::load_test_file("formatters/table/empty_snapshots_reply.txt").toStdString(),
+     "table_snapshots_empty"},
+    {&table_formatter,
+     &single_snapshots_reply,
+     mpt::load_test_file("formatters/table/single_snapshots_reply.txt").toStdString(),
+     "table_snapshots_single"},
+    {&table_formatter,
+     &multiple_snapshots_reply,
+     mpt::load_test_file("formatters/table/multiple_snapshots_reply.txt").toStdString(),
+     "table_snapshots_multiple"},
+
+    {&csv_formatter,
+     &empty_snapshots_reply,
+     mpt::load_test_file("formatters/csv/empty_snapshots_reply.csv").toStdString(),
+     "csv_snapshots_empty"},
+    {&csv_formatter,
+     &single_snapshots_reply,
+     mpt::load_test_file("formatters/csv/single_snapshots_reply.csv").toStdString(),
+     "csv_snapshots_single"},
+    {&csv_formatter,
+     &multiple_snapshots_reply,
+     mpt::load_test_file("formatters/csv/multiple_snapshots_reply.csv").toStdString(),
+     "csv_snapshots_multiple"},
+
+    {&yaml_formatter, &empty_snapshots_reply, "\n", "yaml_snapshots_empty"},
+    {&yaml_formatter,
+     &single_snapshots_reply,
+     mpt::load_test_file("formatters/yaml/single_snapshots_reply.yaml").toStdString(),
+     "yaml_snapshots_single"},
+    {&yaml_formatter,
+     &multiple_snapshots_reply,
+     mpt::load_test_file("formatters/yaml/multiple_snapshots_reply.yaml").toStdString(),
+     "yaml_snapshots_multiple"},
+
+    {&json_formatter,
+     &empty_snapshots_reply,
+     mpt::load_test_file("formatters/json/empty_snapshots_reply.json").toStdString(),
+     "json_snapshots_empty"},
+    {&json_formatter,
+     &single_snapshots_reply,
+     mpt::load_test_file("formatters/json/single_snapshots_reply.json").toStdString(),
+     "json_snapshots_single"},
+    {&json_formatter,
+     &multiple_snapshots_reply,
+     mpt::load_test_file("formatters/json/multiple_snapshots_reply.json").toStdString(),
+     "json_snapshots_multiple"}};
 
 const std::vector<FormatterParamType> non_orderable_networks_formatter_outputs{
     {&table_formatter,
      &empty_networks_reply,
-     load_formatter_file("table/empty_networks_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/empty_networks_reply.txt").toStdString(),
      "table_networks_empty"},
     {&table_formatter,
      &one_short_line_networks_reply,
-     load_formatter_file("table/one_short_line_networks_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/one_short_line_networks_reply.txt").toStdString(),
      "table_networks_one_short_line"},
     {&table_formatter,
      &one_long_line_networks_reply,
-     load_formatter_file("table/one_long_line_networks_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/one_long_line_networks_reply.txt").toStdString(),
      "table_networks_one_long_line"},
     {&table_formatter,
      &multiple_lines_networks_reply,
-     load_formatter_file("table/multiple_lines_networks_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/multiple_lines_networks_reply.txt").toStdString(),
      "table_networks_multiple_lines"},
 
     {&csv_formatter,
      &empty_networks_reply,
-     load_formatter_file("csv/empty_networks_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/empty_networks_reply.csv").toStdString(),
      "csv_networks_empty"},
     {&csv_formatter,
      &one_short_line_networks_reply,
-     load_formatter_file("csv/one_short_line_networks_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/one_short_line_networks_reply.csv").toStdString(),
      "csv_networks_one_short_line"},
     {&csv_formatter,
      &one_long_line_networks_reply,
-     load_formatter_file("csv/one_long_line_networks_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/one_long_line_networks_reply.csv").toStdString(),
      "csv_networks_one_long_line"},
     {&csv_formatter,
      &multiple_lines_networks_reply,
-     load_formatter_file("csv/multiple_lines_networks_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/multiple_lines_networks_reply.csv").toStdString(),
      "csv_networks_multiple_lines"},
 
     {&yaml_formatter,
      &empty_networks_reply,
-     load_formatter_file("yaml/empty_networks_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/empty_networks_reply.yaml").toStdString(),
      "yaml_networks_empty"},
     {&yaml_formatter,
      &one_short_line_networks_reply,
-     load_formatter_file("yaml/one_short_line_networks_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/one_short_line_networks_reply.yaml").toStdString(),
      "yaml_networks_one_short_line"},
     {&yaml_formatter,
      &one_long_line_networks_reply,
-     load_formatter_file("yaml/one_long_line_networks_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/one_long_line_networks_reply.yaml").toStdString(),
      "yaml_networks_one_long_line"},
     {&yaml_formatter,
      &multiple_lines_networks_reply,
-     load_formatter_file("yaml/multiple_lines_networks_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/multiple_lines_networks_reply.yaml").toStdString(),
      "yaml_networks_multiple_lines"},
 
     {&json_formatter,
      &empty_networks_reply,
-     load_formatter_file("json/empty_networks_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/empty_networks_reply.json").toStdString(),
      "json_networks_empty"},
     {&json_formatter,
      &one_short_line_networks_reply,
-     load_formatter_file("json/one_short_line_networks_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/one_short_line_networks_reply.json").toStdString(),
      "json_networks_one_short_line"},
     {&json_formatter,
      &one_long_line_networks_reply,
-     load_formatter_file("json/one_long_line_networks_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/one_long_line_networks_reply.json").toStdString(),
      "json_networks_one_long_line"},
     {&json_formatter,
      &multiple_lines_networks_reply,
-     load_formatter_file("json/multiple_lines_networks_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/multiple_lines_networks_reply.json").toStdString(),
      "json_networks_multiple_lines"}};
 
-const auto empty_find_reply = construct_empty_reply();
-const auto find_one_reply = construct_find_one_reply();
-const auto find_multiple_reply = construct_find_multiple_reply();
-const auto find_one_reply_no_os = construct_find_one_reply_no_os();
-const auto find_multiple_reply_duplicate_image = construct_find_multiple_reply_duplicate_image();
+const auto empty_remotes_reply = construct_empty_remotes_reply();
+const auto multiple_remotes_reply = construct_multiple_remotes_reply();
 
-const std::vector<FormatterParamType> find_formatter_outputs{
+const std::vector<FormatterParamType> remotes_formatter_outputs{
     {&table_formatter,
-     &empty_find_reply,
-     load_formatter_file("table/empty_find_reply.txt").toStdString(),
-     "table_find_empty"},
+     &empty_remotes_reply,
+     mpt::load_test_file("formatters/table/empty_remotes_reply.txt").toStdString(),
+     "table_remotes_empty"},
     {&table_formatter,
-     &find_one_reply,
-     load_formatter_file("table/find_one_reply.txt").toStdString(),
-     "table_find_one_image"},
-    {&table_formatter,
-     &find_multiple_reply,
-     load_formatter_file("table/find_multiple_reply.txt").toStdString(),
-     "table_find_multiple"},
-    {&table_formatter,
-     &find_one_reply_no_os,
-     load_formatter_file("table/find_one_reply_no_os.txt").toStdString(),
-     "table_find_no_os"},
-    {&table_formatter,
-     &find_multiple_reply_duplicate_image,
-     load_formatter_file("table/find_multiple_reply_duplicate_image.txt").toStdString(),
-     "table_find_multiple_duplicate_image"},
+     &multiple_remotes_reply,
+     mpt::load_test_file("formatters/table/multiple_remotes_reply.txt").toStdString(),
+     "table_remotes_multiple"},
     {&json_formatter,
-     &empty_find_reply,
-     load_formatter_file("json/empty_find_reply.json").toStdString(),
-     "json_find_empty"},
+     &empty_remotes_reply,
+     mpt::load_test_file("formatters/json/empty_remotes_reply.json").toStdString(),
+     "json_remotes_empty"},
     {&json_formatter,
-     &find_one_reply,
-     load_formatter_file("json/find_one_reply.json").toStdString(),
-     "json_find_one"},
+     &multiple_remotes_reply,
+     mpt::load_test_file("formatters/json/multiple_remotes_reply.json").toStdString(),
+     "json_remotes_multiple"},
+    {&csv_formatter,
+     &empty_remotes_reply,
+     mpt::load_test_file("formatters/csv/empty_remotes_reply.csv").toStdString(),
+     "csv_remotes_empty"},
+    {&csv_formatter,
+     &multiple_remotes_reply,
+     mpt::load_test_file("formatters/csv/multiple_remotes_reply.csv").toStdString(),
+     "csv_remotes_multiple"},
+    {&yaml_formatter,
+     &empty_remotes_reply,
+     mpt::load_test_file("formatters/yaml/empty_remotes_reply.yaml").toStdString(),
+     "yaml_remotes_empty"},
+    {&yaml_formatter,
+     &multiple_remotes_reply,
+     mpt::load_test_file("formatters/yaml/multiple_remotes_reply.yaml").toStdString(),
+     "yaml_remotes_multiple"}};
+
+const auto empty_images_reply = construct_empty_reply();
+const auto images_one_reply = construct_images_one_reply();
+const auto images_multiple_reply = construct_images_multiple_reply();
+const auto images_one_reply_no_os = construct_images_one_reply_no_os();
+const auto images_multiple_reply_duplicate_image =
+    construct_images_multiple_reply_duplicate_image();
+
+const std::vector<FormatterParamType> images_formatter_outputs{
+    {&table_formatter,
+     &empty_images_reply,
+     mpt::load_test_file("formatters/table/empty_images_reply.txt").toStdString(),
+     "table_images_empty"},
+    {&table_formatter,
+     &images_one_reply,
+     mpt::load_test_file("formatters/table/images_one_reply.txt").toStdString(),
+     "table_images_one_image"},
+    {&table_formatter,
+     &images_multiple_reply,
+     mpt::load_test_file("formatters/table/images_multiple_reply.txt").toStdString(),
+     "table_images_multiple"},
+    {&table_formatter,
+     &images_one_reply_no_os,
+     mpt::load_test_file("formatters/table/images_one_reply_no_os.txt").toStdString(),
+     "table_images_no_os"},
+    {&table_formatter,
+     &images_multiple_reply_duplicate_image,
+     mpt::load_test_file("formatters/table/images_multiple_reply_duplicate_image.txt")
+         .toStdString(),
+     "table_images_multiple_duplicate_image"},
     {&json_formatter,
-     &find_multiple_reply,
-     load_formatter_file("json/find_multiple_reply.json").toStdString(),
-     "json_find_multiple"},
+     &empty_images_reply,
+     mpt::load_test_file("formatters/json/empty_images_reply.json").toStdString(),
+     "json_images_empty"},
     {&json_formatter,
-     &find_multiple_reply_duplicate_image,
-     load_formatter_file("json/find_multiple_reply_duplicate_image.json").toStdString(),
-     "json_find_multiple_duplicate_image"},
+     &images_one_reply,
+     mpt::load_test_file("formatters/json/images_one_reply.json").toStdString(),
+     "json_images_one"},
+    {&json_formatter,
+     &images_multiple_reply,
+     mpt::load_test_file("formatters/json/images_multiple_reply.json").toStdString(),
+     "json_images_multiple"},
+    {&json_formatter,
+     &images_multiple_reply_duplicate_image,
+     mpt::load_test_file("formatters/json/images_multiple_reply_duplicate_image.json")
+         .toStdString(),
+     "json_images_multiple_duplicate_image"},
     {&csv_formatter,
-     &empty_find_reply,
-     load_formatter_file("csv/empty_find_reply.csv").toStdString(),
-     "csv_find_empty"},
+     &empty_images_reply,
+     mpt::load_test_file("formatters/csv/empty_images_reply.csv").toStdString(),
+     "csv_images_empty"},
     {&csv_formatter,
-     &find_one_reply,
-     load_formatter_file("csv/find_one_reply.csv").toStdString(),
-     "csv_find_one"},
+     &images_one_reply,
+     mpt::load_test_file("formatters/csv/images_one_reply.csv").toStdString(),
+     "csv_images_one"},
     {&csv_formatter,
-     &find_multiple_reply,
-     load_formatter_file("csv/find_multiple_reply.csv").toStdString(),
-     "csv_find_multiple"},
+     &images_multiple_reply,
+     mpt::load_test_file("formatters/csv/images_multiple_reply.csv").toStdString(),
+     "csv_images_multiple"},
     {&csv_formatter,
-     &find_multiple_reply_duplicate_image,
-     load_formatter_file("csv/find_multiple_reply_duplicate_image.csv").toStdString(),
-     "csv_find_multiple_duplicate_image"},
+     &images_multiple_reply_duplicate_image,
+     mpt::load_test_file("formatters/csv/images_multiple_reply_duplicate_image.csv").toStdString(),
+     "csv_images_multiple_duplicate_image"},
     {&yaml_formatter,
-     &empty_find_reply,
-     load_formatter_file("yaml/empty_find_reply.yaml").toStdString(),
-     "yaml_find_empty"},
+     &empty_images_reply,
+     mpt::load_test_file("formatters/yaml/empty_images_reply.yaml").toStdString(),
+     "yaml_images_empty"},
     {&yaml_formatter,
-     &find_one_reply,
-     load_formatter_file("yaml/find_one_reply.yaml").toStdString(),
-     "yaml_find_one"},
+     &images_one_reply,
+     mpt::load_test_file("formatters/yaml/images_one_reply.yaml").toStdString(),
+     "yaml_images_one"},
     {&yaml_formatter,
-     &find_multiple_reply,
-     load_formatter_file("yaml/find_multiple_reply.yaml").toStdString(),
-     "yaml_find_multiple"},
+     &images_multiple_reply,
+     mpt::load_test_file("formatters/yaml/images_multiple_reply.yaml").toStdString(),
+     "yaml_images_multiple"},
     {&yaml_formatter,
-     &find_multiple_reply_duplicate_image,
-     load_formatter_file("yaml/find_multiple_reply_duplicate_image.yaml").toStdString(),
-     "yaml_find_multiple_duplicate_image"}};
+     &images_multiple_reply_duplicate_image,
+     mpt::load_test_file("formatters/yaml/images_multiple_reply_duplicate_image.yaml")
+         .toStdString(),
+     "yaml_images_multiple_duplicate_image"}};
 
 const auto version_client_reply = mp::VersionReply();
 const auto version_daemon_no_update_reply = construct_version_info_multipassd_up_to_date();
@@ -1248,51 +1419,51 @@ const auto version_daemon_update_reply = construct_version_info_multipassd_updat
 const std::vector<FormatterParamType> version_formatter_outputs{
     {&table_formatter,
      &version_client_reply,
-     load_formatter_file("table/version_client_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/version_client_reply.txt").toStdString(),
      "table_version_client"},
     {&table_formatter,
      &version_daemon_no_update_reply,
-     load_formatter_file("table/version_daemon_no_update_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/version_daemon_no_update_reply.txt").toStdString(),
      "table_version_daemon_no_updates"},
     {&table_formatter,
      &version_daemon_update_reply,
-     load_formatter_file("table/version_daemon_update_reply.txt").toStdString(),
+     mpt::load_test_file("formatters/table/version_daemon_update_reply.txt").toStdString(),
      "table_version_daemon_updates"},
     {&json_formatter,
      &version_client_reply,
-     load_formatter_file("json/version_client_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/version_client_reply.json").toStdString(),
      "json_version_client"},
     {&json_formatter,
      &version_daemon_no_update_reply,
-     load_formatter_file("json/version_daemon_no_update_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/version_daemon_no_update_reply.json").toStdString(),
      "json_version_daemon_no_updates"},
     {&json_formatter,
      &version_daemon_update_reply,
-     load_formatter_file("json/version_daemon_update_reply.json").toStdString(),
+     mpt::load_test_file("formatters/json/version_daemon_update_reply.json").toStdString(),
      "json_version_daemon_updates"},
     {&csv_formatter,
      &version_client_reply,
-     load_formatter_file("csv/version_client_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/version_client_reply.csv").toStdString(),
      "csv_version_client"},
     {&csv_formatter,
      &version_daemon_no_update_reply,
-     load_formatter_file("csv/version_daemon_no_update_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/version_daemon_no_update_reply.csv").toStdString(),
      "csv_version_daemon_no_updates"},
     {&csv_formatter,
      &version_daemon_update_reply,
-     load_formatter_file("csv/version_daemon_update_reply.csv").toStdString(),
+     mpt::load_test_file("formatters/csv/version_daemon_update_reply.csv").toStdString(),
      "csv_version_daemon_updates"},
     {&yaml_formatter,
      &version_client_reply,
-     load_formatter_file("yaml/version_client_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/version_client_reply.yaml").toStdString(),
      "yaml_version_client"},
     {&yaml_formatter,
      &version_daemon_no_update_reply,
-     load_formatter_file("yaml/version_daemon_no_update_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/version_daemon_no_update_reply.yaml").toStdString(),
      "yaml_version_daemon_no_updates"},
     {&yaml_formatter,
      &version_daemon_update_reply,
-     load_formatter_file("yaml/version_daemon_update_reply.yaml").toStdString(),
+     mpt::load_test_file("formatters/yaml/version_daemon_update_reply.yaml").toStdString(),
      "yaml_version_daemon_updates"}};
 
 } // namespace
@@ -1306,11 +1477,15 @@ TEST_P(FormatterSuite, properlyFormatsOutput)
 
     if (auto input = dynamic_cast<const mp::ListReply*>(reply))
         output = formatter->format(*input);
+    else if (auto input = dynamic_cast<const mp::SnapshotsReply*>(reply))
+        output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::NetworksReply*>(reply))
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::InfoReply*>(reply))
         output = formatter->format(*input);
-    else if (auto input = dynamic_cast<const mp::FindReply*>(reply))
+    else if (auto input = dynamic_cast<const mp::RemotesReply*>(reply))
+        output = formatter->format(*input);
+    else if (auto input = dynamic_cast<const mp::ImagesReply*>(reply))
         output = formatter->format(*input);
     else if (auto input = dynamic_cast<const mp::VersionReply*>(reply))
         output = formatter->format(*input, "Client version");
@@ -1328,9 +1503,17 @@ INSTANTIATE_TEST_SUITE_P(NonOrderableListInfoOutputFormatter,
                          FormatterSuite,
                          ValuesIn(non_orderable_list_info_formatter_outputs),
                          print_param_name);
-INSTANTIATE_TEST_SUITE_P(FindOutputFormatter,
+INSTANTIATE_TEST_SUITE_P(SnapshotsOutputFormatter,
                          FormatterSuite,
-                         ValuesIn(find_formatter_outputs),
+                         ValuesIn(snapshots_formatter_outputs),
+                         print_param_name);
+INSTANTIATE_TEST_SUITE_P(RemotesOutputFormatter,
+                         FormatterSuite,
+                         ValuesIn(remotes_formatter_outputs),
+                         print_param_name);
+INSTANTIATE_TEST_SUITE_P(ImagesOutputFormatter,
+                         FormatterSuite,
+                         ValuesIn(images_formatter_outputs),
                          print_param_name);
 INSTANTIATE_TEST_SUITE_P(NonOrderableNetworksOutputFormatter,
                          FormatterSuite,
@@ -1414,8 +1597,8 @@ TEST_P(PetenvFormatterSuite, petEnvFirstInOutput)
                                 "(Snapshot[[:print:]]*\n[[:print:]]*,{0},.*)",
                                 petenv_name());
         else if (dynamic_cast<const mp::YamlFormatter*>(formatter))
-            regex =
-                fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*", petenv_name());
+            regex = fmt::format("(errors:[[:space:]]+-[[:space:]]+~[[:space:]]+)?{}:.*",
+                                petenv_name());
         else
             FAIL() << "Not a supported formatter.";
     }
@@ -1494,4 +1677,53 @@ TEST_F(BaseFormatterSuite, yaml_formatter_formats_zones_correctly)
                                         "  subnet: 192.168.2.0/24\n";
 
     EXPECT_EQ(yaml_formatter.format(zones_reply), expected_output);
+}
+
+// When the backend does not support availability zones, the instance's zone is
+// reported as unsupported and must be rendered as "n/a" (or a null value).
+TEST_F(BaseFormatterSuite, formatters_render_unsupported_zone_as_na_in_list)
+{
+    auto list_reply = construct_single_instance_list_reply();
+    list_reply.mutable_instance_list()->mutable_instances(0)->mutable_zone()->clear_name();
+
+    const auto table_output = table_formatter.format(list_reply);
+    EXPECT_THAT(table_output,
+                HasSubstr("foo                     Running           10.168.32.2      Ubuntu 16.04 "
+                          "LTS    2       n/a\n"));
+    EXPECT_THAT(table_output, Not(HasSubstr("zone1")));
+
+    const auto csv_output = csv_formatter.format(list_reply);
+    EXPECT_THAT(
+        csv_output,
+        HasSubstr(
+            "foo,Running,10.168.32.2,Ubuntu 16.04 LTS,\"10.168.32.2,200.3.123.30\",n/a,,2\n"));
+    EXPECT_THAT(csv_output, Not(HasSubstr("zone1")));
+
+    const auto json_output = json_formatter.format(list_reply);
+    EXPECT_THAT(json_output, HasSubstr("null"));
+    EXPECT_THAT(json_output, Not(HasSubstr("zone1")));
+
+    const auto yaml_output = yaml_formatter.format(list_reply);
+    EXPECT_THAT(yaml_output, Not(HasSubstr("zone1")));
+}
+
+TEST_F(BaseFormatterSuite, formatters_render_unsupported_zone_as_na_in_info)
+{
+    auto info_reply = construct_single_instance_info_reply();
+    info_reply.mutable_details(0)->mutable_zone()->clear_name();
+
+    const auto table_output = table_formatter.format(info_reply);
+    EXPECT_THAT(table_output, HasSubstr("Zone:           n/a\n"));
+    EXPECT_THAT(table_output, Not(HasSubstr("zone1")));
+
+    const auto csv_output = csv_formatter.format(info_reply);
+    EXPECT_THAT(csv_output, HasSubstr("foo,Running,n/a,,10.168.32.2,Ubuntu 16.04.3 LTS,"));
+    EXPECT_THAT(csv_output, Not(HasSubstr("zone1")));
+
+    const auto json_output = json_formatter.format(info_reply);
+    EXPECT_THAT(json_output, HasSubstr("null"));
+    EXPECT_THAT(json_output, Not(HasSubstr("zone1")));
+
+    const auto yaml_output = yaml_formatter.format(info_reply);
+    EXPECT_THAT(yaml_output, Not(HasSubstr("zone1")));
 }

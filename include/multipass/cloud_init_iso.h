@@ -29,17 +29,20 @@
 
 namespace multipass
 {
+struct CloudInitConfig;
+
 class CloudInitIso
 {
 public:
-    void add_file(const std::string& name, const std::string& data);
+    CloudInitIso() = default;
+    explicit CloudInitIso(const CloudInitConfig& config);
+
     bool contains(const std::string& name) const;
     const std::string& at(const std::string& name) const;
     std::string& at(const std::string& name);
     std::string& operator[](const std::string& name);
-    bool erase(const std::string& name);
 
-    void write_to(const std::filesystem::path& path);
+    void write_to(const std::filesystem::path& path) const;
     void read_from(const std::filesystem::path& path);
 
     friend bool operator==(const CloudInitIso& lhs, const CloudInitIso& rhs) = default;

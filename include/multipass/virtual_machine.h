@@ -19,6 +19,7 @@
 
 #include "disabled_copy_move.h"
 #include "network_interface.h"
+#include "user_messages.h"
 
 #include <QDir>
 #include <fmt/format.h>
@@ -50,9 +51,9 @@ public:
     // TODO: Get rid of the VirtualMachine::State in favor of InstanceStatus
     enum class State
     {
-        off,
-        stopped,
-        starting,
+        stopped = 0,
+        // We used to have a separate "off" state. Preserve the numeric values of these states.
+        starting = 2,
         restarting,
         running,
         delayed_shutdown,
@@ -77,13 +78,13 @@ public:
     virtual void start() = 0;
     virtual void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) = 0;
     virtual void suspend() = 0;
-    virtual void set_available(bool available) = 0;
+    virtual bool set_available(bool available) = 0;
     virtual State current_state() = 0;
-    virtual int ssh_port() = 0;
-    virtual std::string ssh_hostname() = 0;
-    virtual std::string ssh_username() = 0;
+    [[nodiscard]] virtual int ssh_port() = 0;
+    [[nodiscard]] virtual std::string ssh_hostname() = 0;
+    [[nodiscard]] virtual std::string ssh_username() const = 0;
     virtual std::optional<IPAddress> management_ipv4() = 0;
-    virtual std::vector<IPAddress> get_all_ipv4() = 0;
+    [[nodiscard]] virtual std::vector<IPAddress> get_all_ipv4() = 0;
 
     // careful: default param in virtual methods; be sure to keep the same value in all descendants
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) = 0;
@@ -97,7 +98,7 @@ public:
     virtual void handle_state_update() = 0;
     virtual void update_cpus(int num_cores) = 0;
     virtual void resize_memory(const MemorySize& new_size) = 0;
-    virtual void resize_disk(const MemorySize& new_size) = 0;
+    virtual void resize_disk(const MemorySize& new_size, UserMessages& messages) = 0;
     virtual void add_network_interface(int index,
                                        const std::string& default_mac_addr,
                                        const NetworkInterface& extra_interface) = 0;
@@ -107,13 +108,15 @@ public:
     using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid
                                                                         // confusion with C++ views
     using SnapshotPredicate = std::function<bool(const Snapshot&)>;
-    virtual SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const = 0;
+    [[nodiscard]] virtual SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const = 0;
     virtual int get_num_snapshots() const = 0;
+    virtual std::shared_ptr<const Snapshot> get_head_snapshot() const = 0;
 
-    virtual std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const = 0;
-    virtual std::shared_ptr<const Snapshot> get_snapshot(int index) const = 0;
-    virtual std::shared_ptr<Snapshot> get_snapshot(const std::string& name) = 0;
-    virtual std::shared_ptr<Snapshot> get_snapshot(int index) = 0;
+    [[nodiscard]] virtual std::shared_ptr<const Snapshot> get_snapshot(
+        const std::string& name) const = 0;
+    [[nodiscard]] virtual std::shared_ptr<const Snapshot> get_snapshot(int index) const = 0;
+    [[nodiscard]] virtual std::shared_ptr<Snapshot> get_snapshot(const std::string& name) = 0;
+    [[nodiscard]] virtual std::shared_ptr<Snapshot> get_snapshot(int index) = 0;
 
     virtual std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& specs,
                                                           const std::string& snapshot_name,
@@ -124,19 +127,20 @@ public:
     virtual void delete_snapshot(const std::string& name) = 0;
     virtual void restore_snapshot(const std::string& name, VMSpecs& specs) = 0;
     virtual void load_snapshots() = 0;
-    virtual std::vector<std::string> get_childrens_names(const Snapshot* parent) const = 0;
+    [[nodiscard]] virtual std::vector<std::string> get_childrens_names(
+        const Snapshot* parent) const = 0;
     virtual int get_snapshot_count() const = 0;
 
-    virtual QDir instance_directory() const = 0;
-    virtual const std::string& get_name() const = 0;
-    virtual const AvailabilityZone& get_zone() const = 0;
+    virtual QDir instance_directory() const noexcept = 0;
+    virtual const std::string& get_name() const noexcept = 0;
+    virtual const AvailabilityZone& get_zone() const noexcept = 0;
 
     VirtualMachine::State state;
     std::condition_variable state_wait;
     std::mutex state_mutex;
 
 protected:
-    explicit VirtualMachine(State state = State::off) : state{state}
+    explicit VirtualMachine(State state = State::stopped) : state{state}
     {
     }
 };
@@ -151,9 +155,6 @@ struct fmt::formatter<multipass::VirtualMachine::State, char> : fmt::formatter<s
         std::string_view v = "(undefined)";
         switch (state)
         {
-        case multipass::VirtualMachine::State::off:
-            v = "off";
-            break;
         case multipass::VirtualMachine::State::stopped:
             v = "stopped";
             break;

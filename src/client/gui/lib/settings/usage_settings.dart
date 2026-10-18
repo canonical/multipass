@@ -11,6 +11,7 @@ import '../notifications/notifications_provider.dart';
 import '../providers.dart';
 import '../l10n/app_localizations.dart';
 import '../switch.dart';
+import 'constants.dart';
 import 'hotkey.dart';
 
 final primaryNameProvider = clientSettingProvider(primaryNameKey);
@@ -151,7 +152,7 @@ class _PrimaryNameFieldState extends State<PrimaryNameField> {
   @override
   void didUpdateWidget(PrimaryNameField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    controller.text = widget.value;
+    if (oldWidget.value != widget.value) controller.text = widget.value;
   }
 
   @override
@@ -235,7 +236,8 @@ class _HotkeyFieldState extends State<HotkeyField> {
       label: widget.l10n.usageHotkeyLabel,
       onSave: () => widget.onSave(value),
       onDiscard: () => setState(() {
-        recorderState.currentState?.set(widget.value);
+        value = widget.value;
+        recorderState.currentState?.set(value);
         changed = false;
       }),
       changed: changed,
@@ -252,6 +254,9 @@ class _HotkeyFieldState extends State<HotkeyField> {
 }
 
 class PassphraseField extends StatefulWidget {
+  @visibleForTesting
+  static const changeDelay = Duration(milliseconds: 100);
+
   final bool hasPassphrase;
   final AppLocalizations l10n;
   final ValueChanged<String> onSave;
@@ -280,7 +285,8 @@ class _PassphraseFieldState extends State<PassphraseField> {
   }
 
   void hasChanged() {
-    Timer(100.milliseconds, () {
+    Timer(PassphraseField.changeDelay, () {
+      if (!mounted) return;
       setState(() {
         changed = (focus.hasFocus && widget.hasPassphrase) ||
             controller.text.isNotEmpty;
@@ -349,7 +355,7 @@ class SettingField extends StatelessWidget {
           ),
           const SizedBox(width: 12),
         ],
-        SizedBox(width: 260, child: child),
+        SizedBox(width: settingFieldWidth, child: child),
       ],
     );
   }

@@ -33,7 +33,10 @@ jobs:
       run: |
         sudo apt-get update
         sudo --preserve-env apt-get install --yes \
+          clang \
           clang-tidy \
+          lld \
+          llvm \
           devscripts \
           equivs \
           flake8 \
@@ -49,7 +52,7 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
 
     - name: Install cmake
-      uses: lukka/get-cmake@v4.3.4
+      uses: lukka/get-cmake@v4.4.2
 
     - name: Configure
       run: |
@@ -87,6 +90,12 @@ jobs:
               --gcov-ignore-parse-errors \
               --merge-mode-functions=separate
 
+    - name: Process Dart coverage
+      run: |
+        sed 's|lib/|'"$GITHUB_WORKSPACE"'/src/client/gui/lib/|g' \
+            src/client/gui/coverage/lcov.info \
+            > ${{ env.COVERAGE_DIR }}/dart.info
+
     - name: Detach TICS QServer to prevent "project already connected" issue
       env:
         TICSAUTHTOKEN: ${{ secrets.TICSAUTHTOKEN }}
@@ -95,7 +104,7 @@ jobs:
         TICSMaintenance -project multipass -detach
 
     - name: Run TICS Analysis
-      uses: tiobe/tics-github-action@v3
+      uses: tiobe/tics-github-action@v4
       env:
         # Add environment variables to optimize TICS performance
         TICS_NUM_THREADS: 4  # Adjust based on runner's capabilities

@@ -225,17 +225,19 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
                                            AvailabilityZone& zone,
                                            const Path& instance_dir,
                                            bool remove_snapshots)
-    : BaseVirtualMachine{mp::backend::instance_image_has_snapshot(desc.image.image_path,
-                                                                  suspend_tag)
-                             ? State::suspended
-                             : State::off,
+    : BaseVirtualMachine{!zone.is_available()
+                             ? State::unavailable
+                             : (mp::backend::instance_image_has_snapshot(desc.image.image_path,
+                                                                         suspend_tag)
+                                    ? State::suspended
+                                    : State::stopped),
                          desc.vm_name,
+                         desc,
+                         monitor,
                          key_provider,
                          zone,
                          instance_dir},
-      desc{desc},
       qemu_platform{qemu_platform},
-      monitor{&monitor},
       mount_args{mount_args_from_json(monitor.retrieve_metadata_for(vm_name))}
 {
     connect_vm_signals();
@@ -287,7 +289,7 @@ void mp::QemuVirtualMachine::start()
             for (const auto& arg : mount_data.second)
                 proc_args.removeOne(arg);
 
-        monitor->update_metadata_for(
+        monitor.update_metadata_for(
             vm_name,
             generate_metadata(qemu_platform->vmstate_platform_args(), proc_args, mount_args));
     }
@@ -369,7 +371,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
         }
 
-        state = State::off;
+        state = State::stopped;
     }
     else
     {
@@ -384,7 +386,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             if (vm_process->wait_for_finished(vm_shutdown_timeout))
             {
                 lock.lock();
-                state = State::off;
+                state = State::stopped;
             }
             else
             {
@@ -414,11 +416,11 @@ void mp::QemuVirtualMachine::suspend()
 
         vm_process.reset(nullptr);
     }
-    else if (state == State::off || state == State::suspended || state == State::unavailable)
+    else if (state == State::stopped || state == State::suspended || state == State::unavailable)
     {
         // TODO: format state directly
         mpl::info(vm_name, "Ignoring suspend issued while stopped/suspended/unavailable");
-        monitor->on_suspend();
+        monitor.on_suspend();
     }
 }
 
@@ -427,26 +429,21 @@ mp::VirtualMachine::State mp::QemuVirtualMachine::current_state()
     return state;
 }
 
-int mp::QemuVirtualMachine::ssh_port()
-{
-    return default_ssh_port;
-}
-
 void mp::QemuVirtualMachine::handle_state_update()
 {
-    monitor->persist_state_for(vm_name, state);
+    monitor.persist_state_for(vm_name, state);
 }
 
 void mp::QemuVirtualMachine::on_started()
 {
     state = State::starting;
     handle_state_update();
-    monitor->on_resume();
+    monitor.on_resume();
 }
 
 void mp::QemuVirtualMachine::on_error()
 {
-    state = State::off;
+    state = State::stopped;
     handle_state_update();
 }
 
@@ -456,7 +453,7 @@ void mp::QemuVirtualMachine::on_shutdown()
         std::unique_lock lock{state_mutex};
         auto old_state = state;
 
-        state = State::off;
+        state = State::stopped;
         if (old_state == State::starting)
             state_wait.wait(lock, [this] { return shutdown_while_starting; });
 
@@ -466,14 +463,14 @@ void mp::QemuVirtualMachine::on_shutdown()
         vm_process.reset(nullptr);
     }
 
-    monitor->on_shutdown();
+    monitor.on_shutdown();
 }
 
 void mp::QemuVirtualMachine::on_suspend()
 {
     drop_ssh_session();
     state = State::suspended;
-    monitor->on_suspend();
+    monitor.on_suspend();
 }
 
 void mp::QemuVirtualMachine::on_restart()
@@ -484,17 +481,7 @@ void mp::QemuVirtualMachine::on_restart()
 
     management_ip = std::nullopt;
 
-    monitor->on_restart(vm_name);
-}
-
-std::string mp::QemuVirtualMachine::ssh_hostname()
-{
-    return require_management_ipv4().as_string();
-}
-
-std::string mp::QemuVirtualMachine::ssh_username()
-{
-    return desc.ssh_username;
+    monitor.on_restart(vm_name);
 }
 
 std::optional<mp::IPAddress> mp::QemuVirtualMachine::management_ipv4()
@@ -518,12 +505,12 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 
 void mp::QemuVirtualMachine::initialize_vm_process()
 {
-    vm_process = make_qemu_process(
-        desc,
-        ((state == State::suspended) ? std::make_optional(monitor->retrieve_metadata_for(vm_name))
-                                     : std::nullopt),
-        mount_args,
-        qemu_platform->vm_platform_args(desc));
+    vm_process = make_qemu_process(desc,
+                                   ((state == State::suspended)
+                                        ? std::make_optional(monitor.retrieve_metadata_for(vm_name))
+                                        : std::nullopt),
+                                   mount_args,
+                                   qemu_platform->vm_platform_args(desc));
 
     QObject::connect(vm_process.get(), &Process::started, [this]() {
         mpl::info(vm_name, "process started");
@@ -599,13 +586,13 @@ void mp::QemuVirtualMachine::initialize_vm_process()
                          // out any scary error messages for this state
                          if (update_shutdown_status)
                          {
-                             const auto log_level =
-                                 force_shutdown ? mpl::Level::info : mpl::Level::error;
-                             mpl::log(log_level,
-                                      vm_name,
-                                      "process error occurred {} {}",
-                                      utils::qenum_to_string(error),
-                                      error_string);
+                             const auto log_level = force_shutdown ? mpl::Level::info
+                                                                   : mpl::Level::error;
+                             const auto error_msg{fmt::format("process error occurred {} {}",
+                                                              utils::qenum_to_string(error),
+                                                              error_string)};
+                             mpl::log_message(log_level, vm_name, error_msg);
+                             save_error_msg(error_msg);
                              on_error();
                          }
                      });
@@ -629,6 +616,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             else
             {
                 const auto log_level = force_shutdown ? mpl::Level::info : mpl::Level::error;
+                save_error_msg(process_state.error->message.toStdString());
                 mpl::log(log_level, vm_name, "error: {}", process_state.error->message);
 
                 // reset force_shutdown so that subsequent errors can be accurately reported
@@ -711,23 +699,9 @@ void mp::QemuVirtualMachine::disconnect_vm_signals()
     vm_signals_connected = false;
 }
 
-void mp::QemuVirtualMachine::update_cpus(int num_cores)
+void mp::QemuVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
-    assert(num_cores > 0);
-    desc.num_cores = num_cores;
-}
-
-void mp::QemuVirtualMachine::resize_memory(const MemorySize& new_size)
-{
-    desc.mem_size = new_size;
-}
-
-void mp::QemuVirtualMachine::resize_disk(const MemorySize& new_size)
-{
-    assert(new_size > desc.disk_space);
-
     mp::backend::resize_instance_image(new_size, desc.image.image_path);
-    desc.disk_space = new_size;
 }
 
 void mp::QemuVirtualMachine::add_network_interface(int /* not used on this backend */,
@@ -767,8 +741,7 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_
                                                     std::shared_ptr<Snapshot> parent)
     -> std::shared_ptr<Snapshot>
 {
-    assert(state == VirtualMachine::State::off ||
-           state == VirtualMachine::State::stopped); // would need QMP otherwise
+    assert(state == VirtualMachine::State::stopped); // would need QMP otherwise
     return std::make_shared<QemuSnapshot>(snapshot_name,
                                           comment,
                                           instance_id,
@@ -787,7 +760,6 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
 {
     return std::make_shared<QemuSnapshot>(MP_PLATFORM.qstr_to_path(filename), *this, desc);
 }
-
 
 void mp::QemuVirtualMachine::refresh_start()
 {

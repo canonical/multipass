@@ -15,7 +15,7 @@ After chocolatey is installed you can now install the rest of the dependencies f
 Powershell(Admin). To get the best results, in the following order:
 
 ```[pwsh]
-choco install cmake ninja qemu-img git wget unzip rustup.install -yfd
+choco install cmake ninja git wget unzip rustup.install -yfd
 ```
 
 ```[pwsh]
@@ -39,10 +39,12 @@ compiler and related tooling or fix a broken `visualstudio2022buildtools` instal
 You need to enable symlinks in Windows Git, have a look at
 [the git-for-windows docs](https://github.com/git-for-windows/git/wiki/Symbolic-Links).
 
+### System requirements
+
 For Windows 11:
 
-1. Go to "Developer Settings"
-2. Enable "Developer mode"
+1. Enable "Developer mode" from "Settings > System > Advanced (or For developers)".
+2. Disable "Smart App Control" from "Settings > Privacy & security > Windows Security > App & browser control".
 
 ### Path setup
 
@@ -53,6 +55,8 @@ Search for "Edit environment variables for your account" then edit your Path var
 - `C:\Program Files\CMake\bin`
 
 ### Console setup
+
+You can select one of the following method below.
 
 #### Cmder
 
@@ -137,15 +141,39 @@ cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-pa
 Finally, to build the project, run:
 
 ```[batch]
-cmake --build . --parallel
+cmake --build . [--parallel <N>]
 ```
 
+Tips:
+- You may use `--parallel <N>` to speed up the build.
+- However, make sure you have enough physical memory and swap space available before doing so (the build step has a very high memory footprint).
+
 This builds `multipass`, `multipassd`, and `multipass_cpp_tests`.
-To create an installer, run `cmake --build . --target package`.
+
+### Building the installer
+
+Building the Windows installer requires the Wix toolset SDK and the [Windows
+ADK](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install). You can install
+the Windows ADK by running:
+
+```[batch]
+choco install windows-adk-deploy -y
+```
+
+To install the Wix toolset, first ensure that you have both the .NET SDK and NuGet Package
+Installer, and then install Wix:
+
+```[batch]
+winget install Microsoft.DotNet.SDK.8 Microsoft.NuGet
+dotnet nuget add source --name nuget.org https://api.nuget.org/v3/index.json
+dotnet tool install --global wix --version 5.0.2
+```
+
+Finally, to create the installer, run `cmake --build . --target package`.
 
 ## Running `multipass`
 
-### Enable Hyper-V
+### Enable Hyper-V and Virtual Machine Platform
 
 Before starting `multipassd`, you'll have to enable the Hyper-V functionality in Windows 10/11 Pro.
 See: [Install Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v)
@@ -154,6 +182,7 @@ Press Windows Key + X, Select Windows PowerShell (Admin) or Terminal(Admin) and 
 
 ```[pwsh]
 Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All
+Enable-WindowsOptionalFeature -Online -FeatureName:VirtualMachinePlatform -All
 ```
 
 ### Start the daemon (`multipassd`)

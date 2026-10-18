@@ -20,6 +20,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/socket.h>
+#include <multipass/ssh/libssh_wrapper.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/ssh/throw_on_error.h>
@@ -28,6 +29,7 @@
 
 #include <QDir>
 
+#include <functional>
 #include <string>
 
 namespace mp = multipass;
@@ -42,22 +44,28 @@ mp::PlainSSHSession::PlainSSHSession(const std::string& host,
                                      int port,
                                      const std::string& username,
                                      const SSHKeyProvider& key_provider)
-    : session{ssh_new(), ssh_free}, mut{}
+    : session{MP_LIBSSH.ssh_new(), [](ssh_session s) { MP_LIBSSH.ssh_free(s); }}, mut{}
 {
     if (session == nullptr)
         throw mp::SSHException("could not allocate ssh session");
 
     /**
-     * Sometimes ssh_connect blocks while a VM is booting up where
-     * it won't return to the caller at all. Since the timeout is
-     * set to ~infinity the ssh_connect would block forever.
+     * Two timeouts govern this session (libssh reads SSH_OPTIONS_TIMEOUT as long seconds):
      *
-     * The attempt timeout is set as timeout before the ssh_connect
-     * in order to prevent that from happening. The established timeout
-     * is used afterward to prevent timing out in connected state.
+     *  - connect_timeout_secs bounds ssh_connect. A booting VM may accept the TCP connection
+     *    and then stall, so this needs to be short.
+     *  - established_timeout_secs is installed once connected and bounds every subsequent
+     *    blocking libssh call that uses SSH_TIMEOUT_DEFAULT: authentication, channel open/exec
+     *    requests, sftp request/response round trips, channel writes waiting for window space,
+     *    global requests (keepalives), etc. It is intentionally finite so that a hung peer
+     *    cannot block a thread forever.
+     *
+     * Consequently, components that keep a session idle for long periods (e.g. an sshfs mount
+     * whose client may send nothing for hours) must not rely on blocking reads. They should
+     * poll with an explicit timeout and send keepalives instead (see SftpServer::run).
      */
-    constexpr long connect_timeout_secs = 5; // < how long to wait for ssh_connect
-    constexpr long established_timeout_secs = std::numeric_limits<long>::max();
+    constexpr long connect_timeout_secs = 5;      // < how long to wait for ssh_connect
+    constexpr long established_timeout_secs = 10; // < bound on blocking calls once connected
 
     const int nodelay{1};
     auto ssh_dir = QDir(MP_STDPATHS.writableLocation(StandardPaths::AppConfigLocation))
@@ -73,11 +81,13 @@ mp::PlainSSHSession::PlainSSHSession(const std::string& host,
     set_option(SSH_OPTIONS_CIPHERS_S_C, "chacha20-poly1305@openssh.com,aes256-ctr");
     set_option(SSH_OPTIONS_SSH_DIR, ssh_dir.c_str());
 
-    SSH::throw_on_error(session, "ssh connection failed", ssh_connect);
+    SSH::throw_on_error(session,
+                        "ssh connection failed",
+                        std::bind_front(&Libssh::ssh_connect, &Libssh::instance()));
     set_option(SSH_OPTIONS_TIMEOUT, &established_timeout_secs);
     SSH::throw_on_error(session,
                         "ssh failed to authenticate",
-                        ssh_userauth_publickey,
+                        std::bind_front(&Libssh::ssh_userauth_publickey, &Libssh::instance()),
                         nullptr,
                         key_provider.private_key());
 }
@@ -113,7 +123,7 @@ multipass::PlainSSHSession::~PlainSSHSession()
         {
             mpl::trace(category, "disconnecting SSH session");
 
-            ssh_disconnect(session.get());
+            MP_LIBSSH.ssh_disconnect(session.get());
             PlainSSHSession::force_shutdown(); // Shutdown I/O on manually open sockets.
                                                // The socket is still closed by libssh in ssh_free.
         }
@@ -139,7 +149,7 @@ void mp::PlainSSHSession::force_shutdown()
     if (!session)
         return;
 
-    if (auto socket = ssh_get_fd(session.get()); socket != -1)
+    if (auto socket = MP_LIBSSH.ssh_get_fd(session.get()); socket != -1)
         MP_PLATFORM.shutdown_socket(socket);
 }
 
@@ -204,20 +214,20 @@ void mp::PlainSSHSession::set_option(ssh_options_e type, const void* data)
     std::unique_lock lock{mut};
     assert(session && "should not set option on null session");
 
-    const auto ret = ssh_options_set(session.get(), type, data);
+    const auto ret = MP_LIBSSH.ssh_options_set(session.get(), type, data);
     if (ret != SSH_OK)
     {
         throw mp::SSHException(fmt::format("libssh failed to set {} option to '{}': '{}'",
                                            name_for(type),
                                            as_string(type, data),
-                                           ssh_get_error(session.get())));
+                                           MP_LIBSSH.ssh_get_error(session.get())));
     }
 }
 
 bool mp::PlainSSHSession::is_connected() const
 {
     std::unique_lock lock{mut};
-    return session && static_cast<bool>(ssh_is_connected(session.get()));
+    return session && static_cast<bool>(MP_LIBSSH.ssh_is_connected(session.get()));
 }
 
 bool mp::PlainSSHSession::is_moved() const

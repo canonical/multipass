@@ -162,12 +162,9 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
         if (auto& net = item.second; net.type == br_nomenclature)
         { // bridge descriptions and links depend on what other networks we recognized
             auto& links = net.links;
-            auto is_unknown = [&networks](const std::string& id) {
-                auto same_as = [&id](const auto& other) { return other.first == id; };
-                return std::find_if(networks.cbegin(), networks.cend(), same_as) == networks.cend();
-            };
-            links.erase(std::remove_if(links.begin(), links.end(), is_unknown),
-                        links.end()); // filter links to networks we don't recognize
+            // filter links to networks we don't recognize
+            std::erase_if(links,
+                          [&networks](const std::string& id) { return !networks.contains(id); });
 
             net.description = links.empty()
                                   ? "Network bridge"
@@ -394,8 +391,13 @@ bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
     return can_reach_gateway(subnet.min_address()) || can_reach_gateway(subnet.max_address());
 }
 
-mp::Subnet mp::platform::Platform::get_preferred_subnet() const
+mp::Subnet mp::platform::Platform::get_preferred_subnet(const std::filesystem::path& data_dir) const
 {
+    // If the `multipass_subnet` file exists, prefer that as a basis for our subnet. This ensures
+    // that Multipass instances from before the introduction of AZs will have the same IP/subnet
+    // when migrated into zone1.
+    if (auto filedata = MP_FILEOPS.try_read_file(data_dir / "network/multipass_subnet"))
+        return {IPAddress{*filedata + ".0"}, 16};
     return {"10.97.0.0/16"};
 }
 
@@ -457,6 +459,12 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 #endif
 
     throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
+}
+
+bool mp::platform::backend_supports_availability_zones()
+{
+    const auto& driver = MP_SETTINGS.get(mp::driver_key);
+    return driver != QStringLiteral("virtualbox");
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(

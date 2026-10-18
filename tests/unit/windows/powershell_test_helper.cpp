@@ -84,6 +84,7 @@ QByteArray mpt::PowerShellTestHelper::end_marker(bool succeed) const
 
 void mpt::PowerShellTestHelper::expect_writes(MockProcess* process, QByteArray cmdlet) const
 {
+    expect_drain(process);
     auto cmdlet_matcher =
         Truly([expect = std::move(cmdlet)](const QByteArray& got) { return got.contains(expect); });
     EXPECT_CALL(*process, write(cmdlet_matcher)).WillOnce(Return(written));
@@ -120,4 +121,13 @@ void mpt::PowerShellTestHelper::add_mocked_run(MockProcess* process, const RunSp
 
     auto ps_output = QByteArray::fromStdString(output).append(end_marker(result));
     EXPECT_CALL(*process, read_all_standard_output).WillOnce(Return(ps_output));
+}
+
+void mpt::PowerShellTestHelper::expect_drain(MockProcess* process) const
+{
+    // run() reads stdout once to discard leftovers before sending the cmdlet.
+    // Its stderr read has no expectation, so it returns empty by default.
+    EXPECT_CALL(*process, read_all_standard_output)
+        .WillOnce(Return(QByteArray{}))
+        .RetiresOnSaturation();
 }

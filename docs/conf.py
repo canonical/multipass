@@ -203,7 +203,15 @@ templates_path = [".sphinx/_templates"]
 # NOTE: If undefined, set to None, or empty,
 #       the sphinx_reredirects extension will be disabled.
 
-redirects = {}
+redirects = {
+    "explanation/about-security": "../security/",
+    "reference/command-line-interface/find": "../images/",
+    "reference/command-line-interface/umount": "../unmount/",
+    # These are URLs inherited from the Discourse-hosted documentation at https://discourse.ubuntu.com/t/multipass-documentation/8294.
+    "mount": "../explanation/mount/",
+    "platform": "../explanation/platform/",
+    "explanation/host": "../platform/",
+}
 
 
 ###########################
@@ -215,10 +223,7 @@ redirects = {}
 # TODO: Remove or adjust the ACME entry after you update the contributing guide
 
 linkcheck_ignore = [
-    "https://app.element.io/#/room/#Multipass:matrix.org",
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1:8001",
-    "https://localhost:8080",
+    r"https://app\.element\.io/",
     "https://localhost:8081",
     "https://github.com/canonical/*",
     "https://sourceforge.net/projects/vcxsrv/",
@@ -227,15 +232,18 @@ linkcheck_ignore = [
     "https://unix.stackexchange.com",  # it seems stackexchange is now blocking bots
     "https://developer.hashicorp.com/packer",
     "https://www.freedesktop.org/*",
-    "https://asciinema.org/*"
+    "https://asciinema.org/*",
+    "https://askubuntu.com/a/4404"
 ]
 
 linkcheck_retries = 3
 
 # A regex list of URLs where anchors are ignored by 'make linkcheck'
 
-linkcheck_anchors_ignore_for_url = [r"https://github\.com/.*",r"https://matrix\.to/.*"]
+linkcheck_anchors_ignore_for_url = [r"https://github\.com/", r"https://matrix\.to/"]
 
+# Excluded documents; past release notes are not maintained, but the index is
+linkcheck_exclude_documents = [r"reference/release-notes/(?!index$)"]
 
 ########################
 # Configuration extras #
@@ -279,6 +287,7 @@ extensions = [
 
 exclude_patterns = [
     "doc-cheat-sheet*",
+    "reference/release-notes/RELEASE_NOTES_TEMPLATE.md",
 ]
 
 # Adds custom CSS files, located under 'html_static_path'

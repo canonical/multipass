@@ -123,7 +123,7 @@ QString mp::SnapshotSettingsHandler::get(const QString& key) const
     return QString::fromStdString(snapshot->get_comment());
 }
 
-void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val)
+void mp::SnapshotSettingsHandler::set(const QString& key, const QString& val, UserMessages&)
 {
     auto [instance_name, snapshot_name, property] = parse_key(key);
     auto snapshot_name_stdstr = snapshot_name.toStdString();
@@ -169,7 +169,7 @@ auto mp::SnapshotSettingsHandler::find_instance(const std::string& instance_name
                                                 bool deleted_ok) const
     -> std::shared_ptr<const VirtualMachine>
 {
-    if (preparing_instances.find(instance_name) != preparing_instances.end())
+    if (preparing_instances.contains(instance_name))
         throw SnapshotSettingsException{instance_name, "instance is being prepared"};
 
     try

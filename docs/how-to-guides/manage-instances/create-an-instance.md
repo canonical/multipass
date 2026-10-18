@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: How to create a virtual machine (VM) in Multipass, customize its resources and apply a cloud-init configuration.
+---
+
 (how-to-guides-manage-instances-create-an-instance)=
 # Create an instance
 
@@ -16,43 +22,46 @@ To create an instance with Multipass, run the command `multipass launch`. This l
 Launched: keen-yak
 ```
 
-In particular, when we run `multipass info keen-yak`, we find out that it is an Ubuntu LTS release, namely 18.04, with 1GB RAM, 1 CPU, 5GB of disk:
+In particular, when we run `multipass info keen-yak`, we find out that it is an Ubuntu LTS release, with 1GB RAM, 1 CPU, 5GB of disk:
 
 ```{code-block} text
 Name:           keen-yak
-State:          RUNNING
-IPv4:           10.140.94.253
-Release:        Ubuntu 18.04.1 LTS
-Image hash:     d53116c67a41 (Ubuntu 18.04 LTS)
+State:          Running
+Zone:           zone1
+Snapshots:      0
+IPv4:           10.97.0.76
+Release:        Ubuntu 26.04 LTS
+Image hash:     dced94c031cc (Ubuntu 26.04 LTS)
 CPU(s):         1
-Load:           0.00 0.12 0.18
-Disk usage:     1.1G out of 4.7G
-Memory usage:   71.6M out of 985.4M
+Load:           0.16 0.09 0.08
+Disk usage:     2.2GiB out of 4.8GiB
+Memory usage:   169.8MiB out of 950.4MiB
+Mounts:         --
 ```
 
 ## Create an instance with a specific image
 
-> See also: [`find`](reference-command-line-interface-find), [`launch <image>`](reference-command-line-interface-launch), [`info`](reference-command-line-interface-info)
+> See also: [`images`](reference-command-line-interface-images), [`launch <image>`](reference-command-line-interface-launch), [`info`](reference-command-line-interface-info)
 
-To find out which images are available, run `multipass find`. Here's a sample output:
+To find out which images are available, run `multipass images`. Here's a sample output:
 
 ```{code-block} text
-Image                       Aliases              Version          Description
-22.04                       jammy                20260515         Ubuntu 22.04 LTS
-24.04                       noble                20260518         Ubuntu 24.04 LTS
-25.10                       questing             20260520         Ubuntu 25.10
-26.04                       resolute,lts,ubuntu  20260520         Ubuntu 26.04 LTS
-core:core16                                      current          Ubuntu Core 16
-core:core18                                      current          Ubuntu Core 18
-core:core20                                      current          Ubuntu Core 20
-core:core22                                      current          Ubuntu Core 22
-core:core24                                      current          Ubuntu Core 24
-core:core26                                      current          Ubuntu Core 26
-debian                      trixie               20260601         Debian Trixie
-fedora                                           20260422         Fedora 44
+Image             Aliases                     Version          Description
+22.04             jammy                       20260705         Ubuntu 22.04 LTS
+24.04             noble                       20260705         Ubuntu 24.04 LTS
+26.04             resolute,lts,ubuntu         20260720         Ubuntu 26.04 LTS
+daily:26.10       stonking,devel              20260627         Ubuntu 26.10
+core:core16                                   current          Ubuntu Core 16
+core:core18                                   current          Ubuntu Core 18
+core:core20                                   current          Ubuntu Core 20
+core:core22                                   current          Ubuntu Core 22
+core:core24                                   current          Ubuntu Core 24
+core:core26                                   current          Ubuntu Core 26
+debian            trixie                      20260706         Debian Trixie
+fedora                                        20260422         Fedora 44
 ```
 
-To launch an instance with a specific image, include the image name or alias in the command, for example `multipass launch jammy`:
+To launch an instance with a specific image, include the image name or alias in the command, for example `multipass launch noble` to get an Ubuntu 24.04 instance:
 
 ```{code-block} text
 ...
@@ -64,14 +73,15 @@ Launched: tenacious-mink
 ```{code-block} text
 Name:           tenacious-mink
 State:          Running
+Zone:           zone1
 Snapshots:      0
-IPv4:           192.168.64.22
-Release:        Ubuntu 22.04.5 LTS
-Image hash:     e898c1c93b32 (Ubuntu 22.04 LTS)
+IPv4:           10.97.0.239
+Release:        Ubuntu 24.04.4 LTS
+Image hash:     5fa5b05e5ec2 (Ubuntu 24.04 LTS)
 CPU(s):         1
-Load:           0.00 0.02 0.01
-Disk usage:     1.6GiB out of 4.8GiB
-Memory usage:   149.5MiB out of 962.2MiB
+Load:           0.35 0.12 0.04
+Disk usage:     1.9GiB out of 4.8GiB
+Memory usage:   327.7MiB out of 955.5MiB
 Mounts:         --
 ```
 

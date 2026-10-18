@@ -33,8 +33,28 @@ set(RUST_BUILD_DIR "${CMAKE_BINARY_DIR}/rxx")
 set(RUST_BIN_DIR "${RUST_BUILD_DIR}/${RUST_BUILD}")
 
 set(CARGO_ENV "CARGO_TARGET_DIR=${RUST_BUILD_DIR}")
+# Clear MAKEFLAGS so cargo doesn't try to connect to make's jobserver. Under a
+# parallel Make build (-jN), make exports MAKEFLAGS with --jobserver-auth=<fds>,
+# but those pipe file descriptors are not inherited by this custom command, so
+# cargo warns: "failed to connect to jobserver ... Bad file descriptor".
+list(APPEND CARGO_ENV "MAKEFLAGS=")
 if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
   list(APPEND CARGO_ENV "MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+endif()
+if(WIN32)
+  # cc-rs always hardcodes /MD for cxx's internal cxx.cc object on MSVC. Pass
+  # CFLAGS/CXXFLAGS (applied last, so they override) to match our CRT and
+  # avoid LNK2038 mismatches.
+  if(CMAKE_BUILD_TYPE_LOWER MATCHES "debug")
+    set(RUST_MSVC_CRT_FLAG "/MDd")
+  else()
+    set(RUST_MSVC_CRT_FLAG "/MD")
+  endif()
+  set(RUST_CFLAGS "$ENV{CFLAGS} ${RUST_MSVC_CRT_FLAG}")
+  string(STRIP "${RUST_CFLAGS}" RUST_CFLAGS)
+  set(RUST_CXXFLAGS "$ENV{CXXFLAGS} ${RUST_MSVC_CRT_FLAG}")
+  string(STRIP "${RUST_CXXFLAGS}" RUST_CXXFLAGS)
+  list(APPEND CARGO_ENV "CFLAGS=${RUST_CFLAGS}" "CXXFLAGS=${RUST_CXXFLAGS}")
 endif()
 
 #Find cargo, which will be a hard dependency
@@ -46,6 +66,8 @@ set(CARGO_CMD ${CMAKE_COMMAND} -E env ${CARGO_ENV} ${CARGO_EXECUTABLE})
 #for said usage
 set(CRATES
   namegen
+  rslogger
+  rust #Generic library to add access to cxx bindings to the C++ side
 )
 
 if(NOT CRATES STREQUAL "")
@@ -98,7 +120,7 @@ list(JOIN ACTIVE_FEATURES  "," FEATURES_CSV)
    "${CMAKE_CURRENT_SOURCE_DIR}/*.txt"
  )
 add_custom_command(
-  OUTPUT ${CARGO_GENERATED_FILES}
+  OUTPUT ${CARGO_GENERATED_FILES} "${CMAKE_CURRENT_BINARY_DIR}/_force_cargo_rebuild"
   COMMAND ${CARGO_CMD} build
   --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
   --workspace
@@ -107,6 +129,7 @@ add_custom_command(
   --features "${FEATURES_CSV}"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
   DEPENDS ${RUST_SOURCES}
+  JOB_SERVER_AWARE TRUE
   COMMENT "Building Rust crates and generating C++ glue..."
 )
 
@@ -118,8 +141,8 @@ foreach(CRATE_NAME ${CRATES})
         add_dependencies(${CRATE_NAME}_rs cargo_build)
     endif()
 endforeach()
-#The macros crate cannot contain tests
-set(TESTING_EXCLUDE_CRATES_ARG --exclude macros)
+#The macros crate cannot contain tests, rslogger cannot link log(), rust is empty
+set(TESTING_EXCLUDE_CRATES_ARG --exclude macros --exclude rslogger --exclude rust)
 add_test(
   NAME      multipass_rust_tests
   COMMAND   ${CARGO_CMD} test

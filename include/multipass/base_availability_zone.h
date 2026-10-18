@@ -32,20 +32,19 @@ namespace multipass
 class BaseAvailabilityZone : public AvailabilityZone
 {
 public:
-    BaseAvailabilityZone(const std::string& name, const std::filesystem::path& az_directory);
+    BaseAvailabilityZone(const std::string& name,
+                         const std::filesystem::path& az_directory,
+                         SubnetAllocator& subnet_allocator);
 
     const std::string& get_name() const override;
     const Subnet& get_subnet() const override;
     bool is_available() const override;
     void set_available(bool new_available) override;
-    void add_vm(VirtualMachine& vm) override;
-    void remove_vm(VirtualMachine& vm) override;
 
 private:
     mutable std::recursive_mutex mutex;
     const std::filesystem::path file_path;
     const std::string name;
-    std::vector<std::reference_wrapper<VirtualMachine>> vms;
 
     // we store all the data in one struct so that it can be created from one function call in the
     // initializer list
@@ -55,7 +54,9 @@ private:
         bool available;
     } m;
 
-    static Data load_file(const std::string& name, const std::filesystem::path& file_path);
+    static Data load_file(const std::string& name,
+                          const std::filesystem::path& file_path,
+                          SubnetAllocator& subnet_allocator);
     void save_file() const;
 
     friend void tag_invoke(const boost::json::value_from_tag&,

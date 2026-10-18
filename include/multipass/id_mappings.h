@@ -67,8 +67,7 @@ inline auto unique_id_mappings(id_mappings& xid_mappings)
 
     for (auto it = xid_mappings.begin(); it != xid_mappings.end();)
     {
-        bool duplicate = dup_id_map.find(it->first) != dup_id_map.end() ||
-                         dup_rev_id_map.find(it->second) != dup_rev_id_map.end();
+        bool duplicate = dup_id_map.contains(it->first) || dup_rev_id_map.contains(it->second);
 
         dup_id_map[it->first].insert(it->second);
         dup_rev_id_map[it->second].insert(it->first);
@@ -85,13 +84,7 @@ inline auto unique_id_mappings(id_mappings& xid_mappings)
     }
 
     auto filter_non_repeating = [](auto& map) {
-        for (auto it = map.begin(); it != map.end();)
-        {
-            if (it->second.size() <= 1)
-                it = map.erase(it);
-            else
-                ++it;
-        }
+        std::erase_if(map, [](const auto& entry) { return entry.second.size() <= 1; });
     };
 
     filter_non_repeating(dup_id_map);
