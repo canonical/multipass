@@ -61,6 +61,22 @@ struct TestGuestMountRecord : public Test
     NiceMock<mpt::MockVirtualMachine> vm;
 };
 
+TEST_F(TestGuestMountRecord, deployPropagatesExceptions)
+{
+    const mp::GuestMountRecord record{"/src", "/dst"};
+
+    EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::SSHExecFailure{"failed", 1}));
+    EXPECT_THROW(record.deploy(vm), mp::SSHExecFailure);
+}
+
+TEST_F(TestGuestMountRecord, undeployPropagatesExceptions)
+{
+    const mp::GuestMountRecord record{"/src", "/dst"};
+
+    EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::IPUnavailableException{}));
+    EXPECT_THROW(record.undeploy(vm), mp::IPUnavailableException);
+}
+
 struct TestGuestMountRecordCommands : public TestGuestMountRecord,
                                       public WithParamInterface<Scenario>
 {
@@ -120,19 +136,4 @@ INSTANTIATE_TEST_SUITE_P(
     Values(plain_paths, windows_source, shell_metacharacters, encoded_slash, literal_percent_slash),
     [](const TestParamInfo<Scenario>& info) { return info.param.name; });
 
-TEST_F(TestGuestMountRecord, deployPropagatesExceptions)
-{
-    const mp::GuestMountRecord record{"/src", "/dst"};
-
-    EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::SSHExecFailure{"failed", 1}));
-    EXPECT_THROW(record.deploy(vm), mp::SSHExecFailure);
-}
-
-TEST_F(TestGuestMountRecord, undeployPropagatesExceptions)
-{
-    const mp::GuestMountRecord record{"/src", "/dst"};
-
-    EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::IPUnavailableException{}));
-    EXPECT_THROW(record.undeploy(vm), mp::IPUnavailableException);
-}
 } // namespace
