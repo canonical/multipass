@@ -22,6 +22,7 @@
 #include "file_operations.h"
 #include "mock_cert_provider.h"
 #include "mock_daemon_rpc_context.h"
+#include "mock_dns_provider.h"
 #include "mock_server_reader_writer.h"
 #include "mock_standard_paths.h"
 #include "mock_virtual_machine_factory.h"
@@ -334,6 +335,8 @@ mpt::DaemonTestFixture::DaemonTestFixture()
     config_builder.client_cert_store = std::make_unique<StubCertStore>();
     config_builder.logger = std::make_unique<StubLogger>();
     config_builder.update_prompt = std::make_unique<DisabledUpdatePrompt>();
+    config_builder.dns_provider = std::make_unique<NiceMock<MockDnsProvider>>();
+    config_builder.dns_domain = "";
 }
 
 void mpt::DaemonTestFixture::SetUp()

@@ -27,6 +27,7 @@
 #include <multipass/logging/standard_logger.h>
 #include <multipass/name_generator.h>
 #include <multipass/platform.h>
+#include <multipass/settings/settings.h>
 #include <multipass/ssh/openssh_key_provider.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/standard_paths.h>
@@ -146,6 +147,10 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                              std::make_unique<StubAvailabilityZoneManager>());
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory, *az_manager);
+    if (dns_provider == nullptr)
+        dns_provider = MP_PLATFORM.make_dns_provider();
+    if (!dns_domain)
+        dns_domain = MP_SETTINGS.get(dns_domain_key).toStdString();
     if (update_prompt == nullptr)
         update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())
@@ -240,6 +245,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                                                                 multiplexing_logger,
                                                                 std::move(network_proxy),
                                                                 std::move(az_manager),
+                                                                std::move(dns_provider),
+                                                                *dns_domain,
                                                                 cache_directory,
                                                                 data_directory,
                                                                 server_address,
