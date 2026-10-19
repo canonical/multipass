@@ -67,11 +67,11 @@ struct MountMotdScript : public Test
         if (records.empty())
             return {};
 
-        auto ret = std::string{"\nHost folders mounted by Multipass:\n\n"};
+        auto ret = std::string{"\nFolders mounted from your host by Multipass:\n\n"};
         for (const auto& record : records)
-            ret += fmt::format(" * {} -> {}\n",
-                               record.shown_source.value_or(record.source),
-                               record.target);
+            ret += fmt::format(" * {} <- {}\n",
+                               record.target,
+                               record.shown_source.value_or(record.source));
 
         return ret;
     }

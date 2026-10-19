@@ -22,7 +22,7 @@ replacement=$'\xef\xbf\xbd' # U+FFFD, shown for control characters
 set -- /run/multipass/mounts/*
 [[ -e "$1" ]] || exit 0
 
-printf '\nHost folders mounted by Multipass:\n\n'
+printf '\nFolders mounted from your host by Multipass:\n\n'
 for record in "$@"; do
     IFS= read -r source_dir < "${record}"
 
@@ -35,5 +35,5 @@ for record in "$@"; do
     source_dir=${source_dir//[[:cntrl:]]/${replacement}}
     target_dir=${target_dir//[[:cntrl:]]/${replacement}}
 
-    printf ' * %s -> %s\n' "${source_dir}" "${target_dir}"
+    printf ' * %s <- %s\n' "${target_dir}" "${source_dir}"
 done
