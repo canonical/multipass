@@ -216,7 +216,7 @@ void AppleVZVirtualMachine::suspend()
     // TODO: remove the throw above once suspend-to-disk is implemented
     if (!vm_handle)
     {
-        assert(state == State::stopped);
+        assert(get_state() == State::stopped);
         return;
     }
 
