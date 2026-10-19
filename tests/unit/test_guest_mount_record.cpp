@@ -118,6 +118,13 @@ const auto shell_metacharacters = Scenario{.name = "shellMetacharacters",
                                            .shell_source = R"(/a\ \$b\`c\`\;\'d\"e\\f)",
                                            .shell_encoded_target = R"(%2Fx\;\$\(y\)\ z\\w)"};
 
+// newlines are quoted, other control characters backslash-escaped
+const auto control_characters = Scenario{.name = "controlCharacters",
+                                         .source = "/a\x1b\tb\nc",
+                                         .target = "/x\x1b\ty\nz",
+                                         .shell_source = "/a\\\x1b\\\tb\"\n\"c",
+                                         .shell_encoded_target = "%2Fx\\\x1b\\\ty\"\n\"z"};
+
 const auto encoded_slash = Scenario{.name = "encodedSlash",
                                     .source = "/src",
                                     .target = "/a/b",
@@ -130,10 +137,14 @@ const auto literal_percent_slash = Scenario{.name = "literalPercentSlash",
                                             .shell_source = "/src",
                                             .shell_encoded_target = "%2Fa%252Fb"};
 
-INSTANTIATE_TEST_SUITE_P(
-    GuestMountRecord,
-    TestGuestMountRecordCommands,
-    Values(plain_paths, windows_source, shell_metacharacters, encoded_slash, literal_percent_slash),
-    [](const TestParamInfo<Scenario>& info) { return info.param.name; });
+INSTANTIATE_TEST_SUITE_P(GuestMountRecord,
+                         TestGuestMountRecordCommands,
+                         Values(plain_paths,
+                                windows_source,
+                                shell_metacharacters,
+                                control_characters,
+                                encoded_slash,
+                                literal_percent_slash),
+                         [](const TestParamInfo<Scenario>& info) { return info.param.name; });
 
 } // namespace
