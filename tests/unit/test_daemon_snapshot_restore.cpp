@@ -55,7 +55,7 @@ struct TestDaemonSnapshotRestoreBase : public mpt::DaemonTestFixture
         auto* ret_instance = instance_ptr.get();
 
         EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
-        EXPECT_CALL(*instance_ptr, current_state)
+        EXPECT_CALL(*instance_ptr, fetch_state)
             .WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
         EXPECT_CALL(mock_factory, create_virtual_machine).WillOnce(Return(std::move(instance_ptr)));
 
@@ -144,7 +144,7 @@ TYPED_TEST(TestDaemonSnapshotRestoreCommon, failsOnActiveInstance)
     request.set_instance(this->mock_instance_name);
 
     auto [daemon, instance] = this->build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state)
+    EXPECT_CALL(*instance, fetch_state)
         .WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
 
     auto status = this->call_daemon_slot(*daemon,
@@ -163,8 +163,7 @@ TEST_F(TestDaemonSnapshot, failsOnInvalidSnapshotName)
     request.set_snapshot("%$@#*& \t\n nope, no.can.do");
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state)
-        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
 
     auto status = call_daemon_slot(
         *daemon,
@@ -184,8 +183,7 @@ TEST_F(TestDaemonSnapshot, failsOnRepeatedSnapshotName)
     request.set_snapshot(snapshot_name);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state)
-        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*instance, take_snapshot(_, Eq(snapshot_name), _))
         .WillOnce(Throw(mp::SnapshotNameTakenException{mock_instance_name, snapshot_name}));
 
@@ -211,8 +209,7 @@ TEST_F(TestDaemonSnapshot, usesProvidedSnapshotProperties)
     request.set_comment(snapshot_comment);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state)
-        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
 
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, get_name).WillOnce(Return(snapshot_name));
@@ -236,8 +233,7 @@ TEST_F(TestDaemonSnapshot, acceptsEmptySnapshotName)
     request.set_instance(mock_instance_name);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state)
-        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
 
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, get_name).WillOnce(Return(generated_name));
@@ -258,8 +254,7 @@ TEST_F(TestDaemonRestore, failsIfBackendDoesNotSupportSnapshots)
     request.set_instance(mock_instance_name);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state)
-        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*instance, get_snapshot(A<const std::string&>()))
         .WillOnce(Throw(mp::NotImplementedOnThisBackendException{"snapshots"}));
 
@@ -282,8 +277,7 @@ TEST_F(TestDaemonRestore, failsOnMissingSnapshotName)
     request.set_snapshot(missing_snapshot_name);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state)
-        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*instance, get_snapshot(TypedEq<const std::string&>(missing_snapshot_name)))
         .WillOnce(Throw(mp::NoSuchSnapshotException{mock_instance_name, missing_snapshot_name}));
 
@@ -309,8 +303,7 @@ TEST_F(TestDaemonRestore, restoresSnapshotDirectlyIfDestructive)
     request.set_destructive(true);
 
     auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state)
-        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*instance, restore_snapshot(Eq(snapshot_name), _)).Times(1);
 
     StrictMock<mpt::MockServerReaderWriter<mp::RestoreReply, mp::RestoreRequest>> server{};
@@ -338,8 +331,7 @@ TEST_F(TestDaemonRestore, replacesMountHandlersWhenRestoringSnapshot)
     auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     auto* instance = instance_ptr.get();
     EXPECT_CALL(*instance, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
-    EXPECT_CALL(*instance, current_state)
-        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*instance, make_native_mount_handler(current_target, Eq(current_mount)))
         .WillOnce(Return(std::make_unique<mpt::StubMountHandler>()));
     EXPECT_CALL(*instance, make_native_mount_handler(restored_target, Eq(restored_mount)))

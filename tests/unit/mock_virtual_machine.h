@@ -68,14 +68,14 @@ struct MockVirtualMachineT : public T
         ON_CALL(*this, get_name).WillByDefault(ReturnRefOfCopy(std::string{"mock-vm"}));
         if constexpr (std::same_as<VirtualMachine, T>)
         {
-            ON_CALL(*this, current_state).WillByDefault([this] { return state; });
+            ON_CALL(*this, fetch_state).WillByDefault([this] { return state; });
             ON_CALL(*this, set_state).WillByDefault([this](VirtualMachine::State new_state) {
                 state = new_state;
             });
         }
         else
         {
-            ON_CALL(*this, current_state)
+            ON_CALL(*this, fetch_state)
                 .WillByDefault(Return(multipass::VirtualMachine::State::stopped));
             ON_CALL(*this, set_state).WillByDefault([this](VirtualMachine::State new_state) {
                 T::set_state(new_state);
@@ -95,7 +95,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(void, shutdown, (VirtualMachine::ShutdownPolicy), (override));
     MOCK_METHOD(void, suspend, (), (override));
     MOCK_METHOD(bool, set_available, (bool), (override));
-    MOCK_METHOD(VirtualMachine::State, current_state, (), (override));
+    MOCK_METHOD(VirtualMachine::State, fetch_state, (), (override));
     MOCK_METHOD(void, set_state, (VirtualMachine::State), (override));
     MOCK_METHOD(int, ssh_port, (), (override));
     MOCK_METHOD(std::string, ssh_hostname, (), (override));

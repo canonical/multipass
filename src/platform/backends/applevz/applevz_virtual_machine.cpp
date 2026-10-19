@@ -56,7 +56,7 @@ AppleVZVirtualMachine::~AppleVZVirtualMachine()
     {
         update_shutdown_status = false;
         mp::top_catch_all(vm_name, [this]() {
-            if (current_state() == State::running)
+            if (fetch_state() == State::running)
             {
                 // TODO: Call suspend() once fully implemented
                 shutdown();
@@ -75,7 +75,7 @@ void AppleVZVirtualMachine::start()
     mpl::debug(log_category,
                "start() -> Starting VM `{}`, current state {}",
                vm_name,
-               current_state());
+               fetch_state());
 
     // TODO: Drop condition after suspend to disk implemented
     if (!vm_handle)
@@ -98,7 +98,7 @@ void AppleVZVirtualMachine::start()
     {
         const auto error_msg{fmt::format("start() -> VM `{}` cannot be started. Current state `{}`",
                                          vm_name,
-                                         current_state())};
+                                         fetch_state())};
         mpl::log_message(mpl::Level::error, log_category, error_msg);
         save_error_msg(error_msg);
         return;
@@ -121,10 +121,11 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     std::unique_lock<std::mutex> lock{state_mutex};
     if (!vm_handle)
     {
-        assert(get_state() == State::stopped || get_state() == State::unavailable);
+        assert(cached_state() == State::stopped || cached_state() == State::unavailable);
         return;
     }
 
+    (void)fetch_state();
     try
     {
         check_state_for_shutdown(shutdown_policy);
@@ -138,7 +139,7 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     mpl::debug(log_category,
                "shutdown() -> Shutting down VM `{}`, current state {}",
                vm_name,
-               get_state());
+               cached_state());
 
     CFError error;
     switch (shutdown_policy)
@@ -154,7 +155,7 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             mpl::error(log_category,
                        "shutdown() -> VM `{}` cannot be stopped from state `{}`",
                        vm_name,
-                       get_state());
+                       cached_state());
             return;
         }
         break;
@@ -178,7 +179,7 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
                 log_category,
                 "shutdown() -> VM `{}` cannot be stopped from state `{}`, killing process instead",
                 vm_name,
-                get_state());
+                cached_state());
         }
 
         drop_ssh_session();
@@ -197,7 +198,7 @@ void AppleVZVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     auto on_timeout = [] { throw std::runtime_error("timed out waiting for shutdown"); };
 
     mp::utils::try_action_for(on_timeout, std::chrono::seconds{180}, [this]() {
-        switch (current_state())
+        switch (fetch_state())
         {
         case VirtualMachine::State::stopped:
             drop_ssh_session();
@@ -216,14 +217,14 @@ void AppleVZVirtualMachine::suspend()
     // TODO: remove the throw above once suspend-to-disk is implemented
     if (!vm_handle)
     {
-        assert(get_state() == State::stopped);
+        assert(cached_state() == State::stopped);
         return;
     }
 
     mpl::debug(log_category,
                "suspend() -> Suspending VM `{}`, current state {}",
                vm_name,
-               get_state());
+               cached_state());
 
     CFError error;
     if (MP_APPLEVZ.can_pause(vm_handle))
@@ -237,7 +238,7 @@ void AppleVZVirtualMachine::suspend()
         mpl::warn(log_category,
                   "suspend() -> VM `{}` cannot be suspended. Current state `{}`",
                   vm_name,
-                  get_state());
+                  cached_state());
     }
 
     if (error)
@@ -246,7 +247,7 @@ void AppleVZVirtualMachine::suspend()
     }
 
     // TODO: drop vm_handle after suspend to disk implemented
-    (void)current_state(); // Update backend state
+    (void)fetch_state(); // Update backend state
 }
 
 std::optional<IPAddress> AppleVZVirtualMachine::management_ipv4()

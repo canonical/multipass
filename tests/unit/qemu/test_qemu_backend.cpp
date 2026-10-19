@@ -209,7 +209,7 @@ TEST_F(QemuBackend, createsInOffState)
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
-    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::stopped));
+    EXPECT_THAT(machine->fetch_state(), Eq(mp::VirtualMachine::State::stopped));
 }
 
 TEST_F(QemuBackend, machineInOffStateHandlesShutdown)
@@ -221,10 +221,10 @@ TEST_F(QemuBackend, machineInOffStateHandlesShutdown)
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
-    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::stopped));
+    EXPECT_THAT(machine->fetch_state(), Eq(mp::VirtualMachine::State::stopped));
 
     machine->shutdown();
-    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::stopped));
+    EXPECT_THAT(machine->fetch_state(), Eq(mp::VirtualMachine::State::stopped));
 }
 
 TEST_F(QemuBackend, machineStartShutdownSendsMonitoringEvents)
@@ -421,7 +421,7 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
     auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->start();
-    ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::starting);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::starting);
 
     mp::AutoJoinThread thread{[&machine, &vmproc] {
         ON_CALL(*vmproc, running()).WillByDefault(Return(false));
@@ -429,13 +429,13 @@ TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
     }};
 
     using namespace std::chrono_literals;
-    while (machine->current_state() != mp::VirtualMachine::State::stopped)
+    while (machine->fetch_state() != mp::VirtualMachine::State::stopped)
         std::this_thread::sleep_for(1ms);
 
     MP_EXPECT_THROW_THAT(machine->wait_for_cloud_init(1ms),
                          mp::StartException,
                          Property(&mp::StartException::name, Eq(machine->get_name())));
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(QemuBackend, shutdownWhileStartingWithCloudInitPoweroffIsIntentional)
@@ -467,7 +467,7 @@ TEST_F(QemuBackend, shutdownWhileStartingWithCloudInitPoweroffIsIntentional)
     auto machine = backend.create_virtual_machine(description, key_provider, stub_monitor);
 
     machine->start();
-    ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::starting);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::starting);
 
     mp::AutoJoinThread thread{[&machine, &vmproc] {
         ON_CALL(*vmproc, running()).WillByDefault(Return(false));
@@ -475,7 +475,7 @@ TEST_F(QemuBackend, shutdownWhileStartingWithCloudInitPoweroffIsIntentional)
     }};
 
     using namespace std::chrono_literals;
-    while (machine->current_state() != mp::VirtualMachine::State::stopped)
+    while (machine->fetch_state() != mp::VirtualMachine::State::stopped)
         std::this_thread::sleep_for(1ms);
 
     MP_EXPECT_THROW_THAT(machine->wait_for_cloud_init(1ms),
@@ -513,7 +513,7 @@ TEST_F(QemuBackend, shutdownWhileStartingWithCloudInitPoweroffFalseConditionIsNo
     auto machine = backend.create_virtual_machine(description, key_provider, stub_monitor);
 
     machine->start();
-    ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::starting);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::starting);
 
     mp::AutoJoinThread thread{[&machine, &vmproc] {
         ON_CALL(*vmproc, running()).WillByDefault(Return(false));
@@ -521,7 +521,7 @@ TEST_F(QemuBackend, shutdownWhileStartingWithCloudInitPoweroffFalseConditionIsNo
     }};
 
     using namespace std::chrono_literals;
-    while (machine->current_state() != mp::VirtualMachine::State::stopped)
+    while (machine->fetch_state() != mp::VirtualMachine::State::stopped)
         std::this_thread::sleep_for(1ms);
 
     MP_EXPECT_THROW_THAT(machine->wait_for_cloud_init(1ms),
@@ -567,7 +567,7 @@ TEST_F(QemuBackend, throwsOnShutdownTimeout)
         std::runtime_error,
         mpt::match_what(AllOf(HasSubstr(sub_error_msg1), HasSubstr(sub_error_msg2))));
 
-    EXPECT_NE(machine->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_NE(machine->fetch_state(), mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
@@ -593,7 +593,7 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
     auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
 
     machine->start(); // we need this so that Process signals get connected to their handlers
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::starting);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::starting);
 
     ASSERT_TRUE(vmproc);
     emit vmproc
@@ -611,7 +611,7 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
     }};
 
     using namespace std::chrono_literals;
-    while (machine->current_state() != mp::VirtualMachine::State::stopped)
+    while (machine->fetch_state() != mp::VirtualMachine::State::stopped)
         std::this_thread::sleep_for(1ms);
 
     MP_EXPECT_THROW_THAT(
@@ -646,7 +646,7 @@ TEST_F(QemuBackend, machineUnknownStateProperlyShutsDown)
     EXPECT_CALL(mock_monitor, on_shutdown());
     machine->shutdown();
 
-    EXPECT_THAT(machine->current_state(), Eq(mp::VirtualMachine::State::stopped));
+    EXPECT_THAT(machine->fetch_state(), Eq(mp::VirtualMachine::State::stopped));
 }
 
 TEST_F(QemuBackend, suspendedStateNoForceShutdownThrows)
@@ -667,7 +667,7 @@ TEST_F(QemuBackend, suspendedStateNoForceShutdownThrows)
                          mp::VMStateInvalidException,
                          mpt::match_what(HasSubstr(sub_error_msg)));
 
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::suspended);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
 }
 
 TEST_F(QemuBackend, suspendingStateNoForceShutdownThrows)
@@ -690,7 +690,7 @@ TEST_F(QemuBackend, suspendingStateNoForceShutdownThrows)
         mp::VMStateInvalidException,
         mpt::match_what(AllOf(HasSubstr(sub_error_msg1), HasSubstr(sub_error_msg2))));
 
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::suspending);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspending);
 }
 
 TEST_F(QemuBackend, startingStateNoForceShutdownThrows)
@@ -713,7 +713,7 @@ TEST_F(QemuBackend, startingStateNoForceShutdownThrows)
         mp::VMStateInvalidException,
         mpt::match_what(AllOf(HasSubstr(sub_error_msg1), HasSubstr(sub_error_msg2))));
 
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::starting);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::starting);
 }
 
 TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
@@ -761,7 +761,7 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
 
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff); // force shutdown
 
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(QemuBackend, forceShutdownNoProcessLogs)
@@ -783,7 +783,7 @@ TEST_F(QemuBackend, forceShutdownNoProcessLogs)
 
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff); // force shutdown
 
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
@@ -816,7 +816,7 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
     machine->set_state(mp::VirtualMachine::State::suspended);
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::stopped);
 
     const std::vector<mpt::MockProcessFactory::ProcessInfo> processes = process_factory
                                                                             ->process_list();
@@ -847,7 +847,7 @@ TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
     machine->set_state(mp::VirtualMachine::State::suspended);
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
@@ -883,7 +883,7 @@ TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
     machine->set_state(mp::VirtualMachine::State::running);
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::stopped);
 
     const std::vector<mpt::MockProcessFactory::ProcessInfo> processes = process_factory
                                                                             ->process_list();
@@ -1240,7 +1240,7 @@ TEST_F(QemuBackend, sshHostnameThrowsImmediatelyWhenIPUnavailable)
     machine.set_state(mp::VirtualMachine::State::running);
 
     EXPECT_THROW((void)machine.ssh_hostname(), mp::IPUnavailableException);
-    EXPECT_EQ(machine.current_state(), mp::VirtualMachine::State::running);
+    EXPECT_EQ(machine.fetch_state(), mp::VirtualMachine::State::running);
 }
 
 struct MockQemuVM : public mpt::MockVirtualMachineT<mp::QemuVirtualMachine>
