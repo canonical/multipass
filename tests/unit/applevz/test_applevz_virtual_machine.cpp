@@ -108,7 +108,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromStoppedSuccess)
 
     uut->start();
 
-    EXPECT_EQ(uut->current_state(), VirtualMachine::State::starting);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::starting);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromPausedSuccess)
@@ -124,7 +124,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromPausedSuccess)
 
     uut->start();
 
-    EXPECT_EQ(uut->current_state(), VirtualMachine::State::starting);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::starting);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromRunningStateNoOp)
@@ -138,7 +138,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromRunningStateNoOp)
 
     uut->start();
 
-    EXPECT_EQ(uut->current_state(), VirtualMachine::State::starting);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::starting);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromStoppedThrowsError)
@@ -159,7 +159,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromStoppedThrowsError)
     MP_EXPECT_THROW_THAT(uut->start(),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("failed to start")));
-    EXPECT_EQ(uut->current_state(), VirtualMachine::State::unknown);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::unknown);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromPausedThrowsError)
@@ -180,7 +180,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromPausedThrowsError)
     MP_EXPECT_THROW_THAT(uut->start(),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("failed to start")));
-    EXPECT_EQ(uut->current_state(), VirtualMachine::State::unknown);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::unknown);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, shutdownVMFromRunningWithPowerdownSuccess)
@@ -197,7 +197,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownVMFromRunningWithPowerdownSucces
 
     uut->shutdown(VirtualMachine::ShutdownPolicy::Powerdown);
 
-    EXPECT_EQ(uut->current_state(), VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::stopped);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, shutdownVMFromRunningWithPoweroffSuccess)
@@ -213,7 +213,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownVMFromRunningWithPoweroffSuccess
 
     uut->shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
 
-    EXPECT_EQ(uut->current_state(), VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::stopped);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, shutdownFromStoppedStateIsIdempotent)
@@ -225,7 +225,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownFromStoppedStateIsIdempotent)
 
     uut->shutdown();
 
-    EXPECT_EQ(uut->current_state(), VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::stopped);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, shutdownGracefulStopError)
@@ -245,7 +245,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownGracefulStopError)
     MP_EXPECT_THROW_THAT(uut->shutdown(),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("failed to stop")));
-    EXPECT_EQ(uut->current_state(), VirtualMachine::State::unknown);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::unknown);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, shutdownForcedStopError)
@@ -262,7 +262,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownForcedStopError)
             CFErrorCreate(kCFAllocatorDefault, CFSTR("UnitTestDomain"), 42, nullptr)}));
 
     EXPECT_NO_THROW(uut->shutdown(VirtualMachine::ShutdownPolicy::Poweroff));
-    EXPECT_EQ(uut->current_state(), VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::stopped);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, shutdownCannotStopReturnsEarly)
@@ -275,7 +275,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownCannotStopReturnsEarly)
 
     uut->shutdown();
 
-    EXPECT_EQ(uut->current_state(), VirtualMachine::State::running);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::running);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, shutdownFromSuspendedStateWithHaltIsIdempotent)
@@ -286,7 +286,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownFromSuspendedStateWithHaltIsIdem
     EXPECT_CALL(mock_applevz, stop_vm(_, _)).Times(0);
 
     EXPECT_NO_THROW(uut->shutdown(VirtualMachine::ShutdownPolicy::Halt));
-    EXPECT_EQ(uut->current_state(), VirtualMachine::State::suspended);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::suspended);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, suspendThrowsNotImplemented)
@@ -311,6 +311,6 @@ TEST_F(AppleVZVirtualMachine_UnitTests, currentStateReportsUnavailableWhenZoneUn
 
     uut->set_available(false);
 
-    EXPECT_EQ(uut->current_state(), VirtualMachine::State::unavailable);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::unavailable);
 }
 }; // namespace multipass::test

@@ -64,7 +64,7 @@ struct StubVirtualMachine final : public VirtualMachine
         return false;
     }
 
-    State current_state() override
+    State fetch_state() override
     {
         return state;
     }

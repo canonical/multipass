@@ -154,11 +154,11 @@ TEST_F(DelayedShutdown, vmStateDelayedShutdownWhenTimerRunning)
     };
     REPLACE(ssh_event_dopoll, event_dopoll);
 
-    EXPECT_TRUE(vm->current_state() == mp::VirtualMachine::State::running);
+    EXPECT_TRUE(vm->fetch_state() == mp::VirtualMachine::State::running);
     mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
     delayed_shutdown_timer.start(std::chrono::milliseconds(1));
 
-    EXPECT_TRUE(vm->current_state() == mp::VirtualMachine::State::delayed_shutdown);
+    EXPECT_TRUE(vm->fetch_state() == mp::VirtualMachine::State::delayed_shutdown);
 }
 
 TEST_F(DelayedShutdown, vmStateRunningAfterCancel)
@@ -180,8 +180,8 @@ TEST_F(DelayedShutdown, vmStateRunningAfterCancel)
     {
         mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
         delayed_shutdown_timer.start(std::chrono::milliseconds(1));
-        EXPECT_TRUE(vm->current_state() == mp::VirtualMachine::State::delayed_shutdown);
+        EXPECT_TRUE(vm->fetch_state() == mp::VirtualMachine::State::delayed_shutdown);
     }
 
-    EXPECT_TRUE(vm->current_state() == mp::VirtualMachine::State::running);
+    EXPECT_TRUE(vm->fetch_state() == mp::VirtualMachine::State::running);
 }

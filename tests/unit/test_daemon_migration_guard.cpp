@@ -368,7 +368,7 @@ TEST_F(TestDaemonMigrationGuard, driverChangeRejectsRunningHcsInstance)
 {
     GuardTestDaemon daemon{config_builder.build()};
     auto vm = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
-    ON_CALL(*vm, current_state).WillByDefault(Return(mp::VirtualMachine::State::running));
+    ON_CALL(*vm, fetch_state).WillByDefault(Return(mp::VirtualMachine::State::running));
     daemon.add_instance("running", vm);
 
     EXPECT_CALL(*mock_platform, is_backend_supported(QStringLiteral("hyperv")))
@@ -476,7 +476,7 @@ TEST_F(TestDaemonMigrationGuard, driverChangeReleasesHcsResourcesBeforeSettingsW
     EXPECT_CALL(*mock_platform, is_backend_supported(QStringLiteral("hyperv")))
         .WillOnce(Return(true));
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
-    EXPECT_CALL(*vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*vm, fetch_state()).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*hcs_mock.first, open_compute_system("stopped", _))
         .WillOnce(Return(mp::hyperv::OperationResult{HCS_E_SYSTEM_NOT_FOUND, L""}));
     EXPECT_CALL(*hcn_mock.first, find_endpoints_by_name("multipass-stopped", _))
@@ -505,7 +505,7 @@ TEST_F(TestDaemonMigrationGuard, driverChangeDoesNotWriteSettingsWhenResourceCle
     EXPECT_CALL(*mock_platform, is_backend_supported(QStringLiteral("hyperv")))
         .WillOnce(Return(true));
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
-    EXPECT_CALL(*vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*vm, fetch_state()).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*hcs_mock.first, open_compute_system("stopped", _))
         .WillOnce(Return(mp::hyperv::OperationResult{E_ACCESSDENIED, L"access denied"}));
 
@@ -626,7 +626,7 @@ TEST_F(TestHyperVDriverTransition, deletedHcsInstancesAreCheckedBeforeReleasingR
     auto vm = std::make_shared<StrictMock<mpt::MockVirtualMachine>>();
     deleted_instances.emplace("deleted", vm);
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
-    EXPECT_CALL(*vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(*vm, fetch_state()).WillOnce(Return(mp::VirtualMachine::State::running));
 
     {
         auto change = transition(*config);
@@ -645,7 +645,7 @@ TEST_F(TestHyperVDriverTransition, leavingHcsNamesEveryInstanceThatIsNotStopped)
                                       std::pair{"idle", mp::VirtualMachine::State::stopped}})
     {
         auto vm = std::make_shared<NiceMock<mpt::MockVirtualMachine>>();
-        ON_CALL(*vm, current_state()).WillByDefault(Return(state));
+        ON_CALL(*vm, fetch_state()).WillByDefault(Return(state));
         instances.emplace(name, vm);
     }
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));

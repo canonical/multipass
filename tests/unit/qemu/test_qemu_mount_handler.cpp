@@ -183,7 +183,7 @@ struct QemuMountHandlerFailCommand : public QemuMountHandlerTest,
 
 TEST_F(QemuMountHandlerTest, mountFailsWhenVmNotStopped)
 {
-    EXPECT_CALL(vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(vm, fetch_state()).WillOnce(Return(mp::VirtualMachine::State::running));
     MP_EXPECT_THROW_THAT(mp::QemuMountHandler(&vm, &key_provider, default_target, mount),
                          mp::NativeMountNeedsStoppedVMException,
                          mpt::match_what(AllOf(HasSubstr("Please stop the instance"),
@@ -239,7 +239,7 @@ TEST_F(QemuMountHandlerTest, mountLogsInit)
 TEST_F(QemuMountHandlerTest, recoverFromSuspended)
 {
     mount_args[tag_from_target(default_target)] = {};
-    EXPECT_CALL(vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::suspended));
+    EXPECT_CALL(vm, fetch_state()).WillOnce(Return(mp::VirtualMachine::State::suspended));
     logger_scope.mock_logger->expect_log(
         mpl::Level::info,
         fmt::format("Found native mount {} => {} in '{}' while suspended",

@@ -207,7 +207,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
     }
     else
     {
-        (void)current_state();
+        (void)fetch_state();
     }
 }
 
@@ -347,14 +347,14 @@ mp::HyperVVirtualMachine::~HyperVVirtualMachine()
     top_catch_all(vm_name, [this]() {
         update_suspend_status = false;
 
-        if (current_state() == State::running)
+        if (fetch_state() == State::running)
             suspend();
     });
 }
 
 void mp::HyperVVirtualMachine::start()
 {
-    const auto present_state = current_state();
+    const auto present_state = fetch_state();
     if (present_state == State::stopped)
     {
         default_switch_interface = resolve_default_switch_interface();
@@ -369,7 +369,7 @@ void mp::HyperVVirtualMachine::start()
     QString output_err;
     if (!power_shell->run({"Start-VM", "-Name", name}, nullptr, &output_err))
     {
-        (void)current_state();
+        (void)fetch_state();
         save_error_msg(output_err.toStdString());
         throw StartException{vm_name, output_err.toStdString(), false};
     }
@@ -378,7 +378,7 @@ void mp::HyperVVirtualMachine::start()
 void mp::HyperVVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 {
     std::unique_lock<std::mutex> lock{state_mutex};
-    const auto present_state = current_state();
+    const auto present_state = fetch_state();
 
     try
     {
@@ -448,7 +448,7 @@ std::optional<mp::VirtualMachine::State> mp::HyperVVirtualMachine::get_backend_s
 void mp::HyperVVirtualMachine::handle_state_update()
 {
     // Invalidate the management IP address on state update.
-    if (get_state() == VirtualMachine::State::running)
+    if (cached_state() == VirtualMachine::State::running)
     {
         // Cached IPs become stale when the guest is restarted from within. By resetting them here
         // we at least cover multipass's restart initiatives, which include state updates.

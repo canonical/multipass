@@ -109,7 +109,7 @@ public:
     const std::string& get_name() const noexcept override;
     const AvailabilityZone& get_zone() const noexcept override;
 
-    [[nodiscard]] State current_state() override;
+    [[nodiscard]] State fetch_state() override;
     void set_state(State state) override;
 
 protected:
@@ -161,8 +161,8 @@ protected:
 
     // Backend state fetching and conversion to VM::State
     [[nodiscard]] virtual std::optional<State> get_backend_state() = 0;
-    // Direct fetch to avoid infinite recursion in current_state()
-    State get_state() const;
+    // Direct fetch to avoid infinite recursion in fetch_state()
+    State cached_state() const;
     void handle_state_update() override;
 
 private:
@@ -314,7 +314,7 @@ inline std::string multipass::BaseVirtualMachine::core_image_disk_resize_message
                        "        multipass info <instance>\n");
 }
 
-inline multipass::VirtualMachine::State multipass::BaseVirtualMachine::get_state() const
+inline multipass::VirtualMachine::State multipass::BaseVirtualMachine::cached_state() const
 {
     return state;
 }
