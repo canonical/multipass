@@ -79,7 +79,6 @@ public:
     }
 
 protected:
-    MountHandler() = default;
     MountHandler(VirtualMachine* vm,
                  const SSHKeyProvider* ssh_key_provider,
                  VMMount mount_spec,
