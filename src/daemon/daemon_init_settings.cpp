@@ -29,6 +29,7 @@
 #include <QCoreApplication>
 #include <QFileSystemWatcher>
 #include <QObject>
+#include <QRegularExpression>
 
 namespace mp = multipass;
 
@@ -74,6 +75,19 @@ QString image_mirror_interpreter(QString val)
     {
         val.append("/");
     }
+    return val;
+}
+
+// Empty disables resolving instances by name.
+QString dns_domain_interpreter(QString val)
+{
+    static const QRegularExpression domain{
+        R"(^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$)"};
+
+    val = val.toLower();
+    if (!val.isEmpty() && (val.size() > 253 || !domain.match(val).hasMatch()))
+        throw mp::InvalidSettingException(mp::dns_domain_key, val, "Invalid DNS domain");
+
     return val;
 }
 
@@ -123,6 +137,9 @@ void mp::daemon::register_global_settings_handlers()
     }));
     settings.insert(
         std::make_unique<CustomSettingSpec>(mp::mirror_key, "", image_mirror_interpreter));
+    settings.insert(std::make_unique<CustomSettingSpec>(mp::dns_domain_key,
+                                                        mp::default_dns_domain,
+                                                        dns_domain_interpreter));
 
     MP_SETTINGS.register_handler(
         std::make_unique<PersistentSettingsHandler>(persistent_settings_filename(),

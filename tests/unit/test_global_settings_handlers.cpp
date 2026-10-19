@@ -242,8 +242,10 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonSett
     mp::daemon::register_global_settings_handlers();
     inject_default_returning_mock_qsettings();
 
-    expect_setting_values(
-        {{mp::driver_key, driver}, {mp::bridged_interface_key, ""}, {mp::mounts_key, mount}});
+    expect_setting_values({{mp::driver_key, driver},
+                           {mp::bridged_interface_key, ""},
+                           {mp::mounts_key, mount},
+                           {mp::dns_domain_key, mp::default_dns_domain}});
 }
 
 TEST_F(TestGlobalSettingsHandlers, daemonRegistersPersistentHandlerForDaemonPlatformSettings)
@@ -399,5 +401,57 @@ TEST_F(TestGlobalSettingsHandlers, daemonRegistersHandlerThatResetsHashWhenPassw
     [[maybe_unused]] mp::UserMessages messages{};
     ASSERT_NO_THROW(handler->set(mp::passphrase_key, val, messages));
 }
+
+struct TestValidDnsDomain : public TestGlobalSettingsHandlers,
+                            public WithParamInterface<std::pair<QString, QString>>
+{
+};
+
+TEST_P(TestValidDnsDomain, daemonRegistersHandlerThatAcceptsValidDnsDomains)
+{
+    const auto& [val, stored] = GetParam();
+
+    mp::daemon::register_global_settings_handlers();
+
+    EXPECT_CALL(*mock_qsettings, setValue(Eq(mp::dns_domain_key), Eq(stored)));
+    inject_mock_qsettings();
+
+    [[maybe_unused]] mp::UserMessages messages{};
+    ASSERT_NO_THROW(handler->set(mp::dns_domain_key, val, messages));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestValidDnsDomain,
+                         TestValidDnsDomain,
+                         Values(std::pair{"multipass.local", "multipass.local"},
+                                std::pair{"Multipass.Internal", "multipass.internal"},
+                                std::pair{"vms", "vms"},
+                                std::pair{"a-1.b2", "a-1.b2"},
+                                std::pair{"", ""})); // disables it
+
+struct TestInvalidDnsDomain : public TestGlobalSettingsHandlers, public WithParamInterface<QString>
+{
+};
+
+TEST_P(TestInvalidDnsDomain, daemonRegistersHandlerThatRejectsInvalidDnsDomains)
+{
+    const auto val = GetParam();
+
+    mp::daemon::register_global_settings_handlers();
+
+    [[maybe_unused]] mp::UserMessages messages{};
+    MP_ASSERT_THROW_THAT(handler->set(mp::dns_domain_key, val, messages),
+                         mp::InvalidSettingException,
+                         mpt::match_what(HasSubstr(mp::dns_domain_key)));
+}
+
+INSTANTIATE_TEST_SUITE_P(TestInvalidDnsDomain,
+                         TestInvalidDnsDomain,
+                         Values(".multipass.local",
+                                "multipass.local.",
+                                "multipass..local",
+                                "-multipass.local",
+                                "multi_pass.local",
+                                "multipass local",
+                                QString(64, 'a')));
 
 } // namespace

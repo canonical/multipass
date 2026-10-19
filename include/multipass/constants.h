@@ -67,6 +67,9 @@ constexpr auto bridged_interface_key = "local.bridged-network";
 constexpr auto mounts_key = "local.privileged-mounts";
 constexpr auto winterm_key = "client.apps.windows-terminal.profiles";
 constexpr auto mirror_key = "local.image.mirror"; // the mirror of simple streams
+constexpr auto dns_domain_key = "local.dns-domain"; // instances resolve as <name>.<domain>
+
+constexpr auto default_dns_domain = "multipass.local";
 
 constexpr auto cloud_init_file_name = "cloud-init-config.iso";
 
