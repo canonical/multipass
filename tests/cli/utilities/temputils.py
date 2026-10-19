@@ -50,5 +50,4 @@ def TempDirectory(delete=True, ignore_cleanup_errors=True):
         yield Path(tmp.name).resolve()
     finally:
         if delete:
-            with suppress(Exception):
-                tmp.cleanup()
+            tmp.cleanup()
