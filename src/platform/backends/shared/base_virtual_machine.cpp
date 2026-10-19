@@ -251,14 +251,13 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
 bool mp::BaseVirtualMachine::set_available(bool available)
 {
     // Ignore idempotent calls
-    const auto state = get_state();
-    if (available == (state != St::unavailable))
+    if (available == (get_state() != St::unavailable))
         return false;
 
     if (available)
     {
         assert(get_state() == St::unavailable);
-        set_state(St::stopped);
+        set_state_impl(St::stopped);
         return was_running;
     }
 
@@ -1048,8 +1047,15 @@ St mp::BaseVirtualMachine::current_state()
 
 void mp::BaseVirtualMachine::set_state(St new_state)
 {
-    if (new_state == state)
+    if (get_state() == new_state)
         return;
+    if (get_state() == St::unavailable)
+        return;
+    set_state_impl(new_state);
+}
+
+void mp::BaseVirtualMachine::set_state_impl(State new_state)
+{
     mpl::info(vm_name, "State changed from {} to {}", state, new_state);
     state = new_state;
     handle_state_update();
@@ -1066,5 +1072,5 @@ void mp::BaseVirtualMachine::update_backend_state()
 
 void mp::BaseVirtualMachine::handle_state_update()
 {
-    monitor.persist_state_for(get_name(), state);
+    monitor.persist_state_for(get_name(), get_state());
 }

@@ -593,7 +593,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, failure_after_compute_system_creation_
     EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::stopped);
 }
 
-TEST_F(HyperVHCSVirtualMachine_UnitTests, compute_system_open_error_reports_unknown_state)
+TEST_F(HyperVHCSVirtualMachine_UnitTests, compute_system_open_error_preserves_state)
 {
     default_open_success();
     auto uut = construct_vm();
@@ -604,9 +604,10 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, compute_system_open_error_reports_unkn
     EXPECT_CALL(mock_hcs, open_compute_system(dummy_vm_name, _))
         .WillOnce(Return(hcs_op_result_t{E_ACCESSDENIED, L"Access denied"}));
 
+    // An unknown HCS state is not a state change: the last known state is kept.
     mp::VirtualMachine::State state{};
     EXPECT_NO_THROW(state = uut->current_state());
-    EXPECT_EQ(state, mp::VirtualMachine::State::unknown);
+    EXPECT_EQ(state, mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(HyperVHCSVirtualMachine_UnitTests, missing_compute_system_preserves_unavailable_state)
