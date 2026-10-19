@@ -125,6 +125,15 @@ const auto control_characters = Scenario{.name = "controlCharacters",
                                          .shell_source = "/a\\\x1b\\\tb\"\n\"c",
                                          .shell_encoded_target = "%2Fx\\\x1b\\\ty\"\n\"z"};
 
+// each byte of a multibyte character is backslash-escaped, which the shell undoes
+const auto utf8_paths = Scenario{
+    .name = "utf8Paths",
+    .source = "/home/zoë/café",
+    .target = "/données/日本",
+    .shell_source = "/home/zo\\\xC3\\\xAB/caf\\\xC3\\\xA9",
+    .shell_encoded_target = "%2Fdonn\\\xC3\\\xA9"
+                            "es%2F\\\xE6\\\x97\\\xA5\\\xE6\\\x9C\\\xAC"};
+
 const auto encoded_slash = Scenario{.name = "encodedSlash",
                                     .source = "/src",
                                     .target = "/a/b",
@@ -143,6 +152,7 @@ INSTANTIATE_TEST_SUITE_P(GuestMountRecord,
                                 windows_source,
                                 shell_metacharacters,
                                 control_characters,
+                                utf8_paths,
                                 encoded_slash,
                                 literal_percent_slash),
                          [](const TestParamInfo<Scenario>& info) { return info.param.name; });
