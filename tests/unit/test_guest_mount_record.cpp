@@ -38,7 +38,7 @@ struct Scenario
     std::string target;
     // what the shell must receive: the escaped source and the escaped, encoded target
     std::string shell_source;
-    std::string shell_record_name;
+    std::string shell_encoded_target;
 };
 
 struct TestGuestMountRecord : public Test
@@ -48,14 +48,14 @@ struct TestGuestMountRecord : public Test
         return fmt::format("sudo mkdir -p {0} && printf '%s\\n' {1} | sudo tee {0}/{2} >/dev/null",
                            mp::GuestMountRecord::records_dir,
                            scenario.shell_source,
-                           scenario.shell_record_name);
+                           scenario.shell_encoded_target);
     }
 
     static std::string undeploy_cmd(const Scenario& scenario)
     {
         return fmt::format("sudo rm -f {}/{}",
                            mp::GuestMountRecord::records_dir,
-                           scenario.shell_record_name);
+                           scenario.shell_encoded_target);
     }
 
     NiceMock<mpt::MockVirtualMachine> vm;
@@ -104,31 +104,31 @@ const auto plain_paths = Scenario{.name = "plainPaths",
                                   .source = "/home/alice/projects",
                                   .target = "/home/ubuntu/projects",
                                   .shell_source = "/home/alice/projects",
-                                  .shell_record_name = "%2Fhome%2Fubuntu%2Fprojects"};
+                                  .shell_encoded_target = "%2Fhome%2Fubuntu%2Fprojects"};
 
 const auto windows_source = Scenario{.name = "windowsSource",
                                      .source = R"(C:\Users\alice\my data)",
                                      .target = "/home/ubuntu/data",
                                      .shell_source = R"(C:\\Users\\alice\\my\ data)",
-                                     .shell_record_name = "%2Fhome%2Fubuntu%2Fdata"};
+                                     .shell_encoded_target = "%2Fhome%2Fubuntu%2Fdata"};
 
 const auto shell_metacharacters = Scenario{.name = "shellMetacharacters",
                                            .source = R"(/a $b`c`;'d"e\f)",
                                            .target = R"(/x;$(y) z\w)",
                                            .shell_source = R"(/a\ \$b\`c\`\;\'d\"e\\f)",
-                                           .shell_record_name = R"(%2Fx\;\$\(y\)\ z\\w)"};
+                                           .shell_encoded_target = R"(%2Fx\;\$\(y\)\ z\\w)"};
 
 const auto encoded_slash = Scenario{.name = "encodedSlash",
                                     .source = "/src",
                                     .target = "/a/b",
                                     .shell_source = "/src",
-                                    .shell_record_name = "%2Fa%2Fb"};
+                                    .shell_encoded_target = "%2Fa%2Fb"};
 
 const auto literal_percent_slash = Scenario{.name = "literalPercentSlash",
                                             .source = "/src",
                                             .target = "/a%2Fb",
                                             .shell_source = "/src",
-                                            .shell_record_name = "%2Fa%252Fb"};
+                                            .shell_encoded_target = "%2Fa%252Fb"};
 
 INSTANTIATE_TEST_SUITE_P(
     GuestMountRecord,
