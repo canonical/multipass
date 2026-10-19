@@ -263,7 +263,6 @@ INSTANTIATE_TEST_SUITE_P(
     TestRestartOnDifferentStates,
     Values(StateStatusPair{State::running, grpc::Status::OK},
            StateStatusPair{State::stopped, grpc::Status::OK},
-           StateStatusPair{State::off, grpc::Status::OK},
            StateStatusPair{State::suspended, grpc::Status::OK},
            StateStatusPair{State::delayed_shutdown, grpc::Status::OK},
            StateStatusPair{State::restarting, grpc::Status(grpc::FAILED_PRECONDITION, "", "")},
@@ -375,7 +374,7 @@ TEST_F(TestDaemonRestart, restartSucceedsForOtherInstancesWhenOneSuspendedInstan
     EXPECT_CALL(*resumes_ok_instance, wait_until_ssh_up(_))
         .Times(2)
         .WillRepeatedly(
-            Invoke([resumes_ok_instance](auto) { resumes_ok_instance->state = VMState::running; }));
+            [resumes_ok_instance](auto) { resumes_ok_instance->state = VMState::running; });
     // ... while the second one never comes back up over SSH and remains suspended.
     EXPECT_CALL(*fails_resume_instance, wait_until_ssh_up(_))
         .WillOnce(Throw(std::runtime_error{"ssh timed out resuming instance"}));

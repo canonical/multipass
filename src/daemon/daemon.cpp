@@ -3829,7 +3829,6 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, bool running_only)
         stop_mounts(vm.get_name());
         return ssh_reboot(vm);
 
-    case VirtualMachine::State::off:
     case VirtualMachine::State::stopped:
         mpl::debug(category, "Rebooting {}", vm.get_name());
         try
