@@ -20,10 +20,10 @@
 #include <multipass/file_ops.h>
 #include <multipass/id_mappings.h>
 #include <multipass/recursive_dir_iterator.h>
-#include <multipass/ssh/ssh_session.h>
 
 #include <libssh/sftp.h>
 
+#include <atomic>
 #include <memory>
 #include <unordered_map>
 
@@ -38,7 +38,7 @@ class SSHProcess;
 class SftpServer
 {
 public:
-    SftpServer(SSHSession&& ssh_session,
+    SftpServer(std::unique_ptr<SSHSession>&& ssh_session,
                const std::string& source,
                const std::string& target,
                const id_mappings& gid_mappings,
@@ -52,8 +52,8 @@ public:
     void run();
     void stop();
 
-    using SSHSessionUptr = std::unique_ptr<ssh_session_struct, decltype(ssh_free)*>;
-    using SftpSessionUptr = std::unique_ptr<sftp_session_struct, decltype(sftp_free)*>;
+    using SSHSessionUptr = std::unique_ptr<ssh_session_struct, void (*)(ssh_session)>;
+    using SftpSessionUptr = std::unique_ptr<sftp_session_struct, void (*)(sftp_session)>;
     using SSHFSProcUptr = std::unique_ptr<SSHProcess>;
 
 private:
@@ -68,6 +68,10 @@ private:
     bool has_reverse_uid_mapping_for(const int uid);
     bool has_reverse_gid_mapping_for(const int gid);
     bool has_id_mappings_for(const QFileInfo& file_info);
+    bool validate_path(const fs::path& current_path, bool follows_symlinks) const;
+    std::string host_to_guest_path(const fs::path& host_path) const;
+    fs::path get_absolute_path(const char* path) const;
+    std::optional<fs::path> get_validated_path(sftp_client_message msg) const;
 
     int handle_close(sftp_client_message msg);
     int handle_fstat(sftp_client_message msg);
@@ -90,11 +94,11 @@ private:
     template <typename T>
     T* get_handle(sftp_client_message msg);
 
-    SSHSession ssh_session;
+    std::unique_ptr<SSHSession> ssh_session;
     SSHFSProcUptr sshfs_process;
     SftpSessionUptr sftp_server_session;
-    const std::string source_path;
-    const std::string target_path;
+    const std::filesystem::path source_path;
+    const std::filesystem::path target_path;
     std::unordered_map<void*, std::unique_ptr<NamedFd>> open_file_handles;
     std::unordered_map<void*, std::unique_ptr<DirIterator>> open_dir_handles;
     const id_mappings gid_mappings;
@@ -102,6 +106,6 @@ private:
     const int default_uid;
     const int default_gid;
     const std::string sshfs_exec_line;
-    bool stop_invoked{false};
+    std::atomic<bool> stop_invoked{false};
 };
 } // namespace multipass

@@ -1,0 +1,80 @@
+/*
+ * Copyright (C) Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#pragma once
+
+#include "temp_file.h"
+
+#include "mock_image_host.h"
+#include <multipass/vm_image.h>
+#include <multipass/vm_image_vault.h>
+
+namespace multipass
+{
+namespace test
+{
+struct StubVMImageVault final : public multipass::VMImageVault
+{
+    multipass::VMImage fetch_image(const multipass::Query&,
+                                   const PrepareAction& prepare,
+                                   const multipass::ProgressMonitor&,
+                                   const std::optional<std::string>&,
+                                   const multipass::Path&) override
+    {
+        return prepare({dummy_image.path(), {}, {}, {}, {}, {}, {}});
+    };
+
+    void remove(const std::string&) override {};
+    bool has_record_for(const std::string&) override
+    {
+        return false;
+    }
+
+    void prune_expired_images() override{};
+    void update_images(const PrepareAction&, const ProgressMonitor&) override {};
+
+    VMImageHost* image_host_for(const std::string& /*remote_name*/) const override
+    {
+        return nullptr;
+    }
+
+    std::vector<std::pair<std::string, VMImageInfo>> all_info_for(const Query&) const override
+    {
+        return std::vector<std::pair<std::string, multipass::VMImageInfo>>{
+            std::pair<std::string, multipass::VMImageInfo>{"default",
+                                                           {{default_alias},
+                                                            "Ubuntu",
+                                                            "bionic",
+                                                            default_release_info,
+                                                            "Bionic Beaver",
+                                                            true,
+                                                            dummy_image.url().toStdString(),
+                                                            default_id,
+                                                            default_stream_location,
+                                                            default_version,
+                                                            1,
+                                                            true}}};
+    }
+
+    void clone(const std::string& /*src*/, const std::string& /*dst*/) override
+    {
+    }
+
+    TempFile dummy_image;
+};
+} // namespace test
+} // namespace multipass

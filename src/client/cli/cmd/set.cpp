@@ -26,11 +26,12 @@
 #include <multipass/platform.h> // temporary
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/settings/settings.h>
+#include <multipass/user_messages.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Set::run(mp::ArgParser* parser)
 {
     auto parse_code = parse_args(parser);
     auto ret = parser->returnCodeFrom(parse_code);
@@ -39,7 +40,11 @@ mp::ReturnCode cmd::Set::run(mp::ArgParser* parser)
         try
         {
             if (ret == ReturnCode::Ok)
-                MP_SETTINGS.set(key, val);
+            {
+                // We are in the client, messages cannot be sent
+                [[maybe_unused]] mp::UserMessages messages{};
+                MP_SETTINGS.set(key, val, messages);
+            }
         }
         catch (const SettingsException& e)
         {
@@ -98,14 +103,6 @@ mp::ParseCode cmd::Set::parse_args(mp::ArgParser* parser)
             {
                 key = keyval.at(0);
                 val = keyval.at(1);
-
-#ifdef MULTIPASS_PLATFORM_LINUX
-                // TODO lxd and libvirt migration, remove
-                if (key == mp::driver_key && (val == "lxd" || val == "libvirt"))
-                {
-                    std::cout << deprecation_warning_message_driver_concatenated(val);
-                }
-#endif
             }
             else
             {

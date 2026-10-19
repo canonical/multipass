@@ -1,0 +1,15 @@
+Snapshot:       snapshot2
+Instance:       bogus-instance
+Size:           128MiB
+CPU(s):         2
+Disk space:     4.9GiB
+Memory size:    0.9GiB
+Mounts:         /home/user/source => source
+                /home/user => Home
+Created:        1972-01-01T10:00:20.021Z
+Parent:         snapshot1
+Children:       snapshot3
+                snapshot4
+Comment:        This is a comment with some
+                new
+                lines.

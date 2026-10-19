@@ -1,0 +1,14 @@
+#!/bin/sh
+args=""
+for arg in "$@"; do
+    case "$arg" in
+        --disable-silent-rules|--verbose) ;;
+        --disable-shared|--enable-shared) ;;
+        --disable-static|--enable-static) ;;
+        --enable-shared=*|--enable-static=*) ;;
+        --build=*|--host=*|--target=*) ;;
+        --bindir=*|--sbindir=*|--mandir=*|--docdir=*|--datarootdir=*) ;;
+        *) args="$args \"$arg\"" ;;
+    esac
+done
+eval exec "$(dirname "$0")/configure.real" $args

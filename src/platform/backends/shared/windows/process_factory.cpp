@@ -73,10 +73,9 @@ public:
                 auto pid = process.processId();
                 if (0 == AssignProcessToJobObject(ghJob, OpenProcess(PROCESS_ALL_ACCESS, 0, pid)))
                 {
-                    mpl::log(mpl::Level::warning,
-                             ::category,
-                             fmt::format("Could not AssignProcessToObject the spawned process: {}",
-                                         GetLastErrorAsString()));
+                    mpl::warn(::category,
+                              "Could not AssignProcessToObject the spawned process: {}",
+                              GetLastErrorAsString());
                 }
             });
         }
@@ -117,23 +116,18 @@ mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&
     bool bSuccess = IsProcessInJob(GetCurrentProcess(), nullptr, &alreadyInProcessJob);
     if (!bSuccess)
     {
-        mpl::log(mpl::Level::warning,
-                 ::category,
-                 fmt::format("IsProcessInJob failed: error {}", GetLastErrorAsString()));
+        mpl::warn(::category, "IsProcessInJob failed: error {}", GetLastErrorAsString());
     }
     if (alreadyInProcessJob)
     {
-        mpl::log(mpl::Level::warning,
-                 ::category,
-                 "Process is already in Job, spawned processes will not be cleaned up");
+        mpl::warn(::category,
+                  "Process is already in Job, spawned processes will not be cleaned up");
     }
 
     ghJob = CreateJobObject(nullptr, nullptr);
     if (ghJob == nullptr)
     {
-        mpl::log(mpl::Level::warning,
-                 ::category,
-                 fmt::format("Could not create job object: {}", GetLastErrorAsString()));
+        mpl::warn(::category, "Could not create job object: {}", GetLastErrorAsString());
     }
     else
     {
@@ -144,9 +138,7 @@ mp::ProcessFactory::ProcessFactory(const Singleton<ProcessFactory>::PrivatePass&
         if (0 ==
             SetInformationJobObject(ghJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli)))
         {
-            mpl::log(mpl::Level::warning,
-                     ::category,
-                     fmt::format("Could not SetInformationJobObject: {}", GetLastErrorAsString()));
+            mpl::warn(::category, "Could not SetInformationJobObject: {}", GetLastErrorAsString());
         }
     }
 }

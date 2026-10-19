@@ -1,0 +1,5 @@
+Name,State,IPv4,Release,AllIPv4,Zone,Zone available
+trusty-190611-1529,Deleted,,Not Available,"",zone2,false
+trusty-190611-1535,Stopped,,Fedora 42,"",zone2,false
+trusty-190611-1539,Suspended,,Not Available,"",zone1,true
+trusty-190611-1542,Running,,Debian 12,"",zone1,true

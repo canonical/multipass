@@ -193,13 +193,10 @@ class GrpcClient {
     );
   }
 
-  Future<FindReply> find({bool images = true, bool blueprints = true}) {
+  Future<FindReply> find() {
     return doRpc(
       _client.find,
-      FindRequest(
-        showImages: images,
-        showBlueprints: blueprints,
-      ),
+      FindRequest(),
     ).then((r) => r!);
   }
 
@@ -227,6 +224,15 @@ class GrpcClient {
     return doRpc(_client.set, SetRequest(key: key, val: value));
   }
 
+  // TODO hyperv migration, remove
+  // Like set, but exposes every reply, e.g. to report the progress of a driver
+  // migration.
+  Stream<SetReply> setStreaming(String key, String value) {
+    final request = SetRequest(key: key, val: value);
+    logger.i('Sent ${request.repr}');
+    return _client.set(Stream.value(request)).doOnEach(logGrpc(request));
+  }
+
   Future<SSHInfo?> sshInfo(String name) {
     return doRpc(
       _client.ssh_info,
@@ -237,25 +243,45 @@ class GrpcClient {
   Future<DaemonInfoReply> daemonInfo() {
     return doRpc(_client.daemon_info, DaemonInfoRequest()).then((r) => r!);
   }
+
+  Future<ZonesStateReply?> zonesState(List<String> zones, bool available) {
+    return doRpc(
+      _client.zones_state,
+      ZonesStateRequest(zones: zones, available: available),
+    );
+  }
+
+  Future<List<Zone>> zones() {
+    return doRpc(_client.zones, ZonesRequest(), log: false)
+        .then<List<Zone>>((r) => r!.zones)
+        .onError<GrpcError>(
+          (_, __) => <Zone>[],
+          test: (e) =>
+              e.code == StatusCode.failedPrecondition &&
+              (e.message?.contains('not supported') ?? false),
+        );
+  }
 }
 
 class CustomChannelCredentials extends ChannelCredentials {
   final List<int> certificateChain;
   final List<int> certificateKey;
+  final List<int> rootCertificate;
 
   CustomChannelCredentials({
     super.authority,
     required List<int> certificate,
     required this.certificateKey,
+    required this.rootCertificate,
   })  : certificateChain = certificate,
         super.secure(
           certificates: certificate,
-          onBadCertificate: allowBadCertificates,
         );
 
   @override
   SecurityContext get securityContext {
     final ctx = super.securityContext!;
+    ctx.setTrustedCertificatesBytes(rootCertificate);
     ctx.useCertificateChainBytes(certificateChain);
     ctx.usePrivateKeyBytes(certificateKey);
     return ctx;

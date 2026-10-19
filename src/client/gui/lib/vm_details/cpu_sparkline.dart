@@ -46,14 +46,16 @@ class CpuSparkline extends ConsumerWidget {
   }
 }
 
-class CpuUsagesNotifier
-    extends AutoDisposeFamilyNotifier<Queue<double>, String> {
+class CpuUsagesNotifier extends Notifier<Queue<double>> {
+  CpuUsagesNotifier(this.arg);
+  final String arg;
+
   var lastTotal = 0;
   var lastIdle = 0;
+  var usages = Queue.of(Iterable.generate(50, (_) => 0.0));
 
   @override
-  Queue<double> build(String arg) {
-    final usages = stateOrNull ?? Queue.of(Iterable.generate(50, (_) => 0.0));
+  Queue<double> build() {
     final cpuTimes = ref
         .watch(vmInfoProvider(arg))
         .instanceInfo

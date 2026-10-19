@@ -44,13 +44,13 @@ public:
               ConsoleCreator console_creator);
     SSHClient(SSHSessionUPtr ssh_session, ConsoleCreator console_creator);
 
-    int exec(const std::vector<std::string>& args);
     int exec(const std::vector<std::vector<std::string>>& args_list);
-    void connect();
+    int connect();
 
 private:
     void handle_ssh_events();
     int exec_string(const std::string& cmd_line);
+    int get_ssh_exit_code();
 
     SSHSessionUPtr ssh_session;
     ChannelUPtr channel;

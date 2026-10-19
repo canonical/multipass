@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../extensions.dart';
 import '../ffi.dart';
+import '../l10n/app_localizations.dart';
 import '../notifications.dart';
 import '../providers.dart';
 import '../tooltip.dart';
@@ -39,19 +40,22 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final cpus = ref.watch(cpusProvider).whenOrNull(data: int.tryParse);
     final ram = ref.watch(ramProvider).whenOrNull(data: memoryInBytes);
     final disk = ref.watch(diskProvider).whenOrNull(data: memoryInBytes);
-    final stopped = ref.watch(vmInfoProvider(widget.name).select((info) {
-      return info.instanceStatus.status == Status.STOPPED;
-    }));
+    final stopped = ref.watch(
+      vmInfoProvider(widget.name).select((info) {
+        return info.instanceStatus.status == Status.STOPPED;
+      }),
+    );
 
     if (!stopped) editing = false;
 
     final cpusResource = !editing
         ? Text(
-            'CPUs ${cpus?.toString() ?? '…'}',
-            style: TextStyle(fontSize: 16),
+            l10n.resourcesCpusDisplay(cpus?.toString() ?? '…'),
+            style: const TextStyle(fontSize: 16),
           )
         : CpusSlider(
             key: Key('cpus-$cpus'),
@@ -59,14 +63,16 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             onSaved: (value) {
               if (value == null || value == cpus) return;
               ref.read(cpusProvider.notifier).set('$value').onError(
-                  ref.notifyError((error) => 'Failed to set CPUs : $error'));
+                    ref.notifyError(
+                        (error) => l10n.resourcesFailedCpus('$error')),
+                  );
             },
           );
 
     final ramResource = !editing
         ? Text(
-            'Memory ${ram.map(humanReadableMemory) ?? '…'}',
-            style: TextStyle(fontSize: 16),
+            l10n.resourcesMemoryDisplay(ram.map(humanReadableMemory) ?? '…'),
+            style: const TextStyle(fontSize: 16),
           )
         : RamSlider(
             key: Key('ram-$ram'),
@@ -74,14 +80,15 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             onSaved: (value) {
               if (value == null || value == ram) return;
               ref.read(ramProvider.notifier).set('${value}B').onError(
-                  ref.notifyError((e) => 'Failed to set memory size: $e'));
+                    ref.notifyError((e) => l10n.resourcesFailedMemory('$e')),
+                  );
             },
           );
 
     final diskResource = !editing
         ? Text(
-            'Disk ${disk.map(humanReadableMemory) ?? '…'}',
-            style: TextStyle(fontSize: 16),
+            l10n.resourcesDiskDisplay(disk.map(humanReadableMemory) ?? '…'),
+            style: const TextStyle(fontSize: 16),
           )
         : DiskSlider(
             key: Key('disk-$disk'),
@@ -90,7 +97,8 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             onSaved: (value) {
               if (value == null || value == disk) return;
               ref.read(diskProvider.notifier).set('${value}B').onError(
-                  ref.notifyError((e) => 'Failed to set disk size: $e'));
+                    ref.notifyError((e) => l10n.resourcesFailedDisk('$e')),
+                  );
             },
           );
 
@@ -99,23 +107,24 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
         if (!formKey.currentState!.validate()) return;
         formKey.currentState!.save();
         setState(() => editing = false);
-        ref.read(activeEditPageProvider(widget.name).notifier).state = null;
+        ref.read(activeEditPageProvider(widget.name).notifier).set(null);
       },
-      child: const Text('Save changes'),
+      child: Text(l10n.resourcesSaveChanges),
     );
 
     void configure() {
       setState(() => editing = true);
-      ref.read(activeEditPageProvider(widget.name).notifier).state =
-          ActiveEditPage.resources;
+      ref
+          .read(activeEditPageProvider(widget.name).notifier)
+          .set(ActiveEditPage.resources);
     }
 
     final configureButton = Tooltip(
       visible: !stopped,
-      message: 'Stop instance to configure',
+      message: l10n.vmDetailsStopToConfigure,
       child: OutlinedButton(
         onPressed: stopped ? configure : null,
-        child: const Text('Configure'),
+        child: Text(l10n.commonConfigure),
       ),
     );
 
@@ -123,9 +132,9 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
       onPressed: () {
         formKey.currentState?.reset();
         setState(() => editing = false);
-        ref.read(activeEditPageProvider(widget.name).notifier).state = null;
+        ref.read(activeEditPageProvider(widget.name).notifier).set(null);
       },
-      child: const Text('Cancel'),
+      child: Text(l10n.commonCancel),
     );
 
     return Form(
@@ -135,27 +144,30 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            const SizedBox(
-              height: 50,
-              child: Text('Resources', style: TextStyle(fontSize: 24)),
-            ),
-            const Spacer(),
-            editing ? cancelButton : configureButton,
-          ]),
+          Row(
+            children: [
+              SizedBox(
+                height: 50,
+                child: Text(l10n.resourcesTitle,
+                    style: const TextStyle(fontSize: 24)),
+              ),
+              const Spacer(),
+              editing ? cancelButton : configureButton,
+            ],
+          ),
           const SizedBox(height: 10),
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: cpusResource),
-            const SizedBox(width: 86),
-            Expanded(child: ramResource),
-            const SizedBox(width: 86),
-            Expanded(child: diskResource),
-          ]),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: cpusResource),
+              const SizedBox(width: 86),
+              Expanded(child: ramResource),
+              const SizedBox(width: 86),
+              Expanded(child: diskResource),
+            ],
+          ),
           if (editing)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: saveButton,
-            ),
+            Padding(padding: const EdgeInsets.only(top: 16), child: saveButton),
         ],
       ),
     );

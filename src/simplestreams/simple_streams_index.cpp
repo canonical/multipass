@@ -18,47 +18,27 @@
  *
  */
 
+#include <multipass/json_utils.h>
 #include <multipass/simple_streams_index.h>
-
-#include <QJsonDocument>
-#include <QJsonObject>
 
 #include <stdexcept>
 
 namespace mp = multipass;
 
-namespace
+mp::SimpleStreamsIndex mp::SimpleStreamsIndex::get_image_downloads(std::string_view json)
 {
-QJsonObject parse_index(const QByteArray& json)
-{
-    QJsonParseError parse_error;
-    auto doc = QJsonDocument::fromJson(json, &parse_error);
-    if (doc.isNull())
-        throw std::runtime_error(parse_error.errorString().toStdString());
-
-    if (!doc.isObject())
+    auto doc = boost::json::parse(json);
+    if (!doc.is_object())
         throw std::runtime_error("invalid index object");
 
-    auto index = doc.object()["index"].toObject();
-    if (index.isEmpty())
-        throw std::runtime_error("No index found");
+    auto index = doc.at("index").as_object();
 
-    return index;
-}
-} // namespace
-
-mp::SimpleStreamsIndex mp::SimpleStreamsIndex::fromJson(const QByteArray& json)
-{
-    auto index = parse_index(json);
-
-    for (QJsonValueRef value : index)
+    for (auto&& [_, value] : index)
     {
-        auto entry = value.toObject();
-        if (entry["datatype"] == "image-downloads")
+        if (lookup_or<std::string>(value, "datatype", "") == "image-downloads")
         {
-            auto path_entry = entry["path"];
-            auto date_entry = entry["updated"];
-            return {path_entry.toString(), date_entry.toString()};
+            return {lookup_or<std::string>(value, "path", ""),
+                    lookup_or<std::string>(value, "updated", "")};
         }
     }
 

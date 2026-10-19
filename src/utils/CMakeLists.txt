@@ -14,27 +14,36 @@
 
 function(add_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
+    alias_definition.cpp
     file_ops.cpp
     memory_size.cpp
     permission_utils.cpp
     json_utils.cpp
+    qemu_img_utils.cpp
     snap_utils.cpp
     standard_paths.cpp
     timer.cpp
     utils.cpp
+    vm_image_info.cpp
     vm_image_vault_utils.cpp
     vm_mount.cpp
-    yaml_node_utils.cpp)
+    vm_specs.cpp
+    yaml_node_utils.cpp
+    semver_compare.cpp)
 
   target_link_libraries(${TARGET_NAME}
+    PUBLIC
     cert
     fmt::fmt-header-only
     logger
     ssh_common
     ssh
-    yaml
+    yaml-cpp::yaml-cpp
     xz_image_decoder
-    Qt6::Core)
+    Qt6::Core
+    Boost::json
+    PRIVATE semver::semver
+    )
 
   target_include_directories(${TARGET_NAME} PRIVATE
     ${OPENSSL_INCLUDE_DIR})
@@ -46,9 +55,3 @@ add_target(utils)
 if(MULTIPASS_ENABLE_TESTS)
   add_target(utils_test)
 endif()
-
-add_library(poco_utils STATIC
-  poco_zip_utils.cpp)
-
-target_link_libraries(poco_utils
-  Poco::Zip)

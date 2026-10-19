@@ -16,7 +16,6 @@
 
 #include "animated_spinner.h"
 
-#include <iomanip>
 #include <iostream>
 
 namespace mp = multipass;
@@ -62,14 +61,14 @@ void mp::AnimatedSpinner::start()
 void mp::AnimatedSpinner::stop()
 {
     std::unique_lock<decltype(mutex)> lock{mutex};
-    if (running)
-    {
-        running = false;
-        cv.notify_one();
-        lock.unlock();
-        if (t.joinable())
-            t.join();
-    }
+    if (!running)
+        return;
+
+    running = false;
+    cv.notify_one();
+    lock.unlock();
+    if (t.joinable())
+        t.join();
     clear_line(cout);
 }
 

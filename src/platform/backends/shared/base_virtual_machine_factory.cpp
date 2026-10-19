@@ -20,8 +20,10 @@
 
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
+#include <multipass/memory_size.h>
 #include <multipass/network_interface.h>
 #include <multipass/network_interface_info.h>
+#include <multipass/utils/qemu_img_utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_specs.h>
 #include <multipass/yaml_node_utils.h>
@@ -30,13 +32,15 @@ namespace mp = multipass;
 namespace mpu = multipass::utils;
 
 const mp::Path mp::BaseVirtualMachineFactory::instances_subdir = "vault/instances";
+const std::unordered_set<std::string> cloneable_files{".iso", ".img", ".qcow2", ".raw", ".asif"};
 
-mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir)
-    : instances_dir{instances_dir} {};
+mp::BaseVirtualMachineFactory::BaseVirtualMachineFactory(const Path& instances_dir,
+                                                         AvailabilityZoneManager& az_manager)
+    : az_manager{az_manager}, instances_dir{instances_dir} {};
 
 void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc)
 {
-    auto instance_dir{mpu::base_dir(vm_desc.image.image_path)};
+    auto instance_dir{mpu::base_dir(MP_PLATFORM.path_to_qstr(vm_desc.image.image_path))};
     const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
 
     if (!QFile::exists(cloud_init_iso))
@@ -48,7 +52,7 @@ void mp::BaseVirtualMachineFactory::configure(VirtualMachineDescription& vm_desc
         if (!vm_desc.network_data_config.IsNull())
             iso.add_file("network-config", mpu::emit_cloud_config(vm_desc.network_data_config));
 
-        iso.write_to(cloud_init_iso);
+        iso.write_to(cloud_init_iso.toStdString());
     }
 
     vm_desc.cloud_init_iso = cloud_init_iso;
@@ -63,6 +67,12 @@ void mp::BaseVirtualMachineFactory::prepare_networking(
         for (auto& net : extra_interfaces)
             prepare_interface(net, host_nets);
     }
+}
+
+mp::MemorySize mp::BaseVirtualMachineFactory::virtual_size_for(
+    const std::filesystem::path& image_path) const
+{
+    return mp::MemorySize(mp::backend::get_image_info(image_path, "virtual-size").toStdString());
 }
 
 void mp::BaseVirtualMachineFactory::prepare_interface(NetworkInterface& net,
@@ -114,6 +124,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
                                                dest_spec.mem_size,
                                                dest_spec.disk_space,
                                                dest_name,
+                                               dest_spec.zone,
                                                dest_spec.default_mac_address,
                                                dest_spec.extra_interfaces,
                                                dest_spec.ssh_username,
@@ -124,10 +135,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
                                                {},
                                                {}};
 
-    mp::VirtualMachine::UPtr cloned_instance =
-        clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
-
-    return cloned_instance;
+    return clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
 }
 
 void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(
@@ -139,10 +147,9 @@ void mp::BaseVirtualMachineFactory::copy_instance_dir_with_essential_files(
     fs::create_directory(dest_instance_dir_path);
     for (const auto& entry : fs::directory_iterator(source_instance_dir_path))
     {
-        // snapshot files are intentionally skipped; .iso file is included for all, .img file here
-        // is not relevant for non-qemu backends.
-        if (entry.path().extension().string() == ".iso" ||
-            entry.path().extension().string() == ".img")
+        const auto ext = entry.path().extension().string();
+        // snapshot files are intentionally skipped; .raw is skipped when an .asif image exists
+        if (cloneable_files.contains(ext))
         {
             const fs::path dest_file_path = dest_instance_dir_path / entry.path().filename();
             fs::copy(entry.path(), dest_file_path, fs::copy_options::update_existing);

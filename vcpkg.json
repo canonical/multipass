@@ -1,14 +1,69 @@
 {
-  "builtin-baseline": "ce613c41372b23b1f51333815feb3edd87ef8a8b",
-  "dependencies": [
-    "poco",
-    "grpc",
-    "fmt"
-  ],
-  "overrides": [
-    {
-      "name": "fmt",
-      "version": "11.0.2"
+    "builtin-baseline": "d015e31e90838a4c9dfa3eed45979bc70d9357fc",
+    "dependencies": [
+        "boost-algorithm",
+        "boost-json",
+        "boost-uuid",
+        "grpc",
+        "fmt",
+        "scope-guard",
+        "yaml-cpp",
+        "neargye-semver",
+        "openssl",
+        "xz-embedded",
+        {
+            "name": "qtbase",
+            "default-features": false,
+            "features": [
+                "network",
+                "concurrent",
+                "openssl",
+                "dbus"
+            ]
+        },
+        {
+            "name": "libssh",
+            "default-features": false,
+            "features": [
+                "server"
+            ]
+        },
+        "premock",
+        "out-ptr"
+    ],
+    "overrides": [
+        {
+            "name": "fmt",
+            "version": "11.2.0"
+        },
+        {
+            "name": "libssh",
+            "version": "0.11.3"
+        }
+    ],
+    "features": {
+        "tests": {
+            "description": "Enable test dependencies",
+            "dependencies": [
+                "gtest"
+            ]
+        },
+        "qemu": {
+            "description": "Enable vendored QEMU",
+            "$comment": "Windows only needs qemu-img, others need the qemu system emulator too.",
+            "dependencies": [
+                {
+                    "name": "qemu",
+                    "platform": "windows"
+                },
+                {
+                    "name": "qemu",
+                    "features": [
+                        "system"
+                    ],
+                    "platform": "osx | linux"
+                }
+            ]
+        }
     }
-  ]
 }

@@ -10,30 +10,61 @@ import 'vm_details_resources.dart';
 
 enum VmDetailsLocation { shells, details }
 
-final vmScreenLocationProvider =
-    StateProvider.autoDispose.family<VmDetailsLocation, String>((_, __) {
-  return VmDetailsLocation.shells;
-});
+final vmScreenLocationProvider = NotifierProvider.autoDispose
+    .family<VmScreenLocationNotifier, VmDetailsLocation, String>(
+  VmScreenLocationNotifier.new,
+);
+
+class VmScreenLocationNotifier extends Notifier<VmDetailsLocation> {
+  VmScreenLocationNotifier(this.arg);
+  final String arg;
+
+  @override
+  VmDetailsLocation build() {
+    return VmDetailsLocation.shells;
+  }
+
+  void set(VmDetailsLocation location) {
+    state = location;
+  }
+}
 
 enum ActiveEditPage { resources, bridge, mounts }
 
-final activeEditPageProvider =
-    StateProvider.autoDispose.family<ActiveEditPage?, String>((ref, name) {
-  ref.listen(
-    vmInfoProvider(name).select((info) => info.instanceStatus.status),
-    (_, status) {
-      final isBridgeOrResources = [
-        ActiveEditPage.bridge,
-        ActiveEditPage.resources,
-      ].contains(ref.controller.state);
+final activeEditPageProvider = NotifierProvider.autoDispose
+    .family<ActiveEditPageNotifier, ActiveEditPage?, String>(
+  ActiveEditPageNotifier.new,
+);
 
-      if (isBridgeOrResources && status != Status.STOPPED) {
-        ref.invalidateSelf();
-      }
-    },
-  );
-  return null;
-});
+class ActiveEditPageNotifier extends Notifier<ActiveEditPage?> {
+  ActiveEditPageNotifier(this.name);
+  final String name;
+
+  @override
+  ActiveEditPage? build() {
+    ref.listen(
+      vmInfoProvider(name).select((info) => info.instanceStatus.status),
+      (_, status) {
+        final isBridgeOrResources = [
+          ActiveEditPage.bridge,
+          ActiveEditPage.resources,
+        ].contains(state);
+
+        if (isBridgeOrResources && status != Status.STOPPED) {
+          ref.invalidateSelf();
+        } else if (state == ActiveEditPage.mounts &&
+            status == Status.UNAVAILABLE) {
+          ref.invalidateSelf();
+        }
+      },
+    );
+    return null;
+  }
+
+  void set(ActiveEditPage? page) {
+    state = page;
+  }
+}
 
 class VmDetailsScreen extends ConsumerWidget {
   final String name;
@@ -45,22 +76,27 @@ class VmDetailsScreen extends ConsumerWidget {
     final location = ref.watch(vmScreenLocationProvider(name));
 
     return Scaffold(
-      body: Column(children: [
-        VmDetailsHeader(name),
-        Expanded(
-          child: Stack(fit: StackFit.expand, children: [
-            Visibility(
-              visible: location == VmDetailsLocation.shells,
-              maintainState: true,
-              child: TerminalTabs(name),
+      body: Column(
+        children: [
+          VmDetailsHeader(name),
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Visibility(
+                  visible: location == VmDetailsLocation.shells,
+                  maintainState: true,
+                  child: TerminalTabs(name),
+                ),
+                Visibility(
+                  visible: location == VmDetailsLocation.details,
+                  child: VmDetails(name),
+                ),
+              ],
             ),
-            Visibility(
-              visible: location == VmDetailsLocation.details,
-              child: VmDetails(name),
-            ),
-          ]),
-        ),
-      ]),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -77,31 +113,34 @@ class VmDetails extends ConsumerWidget {
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          DisableSection(
-            active: activeEditPage,
-            letEnabledFor: const [],
-            child: GeneralDetails(name),
-          ),
-          const Divider(height: 60),
-          DisableSection(
-            active: activeEditPage,
-            letEnabledFor: const [ActiveEditPage.resources],
-            child: ResourcesDetails(name),
-          ),
-          const Divider(height: 60),
-          DisableSection(
-            active: activeEditPage,
-            letEnabledFor: const [ActiveEditPage.bridge],
-            child: BridgedDetails(name),
-          ),
-          const Divider(height: 60),
-          DisableSection(
-            active: activeEditPage,
-            letEnabledFor: const [ActiveEditPage.mounts],
-            child: MountDetails(name),
-          ),
-        ]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DisableSection(
+              active: activeEditPage,
+              letEnabledFor: const [],
+              child: GeneralDetails(name),
+            ),
+            const Divider(height: 60),
+            DisableSection(
+              active: activeEditPage,
+              letEnabledFor: const [ActiveEditPage.resources],
+              child: ResourcesDetails(name),
+            ),
+            const Divider(height: 60),
+            DisableSection(
+              active: activeEditPage,
+              letEnabledFor: const [ActiveEditPage.bridge],
+              child: BridgedDetails(name),
+            ),
+            const Divider(height: 60),
+            DisableSection(
+              active: activeEditPage,
+              letEnabledFor: const [ActiveEditPage.mounts],
+              child: MountDetails(name),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -124,10 +163,7 @@ class DisableSection extends StatelessWidget {
     final disabled = active != null && !letEnabledFor.contains(active);
     return IgnorePointer(
       ignoring: disabled,
-      child: Opacity(
-        opacity: disabled ? 0.5 : 1.0,
-        child: child,
-      ),
+      child: Opacity(opacity: disabled ? 0.5 : 1.0, child: child),
     );
   }
 }

@@ -31,6 +31,7 @@
 #include <cerrno>
 #include <cstring>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 namespace mp = multipass;
@@ -38,27 +39,31 @@ namespace mpl = mp::logging;
 
 namespace
 {
-constexpr auto kLogCategory = "ssl-cert-provider";
-// utility function for checking return code or raw pointer from openssl C-apis
-// TODO: constrain T to int or raw pointer once C++20 concepts is available
+constexpr auto log_category = "ssl-cert-provider";
 template <typename T>
+concept pointer_like = requires(T t) {
+    *t;
+    t == nullptr;
+};
+
+// utility function for checking return code or raw pointer from openssl C-apis
+template <pointer_like T>
+void openssl_check(T&& result, const std::string& errorMessage)
+    // Require an lvalue reference to keep callers from passing in a temporary.
+    requires std::is_lvalue_reference_v<T>
+{
+    if (result == nullptr)
+    {
+        throw std::runtime_error(errorMessage);
+    }
+}
+
+template <std::integral T>
 void openssl_check(T result, const std::string& errorMessage)
 {
-    // TODO: expand std::is_pointer_v<T> check to cover all smart pointers as well
-    if constexpr (std::is_pointer_v<T>)
+    if (result <= 0)
     {
-        if (result == nullptr)
-        {
-            throw std::runtime_error(errorMessage);
-        }
-    }
-    else
-    {
-        if (result <= 0)
-        {
-            throw std::runtime_error(
-                fmt::format("{}, with the error code {}", errorMessage, result));
-        }
+        throw std::runtime_error(fmt::format("{}, with the error code {}", errorMessage, result));
     }
 }
 
@@ -84,7 +89,7 @@ private:
         std::filesystem::create_directories(file_path_std.parent_path());
         // make sure the parent directory exist
 
-        const auto raw_fp = fopen(file_path_std.u8string().c_str(), "wb");
+        const auto raw_fp = fopen(file_path_std.string().c_str(), "wb");
         openssl_check(
             raw_fp,
             fmt::format("failed to open file '{}': {}({})", file_path, strerror(errno), errno));
@@ -144,7 +149,7 @@ private:
             EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr),
             EVP_PKEY_CTX_free);
 
-        openssl_check(ctx.get(), "Failed to create EVP_PKEY_CTX");
+        openssl_check(ctx, "Failed to create EVP_PKEY_CTX");
         openssl_check(EVP_PKEY_keygen_init(ctx.get()), "Failed to initialize key generation");
 
         // Set EC curve (P-256)
@@ -187,32 +192,82 @@ void set_random_serial_number(X509* cert)
     std::unique_ptr<BIGNUM, decltype(&BN_free)> bn(
         BN_bin2bn(serial_bytes.data(), serial_bytes.size(), nullptr),
         BN_free);
-    openssl_check(bn.get(), "Failed to convert serial bytes to BIGNUM\n");
+    openssl_check(bn, "Failed to convert serial bytes to BIGNUM\n");
     assert(!BN_is_negative(bn.get()));
 
     // Convert BIGNUM to ASN1_INTEGER and set it as the certificate serial number
     // ASN1 is a standard binary format for encoding data like serial numbers in X.509 certificates
-    ASN1_INTEGER* serial = BN_to_ASN1_INTEGER(bn.get(), nullptr);
+    std::unique_ptr<ASN1_INTEGER, decltype(&ASN1_INTEGER_free)> serial{
+        BN_to_ASN1_INTEGER(bn.get(), nullptr),
+        ASN1_INTEGER_free};
     openssl_check(serial, "Failed to convert serial bytes to BIGNUM\n");
 
     // Set the serial number in the certificate
-    openssl_check(X509_set_serialNumber(cert, serial), "Failed to set serial number!\n");
+    openssl_check(X509_set_serialNumber(cert, serial.get()), "Failed to set serial number!\n");
 }
 
 /**
  * Check whether this certificate is the issuer (signer) of the given certificate.
  *
+ * @param [in] issuer The issuing certificate
  * @param [in] signed_cert The certificate to check
- * @return True if this certificate signed @p signed_cert; false otherwise.
+ * @return True if @p issuer signed @p signed_cert; false otherwise.
  */
 bool is_issuer_of(X509& issuer, X509& signed_cert)
 {
     // Get the public key of this certificate (issuer)
     std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> pubkey{X509_get_pubkey(&issuer),
                                                                &EVP_PKEY_free};
-    openssl_check(pubkey.get(), "Failed to get public key from certificate");
+    openssl_check(pubkey, "Failed to get public key from certificate");
     // Verify that signed_cert is issued by this certificate.
     return X509_verify(&signed_cert, pubkey.get()) == 1;
+}
+
+/**
+ * Check whether this certificate is still valid.
+ *
+ * @param [in] cert The certificate to check
+ * @return True if this certificate's validity period started before and ends after today, false
+ * otherwise.
+ */
+bool is_expired(const X509& cert)
+{
+    const ASN1_TIME* not_before = X509_get0_notBefore(&cert);
+    const ASN1_TIME* not_after = X509_get0_notAfter(&cert);
+
+    int nb_days = 0, nb_secs = 0;
+    int na_days = 0, na_secs = 0;
+
+    return !ASN1_TIME_diff(&nb_days, &nb_secs, not_before, nullptr) ||
+           !ASN1_TIME_diff(&na_days, &na_secs, nullptr, not_after) ||
+           // Not yet valid
+           (nb_days < 0 || (nb_days == 0 && nb_secs < 0)) ||
+           // Past expiration
+           (na_days < 0 || (na_days == 0 && na_secs <= 0));
+}
+
+bool cert_has_eku_nid(const X509& cert, int eku_nid)
+{
+    int crit = 0;
+    STACK_OF(ASN1_OBJECT)* eku = reinterpret_cast<STACK_OF(ASN1_OBJECT)*>(
+        X509_get_ext_d2i(&cert, NID_ext_key_usage, &crit, nullptr));
+
+    if (!eku || crit)
+        return false;
+
+    bool found = false;
+    for (int i = 0; i < sk_ASN1_OBJECT_num(eku); ++i)
+    {
+        ASN1_OBJECT* obj = sk_ASN1_OBJECT_value(eku, i);
+        if (OBJ_obj2nid(obj) == eku_nid)
+        {
+            found = true;
+            break;
+        }
+    }
+
+    sk_ASN1_OBJECT_pop_free(eku, ASN1_OBJECT_free);
+    return found;
 }
 
 class X509Cert
@@ -233,49 +288,53 @@ public:
     // generate root, client or signed server certificate, the third one requires the last three
     // arguments populated
     {
-        openssl_check(cert.get(), "Failed to allocate x509 cert structure");
+        openssl_check(cert, "Failed to allocate x509 cert structure");
 
         X509_set_version(cert.get(), 2); // 0 index based, 2 amounts to 3
 
         set_random_serial_number(cert.get());
         X509_gmtime_adj(X509_get_notBefore(cert.get()), 0); // Start time: now
 
-        constexpr std::chrono::seconds one_year = std::chrono::hours{24} * 365;
+        constexpr std::chrono::seconds one_day = std::chrono::hours{24};
+        constexpr std::chrono::seconds one_year = one_day * 365;
         constexpr std::chrono::seconds ten_years = one_year * 10;
-        const auto valid_duration = cert_type == CertType::Root ? ten_years : one_year;
+
+        // Apple requires TLS server certificates to have a validity period of 825 days or less
+        const auto valid_duration = cert_type == CertType::Root     ? ten_years
+                                    : cert_type == CertType::Server ? one_day * 825
+                                                                    : one_year;
         X509_gmtime_adj(X509_get_notAfter(cert.get()), valid_duration.count());
 
-        constexpr int APPEND_ENTRY{-1};
-        constexpr int ADD_RDN{0};
+        constexpr int append_entry{-1};
+        constexpr int add_rdn{0};
 
         const auto country = as_vector("US");
         const auto org = as_vector("Canonical");
-        const auto cn =
-            as_vector(cert_type == CertType::Root     ? "Multipass Root CA"
-                      : cert_type == CertType::Client ? mp::utils::make_uuid().toStdString()
-                                                      : server_name);
+        const auto cn = as_vector(cert_type == CertType::Root     ? "Multipass Root CA"
+                                  : cert_type == CertType::Client ? mp::utils::make_uuid()
+                                                                  : server_name);
         const auto subject_name = X509_get_subject_name(cert.get());
         X509_NAME_add_entry_by_txt(subject_name,
                                    "C",
                                    MBSTRING_ASC,
                                    country.data(),
                                    country.size(),
-                                   APPEND_ENTRY,
-                                   ADD_RDN);
+                                   append_entry,
+                                   add_rdn);
         X509_NAME_add_entry_by_txt(subject_name,
                                    "O",
                                    MBSTRING_ASC,
                                    org.data(),
                                    org.size(),
-                                   APPEND_ENTRY,
-                                   ADD_RDN);
+                                   append_entry,
+                                   add_rdn);
         X509_NAME_add_entry_by_txt(subject_name,
                                    "CN",
                                    MBSTRING_ASC,
                                    cn.data(),
                                    cn.size(),
-                                   APPEND_ENTRY,
-                                   ADD_RDN);
+                                   append_entry,
+                                   add_rdn);
 
         const auto issuer_name = cert_type == CertType::Server
                                      ? X509_get_subject_name(root_certificate.value().cert.get())
@@ -314,6 +373,15 @@ public:
             (std::string("critical,CA:") + (cert_type == CertType::Root ? "TRUE" : "FALSE"))
                 .c_str());
 
+        if (cert_type == CertType::Server)
+        {
+            add_extension(ctx, NID_ext_key_usage, "serverAuth");
+        }
+        else if (cert_type == CertType::Client)
+        {
+            add_extension(ctx, NID_ext_key_usage, "clientAuth");
+        }
+
         const auto& signing_key = cert_type == CertType::Server ? *root_certificate_key : key;
 
         openssl_check(X509_sign(cert.get(), signing_key.get(), EVP_sha256()),
@@ -348,7 +416,7 @@ private:
             X509V3_EXT_conf_nid(nullptr, &ctx, nid, value),
             X509_EXTENSION_free);
 
-        openssl_check(ext.get(), "Failed to create X509 extension");
+        openssl_check(ext, "Failed to create X509 extension");
         openssl_check(X509_add_ext(cert.get(), ext.get(), -1), "Failed to add X509 extension");
     }
 
@@ -385,19 +453,38 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
 
             if (root_cert && cert)
             {
-                mpl::debug(kLogCategory,
+                mpl::debug(log_category,
                            "Certificates for the gRPC server (root: {}, subordinate: {}) are valid "
                            "X.509 files",
                            root_cert_path,
                            cert_path.toStdString());
 
-                // FIXME: Also check the validity period of the certificates to decide if they need
-                // to be re-generated
-
-                // Validate root cert is the issuer(signer) of the subordinate certificate
-                if (is_issuer_of(*root_cert.get(), *cert.get()))
+                // TODO: Remove in Multipass 1.18
+                if (!cert_has_eku_nid(*cert.get(), NID_server_auth))
                 {
-                    mpl::info(kLogCategory, "Re-using existing certificates for the gRPC server");
+                    mpl::warn(log_category,
+                              "Existing gRPC server certificate (`{}`) does not contain the "
+                              "correct extensions",
+                              cert_path.toStdString());
+                }
+                else if (!is_issuer_of(*root_cert.get(), *cert.get()))
+                {
+                    mpl::warn(log_category,
+                              "Existing root certificate (`{}`) is not the signer of the gRPC "
+                              "server certificate (`{}`)",
+                              root_cert_path,
+                              cert_path.toStdString());
+                }
+                else if (is_expired(*cert.get()))
+                {
+                    mpl::warn(
+                        log_category,
+                        "Existing gRPC server certificate (`{}`) validity period is not valid",
+                        cert_path.toStdString());
+                }
+                else
+                {
+                    mpl::info(log_category, "Re-using existing certificates for the gRPC server");
 
                     // Unlike other daemon files, the root certificate needs to be accessible by
                     // everyone
@@ -408,23 +495,17 @@ mp::SSLCertProvider::KeyCertificatePair make_cert_key_pair(const QDir& cert_dir,
                     return {mp::utils::contents_of(cert_path),
                             mp::utils::contents_of(priv_key_path)};
                 }
-
-                mpl::warn(kLogCategory,
-                          "Existing root certificate (`{}`) is not the signer of the gRPC "
-                          "server certificate (`{}`)",
-                          root_cert_path,
-                          cert_path.toStdString());
             }
             else
             {
-                mpl::warn(kLogCategory,
+                mpl::warn(log_category,
                           "Could not load either of the root (`{}`) or subordinate (`{}`) "
                           "certificates for the gRPC server",
                           root_cert_path,
                           cert_path.toStdString());
             }
         }
-        mpl::info(kLogCategory, "Regenerating certificates for the gRPC server");
+        mpl::info(log_category, "Regenerating certificates for the gRPC server");
 
         const auto priv_root_key_path = cert_dir.filePath(prefix + "_root_key.pem");
 

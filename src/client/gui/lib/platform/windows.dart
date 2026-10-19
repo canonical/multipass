@@ -1,7 +1,5 @@
-import 'dart:ffi';
 import 'dart:io';
 
-import 'package:ffi/ffi.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:win32/win32.dart';
@@ -18,6 +16,7 @@ class WindowsPlatform extends MpPlatform {
   Map<String, String> get drivers => const {
         'hyperv': 'Hyper-V',
         'virtualbox': 'VirtualBox',
+        'hcs': 'Host Compute System (HCS)'
       };
 
   @override
@@ -38,7 +37,9 @@ class WindowsPlatform extends MpPlatform {
         SingleActivator(LogicalKeyboardKey.keyV, control: true, shift: true):
             PasteTextIntent(SelectionChangedCause.keyboard),
         SingleActivator(LogicalKeyboardKey.insert, shift: true):
-            PasteTextIntent(SelectionChangedCause.keyboard),
+            PasteTextIntent(
+          SelectionChangedCause.keyboard,
+        ),
         SingleActivator(LogicalKeyboardKey.equal, control: true):
             IncreaseTerminalFontIntent(),
         SingleActivator(LogicalKeyboardKey.equal, control: true, shift: true):
@@ -69,7 +70,7 @@ class WindowsPlatform extends MpPlatform {
 
 class WindowsAutostartNotifier extends AutostartNotifier {
   WindowsAutostartNotifier() {
-    CoInitializeEx(nullptr, 2);
+    CoInitializeEx(COINIT_APARTMENTTHREADED);
   }
 
   final link = File(
@@ -89,16 +90,19 @@ class WindowsAutostartNotifier extends AutostartNotifier {
   }
 
   void _createShortcut(String path, String linkPath) {
-    final shellLink = ShellLink.createInstance();
-    final pathUtf16 = path.toNativeUtf16();
-    final linkPathUtf16 = linkPath.toNativeUtf16();
+    final shellLink = createInstance<IShellLink>(ShellLink);
+    final persistFile = IPersistFile.from(shellLink);
+    final pathPcwstr = path.toPcwstr();
+    final linkPathPcwstr = linkPath.toPcwstr();
 
     try {
-      shellLink.setPath(pathUtf16);
-      IPersistFile.from(shellLink).save(linkPathUtf16, TRUE);
+      shellLink.setPath(pathPcwstr);
+      persistFile.save(linkPathPcwstr, true);
     } finally {
-      free(pathUtf16);
-      free(linkPathUtf16);
+      free(pathPcwstr);
+      free(linkPathPcwstr);
+      persistFile.release();
+      shellLink.release();
     }
   }
 }

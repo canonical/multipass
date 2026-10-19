@@ -17,7 +17,11 @@
 
 #include <multipass/ip_address.h>
 
+#include <ranges>
 #include <sstream>
+#include <stdexcept>
+
+#include <fmt/format.h>
 
 namespace mp = multipass;
 
@@ -28,28 +32,22 @@ uint8_t as_octet(uint32_t value)
     return static_cast<uint8_t>(value);
 }
 
-void check_range(int value)
+bool is_valid_octet(int value)
 {
-    if (value < 0 || value > 255)
-        throw std::invalid_argument("invalid IP octet");
+    return value >= 0 && value < 256;
 }
 
 std::array<uint8_t, 4> parse(const std::string& ip)
 {
-    char ch;
-    int a = -1;
-    int b = -1;
-    int c = -1;
-    int d = -1;
-    std::stringstream s(ip);
-    s >> a >> ch >> b >> ch >> c >> ch >> d;
+    // FIXME: Use Boost.ASIO?
+    std::array octets = {(int)-1, -1, -1, -1};
 
-    check_range(a);
-    check_range(b);
-    check_range(c);
-    check_range(d);
+    if (std::sscanf(ip.c_str(), "%d.%d.%d.%d", &octets[0], &octets[1], &octets[2], &octets[3]) !=
+            4 ||
+        !std::ranges::all_of(octets, is_valid_octet))
+        throw std::invalid_argument(fmt::format("invalid IP address {}", ip));
 
-    return {{as_octet(a), as_octet(b), as_octet(c), as_octet(d)}};
+    return {{as_octet(octets[0]), as_octet(octets[1]), as_octet(octets[2]), as_octet(octets[3])}};
 }
 
 std::array<uint8_t, 4> to_octets(uint32_t value)
@@ -63,7 +61,7 @@ mp::IPAddress::IPAddress(std::array<uint8_t, 4> octets) : octets{octets}
 {
 }
 
-mp::IPAddress::IPAddress(const std::string& ip) : IPAddress(parse(ip))
+mp::IPAddress::IPAddress(const std::string& ip_string) : IPAddress(parse(ip_string))
 {
 }
 
@@ -88,34 +86,10 @@ uint32_t mp::IPAddress::as_uint32() const
     return value;
 }
 
-bool mp::IPAddress::operator==(const IPAddress& other) const
+// uint8_t is not required to support <=> by the standard. Appease Apple clang.
+std::strong_ordering mp::IPAddress::operator<=>(const IPAddress& other) const
 {
-    return octets == other.octets;
-}
-
-bool mp::IPAddress::operator!=(const IPAddress& other) const
-{
-    return octets != other.octets;
-}
-
-bool mp::IPAddress::operator<(const IPAddress& other) const
-{
-    return as_uint32() < other.as_uint32();
-}
-
-bool mp::IPAddress::operator<=(const IPAddress& other) const
-{
-    return as_uint32() <= other.as_uint32();
-}
-
-bool mp::IPAddress::operator>(const IPAddress& other) const
-{
-    return as_uint32() > other.as_uint32();
-}
-
-bool mp::IPAddress::operator>=(const IPAddress& other) const
-{
-    return as_uint32() >= other.as_uint32();
+    return as_uint32() <=> other.as_uint32();
 }
 
 mp::IPAddress mp::IPAddress::operator+(int value) const

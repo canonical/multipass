@@ -31,6 +31,7 @@ public:
     void remove_policy(const QByteArray& aa_policy) const;
 
     void next_exec_under_policy(const QByteArray& aa_policy_name) const;
+    static int aa_change_onexec_forksafe(const char* profile_name);
 
 private:
     const QStringList apparmor_args;

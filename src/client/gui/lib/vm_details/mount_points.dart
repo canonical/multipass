@@ -7,6 +7,7 @@ import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../ffi.dart';
+import '../l10n/app_localizations.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
 import '../tooltip.dart';
@@ -35,9 +36,11 @@ class _EditableMountPointState extends State<EditableMountPoint> {
   @override
   void initState() {
     super.initState();
-    sourceController.addListener(() => setState(() {
-          targetHint = defaultMountTarget(source: sourceController.text);
-        }));
+    sourceController.addListener(
+      () => setState(() {
+        targetHint = defaultMountTarget(source: sourceController.text);
+      }),
+    );
     sourceController.text = widget.initialSource ?? '';
   }
 
@@ -63,40 +66,44 @@ class _EditableMountPointState extends State<EditableMountPoint> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final headers = DefaultTextStyle.merge(
       style: const TextStyle(color: Colors.black),
-      child: const Row(children: [
-        Expanded(
-          child: Row(children: [
-            Text('HOST DIRECTORY'),
-            SizedBox(width: 8),
-            Tooltip(
-              message:
-                  'A directory on your local machine that will be shared with the instance',
-              child: Icon(Icons.info_outline, size: 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Text(l10n.mountHostDirLabel),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: l10n.mountHostDirTooltip,
+                  child: const Icon(Icons.info_outline, size: 20),
+                ),
+              ],
             ),
-          ]),
-        ),
-        SizedBox(width: 24),
-        Expanded(
-          child: Row(children: [
-            Text('GUEST DIRECTORY'),
-            SizedBox(width: 8),
-            Tooltip(
-              message:
-                  'A destination inside the instance for the shared directory.\n'
-                  'If the destination directory already exists, its contents will not be visible until unmounting.',
-              child: Icon(Icons.info_outline, size: 20),
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Row(
+              children: [
+                Text(l10n.mountGuestDirLabel),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: l10n.mountGuestDirTooltip,
+                  child: const Icon(Icons.info_outline, size: 20),
+                ),
+              ],
             ),
-          ]),
-        ),
-      ]),
+          ),
+        ],
+      ),
     );
 
     final sourceField = ClippingTextField(
       controller: sourceController,
       validator: (value) {
-        return value.isNullOrBlank ? 'Source cannot be empty' : null;
+        return value.isNullOrBlank ? l10n.mountSourceEmpty : null;
       },
     );
 
@@ -104,7 +111,7 @@ class _EditableMountPointState extends State<EditableMountPoint> {
       onPressed: () async {
         final chosenSource = sourceController.text;
         final source = await getDirectoryPath(
-          confirmButtonText: 'Select',
+          confirmButtonText: l10n.mountSelectButton,
           initialDirectory: await Directory(chosenSource).exists()
               ? chosenSource
               : mpPlatform.homeDirectory,
@@ -112,7 +119,7 @@ class _EditableMountPointState extends State<EditableMountPoint> {
         if (source == null) return;
         sourceController.text = source;
       },
-      child: const Text('Select'),
+      child: Text(l10n.mountSelectButton),
     );
 
     final targetField = SpecInput(
@@ -122,26 +129,34 @@ class _EditableMountPointState extends State<EditableMountPoint> {
         target ??= '';
         target = target.isEmpty ? targetHint : target;
         return widget.existingTargets.contains(target)
-            ? 'This path is used by another mount'
+            ? l10n.mountDuplicatePath
             : null;
       },
     );
 
-    return Column(children: [
-      headers,
-      const SizedBox(height: 8),
-      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: sourceField),
-            const SizedBox(width: 10),
-            SizedBox(height: 42, child: filePicker),
-          ]),
+    return Column(
+      children: [
+        headers,
+        const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: sourceField),
+                  const SizedBox(width: 10),
+                  SizedBox(height: 42, child: filePicker),
+                ],
+              ),
+            ),
+            const SizedBox(width: 24),
+            Expanded(child: targetField), // deleteButton,
+          ],
         ),
-        const SizedBox(width: 24),
-        Expanded(child: targetField), // deleteButton,
-      ]),
-    ]);
+      ],
+    );
   }
 }
 
@@ -167,32 +182,28 @@ class MountPointsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final mounts = this.mounts.toList();
 
     final headers = DefaultTextStyle.merge(
       style: const TextStyle(color: Colors.black),
-      child: const Row(children: [
-        Expanded(child: Text('HOST DIRECTORY')),
-        SizedBox(width: 24),
-        Expanded(child: Text('GUEST DIRECTORY')),
-      ]),
+      child: Row(
+        children: [
+          Expanded(child: Text(l10n.mountHostDirLabel)),
+          const SizedBox(width: 24),
+          Expanded(child: Text(l10n.mountGuestDirLabel)),
+        ],
+      ),
     );
 
-    const divider = Divider(
-      height: 15,
-      color: Colors.black38,
-    );
+    const divider = Divider(height: 15, color: Colors.black38);
 
-    return Column(children: [
-      if (mounts.isNotEmpty) ...[
-        headers,
-        divider,
+    return Column(
+      children: [
+        if (mounts.isNotEmpty) ...[headers, divider],
+        for (final mount in mounts) ...[buildEntry(mount), divider],
       ],
-      for (final mount in mounts) ...[
-        buildEntry(mount),
-        divider,
-      ],
-    ]);
+    );
   }
 
   Widget buildEntry(MountPaths mount) {
@@ -212,28 +223,32 @@ class MountPointsView extends StatelessWidget {
       style: const TextStyle(fontSize: 16),
       child: SizedBox(
         height: 30,
-        child: Row(children: [
-          Expanded(
-            child: ExtendedText(
-              mount.sourcePath,
-              maxLines: 1,
-              overflowWidget: middleOverflow,
-            ),
-          ),
-          const SizedBox(width: 24),
-          Expanded(
-            child: Row(children: [
-              Expanded(
-                child: ExtendedText(
-                  mount.targetPath,
-                  maxLines: 1,
-                  overflowWidget: middleOverflow,
-                ),
+        child: Row(
+          children: [
+            Expanded(
+              child: ExtendedText(
+                mount.sourcePath,
+                maxLines: 1,
+                overflowWidget: middleOverflow,
               ),
-              if (allowDelete) button,
-            ]),
-          ),
-        ]),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ExtendedText(
+                      mount.targetPath,
+                      maxLines: 1,
+                      overflowWidget: middleOverflow,
+                    ),
+                  ),
+                  if (allowDelete) button,
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -287,9 +302,7 @@ class _ClippingTextFieldState extends State<ClippingTextField> {
       final clippedTextFormField = FormField<String>(
         validator: (_) => widget.validator?.call(widget.controller.text),
         builder: (field) => InputDecorator(
-          decoration: InputDecoration(
-            errorText: field.errorText,
-          ),
+          decoration: InputDecoration(errorText: field.errorText),
           child: clippedText,
         ),
       );

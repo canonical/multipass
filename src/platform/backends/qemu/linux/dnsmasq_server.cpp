@@ -26,6 +26,8 @@
 
 #include <QDir>
 
+#include <algorithm>
+#include <chrono>
 #include <fstream>
 
 namespace mp = multipass;
@@ -34,55 +36,68 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto immediate_wait = 100; // period to wait for immediate dnsmasq failures, in ms
+constexpr auto log_category = "dnsmasq";
 
 auto make_dnsmasq_process(const mp::Path& data_dir,
-                          const QString& bridge_name,
-                          const std::string& subnet,
+                          const mp::BridgeSubnetList& subnets,
                           const QString& conf_file_path)
 {
-    auto process_spec =
-        std::make_unique<mp::DNSMasqProcessSpec>(data_dir, bridge_name, subnet, conf_file_path);
+    auto process_spec = std::make_unique<mp::DNSMasqProcessSpec>(data_dir, subnets, conf_file_path);
     return MP_PROCFACTORY.create_process(std::move(process_spec));
+}
+
+bool ip_in_served_subnets(const mp::BridgeSubnetList& subnets, const mp::IPAddress& ip)
+{
+    return std::ranges::any_of(subnets, [&ip](const auto& bridge_subnet) {
+        return bridge_subnet.second.contains(ip);
+    });
 }
 } // namespace
 
-mp::DNSMasqServer::DNSMasqServer(const Path& data_dir,
-                                 const QString& bridge_name,
-                                 const std::string& subnet)
+mp::DNSMasqServer::DNSMasqServer(const Path& data_dir, const BridgeSubnetList& subnets)
     : data_dir{data_dir},
-      bridge_name{bridge_name},
-      subnet{subnet},
+      subnets{subnets},
       conf_file{QDir(data_dir).absoluteFilePath("dnsmasq-XXXXXX.conf")}
 {
-    conf_file.open();
+    if (!conf_file.open())
+        throw std::runtime_error("unable to create temporary dnsmasq conf file");
     conf_file.close();
 
     QFile dnsmasq_hosts(QDir(data_dir).filePath("dnsmasq.hosts"));
     if (!dnsmasq_hosts.exists())
     {
-        dnsmasq_hosts.open(QIODevice::WriteOnly);
+        if (!dnsmasq_hosts.open(QIODevice::WriteOnly))
+            throw std::runtime_error(
+                fmt::format("unable to create file {}", dnsmasq_hosts.filesystemFileName()));
     }
 
-    dnsmasq_cmd = make_dnsmasq_process(data_dir, bridge_name, subnet, conf_file.fileName());
+    dnsmasq_cmd = make_dnsmasq_process(data_dir, subnets, conf_file.fileName());
     start_dnsmasq();
 }
 
 mp::DNSMasqServer::~DNSMasqServer()
 {
+    using namespace std::chrono_literals;
+
+    constexpr static auto terminate_timeout = 10000ms;
+    constexpr static auto kill_timeout = 5000ms;
+
     if (dnsmasq_cmd && dnsmasq_cmd->running())
     {
         QObject::disconnect(finish_connection);
 
-        mpl::log(mpl::Level::debug, "dnsmasq", "terminating");
+        mpl::debug(log_category, "terminating");
         dnsmasq_cmd->terminate();
 
-        if (!dnsmasq_cmd->wait_for_finished(1000))
+        if (!dnsmasq_cmd->wait_for_finished(terminate_timeout))
         {
-            mpl::log(mpl::Level::info, "dnsmasq", "failed to terminate nicely, killing");
-
+            mpl::info(log_category, "failed to terminate nicely, killing");
             dnsmasq_cmd->kill();
-            if (!dnsmasq_cmd->wait_for_finished(100))
-                mpl::log(mpl::Level::warning, "dnsmasq", "failed to kill");
+
+            if (!dnsmasq_cmd->wait_for_finished(kill_timeout))
+            {
+                mpl::warn(log_category, "failed to kill (timed out)");
+            }
         }
     }
 }
@@ -101,19 +116,36 @@ std::optional<mp::IPAddress> mp::DNSMasqServer::get_ip_for(const std::string& hw
     {
         const auto fields = mp::utils::split(line, delimiter);
         if (fields.size() > 2 && fields[hw_addr_idx] == hw_addr)
-            return fields[ipv4_idx];
+        {
+            try
+            {
+                const IPAddress ip{fields[ipv4_idx]};
+                // Ignore leases outside the subnets we currently serve. A version upgrade that
+                // changes the bridge layout can leave an old lease pointing at an unreachable
+                // address; skip it so we resolve the current, reachable one instead.
+                if (ip_in_served_subnets(subnets, ip))
+                    return ip;
+                // TODO: Also check if the lease is still valid
+                // TODO: Aggregate all leases for the MAC before filtering
+            }
+            catch (const std::invalid_argument& ex) // unparseable address -> skip this line
+            {
+                mpl::debug(log_category,
+                           "Could not parse `{}` as IPv4 address: {}, ignoring lease line",
+                           fields[ipv4_idx],
+                           ex.what());
+            }
+        }
     }
     return std::nullopt;
 }
 
-void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
+void mp::DNSMasqServer::release_mac(const std::string& hw_addr, const QString& bridge_name)
 {
     auto ip = get_ip_for(hw_addr);
     if (!ip)
     {
-        mpl::log(mpl::Level::warning,
-                 "dnsmasq",
-                 fmt::format("attempting to release non-existent addr: {}", hw_addr));
+        mpl::warn(log_category, "attempting to release non-existent addr: {}", hw_addr);
         return;
     }
 
@@ -121,23 +153,22 @@ void mp::DNSMasqServer::release_mac(const std::string& hw_addr)
     QObject::connect(&dhcp_release,
                      &QProcess::errorOccurred,
                      [&ip, &hw_addr](QProcess::ProcessError error) {
-                         mpl::log(mpl::Level::warning,
-                                  "dnsmasq",
-                                  fmt::format("failed to release ip addr {} with mac {}: {}",
-                                              ip.value().as_string(),
-                                              hw_addr,
-                                              utils::qenum_to_string(error)));
+                         mpl::warn(log_category,
+                                   "failed to release ip addr {} with mac {}: {}",
+                                   ip.value().as_string(),
+                                   hw_addr,
+                                   utils::qenum_to_string(error));
                      });
 
     auto log_exit_status = [&ip, &hw_addr](int exit_code, QProcess::ExitStatus exit_status) {
         if (exit_code == 0 && exit_status == QProcess::NormalExit)
             return;
 
-        auto msg = fmt::format("failed to release ip addr {} with mac {}, exit_code: {}",
-                               ip.value().as_string(),
-                               hw_addr,
-                               exit_code);
-        mpl::log(mpl::Level::warning, "dnsmasq", msg);
+        mpl::warn(log_category,
+                  "failed to release ip addr {} with mac {}, exit_code: {}",
+                  ip.value().as_string(),
+                  hw_addr,
+                  exit_code);
     };
     QObject::connect(
         &dhcp_release,
@@ -156,7 +187,7 @@ void mp::DNSMasqServer::check_dnsmasq_running()
 {
     if (!dnsmasq_cmd->running())
     {
-        mpl::log(mpl::Level::warning, "dnsmasq", "Not running");
+        mpl::warn(log_category, "Not running");
         start_dnsmasq();
     }
 }
@@ -183,11 +214,11 @@ std::string dnsmasq_failure_msg(const mp::ProcessState& state)
 
 void mp::DNSMasqServer::start_dnsmasq()
 {
-    mpl::log(mpl::Level::debug, "dnsmasq", "Starting dnsmasq");
+    mpl::debug(log_category, "Starting dnsmasq");
 
     finish_connection =
         QObject::connect(dnsmasq_cmd.get(), &mp::Process::finished, [](const ProcessState& state) {
-            mpl::log(mpl::Level::error, "dnsmasq", dnsmasq_failure_msg(state));
+            mpl::log_message(mpl::Level::error, "dnsmasq", dnsmasq_failure_msg(state));
         });
 
     dnsmasq_cmd->start();
@@ -207,8 +238,7 @@ void mp::DNSMasqServer::start_dnsmasq()
 
 mp::DNSMasqServer::UPtr mp::DNSMasqServerFactory::make_dnsmasq_server(
     const mp::Path& network_dir,
-    const QString& bridge_name,
-    const std::string& subnet) const
+    const BridgeSubnetList& subnets) const
 {
-    return std::make_unique<mp::DNSMasqServer>(network_dir, bridge_name, subnet);
+    return std::make_unique<mp::DNSMasqServer>(network_dir, subnets);
 }

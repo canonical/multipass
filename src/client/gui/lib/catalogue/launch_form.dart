@@ -1,17 +1,19 @@
 import 'dart:async';
 
 import 'package:basics/basics.dart';
-import 'package:flutter/material.dart' hide Switch, ImageInfo;
+import 'package:flutter/material.dart' hide Switch, ImageInfo, Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:protobuf/protobuf.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../ffi.dart';
+import '../l10n/app_localizations.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
 import '../sidebar.dart';
 import '../switch.dart';
+import '../tooltip.dart';
+import 'zone_dropdown.dart';
 import '../vm_details/cpus_slider.dart';
 import '../vm_details/disk_slider.dart';
 import '../vm_details/mapping_slider.dart';
@@ -19,7 +21,21 @@ import '../vm_details/mount_points.dart';
 import '../vm_details/ram_slider.dart';
 import '../vm_details/spec_input.dart';
 
-final launchingImageProvider = StateProvider<ImageInfo>((_) => ImageInfo());
+class LaunchingImageNotifier extends Notifier<ImageInfo> {
+  @override
+  ImageInfo build() {
+    return ImageInfo();
+  }
+
+  void set(ImageInfo imageInfo) {
+    state = imageInfo;
+  }
+}
+
+final launchingImageProvider =
+    NotifierProvider<LaunchingImageNotifier, ImageInfo>(
+  LaunchingImageNotifier.new,
+);
 
 final randomNameProvider = Provider.autoDispose(
   (ref) => generatePetname(ref.watch(vmNamesProvider)),
@@ -27,7 +43,7 @@ final randomNameProvider = Provider.autoDispose(
 
 String imageName(ImageInfo imageInfo) {
   final result = '${imageInfo.os} ${imageInfo.release}';
-  return imageInfo.aliasesInfo.any((a) => a.alias.contains('core'))
+  return imageInfo.aliases.any((a) => RegExp(r'\bcore\d{0,2}\b').hasMatch(a))
       ? result
       : '$result ${imageInfo.codename}';
 }
@@ -49,7 +65,45 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
   final launchRequest = LaunchRequest();
   final mountRequests = <MountRequest>[];
   var addingMount = false;
+  var selectedZoneAvailable = true; // Default to true for 'auto'
   final scrollController = ScrollController();
+
+  void updateZoneAvailability() {
+    if (!ref.read(azSupportedProvider)) {
+      launchRequest.zone = '';
+      if (!selectedZoneAvailable) {
+        setState(() => selectedZoneAvailable = true);
+      }
+      return;
+    }
+
+    final zones = ref.read(zonesProvider);
+    if (zones.isEmpty) {
+      return;
+    }
+    final hasAvailableZones = zones.any((z) => z.available);
+
+    // Check if the currently selected zone is available
+    final isCurrentZoneAvailable = launchRequest.zone.isEmpty
+        ? hasAvailableZones // Empty zone means we'll use the default
+        : zones.any((z) => z.name == launchRequest.zone && z.available);
+
+    setState(() {
+      selectedZoneAvailable = isCurrentZoneAvailable;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    updateZoneAvailability();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    updateZoneAvailability();
+  }
 
   @override
   void dispose() {
@@ -61,12 +115,43 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final imageInfo = ref.watch(launchingImageProvider);
     final randomName = ref.watch(randomNameProvider);
     final vmNames = ref.watch(vmNamesProvider);
     final deletedVms = ref.watch(deletedVmsProvider);
-    final networks = ref.watch(networksProvider);
-    final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).valueOrNull;
+    final networksAsync = ref.watch(networksProvider);
+    final networks = networksAsync.when(
+      data: (data) => data,
+      loading: () => const <String>{},
+      error: (_, __) => const <String>{},
+    );
+    final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).when(
+          data: (data) => data,
+          loading: () => null,
+          error: (_, __) => null,
+        );
+    final zones = ref.watch(zonesProvider);
+    final azSupported = ref.watch(azSupportedProvider);
+
+    // Update availability whenever zones change
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!azSupported) {
+        launchRequest.zone = '';
+        updateZoneAvailability();
+        return;
+      }
+      if (zones.isEmpty) {
+        return;
+      }
+      final hasAvailableZones = zones.any((z) => z.available);
+      if (hasAvailableZones != selectedZoneAvailable ||
+          (hasAvailableZones &&
+              !zones.any((z) => z.name == launchRequest.zone && z.available))) {
+        updateZoneAvailability();
+      }
+    });
 
     final closeButton = IconButton(
       icon: const Icon(Icons.close),
@@ -74,14 +159,31 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     );
 
     final nameInput = SpecInput(
-      label: 'Name',
+      label: l10n.launchFormNameLabel,
       autofocus: true,
-      helper: 'Names cannot be changed once an instance is created',
+      helper: l10n.launchFormNameHelper,
       hint: randomName,
-      validator: nameValidator(vmNames, deletedVms),
+      validator: nameValidator(vmNames, deletedVms, l10n),
       onSaved: (value) => launchRequest.instanceName =
           value.isNullOrBlank ? randomName : value!,
       width: 360,
+    );
+
+    final zoneDropdown = FormField<String>(
+      initialValue: '', // Start with empty to let ZoneDropdown set the default
+      onSaved: (value) => launchRequest.zone = value ?? '',
+      builder: (field) {
+        final hasAvailableZones = zones.any((z) => z.available);
+        return ZoneDropdown(
+          value: field.value!,
+          enabled: hasAvailableZones,
+          onChanged: (value) {
+            field.didChange(value);
+            launchRequest.zone = value ?? '';
+            updateZoneAvailability();
+          },
+        );
+      },
     );
 
     final chosenImageName = Text(
@@ -94,13 +196,21 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       onSaved: (value) => launchRequest.numCores = value!,
     );
 
+    // Determine minimums based on image type
+    final isCore =
+        imageInfo.aliases.any((a) => RegExp(r'\bcore\d{0,2}\b').hasMatch(a));
+    final minRam = isCore ? 512.mebi : 1024.mebi;
+    final minDisk = isCore ? 1.gibi : 5.gibi;
+
     final memorySlider = RamSlider(
       initialValue: defaultRam,
+      min: minRam,
       onSaved: (value) => launchRequest.memSize = '${value!}B',
     );
 
     final diskSlider = DiskSlider(
       initialValue: defaultDisk,
+      min: minDisk,
       onSaved: (value) => launchRequest.diskSpace = '${value!}B',
     );
 
@@ -110,16 +220,17 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       initialValue: false,
       onSaved: (value) {
         if (value!) {
-          launchRequest.networkOptions
-              .add(LaunchRequest_NetworkOptions(id: 'bridged'));
+          launchRequest.networkOptions.add(
+            LaunchRequest_NetworkOptions(id: 'bridged'),
+          );
         }
       },
       builder: (field) {
         final message = networks.isEmpty
-            ? 'No networks found.'
+            ? l10n.bridgeNoNetworks
             : validBridgedNetwork
-                ? "Connect to the bridged network.\nOnce established, you won't be able to unset the connection."
-                : 'No valid bridged network is set.\nYou can set one in the Settings page.';
+                ? l10n.launchFormBridgeConnect
+                : l10n.launchFormBridgeNoValidNetwork;
 
         return Switch(
           label: message,
@@ -132,14 +243,18 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
 
     final mountPointsView = MountPointsView(
       allowDelete: true,
-      mounts: mountRequests.map((r) => MountPaths(
-            sourcePath: r.sourcePath,
-            targetPath: r.targetPaths.first.targetPath,
-          )),
+      mounts: mountRequests.map(
+        (r) => MountPaths(
+          sourcePath: r.sourcePath,
+          targetPath: r.targetPaths.first.targetPath,
+        ),
+      ),
       onDelete: (mountPaths) => setState(() {
-        mountRequests.removeWhere((r) =>
-            r.sourcePath == mountPaths.sourcePath &&
-            r.targetPaths.first.targetPath == mountPaths.targetPath);
+        mountRequests.removeWhere(
+          (r) =>
+              r.sourcePath == mountPaths.sourcePath &&
+              r.targetPaths.first.targetPath == mountPaths.targetPath,
+        );
       }),
     );
 
@@ -154,7 +269,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           );
         });
       }),
-      child: const Text('Add mount'),
+      child: Text(l10n.mountsAddMount),
     );
 
     final saveMountButton = TextButton(
@@ -164,12 +279,12 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         if (!mountFormState.validate()) return;
         mountFormState.save();
       },
-      child: const Text('Save'),
+      child: Text(l10n.commonSave),
     );
 
     final cancelMountButton = OutlinedButton(
       onPressed: () => setState(() => addingMount = false),
-      child: const Text('Cancel'),
+      child: Text(l10n.commonCancel),
     );
 
     final editableMountPoint = EditableMountPoint(
@@ -186,59 +301,150 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
 
     final mountForm = Form(
       key: mountFormKey,
-      child: Column(children: [
-        editableMountPoint,
-        const SizedBox(height: 16),
-        Row(children: [
-          saveMountButton,
-          const SizedBox(width: 16),
-          cancelMountButton,
-        ]),
-      ]),
+      child: Column(
+        children: [
+          editableMountPoint,
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              saveMountButton,
+              const SizedBox(width: 16),
+              cancelMountButton,
+            ],
+          ),
+        ],
+      ),
     );
 
     final formBody = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: [
-          const Text('Configure instance', style: TextStyle(fontSize: 24)),
-          const Spacer(),
-          closeButton,
-        ]),
-        const SizedBox(height: 20),
-        const Text(
-          'Image',
-          style: TextStyle(fontSize: 18),
+        Row(
+          children: [
+            Text(l10n.launchFormTitle, style: const TextStyle(fontSize: 24)),
+            const Spacer(),
+            closeButton,
+          ],
         ),
+        const SizedBox(height: 20),
+        Text(l10n.launchFormImageLabel, style: const TextStyle(fontSize: 18)),
         const SizedBox(height: 4),
         chosenImageName,
         const SizedBox(height: 16),
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          nameInput,
-          const Spacer(),
-        ]),
-        const Divider(height: 60),
-        const SizedBox(
-          height: 50,
-          child: Text('Resources', style: TextStyle(fontSize: 24)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            nameInput,
+            if (azSupported) ...[
+              const SizedBox(width: 32),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      zoneDropdown,
+                      if (!selectedZoneAvailable &&
+                          launchRequest.zone.isNotEmpty &&
+                          !zones.any((z) =>
+                              z.name == launchRequest.zone && z.available))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () {
+                                final grpcClient = ref.read(grpcClientProvider);
+                                final zone = launchRequest.zone;
+                                grpcClient.zonesState([zone], true).then((_) {
+                                  updateZoneAvailability();
+                                  ref.read(notificationsProvider.notifier).add(
+                                        SuccessNotification(
+                                          child: Text(
+                                              l10n.launchFormEnableZoneSuccess(
+                                                  zone)),
+                                        ),
+                                      );
+                                });
+                              },
+                              child: Text(
+                                l10n.launchFormEnableZoneLabel,
+                                style: TextStyle(
+                                  color: Colors.blue[700],
+                                  decoration: TextDecoration.underline,
+                                  fontSize: 14,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (!selectedZoneAvailable &&
+                          !zones.any((z) => z.available))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () {
+                                final grpcClient = ref.read(grpcClientProvider);
+                                final allZones =
+                                    zones.map((z) => z.name).toList();
+                                grpcClient.zonesState(allZones, true).then((_) {
+                                  updateZoneAvailability();
+                                  ref.read(notificationsProvider.notifier).add(
+                                        SuccessNotification(
+                                          child: Text(l10n
+                                              .launchFormEnableAllZonesSuccess),
+                                        ),
+                                      );
+                                });
+                              },
+                              child: Text(
+                                l10n.launchFormEnableAllZonesLabel,
+                                style: TextStyle(
+                                  color: Colors.blue[700],
+                                  decoration: TextDecoration.underline,
+                                  fontSize: 14,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+            const Spacer(),
+          ],
         ),
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: cpusSlider),
-          const SizedBox(width: 86),
-          Expanded(child: memorySlider),
-          const SizedBox(width: 86),
-          Expanded(child: diskSlider),
-        ]),
         const Divider(height: 60),
-        const SizedBox(
+        SizedBox(
           height: 50,
-          child: Text('Bridged network', style: TextStyle(fontSize: 24)),
+          child:
+              Text(l10n.resourcesTitle, style: const TextStyle(fontSize: 24)),
+        ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: cpusSlider),
+            const SizedBox(width: 86),
+            Expanded(child: memorySlider),
+            const SizedBox(width: 86),
+            Expanded(child: diskSlider),
+          ],
+        ),
+        const Divider(height: 60),
+        SizedBox(
+          height: 50,
+          child: Text(l10n.bridgeTitle, style: const TextStyle(fontSize: 24)),
         ),
         bridgedSwitch,
         const Divider(height: 60),
-        const SizedBox(
+        SizedBox(
           height: 50,
-          child: Text('Mounts', style: TextStyle(fontSize: 24)),
+          child: Text(l10n.mountsTitle, style: const TextStyle(fontSize: 24)),
         ),
         mountPointsView,
         if (mountRequests.isNotEmpty) const SizedBox(height: 20),
@@ -246,19 +452,37 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       ],
     );
 
-    final launchButton = TextButton(
-      onPressed: () => launch(imageInfo),
-      child: const Text('Launch'),
+    String? tooltipMessage;
+    if (!selectedZoneAvailable) {
+      final zones = ref.read(zonesProvider);
+      tooltipMessage = !zones.any((z) => z.available)
+          ? l10n.launchFormAllZonesUnavailableTooltip
+          : l10n.launchFormSelectedZoneUnavailableTooltip;
+    }
+
+    final launchButton = Tooltip(
+      message: tooltipMessage ?? '',
+      visible: !selectedZoneAvailable,
+      child: TextButton(
+        onPressed: selectedZoneAvailable ? () => launch(imageInfo) : null,
+        child: Text(l10n.commonLaunch),
+      ),
     );
 
-    final launchAndConfigureNextButton = OutlinedButton(
-      onPressed: () => launch(imageInfo, configureNext: true),
-      child: const Text('Launch & Configure next'),
+    final launchAndConfigureNextButton = Tooltip(
+      message: tooltipMessage ?? '',
+      visible: !selectedZoneAvailable,
+      child: OutlinedButton(
+        onPressed: selectedZoneAvailable
+            ? () => launch(imageInfo, configureNext: true)
+            : null,
+        child: Text(l10n.launchFormLaunchAndConfigureNext),
+      ),
     );
 
     final cancelButton = OutlinedButton(
       onPressed: () => Scaffold.of(context).closeEndDrawer(),
-      child: const Text('Cancel'),
+      child: Text(l10n.commonCancel),
     );
 
     return Stack(fit: StackFit.loose, children: [
@@ -312,10 +536,9 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     mountFormState?.save();
     formState.save();
 
-    final aliasInfo = imageInfo.aliasesInfo.first;
-    launchRequest.image = aliasInfo.alias;
-    if (aliasInfo.hasRemoteName()) {
-      launchRequest.remoteName = aliasInfo.remoteName;
+    launchRequest.image = imageInfo.aliases.first;
+    if (imageInfo.hasRemoteName()) {
+      launchRequest.remoteName = imageInfo.remoteName;
     }
 
     for (final mountRequest in mountRequests) {
@@ -367,28 +590,29 @@ void initiateLaunchFlow(
 FormFieldValidator<String> nameValidator(
   Iterable<String> existingNames,
   Iterable<String> deletedNames,
+  AppLocalizations l10n,
 ) {
   return (String? value) {
     if (value!.isEmpty) {
       return null;
     }
     if (value.length < 2) {
-      return 'Name must be at least 2 characters';
+      return l10n.usagePrimaryNameErrorTooShort;
     }
     if (RegExp(r'[^A-Za-z0-9\-]').hasMatch(value)) {
-      return 'Name must contain only letters, numbers and dashes';
+      return l10n.launchFormNameErrorInvalidChars;
     }
     if (RegExp(r'^[^A-Za-z]').hasMatch(value)) {
-      return 'Name must start with a letter';
+      return l10n.usagePrimaryNameErrorStartLetter;
     }
     if (RegExp(r'[^A-Za-z0-9]$').hasMatch(value)) {
-      return 'Name must end in digit or letter';
+      return l10n.usagePrimaryNameErrorEndChar;
     }
     if (existingNames.contains(value)) {
-      return 'Name is already in use';
+      return l10n.launchFormNameErrorInUse;
     }
     if (deletedNames.contains(value)) {
-      return 'Name is already in use by a deleted instance';
+      return l10n.launchFormNameErrorDeletedInUse;
     }
     return null;
   };

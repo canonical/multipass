@@ -1,0 +1,17 @@
+
+# Rename original CMakeLists.txt
+file(RENAME "${SOURCE_PATH}/CMakeLists.txt" "${SOURCE_PATH}/CMakeLists.txt.orig")
+
+# Copy our patcher CMakeLists.txt file
+file(COPY "${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt" DESTINATION "${SOURCE_PATH}")
+
+# Disable via flag where possible
+list(APPEND VCPKG_CMAKE_CONFIGURE_OPTIONS
+    -DgRPC_BUILD_GRPC_CSHARP_PLUGIN=OFF
+    -DgRPC_BUILD_GRPC_NODE_PLUGIN=OFF
+    -DgRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN=OFF
+    -DgRPC_BUILD_GRPC_PHP_PLUGIN=OFF
+    -DgRPC_BUILD_GRPC_PYTHON_PLUGIN=OFF
+    -DgRPC_BUILD_GRPC_RUBY_PLUGIN=OFF
+    -DgRPC_BUILD_CSHARP_EXT=OFF
+)

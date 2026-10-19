@@ -38,7 +38,7 @@ write_files:
     echo "======================================================================"
     echo " If you're feeling adventurous, you could help the charming community"
     echo " by switching to the beta channels and reporting any issues you "
-    echo " encounter in you journey!"
+    echo " encounter in your journey!"
     echo
     echo "   sudo snap refresh juju --channel=3/beta"
     echo "   sudo snap refresh charmcraft --classic --channel=3.x/beta"

@@ -13,58 +13,81 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-function(add_ssh_target TARGET_NAME)
+# TODO: drop premock in favor of MP_LIBSSH, then remove all duplicate _test targets
+function(add_libssh_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
-    openssh_key_provider.cpp
-    ssh_client_key_provider.cpp
-    ssh_process.cpp
-    ssh_session.cpp)
+    libssh_wrapper.cpp)
+
+  target_compile_definitions(${TARGET_NAME} PRIVATE WITH_SERVER)
 
   target_link_libraries(${TARGET_NAME}
     fmt::fmt-header-only
-    libssh
+    ssh
     utils
     Qt6::Core)
 endfunction()
 
-add_ssh_target(ssh_common)
+add_libssh_target(libssh_wrapper)
 if(MULTIPASS_ENABLE_TESTS)
-  add_ssh_target(ssh_test)
+  add_libssh_target(libssh_wrapper_test)
 endif()
 
-function(add_sftp_client_target TARGET_NAME)
+function(add_ssh_target TARGET_NAME LIBSSH_TARGET)
+  add_library(${TARGET_NAME} STATIC
+    libssh_scope_guard.cpp
+    openssh_key_provider.cpp
+    plain_ssh_process.cpp
+    plain_ssh_session.cpp
+    ssh_client_key_provider.cpp)
+
+  target_link_libraries(${TARGET_NAME}
+    ${LIBSSH_TARGET}
+    fmt::fmt-header-only
+    ssh
+    utils
+    Qt6::Core)
+endfunction()
+
+add_ssh_target(ssh_common libssh_wrapper)
+if(MULTIPASS_ENABLE_TESTS)
+  add_ssh_target(ssh_test libssh_wrapper_test)
+endif()
+
+function(add_sftp_client_target TARGET_NAME LIBSSH_TARGET)
   add_library(${TARGET_NAME} STATIC
     sftp_client.cpp
     sftp_dir_iterator.cpp
     sftp_utils.cpp
-    ssh_session.cpp)
+    plain_ssh_session.cpp)
 
   target_link_libraries(${TARGET_NAME}
+    ${LIBSSH_TARGET}
     fmt::fmt-header-only
-    libssh
+    ssh
     utils
     Qt6::Core)
 endfunction()
 
-add_sftp_client_target(sftp_client)
+add_sftp_client_target(sftp_client libssh_wrapper)
 if(MULTIPASS_ENABLE_TESTS)
-  add_sftp_client_target(sftp_test)
+  add_sftp_client_target(sftp_test libssh_wrapper_test)
 endif()
 
-function(add_ssh_client_target TARGET_NAME)
+function(add_ssh_client_target TARGET_NAME LIBSSH_TARGET)
   add_library(${TARGET_NAME} STATIC
     ssh_client.cpp
-    ssh_session.cpp)
+    plain_ssh_session.cpp)
 
   target_link_libraries(${TARGET_NAME}
+    ${LIBSSH_TARGET}
     console
     fmt::fmt-header-only
-    libssh
+    ssh
     utils
     Qt6::Core)
 endfunction()
 
-add_ssh_client_target(ssh_client)
+add_ssh_client_target(ssh_client libssh_wrapper)
 if(MULTIPASS_ENABLE_TESTS)
-  add_ssh_client_target(ssh_client_test)
+  add_ssh_client_target(ssh_client_test libssh_wrapper_test)
 endif()

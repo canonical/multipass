@@ -1,0 +1,59 @@
+/*
+ * Copyright (C) Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#pragma once
+
+#include "common.h"
+#include "mock_sftpserver.h"
+#include "mock_ssh_test_fixture.h"
+
+namespace multipass
+{
+namespace test
+{
+struct SftpServerTest : public testing::Test
+{
+    SftpServerTest()
+        : sftp_server_new{mock_sftp_server_new,
+                          [](ssh_session, ssh_channel) -> sftp_session {
+                              auto sftp = static_cast<sftp_session_struct*>(
+                                  std::calloc(1, sizeof(struct sftp_session_struct)));
+                              return sftp;
+                          }},
+          free_server_sftp{mock_sftp_server_free, [](sftp_session sftp) {
+                               std::free(sftp->handles);
+                               std::free(sftp);
+                           }}
+    {
+        reply_status.returnValue(SSH_OK);
+        get_client_msg.returnValue(nullptr);
+        handle_sftp.returnValue(nullptr);
+        reply_version.returnValue(SSH_OK);
+    }
+
+    decltype(MOCK(sftp_reply_status)) reply_status{MOCK(sftp_reply_status)};
+    decltype(MOCK(sftp_get_client_message)) get_client_msg{MOCK(sftp_get_client_message)};
+    decltype(MOCK(sftp_client_message_free)) msg_free{MOCK(sftp_client_message_free)};
+    decltype(MOCK(sftp_handle)) handle_sftp{MOCK(sftp_handle)};
+    decltype(MOCK(sftp_reply_version)) reply_version{MOCK(sftp_reply_version)};
+    MockScope<decltype(mock_sftp_server_new)> sftp_server_new;
+    MockScope<decltype(mock_sftp_server_free)> free_server_sftp;
+
+    MockSSHTestFixture mock_ssh_test_fixture;
+};
+} // namespace test
+} // namespace multipass

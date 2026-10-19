@@ -36,6 +36,8 @@ public:
     void deactivate_impl(bool force) override;
     bool is_active() override;
 
+    static std::string make_tag(const std::string& seed);
+
 private:
     QemuVirtualMachine::MountArgs& vm_mount_args;
     std::string tag;

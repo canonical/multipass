@@ -18,13 +18,15 @@
 #pragma once
 
 #include <multipass/days.h>
+#include <multipass/image_host/vm_image_host.h>
 #include <multipass/query.h>
 #include <multipass/vm_image.h>
-#include <multipass/vm_image_host.h>
 #include <shared/base_vm_image_vault.h>
 
 #include <QDir>
 #include <QFuture>
+
+#include <boost/json.hpp>
 
 #include <mutex>
 #include <optional>
@@ -51,8 +53,7 @@ public:
                         const multipass::days& days_to_expire);
     ~DefaultVMImageVault();
 
-    VMImage fetch_image(const FetchType& fetch_type,
-                        const Query& query,
+    VMImage fetch_image(const Query& query,
                         const PrepareAction& prepare,
                         const ProgressMonitor& monitor,
                         const std::optional<std::string>& checksum,
@@ -60,10 +61,7 @@ public:
     void remove(const std::string& name) override;
     bool has_record_for(const std::string& name) override;
     void prune_expired_images() override;
-    void update_images(const FetchType& fetch_type,
-                       const PrepareAction& prepare,
-                       const ProgressMonitor& monitor) override;
-    MemorySize minimum_image_size_for(const std::string& id) override;
+    void update_images(const PrepareAction& prepare, const ProgressMonitor& monitor) override;
     void clone(const std::string& source_instance_name,
                const std::string& destination_instance_name) override;
 
@@ -72,12 +70,11 @@ private:
     VMImage download_and_prepare_source_image(const VMImageInfo& info,
                                               std::optional<VMImage>& existing_source_image,
                                               const QDir& image_dir,
-                                              const FetchType& fetch_type,
                                               const PrepareAction& prepare,
                                               const ProgressMonitor& monitor);
-    QString extract_image_from(const VMImage& source_image,
-                               const ProgressMonitor& monitor,
-                               const Path& dest_dir);
+    std::filesystem::path extract_image_from(const VMImage& source_image,
+                                             const ProgressMonitor& monitor,
+                                             const std::filesystem::path& dest_dir);
     std::optional<QFuture<VMImage>> get_image_future(const std::string& id);
     VMImage finalize_image_records(const Query& query,
                                    const VMImage& prepared_image,
@@ -85,6 +82,7 @@ private:
                                    const Path& dest_dir);
     void persist_image_records();
     void persist_instance_records();
+    void amend_db();
 
     URLDownloader* const url_downloader;
     const QDir cache_dir;
@@ -95,6 +93,12 @@ private:
 
     std::unordered_map<std::string, VaultRecord> prepared_image_records;
     std::unordered_map<std::string, VaultRecord> instance_image_records;
-    std::unordered_map<std::string, QFuture<VMImage>> in_progress_image_fetches;
+    std::unordered_map<std::string, std::pair<QString, QFuture<VMImage>>> in_progress_image_fetches;
 };
+
+void tag_invoke(const boost::json::value_from_tag&,
+                boost::json::value& json,
+                const VaultRecord& record);
+VaultRecord tag_invoke(const boost::json::value_to_tag<VaultRecord>&,
+                       const boost::json::value& json);
 } // namespace multipass

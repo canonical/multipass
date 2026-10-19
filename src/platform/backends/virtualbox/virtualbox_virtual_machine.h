@@ -38,60 +38,55 @@ public:
     VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
                              VMStatusMonitor& monitor,
                              const SSHKeyProvider& key_provider,
+                             AvailabilityZone& zone,
                              const Path& instance_dir);
     // Contruct the vm based on the source virtual machine
     VirtualBoxVirtualMachine(const std::string& source_vm_name,
                              const VirtualMachineDescription& desc,
                              VMStatusMonitor& monitor,
                              const SSHKeyProvider& key_provider,
+                             AvailabilityZone& zone,
                              const Path& dest_instance_dir);
     ~VirtualBoxVirtualMachine() override;
 
     void start() override;
     void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
     void suspend() override;
+    bool set_available(bool available) override;
     State current_state() override;
     int ssh_port() override;
-    std::string ssh_hostname(std::chrono::milliseconds timeout) override;
+    std::string ssh_hostname() override;
     std::string ssh_username() override;
-    std::string management_ipv4() override;
-    std::vector<std::string> get_all_ipv4() override;
-    std::string ipv6() override;
-    void ensure_vm_is_running() override;
-    void update_state() override;
+    std::optional<IPAddress> management_ipv4() override;
+    std::vector<IPAddress> get_all_ipv4() override;
+    void handle_state_update() override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
-    void resize_disk(const MemorySize& new_size) override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
 
 protected:
-    void require_snapshots_support() const override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,
                                                      const std::string& instance_id,
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
+    void resize_disk_impl(const MemorySize& new_size) override;
 
 private:
     VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
                              VMStatusMonitor& monitor,
                              const SSHKeyProvider& key_provider,
+                             AvailabilityZone& zone,
                              const Path& instance_dir_qstr,
                              bool is_internal);
     void remove_snapshots_from_backend() const;
 
-    // TODO we should probably keep the VMDescription in the base VM class instead
-    VirtualMachineDescription desc;
     const QString name;
     std::optional<int> port;
     VMStatusMonitor* monitor;
     bool update_suspend_status{true};
 };
 } // namespace multipass
-
-inline void multipass::VirtualBoxVirtualMachine::require_snapshots_support() const
-{
-}

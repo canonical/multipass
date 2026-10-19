@@ -17,7 +17,6 @@
 
 #include "restore.h"
 #include "animated_spinner.h"
-#include "common_callbacks.h"
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
@@ -27,20 +26,20 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Restore::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Restore::run(mp::ArgParser* parser)
 {
     if (auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
     AnimatedSpinner spinner{cout};
 
-    auto on_success = [this, &spinner](mp::RestoreReply& reply) {
+    auto on_success = [this, &spinner](RestoreReply&) -> ReturnCodeVariant {
         spinner.stop();
         fmt::print(cout, "Snapshot restored: {}.{}\n", request.instance(), request.snapshot());
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &spinner](grpc::Status& status) {
+    auto on_failure = [this, &spinner](grpc::Status& status) -> ReturnCodeVariant {
         spinner.stop();
         return standard_failure_handler_for(name(), cerr, status);
     };
@@ -59,15 +58,18 @@ mp::ReturnCode cmd::Restore::run(mp::ArgParser* parser)
         if (reply.confirm_destructive())
         {
             spinner.stop();
+
+            if (!term->is_live())
+            {
+                spinner.print(cerr,
+                              "Unable to query client for confirmation. Use '--destructive' to "
+                              "automatically discard current machine state.\n");
+                client->WritesDone();
+                return;
+            }
+
             RestoreRequest client_response;
-
-            if (term->is_live())
-                client_response.set_destructive(confirm_destruction(request.instance()));
-            else
-                throw std::runtime_error(
-                    "Unable to query client for confirmation. Use '--destructive' to "
-                    "automatically discard current machine state.");
-
+            client_response.set_destructive(confirm_destruction(request.instance()));
             client->Write(client_response);
             spinner.start();
         }

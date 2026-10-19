@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../colors.dart';
 import '../dropdown.dart';
 import '../extensions.dart';
 import '../ffi.dart';
+import '../l10n/app_localizations.dart';
 import 'mapping_slider.dart';
 
 class MemorySlider extends StatefulWidget {
@@ -70,6 +72,7 @@ class _MemorySliderState extends State<MemorySlider> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final textField = TextField(
       controller: controller,
       enabled: widget.enabled,
@@ -112,52 +115,63 @@ class _MemorySliderState extends State<MemorySlider> {
       initialValue: widget.initialValue,
       onSaved: (value) => widget.onSaved(value!.clamp(widget.min, widget.max)),
       builder: (field) {
-        return Column(children: [
-          MappingSlider(
-            min: widget.min,
-            max: widget.max,
-            enabled: widget.enabled,
-            value: field.value ?? widget.min,
-            onChanged: (value) {
-              field.didChange(value);
-              final clampedValue = value.clamp(widget.min, widget.max);
-              controller.text = bytesToUnit(clampedValue).toNiceString();
-            },
-          ),
-          const SizedBox(height: 5),
-          Row(children: [
-            Text(humanReadableMemory(widget.min)),
-            Spacer(),
-            Text(humanReadableMemory(widget.max)),
-          ]),
-          if ((field.value ?? widget.min) > widget.sysMax) ...[
-            const SizedBox(height: 25),
-            Row(children: [
-              const Icon(Icons.warning_rounded, color: Color(0xffCC7900)),
-              const SizedBox(width: 5),
-              Text(
-                'Over-provisioning of ${widget.label.toLowerCase()}',
-                style: const TextStyle(fontSize: 16),
+        return Column(
+          children: [
+            MappingSlider(
+              min: widget.min,
+              max: widget.max,
+              enabled: widget.enabled,
+              value: field.value ?? widget.min,
+              onChanged: (value) {
+                field.didChange(value);
+                final clampedValue = value.clamp(widget.min, widget.max);
+                controller.text = bytesToUnit(clampedValue).toNiceString();
+              },
+            ),
+            const SizedBox(height: 5),
+            Row(
+              children: [
+                Text(humanReadableMemory(widget.min)),
+                Spacer(),
+                Text(humanReadableMemory(widget.max)),
+              ],
+            ),
+            if ((field.value ?? widget.min) > widget.sysMax) ...[
+              const SizedBox(height: 25),
+              Row(
+                children: [
+                  const Icon(Icons.warning_rounded, color: warningAmber),
+                  const SizedBox(width: 5),
+                  Text(
+                    l10n.memorySliderOverProvisioning(
+                        widget.label.toLowerCase()),
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ],
               ),
-            ]),
+            ],
           ],
-        ]);
+        );
       },
     );
 
-    return Column(children: [
-      Row(children: [
-        Text(widget.label, style: TextStyle(fontSize: 16)),
-        Spacer(),
-        ConstrainedBox(
-          constraints: BoxConstraints(minWidth: 65),
-          child: IntrinsicWidth(child: textField),
+    return Column(
+      children: [
+        Row(
+          children: [
+            Text(widget.label, style: TextStyle(fontSize: 16)),
+            Spacer(),
+            ConstrainedBox(
+              constraints: BoxConstraints(minWidth: 65),
+              child: IntrinsicWidth(child: textField),
+            ),
+            SizedBox(width: 8),
+            unitDropdown,
+          ],
         ),
-        SizedBox(width: 8),
-        unitDropdown,
-      ]),
-      const SizedBox(height: 25),
-      sliderFormField,
-    ]);
+        const SizedBox(height: 25),
+        sliderFormField,
+      ],
+    );
   }
 }

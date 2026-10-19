@@ -16,22 +16,27 @@
  */
 
 #include <multipass/constants.h>
+#include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/settings/custom_setting_spec.h>
 #include <multipass/settings/settings.h>
+#include <multipass/socket.h>
 #include <multipass/standard_paths.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
+#include "backends/hcs/hcs_virtual_machine_factory.h"
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "shared/sshfs_server_process_spec.h"
 #include "shared/windows/powershell.h"
 #include "shared/windows/process_factory.h"
+#include "shared/windows/wchar_conversion.h"
+#include "shared/windows/wsa_init_wrapper.h"
 #include <daemon/default_vm_image_vault.h>
 #include <default_update_prompt.h>
 
@@ -47,33 +52,51 @@
 
 #include <json/json.h>
 
+#include <WS2tcpip.h>
+#include <WinSock2.h>
 #include <aclapi.h>
+#include <in6addr.h>
+#include <inaddr.h>
+#include <iphlpapi.h>
+#include <netioapi.h>
+#include <objbase.h>
 #include <sddl.h>
 #include <shlobj_core.h>
+
+// clang-format off
+#include <security.h>
+#include <secext.h>
+// clang-format on
 #include <windows.h>
+#include <winternl.h>
 
 #include <algorithm>
 #include <cerrno>
+#include <codecvt>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
 
 #include <libssh/sftp.h>
 
-// Needed for OpenSSL dll compatibility
-extern "C"
-{
-#include <openssl/applink.c>
-}
-
 namespace mp = multipass;
 namespace mpl = mp::logging;
 namespace mpu = multipass::utils;
 
+struct GetNetworkInterfacesInfoException : public multipass::FormattedExceptionBase<>
+{
+    using multipass::FormattedExceptionBase<>::FormattedExceptionBase;
+};
+
+struct InvalidNetworkPrefixLengthException : public multipass::FormattedExceptionBase<>
+{
+    using multipass::FormattedExceptionBase<>::FormattedExceptionBase;
+};
+
 namespace
 {
 static const auto none = QStringLiteral("none");
-static constexpr auto kLogCategory = "platform-win";
+static constexpr auto log_category = "platform-win";
 
 time_t time_t_from(const FILETIME* ft)
 {
@@ -135,10 +158,13 @@ QString locate_profiles_path()
         "Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json");
 }
 
-struct WintermSyncException : public std::runtime_error
+struct WintermSyncException : public multipass::FormattedExceptionBase<>
 {
     WintermSyncException(const std::string& msg, const QString& path, const std::string& reason)
-        : std::runtime_error{fmt::format("{}; location: \"{}\"; reason: {}.", msg, path, reason)}
+        : multipass::FormattedExceptionBase<>("{}; location: \"{}\"; reason: {}.",
+                                              msg,
+                                              path,
+                                              reason)
     {
     }
 
@@ -175,10 +201,10 @@ Json::Value& edit_profiles(const QString& path, Json::Value& json_root)
     auto& profiles =
         json_root["profiles"]; // the array of profiles can be in this node or in the subnode "list"
     return profiles.isArray() || !profiles.isMember("list")
-               ? profiles
-               : profiles["list"]; /* Notes:
-            1) don't index into "list" unless it already exists
-            2) can't look for named member on array values */
+             ? profiles
+             : profiles["list"]; /* Notes:
+          1) don't index into "list" unless it already exists
+          2) can't look for named member on array values */
 }
 
 Json::Value read_winterm_settings(const QString& path)
@@ -511,54 +537,276 @@ BOOL signal_handler(DWORD dwCtrlType)
         return FALSE;
     }
 }
+
+std::string_view adapter_type_to_str(int type)
+{
+    switch (type)
+    {
+    // ipifcons.h
+    case IF_TYPE_ETHERNET_CSMACD:
+        return "Ethernet";
+    case IF_TYPE_SOFTWARE_LOOPBACK:
+        return "Loopback";
+    case IF_TYPE_IEEE80211:
+        return "WiFi";
+    default:
+        return "Unknown";
+    }
+}
+
+/**
+ * IP conversion utilities
+ */
+static const auto& ip_utils()
+{
+    // Winsock initialization has to happen before we can call network
+    // related functions, even the conversion ones (e.g. inet_ntop)
+    const static mp::wsa_init_wrapper wrapper;
+
+    /**
+     * Helper struct that provides address conversion
+     * utilities
+     */
+    struct ip_utils
+    {
+        /**
+         * Convert IPv4 address to string
+         *
+         * @param [in] addr IPv4 address as uint32
+         * @return std::string String representation of @p addr
+         */
+        static std::string to_string(std::uint32_t addr)
+        {
+            char str[INET_ADDRSTRLEN] = {};
+            if (!inet_ntop(AF_INET, &addr, str, sizeof(str)))
+                throw std::runtime_error("inet_ntop failed: errno");
+            return str;
+        }
+
+        /**
+         * Convert IPv6 address to string
+         *
+         * @param [in] addr IPv6 address
+         * @return std::string String representation of @p addr
+         */
+        static std::string to_string(const in6_addr& addr)
+        {
+            char str[INET6_ADDRSTRLEN] = {};
+            if (!inet_ntop(AF_INET6, &addr, str, sizeof(str)))
+                throw std::runtime_error("inet_ntop failed: errno");
+            return str;
+        }
+
+        /**
+         * Convert an IPv4 address to network CIDR
+         *
+         * @param [in] v4 IPv4 address
+         * @param [in] prefix_length Network prefix
+         * @return std::string Network address in CIDR form
+         */
+        static auto to_network(const in_addr& v4, std::uint8_t prefix_length)
+        {
+            // Convert to the host long first so we can apply a mask to it
+            constexpr static auto max_prefix_length = 32;
+            const auto ip_hbo = ntohl(v4.S_un.S_addr);
+            if (prefix_length > max_prefix_length)
+            {
+                throw multipass::FormattedRuntimeError{
+                    "Given prefix length `{}` is larger than `{}`!",
+                    prefix_length,
+                    max_prefix_length};
+            }
+            const auto mask = (prefix_length == 0)
+                                ? 0
+                                : std::numeric_limits<std::uint32_t>::max() << (32 - prefix_length);
+            const auto network_hbo = htonl(ip_hbo & mask);
+
+            return fmt::format("{}/{}", to_string(network_hbo), prefix_length);
+        }
+
+        /**
+         * Convert an IPv6 address to network CIDR
+         *
+         * @param [in] v6 IPv6 address
+         * @param [in] prefix_length Network prefix
+         * @return std::string Network address in CIDR form
+         */
+        static auto to_network(const in6_addr& v6, std::uint8_t prefix_length)
+        {
+            // Convert to the host long first so we can apply a mask to it
+            constexpr static auto max_prefix_length = 128;
+            if (prefix_length > max_prefix_length)
+            {
+                throw multipass::FormattedRuntimeError{
+                    "Given prefix length `{}` is larger than `{}`!",
+                    prefix_length,
+                    max_prefix_length};
+            }
+            in6_addr masked = v6;
+
+            for (int i = 0; i < 16; ++i)
+            {
+                int bits = i * 8;
+                if (prefix_length < bits)
+                    masked.u.Byte[i] = 0;
+                else if (prefix_length < bits + 8)
+                    masked.u.Byte[i] &= static_cast<uint8_t>(0xFF << (8 - (prefix_length - bits)));
+            }
+            const auto network_addr = to_string(masked);
+            return fmt::format("{}/{}", network_addr, prefix_length);
+        }
+    } static helper;
+
+    // Initialize once and reuse.
+    return helper;
+}
+
+std::vector<std::string> unicast_addrs_to_net_addrs(
+    PIP_ADAPTER_UNICAST_ADDRESS_LH first_unicast_addr)
+{
+    std::vector<std::string> result;
+    for (const auto* unicast_addr = first_unicast_addr; unicast_addr;
+         unicast_addr = unicast_addr->Next)
+    {
+        const auto& sa = *unicast_addr->Address.lpSockaddr;
+        std::optional<std::string> network_addr{};
+        switch (sa.sa_family)
+        {
+        case AF_INET:
+            network_addr =
+                ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN*>(&sa)->sin_addr,
+                                      unicast_addr->OnLinkPrefixLength);
+            break;
+        case AF_INET6:
+            network_addr =
+                ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN6*>(&sa)->sin6_addr,
+                                      unicast_addr->OnLinkPrefixLength);
+            break;
+        }
+
+        if (network_addr)
+        {
+            result.emplace_back(std::move(network_addr.value()));
+        }
+    }
+    return result;
+}
+
+auto get_adapters_addresses(ULONG family, ULONG flags)
+{
+    ULONG needed_size{0};
+    // Learn how much space we need to allocate.
+    GetAdaptersAddresses(family, flags, nullptr, nullptr, &needed_size);
+
+    std::unique_ptr<IP_ADAPTER_ADDRESSES, decltype(&std::free)> adapters_addresses{
+        static_cast<IP_ADAPTER_ADDRESSES*>(std::malloc(needed_size)),
+        std::free};
+
+    if (const auto result =
+            GetAdaptersAddresses(family, flags, nullptr, adapters_addresses.get(), &needed_size);
+        result == NO_ERROR)
+    {
+        return adapters_addresses;
+    }
+    else
+    {
+        throw GetNetworkInterfacesInfoException{
+            "Failed to retrieve network interface information. Error code: {}",
+            result};
+    }
+}
 } // namespace
+
+std::string mp::wchar_to_utf8(std::wstring_view input)
+{
+    if (input.empty())
+        return {};
+
+    const auto size_needed = WideCharToMultiByte(CP_UTF8,
+                                                 0,
+                                                 input.data(),
+                                                 static_cast<int>(input.size()),
+                                                 nullptr,
+                                                 0,
+                                                 nullptr,
+                                                 nullptr);
+    std::string result(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8,
+                        0,
+                        input.data(),
+                        static_cast<int>(input.size()),
+                        result.data(),
+                        size_needed,
+                        nullptr,
+                        nullptr);
+    return result;
+}
 
 std::map<std::string, mp::NetworkInterfaceInfo>
 mp::platform::Platform::get_network_interfaces_info() const
 {
-    static const auto ps_cmd_base =
-        QStringLiteral("Get-NetAdapter -physical | Select-Object -Property "
-                       "Name,MediaType,PhysicalMediaType,InterfaceDescription");
-    static const auto ps_args =
-        QString{ps_cmd_base}.split(' ', Qt::SkipEmptyParts) + PowerShell::Snippets::to_bare_csv;
+    std::map<std::string, mp::NetworkInterfaceInfo> ret{};
+    constexpr auto flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST |
+                           GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_INCLUDE_PREFIX |
+                           GAA_FLAG_INCLUDE_ALL_INTERFACES;
+    auto adapters = get_adapters_addresses(AF_UNSPEC, flags);
 
-    QString ps_output;
-    QString ps_output_err;
-    if (PowerShell::exec(ps_args,
-                         "Network Listing on Windows Platform",
-                         &ps_output,
-                         &ps_output_err))
+    // The API returns a linked list, so walk over it.
+    for (auto pitr = adapters.get(); pitr; pitr = pitr->Next)
     {
-        std::map<std::string, mp::NetworkInterfaceInfo> ret{};
-        for (const auto& line : ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts))
-        {
-            auto terms = line.split(',', Qt::KeepEmptyParts);
-            if (terms.size() != 4)
-            {
-                throw std::runtime_error{fmt::format(
-                    "Could not determine available networks - unexpected powershell output: {}",
-                    ps_output)};
-            }
+        const auto& adapter = *pitr;
 
-            auto iface = mp::NetworkInterfaceInfo{terms[0].toStdString(),
-                                                  interpret_net_type(terms[1], terms[2]),
-                                                  terms[3].toStdString()};
-            ret.emplace(iface.id, iface);
+        MIB_IF_ROW2 ifRow{};
+        ifRow.InterfaceLuid = adapter.Luid;
+        if (GetIfEntry2(&ifRow) != NO_ERROR)
+        {
+            continue;
         }
 
-        return ret;
+        // Only list the physical interfaces.
+        if (!ifRow.InterfaceAndOperStatusFlags.HardwareInterface)
+        {
+            continue;
+        }
+
+        mp::NetworkInterfaceInfo net{};
+        net.id = wchar_to_utf8(adapter.FriendlyName);
+        net.type = adapter_type_to_str(adapter.IfType);
+        net.description = wchar_to_utf8(adapter.Description);
+        net.links = unicast_addrs_to_net_addrs(adapter.FirstUnicastAddress);
+        ret.insert(std::make_pair(net.id, net));
     }
 
-    auto detail = ps_output_err.isEmpty() ? "" : fmt::format(" Detail: {}", ps_output_err);
-    auto err = fmt::format(
-        "Could not determine available networks - error executing powershell command.{}",
-        detail);
-    throw std::runtime_error{err};
+    // Host compute system API requires the original subnet.
+    for (auto& [name, netinfo] : ret)
+    {
+        if (netinfo.links.empty())
+        {
+            const auto search = fmt::format("vEthernet ({})", netinfo.id);
+            for (auto pitr = adapters.get(); pitr; pitr = pitr->Next)
+            {
+                const auto& adapter = *pitr;
+
+                if (wchar_to_utf8(adapter.FriendlyName) == search)
+                {
+                    netinfo.links = unicast_addrs_to_net_addrs(adapter.FirstUnicastAddress);
+                    break;
+                }
+            }
+        }
+    }
+    return ret;
 }
 
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
-    return backend == "hyperv" || backend == "virtualbox";
+    constexpr std::string_view supported_backends[] = {
+        "hyperv",
+        "virtualbox",
+        "hcs",
+    };
+    return std::ranges::any_of(supported_backends,
+                               [&](std::string_view b) { return backend == b; });
 }
 
 void mp::platform::Platform::set_server_socket_restrictions(const std::string& /* server_address */,
@@ -596,27 +844,27 @@ void mp::platform::sync_winterm_profiles()
     catch (LesserWintermSyncException& e)
     {
         const auto level = winterm_setting == none ? mpl::Level::debug : mpl::Level::warning;
-        mpl::log(level, log_category, e.what());
+        mpl::log_message(level, log_category, e.what());
     }
     catch (ModerateWintermSyncException& e)
     {
         const auto level = winterm_setting == none ? mpl::Level::info : mpl::Level::error;
-        mpl::log(level, log_category, e.what());
+        mpl::log_message(level, log_category, e.what());
     }
     catch (GreaterWintermSyncException& e)
     {
-        mpl::log(mpl::Level::error, log_category, e.what());
+        mpl::log_message(mpl::Level::error, log_category, e.what());
     }
 }
 
 std::string mp::platform::default_server_address()
 {
-    return {"localhost:50051"};
+    return default_grpc_server_tcp_listen_address;
 }
 
 QString mp::platform::Platform::default_driver() const
 {
-    return QStringLiteral("hyperv");
+    return QStringLiteral("hcs");
 }
 
 QString mp::platform::Platform::default_privileged_mounts() const
@@ -627,6 +875,28 @@ QString mp::platform::Platform::default_privileged_mounts() const
 std::string mp::platform::Platform::bridge_nomenclature() const
 {
     return "switch";
+}
+
+bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
+{
+    auto adapters = get_adapters_addresses(AF_INET, GAA_FLAG_INCLUDE_ALL_INTERFACES);
+    for (auto pitr = adapters.get(); pitr; pitr = pitr->Next)
+    {
+        const auto& adapter = *pitr;
+        auto addrs = unicast_addrs_to_net_addrs(adapter.FirstUnicastAddress);
+        for (const auto& addr : addrs)
+        {
+            const Subnet found_net{addr};
+            if (found_net.contains(subnet) || subnet.contains(found_net))
+                return true;
+        }
+    }
+    return false;
+}
+
+mp::Subnet mp::platform::Platform::get_preferred_subnet(const std::filesystem::path& data_dir) const
+{
+    return {"10.97.0.0/16"};
 }
 
 QString mp::platform::Platform::daemon_config_home() const // temporary
@@ -647,12 +917,13 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
     }
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir,
+                                                         AvailabilityZoneManager& az_manager)
 {
     const auto driver = MP_SETTINGS.get(mp::driver_key);
 
     if (driver == QStringLiteral("hyperv"))
-        return std::make_unique<HyperVVirtualMachineFactory>(data_dir);
+        return std::make_unique<HyperVVirtualMachineFactory>(data_dir, az_manager);
     else if (driver == QStringLiteral("virtualbox"))
     {
         qputenv("Path", qgetenv("Path") + ";C:\\Program Files\\Oracle\\VirtualBox"); /*
@@ -661,10 +932,20 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
           there.
         */
 
-        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir);
+        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
+    }
+    else if (driver == "hcs")
+    {
+        return std::make_unique<hyperv::HCSVirtualMachineFactory>(data_dir, az_manager);
     }
 
     throw std::runtime_error("Invalid virtualization driver set in the environment");
+}
+
+bool mp::platform::backend_supports_availability_zones()
+{
+    const auto driver = MP_SETTINGS.get(mp::driver_key);
+    return driver != QStringLiteral("hyperv") && driver != QStringLiteral("virtualbox");
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(
@@ -691,7 +972,7 @@ mp::UpdatePrompt::UPtr mp::platform::make_update_prompt()
 
 int mp::platform::Platform::chown(const char* path, unsigned int uid, unsigned int gid) const
 {
-    logging::trace(kLogCategory,
+    logging::trace(log_category,
                    "chown() called for `{}` (uid: {}, gid: {}) but it's no-op.",
                    path,
                    uid,
@@ -706,10 +987,10 @@ auto new_ACL(LPSTR path)
     auto deleter = [](ACL* acl) noexcept { return LocalFree(HLOCAL(acl)); };
     auto newACL = std::unique_ptr<ACL, decltype(deleter)>{NULL, deleter};
 
-    PSECURITY_DESCRIPTOR pSD;
+    PSECURITY_DESCRIPTOR pSD{nullptr};
     auto pSD_guard = sg::make_scope_guard([&pSD]() noexcept { LocalFree((HLOCAL)(pSD)); });
 
-    PACL pOldDACL = NULL;
+    PACL pOldDACL = nullptr;
     if (GetNamedSecurityInfo(path,
                              SE_FILE_OBJECT,
                              DACL_SECURITY_INFORMATION,
@@ -721,6 +1002,9 @@ auto new_ACL(LPSTR path)
     {
         return newACL;
     }
+
+    if (nullptr == pOldDACL)
+        return newACL;
 
     DWORD size = sizeof(ACL);
     std::vector<ACCESS_ALLOWED_ACE*> aces{};
@@ -799,8 +1083,8 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
     std::filesystem::permissions(path, perms, ec);
 
     // Rest handles ACLs
-    auto u8path = path.u8string();
-    LPSTR lpPath = u8path.data();
+    auto path_str = path.string();
+    LPSTR lpPath = path_str.data();
     auto success = true;
 
     auto newACL = new_ACL(lpPath);
@@ -838,8 +1122,8 @@ bool mp::platform::Platform::set_permissions(const std::filesystem::path& path,
 
 bool mp::platform::Platform::take_ownership(const std::filesystem::path& path) const
 {
-    auto u8path = path.u8string();
-    LPSTR lpPath = u8path.data();
+    auto path_str = path.string();
+    LPSTR lpPath = path_str.data();
 
     return set_file_owner(lpPath, get_well_known_sid(WinBuiltinAdministratorsSid).get()) ==
            ERROR_SUCCESS;
@@ -852,8 +1136,8 @@ void mp::platform::Platform::setup_permission_inheritance(bool) const
 
 bool mp::platform::Platform::symlink(const char* target, const char* link, bool is_dir) const
 {
-    DWORD flags =
-        is_dir ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0x00 | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
+    DWORD flags = is_dir ? SYMBOLIC_LINK_FLAG_DIRECTORY
+                         : 0x00 | SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
     return CreateSymbolicLink(link, target, flags);
 }
 
@@ -894,12 +1178,13 @@ int mp::platform::Platform::utime(const char* path, int atime, int mtime) const
 
 QString mp::platform::Platform::get_username() const
 {
-    QString username;
-    mp::PowerShell::exec(
-        {"((Get-WMIObject -class Win32_ComputerSystem | Select-Object -ExpandProperty username))"},
-        "get-username",
-        &username);
-    return username.section('\\', 1);
+    wchar_t username_buf[UNLEN + 1] = {};
+    DWORD sz = sizeof(username_buf) / sizeof(wchar_t);
+    if (GetUserNameW(username_buf, &sz))
+    {
+        return QString::fromWCharArray(username_buf, sz);
+    }
+    throw std::runtime_error("Failed retrieving user name!");
 }
 
 QDir mp::platform::Platform::get_alias_scripts_folder() const
@@ -911,7 +1196,7 @@ QDir mp::platform::Platform::get_alias_scripts_folder() const
     aliases_folder = QDir{location};
 
     if (!aliases_folder.mkpath(aliases_folder.path()))
-        throw std::runtime_error(fmt::format("error creating \"{}\"\n", aliases_folder.path()));
+        throw FormattedRuntimeError("error creating \"{}\"\n", aliases_folder.path());
 
     return aliases_folder;
 }
@@ -1042,10 +1327,10 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
         auto output_lines = ps_output.split(QRegularExpression{"[\r\n]"}, Qt::SkipEmptyParts);
         if (output_lines.size() != 1)
         {
-            throw std::runtime_error{fmt::format("Could not obtain adapter description from name "
-                                                 "\"{}\" - unexpected powershell output: {}",
-                                                 ux_id,
-                                                 ps_output)};
+            throw FormattedRuntimeError{"Could not obtain adapter description from name "
+                                        "\"{}\" - unexpected powershell output: {}",
+                                        ux_id,
+                                        ps_output};
         }
 
         return output_lines.first().toStdString();
@@ -1081,4 +1366,21 @@ std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
 
     // Windows doesn't use `daemon_name` for the data directory (see `program_data_multipass_path`)
     return base_dir / "Multipass" / "data";
+}
+
+std::filesystem::path mp::platform::Platform::qstr_to_path(const QString& qstr) const
+{
+    return std::filesystem::path{qstr.toStdWString()};
+}
+
+QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) const
+{
+    return QString::fromStdWString(path.generic_wstring());
+}
+
+void mp::platform::Platform::shutdown_socket(mp::Socket socket) const
+{
+    if (::shutdown(socket, SD_BOTH) == SOCKET_ERROR)
+        if (auto err = WSAGetLastError(); err != WSAENOTCONN)
+            throw std::system_error(err, std::system_category(), "Failed to shutdown socket");
 }

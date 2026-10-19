@@ -15,12 +15,6 @@
  *
  */
 
-#include <iostream>
-#include <memory>
-#include <string>
-
-#include <QStringList>
-
 #include "sshfs_mount.h"
 
 #include <multipass/exceptions/sshfs_missing_error.h>
@@ -29,9 +23,16 @@
 #include <multipass/logging/multiplexing_logger.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/platform.h>
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/ssh/libssh_scope_guard.h>
+#include <multipass/ssh/plain_ssh_session.h>
 
 #include <ssh/ssh_client_key_provider.h>
+
+#include <QStringList>
+
+#include <iostream>
+#include <memory>
+#include <string>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -73,6 +74,9 @@ mp::id_mappings convert_id_mappings(const char* in)
 
 int main(int argc, char* argv[])
 {
+    // TODO: Remove static once we do not use exit() anymore
+    static multipass::LibsshScopeGuard libssh_guard;
+
     if (argc != 9)
     {
         cerr << "Incorrect arguments" << endl;
@@ -110,12 +114,15 @@ int main(int argc, char* argv[])
         auto watchdog = mpp::make_quit_watchdog(
             std::chrono::milliseconds{500}); // called while there is only one thread
 
-        mp::SSHSession session{host, port, username, mp::SSHClientKeyProvider{priv_key_blob}};
-        mp::SshfsMount sshfs_mount(std::move(session),
-                                   source_path,
-                                   target_path,
-                                   gid_mappings,
-                                   uid_mappings);
+        mp::SshfsMount sshfs_mount(
+            std::make_unique<mp::PlainSSHSession>(host,
+                                                  port,
+                                                  username,
+                                                  mp::SSHClientKeyProvider{priv_key_blob}),
+            source_path,
+            target_path,
+            gid_mappings,
+            uid_mappings);
 
         // ssh lives on its own thread, use this thread to listen for quit signal
         auto sig = watchdog([&sshfs_mount] { return sshfs_mount.alive(); });

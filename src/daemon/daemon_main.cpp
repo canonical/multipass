@@ -26,6 +26,7 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform_unix.h>
 #include <multipass/signal.h>
+#include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
@@ -65,9 +66,7 @@ public:
         int sig = -1;
         sigwait(&sigset, &sig);
         if (sig != SIGUSR1)
-            mpl::log(mpl::Level::info,
-                     "daemon",
-                     fmt::format("Received signal {} ({})", sig, strsignal(sig)));
+            mpl::info("daemon", "Received signal {} ({})", sig, strsignal(sig));
 
         // In order to be able to gracefully end the application via QCoreApplication::quit()
         // the initialization (QT, Daemon) have to happen first. Otherwise, the application
@@ -98,31 +97,38 @@ int main_impl(int argc, char* argv[], mp::Signal& app_ready_signal)
                                                        // relevant settings handlers
 
     mp::Daemon daemon(std::move(config));
-    QObject::connect(&app,
-                     &QCoreApplication::aboutToQuit,
-                     &daemon,
-                     &mp::Daemon::shutdown_grpc_server,
-                     Qt::DirectConnection);
 
-    mpl::log(mpl::Level::info, "daemon", fmt::format("Starting Multipass {}", mp::version_string));
-    mpl::log(mpl::Level::info,
-             "daemon",
-             fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
+    QObject::connect(
+        &app,
+        &QCoreApplication::aboutToQuit,
+        &daemon,
+        [&daemon] { mp::top_catch_all("daemon", [&daemon] { daemon.shutdown_grpc_server(); }); },
+        Qt::DirectConnection);
+
+    mpl::info("daemon", "Starting Multipass {}", mp::version_string);
+    mpl::info("daemon", "Daemon arguments: {}", app.arguments().join(" "));
 
     // Signal the signal handler that app has completed its basic initialization, and
     // ready to process signals.
     app_ready_signal.signal();
+
     auto exit_code = QCoreApplication::exec();
     // QConcurrent::run() invocations are dispatched through the global
     // thread pool. Wait until all threads in the pool are properly cleaned up.
     QThreadPool::globalInstance()->waitForDone();
-    mpl::log(mpl::Level::info, "daemon", "Goodbye!");
+    mpl::info("daemon", "Goodbye!");
     return exit_code;
 }
 } // namespace
 
 int main(int argc, char* argv[])
 {
+    // Verify that the version of the library that we linked against is
+    // compatible with the version of the headers we compiled against.
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+    multipass::LibsshScopeGuard libssh_guard;
+
     mp::Signal app_ready_signal{};
     //
     // Register the signal handler as the first thing so the signal handler won't miss

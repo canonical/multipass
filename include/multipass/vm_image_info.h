@@ -17,52 +17,40 @@
 
 #pragma once
 
-#include <QString>
-#include <QStringList>
+#include <string>
+#include <vector>
+
+#include <boost/json.hpp>
 
 namespace multipass
 {
-class VMImageInfo
+struct VMImageInfo
 {
-public:
-    QStringList aliases;
-    QString os;
-    QString release;
-    QString release_title;
-    QString release_codename;
+    std::vector<std::string> aliases;
+    std::string os;
+    std::string release;
+    std::string release_title;
+    std::string release_codename;
     bool supported;
-    QString image_location;
-    QString id;
-    QString stream_location;
-    QString version;
+    std::string image_location;
+    std::string id;
+    std::string stream_location;
+    std::string version;
     int64_t size;
     bool verify;
+
+    friend inline bool operator==(const VMImageInfo& a, const VMImageInfo& b) = default;
 };
 
-inline bool operator==(const VMImageInfo& a, const VMImageInfo& b)
+struct ArchContext
 {
-    return std::tie(a.aliases,
-                    a.os,
-                    a.release,
-                    a.release_title,
-                    a.release_codename,
-                    a.supported,
-                    a.image_location,
-                    a.id,
-                    a.stream_location,
-                    a.version,
-                    a.size,
-                    a.verify) == std::tie(b.aliases,
-                                          b.os,
-                                          b.release,
-                                          b.release_title,
-                                          b.release_codename,
-                                          b.supported,
-                                          b.image_location,
-                                          b.id,
-                                          b.stream_location,
-                                          b.version,
-                                          b.size,
-                                          b.verify);
-}
+    std::string arch;
+};
+
+VMImageInfo tag_invoke(const boost::json::value_to_tag<VMImageInfo>&,
+                       const boost::json::value& json,
+                       const ArchContext& arch);
+
+std::unordered_map<std::string, const VMImageInfo*> map_aliases_to_vm_info(
+    const std::vector<VMImageInfo>& images);
 } // namespace multipass

@@ -4,11 +4,14 @@ import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:fpdart/fpdart.dart' hide State;
 
 import '../notifications/notifications_provider.dart';
 import '../providers.dart';
+import '../l10n/app_localizations.dart';
 import '../switch.dart';
+import 'constants.dart';
 import 'hotkey.dart';
 
 final primaryNameProvider = clientSettingProvider(primaryNameKey);
@@ -21,81 +24,104 @@ class UsageSettings extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final primaryName = ref.watch(primaryNameProvider);
-    final hasPassphrase = ref.watch(passphraseProvider.select((value) {
-      return value.valueOrNull.isNotNullOrBlank;
-    }));
-    final privilegedMounts = ref.watch(privilegedMountsProvider.select((value) {
-      return value.valueOrNull?.toBoolOption.toNullable() ?? false;
-    }));
+    final hasPassphrase = ref.watch(
+      passphraseProvider.select((value) {
+        return value.when(
+          data: (data) => data.isNotNullOrBlank,
+          loading: () => false,
+          error: (_, __) => false,
+        );
+      }),
+    );
+    final privilegedMounts = ref.watch(
+      privilegedMountsProvider.select((value) {
+        return value.when(
+          data: (data) => data.toBoolOption.toNullable() ?? false,
+          loading: () => false,
+          error: (_, __) => false,
+        );
+      }),
+    );
     final hotkey = ref.watch(hotkeyProvider);
-    final askTerminalClose = ref.watch(askTerminalCloseProvider.select((value) {
-      return value?.toBoolOption.toNullable() ?? true;
-    }));
+    final askTerminalClose = ref.watch(
+      askTerminalCloseProvider.select((value) {
+        return value?.toBoolOption.toNullable() ?? true;
+      }),
+    );
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text(
-        'Usage',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-      ),
-      const SizedBox(height: 20),
-      PrimaryNameField(
-        value: primaryName,
-        onSave: (value) {
-          ref.read(primaryNameProvider.notifier).set(value);
-        },
-      ),
-      const SizedBox(height: 20),
-      HotkeyField(
-        value: hotkey,
-        onSave: (newHotkey) => ref.read(hotkeyProvider.notifier).set(newHotkey),
-      ),
-      const SizedBox(height: 20),
-      PassphraseField(
-        hasPassphrase: hasPassphrase,
-        onSave: (value) {
-          ref
-              .read(passphraseProvider.notifier)
-              .set(value)
-              .onError(ref.notifyError((e) => 'Failed to set passphrase: $e'));
-        },
-      ),
-      const SizedBox(height: 20),
-      Switch(
-        label: 'Allow privileged mounts',
-        value: privilegedMounts,
-        trailingSwitch: true,
-        size: 30,
-        onChanged: (value) {
-          ref
-              .read(privilegedMountsProvider.notifier)
-              .set(value.toString())
-              .onError(
-                ref.notifyError((e) => 'Failed to set privileged mounts: $e'),
-              );
-        },
-      ),
-      const SizedBox(height: 20),
-      Switch(
-        label: 'Ask before closing terminal',
-        value: askTerminalClose,
-        trailingSwitch: true,
-        size: 30,
-        onChanged: (value) {
-          ref.read(askTerminalCloseProvider.notifier).set(value.toString());
-        },
-      ),
-    ]);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.usageTitle,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 20),
+        PrimaryNameField(
+          value: primaryName,
+          l10n: l10n,
+          onSave: (value) {
+            ref.read(primaryNameProvider.notifier).set(value);
+          },
+        ),
+        const SizedBox(height: 20),
+        HotkeyField(
+          value: hotkey,
+          l10n: l10n,
+          onSave: (newHotkey) =>
+              ref.read(hotkeyProvider.notifier).set(newHotkey),
+        ),
+        const SizedBox(height: 20),
+        PassphraseField(
+          hasPassphrase: hasPassphrase,
+          l10n: l10n,
+          onSave: (value) {
+            ref.read(passphraseProvider.notifier).set(value).onError(
+                  ref.notifyError((e) => l10n.usagePassphraseError('$e')),
+                );
+          },
+        ),
+        const SizedBox(height: 20),
+        Switch(
+          label: l10n.usagePrivilegedMountsLabel,
+          value: privilegedMounts,
+          trailingSwitch: true,
+          size: 30,
+          onChanged: (value) {
+            ref
+                .read(privilegedMountsProvider.notifier)
+                .set(value.toString())
+                .onError(
+                  ref.notifyError((e) => l10n.usagePrivilegedMountsError('$e')),
+                );
+          },
+        ),
+        const SizedBox(height: 20),
+        Switch(
+          label: l10n.usageAskTerminalCloseLabel,
+          value: askTerminalClose,
+          trailingSwitch: true,
+          size: 30,
+          onChanged: (value) {
+            ref.read(askTerminalCloseProvider.notifier).set(value.toString());
+          },
+        ),
+      ],
+    );
   }
 }
 
 class PrimaryNameField extends StatefulWidget {
   final String value;
+  final AppLocalizations l10n;
   final ValueChanged<String> onSave;
 
   const PrimaryNameField({
     super.key,
     required this.value,
+    required this.l10n,
     required this.onSave,
   });
 
@@ -132,7 +158,7 @@ class _PrimaryNameFieldState extends State<PrimaryNameField> {
   @override
   Widget build(BuildContext context) {
     return SettingField(
-      label: 'Primary instance name',
+      label: widget.l10n.usagePrimaryNameLabel,
       onSave: () {
         if (formKey.currentState!.validate()) widget.onSave(controller.text);
       },
@@ -148,14 +174,18 @@ class _PrimaryNameFieldState extends State<PrimaryNameField> {
           value ??= '';
           if (value.isEmpty) return null;
           if (RegExp(r'^[^A-Za-z]').hasMatch(value)) {
-            return 'Name must start with a letter';
+            return widget.l10n.usagePrimaryNameErrorStartLetter;
           }
-          if (value.length < 2) return 'Name must be at least 2 characters';
-          if (value.endsWith('-')) return 'Name must end in digit or letter';
+          if (value.length < 2) {
+            return widget.l10n.usagePrimaryNameErrorTooShort;
+          }
+          if (value.endsWith('-')) {
+            return widget.l10n.usagePrimaryNameErrorEndChar;
+          }
           return null;
         },
         inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp('[-A-Za-z0-9]'))
+          FilteringTextInputFormatter.allow(RegExp('[-A-Za-z0-9]')),
         ],
       ),
     );
@@ -164,13 +194,14 @@ class _PrimaryNameFieldState extends State<PrimaryNameField> {
 
 class HotkeyField extends StatefulWidget {
   final SingleActivator? value;
+  final AppLocalizations l10n;
   final ValueChanged<SingleActivator?> onSave;
 
-  const HotkeyField({
-    super.key,
-    required this.value,
-    required this.onSave,
-  });
+  const HotkeyField(
+      {super.key,
+      required this.value,
+      required this.l10n,
+      required this.onSave});
 
   @override
   State<HotkeyField> createState() => _HotkeyFieldState();
@@ -202,7 +233,7 @@ class _HotkeyFieldState extends State<HotkeyField> {
   @override
   Widget build(BuildContext context) {
     return SettingField(
-      label: 'Primary instance hotkey',
+      label: widget.l10n.usageHotkeyLabel,
       onSave: () => widget.onSave(value),
       onDiscard: () => setState(() {
         recorderState.currentState?.set(widget.value);
@@ -223,11 +254,13 @@ class _HotkeyFieldState extends State<HotkeyField> {
 
 class PassphraseField extends StatefulWidget {
   final bool hasPassphrase;
+  final AppLocalizations l10n;
   final ValueChanged<String> onSave;
 
   const PassphraseField({
     super.key,
     required this.hasPassphrase,
+    required this.l10n,
     required this.onSave,
   });
 
@@ -266,7 +299,7 @@ class _PassphraseFieldState extends State<PassphraseField> {
   @override
   Widget build(BuildContext context) {
     return SettingField(
-      label: 'Authentication passphrase',
+      label: widget.l10n.usagePassphraseLabel,
       onSave: () {
         widget.onSave(controller.text);
         controller.clear();
@@ -300,22 +333,25 @@ class SettingField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Expanded(child: Text(label, style: const TextStyle(fontSize: 16))),
-      const SizedBox(width: 12),
-      if (changed) ...[
-        OutlinedButton(
-          onPressed: onSave,
-          child: const Icon(Icons.check, color: Color(0xff0E8620)),
-        ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: Text(label, style: const TextStyle(fontSize: 16))),
         const SizedBox(width: 12),
-        OutlinedButton(
-          onPressed: onDiscard,
-          child: const Icon(Icons.close, color: Color(0xffC7162B)),
-        ),
-        const SizedBox(width: 12),
+        if (changed) ...[
+          OutlinedButton(
+            onPressed: onSave,
+            child: const Icon(Icons.check, color: Color(0xff0E8620)),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton(
+            onPressed: onDiscard,
+            child: const Icon(Icons.close, color: Color(0xffC7162B)),
+          ),
+          const SizedBox(width: 12),
+        ],
+        SizedBox(width: settingFieldWidth, child: child),
       ],
-      SizedBox(width: 260, child: child),
-    ]);
+    );
   }
 }

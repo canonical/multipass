@@ -28,6 +28,7 @@
 #include <QObject>
 #include <QStringList>
 
+#include <chrono>
 #include <unordered_map>
 
 namespace multipass
@@ -45,6 +46,7 @@ public:
                        QemuPlatform* qemu_platform,
                        VMStatusMonitor& monitor,
                        const SSHKeyProvider& key_provider,
+                       AvailabilityZone& zone,
                        const Path& instance_dir,
                        bool remove_snapshots = false);
     ~QemuVirtualMachine();
@@ -54,16 +56,13 @@ public:
     void suspend() override;
     State current_state() override;
     int ssh_port() override;
-    std::string ssh_hostname(std::chrono::milliseconds timeout) override;
+    std::string ssh_hostname() override;
     std::string ssh_username() override;
-    std::string management_ipv4() override;
-    std::string ipv6() override;
-    void ensure_vm_is_running() override;
+    std::optional<IPAddress> management_ipv4() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
-    void update_state() override;
+    void handle_state_update() override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
-    void resize_disk(const MemorySize& new_size) override;
     virtual void add_network_interface(int index,
                                        const std::string& default_mac_addr,
                                        const NetworkInterface& extra_interface) override;
@@ -79,18 +78,22 @@ protected:
     // TODO remove this, the onus of composing a VM of stubs should be on the stub VMs
     QemuVirtualMachine(const std::string& name,
                        const SSHKeyProvider& key_provider,
+                       AvailabilityZone& zone,
                        const Path& instance_dir)
-        : BaseVirtualMachine{name, key_provider, instance_dir}
+        : BaseVirtualMachine{name, {}, key_provider, zone, instance_dir}
     {
     }
 
-    void require_snapshots_support() const override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,
                                                      const std::string& instance_id,
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
+    void resize_disk_impl(const MemorySize& new_size) override;
+
+    bool unplugged() override;
+    void refresh_start() override;
 
 private:
     void on_started();
@@ -104,12 +107,10 @@ private:
     void disconnect_vm_signals();
     void remove_snapshots_from_backend() const;
 
-    VirtualMachineDescription desc;
     std::unique_ptr<Process> vm_process{nullptr};
     QemuPlatform* qemu_platform;
     VMStatusMonitor* monitor;
     MountArgs mount_args;
-    std::string saved_error_msg;
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};
     bool force_shutdown{false};
@@ -118,7 +119,3 @@ private:
     std::chrono::steady_clock::time_point network_deadline;
 };
 } // namespace multipass
-
-inline void multipass::QemuVirtualMachine::require_snapshots_support() const
-{
-}

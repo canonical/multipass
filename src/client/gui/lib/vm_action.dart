@@ -2,6 +2,7 @@ import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
 
 import 'grpc_client.dart';
+import 'l10n/app_localizations.dart';
 
 enum VmAction {
   start,
@@ -11,48 +12,24 @@ enum VmAction {
   delete,
   recover,
   purge,
-  edit,
-  ;
+  edit;
 
-  String get name => switch (this) {
-        start => 'Start',
-        stop => 'Stop',
-        suspend => 'Suspend',
-        restart => 'Restart',
-        delete => 'Delete',
-        recover => 'Recover',
-        purge => 'Purge',
-        edit => 'Edit',
-      };
-
-  String get pastTense => switch (this) {
-        start => 'Started',
-        stop => 'Stopped',
-        suspend => 'Suspended',
-        restart => 'Restarted',
-        delete => 'Deleted',
-        recover => 'Recovered',
-        purge => 'Purged',
-        edit => 'Edited',
-      };
-
-  String get continuousTense => switch (this) {
-        start => 'Starting',
-        stop => 'Stopping',
-        suspend => 'Suspending',
-        restart => 'Restarting',
-        delete => 'Deleting',
-        recover => 'Recovering',
-        purge => 'Purging',
-        edit => 'Editing',
-      };
+  String label(AppLocalizations l10n) => l10n.vmActionLabel(name);
+  String pastTense(AppLocalizations l10n) => l10n.vmActionPastTense(name);
+  String continuousTense(AppLocalizations l10n) =>
+      l10n.vmActionContinuousTense(name);
 
   Set<Status> get allowedStatuses => switch (this) {
         start => const {Status.STOPPED, Status.SUSPENDED},
         stop => const {Status.RUNNING},
         suspend => const {Status.RUNNING},
         restart => const {Status.RUNNING},
-        delete => const {Status.STOPPED, Status.SUSPENDED, Status.RUNNING},
+        delete => const {
+            Status.STOPPED,
+            Status.SUSPENDED,
+            Status.RUNNING,
+            Status.UNAVAILABLE,
+          },
         recover => const {Status.DELETED},
         purge => const {Status.DELETED},
         edit => const {Status.STOPPED},
@@ -73,24 +50,25 @@ class VmActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final enabled = action.allowedStatuses.containsAny(currentStatuses);
     final onPressed = enabled ? function : null;
-    return _buildButton(onPressed);
+    return _buildButton(onPressed, l10n);
   }
 
-  Widget _buildButton(VoidCallback? onPressed) {
+  Widget _buildButton(VoidCallback? onPressed, AppLocalizations l10n) {
     return OutlinedButton(
       onPressed: onPressed,
       style: ButtonStyle(
-        side: MaterialStateBorderSide.resolveWith(
+        side: WidgetStateBorderSide.resolveWith(
           (states) => BorderSide(
-            color: const Color(0xff333333).withOpacity(
-              states.contains(MaterialState.disabled) ? 0.5 : 1,
-            ),
+            color: const Color(
+              0xff333333,
+            ).withAlpha(states.contains(WidgetState.disabled) ? 128 : 255),
           ),
         ),
       ),
-      child: Text(action.name),
+      child: Text(action.label(l10n)),
     );
   }
 }

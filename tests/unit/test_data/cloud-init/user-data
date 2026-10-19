@@ -1,0 +1,6 @@
+#cloud-config
+chpasswd:
+  list: |
+     root:password
+     alpine:password
+  expire: False

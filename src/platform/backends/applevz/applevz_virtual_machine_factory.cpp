@@ -1,0 +1,108 @@
+/*
+ * Copyright (C) Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include <applevz/applevz_utils.h>
+#include <applevz/applevz_virtual_machine.h>
+#include <applevz/applevz_virtual_machine_factory.h>
+#include <multipass/utils/qemu_img_utils.h>
+#include <shared/macos/backend_utils.h>
+
+namespace mp = multipass;
+
+namespace multipass::applevz
+{
+AppleVZVirtualMachineFactory::AppleVZVirtualMachineFactory(const Path& data_dir,
+                                                           AvailabilityZoneManager& az_manager)
+    : BaseVirtualMachineFactory(
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
+          az_manager)
+{
+    mp::backend::enable_cross_zone_routing(az_manager);
+}
+
+VirtualMachine::UPtr AppleVZVirtualMachineFactory::create_virtual_machine(
+    const VirtualMachineDescription& desc,
+    const SSHKeyProvider& key_provider,
+    VMStatusMonitor& monitor)
+{
+    return std::make_unique<mp::applevz::AppleVZVirtualMachine>(
+        desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(desc.zone),
+        get_instance_directory(desc.vm_name));
+}
+
+VMImage AppleVZVirtualMachineFactory::prepare_source_image(const VMImage& source_image)
+{
+    VMImage image{source_image};
+    image.image_path = MP_APPLEVZ_UTILS.convert_to_supported_format(source_image.image_path);
+    return image;
+}
+
+void AppleVZVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,
+                                                          const VirtualMachineDescription& desc)
+{
+    MP_APPLEVZ_UTILS.resize_image(desc.disk_space, instance_image.image_path);
+}
+
+mp::MemorySize AppleVZVirtualMachineFactory::virtual_size_for(
+    const std::filesystem::path& image_path) const
+{
+    return MP_APPLEVZ_UTILS.image_capacity(image_path);
+}
+
+void AppleVZVirtualMachineFactory::hypervisor_health_check()
+{
+    if (!MP_APPLEVZ.is_supported())
+    {
+        throw std::runtime_error("Virtualization is not supported on this system.");
+    }
+
+    // Re-assert cross-zone routing in case macOS reloaded its pf anchors
+    mp::backend::enable_cross_zone_routing(az_manager);
+}
+
+void AppleVZVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
+{
+}
+
+std::vector<NetworkInterfaceInfo> AppleVZVirtualMachineFactory::networks() const
+{
+    return MP_APPLEVZ.bridged_network_interfaces();
+}
+
+std::string AppleVZVirtualMachineFactory::create_bridge_with(const NetworkInterfaceInfo& interface)
+{
+    return interface.id;
+}
+
+VirtualMachine::UPtr AppleVZVirtualMachineFactory::clone_vm_impl(
+    const std::string& /*source_vm_name*/,
+    const mp::VMSpecs& /*src_vm_specs*/,
+    const VirtualMachineDescription& desc,
+    VMStatusMonitor& monitor,
+    const SSHKeyProvider& key_provider)
+{
+    return std::make_unique<mp::applevz::AppleVZVirtualMachine>(
+        desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(desc.zone),
+        get_instance_directory(desc.vm_name));
+}
+} // namespace multipass::applevz

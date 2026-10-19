@@ -27,10 +27,13 @@ namespace multipass
 constexpr auto client_name = "multipass";
 constexpr auto daemon_name = "multipassd";
 
+constexpr auto release_remote = "release";
+constexpr auto daily_remote = "daily";
 constexpr auto snapcraft_remote = "snapcraft";
+constexpr auto core_remote = "core";
 
-constexpr auto min_memory_size = "128M";
-constexpr auto min_disk_size = "512M";
+constexpr auto min_memory_size = "512M";
+constexpr auto min_disk_size = "1G";
 constexpr auto min_cpu_cores = "1";
 
 constexpr auto default_memory_size = "1G";
@@ -44,7 +47,7 @@ constexpr auto home_automount_dir = "Home";
 
 constexpr auto multipass_storage_env_var = "MULTIPASS_STORAGE";
 constexpr auto driver_env_var = "MULTIPASS_VM_DRIVER";
-constexpr auto blueprints_url_env_var = "MULTIPASS_BLUEPRINTS_URL";
+constexpr auto distributions_url_env_var = "MULTIPASS_DISTRIBUTIONS_URL";
 
 constexpr auto winterm_profile_guid =
     "{aaaa9e6d-1e09-4be6-b76c-82b4ba1885fb}"; // identifies the primary Multipass profile in Windows
@@ -68,10 +71,14 @@ constexpr auto cloud_init_file_name = "cloud-init-config.iso";
 
 [[maybe_unused]] // hands off clang-format
 constexpr auto key_examples = {petenv_key, driver_key, mounts_key};
-
 constexpr auto petenv_default = "primary";
-
 constexpr auto timeout_exit_code = 5;
-
 constexpr auto authenticated_certs_dir = "authenticated-certs";
+constexpr auto home_in_instance = "/home/ubuntu";
+
+constexpr std::chrono::milliseconds vm_shutdown_timeout =
+    300000ms; // unit: ms, 5 minute timeout for shutdown/suspend
+constexpr auto default_ssh_port = 22;
+constexpr auto default_zone_names = {"zone1", "zone2", "zone3"};
+constexpr auto default_grpc_server_tcp_listen_address = "localhost:25051";
 } // namespace multipass

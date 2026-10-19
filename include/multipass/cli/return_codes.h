@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <variant>
+
 namespace multipass
 {
 enum class ParseCode
@@ -32,6 +34,24 @@ enum ReturnCode
     CommandLineError = 1,
     CommandFail = 2,
     DaemonFail = 3,
-    Retry = 4
+    Retry = 4,
+    ShellExecFail = 255,
 };
+
+// The purpose of this enum is to have a compile-time tagged int for VM-internal return codes
+enum VMReturnCode
+{
+};
+// Only implicitly int-convertible types should be used here. If at least 2 of the same type are
+// used, index-based get<> and holds_alternative<> are needed.
+using ReturnCodeVariant = std::variant<ReturnCode, VMReturnCode>;
+
+inline bool operator==(ReturnCodeVariant rc1, ReturnCode rc2)
+{
+    // A VMReturnCode can only be obtained if everything in multipass works properly and we manage
+    // to obtain that code. In that case, the mp::ReturnCode can only be ReturnCode::Ok.
+    if (auto* rc = std::get_if<ReturnCode>(&rc1))
+        return *rc == rc2;
+    return rc2 == ReturnCode::Ok;
+}
 } // namespace multipass

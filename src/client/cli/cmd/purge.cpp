@@ -24,7 +24,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Purge::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
@@ -32,7 +32,7 @@ mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto on_success = [this](mp::PurgeReply& reply) {
+    auto on_success = [this](mp::PurgeReply& reply) -> ReturnCodeVariant {
         auto size = reply.purged_instances_size();
         for (auto i = 0; i < size; ++i)
         {
@@ -63,7 +63,7 @@ mp::ReturnCode cmd::Purge::run(mp::ArgParser* parser)
         return mp::ReturnCode::Ok;
     };
 
-    auto on_failure = [this](grpc::Status& status) {
+    auto on_failure = [this](grpc::Status& status) -> ReturnCodeVariant {
         return standard_failure_handler_for(name(), cerr, status);
     };
 

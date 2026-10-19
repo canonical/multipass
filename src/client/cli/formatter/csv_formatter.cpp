@@ -18,58 +18,35 @@
 #include <multipass/cli/csv_formatter.h>
 #include <multipass/cli/format_utils.h>
 #include <multipass/format.h>
+#include <multipass/utils.h>
+#include <multipass/utils/sorted_map_view.h>
 
 namespace mp = multipass;
 
 namespace
 {
-std::string format_images(
-    const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
-    std::string type)
+template <typename Dest>
+void format_images(Dest&& dest,
+                   const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
+                   std::string type)
 {
-    fmt::memory_buffer buf;
-
     for (const auto& image : images_info)
     {
-        auto aliases = image.aliases_info();
-
+        auto aliases = image.aliases();
         mp::format::filter_aliases(aliases);
 
-        auto image_id = aliases[0].remote_name().empty()
-                            ? aliases[0].alias()
-                            : fmt::format("{}:{}", aliases[0].remote_name(), aliases[0].alias());
+        auto image_id = mp::format::image_string_for(image.remote_name(), aliases[0]);
 
-        fmt::format_to(std::back_inserter(buf),
+        fmt::format_to(dest,
                        "{},{},{},{},{},{},{}\n",
                        image_id,
-                       aliases[0].remote_name(),
+                       image.remote_name(),
                        fmt::join(aliases.cbegin() + 1, aliases.cend(), ";"),
                        image.os(),
                        image.release(),
                        image.version(),
                        type);
     }
-
-    return fmt::to_string(buf);
-}
-
-std::string format_mounts(const mp::MountInfo& mount_info)
-{
-    fmt::memory_buffer buf;
-    const auto& mount_paths = mount_info.mount_paths();
-
-    if (!mount_paths.size())
-        return {};
-
-    auto mount = mount_paths.cbegin();
-    for (; mount != --mount_paths.cend(); ++mount)
-        fmt::format_to(std::back_inserter(buf),
-                       "{} => {};",
-                       mount->source_path(),
-                       mount->target_path());
-    fmt::format_to(std::back_inserter(buf), "{} => {}", mount->source_path(), mount->target_path());
-
-    return fmt::to_string(buf);
 }
 
 std::string generate_snapshot_details(const mp::InfoReply reply)
@@ -85,17 +62,13 @@ std::string generate_snapshot_details(const mp::InfoReply reply)
         const auto& fundamentals = info.snapshot_info().fundamentals();
 
         fmt::format_to(std::back_inserter(buf),
-                       "{},{},{},{},{},",
+                       "{},{},{},{},{},{},{},{},{},\"{}\"\n",
                        fundamentals.snapshot_name(),
                        info.name(),
                        info.cpu_count(),
                        info.disk_total(),
-                       info.memory_total());
-
-        fmt::format_to(std::back_inserter(buf), format_mounts(info.mount_info()));
-
-        fmt::format_to(std::back_inserter(buf),
-                       ",{},{},{},\"{}\"\n",
+                       info.memory_total(),
+                       info.mount_info(),
                        MP_FORMAT_UTILS.convert_to_user_locale(fundamentals.creation_timestamp()),
                        fundamentals.parent(),
                        fmt::join(info.snapshot_info().children(), ";"),
@@ -115,41 +88,35 @@ std::string generate_instance_details(const mp::InfoReply reply)
 
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf),
-                   "Name,State,Ipv4,Ipv6,Release,Image hash,Image release,Load,Disk usage,Disk "
-                   "total,Memory usage,Memory "
-                   "total,Mounts,AllIPv4,CPU(s){}\n",
+                   "Name,State,Zone,Zone available,Ipv4,Release,Image hash,"
+                   "Image release,Load,Disk usage,Disk total,Memory usage,"
+                   "Memory total,Mounts,AllIPv4,CPU(s){}\n",
                    have_num_snapshots ? ",Snapshots" : "");
 
     for (const auto& info : mp::format::sorted(reply.details()))
     {
         const auto& instance_details = info.instance_info();
 
-        fmt::format_to(std::back_inserter(buf),
-                       "{},{},{},{},{},{},{},{},{},{},{},{},",
-                       info.name(),
-                       mp::format::status_string_for(info.instance_status()),
-                       instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
-                       instance_details.ipv6_size() ? instance_details.ipv6(0) : "",
-                       instance_details.current_release(),
-                       instance_details.id(),
-                       instance_details.image_release(),
-                       instance_details.load(),
-                       instance_details.disk_usage(),
-                       info.disk_total(),
-                       instance_details.memory_usage(),
-                       info.memory_total());
-
-        fmt::format_to(std::back_inserter(buf), format_mounts(info.mount_info()));
-
-        fmt::format_to(std::back_inserter(buf),
-                       ",{},{}",
-                       fmt::join(instance_details.ipv4(), ";"),
-                       info.cpu_count());
-
-        fmt::format_to(std::back_inserter(buf),
-                       "{}\n",
-                       have_num_snapshots ? fmt::format(",{}", instance_details.num_snapshots())
-                                          : "");
+        fmt::format_to(
+            std::back_inserter(buf),
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}{}\n",
+            info.name(),
+            mp::format::status_string_for(info.instance_status()),
+            !info.zone().name().empty() ? info.zone().name() : std::string{"n/a"},
+            !info.zone().name().empty() ? fmt::to_string(info.zone().available()) : std::string{},
+            instance_details.ipv4_size() ? instance_details.ipv4(0) : "",
+            instance_details.current_release(),
+            instance_details.id(),
+            instance_details.image_release(),
+            instance_details.load(),
+            instance_details.disk_usage(),
+            info.disk_total(),
+            instance_details.memory_usage(),
+            info.memory_total(),
+            info.mount_info(),
+            fmt::join(instance_details.ipv4(), ";"),
+            info.cpu_count(),
+            have_num_snapshots ? fmt::format(",{}", instance_details.num_snapshots()) : "");
     }
 
     return fmt::to_string(buf);
@@ -159,20 +126,24 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
 {
     fmt::memory_buffer buf;
 
-    fmt::format_to(std::back_inserter(buf), "Name,State,IPv4,IPv6,Release,AllIPv4\n");
+    fmt::format_to(std::back_inserter(buf),
+                   "Name,State,IPv4,Release,AllIPv4,Zone,Zone available\n");
 
     for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
-        fmt::format_to(std::back_inserter(buf),
-                       "{},{},{},{},{},\"{}\"\n",
-                       instance.name(),
-                       mp::format::status_string_for(instance.instance_status()),
-                       instance.ipv4_size() ? instance.ipv4(0) : "",
-                       instance.ipv6_size() ? instance.ipv6(0) : "",
-                       instance.current_release().empty()
-                           ? "Not Available"
-                           : fmt::format("Ubuntu {}", instance.current_release()),
-                       fmt::join(instance.ipv4(), ","));
+        fmt::format_to(
+            std::back_inserter(buf),
+            "{},{},{},{},\"{}\",{},{}\n",
+            instance.name(),
+            mp::format::status_string_for(instance.instance_status()),
+            instance.ipv4_size() ? instance.ipv4(0) : "",
+            instance.current_release().empty()
+                ? "Not Available"
+                : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release())),
+            fmt::join(instance.ipv4(), ","),
+            !instance.zone().name().empty() ? instance.zone().name() : std::string{"n/a"},
+            !instance.zone().name().empty() ? fmt::to_string(instance.zone().available())
+                                            : std::string{});
     }
 
     return fmt::to_string(buf);
@@ -256,9 +227,7 @@ std::string mp::CSVFormatter::format(const FindReply& reply) const
     fmt::memory_buffer buf;
 
     fmt::format_to(std::back_inserter(buf), "Image,Remote,Aliases,OS,Release,Version,Type\n");
-    fmt::format_to(std::back_inserter(buf), format_images(reply.images_info(), "Cloud Image"));
-    fmt::format_to(std::back_inserter(buf),
-                   format_images(reply.blueprints_info(), "Blueprint (deprecated)"));
+    format_images(std::back_inserter(buf), reply.images_info(), "Cloud Image");
 
     return fmt::to_string(buf);
 }
@@ -286,21 +255,39 @@ std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "Alias,Instance,Command,Working directory,Context\n");
 
-    for (const auto& [context_name, context_contents] : sort_dict(aliases))
+    for (const auto& [context_name, context_contents] : sorted_map_view(aliases))
     {
-        std::string shown_context =
-            context_name == aliases.active_context_name() ? context_name + "*" : context_name;
+        std::string shown_context = context_name.get() == aliases.active_context_name()
+                                      ? context_name.get() + "*"
+                                      : context_name.get();
 
-        for (const auto& [name, def] : sort_dict(context_contents))
+        for (const auto& [name, def] : sorted_map_view(context_contents.get()))
         {
             fmt::format_to(std::back_inserter(buf),
                            "{},{},{},{},{}\n",
-                           name,
-                           def.instance,
-                           def.command,
-                           def.working_directory,
+                           name.get(),
+                           def.get().instance,
+                           def.get().command,
+                           def.get().working_directory,
                            shown_context);
         }
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string mp::CSVFormatter::format(const ZonesReply& reply) const
+{
+    fmt::memory_buffer buf;
+    fmt::format_to(std::back_inserter(buf), "Name,Available,Subnet\n");
+
+    for (const auto& zone : reply.zones())
+    {
+        fmt::format_to(std::back_inserter(buf),
+                       "{},{},{}\n",
+                       zone.name(),
+                       zone.available(),
+                       zone.subnet());
     }
 
     return fmt::to_string(buf);

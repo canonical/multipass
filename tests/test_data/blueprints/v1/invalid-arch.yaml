@@ -1,8 +1,0 @@
-description: An invalid arch blueprint
-version: 0.1
-
-runs-on: arch
-
-instances:
-  arch-only:
-    image: "daily:bionic"

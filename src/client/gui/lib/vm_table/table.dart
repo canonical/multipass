@@ -26,10 +26,7 @@ class TableHeader<T> {
     return Container(
       alignment: Alignment.centerLeft,
       margin: const EdgeInsets.only(left: 10),
-      child: Text(name,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          )),
+      child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 }
@@ -37,13 +34,13 @@ class TableHeader<T> {
 class Table<T> extends StatefulWidget {
   final List<TableHeader<T>> headers;
   final List<T> data;
-  final List<Widget> finalRow;
+  final List<Widget>? finalRow;
 
   const Table({
     super.key,
     required this.headers,
     required this.data,
-    required this.finalRow,
+    this.finalRow,
   });
 
   @override
@@ -69,10 +66,7 @@ class _TableState<T> extends State<Table<T>> {
   Widget addScrollbars(TableView table) {
     return Scrollbar(
       controller: vertical,
-      child: Scrollbar(
-        controller: horizontal,
-        child: table,
-      ),
+      child: Scrollbar(controller: horizontal, child: table),
     );
   }
 
@@ -103,16 +97,18 @@ class _TableState<T> extends State<Table<T>> {
       ),
     );
 
-    final title = Stack(children: [
-      Positioned.fill(child: header.childBuilder(header.name)),
-      if (index == sortIndex)
-        Align(
-          alignment: Alignment.centerRight,
-          child: sortAscending
-              ? const Icon(Icons.arrow_drop_up_rounded)
-              : const Icon(Icons.arrow_drop_down_rounded),
-        ),
-    ]);
+    final title = Stack(
+      children: [
+        Positioned.fill(child: header.childBuilder(header.name)),
+        if (index == sortIndex)
+          Align(
+            alignment: Alignment.centerRight,
+            child: sortAscending
+                ? const Icon(Icons.arrow_drop_up_rounded)
+                : const Icon(Icons.arrow_drop_down_rounded),
+          ),
+      ],
+    );
 
     setSorting() {
       setState(() {
@@ -126,10 +122,14 @@ class _TableState<T> extends State<Table<T>> {
       });
     }
 
-    return Stack(children: [
-      header.sortKey != null ? InkWell(onTap: setSorting, child: title) : title,
-      Align(alignment: Alignment.centerRight, child: resizeHandle),
-    ]);
+    return Stack(
+      children: [
+        header.sortKey != null
+            ? InkWell(onTap: setSorting, child: title)
+            : title,
+        Align(alignment: Alignment.centerRight, child: resizeHandle),
+      ],
+    );
   }
 
   List<Widget> buildRow(T entry) {
@@ -160,7 +160,7 @@ class _TableState<T> extends State<Table<T>> {
     final cells = [
       headerCells,
       ...data.map(buildRow),
-      widget.finalRow,
+      if (widget.finalRow != null) widget.finalRow,
     ];
 
     final table = TableView.builder(

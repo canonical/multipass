@@ -61,51 +61,24 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
 endif ()
 
 # set (CPACK_PACKAGE_DESCRIPTION_FILE ...)
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Easily create, control and connect to Ubuntu instances")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Easily create, control and connect to cloud instances")
 
 if (MSVC)
-  # multipassd depends on qemu-img.exe indirectly (called to convert qcow images to VHDX format)
-  find_program(QEMU_IMG qemu-img.exe PATH_SUFFIXES "qemu")
-  if (NOT QEMU_IMG)
-    message(FATAL_ERROR "qemu-img not found!")
-  endif()
+  # qemu-img.exe (used to convert qcow images to VHDX) is built by the vcpkg
+  # qemu overlay port and installed into the multipassd component by
+  # src/cmake/qemu-img-install-and-copy.cmake, so no separate lookup, shim
+  # resolution or dependency fixup is needed here. The vcpkg binary is built
+  # fully statically (it links only system DLLs), so fixup_bundle is unnecessary.
 
   # InstallRequiredSystemLibraries finds the VC redistributable dlls shipped with the Visual Studio compiler tools
   # and creats an install(PROGRAMS ...) rule using the destination and component IDs setup below.
   set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION bin)
   set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT multipassd)
-  if(cmake_build_type_lower STREQUAL "debug")
+  if(CMAKE_BUILD_TYPE_LOWER STREQUAL "debug")
     set(CMAKE_INSTALL_DEBUG_LIBRARIES TRUE)
     set(CMAKE_INSTALL_UCRT_LIBRARIES TRUE)
   endif()
   include(InstallRequiredSystemLibraries)
-
-  # The qemu-img path found may actually be a chocolatey generated shim.  Thankfully such shims have a command line
-  # option that returns the actual executable target of the shim.
-  execute_process(COMMAND ${QEMU_IMG} --shimgen-noop
-    OUTPUT_VARIABLE QEMU_IMG_OUTPUT)
-  string(REGEX MATCH "path to executable: (.*)[\n\r\t ]+working" QEMU_IMG_OUTPUT_REGEX_MATCH "${QEMU_IMG_OUTPUT}")
-  if (CMAKE_MATCH_1)
-    set(REAL_QEMU_IMG ${CMAKE_MATCH_1})
-    string(REPLACE "\\" "/" REAL_QEMU_IMG ${REAL_QEMU_IMG})
-    string(STRIP ${REAL_QEMU_IMG} REAL_QEMU_IMG)
-  else()
-    set(REAL_QEMU_IMG ${QEMU_IMG})
-  endif()
-
-  # Finally copy the real qemu-img executable into our package
-  install(FILES "${REAL_QEMU_IMG}" DESTINATION bin COMPONENT multipassd)
-
-  # fixup_bundle determines the dependencies of the given executable and copies them into the final package.
-  # fixup_bundle assumes the copy destination is the same directory of the given executable, hence why it's pre-fixed
-  # with CMAKE_INSTALL_PREFIX as that contains the correct directory where the package is assembled.
-  # The third parameter of fixup_bundle is a directory to search for dependencies; here we assume qemu-img.exe deps
-  # are contained in the same source directory where it was copied from
-  get_filename_component(QEMU_IMG_DIR ${REAL_QEMU_IMG} DIRECTORY)
-  install(CODE "
-    include(BundleUtilities)
-    fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/bin/qemu-img.exe\"  \"\"  \"${QEMU_IMG_DIR}\")
-    " COMPONENT multipassd)
 
   set(CPACK_SOURCE_DIR "${CMAKE_SOURCE_DIR}")
   set(CPACK_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
@@ -125,17 +98,19 @@ if(APPLE)
   set(CPACK_productbuild_COMPONENT_INSTALL ON)
 
   set(CPACK_PACKAGING_INSTALL_PREFIX   "/Library/Application Support/com.canonical.multipass")
-  list(APPEND CPACK_INSTALL_COMMANDS "bash -x ${CMAKE_SOURCE_DIR}/packaging/macos/fixup-qt6-libs-rpath.sh ${CMAKE_BINARY_DIR}")
-  list(APPEND CPACK_INSTALL_COMMANDS "bash -x ${CMAKE_SOURCE_DIR}/packaging/macos/install-ssl-libs.sh ${CMAKE_BINARY_DIR}")
   list(APPEND CPACK_INSTALL_COMMANDS "bash -x ${CMAKE_SOURCE_DIR}/packaging/macos/fixup-qemu-and-deps.sh ${CMAKE_BINARY_DIR}")
 
   set(MULTIPASSD_PLIST "com.canonical.multipassd.plist")
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/${MULTIPASSD_PLIST}.in"
                  "${CMAKE_BINARY_DIR}/${MULTIPASSD_PLIST}" @ONLY)
+  configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipassd.sh.in"
+                 "${CMAKE_BINARY_DIR}/preinstall-multipassd.sh" @ONLY)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipassd.sh.in"
                  "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh" @ONLY)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipass.sh.in"
                  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh" @ONLY)
+  configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipass-gui.sh.in"
+                 "${CMAKE_BINARY_DIR}/preinstall-multipass-gui.sh" @ONLY)
   configure_file("${CMAKE_SOURCE_DIR}/packaging/macos/postinstall-multipass-gui.sh.in"
                  "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh" @ONLY)
 
@@ -145,9 +120,10 @@ if(APPLE)
 
   set(CPACK_COMPONENT_MULTIPASS_GUI_PLIST "${CMAKE_SOURCE_DIR}/packaging/macos/multipass-gui-component.plist")
 
-  set(CPACK_PREFLIGHT_MULTIPASSD_SCRIPT  "${CMAKE_SOURCE_DIR}/packaging/macos/preinstall-multipassd.sh")
+  set(CPACK_PREFLIGHT_MULTIPASSD_SCRIPT  "${CMAKE_BINARY_DIR}/preinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASSD_SCRIPT "${CMAKE_BINARY_DIR}/postinstall-multipassd.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass.sh")
+  set(CPACK_PREFLIGHT_MULTIPASS_GUI_SCRIPT  "${CMAKE_BINARY_DIR}/preinstall-multipass-gui.sh")
   set(CPACK_POSTFLIGHT_MULTIPASS_GUI_SCRIPT  "${CMAKE_BINARY_DIR}/postinstall-multipass-gui.sh")
 
   # Cleans up the installed package

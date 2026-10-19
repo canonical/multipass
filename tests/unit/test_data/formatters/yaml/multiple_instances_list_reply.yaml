@@ -1,0 +1,16 @@
+bogus-instance:
+  - state: Running
+    zone:
+      name: zone1
+      available: true
+    ipv4:
+      - 10.21.124.56
+    release: Ubuntu 16.04 LTS
+bombastic:
+  - state: Stopped
+    zone:
+      name: zone2
+      available: false
+    ipv4:
+      []
+    release: Ubuntu 18.04 LTS

@@ -30,7 +30,7 @@ namespace multipass
 class QemuVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
-    explicit QemuVirtualMachineFactory(const Path& data_dir);
+    explicit QemuVirtualMachineFactory(const Path& data_dir, AvailabilityZoneManager& az_manager);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
@@ -42,8 +42,6 @@ public:
     QString get_backend_version_string() const override;
     QString get_backend_directory_name() const override;
     std::vector<NetworkInterfaceInfo> networks() const override;
-    void require_snapshots_support() const override;
-    void require_clone_support() const override;
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
 
 protected:
@@ -51,7 +49,9 @@ protected:
     std::string create_bridge_with(const NetworkInterfaceInfo& interface) override;
 
 private:
-    QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform, const Path& data_dir);
+    QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform,
+                              const Path& data_dir,
+                              AvailabilityZoneManager& az_manager);
     VirtualMachine::UPtr clone_vm_impl(const std::string& source_vm_name,
                                        const multipass::VMSpecs& src_vm_specs,
                                        const VirtualMachineDescription& desc,
@@ -61,11 +61,3 @@ private:
     QemuPlatform::UPtr qemu_platform;
 };
 } // namespace multipass
-
-inline void multipass::QemuVirtualMachineFactory::require_snapshots_support() const
-{
-}
-
-inline void multipass::QemuVirtualMachineFactory::require_clone_support() const
-{
-}

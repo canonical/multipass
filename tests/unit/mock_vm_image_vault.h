@@ -1,0 +1,83 @@
+/*
+ * Copyright (C) Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#pragma once
+
+#include "common.h"
+#include "mock_image_host.h"
+#include "temp_file.h"
+
+#include <multipass/query.h>
+#include <multipass/vm_image_vault.h>
+
+using namespace testing;
+
+namespace multipass
+{
+namespace test
+{
+class MockVMImageVault : public VMImageVault
+{
+public:
+    MockVMImageVault()
+    {
+        ON_CALL(*this, fetch_image).WillByDefault([this](auto&&...) {
+            return VMImage{dummy_image.path(), {}, {}, {}, {}, {}, {}};
+        });
+        ON_CALL(*this, has_record_for(_)).WillByDefault(Return(true));
+
+        ON_CALL(*this, all_info_for(_))
+            .WillByDefault(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
+                std::pair<std::string, mp::VMImageInfo>{"default",
+                                                        {{default_alias},
+                                                         "Ubuntu",
+                                                         "bionic",
+                                                         default_release_info,
+                                                         "Bionic Beaver",
+                                                         true,
+                                                         dummy_image.url().toStdString(),
+                                                         default_id,
+                                                         default_stream_location,
+                                                         default_version,
+                                                         1,
+                                                         true}}}));
+    };
+
+    MOCK_METHOD(VMImage,
+                fetch_image,
+                (const Query&,
+                 const PrepareAction&,
+                 const ProgressMonitor&,
+                 const std::optional<std::string>&,
+                 const mp::Path&),
+                (override));
+    MOCK_METHOD(void, remove, (const std::string&), (override));
+    MOCK_METHOD(bool, has_record_for, (const std::string&), (override));
+    MOCK_METHOD(void, prune_expired_images, (), (override));
+    MOCK_METHOD(void, update_images, (const PrepareAction&, const ProgressMonitor&), (override));
+    MOCK_METHOD(void, clone, (const std::string&, const std::string&), (override));
+    MOCK_METHOD(VMImageHost*, image_host_for, (const std::string&), (const, override));
+    MOCK_METHOD((std::vector<std::pair<std::string, VMImageInfo>>),
+                all_info_for,
+                (const Query&),
+                (const, override));
+
+private:
+    TempFile dummy_image;
+};
+} // namespace test
+} // namespace multipass

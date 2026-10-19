@@ -21,8 +21,6 @@
 
 #include <shared/base_snapshot.h>
 
-#include <multipass/path.h>
-
 namespace multipass
 {
 class QemuVirtualMachine;
@@ -38,7 +36,9 @@ public:
                  const VMSpecs& specs,
                  QemuVirtualMachine& vm,
                  VirtualMachineDescription& desc);
-    QemuSnapshot(const QString& filename, QemuVirtualMachine& vm, VirtualMachineDescription& desc);
+    QemuSnapshot(const std::filesystem::path& filename,
+                 QemuVirtualMachine& vm,
+                 VirtualMachineDescription& desc);
 
 protected:
     void capture_impl() override;
@@ -47,7 +47,7 @@ protected:
 
 private:
     VirtualMachineDescription& desc;
-    const Path& image_path;
+    const std::filesystem::path& image_path;
 };
 
 } // namespace multipass

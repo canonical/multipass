@@ -30,7 +30,6 @@
 #include <fmt/ostream.h>
 
 #include <cassert>
-#include <chrono>
 #include <cstdlib>
 
 namespace mp = multipass;
@@ -47,7 +46,7 @@ constexpr auto unknown_error_fmt =
     "Instance '{}' failed in an unexpected way, check logs for more information.\n";
 } // namespace
 
-mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Start::run(mp::ArgParser* parser)
 {
     petenv_name = MP_SETTINGS.get(petenv_key);
     auto ret = parse_args(parser);
@@ -58,14 +57,14 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
     AnimatedSpinner spinner{cout};
 
-    auto on_success = [&spinner, this](mp::StartReply& reply) {
+    auto on_success = [&spinner, this](mp::StartReply& reply) -> ReturnCodeVariant {
         spinner.stop();
         if (term->is_live() && update_available(reply.update_info()))
             cout << update_notice(reply.update_info());
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &spinner, parser](grpc::Status& status) {
+    auto on_failure = [this, &spinner, parser](grpc::Status& status) -> ReturnCodeVariant {
         spinner.stop();
 
         std::string details;
@@ -76,18 +75,17 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
 
             for (const auto& pair : start_error.instance_errors())
             {
-                const auto* err_fmt = unknown_error_fmt;
                 if (pair.second == mp::StartError::INSTANCE_DELETED)
-                    err_fmt = deleted_error_fmt;
+                    fmt::format_to(std::back_inserter(details), deleted_error_fmt, pair.first);
                 else if (pair.second == mp::StartError::DOES_NOT_EXIST)
                 {
                     if (pair.first != petenv_name.toStdString())
-                        err_fmt = absent_error_fmt;
+                        fmt::format_to(std::back_inserter(details), absent_error_fmt, pair.first);
                     else
                         continue;
                 }
-
-                fmt::format_to(std::back_inserter(details), err_fmt, pair.first);
+                else
+                    fmt::format_to(std::back_inserter(details), unknown_error_fmt, pair.first);
             }
 
             if (details.empty())
@@ -121,7 +119,7 @@ mp::ReturnCode cmd::Start::run(mp::ArgParser* parser)
         timer->start();
     }
 
-    ReturnCode return_code;
+    ReturnCodeVariant return_code;
     auto streaming_callback =
         make_iterative_spinner_callback<StartRequest, StartReply>(spinner, *term);
     do
@@ -173,7 +171,7 @@ mp::ParseCode cmd::Start::parse_args(mp::ArgParser* parser)
     QCommandLineOption all_option(all_option_name, "Start all instances");
     parser->addOption(all_option);
 
-    mp::cmd::add_timeout(parser);
+    mp::cmd::add_instance_timeout(parser);
 
     auto status = parser->commandParse(this);
 

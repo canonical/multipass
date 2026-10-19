@@ -78,6 +78,19 @@ ogp_site_url = html_baseurl
 sitemap_url_scheme = "{link}"
 sitemap_filename = "doc-sitemap.xml"  # Required to avoid sitemap conflicts
 
+# Include `lastmod` dates in the sitemap:
+
+sitemap_show_lastmod = True
+
+# Exclude generated pages from the sitemap:
+
+sitemap_excludes = [
+    '404/',
+    'genindex/',
+    'search/',
+]
+
+
 # Preview name of the documentation website
 #
 # TODO: To use a different name for the project in previews, update as needed.
@@ -157,6 +170,7 @@ html_context = {
 
 # The following instructions are to display a clickable pencil "Edit" button on every page, in the top-right.
 html_theme_options = {
+    "source_edit_link": "https://github.com/canonical/multipass",
     "source_repository": "https://github.com/canonical/multipass",
     "source_branch": "main",
     "source_directory": "docs/",
@@ -201,10 +215,7 @@ redirects = {}
 # TODO: Remove or adjust the ACME entry after you update the contributing guide
 
 linkcheck_ignore = [
-    "https://app.element.io/#/room/#Multipass:matrix.org",
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1:8001",
-    "https://localhost:8080",
+    r"https://app\.element\.io/",
     "https://localhost:8081",
     "https://github.com/canonical/*",
     "https://sourceforge.net/projects/vcxsrv/",
@@ -214,16 +225,14 @@ linkcheck_ignore = [
     "https://developer.hashicorp.com/packer",
     "https://www.freedesktop.org/*",
     "https://asciinema.org/*",
-    "https://askubuntu.com/a/4404",
-    "https://launchpad.net/ubuntu/devel",
+    "https://askubuntu.com/a/4404"
 ]
 
 linkcheck_retries = 3
-linkcheck_timeout = 60
 
 # A regex list of URLs where anchors are ignored by 'make linkcheck'
 
-linkcheck_anchors_ignore_for_url = [r"https://github\.com/.*",r"https://matrix\.to/.*"]
+linkcheck_anchors_ignore_for_url = [r"https://github\.com/", r"https://matrix\.to/"]
 
 
 ########################
@@ -281,7 +290,7 @@ html_css_files = [
 # Adds custom JavaScript files, located under 'html_static_path'
 
 html_js_files = [
-    "js/bundle.js",
+    "bundle.js",
     "js/overwrite_links.js",
 ]
 

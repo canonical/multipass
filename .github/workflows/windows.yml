@@ -1,0 +1,419 @@
+name: Windows
+
+on:
+  workflow_call:
+  schedule:
+  # Daily at 00:34 UTC
+    - cron: 34 0 * * *
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.workflow }}-${{ github.event.number && format('pr{0}', github.event.number) || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+  USERNAME: ${{ github.repository_owner }}
+  VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
+
+jobs:
+  GetMatrix:
+    runs-on: ubuntu-latest
+    if: ${{ !cancelled() }}
+
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+    - name: Determine build matrix
+      id: set-matrix
+      uses: actions/github-script@v9
+      with:
+        script: |
+          const matrix = { include: [] };
+
+          matrix.include.push({
+              "name": "Windows Server 2025",
+              "runs-on": "windows-2025"
+          });
+
+          core.setOutput('matrix', JSON.stringify(matrix));
+
+  BuildAndTest:
+    needs: GetMatrix
+
+    permissions:
+      contents: read
+      packages: write
+
+    if: ${{ !cancelled() }}
+
+    strategy:
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
+      fail-fast: ${{ github.event_name == 'merge_group' }}
+
+    outputs:
+      build-label: ${{ steps.build-params.outputs.label }}
+      windows-package-artifact-name: ${{ steps.package-data.outputs.windows-2025-package-artifact-name }}
+      windows-package-file-name: ${{ steps.package-data.outputs.windows-2025-package-file-name }}
+      windows-symbols-artifact-name: ${{ steps.package-data.outputs.windows-2025-symbols-artifact-name }}
+      windows-symbols-file-name: ${{ steps.package-data.outputs.windows-2025-symbols-file-name }}
+
+    name: Build and Test (${{ matrix.name }})
+    runs-on: ${{ matrix.runs-on }}
+
+    env:
+      BUILD_DIR: ${{ github.workspace }}/build
+      SCCACHE_DIR: ${{ github.workspace }}/.sccache
+      #RUSTC_WRAPPER: "sccache" Removed due to concurrency issues between C++ and Rust
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 0 # Need full history to derive version
+        submodules: 'recursive'
+
+    - name: Enable symlinks
+      run: git config --local core.symlinks true
+
+    - name: Disable auto CRLF on Windows
+      run: git config --local core.autocrlf false
+
+    - name: Determine build parameters
+      id: build-params
+      uses: ./.github/actions/build-params
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install other packages from Choco
+      uses: crazy-max/ghaction-chocolatey@v4
+      with:
+        args: install --yes wget unzip
+
+    - name: Set up vcpkg
+      id: setup-vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgDirectory: '${{ github.workspace }}/3rd-party/vcpkg'
+
+    - name: Configure NuGet Source
+      id: setup_nuget
+      continue-on-error: true
+      shell: 'bash'
+      run: |
+        echo "$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
+        # https://learn.microsoft.com/en-us/vcpkg/consume/binary-caching-github-packages
+
+        # Retrieve vcpkg's nuget.
+        NUGET_PATH="$($VCPKG_ROOT/vcpkg fetch nuget | tail -n 1)"
+        MONO_WRAPPER=""
+
+        $MONO_WRAPPER "$NUGET_PATH" \
+          sources add \
+          -source "${{ env.FEED_URL }}" \
+          -storepasswordincleartext \
+          -name "GitHubPackages" \
+          -username "${{ env.USERNAME }}" \
+          -password "${{ secrets.GITHUB_TOKEN }}"
+
+        $MONO_WRAPPER "$NUGET_PATH" \
+          setapikey "${{ secrets.GITHUB_TOKEN }}" \
+          -source "${{ env.FEED_URL }}"
+
+    - name: Determine cache key
+      id: cache-key
+      shell: bash
+      run: |
+        # Find common base between main and HEAD to use as cache key.
+        git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules origin main
+        echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
+
+    - name: Restore sccache
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ env.SCCACHE_DIR }}
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
+        restore-keys: sccache-${{ matrix.runs-on }}
+
+    - name: Run sccache-cache
+      uses: mozilla-actions/sccache-action@v0.0.11
+      continue-on-error: true
+      with:
+        version: "v0.18.0"
+
+    - name: Install Windows ADK
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+
+        function Install-MicrosoftPackage {
+            param(
+                [string]$Url,
+                [string]$Path,
+                [string]$Arguments
+            )
+
+            Invoke-WebRequest -Uri $Url -OutFile $Path
+
+            $signature = Get-AuthenticodeSignature $Path
+
+            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+                throw "Invalid Authenticode signature for $Path`: $($signature.Status)"
+            }
+
+            if ($signature.SignerCertificate.Subject -notmatch '(^|,\s*)O=Microsoft Corporation(,|$)') {
+                throw "Unexpected signer for $Path`: $($signature.SignerCertificate.Subject)"
+            }
+
+            $process = Start-Process `
+                -FilePath $Path `
+                -ArgumentList $Arguments `
+                -Wait `
+                -PassThru `
+                -NoNewWindow
+
+            if ($process.ExitCode -ne 0) {
+                throw "$Path failed with exit code $($process.ExitCode)"
+            }
+        }
+
+        Install-MicrosoftPackage `
+            -Url "https://go.microsoft.com/fwlink/?linkid=2289980" `
+            -Path "$env:TEMP\adksetup.exe" `
+            -Arguments "/quiet /norestart /features OptionId.DeploymentTools"
+
+        Install-MicrosoftPackage `
+            -Url "https://go.microsoft.com/fwlink/?linkid=2289981" `
+            -Path "$env:TEMP\adkwinpesetup.exe" `
+            -Arguments "/quiet /norestart"
+
+    - name: Install cmake
+      uses: lukka/get-cmake@v4.4.2
+
+    - name: Set up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Configure
+      run: >
+        cmake
+        -B${{ env.BUILD_DIR }}
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        -GNinja
+        -DMULTIPASS_UPSTREAM=origin
+        -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
+        ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=cl.exe -DCMAKE_CXX_COMPILER=cl.exe' || '' }}
+        ${{ github.event_name == 'schedule' && '-DMP_ALLOW_OPTIONAL_FEATURES=OFF' || '' }}
+        ${{ github.workspace }}
+
+    - name: Build
+      run: cmake --build ${{ env.BUILD_DIR }}
+
+    - name: Verify version metadata in build outputs
+      shell: pwsh
+      run: |
+        .\tools\verify-windows-versioninfo.ps1 -BinDir "${{ env.BUILD_DIR }}\bin" -FailOnMissing
+
+    - name: Test
+      working-directory: ${{ env.BUILD_DIR }}
+      run: |
+        ctest -V
+
+    - name: Package
+      id: cmake-package
+      working-directory: ${{ env.BUILD_DIR }}
+      run: >
+        cmake --build . --target package
+
+        echo "name=$( ( Get-ChildItem .\packages\en-US\multipass-*.msi ).Name )" >>
+        $env:GITHUB_OUTPUT
+
+        echo "path=$( ( Get-ChildItem .\packages\en-US\multipass-*.msi ).FullName )" >>
+        $env:GITHUB_OUTPUT
+
+    - name: Get package logs
+      if: ${{ failure() && steps.cmake-package.outcome == 'failure' }}
+      run: >
+        ${{ format('cat {0}/_CPack_Packages/{1}', env.BUILD_DIR,
+        runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
+
+    - name: Upload package
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.runs-on }}-${{ steps.cmake-package.outputs.name }}
+        path: ${{ steps.cmake-package.outputs.path }}
+        if-no-files-found: error
+        retention-days: 7
+
+    # --- Debug symbols (PDBs) for post-mortem crash analysis ---
+    - name: Collect debug symbols
+      id: collect-symbols
+      shell: pwsh
+      working-directory: ${{ env.BUILD_DIR }}
+      run: |
+        New-Item -ItemType Directory -Force -Path symbols | Out-Null
+        Get-ChildItem -Path bin -Recurse -Filter *.pdb | Copy-Item -Destination symbols -Force
+        if (-not (Test-Path symbols\multipassd.pdb)) {
+          Write-Error "multipassd.pdb not found -- ensure that the build process produces PDB files."
+          exit 1
+        }
+        $base = [IO.Path]::GetFileNameWithoutExtension("${{ steps.cmake-package.outputs.name }}")
+        $zip  = Join-Path (Get-Location) "$base-pdb.zip"
+        Compress-Archive -Path symbols\* -DestinationPath $zip -Force
+        "name=$base-pdb.zip" >> $env:GITHUB_OUTPUT
+        "path=$zip"          >> $env:GITHUB_OUTPUT
+
+    - name: Upload debug symbols
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.runs-on }}-${{ steps.collect-symbols.outputs.name }}
+        path: ${{ steps.collect-symbols.outputs.path }}
+        if-no-files-found: error
+        # Same as the package's retention days
+        retention-days: 7
+
+    - name: Store package outputs
+      if: always()
+      id: package-data
+      shell: bash
+      run: |
+        PACKAGE_NAME="${{ steps.cmake-package.outputs.name }}"
+        SYMBOLS_NAME="${{ steps.collect-symbols.outputs.name }}"
+
+        echo "${{ matrix.runs-on }}-package-artifact-name=${{ matrix.runs-on }}-${PACKAGE_NAME}" >> "$GITHUB_OUTPUT"
+        echo "${{ matrix.runs-on }}-package-file-name=${PACKAGE_NAME}" >> "$GITHUB_OUTPUT"
+        echo "${{ matrix.runs-on }}-symbols-artifact-name=${{ matrix.runs-on }}-${SYMBOLS_NAME}" >> "$GITHUB_OUTPUT"
+        echo "${{ matrix.runs-on }}-symbols-file-name=${SYMBOLS_NAME}" >> "$GITHUB_OUTPUT"
+
+    - name: Save sccache
+      uses: actions/cache/save@v6
+      if: ${{ github.ref == 'refs/heads/main' }}
+      with:
+        path: ${{ env.SCCACHE_DIR }}
+        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
+
+  PublishWindowsPackage:
+    needs: BuildAndTest
+    if: ${{ !cancelled() && success() }}
+
+    permissions:
+      contents: read
+      statuses: write
+
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      S3_BUCKET: multipass-ci
+
+    outputs:
+      windows-pkg-url: ${{ steps.s3-upload.outputs.url }}
+
+    steps:
+    - name: Retrieve the Windows package
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ needs.BuildAndTest.outputs.windows-package-artifact-name }}
+        path: package
+
+    - name: Retrieve the Windows debug symbols
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ needs.BuildAndTest.outputs.windows-symbols-artifact-name }}
+        path: symbols
+
+    # Put the package on S3 for public consumption
+    - name: Publish package on S3
+      id: s3-upload
+      uses: canonical/actions/s3-upload@release
+      if: ${{ env.AWS_ACCESS_KEY_ID }}
+      with:
+        path: package/${{ needs.BuildAndTest.outputs.windows-package-file-name }}
+        bucket: ${{ env.S3_BUCKET }}
+        prefix: ${{ needs.BuildAndTest.outputs.build-label }}
+        public: true
+        storage-class: ONEZONE_IA
+      timeout-minutes: 5
+
+    # Put the package PDBs on S3
+    - name: Publish debug symbols (PDBs) on S3
+      id: s3-upload-pdbs
+      uses: canonical/actions/s3-upload@release
+      if: ${{ env.AWS_ACCESS_KEY_ID }}
+      with:
+        path: symbols/${{ needs.BuildAndTest.outputs.windows-symbols-file-name }}
+        bucket: ${{ env.S3_BUCKET }}
+        prefix: ${{ needs.BuildAndTest.outputs.build-label }}/symbols
+        public: true
+        storage-class: ONEZONE_IA
+      timeout-minutes: 5
+
+    # This shows up on this run's page
+    - name: Report public URL
+      run: |
+        echo "##[warning] Public URL: ${{ steps.s3-upload.outputs.url }}"
+        echo "##[warning] Debug symbols: ${{ steps.s3-upload-pdbs.outputs.url }}"
+
+    # Surface the published package as a linked commit status in the PR checks panel.
+    # Only for same-repo PRs, since fork PR tokens cannot be granted statuses: write.
+    - name: Publish package link status
+      if: ${{ steps.s3-upload.outputs.url != '' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+      continue-on-error: true
+      env:
+        GH_TOKEN: ${{ github.token }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        PACKAGE_URL: ${{ steps.s3-upload.outputs.url }}
+        PACKAGE_NAME: ${{ needs.BuildAndTest.outputs.windows-package-file-name }}
+      run: |
+        gh api \
+          --method POST \
+          "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
+          -f state=success \
+          -f context="Package Link / Windows" \
+          -f description="$PACKAGE_NAME" \
+          -f target_url="$PACKAGE_URL"
+
+  # Disabled for now -- the runner fails with this message intermittently:
+  #
+  # > The hosted runner lost communication with the server.
+  # > Anything in your workflow that terminates the runner process,
+  # > starves it for CPU/Memory, or blocks its network access can cause this error.
+  #
+  # The tests are either leaking resources, or not outputting anything for a large duration
+  # of time.
+  # DispatchCLITestsWorkflow:
+  #   name: "Dispatch CLI Tests (Windows)"
+  #   if: needs.PublishWindowsPackage.outputs.windows-pkg-url != ''
+  #   permissions:
+  #     contents: read
+  #     actions: read
+  #     checks:  write
+  #   secrets: inherit
+  #   needs:
+  #     - PublishWindowsPackage
+  #   uses: ./.github/workflows/cli-tests.yml
+  #   with:
+  #     windows-pkg-url: ${{ needs.PublishWindowsPackage.outputs.windows-pkg-url }}
+  #     backend-driver: hcs
+
+  Report-Workflow-Failure:
+    needs: [BuildAndTest, PublishWindowsPackage]
+    if: ${{ !cancelled() && !success() && github.event_name == 'schedule' }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Report workflow failure
+      uses: mattermost/action-mattermost-notify@master
+      with:
+        MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+        MATTERMOST_CHANNEL: multipass-notifications
+        TEXT: |
+          :red_circle: @mp
+          Scheduled [Windows](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
+        MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+        MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231

@@ -19,7 +19,6 @@ br-eth0   bridge     Network bridge with eth0
 br-eth1   bridge     Network bridge with eth1
 eth0      ethernet   Ethernet device
 eth1      ethernet   Ethernet device
-lxdbr0    bridge     Network bridge
 mpbr0     bridge     Network bridge for Multipass
 virbr0    bridge     Network bridge
 ```

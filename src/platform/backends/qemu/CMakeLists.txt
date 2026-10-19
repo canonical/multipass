@@ -26,11 +26,11 @@ add_library(qemu_backend STATIC
   qemu_virtual_machine.cpp)
 
 target_link_libraries(qemu_backend
+  daemon
   fmt::fmt-header-only
   ip_address
   logger
-  qemu_img_utils
-  qemu_platform_detail
+  qemu_platform_impl
   scope_guard
   utils
   Qt6::Core)

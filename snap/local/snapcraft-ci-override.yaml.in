@@ -1,0 +1,79 @@
+parts:
+  inject-apt-mirrors:
+    plugin: nil
+    override-pull: |
+      # Based on https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/configure-apt-sources.sh
+      # Mirrors only serve amd64/i386; skip on other architectures
+      # http://azure.archive.ubuntu.com/ubuntu/dists/noble/
+      arch="$(dpkg --print-architecture)"
+      if [ "$arch" != "amd64" ] && [ "$arch" != "i386" ]; then
+        echo "Skipping mirror injection (not amd64/i386)"
+        exit 0
+      fi
+
+      echo "Injecting custom APT mirror priorities..."
+
+      cat <<EOF > /etc/apt/apt-mirrors.txt
+      http://azure.archive.ubuntu.com/ubuntu/	priority:1
+      https://archive.ubuntu.com/ubuntu/	priority:2
+      https://security.ubuntu.com/ubuntu/	priority:3
+      EOF
+
+      cat <<EOF > /etc/apt/sources.list
+      deb mirror+file:/etc/apt/apt-mirrors.txt noble main restricted universe multiverse
+      deb mirror+file:/etc/apt/apt-mirrors.txt noble-updates main restricted universe multiverse
+      deb mirror+file:/etc/apt/apt-mirrors.txt noble-security main restricted universe multiverse
+      EOF
+
+      apt-get update
+
+  configure-nuget-cache:
+    build-environment:
+      - FEED_URL: '${FEED_URL}'
+      - USERNAME: '${USERNAME}'
+      - GITHUB_TOKEN: '${GITHUB_TOKEN}'
+    build-packages:
+      - mono-complete
+    plugin: nil
+    override-pull: |
+      curl -L -o /usr/local/bin/nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
+      ln -sf /usr/local/bin/nuget.exe /usr/local/bin/nuget
+      export PATH+=:/usr/local/bin
+      if ! mono /usr/local/bin/nuget.exe sources list -format short | grep ${FEED_URL} &> /dev/null; then
+        mono /usr/local/bin/nuget.exe sources add -name GitHubPackages -source "${FEED_URL}" -username "${USERNAME}" -password "${GITHUB_TOKEN}" -storePasswordInClearText
+      fi
+      mono /usr/local/bin/nuget.exe setapikey "${GITHUB_TOKEN}" -source "${FEED_URL}"
+
+  run-clang-tidy:
+    plugin: nil
+    build-packages:
+      - clang-tidy-${SNAP_CLANG_VERSION}
+    override-pull: |
+      set -e
+      if [ "$CMAKE_PRESET" != "ci-snap-debug" ]; then
+        echo "Skipping clang-tidy (CMAKE_PRESET=$CMAKE_PRESET)"
+        exit 0
+      fi
+      cd /root/parts/multipass/src
+      cmake --build ../build --target rpc
+      git diff -U0 --no-color HEAD^1 | clang-tidy-diff-${SNAP_CLANG_VERSION}.py -p1 -path ../build/ -clang-tidy-binary=clang-tidy-${SNAP_CLANG_VERSION} -j$(nproc) -quiet | sed '/^$/d' | tee clang-tidy-diff
+
+      # I don't think clang-tidy knows what "quiet" means.
+      sed -i '/No relevant changes found\./d' clang-tidy-diff
+
+      if [ "$( stat --printf='%s' clang-tidy-diff )" -ne 0 ]; then
+        echo "##[error] Please apply the above diff to correct lint errors"
+        exit 1
+      fi
+
+  multipass:
+    build-environment:
+      - MULTIPASS_BUILD_LABEL: ${MULTIPASS_BUILD_LABEL}
+      - ACTIONS_CACHE_URL: ${ACTIONS_CACHE_URL}
+      - ACTIONS_RUNTIME_TOKEN: ${ACTIONS_RUNTIME_TOKEN}
+      - VCPKG_BINARY_SOURCES: ${VCPKG_BINARY_SOURCES}
+      - GITHUB_ACTIONS: '${GITHUB_ACTIONS}'
+      - CMAKE_PRESET: '${CMAKE_PRESET}'
+      - MP_ALLOW_OPTIONAL_FEATURES: '${MP_ALLOW_OPTIONAL_FEATURES}'
+    build-packages:
+      - jq

@@ -23,9 +23,7 @@
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/terminal.h>
 
-#include <map>
 #include <memory>
-#include <unordered_map>
 
 namespace multipass
 {
@@ -41,7 +39,7 @@ class Client
 public:
     explicit Client(ClientConfig& context);
     virtual ~Client() = default;
-    int run(const QStringList& arguments);
+    ReturnCodeVariant run(const QStringList& arguments);
 
 protected:
     template <typename T, typename... Ts>

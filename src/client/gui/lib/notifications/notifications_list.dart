@@ -52,10 +52,9 @@ class _NotificationListState extends ConsumerState<NotificationList> {
         initialItemCount: notifications.length,
         itemBuilder: (_, index, animation) {
           return SlideTransition(
-            position: animation.drive(Tween(
-              begin: const Offset(1, 0),
-              end: Offset.zero,
-            )),
+            position: animation.drive(
+              Tween(begin: const Offset(1, 0), end: Offset.zero),
+            ),
             child: NotificationTile(notifications[index]),
           );
         },

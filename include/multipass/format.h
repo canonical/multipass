@@ -25,42 +25,42 @@
 #include <QProcess>
 #include <QString>
 
+#include <multipass/rpc/multipass.grpc.pb.h>
+
 namespace fmt
 {
 template <>
-struct formatter<QByteArray>
+struct formatter<QByteArray> : formatter<string_view>
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const QByteArray& a, FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "{}", a.toStdString()); // TODO: remove the copy?
+        return formatter<string_view>::format(a.toStdString(), ctx); // TODO: remove the copy?
     }
 };
 
 template <>
-struct formatter<QString>
+struct formatter<QString> : formatter<string_view>
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const QString& a, FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "{}", a.toStdString()); // TODO: remove the copy?
+        return formatter<string_view>::format(a.toStdString(), ctx); // TODO: remove the copy?
     }
 };
 
 template <>
-struct formatter<QProcess::ExitStatus>
+struct formatter<QProcess::ExitStatus> : formatter<int>
+{
+    template <typename FormatContext>
+    auto format(const QProcess::ExitStatus& exit_status, FormatContext& ctx) const
+    {
+        return formatter<int>::format(static_cast<int>(exit_status), ctx);
+    }
+};
+
+template <>
+struct formatter<multipass::MountInfo_MountPaths> : formatter<string_view>
 {
     template <typename ParseContext>
     constexpr auto parse(ParseContext& ctx)
@@ -69,9 +69,25 @@ struct formatter<QProcess::ExitStatus>
     }
 
     template <typename FormatContext>
-    auto format(const QProcess::ExitStatus& exit_status, FormatContext& ctx) const
+    auto format(const multipass::MountInfo_MountPaths& mount_path, FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "{}", static_cast<int>(exit_status));
+        return format_to(ctx.out(), "{} => {}", mount_path.source_path(), mount_path.target_path());
+    }
+};
+
+template <>
+struct formatter<multipass::MountInfo> : formatter<string_view>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const multipass::MountInfo& mount_info, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "{}", fmt::join(mount_info.mount_paths(), ";"));
     }
 };
 

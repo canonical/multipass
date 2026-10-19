@@ -16,6 +16,7 @@
  */
 
 #include "qemu_virtual_machine_factory.h"
+#include "qemu_base_process_spec.h"
 #include "qemu_virtual_machine.h"
 
 #include <multipass/cloud_init_iso.h>
@@ -23,8 +24,8 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/process/simple_process_spec.h>
+#include <multipass/utils/qemu_img_utils.h>
 #include <multipass/yaml_node_utils.h>
-#include <shared/qemu_img_utils/qemu_img_utils.h>
 
 #include <QRegularExpression>
 
@@ -36,16 +37,21 @@ namespace
 constexpr auto category = "qemu factory";
 } // namespace
 
-mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir)
-    : QemuVirtualMachineFactory{MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir), data_dir}
+mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(const mp::Path& data_dir,
+                                                         AvailabilityZoneManager& az_manager)
+    : QemuVirtualMachineFactory{MP_QEMU_PLATFORM_FACTORY.make_qemu_platform(data_dir, az_manager),
+                                data_dir,
+                                az_manager}
 {
 }
 
 mp::QemuVirtualMachineFactory::QemuVirtualMachineFactory(QemuPlatform::UPtr qemu_platform,
-                                                         const mp::Path& data_dir)
+                                                         const mp::Path& data_dir,
+                                                         AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(MP_UTILS.derive_instances_dir(data_dir,
                                                               qemu_platform->get_directory_name(),
-                                                              instances_subdir)),
+                                                              instances_subdir),
+                                az_manager),
       qemu_platform{std::move(qemu_platform)}
 {
 }
@@ -59,6 +65,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::create_virtual_machine(
                                                     qemu_platform.get(),
                                                     monitor,
                                                     key_provider,
+                                                    az_manager.get_zone(desc.zone),
                                                     get_instance_directory(desc.vm_name));
 }
 
@@ -70,7 +77,7 @@ void mp::QemuVirtualMachineFactory::remove_resources_for_impl(const std::string&
 mp::VMImage mp::QemuVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
 {
     VMImage image{source_image};
-    image.image_path = mp::backend::convert_to_qcow_if_necessary(source_image.image_path);
+    image.image_path = mp::backend::convert(source_image.image_path, "qcow2");
     mp::backend::amend_to_qcow2_v3(image.image_path);
     return image;
 }
@@ -88,13 +95,18 @@ void mp::QemuVirtualMachineFactory::hypervisor_health_check()
 
 QString mp::QemuVirtualMachineFactory::get_backend_version_string() const
 {
-    auto process = mp::platform::make_process(
-        simple_process_spec(QString("qemu-system-%1").arg(HOST_ARCH), {"--version"}));
+    struct QemuVersionProcSpec : QemuBaseProcessSpec
+    {
+        QStringList arguments() const override
+        {
+            return QStringList{"--version"};
+        }
+    };
+    auto process = mp::platform::make_process(std::make_unique<QemuVersionProcSpec>());
 
     auto version_re = QRegularExpression("^QEMU emulator version ([\\d\\.]+)");
-    auto exit_state = process->execute();
 
-    if (exit_state.completed_successfully())
+    if (const auto exit_state = process->execute(); exit_state.completed_successfully())
     {
         auto match = version_re.match(process->read_all_standard_output());
 
@@ -102,10 +114,9 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string() const
             return QString("qemu-%1").arg(match.captured(1));
         else
         {
-            mpl::log(mpl::Level::error,
-                     category,
-                     fmt::format("Failed to parse QEMU version out: '{}'",
-                                 process->read_all_standard_output()));
+            mpl::error(category,
+                       "Failed to parse QEMU version out: '{}'",
+                       process->read_all_standard_output());
             return QString("qemu-unknown");
         }
     }
@@ -113,18 +124,15 @@ QString mp::QemuVirtualMachineFactory::get_backend_version_string() const
     {
         if (exit_state.error)
         {
-            mpl::log(mpl::Level::error,
-                     category,
-                     fmt::format("Qemu failed to start: {}", exit_state.failure_message()));
+            mpl::error(category, "Qemu failed to start: {}", exit_state.failure_message());
         }
         else if (exit_state.exit_code)
         {
-            mpl::log(mpl::Level::error,
-                     category,
-                     fmt::format("Qemu fail: '{}' with outputs:\n{}\n{}",
-                                 exit_state.failure_message(),
-                                 process->read_all_standard_output(),
-                                 process->read_all_standard_error()));
+            mpl::error(category,
+                       "Qemu fail: '{}' with outputs:\n{}\n{}",
+                       exit_state.failure_message(),
+                       process->read_all_standard_output(),
+                       process->read_all_standard_error());
         }
     }
 
@@ -178,6 +186,7 @@ mp::VirtualMachine::UPtr mp::QemuVirtualMachineFactory::clone_vm_impl(
                                                     qemu_platform.get(),
                                                     monitor,
                                                     key_provider,
+                                                    az_manager.get_zone(desc.zone),
                                                     get_instance_directory(desc.vm_name),
                                                     true);
 }

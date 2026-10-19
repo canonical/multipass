@@ -21,13 +21,14 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/prompters.h>
 #include <multipass/constants.h>
+#include <multipass/reply_concepts.h>
 #include <multipass/terminal.h>
 
 #include <grpc++/grpc++.h>
 
 namespace multipass
 {
-template <typename Request, typename Reply>
+template <typename Request, LogReply Reply>
 auto make_logging_spinner_callback(AnimatedSpinner& spinner, std::ostream& stream)
 {
     return [&spinner, &stream](const Reply& reply,
@@ -37,7 +38,7 @@ auto make_logging_spinner_callback(AnimatedSpinner& spinner, std::ostream& strea
     };
 }
 
-template <typename Request, typename Reply>
+template <typename Request, LogMsgReply Reply>
 auto make_reply_spinner_callback(AnimatedSpinner& spinner, std::ostream& stream)
 {
     return [&spinner, &stream](const Reply& reply,
@@ -54,6 +55,7 @@ auto make_reply_spinner_callback(AnimatedSpinner& spinner, std::ostream& stream)
 }
 
 template <typename Request, typename Reply>
+    requires LogMsgReply<Reply> && requires(Reply reply) { reply.password_requested(); }
 auto make_iterative_spinner_callback(AnimatedSpinner& spinner, Terminal& term)
 {
     return [&spinner, &term](const Reply& reply,
@@ -76,13 +78,16 @@ auto make_iterative_spinner_callback(AnimatedSpinner& spinner, Terminal& term)
     };
 }
 
-template <typename Request, typename Reply>
+template <typename Request, LogMsgReply Reply>
+    requires requires(Reply reply) { reply.needs_authorization(); }
 auto make_confirmation_callback(Terminal& term, QString key)
 {
     return [key = std::move(key),
             &term](Reply& reply, grpc::ClientReaderWriterInterface<Request, Reply>* client) {
-        if (key.startsWith(daemon_settings_root) && key.endsWith(bridged_network_name) &&
-            reply.needs_authorization())
+        if (!reply.log_line().empty())
+            term.cerr() << reply.log_line();
+        else if (key.startsWith(daemon_settings_root) && key.endsWith(bridged_network_name) &&
+                 reply.needs_authorization())
         {
             auto bridged_network = reply.reply_message();
 
@@ -95,6 +100,14 @@ auto make_confirmation_callback(Terminal& term, QString key)
             request.set_authorized(answer);
 
             client->Write(request);
+        }
+        // If the reply does not contain the reply authorization, it contains a user message
+        else if (!reply.reply_message().empty())
+        {
+            const auto& msg = reply.reply_message();
+            term.cout() << msg;
+            if (!msg.empty() && msg.back() != '\n')
+                term.cout() << '\n';
         }
     };
 }

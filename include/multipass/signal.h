@@ -28,13 +28,16 @@ struct Signal
     bool wait_for(const T& timeout)
     {
         std::unique_lock<std::mutex> lock{mutex};
-        return cv.wait_for(lock, timeout, [this] { return signaled; });
+        const auto ret = cv.wait_for(lock, timeout, [this] { return signaled; });
+        signaled = false;
+        return ret;
     }
 
     void wait()
     {
         std::unique_lock<decltype(mutex)> lock{mutex};
         cv.wait(lock, [this] { return signaled; });
+        signaled = false;
     }
 
     void signal()
@@ -42,6 +45,12 @@ struct Signal
         std::lock_guard<decltype(mutex)> lg{mutex};
         signaled = true;
         cv.notify_one();
+    }
+
+    void reset()
+    {
+        std::lock_guard<decltype(mutex)> lock{mutex};
+        signaled = false;
     }
 
     std::mutex mutex;

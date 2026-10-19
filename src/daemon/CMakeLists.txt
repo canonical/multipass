@@ -16,8 +16,6 @@ set(CMAKE_AUTOMOC ON)
 
 add_library(daemon STATIC
   cli.cpp
-  common_image_host.cpp
-  custom_image_host.cpp
   daemon.cpp
   daemon_config.cpp
   daemon_init_settings.cpp
@@ -25,8 +23,16 @@ add_library(daemon STATIC
   default_vm_image_vault.cpp
   instance_settings_handler.cpp
   runtime_instance_info_helper.cpp
-  snapshot_settings_handler.cpp
-  ubuntu_image_host.cpp)
+  snapshot_settings_handler.cpp)
+
+# TODO hyperv migration, remove
+if(HCS_ENABLED)
+  target_compile_definitions(daemon PRIVATE HCS_ENABLED)
+  target_sources(daemon PRIVATE
+    hyperv_driver_transition.cpp
+    hyperv_migration.cpp)
+  target_link_libraries(daemon hyperv_migration hcs_backend)
+endif()
 
 include_directories(daemon
   ${CMAKE_SOURCE_DIR}/src/platform/backends)
@@ -35,20 +41,19 @@ target_link_libraries(daemon
   cert
   delayed_shutdown
   fmt::fmt-header-only
+  image_host
   logger
-  petname
+  namegen
   platform
   rpc
   settings
-  simplestreams
   ssh
   sshfs_mount
   utils
   Qt6::Core
   Qt6::Network
-  blueprint_provider
   xz_image_decoder
-  yaml)
+  yaml-cpp::yaml-cpp)
 
 add_library(delayed_shutdown STATIC
   delayed_shutdown_timer.cpp
@@ -62,7 +67,14 @@ target_link_libraries(delayed_shutdown
 )
 
 if(MSVC)
-  add_executable(multipassd daemon_main_win.cpp)
+  prepare_windows_version_resource(
+    MULTIPASSD_RC_SOURCE
+    multipassd
+    "Multipass Daemon"
+    "multipassd"
+    "multipassd.exe"
+  )
+  add_executable(multipassd daemon_main_win.cpp ${MULTIPASSD_RC_SOURCE})
   qt6_disable_unicode_defines(multipassd)
 else()
   add_executable(multipassd daemon_main.cpp)
@@ -86,10 +98,6 @@ if (NOT IS_DIRECTORY ${QT_PLUGINS_DIR}/tls)
     message(FATAL_ERROR "Failed to retrieve Qt 'tls' plugin directory")
 endif()
 
-if (NOT IS_DIRECTORY ${QT_PLUGINS_DIR}/networkinformation)
-    message(FATAL_ERROR "Failed to retrieve Qt 'networkinformation' plugin directory")
-endif()
-
 if(APPLE)
   set_target_properties( multipassd PROPERTIES INSTALL_RPATH "@executable_path/../lib" )
 
@@ -102,8 +110,6 @@ if(APPLE)
   file(GLOB QT_TLS_PLUGIN_FILES "${QT_PLUGINS_DIR}/tls/*.dylib")
   install(FILES ${QT_TLS_PLUGIN_FILES} DESTINATION plugins/tls COMPONENT multipassd)
 
-  file(GLOB QT_NETWORKINFORMATION_PLUGIN_FILES "${QT_PLUGINS_DIR}/networkinformation/*.dylib")
-  install(FILES ${QT_NETWORKINFORMATION_PLUGIN_FILES} DESTINATION plugins/networkinformation COMPONENT multipassd)
 endif(APPLE)
 
 install(TARGETS multipassd
@@ -122,6 +128,4 @@ if(MSVC)
   file(GLOB QT_TLS_PLUGIN_FILES "${QT_PLUGINS_DIR}/tls/*.dll")
   install(FILES ${QT_TLS_PLUGIN_FILES} DESTINATION bin/tls COMPONENT multipassd)
 
-  file(GLOB QT_NETWORKINFORMATION_PLUGIN_FILES "${QT_PLUGINS_DIR}/networkinformation/*.dll")
-  install(FILES ${QT_NETWORKINFORMATION_PLUGIN_FILES} DESTINATION bin/networkinformation COMPONENT multipassd)
 endif()

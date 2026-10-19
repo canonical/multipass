@@ -1,0 +1,2 @@
+Name     Type       Description
+enp3s0   ethernet   Amazingly fast and robust ethernet adapter

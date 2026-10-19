@@ -19,7 +19,6 @@
 
 #include "days.h"
 #include "disabled_copy_move.h"
-#include "fetch_type.h"
 #include "path.h"
 #include "virtual_machine.h"
 #include "vm_image.h"
@@ -37,6 +36,7 @@ class URLDownloader;
 class VirtualMachineDescription;
 class VMImageHost;
 class VMStatusMonitor;
+class MemorySize;
 struct NetworkInterface;
 struct NetworkInterfaceInfo;
 
@@ -62,12 +62,13 @@ public:
      */
     virtual void remove_resources_for(const std::string& name) = 0;
 
-    virtual FetchType fetch_type() = 0;
     virtual void prepare_networking(
         std::vector<NetworkInterface>& extra_interfaces) = 0; // note the arg may be updated
     virtual VMImage prepare_source_image(const VMImage& source_image) = 0;
     virtual void prepare_instance_image(const VMImage& instance_image,
                                         const VirtualMachineDescription& desc) = 0;
+    virtual MemorySize virtual_size_for(const std::filesystem::path& image_path) const = 0;
+
     virtual void hypervisor_health_check() = 0;
     virtual QString get_backend_directory_name() const = 0;
     virtual Path get_instance_directory(const std::string& name) const = 0;
@@ -81,9 +82,10 @@ public:
 
     // List all the network interfaces seen by the backend.
     virtual std::vector<NetworkInterfaceInfo> networks() const = 0;
-    virtual void require_snapshots_support() const = 0;
-    virtual void require_suspend_support() const = 0;
-    virtual void require_clone_support() const = 0;
+
+    // Whether this backend implements Availability Zones.
+    // TODO@backends: remove once deprecated backends are removed
+    virtual bool supports_availability_zones() const = 0;
 
 protected:
     VirtualMachineFactory() = default;

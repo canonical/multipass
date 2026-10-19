@@ -40,15 +40,9 @@ public:
     virtual std::string format(const VersionReply& reply,
                                const std::string& client_version) const = 0;
     virtual std::string format(const AliasDict& aliases) const = 0;
+    virtual std::string format(const ZonesReply& reply) const = 0;
 
 protected:
     Formatter() = default;
-
-    template <class D>
-    std::map<typename D::key_type, typename D::mapped_type> sort_dict(const D& unsorted_dict) const
-    {
-        return std::map<typename D::key_type, typename D::mapped_type>(unsorted_dict.cbegin(),
-                                                                       unsorted_dict.cend());
-    }
 };
 } // namespace multipass

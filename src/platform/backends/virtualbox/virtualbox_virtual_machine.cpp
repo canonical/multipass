@@ -18,8 +18,8 @@
 #include "virtualbox_virtual_machine.h"
 #include "virtualbox_snapshot.h"
 
-#include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/ip_address.h>
 #include <multipass/logging/log.h>
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
@@ -29,8 +29,6 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/vm_status_monitor.h>
-
-#include <shared/shared_backend_utils.h>
 
 #include <fmt/format.h>
 
@@ -64,9 +62,7 @@ auto instance_state_for(const QString& name)
     {
         auto state = vmstate_match.captured(1);
 
-        mpl::log(mpl::Level::trace,
-                 name.toStdString(),
-                 fmt::format("Got VMState: {}", state.toStdString()));
+        mpl::trace(name.toStdString(), "Got VMState: {}", state.toStdString());
 
         if (state == "starting" || state == "restoring")
         {
@@ -90,16 +86,15 @@ auto instance_state_for(const QString& name)
             return mp::VirtualMachine::State::stopped;
         }
 
-        mpl::log(mpl::Level::error,
-                 name.toStdString(),
-                 fmt::format("Failed to parse instance state: {}",
-                             vmstate_match.captured().toStdString()));
+        mpl::error(name.toStdString(),
+                   "Failed to parse instance state: {}",
+                   vmstate_match.captured().toStdString());
     }
     else if (vminfo.exitCode() == 0)
     {
-        mpl::log(mpl::Level::error,
-                 name.toStdString(),
-                 fmt::format("Failed to parse info output: {}", vminfo_output.toStdString()));
+        mpl::error(name.toStdString(),
+                   "Failed to parse info output: {}",
+                   vminfo_output.toStdString());
     }
 
     return mp::VirtualMachine::State::unknown;
@@ -188,8 +183,9 @@ void update_mac_addresses_of_network_adapters(const mp::VirtualMachineDescriptio
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
+                                                       AvailabilityZone& zone,
                                                        const mp::Path& instance_dir_qstr)
-    : VirtualBoxVirtualMachine(desc, monitor, key_provider, instance_dir_qstr, true)
+    : VirtualBoxVirtualMachine(desc, monitor, key_provider, zone, instance_dir_qstr, true)
 {
     if (desc.extra_interfaces.size() > 7)
     {
@@ -237,7 +233,7 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescr
                                      "--type",
                                      "hdd",
                                      "--medium",
-                                     desc.image.image_path},
+                                     MP_PLATFORM.path_to_qstr(desc.image.image_path)},
                                     "Could not storageattach HDD: {}",
                                     name);
 
@@ -269,8 +265,9 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
                                                        const VirtualMachineDescription& desc,
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
+                                                       AvailabilityZone& zone,
                                                        const Path& dest_instance_dir)
-    : VirtualBoxVirtualMachine(desc, monitor, key_provider, dest_instance_dir, true)
+    : VirtualBoxVirtualMachine(desc, monitor, key_provider, zone, dest_instance_dir, true)
 {
     const fs::path instances_dir = fs::path{dest_instance_dir.toStdString()}.parent_path();
 
@@ -335,10 +332,10 @@ mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const std::string& source
 mp::VirtualBoxVirtualMachine::VirtualBoxVirtualMachine(const VirtualMachineDescription& desc,
                                                        VMStatusMonitor& monitor,
                                                        const SSHKeyProvider& key_provider,
+                                                       AvailabilityZone& zone,
                                                        const mp::Path& instance_dir_qstr,
                                                        bool /*is_internal*/)
-    : BaseVirtualMachine{desc.vm_name, key_provider, instance_dir_qstr},
-      desc{desc},
+    : BaseVirtualMachine{desc.vm_name, desc, key_provider, zone, instance_dir_qstr},
       name{QString::fromStdString(desc.vm_name)},
       monitor{&monitor}
 {
@@ -357,7 +354,7 @@ mp::VirtualBoxVirtualMachine::~VirtualBoxVirtualMachine()
 void mp::VirtualBoxVirtualMachine::start()
 {
     state = State::starting;
-    update_state();
+    handle_state_update();
 
     mpu::process_throw_on_error("VBoxManage",
                                 {"startvm", name, "--type", "headless"},
@@ -376,7 +373,7 @@ void mp::VirtualBoxVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     }
     catch (const VMStateIdempotentException& e)
     {
-        mpl::log(mpl::Level::info, vm_name, e.what());
+        mpl::log_message(mpl::Level::info, vm_name, e.what());
         return;
     }
 
@@ -384,7 +381,7 @@ void mp::VirtualBoxVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
     if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
-        mpl::log(mpl::Level::info, vm_name, "Forcing shutdown");
+        mpl::info(vm_name, "Forcing shutdown");
         // virtualbox needs the discardstate command to shutdown in the suspend state, it discards
         // the saved state of the vm, which is akin to resetting it to the off state without a
         // proper shutdown process
@@ -420,7 +417,7 @@ void mp::VirtualBoxVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     }
 
     port = std::nullopt;
-    update_state();
+    handle_state_update();
 }
 
 void mp::VirtualBoxVirtualMachine::suspend()
@@ -438,15 +435,21 @@ void mp::VirtualBoxVirtualMachine::suspend()
         if (update_suspend_status)
         {
             state = State::suspended;
-            update_state();
+            handle_state_update();
         }
     }
     else if (present_state == State::stopped)
     {
-        mpl::log(mpl::Level::info, vm_name, fmt::format("Ignoring suspend issued while stopped"));
+        mpl::info(vm_name, "Ignoring suspend issued while stopped");
     }
 
     monitor->on_suspend();
+}
+
+bool mp::VirtualBoxVirtualMachine::set_available(bool /*available*/)
+{
+    assert(false && "VirtualBox driver doesn't support availability zones");
+    return false;
 }
 
 mp::VirtualMachine::State mp::VirtualBoxVirtualMachine::current_state()
@@ -494,19 +497,12 @@ int mp::VirtualBoxVirtualMachine::ssh_port()
     return *port;
 }
 
-void mp::VirtualBoxVirtualMachine::ensure_vm_is_running()
-{
-    auto is_vm_running = [this] { return state != State::stopped; };
-
-    mp::backend::ensure_vm_is_running_for(this, is_vm_running, "Instance shutdown during start");
-}
-
-void mp::VirtualBoxVirtualMachine::update_state()
+void mp::VirtualBoxVirtualMachine::handle_state_update()
 {
     monitor->persist_state_for(vm_name, state);
 }
 
-std::string mp::VirtualBoxVirtualMachine::ssh_hostname(std::chrono::milliseconds /*timeout*/)
+std::string mp::VirtualBoxVirtualMachine::ssh_hostname()
 {
     return "127.0.0.1";
 }
@@ -516,24 +512,20 @@ std::string mp::VirtualBoxVirtualMachine::ssh_username()
     return desc.ssh_username;
 }
 
-std::string mp::VirtualBoxVirtualMachine::management_ipv4()
+std::optional<mp::IPAddress> mp::VirtualBoxVirtualMachine::management_ipv4()
 {
-    return "N/A";
+    return std::nullopt;
 }
 
-std::vector<std::string> mp::VirtualBoxVirtualMachine::get_all_ipv4()
+std::vector<mp::IPAddress> mp::VirtualBoxVirtualMachine::get_all_ipv4()
 {
     using namespace std;
 
+    const auto internal_ip = IPAddress{"10.0.2.15"};
     auto all_ipv4 = BaseVirtualMachine::get_all_ipv4();
-    all_ipv4.erase(remove(begin(all_ipv4), end(all_ipv4), "10.0.2.15"), end(all_ipv4));
+    std::erase(all_ipv4, internal_ip);
 
     return all_ipv4;
-}
-
-std::string mp::VirtualBoxVirtualMachine::ipv6()
-{
-    return {};
 }
 
 void mp::VirtualBoxVirtualMachine::update_cpus(int num_cores)
@@ -557,15 +549,17 @@ void mp::VirtualBoxVirtualMachine::resize_memory(const MemorySize& new_size)
         name);
 }
 
-void mp::VirtualBoxVirtualMachine::resize_disk(const MemorySize& new_size)
+void mp::VirtualBoxVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
     assert(new_size.in_bytes() > 0);
 
-    mpu::process_throw_on_error(
-        "VBoxManage",
-        {"modifyhd", desc.image.image_path, "--resizebyte", QString::number(new_size.in_bytes())},
-        "Could not resize image: {}",
-        name);
+    mpu::process_throw_on_error("VBoxManage",
+                                {"modifyhd",
+                                 MP_PLATFORM.path_to_qstr(desc.image.image_path),
+                                 "--resizebyte",
+                                 QString::number(new_size.in_bytes())},
+                                "Could not resize image: {}",
+                                name);
 }
 
 void mp::VirtualBoxVirtualMachine::add_network_interface(int index,
@@ -616,7 +610,7 @@ void mp::VirtualBoxVirtualMachine::remove_snapshots_from_backend() const
 auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const QString& filename)
     -> std::shared_ptr<Snapshot>
 {
-    return std::make_shared<VirtualBoxSnapshot>(filename, *this, desc);
+    return std::make_shared<VirtualBoxSnapshot>(MP_PLATFORM.qstr_to_path(filename), *this, desc);
 }
 
 auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const std::string& snapshot_name,
@@ -630,7 +624,7 @@ auto multipass::VirtualBoxVirtualMachine::make_specific_snapshot(const std::stri
                                                 comment,
                                                 instance_id,
                                                 std::move(parent),
-                                                name,
+                                                name.toStdString(),
                                                 specs,
                                                 *this);
 }

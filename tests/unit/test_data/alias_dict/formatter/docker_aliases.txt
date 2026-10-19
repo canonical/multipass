@@ -1,0 +1,3 @@
+Alias            Instance   Command          Context   Working directory
+docker           docker     docker           docker    map
+docker-compose   docker     docker-compose   docker    map

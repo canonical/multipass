@@ -25,5 +25,5 @@ target_link_libraries(formatter
   rpc
   settings
   utils
-  yaml
+  yaml-cpp::yaml-cpp
   Qt6::Core)

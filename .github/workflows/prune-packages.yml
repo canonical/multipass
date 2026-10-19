@@ -1,0 +1,83 @@
+name: Prune packages
+
+on:
+  workflow_dispatch:
+  schedule:
+  # 04:11 UTC on the first day of each month
+  - cron: '11 4 1 * *'
+
+permissions:
+  packages: write
+
+jobs:
+  list-packages:
+    if: ${{ github.repository == 'canonical/multipass' }}
+
+    runs-on: ubuntu-latest
+
+    outputs:
+      names: ${{ steps.collect.outputs.names }}
+
+    steps:
+      - name: Collect package names
+        id: collect
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            core.info(`Listing packages for org: ${owner}`);
+
+            const packages = await github.paginate(
+              "GET /orgs/{org}/packages",
+              {
+                org: owner,
+                package_type: "nuget",
+                per_page: 100,
+              }
+            );
+
+            const repoPackages = packages.filter(p =>
+              p.repository && p.repository.full_name === `${owner}/${repo}`
+            );
+            core.info(`Found ${repoPackages.length} packages associated with ${owner}/${repo}`);
+
+            const names = [...new Set(repoPackages.map(p => p.name))];
+
+            core.setOutput("names", names.join("\\n"));
+
+  prune:
+    needs: list-packages
+    runs-on: ubuntu-latest
+
+    permissions:
+      packages: write
+
+    steps:
+      - name: Delete old package versions
+        uses: Wandalen/wretry.action@v3
+        with:
+          action: smartsquaregmbh/delete-old-packages@v0.8.1
+          with: |
+            organization: ${{ github.repository_owner }}
+            type: nuget
+            names: "${{ needs.list-packages.outputs.names }}"
+            keep: 2
+          attempt_limit: 3
+          attempt_delay: 60000
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [list-packages, prune]
+    if: ${{ !success() }}
+    steps:
+      - name: Report workflow failure
+        uses: mattermost/action-mattermost-notify@master
+        with:
+          MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          MATTERMOST_CHANNEL: multipass-notifications
+          TEXT: |
+            :red_circle: @mp
+            Scheduled [${{ github.workflow }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
+          MATTERMOST_USERNAME: ${{ github.actor }}
+          MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231

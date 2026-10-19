@@ -1,0 +1,7 @@
+{
+    "alias4": {
+        "command": "fourth_command",
+        "instance": "fourth_instance",
+        "working-directory": ""
+    }
+}

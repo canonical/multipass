@@ -52,11 +52,11 @@ mpl::Level to_level(QtMsgType type)
 void qt_message_handler(QtMsgType type, const QMessageLogContext&, const QString& message)
 {
     auto msg = message.toLocal8Bit();
-    mpl::log(to_level(type), "Qt", msg.constData());
+    mpl::log_message(to_level(type), "Qt", msg.constData());
 }
 } // namespace
 
-void mpl::log(Level level, std::string_view category, std::string_view message)
+void mpl::log_message(Level level, std::string_view category, std::string_view message)
 {
     std::shared_lock<decltype(mutex)> lock{mutex};
     if (global_logger)
@@ -85,4 +85,9 @@ void mpl::set_logger(std::shared_ptr<Logger> logger)
 auto mpl::get_logger() -> Logger* // for tests, don't rely on it lasting
 {
     return global_logger.get();
+}
+
+void mpl::rust::log_message(Level level, ::rust::String category, ::rust::String message)
+{
+    mpl::log_message(level, category.c_str(), message.c_str());
 }

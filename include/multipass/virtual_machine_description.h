@@ -19,6 +19,7 @@
 
 #include <multipass/memory_size.h>
 #include <multipass/network_interface.h>
+#include <multipass/path.h>
 #include <multipass/vm_image.h>
 
 #include <yaml-cpp/yaml.h>
@@ -39,6 +40,7 @@ public:
     MemorySize mem_size;
     MemorySize disk_space;
     std::string vm_name;
+    std::string zone;
     std::string default_mac_address;
     std::vector<NetworkInterface> extra_interfaces;
     std::string ssh_username;

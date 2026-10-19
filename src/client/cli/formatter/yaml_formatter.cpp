@@ -21,6 +21,7 @@
 #include <multipass/cli/yaml_formatter.h>
 #include <multipass/format.h>
 #include <multipass/utils.h>
+#include <multipass/utils/sorted_map_view.h>
 #include <multipass/yaml_node_utils.h>
 
 #include <yaml-cpp/yaml.h>
@@ -42,18 +43,18 @@ std::map<std::string, YAML::Node> format_images(const ImageInfo& images_info)
         YAML::Node image_node;
         image_node["aliases"] = std::vector<std::string>{};
 
-        auto aliases = image.aliases_info();
+        auto aliases = image.aliases();
         mp::format::filter_aliases(aliases);
 
-        for (auto alias = aliases.cbegin() + 1; alias != aliases.cend(); alias++)
-            image_node["aliases"].push_back(alias->alias());
+        for (int i = 1; i < aliases.size(); ++i)
+            image_node["aliases"].push_back(aliases[i]);
 
         image_node["os"] = image.os();
         image_node["release"] = image.release();
         image_node["version"] = image.version();
-        image_node["remote"] = aliases[0].remote_name();
+        image_node["remote"] = image.remote_name();
 
-        images_node[mp::format::image_string_for(aliases[0])] = image_node;
+        images_node[mp::format::image_string_for(image.remote_name(), aliases[0])] = image_node;
     }
 
     return images_node;
@@ -65,8 +66,8 @@ YAML::Node generate_snapshot_details(const mp::DetailedInfoItem& item)
     const auto& fundamentals = snapshot_details.fundamentals();
     YAML::Node snapshot_node;
 
-    snapshot_node["size"] =
-        snapshot_details.size().empty() ? YAML::Node() : YAML::Node(snapshot_details.size());
+    snapshot_node["size"] = snapshot_details.size().empty() ? YAML::Node()
+                                                            : YAML::Node(snapshot_details.size());
     snapshot_node["cpu_count"] = item.cpu_count();
     snapshot_node["disk_space"] = item.disk_total();
     snapshot_node["memory_size"] = item.memory_total();
@@ -80,17 +81,17 @@ YAML::Node generate_snapshot_details(const mp::DetailedInfoItem& item)
     }
     snapshot_node["mounts"] = mounts;
 
-    snapshot_node["created"] =
-        MP_FORMAT_UTILS.convert_to_user_locale(fundamentals.creation_timestamp());
-    snapshot_node["parent"] =
-        fundamentals.parent().empty() ? YAML::Node() : YAML::Node(fundamentals.parent());
+    snapshot_node["created"] = MP_FORMAT_UTILS.convert_to_user_locale(
+        fundamentals.creation_timestamp());
+    snapshot_node["parent"] = fundamentals.parent().empty() ? YAML::Node()
+                                                            : YAML::Node(fundamentals.parent());
 
     snapshot_node["children"] = YAML::Node(YAML::NodeType::Sequence);
     for (const auto& child : snapshot_details.children())
         snapshot_node["children"].push_back(child);
 
-    snapshot_node["comment"] =
-        fundamentals.comment().empty() ? YAML::Node() : YAML::Node(fundamentals.comment());
+    snapshot_node["comment"] = fundamentals.comment().empty() ? YAML::Node()
+                                                              : YAML::Node(fundamentals.comment());
 
     return snapshot_node;
 }
@@ -101,6 +102,16 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
     YAML::Node instance_node;
 
     instance_node["state"] = mp::format::status_string_for(item.instance_status());
+    if (!item.zone().name().empty())
+    {
+        instance_node["zone"] = YAML::Node{};
+        instance_node["zone"]["name"] = item.zone().name();
+        instance_node["zone"]["available"] = item.zone().available();
+    }
+    else
+    {
+        instance_node["zone"] = YAML::Node(YAML::NodeType::Null);
+    }
 
     if (instance_details.has_num_snapshots())
         instance_node["snapshot_count"] = instance_details.num_snapshots();
@@ -108,10 +119,10 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
     instance_node["image_hash"] = instance_details.id();
     instance_node["image_release"] = instance_details.image_release();
     instance_node["release"] = instance_details.current_release().empty()
-                                   ? YAML::Node()
-                                   : YAML::Node(instance_details.current_release());
-    instance_node["cpu_count"] =
-        item.cpu_count().empty() ? YAML::Node() : YAML::Node(item.cpu_count());
+                                 ? YAML::Node()
+                                 : YAML::Node(instance_details.current_release());
+    instance_node["cpu_count"] = item.cpu_count().empty() ? YAML::Node()
+                                                          : YAML::Node(item.cpu_count());
 
     if (!instance_details.load().empty())
     {
@@ -126,8 +137,8 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
 
     YAML::Node disk;
     disk["used"] = instance_details.disk_usage().empty()
-                       ? YAML::Node()
-                       : YAML::Node(instance_details.disk_usage());
+                     ? YAML::Node()
+                     : YAML::Node(instance_details.disk_usage());
     disk["total"] = item.disk_total().empty() ? YAML::Node() : YAML::Node(item.disk_total());
 
     // TODO: disk name should come from daemon
@@ -137,10 +148,10 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
 
     YAML::Node memory;
     memory["usage"] = instance_details.memory_usage().empty()
-                          ? YAML::Node()
-                          : YAML::Node(std::stoll(instance_details.memory_usage()));
-    memory["total"] =
-        item.memory_total().empty() ? YAML::Node() : YAML::Node(std::stoll(item.memory_total()));
+                        ? YAML::Node()
+                        : YAML::Node(std::stoll(instance_details.memory_usage()));
+    memory["total"] = item.memory_total().empty() ? YAML::Node()
+                                                  : YAML::Node(std::stoll(item.memory_total()));
     instance_node["memory"] = memory;
 
     instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
@@ -189,14 +200,26 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     {
         YAML::Node instance_node;
         instance_node["state"] = mp::format::status_string_for(instance.instance_status());
+        if (!instance.zone().name().empty())
+        {
+            instance_node["zone"] = YAML::Node{};
+            instance_node["zone"]["name"] = instance.zone().name();
+            instance_node["zone"]["available"] = instance.zone().available();
+        }
+        else
+        {
+            instance_node["zone"] = YAML::Node(YAML::NodeType::Null);
+        }
 
         instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
         for (const auto& ip : instance.ipv4())
             instance_node["ipv4"].push_back(ip);
 
         instance_node["release"] = instance.current_release().empty()
-                                       ? "Not Available"
-                                       : fmt::format("Ubuntu {}", instance.current_release());
+                                     ? "Not Available"
+                                     : mp::utils::trim(fmt::format("{} {}",
+                                                                   instance.os(),
+                                                                   instance.current_release()));
 
         list[instance.name()].push_back(instance_node);
     }
@@ -214,10 +237,10 @@ std::string generate_snapshots_list(const mp::SnapshotsList& snapshot_list)
         YAML::Node instance_node;
         YAML::Node snapshot_node;
 
-        snapshot_node["parent"] =
-            snapshot.parent().empty() ? YAML::Node() : YAML::Node(snapshot.parent());
-        snapshot_node["comment"] =
-            snapshot.comment().empty() ? YAML::Node() : YAML::Node(snapshot.comment());
+        snapshot_node["parent"] = snapshot.parent().empty() ? YAML::Node()
+                                                            : YAML::Node(snapshot.parent());
+        snapshot_node["comment"] = snapshot.comment().empty() ? YAML::Node()
+                                                              : YAML::Node(snapshot.comment());
 
         instance_node[snapshot.snapshot_name()].push_back(snapshot_node);
         info_node[item.name()].push_back(instance_node);
@@ -293,7 +316,6 @@ std::string mp::YamlFormatter::format(const FindReply& reply) const
 {
     YAML::Node find;
     find["errors"] = std::vector<YAML::Node>{};
-    find["blueprints (deprecated)"] = format_images(reply.blueprints_info());
     find["images"] = format_images(reply.images_info());
 
     return mpu::emit_yaml(find);
@@ -327,26 +349,41 @@ std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
 {
     YAML::Node aliases_list, aliases_node;
 
-    for (const auto& [context_name, context_contents] : sort_dict(aliases))
+    for (const auto& [context_name, context_contents] : sorted_map_view(aliases))
     {
         YAML::Node context_node;
 
-        for (const auto& [name, def] : sort_dict(context_contents))
+        for (const auto& [name, def] : sorted_map_view(context_contents.get()))
         {
             YAML::Node alias_node;
-            alias_node["alias"] = name;
-            alias_node["command"] = def.command;
-            alias_node["instance"] = def.instance;
-            alias_node["working-directory"] = def.working_directory;
+            alias_node["alias"] = name.get();
+            alias_node["command"] = def.get().command;
+            alias_node["instance"] = def.get().instance;
+            alias_node["working-directory"] = def.get().working_directory;
 
             context_node.push_back(alias_node);
         }
 
-        aliases_node[context_name] = context_node;
+        aliases_node[context_name.get()] = context_node;
     }
 
     aliases_list["active_context"] = aliases.active_context_name();
     aliases_list["aliases"] = aliases_node;
 
     return mpu::emit_yaml(aliases_list);
+}
+
+std::string mp::YamlFormatter::format(const mp::ZonesReply& reply) const
+{
+    YAML::Node root_node;
+
+    for (const auto& zone : reply.zones())
+    {
+        YAML::Node zone_node;
+        zone_node["available"] = zone.available();
+        zone_node["subnet"] = zone.subnet();
+        root_node[zone.name()] = zone_node;
+    }
+
+    return mpu::emit_yaml(root_node);
 }

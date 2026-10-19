@@ -256,8 +256,10 @@ void update_adapter_authorizations(std::vector<mp::NetworkInterfaceInfo>& adapte
                                    const std::vector<mp::NetworkInterfaceInfo>& switches)
 {
     for (auto& adapter : adapters)
-        adapter.needs_authorization =
-            std::none_of(switches.cbegin(), switches.cend(), [&adapter](const auto& switch_) {
+        adapter.needs_authorization = std::none_of(
+            switches.cbegin(),
+            switches.cend(),
+            [&adapter](const auto& switch_) {
                 return std::find(switch_.links.cbegin(), switch_.links.cend(), adapter.id) !=
                        switch_.links.cend();
             });
@@ -270,9 +272,11 @@ std::string error_msg_helper(const std::string& msg_core, const QString& ps_outp
 }
 } // namespace
 
-mp::HyperVVirtualMachineFactory::HyperVVirtualMachineFactory(const mp::Path& data_dir)
+mp::HyperVVirtualMachineFactory::HyperVVirtualMachineFactory(const mp::Path& data_dir,
+                                                             AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(
-          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
+          az_manager)
 {
 }
 
@@ -281,10 +285,12 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::create_virtual_machine
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor)
 {
-    return std::make_unique<mp::HyperVVirtualMachine>(desc,
-                                                      monitor,
-                                                      key_provider,
-                                                      get_instance_directory(desc.vm_name));
+    return std::make_unique<mp::HyperVVirtualMachine>(
+        desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(az_manager.get_default_zone_name()),
+        get_instance_directory(desc.vm_name));
 }
 
 void mp::HyperVVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -294,7 +300,7 @@ void mp::HyperVVirtualMachineFactory::remove_resources_for_impl(const std::strin
 
 mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMImage& source_image)
 {
-    QFileInfo source_file{source_image.image_path};
+    QFileInfo source_file{MP_PLATFORM.path_to_qstr(source_image.image_path)};
     auto vhdx_file =
         QString("%1/%2.vhdx").arg(source_file.path()).arg(source_file.completeBaseName());
 
@@ -303,7 +309,7 @@ mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMIm
                               "subformat=dynamic",
                               "-O",
                               "vhdx",
-                              source_image.image_path,
+                              MP_PLATFORM.path_to_qstr(source_image.image_path),
                               vhdx_file});
 
     QProcess convert;
@@ -327,7 +333,7 @@ mp::VMImage mp::HyperVVirtualMachineFactory::prepare_source_image(const mp::VMIm
     }
 
     auto prepared_image = source_image;
-    prepared_image.image_path = vhdx_file;
+    prepared_image.image_path = vhdx_file.toStdString();
     return prepared_image;
 }
 
@@ -339,10 +345,14 @@ void mp::HyperVVirtualMachineFactory::prepare_instance_image(const mp::VMImage& 
 
     // Resize-VHD can't operate on the sparse images that `qemu-img` produces. The `fsutil` cmd
     // allocates them fully. Images copied from the cache aren't sparse, but they remain unaffected.
-    QStringList unsparse_cmd = {"fsutil", "sparse", "setFlag", instance_image.image_path, "0"};
+    QStringList unsparse_cmd = {"fsutil",
+                                "sparse",
+                                "setFlag",
+                                MP_PLATFORM.path_to_qstr(instance_image.image_path),
+                                "0"};
     QStringList resize_cmd = {"Resize-VHD",
                               "-Path",
-                              instance_image.image_path,
+                              MP_PLATFORM.path_to_qstr(instance_image.image_path),
                               "-SizeBytes",
                               disk_size};
     PowerShell ps{desc.vm_name};
@@ -375,7 +385,7 @@ auto mp::HyperVVirtualMachineFactory::networks() const -> std::vector<NetworkInt
 std::string mp::HyperVVirtualMachineFactory::create_bridge_with(
     const NetworkInterfaceInfo& interface)
 {
-    assert(interface.type == "ethernet");
+    assert(interface.type == "Ethernet");
 
     const auto switch_name = QStringLiteral("ExtSwitch (%1)").arg(interface.id.c_str());
     auto quote = [](const auto& str) { return QStringLiteral("'%1'").arg(str); };
@@ -453,7 +463,7 @@ auto mp::HyperVVirtualMachineFactory::get_adapters() -> std::vector<NetworkInter
     for (auto& item : MP_PLATFORM.get_network_interfaces_info())
     {
         auto& net = item.second;
-        if (const auto& type = net.type; type == "ethernet")
+        if (const auto& type = net.type; type == "Ethernet")
         {
             net.needs_authorization = true;
             ret.emplace_back(std::move(net));
@@ -470,10 +480,12 @@ mp::VirtualMachine::UPtr mp::HyperVVirtualMachineFactory::clone_vm_impl(
     VMStatusMonitor& monitor,
     const SSHKeyProvider& key_provider)
 {
-    return std::make_unique<mp::HyperVVirtualMachine>(src_name,
-                                                      src_spec,
-                                                      dest_vm_desc,
-                                                      monitor,
-                                                      key_provider,
-                                                      get_instance_directory(dest_vm_desc.vm_name));
+    return std::make_unique<mp::HyperVVirtualMachine>(
+        src_name,
+        src_spec,
+        dest_vm_desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(az_manager.get_default_zone_name()),
+        get_instance_directory(dest_vm_desc.vm_name));
 }

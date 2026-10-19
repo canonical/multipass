@@ -31,9 +31,6 @@ class BaseQException : public QException
 public:
     BaseQException(const std::string& err) : error_string{err}
     {
-        // TODO@C++20, use concepts instead of static_assert + type traits to apply the constraint.
-        static_assert(std::is_base_of_v<BaseQException, DerivedException>,
-                      "DerivedException must be derived from BaseQException");
     }
 
     // TODO@C++23, use explicit object parameters instead of static_cast conversion to derive class,
@@ -54,6 +51,11 @@ public:
     }
 
 private:
+    // Ensure that classes properly derive from this base. If they don't, the destructor will be
+    // inaccessible to them.
+    ~BaseQException() = default;
+    friend DerivedException;
+
     std::string error_string;
 };
 } // namespace multipass

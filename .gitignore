@@ -1,6 +1,8 @@
 .idea
 .vs
 .vscode
+.clangd
+.cache
 cmake-build-*
 .DS_Store
 CMakeLists.txt.user
@@ -11,25 +13,28 @@ build
 *.buildinfo
 *.changes
 
-# only care about the encrypted file
-/tools/bot-data/*
-/tools/bot-data.tar.xz
-
 # snapcraft build artifacts
 parts
 prime
 stage
 snap/.snapcraft/state
 
-# Flutter build artifacts
-src/client/gui/lib/generated
-src/client/gui/build
-src/client/gui/.dart_tool
-src/client/gui/flutter*.log
-.flutter-plugins
-.flutter-plugins-dependencies
-
 # wix build artifacts
 packaging/windows/wix/obj/*
 packaging/windows/custom-actions/packages/*
 packaging/windows/custom-actions/x64/*
+
+# https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html
+CMakeUserPresets.json
+
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# QT network download cache
+network-cache/
+
+# clangd code index cache
+.cache

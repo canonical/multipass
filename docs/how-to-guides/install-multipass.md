@@ -25,22 +25,17 @@ Multipass for Linux is published as a [snap package](https://snapcraft.io/docs/)
 ````{tab-item} macOS
 :sync: macOS
 
-<!--### Hypervisor.framework / hyperkit-->
-
-The default backend on macOS is `qemu`, wrapping Apple's Hypervisor framework. You can use any Mac (M-series or Intel based) with **macOS 10.15 Catalina or later** installed.
+The default backend on macOS is `qemu`, wrapping Apple's Hypervisor framework. You can use any Mac (M-series or Intel based) with **macOS 14 Sonoma or later** installed.
 
 ````
 
 ````{tab-item} Windows
 :sync: Windows
 
-### Hyper-V
-
-Only **Windows 10 Pro** or **Enterprise** version **1803** ("April 2018 Update") **or later** are currently supported, due to the necessary version of Hyper-V only being available on those versions.
-
-### VirtualBox
-
-Multipass also supports using VirtualBox as a virtualisation provider. You can download the latest version from the [VirtualBox download page](https://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html).
+Multipass supports Windows 10 or 11 on Home, Pro, and Enterprise editions. The minimal required
+version is **1809** ("October 2018 Update"). You will need the
+[Virtual Machine Platform feature](https://support.microsoft.com/en-us/windows/experience/enable-virtualization-on-windows)
+enabled.
 
 ````
 
@@ -98,14 +93,14 @@ For example:
 
 ```{code-block} text
 name:      multipass
-summary:   Instant Ubuntu VMs
+summary:   Instant cloud VMs
 publisher: Canonical✓
 store-url: https://snapcraft.io/multipass
 contact:   https://github.com/canonical/multipass/issues/new
 license:   GPL-3.0
 description: |
   Multipass is a tool to launch and manage VMs on Windows, Mac and Linux that simulates a cloud
-  environment with support for cloud-init. Get Ubuntu on-demand with clean integration to your IDE
+  environment with support for cloud-init. Get on-demand cloud VMs with clean integration to your IDE
   and version control on your native platform.
   ...
 commands:
@@ -152,7 +147,7 @@ Run the downloaded installer and follow the guided procedure.
 :sync: Windows
 
 ```{note}
-You will need either Hyper-V enabled (only Windows 10 Professional or Enterprise), or VirtualBox installed. See {ref}`install-multipass-prerequisites`.
+You will need the Virtual Machine Platform enabled on Windows. See {ref}`install-multipass-prerequisites`.
 ```
 
 Download the latest installer from [our download page](https://canonical.com/multipass/download/windows). You can also get pre-release versions from the [GitHub releases](https://github.com/canonical/multipass/releases/) page, look for the `.msi` file.
@@ -181,6 +176,12 @@ You've installed Multipass. Time to run your first commands! Use `multipass vers
 
 You've installed Multipass. Time to run your first commands! Use `multipass version` to check your version or `multipass launch` to create your first instance.
 
+Multipass defaults to using QEMU as its virtualisation provider. If you'd like to use the Apple Virtualization framework, you can do so using the following command:
+
+```{code-block} text
+multipass set local.driver=applevz
+```
+
 ```{seealso}
 [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver), [How to use a different terminal from the system icon](/how-to-guides/customise-multipass/use-a-different-terminal-from-the-system-icon)
 ```
@@ -191,14 +192,6 @@ You've installed Multipass. Time to run your first commands! Use `multipass vers
 :sync: Windows
 
 You've installed Multipass. Time to run your first commands! Launch a **Command Prompt** (`cmd.exe`) or **PowerShell** as a regular user. Use `multipass version` to check your version or `multipass launch` to create your first instance.
-
-Multipass defaults to using Hyper-V as its virtualisation provider. If you'd like to use VirtualBox, you can do so using the following command:
-
-```{code-block} text
-multipass set local.driver=virtualbox
-```
-
-> See also: [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver).
 
 ````
 

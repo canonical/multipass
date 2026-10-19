@@ -34,21 +34,21 @@
 #include <QRegularExpression>
 #include <QStorageInfo>
 #include <QSysInfo>
-#include <QUuid>
 #include <QtGlobal>
+#include <boost/uuid.hpp>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
 
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <cctype>
+#include <filesystem>
 #include <fstream>
 #include <optional>
 #include <random>
 #include <regex>
 #include <sstream>
-
-#include <openssl/evp.h>
-#include <openssl/rand.h>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -56,7 +56,6 @@ namespace mpl = multipass::logging;
 namespace
 {
 constexpr auto category = "utils";
-constexpr auto scrypt_hash_size{64};
 } // namespace
 mp::Utils::Utils(const Singleton<Utils>::PrivatePass& pass) noexcept
     : Singleton<Utils>::Singleton{pass}
@@ -136,11 +135,12 @@ std::string mp::Utils::get_kernel_version() const
     return QSysInfo::kernelVersion().toStdString();
 }
 
-QString mp::Utils::generate_scrypt_hash_for(const QString& passphrase) const
+std::string mp::Utils::generate_scrypt_hash_for(const std::string& passphrase) const
 {
-    QByteArray hash(scrypt_hash_size, '\0');
+    unsigned char digest[EVP_MAX_MD_SIZE] = {0};
 
-    if (!EVP_PBE_scrypt(passphrase.toStdString().c_str(),
+    // TODO: Move to openssl singleton when we have one
+    if (!EVP_PBE_scrypt(passphrase.c_str(),
                         passphrase.size(),
                         nullptr,
                         0,
@@ -148,11 +148,11 @@ QString mp::Utils::generate_scrypt_hash_for(const QString& passphrase) const
                         8,
                         1,
                         0,
-                        reinterpret_cast<unsigned char*>(hash.data()),
-                        scrypt_hash_size))
+                        digest,
+                        sizeof(digest)))
         throw std::runtime_error("Cannot generate passphrase hash");
 
-    return QString(hash.toHex());
+    return fmt::format("{:02x}", fmt::join(digest, digest + sizeof(digest), ""));
 }
 
 QDir mp::utils::base_dir(const QString& path)
@@ -161,34 +161,31 @@ QDir mp::utils::base_dir(const QString& path)
     return info.absoluteDir();
 }
 
+std::filesystem::path mp::utils::normalize_path(const std::filesystem::path& path)
+{
+    auto result = path.lexically_normal();
+    // Remove the trailing slash if present.
+    if (!result.has_filename())
+        result = result.parent_path();
+    return result;
+}
+
+std::string mp::utils::normalize_path(const std::string& path)
+{
+    return normalize_path(std::filesystem::path{path}).generic_string();
+}
+
+QString mp::utils::normalize_path(const QString& path)
+{
+    return QString::fromStdString(normalize_path(path.toStdString()));
+}
+
 bool mp::utils::valid_hostname(const std::string& name_string)
 {
     QRegularExpression matcher{
         QRegularExpression::anchoredPattern("^([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9])")};
 
     return matcher.match(QString::fromStdString(name_string)).hasMatch();
-}
-
-bool mp::utils::invalid_target_path(const QString& target_path)
-{
-    QString sanitized_path{QDir::cleanPath(target_path)};
-    QRegularExpression matcher{
-        QRegularExpression::anchoredPattern("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*")};
-
-    return matcher.match(sanitized_path).hasMatch();
-}
-
-QTemporaryFile mp::utils::create_temp_file_with_path(const QString& filename_template)
-{
-    auto temp_folder = QFileInfo(filename_template).absoluteDir();
-
-    if (!MP_FILEOPS.mkpath(temp_folder, temp_folder.absolutePath()))
-    {
-        throw std::runtime_error(
-            fmt::format("Could not create path '{}'", temp_folder.absolutePath()));
-    }
-
-    return QTemporaryFile(filename_template);
 }
 
 std::string mp::utils::to_cmd(const std::vector<std::string>& args, QuoteType quote_type)
@@ -215,6 +212,17 @@ std::string& mp::utils::trim_newline(std::string& s)
     assert(!s.empty() && '\n' == s.back());
     s.pop_back();
     return s;
+}
+
+bool mp::utils::istarts_with(std::string_view str, std::string_view prefix)
+{
+    if (prefix.size() > str.size())
+        return false;
+    // TODO(C++23): Use std::ranges::starts_with
+    return std::ranges::equal(
+        str | std::views::take(prefix.size()),
+        prefix,
+        [](unsigned char a, unsigned char b) { return std::tolower(a) == std::tolower(b); });
 }
 
 // Escape all characters which need to be escaped in the shell.
@@ -264,10 +272,9 @@ std::vector<std::string> mp::utils::split(const std::string& string, const std::
 
 std::string mp::utils::generate_mac_address()
 {
-    std::default_random_engine gen;
-    std::uniform_int_distribution<int> dist{0, 255};
+    thread_local std::mt19937 gen{std::random_device{}()};
+    thread_local std::uniform_int_distribution<int> dist{0, 255};
 
-    gen.seed(std::chrono::system_clock::now().time_since_epoch().count());
     std::array<int, 3> octets{{dist(gen), dist(gen), dist(gen)}};
     return fmt::format("52:54:00:{:02x}:{:02x}:{:02x}", octets[0], octets[1], octets[2]);
 }
@@ -289,18 +296,22 @@ std::string mp::Utils::run_in_ssh_session(mp::SSHSession& session,
                                           bool whisper) const
 {
     auto proc = session.exec(cmd, whisper);
+    return reap_ssh_process(*proc);
+}
 
-    if (auto ec = proc.exit_code() != 0)
+std::string mp::Utils::reap_ssh_process(mp::SSHProcess& proc) const
+{
+    if (auto ec = proc.exit_code(); ec != 0)
     {
         auto error_msg = mp::utils::trim_end(proc.read_std_error());
-        mpl::log(mpl::Level::debug,
-                 category,
-                 fmt::format("failed to run '{}', error message: '{}'", cmd, error_msg));
-        throw mp::SSHExecFailure(error_msg, ec);
+        auto suffix = error_msg.empty() ? fmt::format("exit_code {} (no stderr output)", ec)
+                                        : fmt::format("error message: '{}'", error_msg);
+        mpl::debug(category, "failed to run '{}', {}", proc.get_cmd(), suffix);
+
+        throw mp::SSHExecFailure{error_msg, ec};
     }
 
-    auto output = proc.read_std_output();
-    return mp::utils::trim_end(output);
+    return mp::utils::trim_end(proc.read_std_output());
 }
 
 mp::Path mp::Utils::make_dir(const QDir& a_dir,
@@ -339,14 +350,6 @@ mp::Path mp::Utils::make_dir(const QDir& dir, std::filesystem::perms permissions
     return make_dir(dir, QString(), permissions);
 }
 
-void mp::utils::remove_directories(const std::vector<QString>& dirs)
-{
-    for (const auto& dir : dirs)
-    {
-        QDir(dir).removeRecursively();
-    }
-}
-
 QString mp::utils::backend_directory_path(const mp::Path& path, const QString& subdirectory)
 {
     if (subdirectory.isEmpty())
@@ -360,11 +363,22 @@ QString mp::utils::get_multipass_storage()
     return QString::fromUtf8(qgetenv(mp::multipass_storage_env_var));
 }
 
-QString mp::utils::make_uuid(const std::optional<std::string>& seed)
+std::string mp::utils::make_uuid(const std::optional<std::string>& seed)
 {
-    auto uuid =
-        seed ? QUuid::createUuidV3(QUuid{}, QString::fromStdString(*seed)) : QUuid::createUuid();
-    return uuid.toString(QUuid::WithoutBraces);
+    boost::uuids::uuid uuid{};
+
+    if (seed)
+    {
+        boost::uuids::name_generator_md5 gen(boost::uuids::nil_uuid());
+        uuid = gen(*seed);
+    }
+    else
+    {
+        thread_local boost::uuids::random_generator gen;
+        uuid = gen();
+    }
+
+    return boost::uuids::to_string(uuid);
 }
 
 std::string mp::utils::contents_of(const multipass::Path& file_path)
@@ -403,7 +417,7 @@ std::vector<uint8_t> mp::Utils::random_bytes(size_t len)
     return bytes;
 }
 
-QString mp::Utils::make_uuid(const std::optional<std::string>& seed) const
+std::string mp::Utils::make_uuid(const std::optional<std::string>& seed) const
 {
     return mp::utils::make_uuid(seed);
 }
@@ -464,37 +478,38 @@ void mp::utils::check_and_create_config_file(const QString& config_file_path)
         MP_UTILS.make_dir(
             {},
             QFileInfo{config_file_path}.dir().path()); // make sure parent dir is there
-        config_file.open(QIODevice::WriteOnly);
+        if (!config_file.open(QIODevice::WriteOnly))
+            throw std::runtime_error(
+                fmt::format("Unable to create config file \"{}\"", config_file_path.toStdString()));
     }
 }
 
 void mp::utils::process_throw_on_error(const QString& program,
                                        const QStringList& arguments,
-                                       const QString& message,
+                                       fmt::format_string<std::string> message,
                                        const QString& category,
                                        const int timeout)
 {
     QProcess process;
-    mpl::log(
-        mpl::Level::debug,
-        category.toStdString(),
-        fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
+    mpl::debug(category.toStdString(),
+               "Running: {}, {}",
+               program.toStdString(),
+               arguments.join(", ").toStdString());
     process.setProcessChannelMode(QProcess::MergedChannels);
     process.start(program, arguments);
     auto success = process.waitForFinished(timeout);
 
     if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
     {
-        mpl::log(mpl::Level::debug,
-                 category.toStdString(),
-                 fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}",
-                             program.toStdString(),
-                             process.errorString().toStdString(),
-                             process.exitStatus(),
-                             process.exitCode()));
+        mpl::debug(category.toStdString(),
+                   "{} failed - errorString: {}, exitStatus: {}, exitCode: {}",
+                   program.toStdString(),
+                   process.errorString().toStdString(),
+                   process.exitStatus(),
+                   process.exitCode());
 
         auto output = process.readAllStandardOutput();
-        throw std::runtime_error(fmt::format(message.toStdString(),
+        throw std::runtime_error(fmt::format(message,
                                              output.isEmpty() ? process.errorString().toStdString()
                                                               : output.toStdString()));
     }
@@ -502,36 +517,34 @@ void mp::utils::process_throw_on_error(const QString& program,
 
 bool mp::utils::process_log_on_error(const QString& program,
                                      const QStringList& arguments,
-                                     const QString& message,
+                                     fmt::format_string<std::string> message,
                                      const QString& category,
                                      mpl::Level level,
                                      const int timeout)
 {
     QProcess process;
-    mpl::log(
-        mpl::Level::debug,
-        category.toStdString(),
-        fmt::format("Running: {}, {}", program.toStdString(), arguments.join(", ").toStdString()));
+    mpl::debug(category.toStdString(),
+               "Running: {}, {}",
+               program.toStdString(),
+               arguments.join(", ").toStdString());
     process.setProcessChannelMode(QProcess::MergedChannels);
     process.start(program, arguments);
     auto success = process.waitForFinished(timeout);
 
     if (!success || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
     {
-        mpl::log(mpl::Level::debug,
-                 category.toStdString(),
-                 fmt::format("{} failed - errorString: {}, exitStatus: {}, exitCode: {}",
-                             program.toStdString(),
-                             process.errorString().toStdString(),
-                             process.exitStatus(),
-                             process.exitCode()));
+        mpl::debug(category.toStdString(),
+                   "{} failed - errorString: {}, exitStatus: {}, exitCode: {}",
+                   program.toStdString(),
+                   process.errorString().toStdString(),
+                   process.exitStatus(),
+                   process.exitCode());
 
         auto output = process.readAllStandardOutput();
         mpl::log(level,
                  category.toStdString(),
-                 fmt::format(message.toStdString(),
-                             output.isEmpty() ? process.errorString().toStdString()
-                                              : output.toStdString()));
+                 message,
+                 output.isEmpty() ? process.errorString().toStdString() : output.toStdString());
         return false;
     }
 
@@ -639,7 +652,37 @@ bool mp::Utils::is_ipv4_valid(const std::string& ipv4) const
 
 mp::Path mp::Utils::default_mount_target(const Path& source) const
 {
-    return source.isEmpty() ? "" : QDir{QDir::cleanPath(source)}.dirName().prepend("/home/ubuntu/");
+    // The GUI calls this function on every update of the host mount directory, so we need to be
+    // pretty lenient with what we accept for now. In the future, the GUI should be able to handle
+    // errors from this function as an indicator that the host mount directory is invalid.
+    if (source == "")
+        return "";
+
+    auto path = mp::utils::normalize_path(std::filesystem::absolute(source.toStdString()));
+    if (!path.has_filename())
+        return "";
+    auto mount_target = home_in_instance / path.filename();
+    return QString::fromStdString(mount_target.generic_string());
+}
+
+QString mp::Utils::normalize_mount_target(QString target_mount_path) const
+{
+    std::filesystem::path target_mount = target_mount_path.toStdString();
+    if (target_mount.is_relative())
+        target_mount = home_in_instance / target_mount;
+
+    target_mount = mp::utils::normalize_path(target_mount);
+    return QString::fromStdString(target_mount.generic_string());
+}
+
+bool mp::Utils::invalid_target_path(const QString& target_path) const
+{
+    assert(target_path == mp::utils::normalize_path(target_path) &&
+           "target_path must be normalized");
+    static QRegularExpression matcher{
+        QRegularExpression::anchoredPattern("/+|/+(dev|proc|sys)(/.*)*|/+home(/*)(/ubuntu/*)*")};
+
+    return matcher.match(target_path).hasMatch();
 }
 
 auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& networks,
@@ -654,26 +697,4 @@ auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& ne
                          return info.type == bridge_type && info.has_link(target_network);
                      });
     return it == std::cend(networks) ? std::nullopt : std::make_optional(*it);
-}
-
-std::string deprecation_warning_message_driver_concatenated(
-    const QString driver_name) // TODO lxd and libvirt migration, remove
-{
-    constexpr auto driver_deprecation_warning_template_common_part =
-        "*** Warning! The {0} driver is deprecated and will be removed in an future "
-        "release. ***\n\n";
-
-    constexpr auto driver_deprecation_warning_lxd_part =
-        "Instances will no longer be available in Multipass then, "
-        "but they will remain in LXD.\n\n";
-
-    constexpr auto driver_deprecation_warning_libvirt_part =
-        "Instances will remain available with the QEMU driver.\n\n";
-
-    const std::string deprecation_warning_message_driver_specific_part =
-        driver_name == "lxd" ? driver_deprecation_warning_lxd_part
-                             : driver_deprecation_warning_libvirt_part;
-
-    return fmt::format(driver_deprecation_warning_template_common_part, driver_name) +
-           deprecation_warning_message_driver_specific_part;
 }

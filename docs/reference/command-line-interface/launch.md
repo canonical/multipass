@@ -1,11 +1,13 @@
 (reference-command-line-interface-launch)=
 # launch
 
+> See also: {ref}`Availability zone <explanation-availability-zone>`, {ref}`zones <reference-command-line-interface-zones>`
+
 The `multipass launch` command without any argument will create and start a new instance based on the default image, using a random generated name; for example:
 
 ```{code-block} text
 ...
-Launched: relishing-lionfish
+Launched: relishing-lionfish in zone1
 ```
 
 You can then shell into an instance by its name:
@@ -27,6 +29,8 @@ By passing a filename or an URL to `--cloud-init`, you can provide user data to 
 Use the `--network` option to {ref}`create-an-instance-with-multiple-network-interfaces`.
 
 Passing `--bridged` and `--network bridged` are shortcuts to `--network <name>`, where `<name>` is configured via `multipass set local.bridged-interface`.
+
+By default, Multipass picks an {ref}`availability zone <explanation-availability-zone>` for the instance automatically, cycling through the available zones. Use the `--zone` option to launch the instance into a specific zone instead. See [`multipass zones`](reference-command-line-interface-zones) for a list of the zones known to Multipass and their availability.
 
 You can also mount folders in the instance after it is launched using the  `--mount` option. It can be specified multiple times, with different mount paths.
 
@@ -51,11 +55,11 @@ Options:
   -d, --disk <disk>                     Disk space to allocate. Positive
                                         integers, in bytes, or decimals, with K,
                                         M, G suffix.
-                                        Minimum: 512M, default: 5G.
+                                        Minimum: 1G, default: 5G.
   -m, --memory <memory>                 Amount of memory to allocate. Positive
                                         integers, in bytes, or decimals, with K,
                                         M, G suffix.
-                                        Minimum: 128M, default: 1G.
+                                        Minimum: 512M, default: 1G.
   -n, --name <name>                     Name for the instance. If it is
                                         'primary' (the configured primary
                                         instance name), the user's home
@@ -83,6 +87,8 @@ Options:
                                         You can also use a shortcut of "<name>"
                                         to mean "name=<name>".
   --bridged                             Adds one `--network bridged` network.
+  --zone <zone>                         The zone in which to launch the
+                                        instance.
   --mount <local-path>:<instance-path>  Mount a local directory inside the
                                         instance. If <target> is omitted,
                                         the mount point will be under
@@ -98,7 +104,7 @@ Options:
 
 Arguments:
   image                                 Optional image to launch. If omitted,
-                                        then the default Ubuntu LTS will be
+                                        then the latest Ubuntu LTS will be
                                         used.
                                         <remote> can be either ‘release’ or
                                         ‘daily‘. If <remote> is omitted,

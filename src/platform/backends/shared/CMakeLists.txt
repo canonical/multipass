@@ -13,10 +13,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 add_library(shared STATIC
+  base_availability_zone.cpp
+  base_availability_zone_manager.cpp
   base_snapshot.cpp
   base_virtual_machine.cpp
   base_virtual_machine_factory.cpp
+  snapshot_description.cpp
   sshfs_server_process_spec.cpp
+  stub_availability_zone.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h
   ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h)
 
@@ -27,5 +31,4 @@ target_link_libraries(shared
   utils
   Qt6::Core)
 
-add_subdirectory(qemu_img_utils)
 add_subdirectory(${MULTIPASS_PLATFORM})

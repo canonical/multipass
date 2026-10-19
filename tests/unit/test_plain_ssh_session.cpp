@@ -1,0 +1,205 @@
+/*
+ * Copyright (C) Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include "common.h"
+#include "mock_platform.h"
+#include "mock_ssh.h"
+#include "stub_ssh_key_provider.h"
+
+#include <multipass/socket.h>
+#include <multipass/ssh/plain_ssh_session.h>
+
+#include <limits>
+#include <vector>
+
+namespace mp = multipass;
+namespace mpt = multipass::test;
+using namespace testing;
+
+namespace
+{
+struct TestPlainSSHSession : public Test
+{
+    mp::PlainSSHSession make_ssh_session()
+    {
+        return mp::PlainSSHSession("theanswertoeverything", 42, "ubuntu", key_provider);
+    }
+
+    mp::test::StubSSHKeyProvider key_provider;
+};
+} // namespace
+
+TEST_F(TestPlainSSHSession, throwsWhenUnableToAllocateSession)
+{
+    REPLACE(ssh_new, []() { return nullptr; });
+    EXPECT_THROW(make_ssh_session(), std::runtime_error);
+}
+
+TEST_F(TestPlainSSHSession, throwsWhenUnableToSetOption)
+{
+    REPLACE(ssh_options_set, [](auto...) { return SSH_ERROR; });
+    EXPECT_THROW(make_ssh_session(), std::runtime_error);
+}
+
+TEST_F(TestPlainSSHSession, throwsWhenUnableToConnect)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_ERROR; });
+    EXPECT_THROW(make_ssh_session(), std::runtime_error);
+}
+
+TEST_F(TestPlainSSHSession, throwsWhenUnableToAuth)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_ERROR; });
+    EXPECT_THROW(make_ssh_session(), std::runtime_error);
+}
+
+TEST_F(TestPlainSSHSession, execThrowsOnADeadSession)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    mp::PlainSSHSession session = make_ssh_session();
+
+    REPLACE(ssh_is_connected, [](auto...) { return false; });
+    EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
+}
+
+TEST_F(TestPlainSSHSession, execThrowsIfSshIsDead)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    mp::PlainSSHSession session = make_ssh_session();
+
+    REPLACE(ssh_is_connected, [](auto...) { return false; });
+    EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
+}
+
+TEST_F(TestPlainSSHSession, execThrowsWhenUnableToOpenAChannelSession)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    mp::PlainSSHSession session = make_ssh_session();
+
+    REPLACE(ssh_is_connected, [](auto...) { return true; });
+    REPLACE(ssh_channel_open_session, [](auto...) { return SSH_ERROR; });
+    EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
+}
+
+TEST_F(TestPlainSSHSession, execThrowsWhenUnableToRequestChannelExec)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    mp::PlainSSHSession session = make_ssh_session();
+
+    REPLACE(ssh_is_connected, [](auto...) { return true; });
+    REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_ERROR; });
+    EXPECT_THROW(static_cast<void>(session.exec("dummy")), std::runtime_error);
+}
+
+TEST_F(TestPlainSSHSession, execSucceeds)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    mp::PlainSSHSession session = make_ssh_session();
+
+    REPLACE(ssh_is_connected, [](auto...) { return true; });
+    REPLACE(ssh_channel_open_session, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_OK; });
+
+    EXPECT_NO_THROW(static_cast<void>(session.exec("dummy")));
+}
+
+TEST_F(TestPlainSSHSession, moveAssigns)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    mp::PlainSSHSession session1 = make_ssh_session();
+    mp::PlainSSHSession session2 = make_ssh_session();
+    ssh_session ssh_session2 = session2;
+
+    session1 = std::move(session2);
+    EXPECT_EQ(ssh_session{session1}, ssh_session2);
+    EXPECT_EQ(ssh_session{session2}, nullptr);
+}
+
+TEST_F(TestPlainSSHSession, forceShutdownCallsShutdownSocketWhenFdIsValid)
+{
+    constexpr socket_t fake_fd = 5;
+
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    REPLACE(ssh_get_fd, [](auto...) -> socket_t { return fake_fd; });
+
+    mp::PlainSSHSession session = make_ssh_session();
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, shutdown_socket(Field(&mp::Socket::fd, fake_fd)));
+    session.force_shutdown();
+}
+
+TEST_F(TestPlainSSHSession, forceShutdownSkipsShutdownSocketWhenNoFd)
+{
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    REPLACE(ssh_get_fd, [](auto...) { return (socket_t)-1; });
+
+    mp::PlainSSHSession session = make_ssh_session();
+
+    auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, shutdown_socket).Times(0);
+    session.force_shutdown();
+}
+
+TEST_F(TestPlainSSHSession, dtorCallsShutdownSocket)
+{
+    constexpr socket_t fake_fd = 12;
+    REPLACE(ssh_connect, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+    REPLACE(ssh_get_fd, [](auto...) -> socket_t { return fake_fd; });
+
+    {
+        auto [mock_platform, guard] = mpt::MockPlatform::inject();
+        EXPECT_CALL(*mock_platform, shutdown_socket(Field(&mp::Socket::fd, fake_fd)));
+
+        mp::PlainSSHSession session = make_ssh_session();
+    }
+}
+
+TEST_F(TestPlainSSHSession, setsConnectTimeoutBeforeConnectAndBoundedTimeoutAfter)
+{
+    std::vector<long> timeouts;
+    size_t timeouts_set_at_connect{0};
+
+    REPLACE(ssh_options_set, [&timeouts](ssh_session, ssh_options_e type, const void* value) {
+        if (type == SSH_OPTIONS_TIMEOUT)
+            timeouts.push_back(*static_cast<const long*>(value));
+        return SSH_OK;
+    });
+    REPLACE(ssh_connect, [&](auto...) {
+        timeouts_set_at_connect = timeouts.size();
+        return SSH_OK;
+    });
+    REPLACE(ssh_userauth_publickey, [](auto...) { return SSH_AUTH_SUCCESS; });
+
+    mp::PlainSSHSession session = make_ssh_session();
+
+    // a short timeout to connect, then a finite bound on any subsequent blocking call
+    EXPECT_THAT(timeouts, ElementsAre(5L, 10L));
+    EXPECT_EQ(timeouts_set_at_connect, 1u);
+    EXPECT_THAT(timeouts, Each(Lt(std::numeric_limits<long>::max())));
+}

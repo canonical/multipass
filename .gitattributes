@@ -1,0 +1,2 @@
+tests/unit/test_data/formatters/** -text
+tests/unit/test_data/alias_dict/formatter/** -text

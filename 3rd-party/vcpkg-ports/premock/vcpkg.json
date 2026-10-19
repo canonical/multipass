@@ -1,0 +1,7 @@
+{
+  "name": "premock",
+  "version-date": "2026-03-30",
+  "description": "Header-only C++ library for mocking C functions (and C++ free functions) using the preprocessor",
+  "homepage": "https://github.com/atilaneves/premock",
+  "license": "BSL-1.0"
+}

@@ -18,6 +18,7 @@
 #pragma once
 
 #include <multipass/alias_definition.h>
+#include <multipass/availability_zone_manager.h>
 #include <multipass/days.h>
 #include <multipass/logging/logger.h>
 #include <multipass/network_interface_info.h>
@@ -26,6 +27,7 @@
 #include <multipass/settings/setting_spec.h>
 #include <multipass/singleton.h>
 #include <multipass/sshfs_server_config.h>
+#include <multipass/subnet.h>
 #include <multipass/update_prompt.h>
 #include <multipass/virtual_machine_factory.h>
 #include <multipass/vm_image_vault.h>
@@ -36,7 +38,6 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <vector>
 
 #define MP_PLATFORM multipass::platform::Platform::instance()
 
@@ -44,6 +45,8 @@ struct sftp_attributes_struct;
 
 namespace multipass
 {
+struct Socket;
+
 namespace platform
 {
 class Platform : public Singleton<Platform>
@@ -76,11 +79,20 @@ public:
     virtual QString default_driver() const;
     virtual QString default_privileged_mounts() const;
     [[nodiscard]] virtual std::string bridge_nomenclature() const;
+    [[nodiscard]] virtual bool subnet_used_locally(Subnet subnet) const;
+    [[nodiscard]] virtual Subnet get_preferred_subnet(const std::filesystem::path& data_dir) const;
+
     virtual int get_cpus() const;
     virtual long long get_total_ram() const;
 
     [[nodiscard]] virtual std::filesystem::path get_root_cert_dir() const;
     [[nodiscard]] std::filesystem::path get_root_cert_path() const;
+    // Converts QString to path, using appropriate string functions depending on the platform
+    [[nodiscard]] virtual std::filesystem::path qstr_to_path(const QString& qstr) const;
+    [[nodiscard]] virtual QString path_to_qstr(const std::filesystem::path& path) const;
+
+    // Shuts down I/O on a socket in both directions, without closing it
+    virtual void shutdown_socket(Socket socket) const;
 };
 
 QString interpret_setting(const QString& key, const QString& val);
@@ -88,7 +100,9 @@ void sync_winterm_profiles();
 
 std::string default_server_address();
 
-VirtualMachineFactory::UPtr vm_backend(const Path& data_dir);
+VirtualMachineFactory::UPtr vm_backend(const Path& data_dir, AvailabilityZoneManager& az_manager);
+// TODO@backends: remove once deprecated backends are removed
+bool backend_supports_availability_zones();
 logging::Logger::UPtr make_logger(logging::Level level);
 UpdatePrompt::UPtr make_update_prompt();
 std::unique_ptr<Process> make_sshfs_server_process(const SSHFSServerConfig& config);

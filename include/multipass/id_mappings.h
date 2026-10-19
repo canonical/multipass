@@ -20,9 +20,8 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 
-#include <algorithm>
-#include <iterator>
-#include <set>
+#include <boost/json.hpp>
+
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -33,6 +32,33 @@ namespace mpl = multipass::logging;
 namespace multipass
 {
 using id_mappings = std::vector<std::pair<int, int>>;
+
+enum class IdMappingType
+{
+    gid,
+    uid
+};
+
+inline void tag_invoke(const boost::json::value_from_tag&,
+                       boost::json::value& json,
+                       const id_mappings::value_type& mapping,
+                       IdMappingType type)
+{
+    if (type == IdMappingType::gid)
+        json = {{"host_gid", mapping.first}, {"instance_gid", mapping.second}};
+    else
+        json = {{"host_uid", mapping.first}, {"instance_uid", mapping.second}};
+}
+
+inline id_mappings::value_type tag_invoke(const boost::json::value_to_tag<id_mappings::value_type>&,
+                                          const boost::json::value& json,
+                                          IdMappingType type)
+{
+    if (type == IdMappingType::gid)
+        return {value_to<int>(json.at("host_gid")), value_to<int>(json.at("instance_gid"))};
+    else
+        return {value_to<int>(json.at("host_uid")), value_to<int>(json.at("instance_uid"))};
+}
 
 inline auto unique_id_mappings(id_mappings& xid_mappings)
 {
@@ -49,9 +75,7 @@ inline auto unique_id_mappings(id_mappings& xid_mappings)
 
         if (duplicate)
         {
-            mpl::log(mpl::Level::debug,
-                     "id_mappings",
-                     fmt::format("Dropping repeated mapping {}:{}", it->first, it->second));
+            mpl::debug("id_mappings", "Dropping repeated mapping {}:{}", it->first, it->second);
             it = xid_mappings.erase(it);
         }
         else

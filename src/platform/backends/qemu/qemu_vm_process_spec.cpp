@@ -20,8 +20,12 @@
 #include <multipass/exceptions/snap_environment_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
+#include <multipass/platform.h>
 #include <multipass/snap_utils.h>
 #include <shared/linux/backend_utils.h>
+
+#include <QCoreApplication>
+#include <QRegularExpression>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -38,10 +42,17 @@ mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& de
 QStringList mp::QemuVMProcessSpec::arguments() const
 {
     QStringList args;
-
     if (resume_data)
     {
         args = resume_data->arguments;
+
+        // A VM suspended in a previous version will not contain the firmware
+        // path. Prepend it to the args so QEMU can locate the BIOS.
+        if (!args.contains("-L"))
+        {
+            args.prepend(firmware_path());
+            args.prepend("-L");
+        }
 
         // need to append extra arguments for resume
         args << "-loadvm" << resume_data->suspend_tag;
@@ -53,29 +64,38 @@ QStringList mp::QemuVMProcessSpec::arguments() const
         }
         else
         {
-            mpl::log(
-                mpl::Level::info,
-                desc.vm_name,
-                fmt::format("Cannot determine QEMU machine type. Falling back to system default."));
+            mpl::info(desc.vm_name,
+                      "Cannot determine QEMU machine type. Falling back to system default.");
         }
 
+        args.replaceInStrings(QRegularExpression("helper=.*bridge_helper"),
+                              "helper=./bridge_helper");
         // need to fix old-style vmnet arguments
         // TODO: remove in due time
         args.replaceInStrings("vmnet-macos,mode=shared,", "vmnet-shared,");
     }
     else
     {
+        // The UUID needs to be unique per VM and must be consistent across boots.
+        const auto vm_uuid = QString::fromStdString(utils::make_uuid(desc.vm_name));
         auto mem_size =
             QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented
 in `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
-
+        // clang-format off
+        // Tell QEMU where to look for the BIOS files
+        args << "-L"
+             << firmware_path();
         args << platform_args;
         // The VM image itself
         args << "-device"
+#if defined Q_PROCESSOR_S390
+             << "virtio-scsi-ccw,id=scsi0"
+#else
              << "virtio-scsi-pci,id=scsi0"
+#endif
              << "-drive"
              << QString("file=%1,if=none,format=qcow2,discard=unmap,id=hda")
-                    .arg(desc.image.image_path)
+                    .arg(MP_PLATFORM.path_to_qstr(desc.image.image_path))
              << "-device"
              << "scsi-hd,drive=hda,bus=scsi0.0";
         // Number of cpu cores
@@ -95,6 +115,9 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
              << "-nographic";
         // Cloud-init disk
         args << "-cdrom" << desc.cloud_init_iso;
+        // To make `/sys/class/dmi/id/product_uuid` present
+        args << "-uuid" << vm_uuid;
+        // clang-format on
     }
 
     for (const auto& [_, mount_data] : mount_args)
@@ -179,7 +202,7 @@ profile %1 flags=(attach_disconnected) {
   /sys/module/vhost/parameters/max_mem_regions r,
 
   # binary and its libs
-  %4/usr/bin/%5 ixr,
+  %5 ixr,
   %4/{,usr/}lib/{,@{multiarch}/}{,**/}*.so* rm,
 
   # CLASSIC ONLY: need to specify required libs from core snap
@@ -207,16 +230,16 @@ profile %1 flags=(attach_disconnected) {
         mount_dirs += QString::fromStdString(source_path) + "/** rwlk,\n  ";
     }
 
+    firmware = firmware_path() + "/*";
+
     try
     {
         root_dir = mpu::snap_dir();
         signal_peer = "snap.multipass.multipassd"; // only multipassd can send qemu signals
-        firmware = root_dir + "/qemu/*";           // if snap confined, firmware in $SNAP/qemu
     }
     catch (const mp::SnapEnvironmentException&)
     {
         signal_peer = "unconfined";
-        firmware = "/usr{,/local}/share/{seabios,ovmf,qemu,qemu-efi}/*";
     }
 
     return profile_template.arg(apparmor_profile_name(),
@@ -224,7 +247,7 @@ profile %1 flags=(attach_disconnected) {
                                 firmware,
                                 root_dir,
                                 program(),
-                                desc.image.image_path,
+                                QString::fromStdString(desc.image.image_path),
                                 desc.cloud_init_iso,
                                 mount_dirs);
 }
@@ -232,4 +255,9 @@ profile %1 flags=(attach_disconnected) {
 QString mp::QemuVMProcessSpec::identifier() const
 {
     return QString::fromStdString(desc.vm_name);
+}
+
+QString mp::QemuVMProcessSpec::working_directory() const
+{
+    return QDir(QCoreApplication::applicationDirPath()).absolutePath();
 }

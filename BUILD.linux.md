@@ -10,6 +10,27 @@ sudo apt install devscripts equivs
 mk-build-deps -s sudo -i
 ```
 
+If your local username contains `@`, `mk-build-deps` can generate an invalid
+maintainer address and fail. In that case, set maintainer identity explicitly:
+
+```
+DEBEMAIL="you@example.com" DEBFULLNAME="Your Name" mk-build-deps -s sudo -i
+```
+
+To make this persistent, add `DEBEMAIL` and `DEBFULLNAME` to your shell profile
+or `~/.devscripts`.
+
+### Install the Rust compiler
+
+1. Install the `rustup` snap:
+```
+sudo snap install rustup --classic
+```
+2. Install the stable version of the Rust toolchain:
+```
+rustup default stable
+```
+
 ## Building
 
 First, go into the repository root and get all the submodules:
@@ -37,11 +58,19 @@ cmake ../
 This will fetch all necessary content, build vcpkg dependencies, and initialize the build system. You can also specify
 the `-DCMAKE_BUILD_TYPE` option to set the build type (e.g., `Debug`, `Release`, `Coverage`, etc.).
 
+To use a different vcpkg, pass `-DMULTIPASS_VCPKG_LOCATION="path/to/vcpkg"` to CMake.
+It should point to the root vcpkg location, where the top bootstrap scripts are located.
+
 Finally, to build the project, run:
 
 ```
-cmake --build . --parallel
+cmake --build . [--parallel <N>]
 ```
+
+Tips:
+- You may use `--parallel <N>` to speed up the build.
+- However, make sure you have enough physical memory and swap space available before doing so (the build step has a very high memory footprint).
+- You may install and use `earlyoom` to prevent your computer from freezing if you're reaching the limits.
 
 Please note that if you're working on a forked repository that you created using the "Copy the main branch only" option,
 the repository will not include the necessary git tags to determine the Multipass version during CMake configuration. In
@@ -54,22 +83,31 @@ First, install Multipass's runtime dependencies. On AMD64 architecture, you can 
 
 ```
 sudo apt update
-sudo apt install libgl1 libpng16-16 libqt6core6 libqt6gui6 \
-    libqt6network6 libqt6widgets6 libxml2 libvirt0 dnsmasq-base \
-    dnsmasq-utils qemu-system-x86 qemu-utils libslang2 iproute2 \
-    iptables iputils-ping libatm1 libxtables12 xterm
+sudo apt install libgl1 libpng16-16 libxml2 dnsmasq-base \
+    dnsmasq-utils qemu-utils libslang2 iproute2 iptables \
+    iputils-ping libatm1 libxtables12 xterm
 ```
+
 On ARM64 architecture, you can do this by running:
 
 ```
 sudo apt update
-sudo apt install libgl1 libpng16-16 libqt6core6 libqt6gui6 \
-    libqt6network6 libqt6widgets6 libxml2 libvirt0 dnsmasq-base \
-    dnsmasq-utils qemu-system-arm qemu-efi-aarch64 qemu-utils \
-    libslang2 iproute2 iptables iputils-ping libatm1 libxtables12 \
+sudo apt install libgl1 libpng16-16 libxml2 dnsmasq-base \
+    dnsmasq-utils qemu-efi-aarch64 qemu-utils libslang2 \
+    iproute2 iptables iputils-ping libatm1 libxtables12 \
     xterm
 ```
+
+You will also need to install your CPU architecture's variant of `qemu-system`. For example, you will need
+
+```
+sudo apt install qemu-system-x86
+```
+
+on x86_64 machines.
+
 Additionally, on ARM64 architecture, there is an extra step to set up the `QEMU_EFI.fd` file:
+
 ```
 sudo cp /usr/share/qemu-efi-aarch64/QEMU_EFI.fd /usr/share/qemu/QEMU_EFI.fd
 ```
@@ -77,7 +115,7 @@ sudo cp /usr/share/qemu-efi-aarch64/QEMU_EFI.fd /usr/share/qemu/QEMU_EFI.fd
 Then run the Multipass daemon:
 
 ```
-sudo <multipass>/build/bin/multipassd &
+pkexec <multipass>/build/bin/multipassd &
 ```
 
 Copy the desktop file that Multipass clients expect to find in your home:
@@ -100,5 +138,4 @@ export PATH=<multipass>/build/bin
 ```
 
 Now you can use the `multipass` command from your terminal (for example
-`<multipass>/build/bin/multipass launch --name foo`) or launch the GUI client with the command
-`<multipass>/build/bin/multipass.gui`.
+`<multipass>/build/bin/multipass launch --name foo`) or launch the GUI client with the command `<multipass>/build/bin/multipass.gui`.

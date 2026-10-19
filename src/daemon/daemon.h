@@ -28,10 +28,13 @@
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
 
+#include <atomic>
 #include <chrono>
 #include <future>
 #include <memory>
 #include <mutex>
+#include <optional>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -41,6 +44,7 @@
 namespace multipass
 {
 struct DaemonConfig;
+struct DaemonRpcContext;
 class SettingsHandler;
 
 class Daemon : public QObject, public multipass::VMStatusMonitor
@@ -51,132 +55,154 @@ public:
     ~Daemon();
 
     void persist_instances();
+    void shutdown_grpc_server();
 
 protected:
     using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
+
+    // TODO hyperv migration, revert: back to a free function in daemon.cpp
+    void connect_rpc(DaemonRpc& rpc);
 
     void on_resume() override;
     void on_shutdown() override;
     void on_suspend() override;
     void on_restart(const std::string& name) override;
     void persist_state_for(const std::string& name, const VirtualMachine::State& state) override;
-    void update_metadata_for(const std::string& name, const QJsonObject& metadata) override;
-    QJsonObject retrieve_metadata_for(const std::string& name) override;
+    void update_metadata_for(const std::string& name, const boost::json::object& metadata) override;
+    boost::json::object retrieve_metadata_for(const std::string& name) override;
 
 public slots:
-    virtual void shutdown_grpc_server();
-
     virtual void create(const CreateRequest* request,
                         grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
-                        std::promise<grpc::Status>* status_promise);
+                        DaemonRpcContext* context);
 
     virtual void launch(const LaunchRequest* request,
                         grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>* server,
-                        std::promise<grpc::Status>* status_promise);
+                        DaemonRpcContext* context);
 
     virtual void purge(const PurgeRequest* request,
                        grpc::ServerReaderWriterInterface<PurgeReply, PurgeRequest>* server,
-                       std::promise<grpc::Status>* status_promise);
+                       DaemonRpcContext* context);
 
     virtual void find(const FindRequest* request,
                       grpc::ServerReaderWriterInterface<FindReply, FindRequest>* server,
-                      std::promise<grpc::Status>* status_promise);
+                      DaemonRpcContext* context);
 
     virtual void info(const InfoRequest* request,
                       grpc::ServerReaderWriterInterface<InfoReply, InfoRequest>* server,
-                      std::promise<grpc::Status>* status_promise);
+                      DaemonRpcContext* context);
 
     virtual void list(const ListRequest* request,
                       grpc::ServerReaderWriterInterface<ListReply, ListRequest>* server,
-                      std::promise<grpc::Status>* status_promise);
+                      DaemonRpcContext* context);
 
     virtual void networks(const NetworksRequest* request,
                           grpc::ServerReaderWriterInterface<NetworksReply, NetworksRequest>* server,
-                          std::promise<grpc::Status>* status_promise);
+                          DaemonRpcContext* context);
 
     virtual void mount(const MountRequest* request,
                        grpc::ServerReaderWriterInterface<MountReply, MountRequest>* server,
-                       std::promise<grpc::Status>* status_promise);
+                       DaemonRpcContext* context);
 
     virtual void recover(const RecoverRequest* request,
                          grpc::ServerReaderWriterInterface<RecoverReply, RecoverRequest>* server,
-                         std::promise<grpc::Status>* status_promise);
+                         DaemonRpcContext* context);
 
     virtual void ssh_info(const SSHInfoRequest* request,
                           grpc::ServerReaderWriterInterface<SSHInfoReply, SSHInfoRequest>* server,
-                          std::promise<grpc::Status>* status_promise);
+                          DaemonRpcContext* context);
 
     virtual void start(const StartRequest* request,
                        grpc::ServerReaderWriterInterface<StartReply, StartRequest>* server,
-                       std::promise<grpc::Status>* status_promise);
+                       DaemonRpcContext* context);
 
     virtual void stop(const StopRequest* request,
                       grpc::ServerReaderWriterInterface<StopReply, StopRequest>* server,
-                      std::promise<grpc::Status>* status_promise);
+                      DaemonRpcContext* context);
 
     virtual void suspend(const SuspendRequest* request,
                          grpc::ServerReaderWriterInterface<SuspendReply, SuspendRequest>* server,
-                         std::promise<grpc::Status>* status_promise);
+                         DaemonRpcContext* context);
 
     virtual void restart(const RestartRequest* request,
                          grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>* server,
-                         std::promise<grpc::Status>* status_promise);
+                         DaemonRpcContext* context);
 
     virtual void delet(const DeleteRequest* request,
                        grpc::ServerReaderWriterInterface<DeleteReply, DeleteRequest>* server,
-                       std::promise<grpc::Status>* status_promise);
+                       DaemonRpcContext* context);
 
     virtual void umount(const UmountRequest* request,
                         grpc::ServerReaderWriterInterface<UmountReply, UmountRequest>* server,
-                        std::promise<grpc::Status>* status_promise);
+                        DaemonRpcContext* context);
 
     virtual void version(const VersionRequest* request,
                          grpc::ServerReaderWriterInterface<VersionReply, VersionRequest>* server,
-                         std::promise<grpc::Status>* status_promise);
+                         DaemonRpcContext* context);
 
     virtual void get(const GetRequest* request,
                      grpc::ServerReaderWriterInterface<GetReply, GetRequest>* server,
-                     std::promise<grpc::Status>* status_promise);
+                     DaemonRpcContext* context);
 
     virtual void set(const SetRequest* request,
                      grpc::ServerReaderWriterInterface<SetReply, SetRequest>* server,
-                     std::promise<grpc::Status>* status_promise);
+                     DaemonRpcContext* context);
 
     virtual void keys(const KeysRequest* request,
                       grpc::ServerReaderWriterInterface<KeysReply, KeysRequest>* server,
-                      std::promise<grpc::Status>* status_promise);
+                      DaemonRpcContext* context);
 
     virtual void authenticate(
         const AuthenticateRequest* request,
         grpc::ServerReaderWriterInterface<AuthenticateReply, AuthenticateRequest>* server,
-        std::promise<grpc::Status>* status_promise);
+        DaemonRpcContext* context);
     virtual void clone(const CloneRequest* request,
                        grpc::ServerReaderWriterInterface<CloneReply, CloneRequest>* server,
-                       std::promise<grpc::Status>* status_promise);
+                       DaemonRpcContext* context);
 
     virtual void snapshot(const SnapshotRequest* request,
                           grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>* server,
-                          std::promise<grpc::Status>* status_promise);
+                          DaemonRpcContext* context);
 
     virtual void restore(const RestoreRequest* request,
                          grpc::ServerReaderWriterInterface<RestoreReply, RestoreRequest>* server,
-                         std::promise<grpc::Status>* status_promise);
+                         DaemonRpcContext* context);
 
     virtual void daemon_info(
         const DaemonInfoRequest* request,
         grpc::ServerReaderWriterInterface<DaemonInfoReply, DaemonInfoRequest>* server,
-        std::promise<grpc::Status>* status_promise);
+        DaemonRpcContext* context);
+
+    virtual void zones(const ZonesRequest* request,
+                       grpc::ServerReaderWriterInterface<ZonesReply, ZonesRequest>* server,
+                       DaemonRpcContext* context);
+
+    virtual void zones_state(
+        const ZonesStateRequest* request,
+        grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>* server,
+        DaemonRpcContext* context);
+
+    virtual void wait_ready(
+        const WaitReadyRequest* request,
+        grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>* server,
+        DaemonRpcContext* context);
 
 private:
+    // TODO hyperv migration, remove
+    // Used at RPC dispatch.
+    [[nodiscard]] bool reject_if_migrating(std::string_view rpc_name,
+                                           DaemonRpcContext* context) const;
+
     void release_resources(const std::string& instance);
     void create_vm(const CreateRequest* request,
                    grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
-                   std::promise<grpc::Status>* status_promise,
+                   DaemonRpcContext* context,
                    bool start);
     bool delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response);
     grpc::Status reboot_vm(VirtualMachine& vm);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status switch_off_vm(VirtualMachine& vm);
+    grpc::Status make_vm_unavailable(VirtualMachine& vm);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
 
@@ -200,7 +226,7 @@ private:
     struct AsyncOperationStatus
     {
         grpc::Status status;
-        std::promise<grpc::Status>* status_promise;
+        DaemonRpcContext* context;
     };
 
     // These async_* methods need to operate on instance names and look up the VMs again, lest they
@@ -215,15 +241,13 @@ private:
     async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Request>* server,
                              const std::vector<std::string>& vms,
                              const std::chrono::seconds& timeout,
-                             std::promise<grpc::Status>* status_promise,
+                             DaemonRpcContext* context,
                              const std::string& errors,
                              const std::string& start_warnings);
     void finish_async_operation(const std::string& async_future_key);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(
         std::function<void()> const& finished_op = []() {});
-    void update_manifests_all(const bool is_force_update_from_network = false);
-    // it is applied in Daemon::find wherever the image info fetching is involved, aka
-    // non-only-blueprints case
+    void update_manifests_all(const bool force_update = false);
     void wait_update_manifests_all_and_optionally_applied_force(
         const bool force_manifest_network_download);
 
@@ -249,6 +273,13 @@ private:
 protected:
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     InstanceTable operative_instances;
+
+    // TODO hyperv migration, remove
+    // Set only while a bulk Hyper-V -> HCS migration runs inside Daemon::set. It guards
+    // conflicting mutating RPCs without taking a lock, so it cannot deadlock against the
+    // long-running migration. Atomic because RPC slots and the migration run on different
+    // threads.
+    std::atomic<bool> migration_in_progress{false};
 
     bool is_bridged(const std::string& instance_name) const;
     void add_bridged_interface(const std::string& instance_name);

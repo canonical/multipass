@@ -71,7 +71,7 @@ long long mp::in_bytes(const std::string& mem_value)
                 mantissa *= kibi;
                 break;
             default:
-                assert(false && "Shouldn't be here (invalid unit)");
+                mp::utils::UNREACHABLE("Shouldn't be here (invalid unit)");
             }
         }
 
@@ -116,36 +116,6 @@ long long mp::MemorySize::in_megabytes() const noexcept
 long long mp::MemorySize::in_gigabytes() const noexcept
 {
     return bytes / gibi; // integer division to floor
-}
-
-bool mp::operator==(const MemorySize& a, const MemorySize& b) noexcept
-{
-    return a.bytes == b.bytes;
-}
-
-bool mp::operator!=(const MemorySize& a, const MemorySize& b) noexcept
-{
-    return a.bytes != b.bytes;
-}
-
-bool mp::operator<(const MemorySize& a, const MemorySize& b) noexcept
-{
-    return a.bytes < b.bytes;
-}
-
-bool mp::operator>(const MemorySize& a, const MemorySize& b) noexcept
-{
-    return a.bytes > b.bytes;
-}
-
-bool mp::operator<=(const MemorySize& a, const MemorySize& b) noexcept
-{
-    return a.bytes <= b.bytes;
-}
-
-bool mp::operator>=(const MemorySize& a, const MemorySize& b) noexcept
-{
-    return a.bytes >= b.bytes;
 }
 
 std::string mp::MemorySize::human_readable(unsigned int precision, bool trim_zeros) const

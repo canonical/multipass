@@ -8,6 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'catalogue/catalogue.dart';
 import 'extensions.dart';
 import 'help.dart';
+import 'l10n/app_localizations.dart';
 import 'providers.dart';
 import 'settings/settings.dart';
 import 'vm_details/terminal.dart';
@@ -30,7 +31,7 @@ class SidebarKeyNotifier extends Notifier<String> {
 
   void set(String key) {
     if (key.sidebarVmName != null) {
-      ref.read(vmVisitedProvider(key).notifier).state = true;
+      ref.read(vmVisitedProvider(key).notifier).setVisited();
     }
     state = key;
   }
@@ -40,9 +41,55 @@ final sidebarKeyProvider = NotifierProvider<SidebarKeyNotifier, String>(
   SidebarKeyNotifier.new,
 );
 
-final vmVisitedProvider = StateProvider.family<bool, String>((_, __) => false);
-final sidebarExpandedProvider = StateProvider((_) => false);
-final sidebarPushContentProvider = StateProvider((_) => false);
+class VmVisitedNotifier extends Notifier<bool> {
+  VmVisitedNotifier(this.arg);
+  final String arg;
+
+  @override
+  bool build() {
+    return false;
+  }
+
+  void setVisited() {
+    state = true;
+  }
+}
+
+final vmVisitedProvider =
+    NotifierProvider.family<VmVisitedNotifier, bool, String>(
+  VmVisitedNotifier.new,
+);
+
+class SidebarExpandedNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    return false;
+  }
+
+  void setExpanded(bool value) {
+    state = value;
+  }
+}
+
+final sidebarExpandedProvider = NotifierProvider<SidebarExpandedNotifier, bool>(
+  SidebarExpandedNotifier.new,
+);
+
+class SidebarPushContentNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    return false;
+  }
+
+  void setPushContent(bool value) {
+    state = value;
+  }
+}
+
+final sidebarPushContentProvider =
+    NotifierProvider<SidebarPushContentNotifier, bool>(
+  SidebarPushContentNotifier.new,
+);
 Timer? sidebarExpandTimer;
 
 class SideBar extends ConsumerWidget {
@@ -55,6 +102,7 @@ class SideBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final selectedSidebarKey = ref.watch(sidebarKeyProvider);
     final sidebarKeyNotifier = sidebarKeyProvider.notifier;
     final vmNames = ref.watch(vmNamesProvider);
@@ -66,7 +114,7 @@ class SideBar extends ConsumerWidget {
     final catalogue = SidebarEntry(
       icon: SvgPicture.asset('assets/catalogue.svg'),
       selected: isSelected(CatalogueScreen.sidebarKey),
-      label: 'Catalogue',
+      label: l10n.catalogueLabel,
       onPressed: () {
         ref.read(sidebarKeyNotifier).set(CatalogueScreen.sidebarKey);
       },
@@ -76,7 +124,7 @@ class SideBar extends ConsumerWidget {
       icon: SvgPicture.asset('assets/instances.svg'),
       selected: isSelected(VmTableScreen.sidebarKey) ||
           !expanded && selectedSidebarKey.startsWith('vm-'),
-      label: 'Instances',
+      label: l10n.sidebarInstances,
       badge: vmNames.length.toString(),
       onPressed: () {
         ref.read(sidebarKeyProvider.notifier).set(VmTableScreen.sidebarKey);
@@ -86,7 +134,7 @@ class SideBar extends ConsumerWidget {
     final help = SidebarEntry(
       icon: SvgPicture.asset('assets/help.svg'),
       selected: isSelected(HelpScreen.sidebarKey),
-      label: 'Help',
+      label: l10n.helpLabel,
       onPressed: () {
         ref.read(sidebarKeyNotifier).set(HelpScreen.sidebarKey);
       },
@@ -95,7 +143,7 @@ class SideBar extends ConsumerWidget {
     final settings = SidebarEntry(
       icon: SvgPicture.asset('assets/settings.svg'),
       selected: isSelected(SettingsScreen.sidebarKey),
-      label: 'Settings',
+      label: l10n.settingsLabel,
       onPressed: () {
         ref.read(sidebarKeyNotifier).set(SettingsScreen.sidebarKey);
       },
@@ -112,46 +160,48 @@ class SideBar extends ConsumerWidget {
         ),
         onPressed: () => ref
             .read(sidebarPushContentProvider.notifier)
-            .update((state) => !state),
+            .setPushContent(!pushContent),
       ),
     );
 
-    final header = Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-      Container(
-        alignment: Alignment.bottomCenter,
-        color: const Color(0xffE95420),
-        height: 50,
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        padding: const EdgeInsets.all(4),
-        child: SvgPicture.asset('assets/multipass.svg', width: 20),
-      ),
-      Expanded(
-        flex: 3,
-        child: AnimatedOpacity(
-          opacity: expanded ? 1 : 0,
-          duration: SideBar.animationDuration,
-          child: Text.rich([
-            'Canonical\n'.span.size(12).color(Colors.white),
-            'Multipass'.span.size(24).color(Colors.white),
-          ].spans),
+    final header = Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Container(
+          alignment: Alignment.bottomCenter,
+          color: const Color(0xffE95420),
+          height: 50,
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.all(4),
+          child: SvgPicture.asset('assets/multipass.svg', width: 20),
         ),
-      ),
-      Flexible(child: pinSidebarButton),
-    ]);
+        Expanded(
+          flex: 3,
+          child: AnimatedOpacity(
+            opacity: expanded ? 1 : 0,
+            duration: SideBar.animationDuration,
+            child: Text.rich(
+              [
+                'Canonical\n'.span.size(12).color(Colors.white),
+                'Multipass'.span.size(24).color(Colors.white),
+              ].spans,
+            ),
+          ),
+        ),
+        Flexible(child: pinSidebarButton),
+      ],
+    );
 
     final vmEntries = vmNames.map((name) {
       final key = 'vm-$name';
-      final hasShells =
-          ref.watch(runningShellsProvider(name).select((n) => n > 0));
+      final hasShells = ref.watch(
+        runningShellsProvider(name).select((n) => n > 0),
+      );
       return SidebarEntry(
         key: ValueKey(key),
         icon: Opacity(
           opacity: hasShells ? 1 : 0,
-          child: SvgPicture.asset(
-            'assets/shell.svg',
-            width: 15,
-            height: 15,
-          ),
+          child: SvgPicture.asset('assets/shell.svg', width: 15, height: 15),
         ),
         selected: isSelected(key) && expanded,
         label: name,
@@ -166,13 +216,13 @@ class SideBar extends ConsumerWidget {
         if (pushContent) return;
         sidebarExpandTimer?.cancel();
         sidebarExpandTimer = Timer(const Duration(milliseconds: 200), () {
-          ref.read(sidebarExpandedProvider.notifier).state = true;
+          ref.read(sidebarExpandedProvider.notifier).setExpanded(true);
         });
       },
       onExit: (_) {
         if (pushContent) return;
         sidebarExpandTimer?.cancel();
-        ref.read(sidebarExpandedProvider.notifier).state = false;
+        ref.read(sidebarExpandedProvider.notifier).setExpanded(false);
       },
       child: AnimatedContainer(
         duration: SideBar.animationDuration,
@@ -187,7 +237,7 @@ class SideBar extends ConsumerWidget {
             catalogue,
             instances,
             Expanded(child: ListView(children: vmEntries.toList())),
-            Divider(color: Colors.white.withOpacity(0.3)),
+            Divider(color: Colors.white.withAlpha(77)),
             help,
             settings,
           ],
@@ -244,36 +294,38 @@ class SidebarEntry extends ConsumerWidget {
           backgroundColor:
               selected ? const Color(0xff444444) : Colors.transparent,
         ),
-        child: Row(children: [
-          badge == null
-              ? icon
-              : Badge(
-                  backgroundColor: const Color(0xff333333),
-                  isLabelVisible: !expanded,
-                  label: Text(badge!),
-                  offset: const Offset(10, -6),
-                  child: icon,
-                ),
-          Expanded(
-            flex: 5,
-            child: AnimatedOpacity(
-              duration: SideBar.animationDuration,
-              opacity: expanded ? 1 : 0,
-              child: Text('    $label', softWrap: false),
-            ),
-          ),
-          if (badge != null && expanded)
-            Flexible(
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xff333333),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(badge!, softWrap: false),
+        child: Row(
+          children: [
+            badge == null
+                ? icon
+                : Badge(
+                    backgroundColor: const Color(0xff333333),
+                    isLabelVisible: !expanded,
+                    label: Text(badge!),
+                    offset: const Offset(10, -6),
+                    child: icon,
+                  ),
+            Expanded(
+              flex: 5,
+              child: AnimatedOpacity(
+                duration: SideBar.animationDuration,
+                opacity: expanded ? 1 : 0,
+                child: Text('    $label', softWrap: false),
               ),
             ),
-        ]),
+            if (badge != null && expanded)
+              Flexible(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xff333333),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(badge!, softWrap: false),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -1,0 +1,93 @@
+From 80b9924d86a7361c26f8052b547d392dcdca1089 Mon Sep 17 00:00:00 2001
+From: Scott Harder <scott.harder@canonical.com>
+Date: Wed, 15 Jul 2026 19:25:37 -0500
+Subject: [PATCH] [migration] Accept known HVF feature-ID downgrades on cpu
+ load
+
+Newer QEMU exposes CPU features via HVF `-cpu host` that older QEMU did not
+(FEAT_BTI in ID_AA64PFR1_EL1, FEAT_I8MM in ID_AA64ISAR1_EL1). Because the
+AArch64 feature ID registers are read-only, an instance suspended by an older
+QEMU records smaller values that cannot be written back over this host's,
+failing VM state load in cpu_post_load() with "Error -1 ... device 'cpu'".
+
+Tolerate exactly those two known 0 -> 1 transitions, and only when every other
+bit matches this host, so the check stays as narrow as the problem. Gate it on
+hvf_enabled(), since HVF `-cpu host` is the only accelerator that produces
+these deltas and a readback mismatch on any other accelerator is a real error.
+The guest keeps running with the host's (superset) value, which is safe under
+HVF. It is a no-op for natively-suspended instances, whose values already
+match.
+
+Drop once instances suspended by the affected releases are no longer supported.
+---
+ target/arm/helper.c | 42 +++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 41 insertions(+), 1 deletion(-)
+
+diff --git a/target/arm/helper.c b/target/arm/helper.c
+index bb445e30cd..e8ca7013c3 100644
+--- a/target/arm/helper.c
++++ b/target/arm/helper.c
+@@ -25,6 +25,7 @@
+ #include "system/cpu-timers.h"
+ #include "system/kvm.h"
+ #include "system/tcg.h"
++#include "system/hvf.h"
+ #include "qapi/error.h"
+ #include "qemu/guest-random.h"
+ #ifdef CONFIG_TCG
+@@ -164,6 +165,37 @@ bool write_cpustate_to_list(ARMCPU *cpu, bool kvm_sync)
+     return ok;
+ }
+ 
++/*
++ * Multipass suspend/resume compatibility across QEMU upgrades. Newer QEMU
++ * exposes a couple of CPU features via HVF `-cpu host` that older QEMU did not,
++ * so an instance suspended by an older QEMU records a read-only feature ID
++ * register whose value differs from this host's. Writing the older value back
++ * fails the readback check in write_list_to_cpustate(), which would abort VM
++ * state load in cpu_post_load().
++ *
++ * Tolerate exactly the two known transitions -- FEAT_BTI in ID_AA64PFR1_EL1 and
++ * FEAT_I8MM in ID_AA64ISAR1_EL1 going from 0 (guest) to 1 (host) -- and only
++ * when every other bit matches this host. The guest keeps the host's value,
++ * which is safe under HVF since the hardware supports the feature. Callers must
++ * also gate this on hvf_enabled(). Drop once instances suspended by the
++ * affected releases are no longer supported.
++ */
++static bool arm_id_reg_tolerable_downgrade(const ARMCPRegInfo *ri,
++                                           uint64_t guest, uint64_t host)
++{
++    if (ri->opc0 == 3 && ri->opc1 == 0 && ri->crn == 0) {
++        /* ID_AA64PFR1_EL1: FEAT_BTI in the BT field [3:0] */
++        if (ri->crm == 4 && ri->opc2 == 1) {
++            return (host ^ guest) == 0x1 && (host & 0x1);
++        }
++        /* ID_AA64ISAR1_EL1: FEAT_I8MM in the I8MM field [55:52] */
++        if (ri->crm == 6 && ri->opc2 == 1) {
++            return (host ^ guest) == (1ULL << 52) && (host & (1ULL << 52));
++        }
++    }
++    return false;
++}
++
+ bool write_list_to_cpustate(ARMCPU *cpu)
+ {
+     int i;
+@@ -189,7 +221,15 @@ bool write_list_to_cpustate(ARMCPU *cpu)
+          */
+         write_raw_cp_reg(&cpu->env, ri, v);
+         if (read_raw_cp_reg(&cpu->env, ri) != v) {
+-            ok = false;
++            /*
++             * Tolerate the known older-QEMU HVF feature ID downgrades (see
++             * arm_id_reg_tolerable_downgrade); everything else is a real error.
++             */
++            if (!(hvf_enabled() &&
++                  arm_id_reg_tolerable_downgrade(ri, v,
++                                                 read_raw_cp_reg(&cpu->env, ri)))) {
++                ok = false;
++            }
+         }
+     }
+     return ok;
+-- 

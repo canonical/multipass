@@ -17,11 +17,11 @@
 
 #include "qemu_snapshot.h"
 #include "qemu_virtual_machine.h"
-#include "shared/qemu_img_utils/qemu_img_utils.h"
 
 #include <multipass/logging/log.h>
 #include <multipass/process/qemuimg_process_spec.h>
 #include <multipass/top_catch_all.h>
+#include <multipass/utils/qemu_img_utils.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <scope_guard.hpp>
@@ -32,28 +32,40 @@ namespace mp = multipass;
 
 namespace
 {
-std::unique_ptr<mp::QemuImgProcessSpec> make_capture_spec(const QString& tag,
-                                                          const mp::Path& image_path)
+std::unique_ptr<mp::QemuImgProcessSpec> make_capture_spec(const std::string& tag,
+                                                          const std::filesystem::path& image_path)
 {
-    return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-c", tag, image_path},
-                                                    /* src_img = */ "",
-                                                    image_path);
+    return std::make_unique<mp::QemuImgProcessSpec>(
+        QStringList{"snapshot",
+                    "-c",
+                    QString::fromStdString(tag),
+                    MP_PLATFORM.path_to_qstr(image_path)},
+        /* src_img = */ "",
+        image_path);
 }
 
-std::unique_ptr<mp::QemuImgProcessSpec> make_restore_spec(const QString& tag,
-                                                          const mp::Path& image_path)
+std::unique_ptr<mp::QemuImgProcessSpec> make_restore_spec(const std::string& tag,
+                                                          const std::filesystem::path& image_path)
 {
-    return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-a", tag, image_path},
-                                                    /* src_img = */ "",
-                                                    image_path);
+    return std::make_unique<mp::QemuImgProcessSpec>(
+        QStringList{"snapshot",
+                    "-a",
+                    QString::fromStdString(tag),
+                    MP_PLATFORM.path_to_qstr(image_path)},
+        /* src_img = */ "",
+        image_path);
 }
 
-std::unique_ptr<mp::QemuImgProcessSpec> make_delete_spec(const QString& tag,
-                                                         const mp::Path& image_path)
+std::unique_ptr<mp::QemuImgProcessSpec> make_delete_spec(const std::string& tag,
+                                                         const std::filesystem::path& image_path)
 {
-    return std::make_unique<mp::QemuImgProcessSpec>(QStringList{"snapshot", "-d", tag, image_path},
-                                                    /* src_img = */ "",
-                                                    image_path);
+    return std::make_unique<mp::QemuImgProcessSpec>(
+        QStringList{"snapshot",
+                    "-d",
+                    QString::fromStdString(tag),
+                    MP_PLATFORM.path_to_qstr(image_path)},
+        /* src_img = */ "",
+        image_path);
 }
 } // namespace
 
@@ -70,7 +82,7 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name,
 {
 }
 
-mp::QemuSnapshot::QemuSnapshot(const QString& filename,
+mp::QemuSnapshot::QemuSnapshot(const std::filesystem::path& filename,
                                QemuVirtualMachine& vm,
                                VirtualMachineDescription& desc)
     : BaseSnapshot{filename, vm, desc}, desc{desc}, image_path{desc.image.image_path}
@@ -98,12 +110,11 @@ void mp::QemuSnapshot::erase_impl()
     if (backend::instance_image_has_snapshot(image_path, tag))
         mp::backend::checked_exec_qemu_img(make_delete_spec(tag, image_path));
     else
-        mpl::log(mpl::Level::warning,
-                 BaseSnapshot::get_name(),
-                 fmt::format("Could not find the underlying QEMU snapshot. Assuming it is already "
-                             "gone. Image: {}; tag: {}",
-                             image_path,
-                             tag));
+        mpl::warn(BaseSnapshot::get_name(),
+                  "Could not find the underlying QEMU snapshot. Assuming it is already "
+                  "gone. Image: {}; tag: {}",
+                  image_path,
+                  tag);
 }
 
 void mp::QemuSnapshot::apply_impl()

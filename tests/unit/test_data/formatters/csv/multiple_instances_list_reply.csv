@@ -1,0 +1,3 @@
+Name,State,IPv4,Release,AllIPv4,Zone,Zone available
+bogus-instance,Running,10.21.124.56,Ubuntu 16.04 LTS,"10.21.124.56",zone1,true
+bombastic,Stopped,,Ubuntu 18.04 LTS,"",zone2,false

@@ -35,6 +35,10 @@
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #endif
 
+#ifdef APPLEVZ_ENABLED
+#include "backends/applevz/applevz_virtual_machine_factory.h"
+#endif
+
 #include "shared/macos/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <daemon/default_vm_image_vault.h>
@@ -65,6 +69,7 @@ namespace
 {
 constexpr auto category = "osx platform";
 constexpr auto br_nomenclature = "bridge";
+const mp::Subnet preferred_subnet = {"192.168.252.0/16"};
 
 QString get_networksetup_output()
 {
@@ -145,9 +150,7 @@ std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry
     const auto name = name_regex.match(nsetup_entry).captured(1);
     const auto desc = desc_regex.match(nsetup_entry).captured(1);
 
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("Parsing networksetup chunk:\n{}", nsetup_entry));
+    mpl::trace(category, "Parsing networksetup chunk:\n{}", nsetup_entry);
 
     if (!name.isEmpty() && !desc.isEmpty())
     {
@@ -169,12 +172,10 @@ std::optional<mp::NetworkInterfaceInfo> get_net_info(const QString& nsetup_entry
         if (desc.contains("wi-fi", Qt::CaseInsensitive))
             return mp::NetworkInterfaceInfo{id, "wifi", description};
 
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("Unsupported device \"{}\" ({})", id, description));
+        mpl::warn(category, "Unsupported device \"{}\" ({})", id, description);
     }
 
-    mpl::log(mpl::Level::trace, category, fmt::format("Skipping chunk"));
+    mpl::trace(category, "Skipping chunk");
     return std::nullopt;
 }
 
@@ -195,12 +196,8 @@ mp::platform::Platform::get_network_interfaces_info() const
     auto ifconfig_output = get_ifconfig_output();
     auto nsetup_output = get_networksetup_output();
 
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("Got the following output from ifconfig:\n{}", ifconfig_output));
-    mpl::log(mpl::Level::trace,
-             category,
-             fmt::format("Got the following output from networksetup:\n{}", nsetup_output));
+    mpl::trace(category, "Got the following output from ifconfig:\n{}", ifconfig_output);
+    mpl::trace(category, "Got the following output from networksetup:\n{}", nsetup_output);
 
     // split the output of networksetup in multiple entries (one per interface)
     auto empty_line_regex =
@@ -229,6 +226,9 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 #endif
 #ifdef VIRTUALBOX_ENABLED
         backend == "virtualbox" ||
+#endif
+#ifdef APPLEVZ_ENABLED
+        backend == "applevz" ||
 #endif
         false;
 }
@@ -275,6 +275,34 @@ std::string mp::platform::Platform::bridge_nomenclature() const
     return br_nomenclature;
 }
 
+bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
+{
+    // NOTE: In Multipass 1.16 and earlier on macOS, we statically define the (single) subnet to
+    // use, and unlike on Linux, don't store that value anywhere in our configuration. As a result,
+    // our availability zone manager will try to build fresh AZ configs, ultimately calling this
+    // function. To ensure that zone1 uses the same subnet as we used in 1.16, we statically declare
+    // this subnet to be unused.
+    //
+    // After a couple of Multipass versions, we can remove this. Instances that end up with a
+    // different subnet still work, just with a different IP address.
+    if (subnet.address() == preferred_subnet.address())
+        return false;
+
+    // ip routes?
+    auto can_reach_gateway = [](mp::IPAddress ip) {
+        const auto ipstr = ip.as_string();
+        return MP_UTILS.run_cmd_for_status("ping",
+                                           {"-n", "-q", ipstr.c_str(), "-c", "1", "-t", "1"});
+    };
+
+    return can_reach_gateway(subnet.min_address()) || can_reach_gateway(subnet.max_address());
+}
+
+mp::Subnet mp::platform::Platform::get_preferred_subnet(const std::filesystem::path& data_dir) const
+{
+    return preferred_subnet;
+}
+
 QString mp::platform::Platform::daemon_config_home() const // temporary
 {
     auto ret = QStringLiteral("/var/root/Library/Preferences/");
@@ -283,7 +311,8 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
     return ret;
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir)
+mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir,
+                                                         AvailabilityZoneManager& az_manager)
 {
     auto driver = MP_SETTINGS.get(mp::driver_key);
 
@@ -296,17 +325,29 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
           there.
         */
 
-        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir);
+        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
 #endif
     }
     else if (driver == QStringLiteral("qemu"))
     {
 #if QEMU_ENABLED
-        return std::make_unique<QemuVirtualMachineFactory>(data_dir);
+        return std::make_unique<QemuVirtualMachineFactory>(data_dir, az_manager);
+#endif
+    }
+    else if (driver == QStringLiteral("applevz"))
+    {
+#if APPLEVZ_ENABLED
+        return std::make_unique<applevz::AppleVZVirtualMachineFactory>(data_dir, az_manager);
 #endif
     }
 
     throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
+}
+
+bool mp::platform::backend_supports_availability_zones()
+{
+    const auto driver = MP_SETTINGS.get(mp::driver_key);
+    return driver != QStringLiteral("virtualbox");
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(
@@ -388,6 +429,7 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 
 std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
 {
+    // Remember to update the uninstall script on changes:
     static const std::filesystem::path base_dir = "/usr/local/etc";
     return base_dir / daemon_name;
 }

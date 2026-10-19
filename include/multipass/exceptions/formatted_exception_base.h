@@ -134,4 +134,6 @@ private:
     }
 };
 
+using FormattedRuntimeError = FormattedExceptionBase<std::runtime_error>;
+
 } // namespace multipass

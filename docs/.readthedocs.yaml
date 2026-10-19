@@ -13,6 +13,15 @@ build:
   jobs:
     pre_install:
     - git fetch --unshallow || true
+    # Cancel building pull requests when there aren't changed in the docs directory.
+    # If there are no changes (git diff exits with 0) we force the command to return with 183.
+    # This is a special exit code on Read the Docs that will cancel the build immediately.
+    # https://docs.readthedocs.io/en/stable/build-customization.html#cancel-build-based-on-a-condition
+    - |
+      if [ "$READTHEDOCS_VERSION_TYPE" = "external" ] && git diff --quiet origin/main -- 'docs/' '.readthedocs.yaml';
+      then
+        exit 183;
+      fi
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
@@ -27,4 +36,4 @@ formats:
 # Optionally declare the Python requirements required to build your docs
 python:
   install:
-  - requirements: docs/.sphinx/requirements.txt
+  - requirements: docs/requirements.txt

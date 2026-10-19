@@ -23,6 +23,7 @@
 #include <shared/windows/process_factory.h>
 
 #include <QProcess>
+#include <QThread>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -31,19 +32,24 @@ namespace mpu = multipass::utils;
 namespace
 {
 constexpr auto ps_cmd = "powershell.exe";
-const auto default_args = QStringList{"-NoProfile", "-NoExit", "-Command", "-"};
+const auto default_args = QStringList{"-NoProfile", "-NonInteractive", "-NoExit", "-Command", "-"};
+
+// One-shot processes skip the user's profile, whose output would corrupt what we parse.
+QStringList with_non_interactive_flags(const QStringList& args)
+{
+    auto ret = args;
+    for (const auto& flag : QStringList{"-NonInteractive", "-NoProfile"})
+        if (!args.contains(flag, Qt::CaseInsensitive))
+            ret.prepend(flag);
+
+    return ret;
+}
 
 void setup_powershell(mp::Process* power_shell, const std::string& name)
 {
-    mpl::log(mpl::Level::trace,
-             name,
-             fmt::format("PowerShell arguments: {}", power_shell->arguments().join(", ")));
-    mpl::log(mpl::Level::trace,
-             name,
-             fmt::format("PowerShell working dir '{}'", power_shell->working_directory()));
-    mpl::log(mpl::Level::trace,
-             name,
-             fmt::format("PowerShell program '{}'", power_shell->program()));
+    mpl::trace(name, "PowerShell arguments: {}", power_shell->arguments().join(", "));
+    mpl::trace(name, "PowerShell working dir '{}'", power_shell->working_directory());
+    mpl::trace(name, "PowerShell program '{}'", power_shell->program());
 
     // handle stdout and stderr separately
     power_shell->set_process_channel_mode(QProcess::SeparateChannels);
@@ -51,21 +57,19 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
     QObject::connect(power_shell,
                      &mp::Process::state_changed,
                      [&name, power_shell](QProcess::ProcessState newState) {
-                         mpl::log(mpl::Level::trace,
-                                  name,
-                                  fmt::format("[{}] PowerShell state changed to {}",
-                                              power_shell->process_id(),
-                                              mpu::qenum_to_qstring(newState)));
+                         mpl::trace(name,
+                                    "[{}] PowerShell state changed to {}",
+                                    power_shell->process_id(),
+                                    mpu::qenum_to_qstring(newState));
                      });
 
     QObject::connect(power_shell,
                      &mp::Process::error_occurred,
                      [&name, power_shell](QProcess::ProcessError error) {
-                         mpl::log(mpl::Level::debug,
-                                  name,
-                                  fmt::format("[{}] PowerShell error occurred {}",
-                                              power_shell->process_id(),
-                                              mpu::qenum_to_qstring(error)));
+                         mpl::debug(name,
+                                    "[{}] PowerShell error occurred {}",
+                                    power_shell->process_id(),
+                                    mpu::qenum_to_qstring(error));
                      });
 
     QObject::connect(power_shell,
@@ -73,15 +77,12 @@ void setup_powershell(mp::Process* power_shell, const std::string& name)
                      [&name, power_shell](mp::ProcessState state) {
                          const auto pid = power_shell->process_id();
                          if (state.completed_successfully())
-                             mpl::log(mpl::Level::debug,
-                                      name,
-                                      fmt::format("[{}] PowerShell finished successfully", pid));
+                             mpl::debug(name, "[{}] PowerShell finished successfully", pid);
                          else
-                             mpl::log(mpl::Level::warning,
-                                      name,
-                                      fmt::format("[{}] PowerShell finished abnormally: {}",
-                                                  pid,
-                                                  state.failure_message()));
+                             mpl::warn(name,
+                                       "[{}] PowerShell finished abnormally: {}",
+                                       pid,
+                                       state.failure_message());
                      });
 }
 
@@ -105,6 +106,7 @@ mp::PowerShell::PowerShell(const std::string& name)
     setup_powershell(powershell_proc.get(), this->name);
 
     powershell_proc->start();
+    powershell_proc->wait_for_started();
 }
 
 mp::PowerShell::~PowerShell()
@@ -117,7 +119,7 @@ mp::PowerShell::~PowerShell()
         if (!error.isEmpty())
             msg = fmt::format("{}: {}", msg, error);
 
-        mpl::log(mpl::Level::warning, name, msg);
+        mpl::log_message(mpl::Level::warning, name, msg);
         powershell_proc->kill();
     }
 }
@@ -128,11 +130,35 @@ void mp::PowerShell::easy_run(const QStringList& args, std::string&& error_msg)
         throw std::runtime_error{std::move(error_msg)};
 }
 
+void mp::PowerShell::drain()
+{
+    assert(powershell_proc);
+    if (auto stale = powershell_proc->read_all_standard_output(); !stale.isEmpty())
+        mpl::trace(name, "[{}] Discarded stale stdout: {}", powershell_proc->process_id(), stale);
+    if (auto stale = powershell_proc->read_all_standard_error(); !stale.isEmpty())
+        mpl::trace(name, "[{}] Discarded stale stderr: {}", powershell_proc->process_id(), stale);
+}
+
 bool mp::PowerShell::run(const QStringList& args,
                          QString* output,
                          QString* output_err,
                          bool whisper)
 {
+    const bool is_foreign_call = (QThread::currentThread() != powershell_proc->thread());
+    // Callers on other threads get a fresh process instead of sharing the
+    // persistent one: that process can only be used safely from its owning thread.
+    if (!powershell_proc->running() || is_foreign_call)
+    {
+        mpl::trace(name,
+                   "Dispatching through exec (reason: {})",
+                   is_foreign_call ? "foreign thread" : "persistent process not running");
+        return exec(QStringList{"-Command"} + args, name, output, output_err);
+    }
+
+    // Discard leftovers from the previous transaction (e.g. late stderr)
+    // before sending a new command, so they can't leak into this reply.
+    drain();
+
     QString default_output, default_output_err;
     output = output ? output : &default_output;
     output_err = output_err ? output_err : &default_output_err;
@@ -143,7 +169,7 @@ bool mp::PowerShell::run(const QStringList& args,
     auto notice_level = whisper ? mpl::Level::trace : mpl::Level::debug;
     const auto cmdlet = args.join(" ");
 
-    mpl::log(notice_level, name, fmt::format("[{}] Cmdlet: '{}'", pid, cmdlet));
+    mpl::log(notice_level, name, "[{}] Cmdlet: '{}'", pid, cmdlet);
 
     // Have Powershell echo a unique string to differentiate between the cmdlet
     // output and the cmdlet exit status output
@@ -152,7 +178,7 @@ bool mp::PowerShell::run(const QStringList& args,
         QString powershell_stdout;
         QString powershell_stderr;
         auto cmdlet_exit_found{false};
-        while (!cmdlet_exit_found)
+        while (powershell_proc->running() && !cmdlet_exit_found)
         {
             powershell_proc
                 ->wait_for_ready_read(); // ignore timeouts - will just loop back if no output
@@ -186,7 +212,7 @@ bool mp::PowerShell::run(const QStringList& args,
                     if (cmdlet_exit_found)
                     {
                         *output = parsed_output.at(0).trimmed();
-                        mpl::log(mpl::Level::trace, name, output->toStdString());
+                        mpl::log_message(mpl::Level::trace, name, output->toStdString());
                     }
                 }
             }
@@ -194,14 +220,12 @@ bool mp::PowerShell::run(const QStringList& args,
 
         // Always log stderr, even if command succeeded
         if (!powershell_stderr.isEmpty())
-            mpl::log(mpl::Level::warning,
-                     name,
-                     fmt::format("[{}] stderr: {}", pid, powershell_stderr));
+            mpl::warn(name, "[{}] stderr: {}", pid, powershell_stderr);
     }
 
     // Log final output and status
-    mpl::log(mpl::Level::trace, name, fmt::format("[{}] Output: {}", pid, *output));
-    mpl::log(notice_level, name, fmt::format("[{}] Cmdlet exit status is '{}'", pid, cmdlet_code));
+    mpl::trace(name, "[{}] Output: {}", pid, *output);
+    mpl::log(notice_level, name, "[{}] Cmdlet exit status is '{}'", pid, cmdlet_code);
 
     return cmdlet_code;
 }
@@ -215,7 +239,7 @@ bool mp::PowerShell::exec(const QStringList& args,
     output = output ? output : &default_output;
     output_err = output_err ? output_err : &default_output_err;
 
-    auto power_shell = MP_PROCFACTORY.create_process(ps_cmd, args);
+    auto power_shell = MP_PROCFACTORY.create_process(ps_cmd, with_non_interactive_flags(args));
     setup_powershell(power_shell.get(), name);
 
     QObject::connect(
@@ -234,18 +258,19 @@ bool mp::PowerShell::exec(const QStringList& args,
 
     if (!wait_result)
     {
-        auto msg = pid ? fmt::format("[{}] Process failed; {}", pid, power_shell->error_string())
-                       : "Could not start PowerShell";
-        mpl::log(mpl::Level::warning, name, msg);
+        if (pid)
+            mpl::warn(name, "[{}] Process failed; {}", pid, power_shell->error_string());
+        else
+            mpl::warn(name, "Could not start PowerShell");
     }
 
     *output = output->trimmed();
 
     // Log stderr if any
     if (!output_err->isEmpty())
-        mpl::log(mpl::Level::warning, name, fmt::format("[{}] stderr: {}", pid, *output_err));
+        mpl::warn(name, "[{}] stderr: {}", pid, *output_err);
 
-    mpl::log(mpl::Level::trace, name, fmt::format("[{}] Output:\n{}", pid, *output));
+    mpl::trace(name, "[{}] Output:\n{}", pid, *output);
 
     return wait_result && power_shell->process_state().completed_successfully();
 }
@@ -260,7 +285,7 @@ bool mp::PowerShell::write(const QByteArray& data)
         if (written > 0)
             msg = fmt::format("{}. Only the first {} bytes were written", msg, written);
 
-        mpl::log(mpl::Level::warning, name, msg);
+        mpl::log_message(mpl::Level::warning, name, msg);
         return false;
     }
 

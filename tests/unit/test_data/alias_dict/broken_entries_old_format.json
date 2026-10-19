@@ -1,0 +1,14 @@
+{
+    "alias1": {
+        "command": "first_command",
+        "instance": "first_instance",
+        "working-directory": "map"
+    },
+    "empty_entry": {
+    },
+    "alias2": {
+        "command": "second_command",
+        "instance": "second_instance",
+        "working-directory": "default"
+    }
+}

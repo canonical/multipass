@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../delete_instance_dialog.dart';
 import '../extensions.dart';
+import '../l10n/app_localizations.dart';
 import '../notifications.dart';
 import '../providers.dart';
 import '../vm_action.dart';
 import 'vms.dart';
+import 'zones_dropdown_button.dart';
 
 class BulkActionsBar extends ConsumerWidget {
   const BulkActionsBar({super.key});
@@ -23,21 +25,25 @@ class BulkActionsBar extends ConsumerWidget {
         .values
         .toSet();
 
+    final l10n = AppLocalizations.of(context)!;
+
     Function(VmAction) wrapInNotification(
       Future<void> Function(Iterable<String>) function,
     ) {
       return (action) {
         final object = selectedVms.length == 1
             ? selectedVms.first
-            : '${selectedVms.length} instances';
+            : l10n.bulkActionInstanceCount(selectedVms.length);
 
         final notificationsNotifier = ref.read(notificationsProvider.notifier);
         notificationsNotifier.addOperation(
           function(selectedVms),
-          loading: '${action.continuousTense} $object',
-          onSuccess: (_) => '${action.pastTense} $object',
+          loading: l10n.bulkActionMessage(action.continuousTense(l10n), object),
+          onSuccess: (_) =>
+              l10n.bulkActionMessage(action.pastTense(l10n), object),
           onError: (error) {
-            return 'Failed to ${action.name.toLowerCase()} $object: $error';
+            return l10n.bulkActionError(
+                action.label(l10n).toLowerCase(), object, '$error');
           },
         );
       };
@@ -52,7 +58,7 @@ class BulkActionsBar extends ConsumerWidget {
           context: context,
           barrierDismissible: false,
           builder: (_) => DeleteInstanceDialog(
-            multiple: selectedVms.length > 1,
+            count: selectedVms.length,
             onDelete: () => wrapInNotification(client.purge)(action),
           ),
         );
@@ -66,6 +72,7 @@ class BulkActionsBar extends ConsumerWidget {
           currentStatuses: statuses,
           function: () => function(action),
         ),
+      const ZonesDropdownButton(),
     ];
 
     return Row(children: actionButtons.gap(width: 8).toList());

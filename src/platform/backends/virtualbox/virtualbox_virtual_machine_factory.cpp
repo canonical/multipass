@@ -119,9 +119,12 @@ mp::NetworkInterfaceInfo list_vbox_network(
 }
 } // namespace
 
-mp::VirtualBoxVirtualMachineFactory::VirtualBoxVirtualMachineFactory(const mp::Path& data_dir)
+mp::VirtualBoxVirtualMachineFactory::VirtualBoxVirtualMachineFactory(
+    const mp::Path& data_dir,
+    AvailabilityZoneManager& az_manager)
     : BaseVirtualMachineFactory(
-          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir))
+          MP_UTILS.derive_instances_dir(data_dir, get_backend_directory_name(), instances_subdir),
+          az_manager)
 {
 }
 
@@ -130,10 +133,12 @@ auto mp::VirtualBoxVirtualMachineFactory::create_virtual_machine(
     const SSHKeyProvider& key_provider,
     VMStatusMonitor& monitor) -> mp::VirtualMachine::UPtr
 {
-    return std::make_unique<mp::VirtualBoxVirtualMachine>(desc,
-                                                          monitor,
-                                                          key_provider,
-                                                          get_instance_directory(desc.vm_name));
+    return std::make_unique<mp::VirtualBoxVirtualMachine>(
+        desc,
+        monitor,
+        key_provider,
+        az_manager.get_zone(az_manager.get_default_zone_name()),
+        get_instance_directory(desc.vm_name));
 }
 
 void mp::VirtualBoxVirtualMachineFactory::remove_resources_for_impl(const std::string& name)
@@ -168,7 +173,7 @@ void mp::VirtualBoxVirtualMachineFactory::remove_resources_for_impl(const std::s
     }
     else
     {
-        mpl::log(mpl::Level::warning, name, "Could not find the cloud-init ISO path for removal.");
+        mpl::warn(name, "Could not find the cloud-init ISO path for removal.");
     }
 }
 
@@ -179,10 +184,12 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(
     auto vdi_file =
         QString("%1/%2.vdi").arg(source_file.path()).arg(source_file.completeBaseName());
 
-    QStringList convert_args({"convert", "-O", "vdi", source_image.image_path, vdi_file});
+    QStringList convert_args(
+        {"convert", "-O", "vdi", MP_PLATFORM.path_to_qstr(source_image.image_path), vdi_file});
 
-    auto qemuimg_convert_spec =
-        std::make_unique<mp::QemuImgProcessSpec>(convert_args, source_image.image_path, vdi_file);
+    auto qemuimg_convert_spec = std::make_unique<mp::QemuImgProcessSpec>(convert_args,
+                                                                         source_image.image_path,
+                                                                         vdi_file.toStdString());
     auto qemuimg_convert_process = mp::platform::make_process(std::move(qemuimg_convert_spec));
 
     auto process_state = qemuimg_convert_process->execute(mp::image_resize_timeout);
@@ -200,7 +207,7 @@ mp::VMImage mp::VirtualBoxVirtualMachineFactory::prepare_source_image(
     }
 
     auto prepared_image = source_image;
-    prepared_image.image_path = vdi_file;
+    prepared_image.image_path = vdi_file.toStdString();
     return prepared_image;
 }
 
@@ -209,13 +216,14 @@ void mp::VirtualBoxVirtualMachineFactory::prepare_instance_image(
     const VirtualMachineDescription& desc)
 {
     // Need to generate a new medium UUID
-    mpu::process_throw_on_error("VBoxManage",
-                                {"internalcommands", "sethduuid", instance_image.image_path},
-                                "Could not generate a new UUID: {}");
+    mpu::process_throw_on_error(
+        "VBoxManage",
+        {"internalcommands", "sethduuid", MP_PLATFORM.path_to_qstr(instance_image.image_path)},
+        "Could not generate a new UUID: {}");
 
     mpu::process_log_on_error("VBoxManage",
                               {"modifyhd",
-                               instance_image.image_path,
+                               MP_PLATFORM.path_to_qstr(instance_image.image_path),
                                "--resize",
                                QString::number(desc.disk_space.in_megabytes())},
                               "Could not resize image: {}",
@@ -240,9 +248,7 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
     // List to store the output of the query command; each element corresponds to one interface.
     QStringList if_list(ifs_info.split(QRegularExpression("\r?\n\r?\n"), Qt::SkipEmptyParts));
 
-    mpl::log(mpl::Level::info,
-             log_category,
-             fmt::format("VirtualBox found {} interface(s)", if_list.size()));
+    mpl::info(log_category, "VirtualBox found {} interface(s)", if_list.size());
 
     std::map<std::string, mp::NetworkInterfaceInfo> platform_ifs_info =
         MP_PLATFORM.get_network_interfaces_info();
@@ -257,15 +263,14 @@ auto mp::VirtualBoxVirtualMachineFactory::networks() const -> std::vector<Networ
         }
         catch (VirtualBoxNetworkException& e)
         {
-            mpl::log(mpl::Level::warning, log_category, e.what());
+            mpl::log_message(mpl::Level::warning, log_category, e.what());
         }
     }
 
     return networks;
 }
 
-void multipass::VirtualBoxVirtualMachineFactory::prepare_networking(
-    std::vector<NetworkInterface>& vector)
+void multipass::VirtualBoxVirtualMachineFactory::prepare_networking(std::vector<NetworkInterface>&)
 {
     // Nothing to do here, VirtualBox takes host interfaces directly
 }
@@ -282,5 +287,6 @@ mp::VirtualMachine::UPtr mp::VirtualBoxVirtualMachineFactory::clone_vm_impl(
         dest_vm_desc,
         monitor,
         key_provider,
+        az_manager.get_zone(az_manager.get_default_zone_name()),
         get_instance_directory(dest_vm_desc.vm_name));
 }

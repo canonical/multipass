@@ -22,9 +22,10 @@
 #include <libssh/libssh.h>
 
 #include <mutex>
-#include <thread>
 
 #include <windows.h>
+
+class Socket;
 
 namespace multipass
 {
@@ -38,6 +39,8 @@ public:
     void read_console() override;
     void write_console() override;
     void exit_console() override;
+
+    void handle_runtime_events() override {};
 
 private:
     void setup_console();

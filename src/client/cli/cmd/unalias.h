@@ -20,8 +20,6 @@
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/command.h>
 
-#include <unordered_set>
-
 #include <QString>
 
 namespace multipass
@@ -38,7 +36,7 @@ public:
     {
     }
 
-    ReturnCode run(ArgParser* parser) override;
+    ReturnCodeVariant run(ArgParser* parser) override;
     std::string name() const override;
     QString short_help() const override;
     QString description() const override;

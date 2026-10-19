@@ -12,8 +12,9 @@ class VmTableScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final hasVms = ref.watch(vmInfosProvider.select((vms) => vms.isNotEmpty));
-
-    return Scaffold(body: hasVms ? const Vms() : const NoVms());
+    final polling = ref.watch(pollingProvider);
+    final vmInfos = ref.watch(vmInfosProvider);
+    final showNoVms = polling is AsyncData && vmInfos.isEmpty;
+    return Scaffold(body: showNoVms ? const NoVms() : const Vms());
   }
 }

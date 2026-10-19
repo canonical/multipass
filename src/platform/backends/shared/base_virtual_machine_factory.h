@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <multipass/availability_zone_manager.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -33,7 +34,8 @@ constexpr auto log_category = "base factory";
 class BaseVirtualMachineFactory : public VirtualMachineFactory
 {
 public:
-    explicit BaseVirtualMachineFactory(const Path& instances_dir);
+    explicit BaseVirtualMachineFactory(const Path& instances_dir,
+                                       AvailabilityZoneManager& az_manager);
     VirtualMachine::UPtr clone_bare_vm(const VMSpecs& src_spec,
                                        const VMSpecs& dest_spec,
                                        const std::string& src_name,
@@ -43,11 +45,6 @@ public:
                                        VMStatusMonitor& monitor) override final;
 
     void remove_resources_for(const std::string& name) final;
-
-    FetchType fetch_type() override
-    {
-        return FetchType::ImageOnly;
-    };
 
     QString get_backend_directory_name() const override
     {
@@ -60,6 +57,8 @@ public:
     }
 
     void prepare_networking(std::vector<NetworkInterface>& extra_interfaces) override;
+
+    MemorySize virtual_size_for(const std::filesystem::path& image_path) const override;
 
     VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
                                           URLDownloader* downloader,
@@ -81,15 +80,18 @@ public:
         throw NotImplementedOnThisBackendException("networks");
     };
 
-    void require_snapshots_support() const override;
-    void require_suspend_support() const override;
-    void require_clone_support() const override;
+    // TODO@backends: remove once deprecated backends are removed
+    bool supports_availability_zones() const override
+    {
+        return true;
+    }
 
 protected:
     static const Path instances_subdir;
+    AvailabilityZoneManager& az_manager;
 
 protected:
-    std::string create_bridge_with(const NetworkInterfaceInfo& interface) override
+    std::string create_bridge_with(const NetworkInterfaceInfo&) override
     {
         throw NotImplementedOnThisBackendException{"bridge creation"};
     }
@@ -120,26 +122,12 @@ inline void multipass::BaseVirtualMachineFactory::remove_resources_for(const std
     instance_dir.removeRecursively();
 }
 
-inline void multipass::BaseVirtualMachineFactory::require_snapshots_support() const
-{
-    throw NotImplementedOnThisBackendException{"snapshots"};
-}
-
-inline void multipass::BaseVirtualMachineFactory::require_suspend_support() const
-{
-}
-
-inline void multipass::BaseVirtualMachineFactory::require_clone_support() const
-{
-    throw NotImplementedOnThisBackendException{"clone"};
-}
-
 inline multipass::VirtualMachine::UPtr multipass::BaseVirtualMachineFactory::clone_vm_impl(
-    const std::string& source_vm_name,
-    const VMSpecs& src_vm_specs,
-    const VirtualMachineDescription& desc,
-    VMStatusMonitor& monitor,
-    const SSHKeyProvider& key_provider)
+    const std::string&,
+    const VMSpecs&,
+    const VirtualMachineDescription&,
+    VMStatusMonitor&,
+    const SSHKeyProvider&)
 {
     throw NotImplementedOnThisBackendException{"clone"};
 }

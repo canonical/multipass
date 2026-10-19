@@ -1,0 +1,36 @@
+{
+  "name": "qemu",
+  "version": "10.0.3",
+  "port-version": 0,
+  "description": "QEMU with Canonical's patches for Multipass",
+  "homepage": "https://github.com/qemu/QEMU",
+  "license": "GPL-2.0-only",
+  "supports": "osx | linux | windows",
+  "dependencies": [
+    {
+      "name": "glib",
+      "platform": "!windows"
+    },
+    {
+      "name": "pixman",
+      "platform": "!windows"
+    },
+    {
+      "name": "zlib",
+      "platform": "!windows"
+    },
+    {
+      "name": "zstd",
+      "platform": "!windows"
+    },
+    {
+      "name": "ncurses",
+      "platform": "!windows"
+    }
+  ],
+  "features": {
+    "system": {
+      "description": "Build qemu-system-<arch> emulator"
+    }
+  }
+}

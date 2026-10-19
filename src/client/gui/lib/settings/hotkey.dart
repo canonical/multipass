@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../platform/platform.dart';
 import '../providers.dart';
+import '../l10n/app_localizations.dart';
+import 'constants.dart';
 
 final hotkeySettingProvider = guiSettingProvider(hotkeyKey);
 
@@ -50,8 +52,9 @@ class HotkeyNotifier extends Notifier<SingleActivator?> {
   }
 }
 
-final hotkeyProvider =
-    NotifierProvider<HotkeyNotifier, SingleActivator?>(HotkeyNotifier.new);
+final hotkeyProvider = NotifierProvider<HotkeyNotifier, SingleActivator?>(
+  HotkeyNotifier.new,
+);
 
 class HotkeyRecorder extends StatefulWidget {
   final SingleActivator? value;
@@ -113,7 +116,7 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
     LogicalKeyboardKey.shiftRight: setShift,
   };
 
-  KeyEventResult handleKeyEvent(_, KeyEvent event) {
+  KeyEventResult handleKeyEvent(FocusNode _, KeyEvent event) {
     if (event is KeyRepeatEvent) return KeyEventResult.handled;
 
     shouldSave = false;
@@ -163,17 +166,18 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
 
   @override
   Widget build(BuildContext context) {
-    final keyLabel = key?.keyLabel ?? '...';
+    final l10n = AppLocalizations.of(context)!;
+    final keyLabel = key?.keyLabel ?? l10n.hotkeyUnknownKey;
     final modifiers = [
-      if (control) 'Ctrl',
+      if (control) l10n.hotkeyCtrl,
       if (alt) mpPlatform.altKey,
-      if (shift) 'Shift',
+      if (shift) l10n.hotkeyShift,
       if (meta) mpPlatform.metaKey,
     ].join('+');
     final keyCombination = modifiers.isNotEmpty
         ? '$modifiers+$keyLabel'
         : hasFocus
-            ? 'Input...'
+            ? l10n.hotkeyInputPrompt
             : '';
 
     return Focus(
@@ -186,7 +190,7 @@ class HotkeyRecorderState extends State<HotkeyRecorder> {
         child: InputDecorator(
           decoration: InputDecoration(contentPadding: EdgeInsets.zero),
           child: Container(
-            width: 260,
+            width: settingFieldWidth,
             height: 42,
             alignment: Alignment.center,
             child: Text(keyCombination),

@@ -29,8 +29,8 @@ class QemuImgProcessSpec : public ProcessSpec
 {
 public:
     explicit QemuImgProcessSpec(const QStringList& args,
-                                const QString& source_image,
-                                const QString& target_image = {});
+                                const std::filesystem::path& source_image,
+                                const std::filesystem::path& target_image = {});
 
     QString program() const override;
     QStringList arguments() const override;

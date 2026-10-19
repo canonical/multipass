@@ -1,0 +1,7 @@
+{
+  "name": "out-ptr",
+  "version-date": "2025-04-07",
+  "description": "A C++11 implementation of std::out_ptr (p1132), for interop between C-style output pointers and C++ smart pointers.",
+  "homepage": "https://github.com/soasis/out_ptr",
+  "license": "Apache-2.0"
+}

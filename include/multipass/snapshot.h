@@ -24,8 +24,11 @@
 #include <string>
 #include <unordered_map>
 
-class QJsonObject;
 class QDateTime;
+namespace boost::json
+{
+class object;
+}
 
 namespace multipass
 {
@@ -50,7 +53,7 @@ public:
 
     // Note that these return references - careful not to delete the snapshot while they are in use
     virtual const std::unordered_map<std::string, VMMount>& get_mounts() const noexcept = 0;
-    virtual const QJsonObject& get_metadata() const noexcept = 0;
+    virtual const boost::json::object& get_metadata() const noexcept = 0;
 
     virtual std::shared_ptr<const Snapshot> get_parent() const = 0;
     virtual std::shared_ptr<Snapshot> get_parent() = 0;

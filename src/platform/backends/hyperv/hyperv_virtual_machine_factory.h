@@ -29,7 +29,7 @@ struct HyperVNetworkAccessor; // fwd declaration, to befriend below
 class HyperVVirtualMachineFactory final : public BaseVirtualMachineFactory
 {
 public:
-    explicit HyperVVirtualMachineFactory(const Path& data_dir);
+    explicit HyperVVirtualMachineFactory(const Path& data_dir, AvailabilityZoneManager& az_manager);
 
     VirtualMachine::UPtr create_virtual_machine(const VirtualMachineDescription& desc,
                                                 const SSHKeyProvider& key_provider,
@@ -43,9 +43,10 @@ public:
         return "hyperv";
     };
     std::vector<NetworkInterfaceInfo> networks() const override;
-    void require_snapshots_support() const override;
-    void require_clone_support() const override
+    // TODO@backends: remove once deprecated backends are removed
+    bool supports_availability_zones() const override
     {
+        return false;
     }
 
 protected:
@@ -65,7 +66,3 @@ private:
     static std::vector<NetworkInterfaceInfo> get_adapters();
 };
 } // namespace multipass
-
-inline void multipass::HyperVVirtualMachineFactory::require_snapshots_support() const
-{
-}

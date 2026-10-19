@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart' hide Tooltip;
 
 import '../copyable_text.dart';
-import '../extensions.dart';
-import '../tooltip.dart';
+import '../l10n/app_localizations.dart';
 
 class IpAddresses extends StatelessWidget {
   final Iterable<String> ips;
@@ -11,31 +10,34 @@ class IpAddresses extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final firstIp = ips.firstOrNull ?? '-';
     final restIps = ips.skip(1).toList();
 
-    return Row(children: [
-      Expanded(child: CopyableText(firstIp)),
-      if (restIps.isNotEmpty)
-        Badge.count(
-          count: restIps.length,
-          alignment: const AlignmentDirectional(-1.5, 0.4),
-          textStyle: const TextStyle(fontSize: 10),
-          largeSize: 14,
-          child: PopupMenuButton<void>(
-            icon: const Icon(Icons.keyboard_arrow_down),
-            position: PopupMenuPosition.under,
-            tooltip: 'Other IP addresses',
-            splashRadius: 10,
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                enabled: false,
-                child: Text('Other IP addresses'),
-              ),
-              ...restIps.map((ip) => PopupMenuItem(child: Text(ip))),
-            ],
+    return Row(
+      children: [
+        Expanded(child: CopyableText(firstIp)),
+        if (restIps.isNotEmpty)
+          Badge.count(
+            count: restIps.length,
+            alignment: const AlignmentDirectional(-1.5, 0.4),
+            textStyle: const TextStyle(fontSize: 10),
+            largeSize: 14,
+            child: PopupMenuButton<void>(
+              icon: const Icon(Icons.keyboard_arrow_down),
+              position: PopupMenuPosition.under,
+              tooltip: l10n.ipAddressesOtherTitle,
+              splashRadius: 10,
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  enabled: false,
+                  child: Text(l10n.ipAddressesOtherTitle),
+                ),
+                ...restIps.map((ip) => PopupMenuItem(child: Text(ip))),
+              ],
+            ),
           ),
-        ),
-    ]);
+      ],
+    );
   }
 }

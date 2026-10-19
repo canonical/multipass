@@ -1,0 +1,69 @@
+name: Update Cloud Images
+
+on:
+  workflow_dispatch:
+  schedule:
+  # 04:11 UTC every Sunday
+  - cron: 11 4 * * 0
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.MULTIPASS_CI_BOT_ID }}
+          private-key: ${{ secrets.MULTIPASS_CI_BOT_KEY }}
+
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
+      - name: Create virtual environment
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
+
+      - name: Install distro-scraper package
+        run: pip install ./tools/distro-scraper
+
+      - name: Check for updated Cloud Images
+        run: distro-scraper ${{ github.workspace }}/data/distributions/distribution-info.json
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          commit-message: "[distro] Update Cloud Images info"
+          branch: "update-cloud-images"
+          title: "[distro] Update Cloud Images information"
+          body: "Automatic update of cloud image information."
+          sign-commits: true
+          add-paths: |
+            data/distributions/distribution-info.json
+
+      - name: Report workflow failure
+        if: ${{ failure() }}
+        uses: mattermost/action-mattermost-notify@master
+        with:
+          MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          MATTERMOST_CHANNEL: multipass-notifications
+          TEXT: |
+            :red_circle: @mp
+            Scheduled [Update Cloud Images](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow failed.
+          MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+          MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231

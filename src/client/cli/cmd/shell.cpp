@@ -18,7 +18,6 @@
 #include "shell.h"
 #include "common_cli.h"
 
-#include "animated_spinner.h"
 #include <multipass/cli/argparser.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
@@ -26,13 +25,12 @@
 #include <multipass/ssh/ssh_client.h>
 #include <multipass/timer.h>
 
-#include <chrono>
 #include <cstdlib>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Shell::run(mp::ArgParser* parser)
 {
     petenv_name = MP_SETTINGS.get(petenv_key);
     auto ret = parse_args(parser);
@@ -56,7 +54,7 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     // at a time
     auto instance_name = request.instance_name()[0];
 
-    auto on_success = [this, &timer](mp::SSHInfoReply& reply) {
+    auto on_success = [this, &timer](mp::SSHInfoReply& reply) -> ReturnCodeVariant {
         if (timer)
             timer->stop();
 
@@ -76,17 +74,16 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
         {
             auto console_creator = [this](auto channel) { return term->make_console(channel); };
             mp::SSHClient ssh_client{host, port, username, priv_key_blob, console_creator};
-            ssh_client.connect();
+            return static_cast<mp::VMReturnCode>(ssh_client.connect());
         }
         catch (const std::exception& e)
         {
             cerr << "shell failed: " << e.what() << "\n";
-            return ReturnCode::CommandFail;
+            return ReturnCode::ShellExecFail;
         }
-        return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &instance_name, parser](grpc::Status& status) {
+    auto on_failure = [this, &instance_name, parser](grpc::Status& status) -> ReturnCodeVariant {
         QStringList retry_args{};
 
         if (status.error_code() == grpc::StatusCode::NOT_FOUND &&
@@ -104,7 +101,7 @@ mp::ReturnCode cmd::Shell::run(mp::ArgParser* parser)
     };
 
     request.set_verbosity_level(parser->verbosityLevel());
-    ReturnCode return_code;
+    ReturnCodeVariant return_code;
     while ((return_code = dispatch(&RpcMethod::ssh_info, request, on_success, on_failure)) ==
            ReturnCode::Retry)
         ;
@@ -148,7 +145,7 @@ mp::ParseCode cmd::Shell::parse_args(mp::ArgParser* parser)
 
     parser->addPositionalArgument("name", description, syntax);
 
-    mp::cmd::add_timeout(parser);
+    mp::cmd::add_instance_timeout(parser);
 
     auto status = parser->commandParse(this);
 

@@ -24,13 +24,12 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/exceptions/settings_exceptions.h>
+#include <multipass/utils.h>
 
 #include <QCommandLineOption>
-#include <QString>
 
+#include <algorithm>
 #include <chrono>
-#include <fmt/ostream.h>
-#include <sstream>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -128,10 +127,10 @@ std::string cmd::instance_action_message_for(const mp::InstanceNames& instance_n
     return message;
 }
 
-mp::ReturnCode cmd::run_cmd(const QStringList& args,
-                            const mp::ArgParser* parser,
-                            std::ostream& cout,
-                            std::ostream& cerr)
+mp::ReturnCodeVariant cmd::run_cmd(const QStringList& args,
+                                   const mp::ArgParser* parser,
+                                   std::ostream& cout,
+                                   std::ostream& cerr)
 {
     ArgParser aux_parser{args, parser->getCommands(), cout, cerr};
     aux_parser.setVerbosityLevel(parser->verbosityLevel());
@@ -144,16 +143,16 @@ mp::ReturnCode cmd::run_cmd(const QStringList& args,
 
 namespace
 {
-mp::ReturnCode ok2retry(mp::ReturnCode code)
+mp::ReturnCodeVariant ok2retry(mp::ReturnCodeVariant code)
 {
     return code == mp::ReturnCode::Ok ? mp::ReturnCode::Retry : code;
 }
 } // namespace
 
-mp::ReturnCode cmd::run_cmd_and_retry(const QStringList& args,
-                                      const mp::ArgParser* parser,
-                                      std::ostream& cout,
-                                      std::ostream& cerr)
+mp::ReturnCodeVariant cmd::run_cmd_and_retry(const QStringList& args,
+                                             const mp::ArgParser* parser,
+                                             std::ostream& cout,
+                                             std::ostream& cerr)
 {
     return ok2retry(run_cmd(args, parser, cout, cerr));
 }
@@ -177,18 +176,34 @@ QString multipass::cmd::describe_common_settings_keys()
            " get --keys` to obtain the full list of available settings at any given time.";
 }
 
-void multipass::cmd::add_timeout(multipass::ArgParser* parser)
+namespace
+{
+void add_timeout_option(multipass::ArgParser* parser, const QString& extra_description = {})
 {
     QCommandLineOption timeout_option(
         "timeout",
         QString("Maximum time, in seconds, to wait for the command to complete. "
-                "Note that some background operations may continue beyond that. "
-                "By default, instance startup and initialization is limited to "
-                "%1 minutes each.")
-            .arg(std::chrono::duration_cast<std::chrono::minutes>(multipass::default_timeout)
-                     .count()),
+                "Note that some background operations may continue beyond that.") +
+            extra_description,
         "timeout");
     parser->addOption(timeout_option);
+}
+} // namespace
+
+void multipass::cmd::add_instance_timeout(multipass::ArgParser* parser)
+{
+    const auto instance_timeout_str =
+        QString(" By default, instance startup and initialization is limited to "
+                "%1 minutes each.")
+            .arg(std::chrono::duration_cast<std::chrono::minutes>(multipass::default_timeout)
+                     .count());
+
+    add_timeout_option(parser, instance_timeout_str);
+}
+
+void multipass::cmd::add_timeout(multipass::ArgParser* parser)
+{
+    add_timeout_option(parser);
 }
 
 int multipass::cmd::parse_timeout(const multipass::ArgParser* parser)
@@ -218,4 +233,40 @@ std::unique_ptr<multipass::utils::Timer> multipass::cmd::make_timer(int timeout,
                                                            });
 
     return timer;
+}
+
+bool multipass::cmd::detail::do_normalize_zone_name(std::string& zone, const ZonesReply& reply)
+{
+    auto zone_name = [](const auto& zone) { return zone.name(); };
+    if (utils::has_only_digits(zone))
+    {
+        auto zone_index = std::stoi(zone);
+        if (zone_index < 1 || zone_index > reply.zones().size())
+            return false;
+        zone = reply.zones()[zone_index - 1].name();
+    }
+    // TODO@C++23: Use `std::ranges::contains`.
+    else if (std::ranges::find(reply.zones(), zone, zone_name) == reply.zones().end())
+        return false;
+    return true;
+}
+
+multipass::ReturnCodeVariant multipass::cmd::normalize_zone_name(RpcMethod* iface,
+                                                                 std::string& zone_name,
+                                                                 std::ostream& cerr)
+{
+    auto on_success = [&cerr, &zone_name](const ZonesReply& reply) -> ReturnCodeVariant {
+        if (!detail::do_normalize_zone_name(zone_name, reply))
+        {
+            cerr << fmt::format("No AZ with name: {}\n", zone_name);
+            return ReturnCode::CommandFail;
+        }
+        return Ok;
+    };
+    auto on_failure = [&cerr](const grpc::Status& status) -> ReturnCodeVariant {
+        return standard_failure_handler_for("normalize-zone-name", cerr, status);
+    };
+
+    ZonesRequest request{};
+    return dispatch_rpc(iface, &RpcMethod::zones, request, on_success, on_failure, cerr);
 }

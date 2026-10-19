@@ -12,7 +12,7 @@ Accessing files from your host machine is supported through the `multipass mount
 Please learn more details in the linked documentation topics.
 -->
 
-Multipass is a tool to generate cloud-style Ubuntu VMs quickly on Linux, macOS and Windows. It provides a simple but powerful CLI that enables you to quickly access an Ubuntu command line or create your own local mini-cloud.
+Multipass is a tool to generate cloud-style virtual machines (VMs) quickly on Linux, macOS and Windows. It provides a simple but powerful CLI that enables you to quickly access an Ubuntu command line, launch instances of other Linux distributions, or create your own local mini-cloud.
 
 Local development and testing can be challenging, but Multipass simplifies these processes by automating setup and teardown. Multipass has a growing library of images that you can use to launch purpose-built VMs or custom VMs you’ve configured yourself through its powerful `cloud-init` interface.
 
@@ -26,7 +26,7 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 Start here to install and launch your first Multipass instance.
 
-- Tutorial: [Getting stated with Multipass](tutorial-index) • [Install Multipass](how-to-guides-install-multipass) •  [Setup the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Migrate from Hyperkit to QEMU](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos)
+- Tutorial: [Getting started with Multipass](tutorial-getting-started) • [Install Multipass](how-to-guides-install-multipass) •  [Setup the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Migrate from Hyperkit to QEMU](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos)
 
 ### Using Multipass
 
@@ -34,8 +34,7 @@ Learn the complete lifecycle of a virtual machine.
 
 - **Instance management:** [Create an instance](how-to-guides-manage-instances-create-an-instance) • [Use an instance](how-to-guides-manage-instances-use-an-instance) • [Modify an instance](how-to-guides-manage-instances-modify-an-instance)  • [Use the primary instance](how-to-guides-manage-instances-use-the-primary-instance) • [Use instance command aliases](how-to-guides-manage-instances-use-instance-command-aliases) • [Remove an instance](how-to-guides-manage-instances-remove-an-instance)
 
-- **Instance customization:** [`cloud-init`](how-to-guides-manage-instances-launch-customized-instances-with-multipass-and-cloud-init) • [Build Multipass images with Packer](how-to-guides-customise-multipass-build-multipass-images-with-packer) • [Set up a graphical interface](how-to-guides-customise-multipass-set-up-a-graphical-interface) •
-[Run a Docker container in Multipass](how-to-guides-manage-instances-run-a-docker-container-in-multipass)
+- **Instance customization:** [`cloud-init`](how-to-guides-manage-instances-launch-customized-instances-with-multipass-and-cloud-init) • [Build Multipass images with Packer](how-to-guides-customise-multipass-build-multipass-images-with-packer) • [Set up a graphical interface](how-to-guides-customise-multipass-set-up-a-graphical-interface)
 
 - **Interfaces (CLI/GUI):** [Command-line interface](reference-command-line-interface-index) • [GUI client](reference-gui-client) • [Use a different terminal from the system icon](how-to-guides-customise-multipass-use-a-different-terminal-from-the-system-icon) • [How to integrate with Windows Terminal](how-to-guides-customise-multipass-integrate-with-windows-terminal)
 
@@ -45,7 +44,7 @@ Learn the complete lifecycle of a virtual machine.
 
 - **Core concepts:** [Instance](explanation-instance) • [Image](explanation-image) • [Snapshot](explanation-snapshot) • [Alias](explanation-alias) • [Service](explanation-service) • [Multipass exec and shells](explanation-multipass-exec-and-shells) • [ID mapping](explanation-id-mapping) • [Reference architecture](explanation-reference-architecture)
 
-- **Virtualization:** [Driver](explanation-driver) • [How to set up the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Migrate from Hyperkit to QEMU on macOS](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos) • [Platform](explanation-platform) • [Host](explanation-host)
+- **Virtualization:** [Driver](explanation-driver) • [How to set up the driver](how-to-guides-customise-multipass-set-up-the-driver) • [Migrate from Hyperkit to QEMU on macOS](how-to-guides-customise-multipass-migrate-from-hyperkit-to-qemu-on-macos) • [Migrate from Hyper-V to the HCS driver on Windows](how-to-guides-customise-multipass-migrate-from-hyperv-to-hcs-on-windows) • [Move from VirtualBox to another driver](how-to-guides-customise-multipass-move-from-virtualbox-to-another-driver) • [Platform](explanation-platform) • [Host](explanation-host)
 
 - **Configuration:** [Settings](reference-settings-index) • [Settings keys and values](explanation-settings-keys-values) • [Logging levels](reference-logging-levels) • [Configure Multipass's default logging level](how-to-guides-customise-multipass-configure-multipass-default-logging-level) • [Instance name format](reference-instance-name-format) • [Instance states](reference-instance-states)
 

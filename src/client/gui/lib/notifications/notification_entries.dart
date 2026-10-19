@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart' hide State;
 import 'package:grpc/grpc.dart' hide ConnectionState;
+import 'package:url_launcher/url_launcher.dart';
 
+import '../colors.dart';
 import '../extensions.dart';
 import '../grpc_client.dart';
+import '../l10n/app_localizations.dart';
 import '../sidebar.dart';
 import 'notifications_list.dart';
 
@@ -32,41 +35,47 @@ class SimpleNotification extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      RotatedBox(
-        quarterTurns: -1,
-        child: LinearProgressIndicator(
-          backgroundColor: Colors.transparent,
-          color: barColor,
-          value: barFullness,
-        ),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: FittedBox(fit: BoxFit.fill, child: icon),
-            ),
-            const SizedBox(width: 8),
-            Expanded(child: child),
-          ]),
-        ),
-      ),
-      if (closeable)
-        Material(
-          color: Colors.transparent,
-          child: IconButton(
-            splashRadius: 10,
-            iconSize: 20,
-            icon: const Icon(Icons.close),
-            onPressed: () => closeNotification(context),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RotatedBox(
+          quarterTurns: -1,
+          child: LinearProgressIndicator(
+            backgroundColor: Colors.transparent,
+            color: barColor,
+            value: barFullness,
           ),
         ),
-    ]);
+        const SizedBox(width: 8),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: FittedBox(fit: BoxFit.fill, child: icon),
+                ),
+                const SizedBox(width: 8),
+                Expanded(child: child),
+              ],
+            ),
+          ),
+        ),
+        if (closeable)
+          Material(
+            color: Colors.transparent,
+            child: IconButton(
+              splashRadius: 10,
+              iconSize: 20,
+              icon: const Icon(Icons.close),
+              onPressed: () => closeNotification(context),
+            ),
+          ),
+      ],
+    );
   }
 }
 
@@ -132,21 +141,48 @@ class _TimeoutNotificationState extends State<TimeoutNotification>
 }
 
 class ErrorNotification extends SimpleNotification {
-  ErrorNotification({
-    super.key,
-    required String text,
-  }) : super(
+  ErrorNotification({super.key, required String text})
+      : super(
           child: Text(text),
           barColor: Colors.red,
           icon: const Icon(Icons.cancel_outlined, color: Colors.red),
         );
 }
 
+class WarningNotification extends SimpleNotification {
+  const WarningNotification({super.key, required super.child})
+      : super(
+          barColor: warningAmber,
+          icon: const Icon(Icons.warning_rounded, color: warningAmber),
+        );
+}
+
+class DeprecationNotification extends WarningNotification {
+  DeprecationNotification(
+      {super.key, required String text, required Uri learnMoreUrl})
+      : super(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(text),
+              const Divider(),
+              Row(
+                children: [
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => launchUrl(learnMoreUrl),
+                    child: const Text('Learn more'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+}
+
 class SuccessNotification extends TimeoutNotification {
-  const SuccessNotification({
-    super.key,
-    required super.child,
-  }) : super(
+  const SuccessNotification({super.key, required super.child})
+      : super(
           barColor: Colors.green,
           icon: const Icon(Icons.check_circle_outline, color: Colors.green),
         );
@@ -203,6 +239,7 @@ class LaunchingNotification extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     return StreamBuilder(
       stream: stream,
       builder: (_, snapshot) {
@@ -217,46 +254,47 @@ class LaunchingNotification extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text.rich([
-                  '$name is up and running\n'.span.bold,
-                  'You can start using it now'.span,
-                ].spans),
+                Text.rich(
+                  [
+                    l10n.launchSuccessTitle(name).span.bold,
+                    l10n.launchSuccessBody.span,
+                  ].spans,
+                ),
                 Divider(),
-                Row(children: [
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      ref.read(sidebarKeyProvider.notifier).set('vm-$name');
-                      closeNotification(context);
-                    },
-                    child: Text('Go to instance'),
-                  ),
-                ]),
+                Row(
+                  children: [
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () {
+                        ref.read(sidebarKeyProvider.notifier).set('vm-$name');
+                        closeNotification(context);
+                      },
+                      child: Text(l10n.launchGoToInstance),
+                    ),
+                  ],
+                ),
               ],
             ),
           );
         }
 
         // returns the message to be displayed and if the operation is cancelable
-        final data = snapshot.data?.match(
-          (l) {
-            switch (l.whichCreateOneof()) {
-              case LaunchReply_CreateOneof.launchProgress:
-                final progressType = l.launchProgress.type;
-                if (progressType == LaunchProgress_ProgressTypes.VERIFY) {
-                  return ('Verifying image', false);
-                }
+        final data = snapshot.data?.match((l) {
+          switch (l.whichCreateOneof()) {
+            case LaunchReply_CreateOneof.launchProgress:
+              final progressType = l.launchProgress.type;
+              if (progressType == LaunchProgress_ProgressType.VERIFY) {
+                return (l10n.launchVerifyingImage, false);
+              }
 
-                final downloadPercentage = l.launchProgress.percentComplete;
-                return ('Downloading image $downloadPercentage%', true);
-              case LaunchReply_CreateOneof.createMessage:
-                return (l.createMessage, false);
-              default:
-                return (l.replyMessage, false);
-            }
-          },
-          (m) => (m.replyMessage, false),
-        );
+              final downloadPercentage = l.launchProgress.percentComplete;
+              return (l10n.launchDownloadingImage(downloadPercentage), true);
+            case LaunchReply_CreateOneof.createMessage:
+              return (l.createMessage, false);
+            default:
+              return (l.replyMessage, false);
+          }
+        }, (m) => (m.replyMessage, false));
 
         final (message, cancelable) = data ?? ('', false);
 
@@ -271,20 +309,23 @@ class LaunchingNotification extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text.rich(['Launching $name\n'.span.bold, message.span].spans),
+              Text.rich(
+                  [l10n.launchInProgress(name).span.bold, message.span].spans),
               if (cancelable) ...[
                 const Divider(),
-                Row(children: [
-                  const Spacer(),
-                  OutlinedButton(
-                    onPressed: () {
-                      closeNotification(context);
-                      cancelCompleter.complete();
-                    },
-                    child: Text('Cancel'),
-                  ),
-                  const SizedBox(width: 20),
-                ])
+                Row(
+                  children: [
+                    const Spacer(),
+                    OutlinedButton(
+                      onPressed: () {
+                        closeNotification(context);
+                        cancelCompleter.complete();
+                      },
+                      child: Text(l10n.commonCancel),
+                    ),
+                    const SizedBox(width: 20),
+                  ],
+                ),
               ],
             ],
           ),

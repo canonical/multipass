@@ -19,7 +19,7 @@
 
 #include <multipass/id_mappings.h>
 
-#include <QJsonObject>
+#include <boost/json.hpp>
 
 #include <string>
 
@@ -35,23 +35,25 @@ public:
     };
 
     VMMount() = default;
-    explicit VMMount(const QJsonObject& json);
     VMMount(const std::string& sourcePath,
             id_mappings gidMappings,
             id_mappings uidMappings,
             MountType mountType);
-
-    QJsonObject serialize() const;
 
     const std::string& get_source_path() const noexcept;
     const id_mappings& get_gid_mappings() const noexcept;
     const id_mappings& get_uid_mappings() const noexcept;
     MountType get_mount_type() const noexcept;
 
-    friend bool operator==(const VMMount& a, const VMMount& b) noexcept;
-    friend bool operator!=(const VMMount& a, const VMMount& b) noexcept;
+    friend inline bool operator==(const VMMount& a, const VMMount& b) noexcept = default;
 
 private:
+    friend void tag_invoke(const boost::json::value_from_tag&,
+                           boost::json::value& json,
+                           const VMMount& mount);
+    friend VMMount tag_invoke(const boost::json::value_to_tag<VMMount>&,
+                              const boost::json::value& json);
+
     std::string source_path;
     id_mappings gid_mappings;
     id_mappings uid_mappings;
@@ -78,34 +80,20 @@ inline VMMount::MountType VMMount::get_mount_type() const noexcept
     return mount_type;
 }
 
-inline bool operator==(const VMMount& a, const VMMount& b) noexcept
-{
-    return std::tie(a.source_path, a.gid_mappings, a.uid_mappings, a.mount_type) ==
-           std::tie(b.source_path, b.gid_mappings, b.uid_mappings, b.mount_type);
-}
-
-inline bool operator!=(const VMMount& a, const VMMount& b) noexcept // TODO drop in C++20
-{
-    return !(a == b);
-}
+void tag_invoke(const boost::json::value_from_tag&, boost::json::value& json, const VMMount& mount);
+VMMount tag_invoke(const boost::json::value_to_tag<VMMount>&, const boost::json::value& json);
 
 } // namespace multipass
 
 namespace fmt
 {
 template <>
-struct formatter<multipass::VMMount::MountType>
+struct formatter<multipass::VMMount::MountType> : formatter<int>
 {
-    template <typename ParseContext>
-    constexpr auto parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
     template <typename FormatContext>
     auto format(const multipass::VMMount::MountType& mount_type, FormatContext& ctx) const
     {
-        return format_to(ctx.out(), "{}", static_cast<int>(mount_type));
+        return formatter<int>::format(static_cast<int>(mount_type), ctx);
     }
 };
 } // namespace fmt

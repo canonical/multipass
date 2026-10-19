@@ -18,12 +18,14 @@
 #include "remote_settings_handler.h"
 #include "animated_spinner.h"
 #include "common_callbacks.h"
+#include "common_cli.h"
 
 #include <multipass/cli/command.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/logging/log.h>
 
 #include <cassert>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 
@@ -34,6 +36,45 @@ namespace
 {
 constexpr auto category = "remote settings";
 
+// TODO hyperv migration, remove
+// Adds HCS migration progress reporting on top of `callback`. To remove:
+//   1. Unwrap the call in RemoteSet: pass make_confirmation_callback(...) to dispatch() directly.
+//   2. Delete this function and the "animated_spinner.h" and <memory> includes.
+template <typename Callback>
+auto with_hcs_migration_progress(mp::Terminal& term, Callback callback)
+{
+    auto spinner = std::make_shared<mp::AnimatedSpinner>(term.cerr());
+    return [spinner, &term, callback = std::move(callback)](
+               mp::SetReply& reply,
+               grpc::ClientReaderWriterInterface<mp::SetRequest, mp::SetReply>* client) {
+        // Print log lines here so that an ongoing migration phase keeps spinning
+        if (!reply.log_line().empty())
+        {
+            spinner->print(term.cerr(), reply.log_line());
+            reply.clear_log_line();
+        }
+
+        const auto& migration_report = reply.hcs_migration_report();
+        if (!migration_report.phase().empty())
+        {
+            spinner->stop();
+            spinner->start(migration_report.phase());
+        }
+        else if (!migration_report.summary().empty())
+        {
+            spinner->stop();
+            term.cout() << migration_report.summary();
+            if (migration_report.summary().back() != '\n')
+                term.cout() << '\n';
+        }
+        else if (reply.needs_authorization() || !reply.reply_message().empty())
+        {
+            spinner->stop();
+            callback(reply, client);
+        }
+    };
+}
+
 class InternalCmd
     : public mp::cmd::Command // TODO feels hacky, better untangle dispatch from commands
 {
@@ -41,7 +82,7 @@ public:
     using mp::cmd::Command::Command;
 
 private: // demote visibility of the following methods
-    [[noreturn]] mp::ReturnCode run(mp::ArgParser*) override
+    [[noreturn]] mp::ReturnCodeVariant run(mp::ArgParser*) override
     {
         fail();
     }
@@ -74,13 +115,13 @@ public:
     using InternalCmd::InternalCmd;
 
 protected:
-    [[noreturn]] static mp::ReturnCode on_failure(grpc::Status& status)
+    [[noreturn]] static mp::ReturnCodeVariant on_failure(grpc::Status& status)
     {
         throw mp::RemoteHandlerException{status};
     }
 
     template <typename ReplyType>
-    static mp::ReturnCode on_success(ReplyType&)
+    static mp::ReturnCodeVariant on_success(ReplyType&)
     {
         return mp::ReturnCode::Ok;
     }
@@ -96,13 +137,15 @@ public:
         get_request.set_verbosity_level(verbosity);
         get_request.set_key(key.toStdString());
 
-        auto custom_on_success = [this](mp::GetReply& reply) {
+        auto custom_on_success = [this](mp::GetReply& reply) -> mp::ReturnCodeVariant {
             got = QString::fromStdString(reply.value());
             return mp::ReturnCode::Ok;
         };
 
-        [[maybe_unused]] auto ret =
-            dispatch(&RpcMethod::get, get_request, custom_on_success, on_failure);
+        [[maybe_unused]] auto ret = dispatch(&RpcMethod::get,
+                                             get_request,
+                                             custom_on_success,
+                                             on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 
@@ -127,16 +170,15 @@ public:
         set_request.set_val(val.toStdString());
         set_request.set_authorized(user_authorized);
 
-        mp::AnimatedSpinner spinner{cout};
-
-        auto streaming_confirmation_callback =
-            mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(*term, key);
-
-        [[maybe_unused]] auto ret = dispatch(&RpcMethod::set,
-                                             set_request,
-                                             on_success<mp::SetReply>,
-                                             on_failure,
-                                             streaming_confirmation_callback);
+        [[maybe_unused]] auto ret = dispatch(
+            &RpcMethod::set,
+            set_request,
+            on_success<mp::SetReply>,
+            on_failure,
+            // TODO hyperv migration, revert: unwrap, see with_hcs_migration_progress
+            with_hcs_migration_progress(
+                *term,
+                mp::make_confirmation_callback<mp::SetRequest, mp::SetReply>(*term, key)));
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 };
@@ -150,7 +192,7 @@ public:
         mp::KeysRequest keys_request;
         keys_request.set_verbosity_level(verbosity);
 
-        auto custom_on_success = [this](mp::KeysReply& reply) {
+        auto custom_on_success = [this](mp::KeysReply& reply) -> mp::ReturnCodeVariant {
             for (auto& key : *reply.mutable_settings_keys())
                 keys.insert(QString::fromStdString(
                     std::move(key))); // no actual move until QString supports it
@@ -158,18 +200,20 @@ public:
             return mp::ReturnCode::Ok;
         };
 
-        auto custom_on_failure = [](grpc::Status& status) {
+        auto custom_on_failure = [](grpc::Status& status) -> mp::ReturnCodeVariant {
             if (auto code = status.error_code(); code == grpc::NOT_FOUND)
             {
-                mpl::log(mpl::Level::error, category, "Could not reach daemon.");
+                mpl::error(category, "Could not reach daemon.");
                 return mp::ReturnCode::Ok;
             }
 
             return on_failure(status);
         };
 
-        [[maybe_unused]] auto ret =
-            dispatch(&RpcMethod::keys, keys_request, custom_on_success, custom_on_failure);
+        [[maybe_unused]] auto ret = dispatch(&RpcMethod::keys,
+                                             keys_request,
+                                             custom_on_success,
+                                             custom_on_failure);
         assert(ret == mp::ReturnCode::Ok && "should have thrown otherwise");
     }
 
@@ -198,7 +242,7 @@ QString mp::RemoteSettingsHandler::get(const QString& key) const
     throw mp::UnrecognizedSettingException{key};
 }
 
-void mp::RemoteSettingsHandler::set(const QString& key, const QString& val)
+void mp::RemoteSettingsHandler::set(const QString& key, const QString& val, UserMessages&)
 {
     if (key.startsWith(key_prefix))
     {

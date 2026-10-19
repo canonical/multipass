@@ -6,7 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'before_quit_dialog.dart';
+import 'l10n/app_localizations.dart';
 import 'catalogue/catalogue.dart';
+import 'confirmation_dialog.dart';
 import 'daemon_unavailable.dart';
 import 'help.dart';
 import 'logger.dart';
@@ -14,8 +16,10 @@ import 'notifications.dart';
 import 'providers.dart';
 import 'settings/hotkey.dart';
 import 'settings/settings.dart';
+import 'settings/virtualization_settings.dart';
 import 'sidebar.dart';
 import 'tray_menu.dart';
+import 'update_available.dart';
 import 'vm_details/mapping_slider.dart';
 import 'vm_details/vm_details.dart';
 import 'vm_table/vm_table_screen.dart';
@@ -47,16 +51,21 @@ void main() async {
 
   await hotKeyManager.unregisterAll();
 
-  providerContainer = ProviderContainer(overrides: [
-    guiSettingProvider.overrideWith(() {
-      return GuiSettingNotifier(sharedPreferences);
-    }),
-  ]);
+  providerContainer = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+    ],
+  );
   setupTrayMenu(providerContainer);
   runApp(
     UncontrolledProviderScope(
       container: providerContainer,
-      child: MaterialApp(theme: theme, home: const App()),
+      child: MaterialApp(
+        theme: theme,
+        home: const UpdateSystemNotificationListener(child: App()),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
     ),
   );
 }
@@ -69,8 +78,35 @@ class App extends ConsumerStatefulWidget {
 }
 
 class _AppState extends ConsumerState<App> with WindowListener {
+  var beforeQuitDialogShowing = false;
+
   @override
   Widget build(BuildContext context) {
+    ref.listen(daemonSettingProvider(driverKey), (_, driver) {
+      // TODO@deprecations remove
+      if (!driver.isLoading && ref.read(daemonAvailableProvider)) {
+        const deprecationDocsPrefix =
+            'https://canonical.com/multipass/docs/how-to-guides/customise-multipass/';
+        final learnMoreUrl = switch (driver.value) {
+          'hyperv' => Uri.parse(
+              '${deprecationDocsPrefix}migrate-from-hyperv-to-hcs-on-windows',
+            ),
+          'virtualbox' => Uri.parse(
+              '${deprecationDocsPrefix}move-from-virtualbox-to-another-driver',
+            ),
+          _ => null,
+        };
+        if (learnMoreUrl != null) {
+          ref.read(notificationsProvider.notifier).add(
+                DeprecationNotification(
+                  text: 'Your current driver is deprecated.',
+                  learnMoreUrl: learnMoreUrl,
+                ),
+              );
+        }
+      }
+    });
+
     final currentKey = ref.watch(sidebarKeyProvider);
     final sidebarExpanded = ref.watch(sidebarExpandedProvider);
     final sidebarPushContent = ref.watch(sidebarPushContentProvider);
@@ -109,28 +145,30 @@ class _AppState extends ConsumerState<App> with WindowListener {
 
     final hotkey = ref.watch(hotkeyProvider);
 
-    return Stack(children: [
-      AnimatedPositioned(
-        duration: SideBar.animationDuration,
-        bottom: 0,
-        right: 0,
-        top: 0,
-        left: sidebarPushContent && sidebarExpanded
-            ? SideBar.expandedWidth
-            : SideBar.collapsedWidth,
-        child: content,
-      ),
-      CallbackGlobalShortcuts(
-        key: hotkey != null ? GlobalObjectKey(hotkey) : null,
-        bindings: {if (hotkey != null) hotkey: goToPrimary},
-        child: const SideBar(),
-      ),
-      const Align(
-        alignment: Alignment.bottomRight,
-        child: SizedBox(width: 400, child: NotificationList()),
-      ),
-      const DaemonUnavailable(),
-    ]);
+    return Stack(
+      children: [
+        AnimatedPositioned(
+          duration: SideBar.animationDuration,
+          bottom: 0,
+          right: 0,
+          top: 0,
+          left: sidebarPushContent && sidebarExpanded
+              ? SideBar.expandedWidth
+              : SideBar.collapsedWidth,
+          child: content,
+        ),
+        CallbackGlobalShortcuts(
+          key: hotkey != null ? GlobalObjectKey(hotkey) : null,
+          bindings: {if (hotkey != null) hotkey: goToPrimary},
+          child: const SideBar(),
+        ),
+        const Align(
+          alignment: Alignment.bottomRight,
+          child: SizedBox(width: 400, child: NotificationList()),
+        ),
+        const DaemonUnavailable(),
+      ],
+    );
   }
 
   void goToPrimary() {
@@ -163,6 +201,40 @@ class _AppState extends ConsumerState<App> with WindowListener {
   @override
   void onWindowClose() async {
     if (!await windowManager.isPreventClose()) return;
+
+    // TODO hyperv migration, remove
+    // Quitting drops the migration's stream, which makes the daemon stop migrating.
+    if (ref.read(migrationInProgressProvider)) {
+      if (beforeQuitDialogShowing) return;
+      beforeQuitDialogShowing = true;
+
+      if (!await windowManager.isVisible() ||
+          await windowManager.isMinimized() ||
+          !await windowManager.isFocused()) {
+        windowManager.showAndRestore();
+      }
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          final l10n = AppLocalizations.of(context)!;
+          return ConfirmationDialog(
+            title: l10n.migrationQuitTitle,
+            body: Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Text(l10n.migrationQuitMessage),
+            ),
+            actionText: l10n.migrationQuitAction,
+            onAction: windowManager.destroy,
+            inactionText: l10n.migrationQuitKeepAction,
+            onInaction: () => Navigator.pop(context),
+          );
+        },
+      ).whenComplete(() => beforeQuitDialogShowing = false);
+      return;
+    }
+
     final daemonAvailable = ref.read(daemonAvailableProvider);
     final vmsRunning =
         ref.read(vmStatusesProvider).values.contains(Status.RUNNING);
@@ -175,14 +247,22 @@ class _AppState extends ConsumerState<App> with WindowListener {
     }
 
     // checking the need to restore the window
-    if (!await windowManager.isVisible() || await windowManager.isMinimized()) {
+    if (!await windowManager.isVisible() ||
+        await windowManager.isMinimized() ||
+        !await windowManager.isFocused()) {
       windowManager.showAndRestore();
     }
 
     stopAllInstances() {
+      final runningVMs = ref
+          .read(vmStatusesProvider)
+          .entries
+          .where((entry) => entry.value == Status.RUNNING)
+          .map((entry) => entry.key)
+          .toList();
       final notificationsNotifier = ref.read(notificationsProvider.notifier);
       notificationsNotifier.addOperation(
-        ref.read(grpcClientProvider).stop([]),
+        ref.read(grpcClientProvider).stop(runningVMs),
         loading: 'Stopping all instances',
         onError: (error) => 'Failed to stop all instances: $error',
         onSuccess: (_) {
@@ -193,10 +273,20 @@ class _AppState extends ConsumerState<App> with WindowListener {
     }
 
     if (closeJob == 'ask') {
+      if (beforeQuitDialogShowing) return;
+      beforeQuitDialogShowing = true;
+
+      // Get running instances count
+      final vmInfos = ref.read(vmInfosProvider);
+      final runningCount = vmInfos
+          .where((info) => info.instanceStatus.status == Status.RUNNING)
+          .length;
+
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => BeforeQuitDialog(
+          runningCount: runningCount,
           onStop: (remember) {
             ref
                 .read(guiSettingProvider(onAppCloseKey).notifier)
@@ -211,7 +301,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
             windowManager.destroy();
           },
         ),
-      );
+      ).whenComplete(() => beforeQuitDialogShowing = false);
     } else {
       stopAllInstances();
     }
@@ -239,12 +329,10 @@ final theme = ThemeData(
   ),
   outlinedButtonTheme: OutlinedButtonThemeData(
     style: OutlinedButton.styleFrom(
-      disabledForegroundColor: Colors.black.withOpacity(0.5),
+      disabledForegroundColor: Colors.black.withAlpha(128),
       foregroundColor: Colors.black,
       padding: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(2),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
       side: const BorderSide(color: Color(0xff333333)),
       textStyle: const TextStyle(fontFamily: 'Ubuntu', fontSize: 16),
     ),
@@ -253,12 +341,10 @@ final theme = ThemeData(
   textButtonTheme: TextButtonThemeData(
     style: TextButton.styleFrom(
       backgroundColor: const Color(0xff0E8620),
-      disabledForegroundColor: Colors.white.withOpacity(0.5),
+      disabledForegroundColor: Colors.white.withAlpha(128),
       foregroundColor: Colors.white,
       padding: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(2),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
       textStyle: const TextStyle(fontFamily: 'Ubuntu', fontSize: 16),
     ),
   ),
@@ -266,17 +352,14 @@ final theme = ThemeData(
     cursorColor: Colors.black,
     selectionColor: Colors.grey,
   ),
-  tabBarTheme: const TabBarTheme(
+  tabBarTheme: const TabBarThemeData(
     indicator: BoxDecoration(
       color: Colors.black12,
       border: Border(bottom: BorderSide(width: 3)),
     ),
     indicatorSize: TabBarIndicatorSize.tab,
     labelColor: Colors.black,
-    labelStyle: TextStyle(
-      fontFamily: 'Ubuntu',
-      fontWeight: FontWeight.bold,
-    ),
+    labelStyle: TextStyle(fontFamily: 'Ubuntu', fontWeight: FontWeight.bold),
     unselectedLabelColor: Colors.black,
     unselectedLabelStyle: TextStyle(
       fontFamily: 'Ubuntu',

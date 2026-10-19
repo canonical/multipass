@@ -15,11 +15,8 @@
 set(CMAKE_AUTOMOC ON)
 
 add_library(network STATIC
-            local_socket_reply.cpp
-            network_access_manager.cpp
-            url_downloader.cpp
-            ${CMAKE_SOURCE_DIR}/include/multipass/network_access_manager.h
-            local_socket_reply.h)
+            subnet.cpp
+            url_downloader.cpp)
 
 add_library(ip_address STATIC
             ip_address.cpp)
@@ -30,3 +27,6 @@ target_link_libraries(network
   utils
   Qt6::Core
   Qt6::Network)
+
+target_link_libraries(ip_address
+  fmt::fmt-header-only)

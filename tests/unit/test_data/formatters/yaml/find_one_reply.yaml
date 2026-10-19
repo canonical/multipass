@@ -1,0 +1,10 @@
+errors:
+  []
+images:
+  ubuntu:
+    aliases:
+      []
+    os: Ubuntu
+    release: 18.04 LTS
+    version: 20190516
+    remote: ""

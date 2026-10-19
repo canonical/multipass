@@ -15,61 +15,48 @@ After chocolatey is installed you can now install the rest of the dependencies f
 Powershell(Admin). To get the best results, in the following order:
 
 ```[pwsh]
-choco install cmake ninja qemu-img openssl git wget unzip -yfd
+choco install cmake ninja git wget unzip rustup.install -yfd
 ```
 
 ```[pwsh]
-choco install visualstudio2019buildtools visualstudio2019-workload-vctools -yfd
+choco install visualstudio2022buildtools visualstudio2022-workload-vctools -yfd
 ```
 
 NOTE: visualcpp-build-tools is only the installer package. For this reason, choco cannot detect any
 new compiler tool updates so choco upgrade will report no new updates available. To update the
-compiler and related tooling or fix a broken `visualstudio2019buildtools` installation do the following:
+compiler and related tooling or fix a broken `visualstudio2022buildtools` installation do the following:
 
 1. Go to "Add or remove programs"
 2. Search for the Microsoft Visual Studio Installer
 3. Click Modify
 4. Click Modify in the Installer interface
-5. For Windows 11, add "C++/CLI support for v142 build tools" in the "Desktop development with C++" kit
-6. Complete the installation
+5. For Windows 11, add "C++/CLI support for v143 build tools" in the "Desktop development with C++" kit
+6. Make sure that `vcpkg` is not installed in the same selection
+7. Complete the installation
 
 ### Git
 
 You need to enable symlinks in Windows Git, have a look at
 [the git-for-windows docs](https://github.com/git-for-windows/git/wiki/Symbolic-Links).
 
+### System requirements
+
 For Windows 11:
 
-1. Go to "Developer Settings"
-2. Enable "Developer mode"
-
-### Qt6
-
-To install Qt6, use `aqt`. First install it with chocolatey:
-
-```[pwsh]
-choco install aqt -yfd
-```
-
-Then specify the following options in the installation command:
-
-```[pwsh]
-aqt install-qt windows desktop 6.2.4 win64_msvc2019_64 -O C:/Qt
-```
-
-Alternatively, download the [qtbase archive](https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_624/qt.qt6.624.win64_msvc2019_64/6.2.4-0-202203140926qtbase-Windows-Windows_10_21H2-MSVC2019-Windows-Windows_10_21H2-X86_64.7z)
-and extract it to `C:\Qt` (so it ends up in `C:\Qt\6.2.4`).
+1. Enable "Developer mode" from "Settings > System > Advanced (or For developers)".
+2. Disable "Smart App Control" from "Settings > Privacy & security > Windows Security > App & browser control".
 
 ### Path setup
 
-You'll have to manually add CMake and Qt to your account's PATH variable.
+You'll have to manually add CMake to your account's PATH variable.
 
 Search for "Edit environment variables for your account" then edit your Path variable. Add the following:
 
 - `C:\Program Files\CMake\bin`
-- `C:\Qt\6.2.4\msvc2019_64\bin`
 
 ### Console setup
+
+You can select one of the following method below.
 
 #### Cmder
 
@@ -81,7 +68,7 @@ Install with chocolatey:
 choco install cmder -yfd
 ```
 
-The following will setup a task that you can use to build things with the VS2019 compiler toolchain.
+The following will setup a task that you can use to build things with the VS2022 compiler toolchain.
 
 1. Run cmder which should be installed by default on C:\tools\cmder\Cmder.exe
 2. Click the dropdown arrow next to the green "+" sign in the lower right corner of cmder
@@ -92,12 +79,12 @@ The following will setup a task that you can use to build things with the VS2019
 6. In the commands box, add:
 
     ```[]
-    cmd /k ""%ConEmuDir%\..\init.bat" && "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64" -new_console:d:%USERPROFILE%
+    cmd /k ""%ConEmuDir%\..\init.bat" && "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64" -new_console:d:%USERPROFILE%
     ```
 
-7. Give the task a name (first box), such as vs2019 and click Save Settings.
-8. Now run cmder, click on the green "+" and click on the vs2019 task
-This will open a new terminal tab and run the VS2019 setup. CMake can now find the VS compiler.
+7. Give the task a name (first box), such as vs2022 and click Save Settings.
+8. Now run cmder, click on the green "+" and click on the vs2022 task
+This will open a new terminal tab and run the VS2022 setup. CMake can now find the VS compiler.
 Go to the [Building](./BUILD.windows.md#building) section.
 
 #### x64 Native Tools Command Prompt
@@ -132,22 +119,61 @@ cd <multipass>
 git submodule update --init --recursive
 mkdir build
 cd build
+cmake -GNinja ..
 ```
+
+CMake will automatically fetch all necessary content, build vcpkg dependencies, and initialize
+the build system. If it doesn't pick it up automatically,
+specify the vcpkg toolchain manually with
+`-DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake `.
+To specify the build type, use `-DCMAKE_BUILD_TYPE` option to set the build type (e.g.,
+`Debug`, `Release`, etc.).
+
+To use a different vcpkg, pass `-DMULTIPASS_VCPKG_LOCATION="path/to/vcpkg"` to CMake.
+It should point to the root vcpkg location, where the top bootstrap scripts are located.
+
+Another example:
 
 ```[batch]
-cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_PREFIX_PATH=C:\Qt\6.2.4\msvc2019_64\ ../
+cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=..\3rd-party\vcpkg\scripts\buildsystems\vcpkg.cmake ../
 ```
+
+Finally, to build the project, run:
 
 ```[batch]
-cmake --build .
+cmake --build . [--parallel <N>]
 ```
 
-This builds `multipass` and `multipassd`.
-To create an installer, run `cmake --build . --target package`.
+Tips:
+- You may use `--parallel <N>` to speed up the build.
+- However, make sure you have enough physical memory and swap space available before doing so (the build step has a very high memory footprint).
+
+This builds `multipass`, `multipassd`, and `multipass_cpp_tests`.
+
+### Building the installer
+
+Building the Windows installer requires the Wix toolset SDK and the [Windows
+ADK](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install). You can install
+the Windows ADK by running:
+
+```[batch]
+choco install windows-adk-deploy -y
+```
+
+To install the Wix toolset, first ensure that you have both the .NET SDK and NuGet Package
+Installer, and then install Wix:
+
+```[batch]
+winget install Microsoft.DotNet.SDK.8 Microsoft.NuGet
+dotnet nuget add source --name nuget.org https://api.nuget.org/v3/index.json
+dotnet tool install --global wix --version 5.0.2
+```
+
+Finally, to create the installer, run `cmake --build . --target package`.
 
 ## Running `multipass`
 
-### Enable Hyper-V
+### Enable Hyper-V and Virtual Machine Platform
 
 Before starting `multipassd`, you'll have to enable the Hyper-V functionality in Windows 10/11 Pro.
 See: [Install Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v)
@@ -156,6 +182,7 @@ Press Windows Key + X, Select Windows PowerShell (Admin) or Terminal(Admin) and 
 
 ```[pwsh]
 Enable-WindowsOptionalFeature -Online -FeatureName:Microsoft-Hyper-V -All
+Enable-WindowsOptionalFeature -Online -FeatureName:VirtualMachinePlatform -All
 ```
 
 ### Start the daemon (`multipassd`)

@@ -22,10 +22,10 @@
 #include <multipass/format.h>
 #include <multipass/yaml_node_utils.h>
 
-#include <QFile>
-
 #include <array>
+#include <bit>
 #include <cctype>
+#include <span>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -64,12 +64,12 @@ namespace
 {
 constexpr auto logical_block_size = 2048u;
 
-constexpr std::uint16_t operator"" _u16(unsigned long long v)
+constexpr std::uint16_t operator""_u16(unsigned long long v)
 {
     return static_cast<std::uint16_t>(v);
 }
 
-constexpr std::uint8_t operator"" _u8(unsigned long long v)
+constexpr std::uint8_t operator""_u8(unsigned long long v)
 {
     return static_cast<std::uint8_t>(v);
 }
@@ -106,21 +106,13 @@ std::array<uint8_t, 4> to_lsb(uint32_t value)
     return {{to_u8(value), to_u8(value >> 8u), to_u8(value >> 16u), to_u8(value >> 24u)}};
 }
 
-bool is_system_little_endian()
+uint32_t from_lsb_msb(std::span<const uint8_t, 8> bytes)
 {
-    uint32_t test_value = 1; // In memory: 01 00 00 00 (little endian) or 00 00 00 01 (big endian)
-    return *(reinterpret_cast<uint8_t*>(&test_value)) == 1; // Check the first byte
-}
-
-// std::array<uint8_t, 8> -> std::span<uint8_t, 8> when c++20 arrives
-uint32_t from_lsb_msb(const std::array<uint8_t, 8>& bytes)
-{
-    // replace the is_system_little_endian() function with std::endian::native ==
-    // std::endian::little when C++20 arrives
-    return is_system_little_endian() ? to_u32(bytes[0]) | to_u32(bytes[1]) << 8u |
-                                           to_u32(bytes[2]) << 16u | to_u32(bytes[3]) << 24u
-                                     : to_u32(bytes[4]) << 24u | to_u32(bytes[5]) << 16u |
-                                           to_u32(bytes[6]) << 8u | to_u32(bytes[7]);
+    return (std::endian::native == std::endian::little)
+               ? to_u32(bytes[0]) | to_u32(bytes[1]) << 8u | to_u32(bytes[2]) << 16u |
+                     to_u32(bytes[3]) << 24u
+               : to_u32(bytes[4]) << 24u | to_u32(bytes[5]) << 16u | to_u32(bytes[6]) << 8u |
+                     to_u32(bytes[7]);
 }
 
 template <typename T, typename SizeType, typename V>
@@ -130,7 +122,7 @@ void set_at(T& t, SizeType offset, const V& value)
 }
 
 template <typename T>
-void write(const T& t, QFile& f)
+void write(const T& t, std::ofstream& f)
 {
     f.write(reinterpret_cast<const char*>(t.data.data()), t.data.size());
 }
@@ -459,24 +451,22 @@ struct RootPathTable
     std::array<uint8_t, 10> data{};
 };
 
-template <typename Size>
-Size num_blocks(Size num_bytes)
+std::size_t num_blocks(std::size_t num_bytes)
 {
     return ((num_bytes + logical_block_size - 1) / logical_block_size);
 }
 
-void seek_to_next_block(QFile& f)
+void seek_to_next_block(std::ofstream& f)
 {
-    const auto next_block_pos = num_blocks(f.pos()) * logical_block_size;
-    f.seek(next_block_pos);
+    const auto next_block_pos = num_blocks(f.tellp()) * logical_block_size;
+    f.seekp(next_block_pos);
 }
 
-void pad_to_end(QFile& f)
+void pad_to_end(std::ofstream& f)
 {
     seek_to_next_block(f);
-    f.seek(f.pos() - 1);
-    char end = 0;
-    f.write(&end, 1);
+    f.seekp(-1, std::ios::cur);
+    f.put('\0');
 }
 } // namespace
 
@@ -545,18 +535,17 @@ bool mp::CloudInitIso::erase(const std::string& name)
     return false;
 }
 
-void mp::CloudInitIso::write_to(const Path& path)
+void mp::CloudInitIso::write_to(const std::filesystem::path& path)
 {
-    QFile f{path};
-    if (!f.open(QIODevice::WriteOnly))
-        throw std::runtime_error{fmt::format(
-            "Failed to open file for writing during cloud-init generation: {}; path: {}",
-            f.errorString(),
-            path)};
+    std::ofstream f{path, std::ios::binary | std::ios::out};
+    if (!f.is_open())
+        throw std::runtime_error{
+            fmt::format("Failed to open file for writing during cloud-init generation; path: {}",
+                        path.string())};
 
     const uint32_t num_reserved_bytes = 32768u;
     const uint32_t num_reserved_blocks = num_blocks(num_reserved_bytes);
-    f.seek(num_reserved_bytes);
+    f.seekp(num_reserved_bytes);
 
     PrimaryVolumeDescriptor prim_desc;
     JolietVolumeDescriptor joliet_desc;
@@ -677,12 +666,10 @@ void mp::CloudInitIso::read_from(const std::filesystem::path& fs_path)
         throw std::runtime_error("The root directory record data is malformed.");
     }
 
-    // Use std::span when C++20 arrives to avoid the copy of the std::array<uint8_t, 8>
-    std::array<uint8_t, 8> root_dir_record_data_location_lsb_bytes;
     // location lsb_msb bytes starts from 2
-    std::copy_n(root_dir_record_data.cbegin() + 2u,
-                8,
-                root_dir_record_data_location_lsb_bytes.begin());
+    std::span<const uint8_t, 8> root_dir_record_data_location_lsb_bytes(
+        root_dir_record_data.begin() + 2u,
+        std::size_t(8));
     const uint32_t root_dir_record_data_location_by_blocks =
         from_lsb_msb(root_dir_record_data_location_lsb_bytes);
     const uint32_t file_records_start_pos =
@@ -750,7 +737,7 @@ void mp::CloudInitFileOps::update_cloud_init_with_new_extra_interfaces_and_new_i
     // overwrite the whole network-config file content
     iso_file["network-config"] = mpu::emit_cloud_config(
         mpu::make_cloud_init_network_config(default_mac_addr, extra_interfaces));
-    iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
+    iso_file.write_to(cloud_init_path);
 }
 
 void mp::CloudInitFileOps::update_identifiers(const std::string& default_mac_addr,
@@ -771,7 +758,7 @@ void mp::CloudInitFileOps::update_identifiers(const std::string& default_mac_add
                                                                    extra_interfaces,
                                                                    network_config_file_content));
 
-    iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
+    iso_file.write_to(cloud_init_path);
 }
 
 void mp::CloudInitFileOps::add_extra_interface_to_cloud_init(
@@ -789,7 +776,7 @@ void mp::CloudInitFileOps::add_extra_interface_to_cloud_init(
         mpu::add_extra_interface_to_network_config(default_mac_addr,
                                                    extra_interface,
                                                    iso_file["network-config"]));
-    iso_file.write_to(QString::fromStdString(cloud_init_path.string()));
+    iso_file.write_to(cloud_init_path);
 }
 
 std::string mp::CloudInitFileOps::get_instance_id_from_cloud_init(

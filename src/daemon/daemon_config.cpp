@@ -17,12 +17,12 @@
 
 #include "daemon_config.h"
 
-#include "custom_image_host.h"
-#include "ubuntu_image_host.h"
-
+#include <multipass/base_availability_zone_manager.h>
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
-#include <multipass/default_vm_blueprint_provider.h>
+#include <multipass/image_host/custom_image_host.h>
+#include <multipass/image_host/image_mutators.h>
+#include <multipass/image_host/ubuntu_image_host.h>
 #include <multipass/logging/log.h>
 #include <multipass/logging/standard_logger.h>
 #include <multipass/name_generator.h>
@@ -30,6 +30,7 @@
 #include <multipass/ssh/openssh_key_provider.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/standard_paths.h>
+#include <multipass/stub_availability_zone_manager.h>
 #include <multipass/utils.h>
 #include <multipass/utils/permission_utils.h>
 
@@ -46,8 +47,6 @@ namespace mpl = multipass::logging;
 
 namespace
 {
-constexpr auto manifest_ttl = std::chrono::minutes{5};
-
 std::string server_name_from(const std::string& server_address)
 {
     auto tokens = mp::utils::split(server_address, ":");
@@ -92,27 +91,6 @@ std::unique_ptr<QNetworkProxy> discover_http_proxy()
     }
 
     return proxy_ptr;
-}
-
-bool admits_snapcraft_image(const mp::VMImageInfo& info)
-{
-    static constexpr auto supported_snapcraft_aliases = {
-        "core18",
-        "18.04",
-        "core20",
-        "20.04",
-        "core22",
-        "22.04",
-        "core24",
-        "24.04",
-        "devel",
-    };
-
-    const auto& aliases = info.aliases;
-    return aliases.empty() ||
-           std::any_of(supported_snapcraft_aliases.begin(),
-                       supported_snapcraft_aliases.end(),
-                       [&aliases](const auto& alias) { return aliases.contains(alias); });
 }
 } // namespace
 
@@ -159,32 +137,40 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 
     if (url_downloader == nullptr)
         url_downloader = std::make_unique<URLDownloader>(cache_directory, std::chrono::seconds{10});
+    if (az_manager == nullptr)
+        az_manager = platform::backend_supports_availability_zones()
+                       ? std::unique_ptr<AvailabilityZoneManager>(
+                             std::make_unique<BaseAvailabilityZoneManager>(
+                                 data_directory.toStdString()))
+                       : std::unique_ptr<AvailabilityZoneManager>(
+                             std::make_unique<StubAvailabilityZoneManager>());
     if (factory == nullptr)
-        factory = platform::vm_backend(data_directory);
+        factory = platform::vm_backend(data_directory, *az_manager);
     if (update_prompt == nullptr)
         update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())
     {
-        image_hosts.push_back(
-            std::make_unique<mp::CustomVMImageHost>(QSysInfo::currentCpuArchitecture(),
-                                                    url_downloader.get()));
+        image_hosts.push_back(std::make_unique<mp::CustomVMImageHost>(url_downloader.get()));
         image_hosts.push_back(std::make_unique<mp::UbuntuVMImageHost>(
             std::vector<std::pair<std::string, UbuntuVMImageRemote>>{
                 {mp::release_remote,
                  UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/",
                                      "releases/",
-                                     std::make_optional<QString>(mp::mirror_key)}},
+                                     mp::image_mutators::release_mutator,
+                                     std::make_optional<std::string>(mp::mirror_key)}},
                 {mp::daily_remote,
                  UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/",
                                      "daily/",
-                                     std::make_optional<QString>(mp::mirror_key)}},
+                                     std::make_optional<std::string>(mp::mirror_key)}},
                 {mp::snapcraft_remote,
                  UbuntuVMImageRemote{"https://cloud-images.ubuntu.com/",
                                      "buildd/daily/",
-                                     &admits_snapcraft_image,
-                                     std::make_optional<QString>(mp::mirror_key)}},
-                {mp::appliance_remote,
-                 UbuntuVMImageRemote{"https://cdimage.ubuntu.com/", "ubuntu-core/appliances/"}}},
+                                     mp::image_mutators::snapcraft_mutator,
+                                     std::make_optional<std::string>(mp::mirror_key)}},
+                {mp::core_remote,
+                 UbuntuVMImageRemote{"https://cdimage.ubuntu.com/",
+                                     "ubuntu-core/",
+                                     mp::image_mutators::core_mutator}}},
             url_downloader.get()));
     }
     if (vault == nullptr)
@@ -204,7 +190,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
             days_to_expire);
     }
     if (name_generator == nullptr)
-        name_generator = mp::make_default_name_generator();
+        name_generator = mp::petname::make_petname_provider();
     if (server_address.empty())
         server_address = platform::default_server_address();
     if (ssh_key_provider == nullptr)
@@ -216,21 +202,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
 
     if (network_proxy == nullptr)
         network_proxy = discover_http_proxy();
-
-    if (blueprint_provider == nullptr)
-    {
-        auto blueprint_provider_url = qEnvironmentVariable(blueprints_url_env_var);
-        if (!blueprint_provider_url.isEmpty())
-            blueprint_provider =
-                std::make_unique<DefaultVMBlueprintProvider>(QUrl(blueprint_provider_url),
-                                                             url_downloader.get(),
-                                                             cache_directory,
-                                                             manifest_ttl);
-        else
-            blueprint_provider = std::make_unique<DefaultVMBlueprintProvider>(url_downloader.get(),
-                                                                              cache_directory,
-                                                                              manifest_ttl);
-    }
 
     // tighten permissions for cache and data
     if (!storage_path.isEmpty())
@@ -268,7 +239,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                                                                 std::move(update_prompt),
                                                                 multiplexing_logger,
                                                                 std::move(network_proxy),
-                                                                std::move(blueprint_provider),
+                                                                std::move(az_manager),
                                                                 cache_directory,
                                                                 data_directory,
                                                                 server_address,

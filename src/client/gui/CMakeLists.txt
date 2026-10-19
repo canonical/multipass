@@ -19,27 +19,25 @@ message(STATUS "Setting build number to: ${MULTIPASS_BUILD_NUMBER}")
 add_library(dart_ffi SHARED ffi/dart_ffi.cpp)
 
 target_link_libraries(dart_ffi
-  petname
+  namegen
   client_common
   client_platform
 )
 
 install(TARGETS dart_ffi LIBRARY COMPONENT multipass)
 
-if(MULTIPASS_ENABLE_FLUTTER_GUI)
-  if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64" OR ${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "AMD64")
-    set(MULTIPASS_GUI_ARCH x64)
-  else()
-    set(MULTIPASS_GUI_ARCH arm64)
-  endif()
+if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64" OR ${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "AMD64")
+  set(MULTIPASS_GUI_ARCH x64)
+else()
+  set(MULTIPASS_GUI_ARCH arm64)
+endif()
 
-  if(UNIX)
-    if(APPLE)
-      include("CMakeLists.txt.macos")
-    else() # Linux
-      include("CMakeLists.txt.linux")
-    endif()
-  else() # Windows
-    include("CMakeLists.txt.windows")
+if(UNIX)
+  if(APPLE)
+    include("CMakeLists.txt.macos")
+  else() # Linux
+    include("CMakeLists.txt.linux")
   endif()
+else() # Windows
+  include("CMakeLists.txt.windows")
 endif()

@@ -19,12 +19,15 @@
 
 #include <QFileInfo>
 #include <QHash>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QSysInfo>
+
+#include <algorithm>
+
+#include <boost/json.hpp>
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/manifest_exceptions.h>
+#include <multipass/json_utils.h>
 #include <multipass/settings/settings.h>
 #include <multipass/utils.h>
 
@@ -32,54 +35,34 @@ namespace mp = multipass;
 
 namespace
 {
+// Map QSysInfo::currentCpuArchitecture() to SimpleStreams manifest architecture names
 const QHash<QString, QString> arch_to_manifest{{"x86_64", "amd64"},
                                                {"arm", "armhf"},
-                                               {"arm64", "arm64"},
-                                               {"i386", "i386"},
                                                {"power", "powerpc"},
                                                {"power64", "ppc64el"},
-                                               {"s390x", "s390x"}};
+                                               {"power64le", "ppc64el"}};
 
-QJsonObject parse_manifest(const QByteArray& json)
+const boost::json::object* if_contains_object(const boost::json::value& data, std::string_view key)
 {
-    QJsonParseError parse_error;
-    const auto doc = QJsonDocument::fromJson(json, &parse_error);
-    if (doc.isNull())
-        throw mp::GenericManifestException(parse_error.errorString().toStdString());
-
-    if (!doc.isObject())
-        throw mp::GenericManifestException("invalid manifest object");
-    return doc.object();
+    if (auto elem = data.as_object().if_contains(key))
+    {
+        if (auto obj = elem->if_object())
+            return obj;
+    }
+    return nullptr;
 }
 
-QString latest_version_in(const QJsonObject& versions)
+QString latest_version_in(const boost::json::object& versions)
 {
     QString max_version;
-    for (auto it = versions.constBegin(); it != versions.constEnd(); ++it)
+    for (const auto& [key, _] : versions)
     {
-        const auto version = it.key();
+        const auto version = QString::fromStdString(key);
         if (version < max_version)
             continue;
         max_version = version;
     }
     return max_version;
-}
-
-QMap<QString, const mp::VMImageInfo*> qmap_aliases_to_vm_info_for(
-    const std::vector<mp::VMImageInfo>& images)
-{
-    QMap<QString, const mp::VMImageInfo*> map;
-
-    for (const auto& image : images)
-    {
-        map[image.id] = &image;
-        for (const auto& alias : image.aliases)
-        {
-            map[alias] = &image;
-        }
-    }
-
-    return map;
 }
 
 } // namespace
@@ -88,124 +71,129 @@ mp::SimpleStreamsManifest::SimpleStreamsManifest(const QString& updated_at,
                                                  std::vector<VMImageInfo>&& images)
     : updated_at{updated_at},
       products{std::move(images)},
-      image_records{qmap_aliases_to_vm_info_for(products)}
+      image_records{map_aliases_to_vm_info(products)}
 {
 }
 
 std::unique_ptr<mp::SimpleStreamsManifest> mp::SimpleStreamsManifest::fromJson(
     const QByteArray& json_from_official,
     const std::optional<QByteArray>& json_from_mirror,
-    const QString& host_url)
+    const QString& host_url,
+    std::function<bool(VMImageInfo&)> mutator)
+try
 {
-    const auto manifest_from_official = parse_manifest(json_from_official);
-    const auto updated = manifest_from_official["updated"].toString();
-
-    const auto manifest_products_from_official = manifest_from_official["products"].toObject();
-    if (manifest_products_from_official.isEmpty())
+    // Get the official manifest products
+    const auto manifest_from_official = boost::json::parse(std::string_view(json_from_official));
+    const auto updated = lookup_or<QString>(manifest_from_official, "updated", "");
+    const auto& manifest_products_from_official = manifest_from_official.at("products").as_object();
+    if (manifest_products_from_official.empty())
         throw mp::GenericManifestException("No products found");
 
-    auto arch = arch_to_manifest.value(QSysInfo::currentCpuArchitecture());
+    auto arch = QSysInfo::currentCpuArchitecture();
+    auto mapped_arch = arch_to_manifest.value(arch, arch);
 
-    if (arch.isEmpty())
-        throw mp::GenericManifestException("Unsupported cloud image architecture");
-
-    std::optional<QJsonObject> manifest_products_from_mirror = std::nullopt;
+    // Get the mirror manifest products, if any
+    std::optional<boost::json::object> manifest_products_from_mirror = std::nullopt;
     if (json_from_mirror)
     {
-        const auto manifest_from_mirror = parse_manifest(json_from_mirror.value());
-        const auto products_from_mirror = manifest_from_mirror["products"].toObject();
-        manifest_products_from_mirror = std::make_optional(products_from_mirror);
+        const auto manifest_from_mirror = boost::json::parse(std::string_view(*json_from_mirror));
+        manifest_products_from_mirror = manifest_from_mirror.at("products").as_object();
     }
-
-    const QJsonObject manifest_products =
+    const auto& manifest_products =
         manifest_products_from_mirror.value_or(manifest_products_from_official);
 
     std::vector<VMImageInfo> products;
-    for (auto it = manifest_products.constBegin(); it != manifest_products.constEnd(); ++it)
+    for (const auto& [product_key, product] : manifest_products)
     {
-        const auto product_key = it.key();
-        const QJsonValue product = it.value();
-
-        if (product["arch"].toString() != arch)
+        if (lookup_or<QString>(product, "arch", "") != mapped_arch)
             continue;
 
-        const auto product_aliases = product["aliases"].toString().split(",");
-
-        const auto release = product["release"].toString();
-        const auto release_title = product["release_title"].toString();
-        const auto release_codename = product["release_codename"].toString();
-        const auto supported = product["supported"].toBool() || product_aliases.contains("devel");
-
-        const auto versions = product["versions"].toObject();
-        if (versions.isEmpty())
+        const auto* official_product = manifest_products_from_official.if_contains(product_key);
+        if (!official_product)
             continue;
 
-        const auto latest_version = latest_version_in(versions);
+        auto product_aliases = utils::split(lookup_or<std::string>(product, "aliases", ""), ",");
 
-        for (auto it = versions.constBegin(); it != versions.constEnd(); ++it)
+        const auto image_type = lookup_or<std::string>(product, "image_type", "");
+        const auto os = lookup_or<std::string>(product, "os", "");
+        const auto release = lookup_or<std::string>(product, "release", "");
+        const auto release_title = lookup_or<std::string>(product, "release_title", "");
+        const auto release_codename = lookup_or<std::string>(product, "release_codename", "");
+
+        // TODO(C++23): Use `std::ranges::contains` instead of `std::ranges::find`.
+        const auto supported = lookup_or<bool>(product, "supported", false) ||
+                               std::ranges::find(product_aliases, "devel") !=
+                                   product_aliases.end() ||
+                               (os == "ubuntu-core" && image_type == "stable");
+
+        const auto* versions = if_contains_object(product, "versions");
+        if (!versions || versions->empty())
+            continue;
+        const auto* official_versions = if_contains_object(*official_product, "versions");
+        if (!official_versions || official_versions->empty())
+            continue;
+
+        const auto latest_version = latest_version_in(*versions);
+        for (const auto& [version_string, version] : *versions)
         {
-            const auto version_string = it.key();
-            const auto version = versions[version_string].toObject();
-            const auto version_from_official = manifest_products_from_official[product_key]
-                                                   .toObject()["versions"]
-                                                   .toObject()[version_string]
-                                                   .toObject();
-
-            if (version != version_from_official)
+            const auto* official_version = official_versions->if_contains(version_string);
+            if (!official_version || version != *official_version)
                 continue;
 
-            const auto items = version["items"].toObject();
-            if (items.isEmpty())
+            const auto* items = if_contains_object(version, "items");
+            if (!items || items->empty())
                 continue;
 
-            const auto& driver = MP_SETTINGS.get(mp::driver_key);
-
-            QJsonObject image;
-            QString sha256, image_location;
-            int size = -1;
-
-            // TODO: make this a VM factory call with a preference list
-            if (driver == "lxd")
-            {
-                image = items["lxd.tar.xz"].toObject();
-
-                // Avoid kvm image due to canonical/multipass#2491
-                if (image.contains("combined_disk1-img_sha256"))
-                {
-                    sha256 = image["combined_disk1-img_sha256"].toString();
-                }
-                else
-                    continue;
-            }
+            std::string image_key;
+            // Prioritize UEFI images
+            if (items->contains("uefi1.img"))
+                image_key = "uefi1.img";
+            // For Ubuntu Core images
+            else if (items->contains("img.xz") && os == "ubuntu-core")
+                image_key = "img.xz";
+            // Last resort, use img
+            else if (items->contains("disk1.img"))
+                image_key = "disk1.img";
+            // Otherwise, give up
             else
-            {
-                const auto image_key = items.contains("uefi1.img") ? "uefi1.img" : "disk1.img";
-                image = items[image_key].toObject();
-                image_location = image["path"].toString();
-                sha256 = image["sha256"].toString();
-                size = image["size"].toInt(-1);
-            }
+                continue;
 
+            const auto& image = items->at(image_key);
+            std::string image_location =
+                host_url.toStdString() + value_to<std::string>(image.at("path"));
+            std::string sha256 = lookup_or<std::string>(image, "sha256", "");
+            int size = lookup_or<int>(image, "size", -1);
+
+            const auto version_qstring = QString::fromStdString(version_string);
             // Aliases always alias to the latest version
-            const QStringList& aliases =
-                version_string == latest_version ? product_aliases : QStringList();
-            products.push_back({aliases,
-                                "Ubuntu",
-                                release,
-                                release_title,
-                                release_codename,
-                                supported,
-                                image_location,
-                                sha256,
-                                host_url,
-                                version_string,
-                                size,
-                                true});
+            const auto& aliases = version_qstring == latest_version ? product_aliases
+                                                                    : std::vector<std::string>{};
+
+            VMImageInfo info{aliases,
+                             "Ubuntu",
+                             release,
+                             release_title,
+                             release_codename,
+                             supported,
+                             image_location,
+                             sha256,
+                             host_url.toStdString(),
+                             version_string,
+                             size,
+                             true};
+
+            if (mutator(info))
+            {
+                products.push_back(std::move(info));
+            }
         }
     }
-
     if (products.empty())
         throw mp::EmptyManifestException("No supported products found.");
 
     return std::make_unique<SimpleStreamsManifest>(updated, std::move(products));
+}
+catch (const boost::system::system_error& e)
+{
+    throw GenericManifestException(e.what());
 }

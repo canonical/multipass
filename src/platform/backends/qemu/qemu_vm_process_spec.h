@@ -23,7 +23,6 @@
 #include <multipass/virtual_machine_description.h>
 
 #include <optional>
-#include <unordered_map>
 
 namespace multipass
 {
@@ -35,7 +34,6 @@ public:
     {
         QString suspend_tag;
         QString machine_type;
-        bool use_cdrom_flag; // to be removed, should be replaced by "arguments"
         QStringList arguments;
     };
 
@@ -50,6 +48,7 @@ public:
 
     QString apparmor_profile() const override;
     QString identifier() const override;
+    QString working_directory() const override;
 
 private:
     const VirtualMachineDescription desc;

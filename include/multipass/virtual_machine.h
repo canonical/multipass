@@ -18,24 +18,28 @@
 #pragma once
 
 #include "disabled_copy_move.h"
-#include "ip_address.h"
 #include "network_interface.h"
-#include "path.h"
+#include "user_messages.h"
 
 #include <QDir>
-#include <QJsonObject>
+#include <fmt/format.h>
 
+#include <cassert>
 #include <chrono>
 #include <condition_variable>
+#include <functional>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <string>
 #include <vector>
 
 namespace multipass
 {
+class AvailabilityZone;
+struct IPAddress;
 class MemorySize;
+class SSHProcess;
+class SSHSession;
 class VMMount;
 struct VMSpecs;
 class MountHandler;
@@ -44,6 +48,7 @@ class Snapshot;
 class VirtualMachine : private DisabledCopyMove
 {
 public:
+    // TODO: Get rid of the VirtualMachine::State in favor of InstanceStatus
     enum class State
     {
         off,
@@ -54,7 +59,8 @@ public:
         delayed_shutdown,
         suspending,
         suspended,
-        unknown
+        unknown,
+        unavailable,
     };
 
     enum class ShutdownPolicy
@@ -72,28 +78,27 @@ public:
     virtual void start() = 0;
     virtual void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) = 0;
     virtual void suspend() = 0;
+    virtual bool set_available(bool available) = 0;
     virtual State current_state() = 0;
     virtual int ssh_port() = 0;
-    virtual std::string ssh_hostname()
-    {
-        return ssh_hostname(std::chrono::minutes(2));
-    };
-    virtual std::string ssh_hostname(std::chrono::milliseconds timeout) = 0;
+    virtual std::string ssh_hostname() = 0;
     virtual std::string ssh_username() = 0;
-    virtual std::string management_ipv4() = 0;
-    virtual std::vector<std::string> get_all_ipv4() = 0;
-    virtual std::string ipv6() = 0;
+    virtual std::optional<IPAddress> management_ipv4() = 0;
+    virtual std::vector<IPAddress> get_all_ipv4() = 0;
 
-    // careful: default param in virtual method; be sure to keep the same value in all descendants
+    // careful: default param in virtual methods; be sure to keep the same value in all descendants
     virtual std::string ssh_exec(const std::string& cmd, bool whisper = false) = 0;
+    virtual std::unique_ptr<SSHProcess> ssh_exec_process(const std::string& cmd,
+                                                         bool whisper = false) = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<SSHSession> new_ssh_session() = 0;
 
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;
-    virtual void ensure_vm_is_running() = 0;
-    virtual void update_state() = 0;
+    virtual void handle_state_update() = 0;
     virtual void update_cpus(int num_cores) = 0;
     virtual void resize_memory(const MemorySize& new_size) = 0;
-    virtual void resize_disk(const MemorySize& new_size) = 0;
+    virtual void resize_disk(const MemorySize& new_size, UserMessages& messages) = 0;
     virtual void add_network_interface(int index,
                                        const std::string& default_mac_addr,
                                        const NetworkInterface& extra_interface) = 0;
@@ -102,8 +107,10 @@ public:
 
     using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid
                                                                         // confusion with C++ views
-    virtual SnapshotVista view_snapshots() const = 0;
+    using SnapshotPredicate = std::function<bool(const Snapshot&)>;
+    virtual SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const = 0;
     virtual int get_num_snapshots() const = 0;
+    virtual std::shared_ptr<const Snapshot> get_head_snapshot() const = 0;
 
     virtual std::shared_ptr<const Snapshot> get_snapshot(const std::string& name) const = 0;
     virtual std::shared_ptr<const Snapshot> get_snapshot(int index) const = 0;
@@ -122,28 +129,65 @@ public:
     virtual std::vector<std::string> get_childrens_names(const Snapshot* parent) const = 0;
     virtual int get_snapshot_count() const = 0;
 
-    QDir instance_directory() const;
+    virtual QDir instance_directory() const = 0;
+    virtual const std::string& get_name() const = 0;
+    virtual const AvailabilityZone& get_zone() const = 0;
 
     VirtualMachine::State state;
-    const std::string vm_name;
     std::condition_variable state_wait;
     std::mutex state_mutex;
-    std::optional<IPAddress> management_ip;
-    bool shutdown_while_starting{false};
 
 protected:
-    const QDir instance_dir;
-
-    VirtualMachine(VirtualMachine::State state,
-                   const std::string& vm_name,
-                   const Path& instance_dir)
-        : state{state}, vm_name{vm_name}, instance_dir{QDir{instance_dir}} {};
-    VirtualMachine(const std::string& vm_name, const Path& instance_dir)
-        : VirtualMachine(State::off, vm_name, instance_dir){};
+    explicit VirtualMachine(State state = State::off) : state{state}
+    {
+    }
 };
 } // namespace multipass
 
-inline QDir multipass::VirtualMachine::instance_directory() const
+template <>
+struct fmt::formatter<multipass::VirtualMachine::State, char> : fmt::formatter<string_view>
 {
-    return instance_dir; // TODO this should probably only be known at the level of the base VM
-}
+    template <typename FormatContext>
+    auto format(multipass::VirtualMachine::State state, FormatContext& ctx) const
+    {
+        std::string_view v = "(undefined)";
+        switch (state)
+        {
+        case multipass::VirtualMachine::State::off:
+            v = "off";
+            break;
+        case multipass::VirtualMachine::State::stopped:
+            v = "stopped";
+            break;
+        case multipass::VirtualMachine::State::starting:
+            v = "starting";
+            break;
+        case multipass::VirtualMachine::State::restarting:
+            v = "restarting";
+            break;
+        case multipass::VirtualMachine::State::running:
+            v = "running";
+            break;
+        case multipass::VirtualMachine::State::delayed_shutdown:
+            v = "delayed_shutdown";
+            break;
+        case multipass::VirtualMachine::State::suspending:
+            v = "suspending";
+            break;
+        case multipass::VirtualMachine::State::suspended:
+            v = "suspended";
+            break;
+        case multipass::VirtualMachine::State::unknown:
+            v = "unknown";
+            break;
+        case multipass::VirtualMachine::State::unavailable:
+            v = "unavailable";
+            break;
+        default:
+            assert(0 && "unhandled VM state");
+            break;
+        }
+
+        return fmt::formatter<string_view>::format(v, ctx);
+    }
+};

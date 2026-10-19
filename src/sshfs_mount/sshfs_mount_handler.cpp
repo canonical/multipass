@@ -18,6 +18,7 @@
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/platform.h>
+#include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/utils.h>
 
@@ -59,7 +60,7 @@ void start_and_block_until_connected(mp::Process* process)
 bool has_sshfs(const std::string& name, mp::SSHSession& session)
 {
     // Check if snap support is installed in the instance
-    if (session.exec("which snap").exit_code() != 0)
+    if (session.exec("which snap")->exit_code() != 0)
     {
         mpl::warn(category, "Snap support is not installed in '{}'", name);
         throw std::runtime_error(fmt::format(
@@ -73,14 +74,14 @@ bool has_sshfs(const std::string& name, mp::SSHSession& session)
     }
 
     // Check if multipass-sshfs is already installed
-    if (session.exec("sudo snap list multipass-sshfs").exit_code(std::chrono::seconds(15)) == 0)
+    if (session.exec("sudo snap list multipass-sshfs")->exit_code(std::chrono::seconds(15)) == 0)
     {
         mpl::debug(category, "The multipass-sshfs snap is already installed on '{}'", name);
         return true;
     }
 
     // Check if /snap exists for "classic" snap support
-    if (session.exec("[ -e /snap ]").exit_code() != 0)
+    if (session.exec("[ -e /snap ]")->exit_code() != 0)
     {
         mpl::warn(category, "Classic snap support symlink is needed in '{}'", name);
         throw std::runtime_error(
@@ -100,9 +101,9 @@ try
 {
     mpl::info(category, "Installing the multipass-sshfs snap in '{}'", name);
     auto proc = session.exec("sudo snap install multipass-sshfs");
-    if (proc.exit_code(timeout) != 0)
+    if (proc->exit_code(timeout) != 0)
     {
-        auto error_msg = proc.read_std_error();
+        auto error_msg = proc->read_std_error();
         mpl::error(category, "Failed to install 'multipass-sshfs': {}", mpu::trim_end(error_msg));
         throw mp::SSHFSMissingError();
     }
@@ -125,7 +126,7 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm,
       config{"",
              0,
              vm->ssh_username(),
-             vm->vm_name,
+             vm->get_name(),
              ssh_key_provider->private_key_as_base64(),
              source,
              target,
@@ -136,13 +137,13 @@ SSHFSMountHandler::SSHFSMountHandler(VirtualMachine* vm,
               "initializing mount {} => {} in '{}'",
               this->mount_spec.get_source_path(),
               target,
-              vm->vm_name);
+              vm->get_name());
 }
 
 void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::milliseconds timeout)
 {
-    SSHSession session{vm->ssh_hostname(), vm->ssh_port(), vm->ssh_username(), *ssh_key_provider};
-    if (!has_sshfs(vm->vm_name, session))
+    auto session = vm->new_ssh_session();
+    if (!has_sshfs(vm->get_name(), *session))
     {
         auto visitor = [](auto server) {
             if (server)
@@ -153,7 +154,7 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
             }
         };
         std::visit(visitor, server);
-        install_sshfs_for(vm->vm_name, session, timeout);
+        install_sshfs_for(vm->get_name(), *session, timeout);
     }
 
     // Can't obtain hostname/IP address until instance is running
@@ -165,7 +166,10 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
     QObject::connect(process.get(), &Process::finished, [this](const ProcessState& exit_state) {
         if (exit_state.completed_successfully())
         {
-            mpl::info(category, "Mount \"{}\" in instance '{}' has stopped", target, vm->vm_name);
+            mpl::info(category,
+                      "Mount \"{}\" in instance '{}' has stopped",
+                      target,
+                      vm->get_name());
         }
         else
         {
@@ -173,7 +177,7 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
             mpl::warn(category,
                       "Mount \"{}\" in instance '{}' has stopped unsuccessfully: {}",
                       target,
-                      vm->vm_name,
+                      vm->get_name(),
                       exit_state.failure_message());
         }
     });
@@ -184,7 +188,7 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
             mpl::error(
                 category,
                 "There was an error with sshfs_server for instance '{}' with path \"{}\": {} - {}",
-                vm->vm_name,
+                vm->get_name(),
                 target,
                 mpu::qenum_to_string(error),
                 error_string);
@@ -216,11 +220,11 @@ void SSHFSMountHandler::activate_impl(ServerVariant server, std::chrono::millise
 
 void SSHFSMountHandler::deactivate_impl(bool force)
 {
-    mpl::info(category, fmt::format("Stopping mount \"{}\" in instance '{}'", target, vm->vm_name));
+    mpl::info(category, "Stopping mount \"{}\" in instance '{}'", target, vm->get_name());
     QObject::disconnect(process.get(), &Process::error_occurred, nullptr, nullptr);
 
-    constexpr auto kProcessWaitTimeout = std::chrono::milliseconds{5000};
-    if (process->terminate(); !process->wait_for_finished(kProcessWaitTimeout.count()))
+    constexpr auto process_wait_timeout = std::chrono::milliseconds{5000};
+    if (process->terminate(); !process->wait_for_finished(process_wait_timeout.count()))
     {
         auto fetch_stderr = [](Process& process) {
             return fmt::format("Failed to terminate SSHFS mount process gracefully: {}",
@@ -235,19 +239,19 @@ void SSHFSMountHandler::deactivate_impl(bool force)
                       "Failed to gracefully stop mount \"{}\" in instance '{}': {}, trying to stop "
                       "it forcefully.",
                       target,
-                      vm->vm_name,
+                      vm->get_name(),
                       err);
             /**
              * Let's try brute force this time.
              */
             process->kill();
-            const auto result = process->wait_for_finished(kProcessWaitTimeout.count());
+            const auto result = process->wait_for_finished(process_wait_timeout.count());
 
             mpl::warn(category,
                       "{} to forcefully stop mount \"{}\" in instance '{}': {}",
                       result ? "Succeeded" : "Failed",
                       target,
-                      vm->vm_name,
+                      vm->get_name(),
                       result ? "" : fetch_stderr(*process.get()));
         }
         else

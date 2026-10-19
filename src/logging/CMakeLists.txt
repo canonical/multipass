@@ -15,9 +15,15 @@
 
 add_library(logger STATIC
   log.cpp
+  log_location.cpp
   multiplexing_logger.cpp
-  standard_logger.cpp)
+  standard_logger.cpp
+)
 
 target_link_libraries(logger
+  rust
   fmt::fmt-header-only
-  Qt6::Core)
+  Qt6::Core
+)
+
+add_dependencies(logger rpc)

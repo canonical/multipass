@@ -1,10 +1,8 @@
 ---
 # We'll use defaults from the LLVM style, but with 4 columns indentation.
 BasedOnStyle: LLVM
----
-Language: Cpp
-Standard: c++17
 
+IndentWidth: 4
 AccessModifierOffset: -4
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
@@ -15,6 +13,9 @@ AllowShortIfStatementsOnASingleLine: false
 AlwaysBreakTemplateDeclarations: true
 BinPackArguments: false
 BinPackParameters: false
+BreakBeforeTernaryOperators: true
+AlignOperands: AlignAfterOperator
+PenaltyBreakAssignment: 150
 BraceWrapping:
   AfterCaseLabel: true
   AfterClass: true
@@ -34,11 +35,28 @@ ConstructorInitializerAllOnOneLineOrOnePerLine: true
 Cpp11BracedListStyle: true
 DerivePointerAlignment: false
 IndentExternBlock: NoIndent
-IndentWidth: 4
 InsertNewlineAtEOF: true
 PenaltyReturnTypeOnItsOwnLine: 120
 PointerAlignment: Left
+
+---
+Language: Cpp
+Standard: c++20
+IncludeCategories:
+  - Regex: '^<windows\.h>$'
+    Priority: 100
+  - Regex: '^<initguid\.h>$'
+    Priority: 200
+  - Regex: '^<virtdisk\.h>$'
+    Priority: 300
+    # "If none of the regular expressions match, INT_MAX is assigned as category."
+---
+Language: ObjC
 ---
 Language: Proto
 DisableFormat: true
+---
+Language: Json
+ColumnLimit: 0
+InsertNewlineAtEOF: true
 ...

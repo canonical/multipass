@@ -11,46 +11,80 @@ extension on ffi.Pointer<Utf8> {
     if (this == ffi.nullptr) {
       throw Exception("Couldn't retrieve data through FFI");
     }
-    final string = toDartString();
-    malloc.free(this);
-    return string;
+    try {
+      return toDartString();
+    } finally {
+      _freeFfiString(this);
+    }
   }
 }
 
-final _lib = ffi.DynamicLibrary.open(mpPlatform.ffiLibraryName);
+class FFILibrary {
+  final ffi.DynamicLibrary? _lib;
+  final Exception? _loadError;
 
-final _multipassVersion = _lib.lookupFunction<ffi.Pointer<Utf8> Function(),
-    ffi.Pointer<Utf8> Function()>('multipass_version');
+  FFILibrary._({ffi.DynamicLibrary? lib, Exception? loadError})
+      : _lib = lib,
+        _loadError = loadError;
 
-final _generatePetname = _lib.lookupFunction<ffi.Pointer<Utf8> Function(),
-    ffi.Pointer<Utf8> Function()>('generate_petname');
+  factory FFILibrary._load() {
+    try {
+      final lib = ffi.DynamicLibrary.open(mpPlatform.ffiLibraryName);
+      return FFILibrary._(lib: lib);
+    } catch (e) {
+      return FFILibrary._(
+        loadError: Exception('Failed to load libdart_ffi library: $e'),
+      );
+    }
+  }
 
-final _getServerAddress = _lib.lookupFunction<ffi.Pointer<Utf8> Function(),
-    ffi.Pointer<Utf8> Function()>('get_server_address');
+  ffi.DynamicLibrary get lib {
+    if (_lib == null) {
+      throw _loadError!;
+    }
+    return _lib!;
+  }
 
-enum _SettingsResult {
-  ok,
-  keyNotFound,
-  invalidValue,
-  unexpectedError,
+  bool get isAvailable => _lib != null;
+  Exception? get loadError => _loadError;
 }
+
+final _ffiLib = FFILibrary._load();
+final _lib = _ffiLib.lib;
+
+bool get isFFIAvailable => _ffiLib.isAvailable;
+Exception? get ffiLoadError => _ffiLib.loadError;
+
+final _multipassVersion = _lib
+    .lookupFunction<ffi.Pointer<Utf8> Function(), ffi.Pointer<Utf8> Function()>(
+  'multipass_version',
+);
+
+final _generatePetname = _lib
+    .lookupFunction<ffi.Pointer<Utf8> Function(), ffi.Pointer<Utf8> Function()>(
+  'generate_petname',
+);
+
+final _getServerAddress = _lib
+    .lookupFunction<ffi.Pointer<Utf8> Function(), ffi.Pointer<Utf8> Function()>(
+  'get_server_address',
+);
+
+enum _SettingsResult { ok, keyNotFound, invalidValue, unexpectedError }
 
 extension on int {
   _SettingsResult get settingsResult => _SettingsResult.values[this];
 }
 
-final _settingsFile = _lib.lookupFunction<ffi.Pointer<Utf8> Function(),
-    ffi.Pointer<Utf8> Function()>('settings_file');
+final _settingsFile = _lib
+    .lookupFunction<ffi.Pointer<Utf8> Function(), ffi.Pointer<Utf8> Function()>(
+  'settings_file',
+);
 
 final _getSetting = _lib.lookupFunction<
-    ffi.Int32 Function(
-      ffi.Pointer<Utf8>,
-      ffi.Pointer<ffi.Pointer<Utf8>>,
-    ),
+    ffi.Int32 Function(ffi.Pointer<Utf8>, ffi.Pointer<ffi.Pointer<Utf8>>),
     int Function(
-      ffi.Pointer<Utf8>,
-      ffi.Pointer<ffi.Pointer<Utf8>>,
-    )>('get_setting');
+        ffi.Pointer<Utf8>, ffi.Pointer<ffi.Pointer<Utf8>>)>('get_setting');
 
 final _setSetting = _lib.lookupFunction<
     ffi.Int32 Function(
@@ -66,8 +100,9 @@ final _setSetting = _lib.lookupFunction<
 
 final uid = _lib.lookupFunction<ffi.Int32 Function(), int Function()>('uid');
 final gid = _lib.lookupFunction<ffi.Int32 Function(), int Function()>('gid');
-final defaultId =
-    _lib.lookupFunction<ffi.Int32 Function(), int Function()>('default_id');
+final defaultId = _lib.lookupFunction<ffi.Int32 Function(), int Function()>(
+  'default_id',
+);
 
 final _memoryInBytes = _lib.lookupFunction<
     ffi.LongLong Function(ffi.Pointer<Utf8>),
@@ -79,7 +114,8 @@ final _humanReadableMemory = _lib.lookupFunction<
 
 final getTotalDiskSize =
     _lib.lookupFunction<ffi.LongLong Function(), int Function()>(
-        'get_total_disk_size');
+  'get_total_disk_size',
+);
 
 final _defaultMountTarget = _lib.lookupFunction<
     ffi.Pointer<Utf8> Function(ffi.Pointer<Utf8>),
@@ -102,6 +138,14 @@ class KeyCertificatePair {
 
 final _getCertPair = _lib.lookupFunction<_NativeKeyCertificatePair Function(),
     _NativeKeyCertificatePair Function()>('get_cert_pair');
+
+final _getRootCert = _lib
+    .lookupFunction<ffi.Pointer<Utf8> Function(), ffi.Pointer<Utf8> Function()>(
+  'get_root_cert',
+);
+
+final _freeFfiString = _lib.lookupFunction<ffi.Void Function(ffi.Pointer<Utf8>),
+    void Function(ffi.Pointer<Utf8>)>('free_ffi_string');
 
 String get multipassVersion => _multipassVersion().toDartString();
 
@@ -135,55 +179,70 @@ KeyCertificatePair getCertPair() {
   return KeyCertificatePair(cert, key);
 }
 
+List<int> getRootCert() {
+  return utf8.encode(_getRootCert().string);
+}
+
 String settingsFile() => _settingsFile().string;
 
 String getSetting(String key) {
-  final output = malloc<ffi.Pointer<Utf8>>();
-  switch (_getSetting(key.toNativeUtf8(), output).settingsResult) {
-    case _SettingsResult.ok:
-      final result = output.value.string;
-      malloc.free(output);
-      return result;
-    case _SettingsResult.keyNotFound:
-      malloc.free(output);
-      throw ArgumentError.value(key, 'key', 'client settings key not found');
-    case _SettingsResult.unexpectedError:
-      final result = output.value.string;
-      malloc.free(output);
-      throw Exception("failed retrieving client setting '$key': $result");
-    default:
-      malloc.free(output);
-      throw UnimplementedError();
-  }
+  return using((arena) {
+    final output = arena<ffi.Pointer<Utf8>>();
+    final result = _getSetting(
+      key.toNativeUtf8(allocator: arena),
+      output,
+    ).settingsResult;
+
+    switch (result) {
+      case _SettingsResult.ok:
+        return output.value.string;
+      case _SettingsResult.keyNotFound:
+        throw ArgumentError.value(key, 'key', 'client settings key not found');
+      case _SettingsResult.unexpectedError:
+        final message = output.value.string;
+        throw Exception("failed retrieving client setting '$key': $message");
+      default:
+        throw UnimplementedError();
+    }
+  });
 }
 
 void setSetting(String key, String value) {
-  final output = malloc<ffi.Pointer<Utf8>>();
-  switch (_setSetting(key.toNativeUtf8(), value.toNativeUtf8(), output)
-      .settingsResult) {
-    case _SettingsResult.ok:
-      malloc.free(output);
-    case _SettingsResult.keyNotFound:
-      malloc.free(output);
-      throw ArgumentError.value(key, 'key', 'client settings key not found');
-    case _SettingsResult.invalidValue:
-      final result = output.value.string;
-      malloc.free(output);
-      throw ArgumentError.value(value, 'value', result);
-    case _SettingsResult.unexpectedError:
-      final result = output.value.string;
-      malloc.free(output);
-      throw Exception("failed storing client setting '$key'='$value': $result");
-  }
+  using((arena) {
+    final output = arena<ffi.Pointer<Utf8>>();
+    final result = _setSetting(
+      key.toNativeUtf8(allocator: arena),
+      value.toNativeUtf8(allocator: arena),
+      output,
+    ).settingsResult;
+
+    switch (result) {
+      case _SettingsResult.ok:
+        return;
+      case _SettingsResult.keyNotFound:
+        throw ArgumentError.value(key, 'key', 'client settings key not found');
+      case _SettingsResult.invalidValue:
+        final message = output.value.string;
+        throw ArgumentError.value(value, 'value', message);
+      case _SettingsResult.unexpectedError:
+        final message = output.value.string;
+        throw Exception(
+          "failed storing client setting '$key'='$value': $message",
+        );
+    }
+  });
 }
 
 String humanReadableMemory(int bytes) => _humanReadableMemory(bytes).string;
 
 int? memoryInBytes(String value) {
-  final result = _memoryInBytes(value.toNativeUtf8());
-  return result == -1 ? null : result;
+  return using((arena) {
+    final result = _memoryInBytes(value.toNativeUtf8(allocator: arena));
+    return result == -1 ? null : result;
+  });
 }
 
 String defaultMountTarget({required String source}) {
-  return _defaultMountTarget(source.toNativeUtf8()).string;
+  return using((arena) =>
+      _defaultMountTarget(source.toNativeUtf8(allocator: arena)).string);
 }

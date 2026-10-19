@@ -20,7 +20,10 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/console.h>
 #include <multipass/constants.h>
+#include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/top_catch_all.h>
+
+#include <openssl/crypto.h>
 
 #include <QCoreApplication>
 
@@ -33,7 +36,6 @@ int main_impl(int argc, char* argv[])
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName(mp::client_name);
 
-    mp::Console::setup_environment();
     auto term = mp::Terminal::make_terminal();
 
     mp::client::register_global_settings_handlers();
@@ -42,12 +44,23 @@ int main_impl(int argc, char* argv[])
                             mp::client::get_cert_provider(),
                             term.get()};
     mp::Client client{config};
-
-    return client.run(QCoreApplication::arguments());
+    return std::visit([](auto&& value) -> int { return static_cast<int>(value); },
+                      client.run(QCoreApplication::arguments()));
 }
 } // namespace
 
 int main(int argc, char* argv[])
 {
+    // Verify that the version of the library that we linked against is
+    // compatible with the version of the headers we compiled against.
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+    // Prevent OpenSSL from registering an atexit() cleanup handler; this avoids shutdown races with
+    // gRPC cleanup.
+    if (OPENSSL_init_crypto(OPENSSL_INIT_NO_ATEXIT, nullptr) != 1)
+        return EXIT_FAILURE;
+
+    multipass::LibsshScopeGuard libssh_guard;
+
     return mp::top_catch_all("client", /* fallback_return = */ EXIT_FAILURE, main_impl, argc, argv);
 }

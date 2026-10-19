@@ -26,8 +26,10 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
+#include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/ssl_cert_provider.h>
 #include <multipass/standard_paths.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/version.h>
 
@@ -141,17 +143,17 @@ int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
 
     mp::daemon::monitor_and_quit_on_settings_change();
     mp::Daemon daemon(std::move(config));
-    QObject::connect(&app,
-                     &QCoreApplication::aboutToQuit,
-                     &daemon,
-                     &mp::Daemon::shutdown_grpc_server,
-                     Qt::DirectConnection);
 
-    mpl::log(mpl::Level::info,
-             "daemon",
-             fmt::format("Daemon arguments: {}", app.arguments().join(" ")));
+    QObject::connect(
+        &app,
+        &QCoreApplication::aboutToQuit,
+        &daemon,
+        [&daemon] { mp::top_catch_all("daemon", [&daemon] { daemon.shutdown_grpc_server(); }); },
+        Qt::DirectConnection);
+
+    mpl::info("daemon", "Daemon arguments: {}", app.arguments().join(" "));
     auto ret = QCoreApplication::exec();
-    mpl::log(mpl::Level::info, "daemon", "Goodbye!");
+    mpl::info("daemon", "Goodbye!");
     return ret;
 }
 
@@ -189,6 +191,7 @@ try
 }
 catch (...)
 {
+    // TODO don't just swallow the exception to report a clean stop
     if (service_handle != nullptr)
     {
         auto status = make_status();
@@ -201,6 +204,12 @@ catch (...)
 int main(int argc, char* argv[])
 try
 {
+    // Verify that the version of the library that we linked against is
+    // compatible with the version of the headers we compiled against.
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+    multipass::LibsshScopeGuard libssh_guard;
+
     service_argv.assign(argv, argv + argc);
 
     auto logger = mp::platform::make_logger(mpl::Level::info);
@@ -237,6 +246,7 @@ try
 }
 catch (const std::exception& e)
 {
+    // TODO move to a top_catch_all (see daemon_main.cpp)
     fmt::print(stderr, "error: {}\n", e.what());
     return EXIT_FAILURE;
 }

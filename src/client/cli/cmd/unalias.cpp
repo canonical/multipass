@@ -21,13 +21,10 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/platform.h>
 
-#include <QJsonDocument>
-#include <QJsonObject>
-
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Unalias::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Unalias::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)

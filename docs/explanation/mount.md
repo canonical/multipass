@@ -23,7 +23,6 @@ Native mounts use driver-dependent technologies to achieve the high performance.
 
 - On **Hyper-V**, where they are implemented with [SMB/CIFS](https://learn.microsoft.com/en-us/windows/win32/fileio/microsoft-smb-protocol-and-cifs-protocol-overview).
 - On **QEMU**, where they are implemented with [9P](https://en.wikipedia.org/wiki/9P_(protocol)).
-- On **LXD** (deprecated), using that backend's own mounts, which also rely on [9P](https://en.wikipedia.org/wiki/9P_(protocol)).
 
 > See also: {ref}`driver-feature-disparities`.
 

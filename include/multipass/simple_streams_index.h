@@ -19,17 +19,18 @@
 
 #pragma once
 
-#include <QByteArray>
-#include <QString>
+#include <string>
+#include <string_view>
 
 namespace multipass
 {
 class SimpleStreamsIndex
 {
 public:
-    static SimpleStreamsIndex fromJson(const QByteArray& json);
+    static SimpleStreamsIndex get_image_downloads(std::string_view json);
 
-    const QString manifest_path;
-    const QString updated_at;
+    // We're only interested in the following fields from the index:
+    const std::string manifest_path;
+    const std::string updated_at;
 };
 } // namespace multipass

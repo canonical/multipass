@@ -7,18 +7,22 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../close_terminal_dialog.dart';
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import 'terminal.dart';
 
 typedef ShellIds = ({
   BuiltList<ShellId> ids,
-// this is the index of the currently selected shell id
+  // this is the index of the currently selected shell id
   int currentIndex,
 });
 
-class ShellIdsNotifier extends AutoDisposeFamilyNotifier<ShellIds, String> {
+class ShellIdsNotifier extends Notifier<ShellIds> {
+  ShellIdsNotifier(this.arg);
+  final String arg;
+
   @override
-  ShellIds build(String arg) => (ids: [ShellId(1)].build(), currentIndex: 0);
+  ShellIds build() => (ids: [ShellId(1)].build(), currentIndex: 0);
 
   void add() {
     final ids = state.ids;
@@ -63,6 +67,7 @@ class Tab extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback onClose;
+  final String os;
 
   const Tab({
     super.key,
@@ -70,20 +75,38 @@ class Tab extends StatelessWidget {
     required this.selected,
     required this.onTap,
     required this.onClose,
+    required this.os,
   });
 
-  static final ubuntuIcon = Container(
-    alignment: Alignment.center,
-    color: const Color(0xffE95420),
-    margin: const EdgeInsets.symmetric(horizontal: 10),
-    width: 17,
-    height: 17,
-    child: SvgPicture.asset(
-      'assets/ubuntu.svg',
-      width: 12,
-      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-    ),
-  );
+  Widget _buildIcon(String os) {
+    final osl = os.toLowerCase();
+    // Tuple: (asset path, background color, svg color)
+    final iconData = osl.contains('ubuntu')
+        ? ('assets/ubuntu.svg', const Color(0xffE95420), Colors.white)
+        : osl.contains('debian')
+            ? ('assets/debian.svg', null, null)
+            : osl.contains('fedora')
+                ? ('assets/fedora.svg', null, null)
+                : ('assets/ubuntu.svg', const Color(0xffE95420), Colors.white);
+
+    return Container(
+      alignment: Alignment.center,
+      color: iconData.$2,
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      width: 17,
+      height: 17,
+      child: iconData.$3 == null
+          ? SvgPicture.asset(
+              iconData.$1,
+              width: 12,
+            )
+          : SvgPicture.asset(
+              iconData.$1,
+              width: 12,
+              colorFilter: ColorFilter.mode(iconData.$3!, BlendMode.srcIn),
+            ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,11 +141,13 @@ class Tab extends StatelessWidget {
       child: Container(
         width: 190,
         decoration: decoration,
-        child: Row(children: [
-          ubuntuIcon,
-          Expanded(child: tabTitle),
-          closeButton,
-        ]),
+        child: Row(
+          children: [
+            _buildIcon(os),
+            Expanded(child: tabTitle),
+            closeButton,
+          ],
+        ),
       ),
     );
   }
@@ -135,23 +160,30 @@ class TerminalTabs extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final provider = shellIdsProvider(name);
     final notifier = provider.notifier;
     final (:ids, :currentIndex) = ref.watch(provider);
     final askTerminalCloseProvider = guiSettingProvider(askTerminalCloseKey);
+
+    final vmInfo = ref.watch(vmInfoProvider(name));
+    final os = vmInfo.hasInstanceInfo() ? vmInfo.instanceInfo.os : 'Ubuntu';
 
     final tabsAndShells = ids.mapIndexed((index, shellId) {
       final tab = ReorderableDragStartListener(
         key: ValueKey(shellId.id),
         index: index,
         child: Tab(
-          title: 'Shell ${shellId.id}',
+          title: l10n.terminalTabTitle(shellId.id),
           selected: index == currentIndex,
+          os: os,
           onTap: () => ref.read(notifier).setCurrent(index),
           onClose: () {
-            final ask = ref.read(askTerminalCloseProvider.select((ask) {
-              return ask?.toBoolOption.toNullable() ?? true;
-            }));
+            final ask = ref.read(
+              askTerminalCloseProvider.select((ask) {
+                return ask?.toBoolOption.toNullable() ?? true;
+              }),
+            );
             final terminalKey = (vmName: name, shellId: shellId);
             if (!ask || ref.read(terminalProvider(terminalKey)) == null) {
               ref.read(notifier).remove(index);
@@ -216,13 +248,11 @@ class TerminalTabs extends ConsumerWidget {
       ),
     );
 
-    return Column(children: [
-      Container(
-        color: const Color(0xff222222),
-        height: 35,
-        child: tabList,
-      ),
-      Expanded(child: shellStack),
-    ]);
+    return Column(
+      children: [
+        Container(color: const Color(0xff222222), height: 35, child: tabList),
+        Expanded(child: shellStack),
+      ],
+    );
   }
 }

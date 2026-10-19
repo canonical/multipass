@@ -14,6 +14,7 @@ class MacOSPlatform extends MpPlatform {
   @override
   Map<String, String> get drivers => const {
         'qemu': 'QEMU',
+        'applevz': 'Apple Virtualization framework',
         'virtualbox': 'VirtualBox',
       };
 
@@ -30,8 +31,9 @@ class MacOSPlatform extends MpPlatform {
   Map<SingleActivator, Intent> get terminalShortcuts => const {
         SingleActivator(LogicalKeyboardKey.keyC, meta: true):
             CopySelectionTextIntent.copy,
-        SingleActivator(LogicalKeyboardKey.keyV, meta: true):
-            PasteTextIntent(SelectionChangedCause.keyboard),
+        SingleActivator(LogicalKeyboardKey.keyV, meta: true): PasteTextIntent(
+          SelectionChangedCause.keyboard,
+        ),
         SingleActivator(LogicalKeyboardKey.equal, meta: true):
             IncreaseTerminalFontIntent(),
         SingleActivator(LogicalKeyboardKey.equal, meta: true, shift: true):

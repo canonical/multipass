@@ -17,51 +17,80 @@ export 'grpc_client.dart';
 
 late final ProviderContainer providerContainer;
 
-final grpcClientProvider = Provider((_) {
+final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
+  throw UnimplementedError('SharedPreferences must be overridden');
+});
+
+final ffiAvailableProvider = Provider((ref) {
+  return isFFIAvailable;
+});
+
+final grpcClientProvider = Provider((ref) {
+  // Check if FFI is available first
+  if (!ref.watch(ffiAvailableProvider)) {
+    throw ffiLoadError ?? Exception('FFI library not available');
+  }
+
   final address = getServerAddress();
   final certPair = getCertPair();
+  final rootCert = getRootCert();
 
   var channelCredentials = CustomChannelCredentials(
     authority: 'localhost',
     certificate: certPair.cert,
     certificateKey: certPair.key,
+    rootCertificate: rootCert,
   );
 
-  return GrpcClient(RpcClient(ClientChannel(
-    address.scheme == InternetAddressType.unix.name.toLowerCase()
-        ? InternetAddress(address.path, type: InternetAddressType.unix)
-        : address.host,
-    port: address.port,
-    options: ChannelOptions(credentials: channelCredentials),
-    channelShutdownHandler: () => logger.w('gRPC channel shut down'),
-  )));
+  return GrpcClient(
+    RpcClient(
+      ClientChannel(
+        address.scheme == InternetAddressType.unix.name.toLowerCase()
+            ? InternetAddress(address.path, type: InternetAddressType.unix)
+            : address.host,
+        port: address.port,
+        options: ChannelOptions(credentials: channelCredentials),
+        channelShutdownHandler: () => logger.w('gRPC channel shut down'),
+      ),
+    ),
+  );
 });
 
-final vmInfosStreamProvider = StreamProvider<List<VmInfo>>((ref) async* {
-  final grpcClient = ref.watch(grpcClientProvider);
-  // this is to de-duplicate errors received from the stream
-  Object? lastError;
-  while (true) {
-    final timer = Future.delayed(1900.milliseconds);
-    try {
-      yield await grpcClient.info();
-      lastError = null;
-    } catch (error, stackTrace) {
-      if (error != lastError) {
-        logger.e('Error on polling info', error: error, stackTrace: stackTrace);
-        yield* Stream.error(error, stackTrace);
+final pollingProvider = StreamProvider<({List<VmInfo> info, List<Zone> zones})>(
+  (ref) async* {
+    final grpcClient = ref.watch(grpcClientProvider);
+    // this is to de-duplicate errors received from the stream
+    Object? lastError;
+    while (true) {
+      final timer = Future.delayed(1900.milliseconds);
+      try {
+        final [info, zones] = await Future.wait(
+          [grpcClient.info(), grpcClient.zones()],
+          eagerError: true,
+        );
+        yield (info: info as List<VmInfo>, zones: zones as List<Zone>);
+        lastError = null;
+      } catch (error, stackTrace) {
+        if (error != lastError) {
+          logger.e('Error on polling info',
+              error: error, stackTrace: stackTrace);
+          yield* Stream.error(error, stackTrace);
+        }
+        lastError = error;
       }
-      lastError = error;
+      // these two timers make it so that requests are sent with at least a 2s pause between them
+      // but if the request takes longer than 1.9s to complete, we still wait 100ms before sending the next one
+      await timer;
+      await Future.delayed(100.milliseconds);
     }
-    // these two timers make it so that requests are sent with at least a 2s pause between them
-    // but if the request takes longer than 1.9s to complete, we still wait 100ms before sending the next one
-    await timer;
-    await Future.delayed(100.milliseconds);
-  }
-});
+  },
+);
 
 final daemonAvailableProvider = Provider((ref) {
-  final error = ref.watch(vmInfosStreamProvider).error;
+  if (!ref.watch(ffiAvailableProvider)) {
+    return false;
+  }
+  final error = ref.watch(pollingProvider).error;
   if (error == null) return true;
   if (error case GrpcError grpcError) {
     final message = grpcError.message ?? '';
@@ -79,7 +108,11 @@ final daemonInfoProvider = FutureProvider((ref) {
 class AllVmInfosNotifier extends Notifier<List<DetailedInfoItem>> {
   @override
   List<DetailedInfoItem> build() {
-    return ref.watch(vmInfosStreamProvider).valueOrNull ?? const [];
+    return ref.watch(pollingProvider).when(
+          data: (data) => data.info,
+          loading: () => const [],
+          error: (_, __) => const [],
+        );
   }
 
   Future<void> update() async {
@@ -89,7 +122,8 @@ class AllVmInfosNotifier extends Notifier<List<DetailedInfoItem>> {
 
 final allVmInfosProvider =
     NotifierProvider<AllVmInfosNotifier, List<DetailedInfoItem>>(
-        AllVmInfosNotifier.new);
+  AllVmInfosNotifier.new,
+);
 
 final vmInfosProvider = Provider((ref) {
   final existingVms = ref
@@ -108,10 +142,12 @@ final vmInfosMapProvider = Provider((ref) {
   return {for (final i in ref.watch(vmInfosProvider)) i.name: i};
 });
 
-class VmInfoNotifier
-    extends AutoDisposeFamilyNotifier<DetailedInfoItem, String> {
+class VmInfoNotifier extends Notifier<DetailedInfoItem> {
+  VmInfoNotifier(this.arg);
+  final String arg;
+
   @override
-  DetailedInfoItem build(String arg) {
+  DetailedInfoItem build() {
     return ref.watch(vmInfosMapProvider)[arg] ?? DetailedInfoItem();
   }
 }
@@ -138,6 +174,24 @@ final deletedVmsProvider = Provider((ref) {
       .toBuiltSet();
 });
 
+final zonesProvider = Provider<BuiltList<Zone>>((ref) {
+  return ref.watch(pollingProvider).when(
+        data: (data) => data.zones.build(),
+        loading: () => BuiltList(),
+        error: (_, __) => BuiltList(),
+      );
+});
+
+// Whether the active backend implements Availability Zones. Backends that don't
+// (VirtualBox, old Hyper-V) return no zones, so an empty list means unsupported.
+// TODO@backends: remove once deprecated backends are removed
+final azSupportedProvider = Provider<bool>((ref) {
+  return ref.watch(pollingProvider).maybeWhen(
+        data: (data) => data.zones.isNotEmpty,
+        orElse: () => true,
+      );
+});
+
 class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
   @override
   BuiltList<DetailedInfoItem> build() {
@@ -154,6 +208,9 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
         cpuCount: request.numCores.toString(),
         diskTotal: request.diskSpace,
         memoryTotal: request.memSize,
+        zone: Zone(
+          name: ref.read(azSupportedProvider) ? request.zone : '',
+        ),
         instanceInfo: InstanceDetails(
           currentRelease: request.image,
         ),
@@ -179,25 +236,31 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
 
 final launchingVmsProvider =
     NotifierProvider<LaunchingVmsNotifier, BuiltList<DetailedInfoItem>>(
-        LaunchingVmsNotifier.new);
-
-final isLaunchingProvider = Provider.autoDispose.family<bool, String>(
-  (ref, name) {
-    final launchingVms = ref.watch(launchingVmsProvider);
-    return launchingVms.any((info) => info.name == name);
-  },
+  LaunchingVmsNotifier.new,
 );
 
-class ClientSettingNotifier extends AutoDisposeFamilyNotifier<String, String> {
+final isLaunchingProvider = Provider.autoDispose.family<bool, String>((
+  ref,
+  name,
+) {
+  final launchingVms = ref.watch(launchingVmsProvider);
+  return launchingVms.any((info) => info.name == name);
+});
+
+class ClientSettingNotifier extends Notifier<String> {
+  ClientSettingNotifier(this.arg);
+  final String arg;
   final file = File(settingsFile());
 
   @override
-  String build(String arg) {
-    file.parent.create(recursive: true).then((dir) => dir
-        .watch()
-        .where((event) => event.path == file.path)
-        .first
-        .whenComplete(() => Timer(250.milliseconds, ref.invalidateSelf)));
+  String build() {
+    file.parent.create(recursive: true).then(
+          (dir) => dir
+              .watch()
+              .where((event) => event.path == file.path)
+              .first
+              .whenComplete(() => Timer(250.milliseconds, ref.invalidateSelf)),
+        );
     return getSetting(arg);
   }
 
@@ -211,22 +274,42 @@ const primaryNameKey = 'client.primary-name';
 final clientSettingProvider = NotifierProvider.autoDispose
     .family<ClientSettingNotifier, String, String>(ClientSettingNotifier.new);
 
-class DaemonSettingNotifier
-    extends AutoDisposeFamilyAsyncNotifier<String, String> {
+class DaemonSettingNotifier extends AsyncNotifier<String> {
+  DaemonSettingNotifier(this.arg);
+  final String arg;
+
   @override
-  Future<String> build(String arg) async {
+  Future<String> build() async {
     return ref.watch(daemonAvailableProvider)
         ? await ref.watch(grpcClientProvider).get(arg)
-        : state.valueOrNull ?? await Completer<String>().future;
+        : state.when(
+            data: (data) => data,
+            loading: () => throw StateError('Daemon not available'),
+            error: (_, __) => throw StateError('Daemon not available'),
+          );
   }
 
   Future<void> set(String value) async {
-    state = AsyncValue.data(value);
+    // The driver is only reported once the daemon has actually switched, so it
+    // is refetched afterwards instead of being set optimistically.
+    if (arg != driverKey) state = AsyncValue.data(value);
     try {
       await ref.read(grpcClientProvider).set(arg, value);
+      if (arg == driverKey) ref.invalidateSelf();
     } catch (_) {
       Timer(100.milliseconds, ref.invalidateSelf);
       rethrow;
+    }
+  }
+
+  // TODO hyperv migration, remove
+  // Refetches the setting once the daemon is done, whatever the outcome, since
+  // a partially failed migration still switches the driver.
+  Stream<SetReply> setStreaming(String value) async* {
+    try {
+      yield* ref.read(grpcClientProvider).setStreaming(arg, value);
+    } finally {
+      if (ref.mounted) ref.invalidateSelf();
     }
   }
 
@@ -236,6 +319,30 @@ class DaemonSettingNotifier
     AsyncValue<String> next,
   ) {
     return previous != next;
+  }
+}
+
+final trayMenuDataProvider = Provider.autoDispose((ref) {
+  return ref.watch(daemonAvailableProvider)
+      ? ref.watch(vmStatusesProvider)
+      : null;
+});
+
+final daemonVersionProvider = NotifierProvider<DaemonVersionNotifier, String>(
+  DaemonVersionNotifier.new,
+);
+
+class DaemonVersionNotifier extends Notifier<String> {
+  @override
+  String build() {
+    if (ref.watch(daemonAvailableProvider)) {
+      ref
+          .watch(grpcClientProvider)
+          .version()
+          .catchError((_) => 'failed to get version')
+          .then((version) => state = version);
+    }
+    return 'loading...';
   }
 }
 
@@ -250,14 +357,18 @@ enum VmResource { cpus, memory, disk, bridged }
 
 typedef VmResourceKey = ({String name, VmResource resource});
 
-class VmResourceNotifier
-    extends AutoDisposeFamilyAsyncNotifier<String, VmResourceKey> {
+class VmResourceNotifier extends AsyncNotifier<String> {
+  VmResourceNotifier(this.arg);
+  final VmResourceKey arg;
+
   @override
-  Future<String> build(VmResourceKey arg) async {
+  Future<String> build() async {
     final (:name, :resource) = arg;
-    final launchingVm = ref.watch(launchingVmsProvider.select((infos) {
-      return infos.firstWhereOrNull((info) => info.name == name);
-    }));
+    final launchingVm = ref.watch(
+      launchingVmsProvider.select((infos) {
+        return infos.firstWhereOrNull((info) => info.name == name);
+      }),
+    );
 
     if (launchingVm != null) {
       return switch (resource) {
@@ -282,17 +393,24 @@ class VmResourceNotifier
 final vmResourceProvider = AsyncNotifierProvider.autoDispose
     .family<VmResourceNotifier, String, VmResourceKey>(VmResourceNotifier.new);
 
-class GuiSettingNotifier extends AutoDisposeFamilyNotifier<String?, String> {
-  final SharedPreferences sharedPreferences;
-
-  GuiSettingNotifier(this.sharedPreferences);
+class GuiSettingNotifier extends Notifier<String?> {
+  GuiSettingNotifier(this.arg);
+  final String arg;
 
   @override
-  String? build(String arg) {
-    return sharedPreferences.getString(arg);
+  String? build() {
+    final sharedPreferences = ref.read(sharedPreferencesProvider);
+// Define defaults for specific keys
+    final defaultValues = {
+      onAppCloseKey: 'ask',
+    };
+
+    // Return the stored value, or the default value, or null
+    return sharedPreferences.getString(arg) ?? defaultValues[arg];
   }
 
   void set(String value) {
+    final sharedPreferences = ref.read(sharedPreferencesProvider);
     sharedPreferences.setString(arg, value);
     state = value;
   }
@@ -304,18 +422,33 @@ class GuiSettingNotifier extends AutoDisposeFamilyNotifier<String?, String> {
 const onAppCloseKey = 'onAppClose';
 const hotkeyKey = 'hotkey';
 const askTerminalCloseKey = 'askTerminalClose';
-// this provider is set with a value obtained asynchronously in main.dart
 final guiSettingProvider = NotifierProvider.autoDispose
-    .family<GuiSettingNotifier, String?, String>(() {
-  throw UnimplementedError();
-});
+    .family<GuiSettingNotifier, String?, String>(GuiSettingNotifier.new);
 
-final networksProvider = Provider.autoDispose((ref) {
-  final driver = ref.watch(daemonSettingProvider(driverKey)).valueOrNull;
+final networksProvider =
+    FutureProvider.autoDispose<BuiltSet<String>>((ref) async {
+  final driver = ref.watch(daemonSettingProvider(driverKey)).when(
+        data: (data) => data,
+        loading: () => null,
+        error: (_, __) => null,
+      );
   if (driver != null && ref.watch(daemonAvailableProvider)) {
-    ref.watch(grpcClientProvider).networks().then((networks) {
-      ref.state = networks.map((n) => n.name).toBuiltSet();
-    }).ignore();
+    final networks = await ref.watch(grpcClientProvider).networks();
+    return BuiltSet<String>(networks);
   }
   return BuiltSet<String>();
 });
+
+// Session-level terminal font size that resets on app restart
+class SessionTerminalFontSizeNotifier extends Notifier<double> {
+  static const defaultFontSize = 13.0;
+
+  @override
+  double build() => defaultFontSize;
+
+  void set(double value) => state = value;
+}
+
+final sessionTerminalFontSizeProvider =
+    NotifierProvider<SessionTerminalFontSizeNotifier, double>(
+        SessionTerminalFontSizeNotifier.new);

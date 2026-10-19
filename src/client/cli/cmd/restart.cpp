@@ -27,27 +27,26 @@
 #include <multipass/settings/settings.h>
 #include <multipass/timer.h>
 
-#include <chrono>
 #include <cstdlib>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
-mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
+mp::ReturnCodeVariant cmd::Restart::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
     if (ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
     AnimatedSpinner spinner{cout};
-    auto on_success = [this, &spinner](mp::RestartReply& reply) {
+    auto on_success = [this, &spinner](mp::RestartReply& reply) -> ReturnCodeVariant {
         spinner.stop();
         if (term->is_live() && update_available(reply.update_info()))
             cout << update_notice(reply.update_info());
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &spinner](grpc::Status& status) {
+    auto on_failure = [this, &spinner](grpc::Status& status) -> ReturnCodeVariant {
         spinner.stop();
         return standard_failure_handler_for(name(), cerr, status);
     };
@@ -65,7 +64,7 @@ mp::ReturnCode cmd::Restart::run(mp::ArgParser* parser)
         timer->start();
     }
 
-    ReturnCode return_code;
+    ReturnCodeVariant return_code;
     auto streaming_callback =
         make_iterative_spinner_callback<RestartRequest, RestartReply>(spinner, *term);
     do
@@ -114,7 +113,7 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
     QCommandLineOption all_option(all_option_name, "Restart all instances");
     parser->addOption(all_option);
 
-    mp::cmd::add_timeout(parser);
+    mp::cmd::add_instance_timeout(parser);
 
     auto status = parser->commandParse(this);
 

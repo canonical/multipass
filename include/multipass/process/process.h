@@ -17,9 +17,12 @@
 
 #pragma once
 
+#include <multipass/utils/saturate_cast.h>
+
 #include <QProcessEnvironment>
 #include <QStringList>
 
+#include <chrono>
 #include <memory>
 #include <optional>
 
@@ -90,9 +93,13 @@ public:
     virtual void terminate() = 0;
     virtual void kill() = 0;
 
-    virtual bool wait_for_started(int msecs = 30000) = 0;
-    virtual bool wait_for_finished(int msecs = 30000) = 0;
-    virtual bool wait_for_ready_read(int msecs = 30000) = 0;
+    virtual bool wait_for_started(int msecs) = 0;
+    virtual bool wait_for_finished(int msecs) = 0;
+    virtual bool wait_for_ready_read(int msecs) = 0;
+
+    bool wait_for_started(std::chrono::milliseconds ms = default_wait_amount);
+    bool wait_for_finished(std::chrono::milliseconds ms = default_wait_amount);
+    bool wait_for_ready_read(std::chrono::milliseconds ms = default_wait_amount);
 
     virtual bool running() const = 0;
     virtual ProcessState process_state() const = 0;
@@ -120,7 +127,23 @@ signals:
 
 protected:
     virtual void setup_child_process() = 0;
+    constexpr static inline auto default_wait_amount = std::chrono::milliseconds{30000};
 };
 } // namespace multipass
 
 Q_DECLARE_METATYPE(multipass::ProcessState)
+
+inline bool multipass::Process::wait_for_started(std::chrono::milliseconds ms)
+{
+    return wait_for_started(saturate_cast<int>(ms.count()));
+}
+
+inline bool multipass::Process::wait_for_finished(std::chrono::milliseconds ms)
+{
+    return wait_for_finished(saturate_cast<int>(ms.count()));
+}
+
+inline bool multipass::Process::wait_for_ready_read(std::chrono::milliseconds ms)
+{
+    return wait_for_ready_read(saturate_cast<int>(ms.count()));
+}

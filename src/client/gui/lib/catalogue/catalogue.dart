@@ -1,68 +1,151 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:basics/basics.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
+import 'package:intersperse/intersperse.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import 'image_card.dart';
 import 'launch_form.dart';
 
-final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
-  if (ref.watch(daemonAvailableProvider)) {
-    final images = ref
-        .watch(grpcClientProvider)
-        .find(blueprints: false)
-        .then((r) => sortImages(r.imagesInfo));
-    // artificial delay so that we can see the loading spinner a bit
-    // otherwise the reply arrives too quickly and we only see a flash of the spinner
-    await Future.delayed(1.seconds);
-    return await images;
+class SelectedImageNotifier extends Notifier<ImageInfo?> {
+  SelectedImageNotifier(this.arg);
+  final String arg;
+
+  @override
+  ImageInfo? build() {
+    return null;
   }
 
-  return ref.state.valueOrNull ?? await Completer<List<ImageInfo>>().future;
+  void set(ImageInfo image) {
+    state = image;
+  }
+}
+
+final selectedImageProvider =
+    NotifierProvider.family<SelectedImageNotifier, ImageInfo?, String>(
+  SelectedImageNotifier.new,
+);
+
+final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
+  if (!ref.watch(daemonAvailableProvider)) {
+    // When daemon is not available, return empty list
+    // The UI can handle this state appropriately
+    return [];
+  }
+
+  final images = await ref
+      .watch(grpcClientProvider)
+      .find()
+      .then((r) => sortImages(r.imagesInfo));
+
+  // artificial delay so that we can see the loading spinner a bit
+  // otherwise the reply arrives too quickly and we only see a flash of the spinner
+  await Future.delayed(1.seconds);
+
+  return images;
 });
 
 // sorts the images in a more user-friendly way
-// the current LTS > other releases sorted by most recent > current devel > core images > appliances
+// the current LTS > other releases sorted by most recent > current devel > core images
 List<ImageInfo> sortImages(List<ImageInfo> images) {
   final ltsIndex = images.indexWhere((image) {
-    return image.aliasesInfo.any((a) => a.alias == 'lts');
+    return image.aliases.any((a) => a == 'lts');
   });
   final lts = ltsIndex != -1 ? images.removeAt(ltsIndex) : null;
 
   final develIndex = images.indexWhere((image) {
-    return image.aliasesInfo.any((a) => a.alias == 'devel');
+    return image.aliases.any((a) => a == 'devel');
   });
   final devel = develIndex != -1 ? images.removeAt(develIndex) : null;
 
   bool coreFilter(ImageInfo image) {
-    return image.aliasesInfo.any((a) => a.alias.contains('core'));
+    return image.aliases.any((a) => a.contains('core'));
   }
 
-  bool applianceFilter(ImageInfo image) {
-    return image.aliasesInfo.any((a) => a.remoteName.contains('appliance'));
+  bool ubuntuFilter(ImageInfo image) {
+    return image.os.toLowerCase() == 'ubuntu';
   }
 
   int decreasingReleaseSorter(ImageInfo a, ImageInfo b) {
     return b.release.compareTo(a.release);
   }
 
-  final normalImages = images
+  final ubuntuImages = images
       .whereNot(coreFilter)
-      .whereNot(applianceFilter)
+      .where(ubuntuFilter)
       .sorted(decreasingReleaseSorter);
   final coreImages = images.where(coreFilter).sorted(decreasingReleaseSorter);
-  final applianceImages = images.where(applianceFilter);
+  final thirdPartyImages = images
+      .whereNot(coreFilter)
+      .whereNot(ubuntuFilter)
+      .sorted(decreasingReleaseSorter);
 
   return [
     if (lts != null) lts,
-    ...normalImages,
+    ...ubuntuImages,
     if (devel != null) devel,
     ...coreImages,
-    ...applianceImages,
+    ...thirdPartyImages,
+  ];
+}
+
+List<Widget> _groupAndCreateCards(List<ImageInfo> images, double cardWidth) {
+  bool isCore(ImageInfo image) {
+    return image.aliases.any((a) => a.contains('core'));
+  }
+
+  bool isUbuntu(ImageInfo image) {
+    return image.os.toLowerCase() == 'ubuntu';
+  }
+
+  bool isOther(ImageInfo image) {
+    return !isCore(image) && !isUbuntu(image);
+  }
+
+  final ubuntuImages = images
+      .where((i) => isUbuntu(i) && !isCore(i))
+      .sorted((a, b) => b.release.compareTo(a.release));
+
+  final coreImages = images
+      .where((i) => isUbuntu(i) && isCore(i))
+      .sorted((a, b) => b.release.compareTo(a.release));
+
+  final otherImages = images
+      .where((i) => isOther(i))
+      .sorted((a, b) => b.release.compareTo(a.release));
+
+  return [
+    if (ubuntuImages.isNotEmpty)
+      ImageCard(
+        imageKey: 'ubuntu-${ubuntuImages.first.release}',
+        parentImage: ubuntuImages.firstWhere(
+          (i) => i.aliases.any((a) => a == 'lts'),
+          orElse: () => ubuntuImages.first,
+        ),
+        versions: ubuntuImages.toList(),
+        width: cardWidth,
+      ),
+    if (coreImages.isNotEmpty)
+      ImageCard(
+        imageKey: 'core-${coreImages.first.release}',
+        parentImage: coreImages.first,
+        versions: coreImages.toList(),
+        width: cardWidth,
+      ),
+    ...otherImages.map((image) {
+      return ImageCard(
+        imageKey: '${image.os}-${image.release}',
+        parentImage: image,
+        versions: [image],
+        width: cardWidth,
+      );
+    }),
   ];
 }
 
@@ -73,24 +156,29 @@ class CatalogueScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final content = ref.watch(imagesProvider).when(
           skipLoadingOnRefresh: false,
           data: _buildCatalogue,
           error: (error, _) {
-            final errorMessage = error is GrpcError ? error.message : error;
+            final errorMessage = error is GrpcError
+                ? (error.message ?? error.toString())
+                : error.toString();
             return Center(
-              child: Column(children: [
-                const SizedBox(height: 32),
-                Text(
-                  'Failed to retrieve images: $errorMessage',
-                  style: const TextStyle(fontSize: 16),
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => ref.invalidate(imagesProvider),
-                  child: const Text('Refresh'),
-                ),
-              ]),
+              child: Column(
+                children: [
+                  const SizedBox(height: 32),
+                  Text(
+                    l10n.catalogueLoadError(errorMessage),
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () => ref.invalidate(imagesProvider),
+                    child: Text(l10n.catalogueRefresh),
+                  ),
+                ],
+              ),
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -98,15 +186,16 @@ class CatalogueScreen extends ConsumerWidget {
 
     final welcomeText = Container(
       constraints: const BoxConstraints(maxWidth: 500),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Welcome to Multipass', style: TextStyle(fontSize: 37)),
+          Text(l10n.catalogueWelcomeTitle,
+              style: const TextStyle(fontSize: 37)),
           Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
-              'Get an instant VM or Appliance in seconds. Multipass can launch and run virtual machines and configure them like a public cloud.',
-              style: TextStyle(fontSize: 16),
+              l10n.catalogueWelcomeBody,
+              style: const TextStyle(fontSize: 16),
             ),
           ),
         ],
@@ -131,29 +220,45 @@ class CatalogueScreen extends ConsumerWidget {
 
   Widget _buildCatalogue(List<ImageInfo> images) {
     return SingleChildScrollView(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 10),
-          child: const Text(
-            'Images',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LayoutBuilder(
+            builder: (_, constraints) {
+              const minCardWidth = 285;
+              const spacing = 32.0;
+              final nCards = max(1, constraints.maxWidth ~/ minCardWidth);
+              final whiteSpace = spacing * (nCards - 1);
+              final cardWidth = (constraints.maxWidth - whiteSpace) / nCards;
+              final cards = _groupAndCreateCards(images, cardWidth);
+
+              // Group cards into rows for IntrinsicHeight
+              final rows = <Widget>[];
+              for (var i = 0; i < cards.length; i += nCards) {
+                final rowCards = cards.skip(i).take(nCards).toList();
+                rows.add(
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: rowCards
+                          .map(
+                              (card) => SizedBox(width: cardWidth, child: card))
+                          .intersperse(const SizedBox(width: spacing))
+                          .toList(),
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                children:
+                    rows.intersperse(const SizedBox(height: spacing)).toList(),
+              );
+            },
           ),
-        ),
-        LayoutBuilder(builder: (_, constraints) {
-          const minCardWidth = 285;
-          const spacing = 32.0;
-          final nCards = constraints.maxWidth ~/ minCardWidth;
-          final whiteSpace = spacing * (nCards - 1);
-          final cardWidth = (constraints.maxWidth - whiteSpace) / nCards;
-          return Wrap(
-            runSpacing: spacing,
-            spacing: spacing,
-            children:
-                images.map((image) => ImageCard(image, cardWidth)).toList(),
-          );
-        }),
-        const SizedBox(height: 32),
-      ]),
+          const SizedBox(height: 32),
+        ],
+      ),
     );
   }
 }

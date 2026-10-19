@@ -45,7 +45,7 @@ Sample output:
 
 ```{code-block} text
 Name                    State             IPv4             Image
-headbanging-squid       Running           10.49.93.209     Ubuntu 22.04 LTS
+headbanging-squid       Running           10.49.93.209     Ubuntu 26.04 LTS
 ```
 
 Next, open a shell into the running instance:
@@ -82,14 +82,15 @@ Sample output:
 ```{code-block} text
 Name:           headbanging-squid
 State:          Running
+Zone:           zone1
 Snapshots:      0
 IPv4:           10.49.93.209
-Release:        Ubuntu 22.04 LTS
-Image hash:     2e0c90562af1 (Ubuntu 22.04 LTS)
-CPU(s):         4
-Load:           0.00 0.00 0.00
-Disk usage:     1.8GiB out of 5.7GiB
-Memory usage:   294.2MiB out of 3.8GiB
+Release:        Ubuntu 26.04 LTS
+Image hash:     dced94c031cc (Ubuntu 26.04 LTS)
+CPU(s):         1
+Load:           0.16 0.09 0.08
+Disk usage:     2.2GiB out of 9.8GiB
+Memory usage:   294.8MiB out of 1.9GiB
 Mounts:         --
 ```
 

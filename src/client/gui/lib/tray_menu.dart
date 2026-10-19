@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:basics/basics.dart';
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:multipass_gui/vm_details/terminal.dart';
@@ -12,6 +14,7 @@ import 'package:tray_menu/tray_menu.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'ffi.dart';
+import 'l10n/app_localizations.dart';
 import 'platform/platform.dart';
 import 'providers.dart';
 import 'sidebar.dart';
@@ -26,22 +29,13 @@ extension WindowManagerExtensions on WindowManager {
   }
 }
 
-final trayMenuDataProvider = Provider.autoDispose((ref) {
-  return ref.watch(daemonAvailableProvider)
-      ? ref.watch(vmStatusesProvider)
-      : null;
-});
-
-final daemonVersionProvider = Provider((ref) {
-  if (ref.watch(daemonAvailableProvider)) {
-    ref
-        .watch(grpcClientProvider)
-        .version()
-        .catchError((_) => 'failed to get version')
-        .then((version) => ref.state = version);
+AppLocalizations _l10n() {
+  try {
+    return lookupAppLocalizations(PlatformDispatcher.instance.locale);
+  } on FlutterError catch (_) {
+    return lookupAppLocalizations(const Locale('en'));
   }
-  return 'loading...';
-});
+}
 
 Future<String> _iconFilePath() async {
   final dataDir = await getApplicationSupportDirectory();
@@ -61,7 +55,7 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
   if (mpPlatform.showToggleWindow) {
     await TrayMenu.instance.addLabel(
       'toggle-window',
-      label: 'Toggle window',
+      label: _l10n().trayToggleWindow,
       callback: (_, __) async => await windowManager.isVisible()
           ? windowManager.hide()
           : windowManager.showAndRestore(),
@@ -71,52 +65,57 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
   await TrayMenu.instance.addSeparator(_separatorAboutKey);
   final aboutSubmenu = await TrayMenu.instance.addSubmenu(
     'about',
-    label: 'About',
+    label: _l10n().aboutTitle,
   );
   await aboutSubmenu.addLabel(
     'multipass-version',
-    label: 'multipass version: $multipassVersion',
+    label: _l10n().trayMultipassVersion(multipassVersion),
     enabled: false,
-  );
-  final daemonVersionItem = await aboutSubmenu.addLabel(
-    'multipassd-version',
-    label: 'multipassd version: loading...',
-    enabled: false,
-  );
-  providerContainer.listen(
-    daemonVersionProvider,
-    (_, version) => daemonVersionItem.setLabel('multipassd version: $version'),
   );
   await aboutSubmenu.addLabel(
     'copyright',
-    label: 'Copyright (C) Canonical, Ltd.',
+    label: _l10n().trayCopyright,
     enabled: false,
+  );
+  providerContainer.listen<String>(
+    daemonVersionProvider,
+    (previous, next) async {
+      await aboutSubmenu.remove('multipassd-version');
+      if (next == multipassVersion) return;
+      await aboutSubmenu.addLabel(
+        'multipassd-version',
+        label: _l10n().trayMultipassdVersion(next),
+        enabled: false,
+        before: 'copyright',
+      );
+    },
+    fireImmediately: true,
   );
   await TrayMenu.instance.addLabel(
     'quit',
-    label: 'Quit',
+    label: _l10n().trayQuit,
     callback: (_, __) => windowManager.close(),
   );
 
   await TrayMenu.instance.show(await _iconFilePath());
 
   final lock = Lock();
-  providerContainer.listen(
-    trayMenuDataProvider,
-    (previousVmData, nextVmData) async {
-      lock.synchronized(() async {
-        if (nextVmData == null) {
-          await _setTrayMenuError();
-        } else {
-          await _updateTrayMenu(
-            providerContainer,
-            previousVmData?.toMap() ?? {},
-            nextVmData.toMap(),
-          );
-        }
-      });
-    },
-  );
+  providerContainer.listen(trayMenuDataProvider, (
+    previousVmData,
+    nextVmData,
+  ) async {
+    lock.synchronized(() async {
+      if (nextVmData == null) {
+        await _setTrayMenuError();
+      } else {
+        await _updateTrayMenu(
+          providerContainer,
+          previousVmData?.toMap() ?? {},
+          nextVmData.toMap(),
+        );
+      }
+    });
+  });
 }
 
 Future<void> _setTrayMenuError() async {
@@ -127,7 +126,7 @@ Future<void> _setTrayMenuError() async {
   }
   await TrayMenu.instance.remove(_separatorVmsKey);
 
-  const errorMessage = 'Failed retrieving instance data';
+  final errorMessage = _l10n().trayErrorInstanceData;
   final errorLabel = TrayMenu.instance.get<MenuItemLabel>(_errorKey);
   if (errorLabel != null) {
     await errorLabel.setLabel(errorMessage);
@@ -185,31 +184,29 @@ Future<void> _updateTrayMenu(
       );
       await submenu.addLabel(
         'start',
-        label: 'Start',
+        label: _l10n().vmActionLabel('start'),
         enabled: startEnabled,
         callback: (_, __) => grpcClient.start([name]),
       );
       await submenu.addLabel(
         'stop',
-        label: 'Stop',
+        label: _l10n().vmActionLabel('stop'),
         enabled: stopEnabled,
         callback: (_, __) => grpcClient.stop([name]),
       );
       await submenu.addSeparator('separator');
       await submenu.addLabel(
         'open',
-        label: 'Open in Multipass',
+        label: _l10n().trayOpenInMultipass,
         callback: (_, __) {
           providerContainer
               .read(vmScreenLocationProvider(name).notifier)
-              .state = VmDetailsLocation.shells;
+              .set(VmDetailsLocation.shells);
           providerContainer.read(sidebarKeyProvider.notifier).set(key);
-          final (:ids, :currentIndex) =
-              providerContainer.read(shellIdsProvider(name));
-          final terminalIdentifier = (
-            vmName: name,
-            shellId: ids[currentIndex],
+          final (:ids, :currentIndex) = providerContainer.read(
+            shellIdsProvider(name),
           );
+          final terminalIdentifier = (vmName: name, shellId: ids[currentIndex]);
           final provider = terminalProvider(terminalIdentifier);
           if (providerContainer.exists(provider)) {
             providerContainer.read(provider.notifier).start();

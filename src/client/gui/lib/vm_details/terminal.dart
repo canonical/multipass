@@ -13,15 +13,34 @@ import 'package:synchronized/synchronized.dart';
 import 'package:xterm/xterm.dart';
 
 import '../logger.dart';
+import '../l10n/app_localizations.dart';
 import '../notifications.dart';
 import '../platform/platform.dart';
 import '../providers.dart';
 import '../vm_action.dart';
 
+class RunningShellsNotifier extends Notifier<int> {
+  RunningShellsNotifier(this.arg);
+  final String arg;
+
+  @override
+  int build() {
+    return 0;
+  }
+
+  void increment() {
+    state = state + 1;
+  }
+
+  void decrement() {
+    state = state - 1;
+  }
+}
+
 final runningShellsProvider =
-    StateProvider.autoDispose.family<int, String>((_, __) {
-  return 0;
-});
+    NotifierProvider.autoDispose.family<RunningShellsNotifier, int, String>(
+  RunningShellsNotifier.new,
+);
 
 class ShellId {
   final int id;
@@ -35,8 +54,10 @@ class ShellId {
 
 typedef TerminalIdentifier = ({String vmName, ShellId shellId});
 
-class TerminalNotifier
-    extends AutoDisposeFamilyNotifier<Terminal?, TerminalIdentifier> {
+class TerminalNotifier extends Notifier<Terminal?> {
+  TerminalNotifier(this.arg);
+  final TerminalIdentifier arg;
+
   final lock = Lock();
   Isolate? isolate;
   late final vmStatusProvider = vmInfoProvider(arg.vmName).select((info) {
@@ -44,7 +65,7 @@ class TerminalNotifier
   });
 
   @override
-  Terminal? build(TerminalIdentifier arg) {
+  Terminal? build() {
     ref.onDispose(_dispose);
     if (arg.shellId.autostart) {
       lock.synchronized(_initShell).then((value) => state = value);
@@ -53,6 +74,12 @@ class TerminalNotifier
       if ((previous ?? false) && !next) stop();
     });
     return null;
+  }
+
+  void _decrementShellCount() {
+    if (ref.mounted) {
+      ref.read(runningShellsProvider(arg.vmName).notifier).decrement();
+    }
   }
 
   Future<Terminal?> _initShell() async {
@@ -90,7 +117,11 @@ class TerminalNotifier
       receiver.close();
       errorReceiver.close();
       exitReceiver.close();
-      stop();
+      // Don't call stop() here - it will be handled by dispose
+      // Just clear the state to reflect that the connection is closed
+      if (ref.mounted) {
+        state = null;
+      }
     });
 
     receiver.listen((event) {
@@ -101,7 +132,10 @@ class TerminalNotifier
         case final String data:
           terminal.write(data);
         case null:
-          stop();
+          // Connection closed from remote side
+          if (ref.mounted) {
+            state = null;
+          }
       }
     });
 
@@ -118,9 +152,7 @@ class TerminalNotifier
       errorsAreFatal: true,
     );
 
-    ref.read(runningShellsProvider(arg.vmName).notifier).update((state) {
-      return state + 1;
-    });
+    ref.read(runningShellsProvider(arg.vmName).notifier).increment();
     return terminal;
   }
 
@@ -136,9 +168,7 @@ class TerminalNotifier
   void _dispose() {
     isolate?.kill(priority: Isolate.immediate);
     if (isolate != null) {
-      ref
-          .read(runningShellsProvider(arg.vmName).notifier)
-          .update((state) => state - 1);
+      _decrementShellCount();
     }
     isolate = null;
   }
@@ -146,19 +176,15 @@ class TerminalNotifier
 
 final terminalProvider = NotifierProvider.autoDispose
     .family<TerminalNotifier, Terminal?, TerminalIdentifier>(
-        TerminalNotifier.new);
+  TerminalNotifier.new,
+);
 
 class VmTerminal extends ConsumerStatefulWidget {
   final String name;
   final ShellId id;
   final bool isCurrent;
 
-  const VmTerminal(
-    this.name,
-    this.id, {
-    super.key,
-    this.isCurrent = false,
-  });
+  const VmTerminal(this.name, this.id, {super.key, this.isCurrent = false});
 
   @override
   ConsumerState<VmTerminal> createState() => _VmTerminalState();
@@ -176,8 +202,11 @@ class ResetTerminalFontIntent extends Intent {
   const ResetTerminalFontIntent();
 }
 
+class SelectAllTerminalTextIntent extends Intent {
+  const SelectAllTerminalTextIntent();
+}
+
 class _VmTerminalState extends ConsumerState<VmTerminal> {
-  static const defaultFontSize = 13.0;
   static const minFontSize = 2.5;
   static const maxFontSize = 36.0;
   static const fontSizeStep = 0.5;
@@ -186,7 +215,6 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
   final contextMenuController = ContextMenuController();
   final terminalController = TerminalController();
   final focusNode = FocusNode();
-  var fontSize = defaultFontSize;
   late final terminalIdentifier = (vmName: widget.name, shellId: widget.id);
 
   @override
@@ -212,15 +240,19 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
 
   Future<void> startVmIfNeeded(final bool vmRunning) async {
     if (vmRunning) return;
+    final l10n = AppLocalizations.of(context)!;
     final name = widget.name;
     final action = VmAction.start;
     final operation = ref.read(grpcClientProvider).start([name]);
     ref.read(notificationsProvider.notifier).addOperation(
           operation,
-          loading: '${action.continuousTense} $name',
-          onSuccess: (_) => '${action.pastTense} $name',
+          loading:
+              l10n.vmActionNotification(action.continuousTense(l10n), name),
+          onSuccess: (_) =>
+              l10n.vmActionNotification(action.pastTense(l10n), name),
           onError: (error) {
-            return 'Failed to ${action.name.toLowerCase()} $name: $error';
+            return l10n.vmActionNotificationError(
+                action.name.toLowerCase(), name, '$error');
           },
         );
     await operation;
@@ -234,11 +266,11 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
   final buttonStyle = ButtonStyle(
     foregroundColor: WidgetStateColor.resolveWith((states) {
       final disabled = states.contains(WidgetState.disabled);
-      return Colors.white.withOpacity(disabled ? 0.5 : 1.0);
+      return Colors.white.withAlpha(disabled ? 128 : 255);
     }),
     side: WidgetStateBorderSide.resolveWith((states) {
       final disabled = states.contains(WidgetState.disabled);
-      var color = Colors.white.withOpacity(disabled ? 0.5 : 1.0);
+      var color = Colors.white.withAlpha(disabled ? 128 : 255);
       return BorderSide(color: color);
     }),
   );
@@ -270,24 +302,32 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
   );
 
   void openContextMenu(Offset offset, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final buttonItems = [
       ContextMenuButtonItem(
-        label: 'Copy',
+        label: l10n.terminalContextCopy,
         onPressed: () {
           ContextMenuController.removeAny();
-          Actions.maybeInvoke(
-            context,
-            CopySelectionTextIntent.copy,
-          );
+          Actions.maybeInvoke(context, CopySelectionTextIntent.copy);
         },
       ),
       ContextMenuButtonItem(
-        label: 'Paste',
+        label: l10n.terminalContextPaste,
         onPressed: () {
           ContextMenuController.removeAny();
           Actions.maybeInvoke(
             context,
             PasteTextIntent(SelectionChangedCause.keyboard),
+          );
+        },
+      ),
+      ContextMenuButtonItem(
+        label: l10n.terminalContextSelectAll,
+        onPressed: () {
+          ContextMenuController.removeAny();
+          Actions.maybeInvoke(
+            context,
+            const SelectAllTerminalTextIntent(),
           );
         },
       ),
@@ -314,10 +354,13 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final terminal = ref.watch(terminalProvider(terminalIdentifier));
-    final vmStatus = ref.watch(vmInfoProvider(widget.name).select((info) {
-      return info.instanceStatus.status;
-    }));
+    final vmStatus = ref.watch(
+      vmInfoProvider(widget.name).select((info) {
+        return info.instanceStatus.status;
+      }),
+    );
     final vmRunning = vmStatus == Status.RUNNING;
     final canStartVm = [Status.STOPPED, Status.SUSPENDED].contains(vmStatus);
 
@@ -337,7 +380,7 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
               onPressed: canStartVm || vmRunning
                   ? () => startVmIfNeeded(vmRunning).then((_) => openShell())
                   : null,
-              child: const Text('Open shell'),
+              child: Text(l10n.terminalOpenShell),
             ),
             const SizedBox(height: 32),
           ],
@@ -347,24 +390,27 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
 
     // we need a builder so that we introduce a new BuildContext that will end up
     // being below the BuildContext of the Actions widget so that the events can propagate
-    final terminalView = Builder(builder: (context) {
-      return TerminalView(
-        terminal,
-        controller: terminalController,
-        focusNode: focusNode,
-        hardwareKeyboardOnly: true,
-        onSecondaryTapUp: (d, _) => openContextMenu(d.globalPosition, context),
-        padding: const EdgeInsets.all(4),
-        scrollController: scrollController,
-        shortcuts: mpPlatform.terminalShortcuts,
-        theme: terminalTheme,
-        textStyle: TerminalStyle(
-          fontFamily: 'UbuntuMono',
-          fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
-          fontSize: fontSize,
-        ),
-      );
-    });
+    final terminalView = Builder(
+      builder: (context) {
+        return TerminalView(
+          terminal,
+          controller: terminalController,
+          focusNode: focusNode,
+          hardwareKeyboardOnly: true,
+          onSecondaryTapUp: (d, _) =>
+              openContextMenu(d.globalPosition, context),
+          padding: const EdgeInsets.all(4),
+          scrollController: scrollController,
+          shortcuts: mpPlatform.terminalShortcuts,
+          theme: terminalTheme,
+          textStyle: TerminalStyle(
+            fontFamily: 'UbuntuMono',
+            fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
+            fontSize: ref.watch(sessionTerminalFontSizeProvider),
+          ),
+        );
+      },
+    );
 
     final scrollableTerminal = RawScrollbar(
       controller: scrollController,
@@ -374,17 +420,28 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
 
     final terminalActions = {
       IncreaseTerminalFontIntent: CallbackAction<IncreaseTerminalFontIntent>(
-        onInvoke: (_) => setState(() {
-          fontSize = min(fontSize + fontSizeStep, maxFontSize);
-        }),
+        onInvoke: (_) {
+          final currentSize = ref.read(sessionTerminalFontSizeProvider);
+          final newSize = min(currentSize + fontSizeStep, maxFontSize);
+          ref.read(sessionTerminalFontSizeProvider.notifier).set(newSize);
+          return null;
+        },
       ),
       DecreaseTerminalFontIntent: CallbackAction<DecreaseTerminalFontIntent>(
-        onInvoke: (_) => setState(() {
-          fontSize = max(fontSize - fontSizeStep, minFontSize);
-        }),
+        onInvoke: (_) {
+          final currentSize = ref.read(sessionTerminalFontSizeProvider);
+          final newSize = max(currentSize - fontSizeStep, minFontSize);
+          ref.read(sessionTerminalFontSizeProvider.notifier).set(newSize);
+          return null;
+        },
       ),
       ResetTerminalFontIntent: CallbackAction<ResetTerminalFontIntent>(
-        onInvoke: (_) => setState(() => fontSize = defaultFontSize),
+        onInvoke: (_) {
+          ref
+              .read(sessionTerminalFontSizeProvider.notifier)
+              .set(SessionTerminalFontSizeNotifier.defaultFontSize);
+          return null;
+        },
       ),
       PasteTextIntent: CallbackAction<PasteTextIntent>(
         onInvoke: (_) async {
@@ -405,12 +462,48 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           return null;
         },
       ),
+      SelectAllTerminalTextIntent: CallbackAction<SelectAllTerminalTextIntent>(
+        onInvoke: (_) async {
+          // Select all text in the terminal buffer
+          final buffer = terminal.buffer;
+
+          // Check if there's any content to select
+          if (buffer.height == 0) return null;
+
+          // Find the last line with actual content
+          int lastContentLine = buffer.height - 1;
+          for (int i = buffer.height - 1; i >= 0; i--) {
+            final line = buffer.lines[i];
+            // Check if the line has any non-empty content
+            bool hasContent = false;
+            for (int j = 0; j < line.length; j++) {
+              if (line.getCodePoint(j) != 0 && line.getCodePoint(j) != 32) {
+                // not null and not space
+                hasContent = true;
+                break;
+              }
+            }
+            if (hasContent) {
+              lastContentLine = i;
+              break;
+            }
+          }
+
+          // Create a selection from the first line to the last line with content
+          // Start from the first line, first column
+          final start = buffer.createAnchor(0, 0);
+          // End at the last content line, last column
+          final end =
+              buffer.createAnchor(buffer.viewWidth - 1, lastContentLine);
+
+          // Set the selection to cover all meaningful text
+          terminalController.setSelection(start, end);
+          return null;
+        },
+      ),
     };
 
-    return Actions(
-      actions: terminalActions,
-      child: scrollableTerminal,
-    );
+    return Actions(actions: terminalActions, child: scrollableTerminal);
   }
 }
 

@@ -12,25 +12,41 @@ on:
 
 permissions:
   contents: read
-  checks: read
+  checks: write
+  actions: read
   packages: write
+  statuses: write
 
 jobs:
   filter:
     name: Filter changed files
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pull-requests: read
     outputs:
       docs: ${{ steps.filter.outputs.docs }}
       code: ${{ steps.filter.outputs.code }}
+      hooks: ${{ steps.filter.outputs.hooks }}
+      is-tag: ${{ steps.check-tag.outputs.is-tag }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Check if we're building a tagged commit
+        id: check-tag
+        # detect tags regardless of workflow trigger
+        run: |
+          tag="$( git tag --points-at HEAD )"
+          echo "is-tag=$( [ -n "$tag" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
 
       - name: Detect changed files
+        if: ${{ steps.check-tag.outputs.is-tag != 'true' }}
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           # 'base' and 'ref' are ignored for pull requests
           # For merge group events, compare against the target branch (main)
@@ -43,22 +59,28 @@ jobs:
               - 'docs/**'
             code:
               - ".github/workflows/linux*"
-              - ".github/workflows/windows-macos.yml"
+              - ".github/workflows/macos.yml"
+              - ".github/workflows/windows.yml"
+              - ".github/.codecov.yml"
+              - ".clang-tidy"
               - "3rd-party/**"
               - "completions/**"
-              - "data/**"
+              - "data/*"
               - "debian/**"
               - "include/**"
               - "packaging/**"
               - "snap/**"
               - "snap-wrappers/**"
               - "src/**"
+              - "rxx/**"
               - "tests/**"
-              - "tools/**"
               - ".gitmodules"
               - "CMakeLists.txt"
               - "vcpkg-configuration.json"
               - "vcpkg.json"
+            hooks:
+              - "git-hooks/**"
+
 
   docs:
     name: Docs
@@ -74,22 +96,35 @@ jobs:
   linux:
     name: Linux
     needs: filter
-    if: needs.filter.outputs.code == 'true'
+    if: needs.filter.outputs.code == 'true' || needs.filter.outputs.is-tag == 'true'
     uses: "./.github/workflows/linux.yml"
     secrets: inherit
 
-  windows-macos:
-    name: Windows/macOS
+  macos:
+    name: macOS
     needs: filter
-    if: needs.filter.outputs.code == 'true'
-    uses: "./.github/workflows/windows-macos.yml"
+    if: needs.filter.outputs.code == 'true' || needs.filter.outputs.is-tag == 'true'
+    uses: "./.github/workflows/macos.yml"
     secrets: inherit
+
+  windows:
+    name: Windows
+    needs: filter
+    if: needs.filter.outputs.code == 'true' || needs.filter.outputs.is-tag == 'true'
+    uses: "./.github/workflows/windows.yml"
+    secrets: inherit
+
+  hooks:
+    name: Hooks
+    needs: filter
+    if: needs.filter.outputs.hooks == 'true'
+    uses: "./.github/workflows/test-hooks.yml"
 
   finalize:
     name: Finalize
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [docs, lint, linux, windows-macos]
+    needs: [docs, lint, linux, windows, macos, hooks]
     steps:
       - name: Docs failure check
         if: ${{
@@ -101,6 +136,11 @@ jobs:
         if: ${{
           needs.lint.result == 'failure' || needs.lint.result == 'cancelled' ||
           needs.linux.result == 'failure' || needs.linux.result == 'cancelled' ||
-          needs.windows-macos.result == 'failure' || needs.windows-macos.result == 'cancelled'
+          needs.windows.result == 'failure' || needs.windows.result == 'cancelled' ||
+          needs.macos.result == 'failure' || needs.macos.result == 'cancelled'
           }}
+        run: exit 1
+
+      - name: Hooks failure check
+        if: ${{ needs.hooks.result == 'failure' || needs.hooks.result == 'cancelled' }}
         run: exit 1

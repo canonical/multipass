@@ -45,6 +45,9 @@ service Rpc {
     rpc restore (stream RestoreRequest) returns (stream RestoreReply);
     rpc clone (stream CloneRequest) returns (stream CloneReply);
     rpc daemon_info (stream DaemonInfoRequest) returns (stream DaemonInfoReply);
+    rpc wait_ready (stream WaitReadyRequest) returns (stream WaitReadyReply);
+    rpc zones (stream ZonesRequest) returns (stream ZonesReply);
+    rpc zones_state (stream ZonesStateRequest) returns (stream ZonesStateReply);
 }
 
 message LaunchRequest {
@@ -73,6 +76,7 @@ message LaunchRequest {
     bool permission_to_bridge = 13;
     int32 timeout = 14;
     string password = 15;
+    string zone = 16;
 }
 
 message LaunchError {
@@ -82,18 +86,19 @@ message LaunchError {
         INVALID_DISK_SIZE = 2;
         INVALID_HOSTNAME = 3;
         INVALID_NETWORK = 4;
+        ZONE_UNAVAILABLE = 5;
     }
     repeated ErrorCodes error_codes = 1;
 }
 
 message LaunchProgress {
-    enum ProgressTypes {
+    enum ProgressType {
         IMAGE = 0;
         EXTRACT = 1;
         VERIFY = 2;
         WAITING = 3;
     }
-    ProgressTypes type = 1;
+    ProgressType type = 1;
     string percent_complete = 2;
 }
 
@@ -123,6 +128,7 @@ message LaunchReply {
     repeated Alias aliases_to_be_created = 10;
     repeated string workspaces_to_be_created = 11;
     bool password_requested = 12;
+    string zone = 13;
 }
 
 message PurgeRequest {
@@ -139,28 +145,20 @@ message FindRequest {
     string remote_name = 2;
     int32 verbosity_level = 3;
     bool allow_unsupported = 4;
-    bool show_images = 5;
-    bool show_blueprints = 6;
-    bool force_manifest_network_download = 7;
+    bool force_manifest_network_download = 5;
 }
 
 message FindReply {
-    message AliasInfo {
-        string remote_name = 1;
-        string alias = 2;
-    }
     message ImageInfo {
         string os = 1;
         string release = 2;
         string version = 3;
-        repeated AliasInfo aliases_info = 4;
+        repeated string aliases = 4;
         string codename = 5;
+        string remote_name = 6;
     }
-    bool show_images = 1;
-    bool show_blueprints = 2;
-    repeated ImageInfo images_info = 3;
-    repeated ImageInfo blueprints_info = 4;
-    string log_line = 5;
+    repeated ImageInfo images_info = 1;
+    string log_line = 2;
 }
 
 message InstanceSnapshotPair {
@@ -206,6 +204,7 @@ message InstanceStatus {
         DELAYED_SHUTDOWN = 6;
         SUSPENDING = 7;
         SUSPENDED = 8;
+        UNAVAILABLE = 9;
     }
     Status status = 1;
 }
@@ -218,11 +217,13 @@ message InstanceDetails {
     string memory_usage = 5;
     string disk_usage = 6;
     repeated string ipv4 = 7;
-    repeated string ipv6 = 8;
+    reserved 8;
+    reserved "ipv6";
     optional int32 num_snapshots = 9;
     string cpu_times = 10;
     string uptime = 11;
     google.protobuf.Timestamp creation_timestamp = 12;
+    string os = 13;
 }
 
 message SnapshotFundamentals {
@@ -250,6 +251,8 @@ message DetailedInfoItem {
         InstanceDetails instance_info = 7;
         SnapshotDetails snapshot_info = 8;
     }
+
+    Zone zone = 9;
 }
 
 message InfoReply {
@@ -269,8 +272,9 @@ message ListVMInstance {
     string name = 1;
     InstanceStatus instance_status = 2;
     repeated string ipv4 = 3;
-    repeated string ipv6 = 4;
     string current_release = 5;
+    string os = 6;
+    Zone zone = 7;
 }
 
 message ListVMSnapshot {
@@ -481,10 +485,18 @@ message SetRequest {
     bool authorized = 4;
 }
 
+// TODO hyperv migration, remove
+message HCSMigrationReport {
+    string phase = 1;
+    string summary = 2;
+}
+
 message SetReply {
     string log_line = 1;
     string reply_message = 2;
     bool needs_authorization = 3;
+    // TODO hyperv migration, remove (and add `reserved 4;`)
+    HCSMigrationReport hcs_migration_report = 4;
 }
 
 message KeysRequest {
@@ -549,4 +561,37 @@ message DaemonInfoReply {
     uint64 available_space = 2;
     uint32 cpus = 3;
     uint64 memory = 4;
+}
+
+message WaitReadyRequest {
+    int32 verbosity_level = 1;
+}
+
+message WaitReadyReply {
+    string log_line = 1;
+}
+
+message Zone {
+    string name = 1;
+    bool available = 2;
+    string subnet = 3;
+}
+
+message ZonesRequest {
+    int32 verbosity_level = 1;
+}
+
+message ZonesReply {
+    string log_line = 1;
+    repeated Zone zones = 2;
+}
+
+message ZonesStateRequest {
+    int32 verbosity_level = 1;
+    bool available = 2;
+    repeated string zones = 3;
+}
+
+message ZonesStateReply {
+    string log_line = 1;
 }

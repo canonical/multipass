@@ -5,7 +5,7 @@
 [Mount](explanation-mount), [GUI Client](reference-gui-client), [Instance](explanation-instance)
 ```
 
-Multipass is a tool to generate cloud-style Ubuntu VMs quickly on Linux, macOS and Windows. It provides a GUI and a simple but powerful CLI, enabling you to quickly access an Ubuntu command line or create your own local mini-cloud.
+Multipass is a tool to generate cloud-style VMs quickly on Linux, macOS and Windows. It provides a GUI and a simple but powerful CLI, enabling you to quickly access an Ubuntu command line, launch instances of other Linux distributions, or create your own local mini-cloud.
 
 ```{figure} /images/multipass-reference-architecture.jpg
    :alt: Multipass reference architecture diagram

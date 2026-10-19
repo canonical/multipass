@@ -18,14 +18,16 @@
 #pragma once
 
 #include <stdexcept>
-#include <string>
 
 namespace multipass
 {
 
 class IPUnavailableException : public std::runtime_error
 {
-    using std::runtime_error::runtime_error;
+public:
+    IPUnavailableException() : std::runtime_error("IP not available")
+    {
+    }
 };
 
 } // namespace multipass

@@ -25,8 +25,10 @@
 
 #include <QString>
 
+#include <atomic>
+#include <cstdint>
+#include <optional>
 #include <string>
-#include <vector>
 
 namespace multipass
 {
@@ -43,6 +45,7 @@ public:
     HyperVVirtualMachine(const VirtualMachineDescription& desc,
                          VMStatusMonitor& monitor,
                          const SSHKeyProvider& key_provider,
+                         AvailabilityZone& zone,
                          const Path& instance_dir);
     // Contruct the vm based on the source virtual machine
     HyperVVirtualMachine(const std::string& source_vm_name,
@@ -50,22 +53,21 @@ public:
                          const VirtualMachineDescription& desc,
                          VMStatusMonitor& monitor,
                          const SSHKeyProvider& key_provider,
+                         AvailabilityZone& zone,
                          const Path& dest_instance_dir);
     ~HyperVVirtualMachine();
     void start() override;
-    void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
+    void shutdown(ShutdownPolicy shutdown_policy) override;
     void suspend() override;
+    bool set_available(bool available) override;
     State current_state() override;
     int ssh_port() override;
-    std::string ssh_hostname(std::chrono::milliseconds timeout) override;
+    std::string ssh_hostname() override;
     std::string ssh_username() override;
-    std::string management_ipv4() override;
-    std::string ipv6() override;
-    void ensure_vm_is_running() override;
-    void update_state() override;
+    std::optional<IPAddress> management_ipv4() override;
+    void handle_state_update() override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
-    void resize_disk(const MemorySize& new_size) override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
@@ -73,18 +75,19 @@ public:
                                                             const VMMount& mount) override;
 
 protected:
-    void require_snapshots_support() const override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,
                                                      const std::string& instance_id,
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
+    void resize_disk_impl(const MemorySize& new_size) override;
 
 private:
     HyperVVirtualMachine(const VirtualMachineDescription& desc,
                          VMStatusMonitor& monitor,
                          const SSHKeyProvider& key_provider,
+                         AvailabilityZone& zone,
                          const Path& instance_dir,
                          bool is_internal); // is_internal is a dummy parameter to differentiate
                                             // with other constructors
@@ -92,16 +95,15 @@ private:
     void setup_network_interfaces();
     void update_network_interfaces(const VMSpecs& src_specs);
     void remove_snapshots_from_backend() const;
+    std::optional<std::uint64_t> resolve_default_switch_interface();
 
-    VirtualMachineDescription desc; // TODO we should probably keep this in the base class instead
     const QString name;
-    std::optional<multipass::IPAddress> ip;
     std::unique_ptr<PowerShell> power_shell;
     VMStatusMonitor* monitor;
     bool update_suspend_status{true};
+    // LUID of the Default Switch host vNIC, where the management IP's neighbor entry lives.
+    // Resolved again on every start, since the host vNIC can be recreated in the meantime.
+    // Atomic, since IP queries (e.g. `list`) and the wait for SSH run on different threads.
+    std::atomic<std::optional<std::uint64_t>> default_switch_interface;
 };
 } // namespace multipass
-
-inline void multipass::HyperVVirtualMachine::require_snapshots_support() const
-{
-}

@@ -12,9 +12,7 @@ class LinuxPlatform extends MpPlatform {
   AutostartNotifier autostartNotifier() => LinuxAutostartNotifier();
 
   @override
-  Map<String, String> get drivers => const {
-        'qemu': 'QEMU',
-      };
+  Map<String, String> get drivers => const {'qemu': 'QEMU'};
 
   @override
   String get ffiLibraryName => 'libdart_ffi.so';
@@ -34,7 +32,9 @@ class LinuxPlatform extends MpPlatform {
         SingleActivator(LogicalKeyboardKey.keyV, control: true, shift: true):
             PasteTextIntent(SelectionChangedCause.keyboard),
         SingleActivator(LogicalKeyboardKey.insert, shift: true):
-            PasteTextIntent(SelectionChangedCause.keyboard),
+            PasteTextIntent(
+          SelectionChangedCause.keyboard,
+        ),
         SingleActivator(LogicalKeyboardKey.equal, control: true):
             IncreaseTerminalFontIntent(),
         SingleActivator(LogicalKeyboardKey.equal, control: true, shift: true):

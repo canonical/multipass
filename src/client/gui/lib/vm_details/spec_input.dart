@@ -35,36 +35,39 @@ class SpecInput extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: width,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (label != null) ...[
-          Text(
-            label!,
-            style: const TextStyle(fontSize: 16, color: Colors.black),
-          ),
-          const SizedBox(height: 8),
-        ],
-        TextFormField(
-          autofocus: autofocus,
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: hint,
-            helperText: helper,
-            helperMaxLines: 3,
-            helperStyle: const TextStyle(color: Colors.black),
-            disabledBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.black12),
-              borderRadius: BorderRadius.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (label != null) ...[
+            Text(
+              label!,
+              style: const TextStyle(fontSize: 16, color: Colors.black),
             ),
+            const SizedBox(height: 8),
+          ],
+          TextFormField(
+            autofocus: autofocus,
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: hint,
+              helperText: helper,
+              helperMaxLines: 3,
+              helperStyle: const TextStyle(color: Colors.black),
+              disabledBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.black12),
+                borderRadius: BorderRadius.zero,
+              ),
+            ),
+            enabled: enabled,
+            focusNode: focusNode,
+            initialValue: initialValue,
+            inputFormatters: inputFormatters,
+            onSaved: onSaved,
+            style: const TextStyle(color: Colors.black),
+            validator: validator,
           ),
-          enabled: enabled,
-          focusNode: focusNode,
-          initialValue: initialValue,
-          inputFormatters: inputFormatters,
-          onSaved: onSaved,
-          style: const TextStyle(color: Colors.black),
-          validator: validator,
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }

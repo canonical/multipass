@@ -28,7 +28,8 @@ done
 
 if [ $DELETE_VMS -eq 1 ]; then
     echo "Removing VMs:"
-    multipass delete -vv --purge --all || echo "Failed to delete multipass VMs from underlying driver" >&2
+    sudo -u "$(logname)" multipass delete -vv --purge --all || echo "Failed to delete multipass VMs from underlying driver" >&2
+
 fi
 
 LAUNCH_AGENT_DEST="/Library/LaunchDaemons/com.canonical.multipassd.plist"
@@ -42,7 +43,7 @@ if [ $DELETE_VMS -eq 1 ]; then
     rm -rfv "/var/root/Library/Application Support/multipassd"
     rm -rfv "/var/root/Library/Application Support/multipass-client-certificate"
     rm -rfv "/var/root/Library/Preferences/multipassd"
-    rm -fv "/Library/Keychains/multipass_root_cert.pem"
+    rm -rfv "/usr/local/etc/multipassd"
 fi
 
 echo .
@@ -57,6 +58,11 @@ rm -rfv "/var/root/Library/Caches/multipassd"
 
 # GUI Autostart
 rm -fv "$HOME/Library/LaunchAgents/com.canonical.multipass.gui.autostart.plist"
+
+# User-specific client certificates and GUI data
+rm -rfv "$HOME/Library/Application Support/multipass-client-certificate"
+rm -rfv "$HOME/Library/Application Support/com.canonical.multipassGui"
+rm -rfv "$HOME/Library/Preferences/multipass"
 
 # Bash completions
 rm -rfv "/usr/local/etc/bash_completion.d/multipass"

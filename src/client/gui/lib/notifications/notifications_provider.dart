@@ -3,13 +3,14 @@ import 'dart:async';
 import 'package:built_collection/built_collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:grpc/grpc.dart';
 
 import '../notifications.dart';
 
 String objectToString(Object? object) => object.toString();
 
-class NotificationsNotifier extends AutoDisposeNotifier<BuiltList<Widget>> {
+class NotificationsNotifier extends Notifier<BuiltList<Widget>> {
   @override
   BuiltList<Widget> build() => BuiltList();
 
@@ -35,13 +36,15 @@ class NotificationsNotifier extends AutoDisposeNotifier<BuiltList<Widget>> {
     required String Function(T) onSuccess,
     required String Function(Object?) onError,
   }) {
-    add(OperationNotification(
-      text: loading,
-      future: op.then(onSuccess).onError((error, _) {
-        if (error is GrpcError) error = error.message;
-        throw onError(error);
-      }),
-    ));
+    add(
+      OperationNotification(
+        text: loading,
+        future: op.then(onSuccess).onError((error, _) {
+          if (error is GrpcError) error = error.message;
+          throw onError(error);
+        }),
+      ),
+    );
   }
 }
 

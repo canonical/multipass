@@ -11,7 +11,9 @@ permissions:
 
 jobs:
   build:
-    runs-on: [self-hosted, reactive, amd64, 2xlarge, noble]
+    if: ${{ github.repository == 'canonical/multipass' }}
+
+    runs-on: self-hosted-linux-amd64-noble-large-tiobe
 
     env:
       VCPKG_FORCE_SYSTEM_BINARIES: 1
@@ -22,7 +24,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         submodules: recursive
         fetch-depth: 0
@@ -30,13 +32,44 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo --preserve-env apt-get install --yes devscripts equivs lcov ninja-build python3-venv python3-pip
+        sudo --preserve-env apt-get install --yes \
+          clang \
+          clang-tidy \
+          lld \
+          llvm \
+          devscripts \
+          equivs \
+          flake8 \
+          lcov \
+          ninja-build \
+          pylint \
+          python3-clang \
+          python3-venv \
+          python3-pip
         sudo --preserve-env apt-get build-dep --yes ./
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install cmake
+      uses: lukka/get-cmake@v4.4.2
 
     - name: Configure
       run: |
         cmake -B${{ env.BUILD_DIR }} \
               -DCMAKE_BUILD_TYPE=Coverage
+
+    - name: Add Flutter to $PATH
+      run: |
+        echo "$GITHUB_WORKSPACE/3rd-party/flutter/bin" >> $GITHUB_PATH
+
+    - name: Install Dart analysis tools
+      run: |
+        dart pub global activate cobertura
+
+    - name: Install Flutter deps
+      working-directory: src/client/gui
+      run: flutter pub get
 
     - name: BuildAndTest
       run: |
@@ -54,20 +87,42 @@ jobs:
         gcovr -r ${{ github.workspace }} \
               --object-directory ${{ env.BUILD_DIR }} \
               --cobertura ${{ env.COVERAGE_DIR }}/coverage.xml \
-              --gcov-ignore-parse-errors
+              --gcov-ignore-parse-errors \
+              --merge-mode-functions=separate
 
-    - name: Install Dart
-      uses: dart-lang/setup-dart@v1
-
-    - name: Install Dart analysis tools
+    - name: Process Dart coverage
       run: |
-        dart pub global activate cobertura
+        sed 's|lib/|'"$GITHUB_WORKSPACE"'/src/client/gui/lib/|g' \
+            src/client/gui/coverage/lcov.info \
+            > ${{ env.COVERAGE_DIR }}/dart.info
+
+    - name: Detach TICS QServer to prevent "project already connected" issue
+      env:
+        TICSAUTHTOKEN: ${{ secrets.TICSAUTHTOKEN }}
+      run: |
+        source ~/.profile
+        TICSMaintenance -project multipass -detach
 
     - name: Run TICS Analysis
-      uses: tiobe/tics-github-action@v3
+      uses: tiobe/tics-github-action@v4
+      env:
+        # Add environment variables to optimize TICS performance
+        TICS_NUM_THREADS: 4  # Adjust based on runner's capabilities
       with:
         mode: qserver
         project: multipass
         viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
         ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
         installTics: true
+
+    - name: Report workflow failure
+      if: ${{ !success() }}
+      uses: mattermost/action-mattermost-notify@master
+      with:
+        MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+        MATTERMOST_CHANNEL: multipass-notifications
+        TEXT: |
+          :red_circle: @mp
+          Scheduled [TICS](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
+        MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+        MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231

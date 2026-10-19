@@ -1,0 +1,3 @@
+Alias   Instance   Command   Context    Working directory
+llp     primary    ls        default*   map
+lsp     primary    ls        default*   map

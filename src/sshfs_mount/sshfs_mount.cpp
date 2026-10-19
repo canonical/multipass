@@ -22,14 +22,18 @@
 #include <multipass/format.h>
 #include <multipass/id_mappings.h>
 #include <multipass/logging/log.h>
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/logging/log_location.h>
+#include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
+#include <multipass/utils/semver_compare.h>
 
-#include <semver200.h>
+#include <scope_guard.hpp>
 
 #include <QDir>
 #include <QString>
+
+#include <cassert>
 #include <iostream>
 
 namespace mp = multipass;
@@ -60,9 +64,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     }
     catch (const std::exception& e)
     {
-        mpl::log(mpl::Level::debug,
-                 category,
-                 fmt::format("'multipass-sshfs' snap package is not installed: {}", e.what()));
+        mpl::debug(category, "'multipass-sshfs' snap package is not installed: {}", e.what());
 
         // Fallback to looking for distro version if snap is not found
         try
@@ -71,9 +73,7 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
         }
         catch (const std::exception& e)
         {
-            mpl::log(mpl::Level::warning,
-                     category,
-                     fmt::format("Unable to determine if 'sshfs' is installed: {}", e.what()));
+            mpl::warn(category, "Unable to determine if 'sshfs' is installed: {}", e.what());
             throw mp::SSHFSMissingError();
         }
     }
@@ -87,26 +87,25 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     auto fuse_version_line = mp::utils::match_line_for(version_info, fuse_version_string);
     if (!fuse_version_line.empty())
     {
-        std::string fuse_version;
+        using namespace multipass::literals;
+        std::string fuse_version_str;
 
         // split on the fuse_version_string along with 0 or 1 colon(s)
         auto tokens =
             mp::utils::split(fuse_version_line, fmt::format("{}:? ", fuse_version_string));
         if (tokens.size() == 2)
-            fuse_version = tokens[1];
+            fuse_version_str = tokens[1];
 
-        if (fuse_version.empty())
+        if (fuse_version_str.empty())
         {
-            mpl::log(mpl::Level::warning,
-                     category,
-                     fmt::format("Unable to parse the {}", fuse_version_string));
-            mpl::log(
-                mpl::Level::debug,
-                category,
-                fmt::format("Unable to parse the {}: {}", fuse_version_string, fuse_version_line));
+            mpl::warn(category, "Unable to parse the {}", fuse_version_string);
+            mpl::debug(category,
+                       "Unable to parse the {}: {}",
+                       fuse_version_string,
+                       fuse_version_line);
         }
         // The option was made the default in libfuse 3.0
-        else if (version::Semver200_version(fuse_version) < version::Semver200_version("3.0.0"))
+        else if (multipass::opaque_semver{fuse_version_str} < "3.0.0"_semver)
         {
             sshfs_exec += " -o nonempty -o cache=no";
         }
@@ -117,52 +116,39 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
     }
     else
     {
-        mpl::log(mpl::Level::warning,
-                 category,
-                 fmt::format("Unable to retrieve \'{}\'", fuse_version_string));
+        mpl::warn(category, "Unable to retrieve \'{}\'", fuse_version_string);
     }
 
     return sshfs_exec;
 }
 
-auto make_sftp_server(mp::SSHSession&& session,
+auto make_sftp_server(std::unique_ptr<mp::SSHSession>&& session,
                       const std::string& source,
                       const std::string& target,
                       const mp::id_mappings& gid_mappings,
                       const mp::id_mappings& uid_mappings)
 {
-    mpl::log(mpl::Level::debug,
-             category,
-             fmt::format("{}:{} {}(source = {}, target = {}, …): ",
-                         __FILE__,
-                         __LINE__,
-                         __FUNCTION__,
-                         source,
-                         target));
+    mpl::debug_location(category, "source = {}, target = {}, …", source, target);
 
-    auto sshfs_exec_line = get_sshfs_exec_and_options(session);
+    auto sshfs_exec_line = get_sshfs_exec_and_options(*session);
 
     // Split the path in existing and missing parts.
-    const auto& [leading, missing] = mpu::get_path_split(session, target);
+    const auto& [leading, missing] = mpu::get_path_split(*session, target);
 
-    auto output = MP_UTILS.run_in_ssh_session(session, "id -u");
-    mpl::log(mpl::Level::debug,
-             category,
-             fmt::format("{}:{} {}(): `id -u` = {}", __FILE__, __LINE__, __FUNCTION__, output));
+    auto output = MP_UTILS.run_in_ssh_session(*session, "id -u");
+    mpl::debug_location(category, "`id -u` = {}", output);
     auto default_uid = std::stoi(output);
 
-    output = MP_UTILS.run_in_ssh_session(session, "id -g");
-    mpl::log(mpl::Level::debug,
-             category,
-             fmt::format("{}:{} {}(): `id -g` = {}", __FILE__, __LINE__, __FUNCTION__, output));
+    output = MP_UTILS.run_in_ssh_session(*session, "id -g");
+    mpl::debug_location(category, "`id -g` = {}", output);
     auto default_gid = std::stoi(output);
 
     // We need to create the part of the path which does not still exist,
     // and set then the correct ownership.
     if (missing != ".")
     {
-        mpu::make_target_dir(session, leading, missing);
-        mpu::set_owner_for(session, leading, missing, default_uid, default_gid);
+        mpu::make_target_dir(*session, leading, missing);
+        mpu::set_owner_for(*session, leading, missing, default_uid, default_gid);
     }
 
     return std::make_unique<mp::SftpServer>(std::move(session),
@@ -177,7 +163,7 @@ auto make_sftp_server(mp::SSHSession&& session,
 
 } // namespace
 
-mp::SshfsMount::SshfsMount(SSHSession&& session,
+mp::SshfsMount::SshfsMount(std::unique_ptr<SSHSession>&& session,
                            const std::string& source,
                            const std::string& target,
                            const mp::id_mappings& gid_mappings,
@@ -200,14 +186,17 @@ mp::SshfsMount::SshfsMount(SSHSession&& session,
 mp::SshfsMount::~SshfsMount()
 {
     state.store(State::Stopped, std::memory_order_release);
-    stop();
+    top_catch_all(category, [this] { stop(); });
 }
 
 void mp::SshfsMount::stop()
 {
+    auto join_guard = sg::make_scope_guard([this]() noexcept {
+        if (sftp_thread.joinable())
+            sftp_thread.join();
+    });
+
     sftp_server->stop();
-    if (sftp_thread.joinable())
-        sftp_thread.join();
 }
 
 bool mp::SshfsMount::alive() const

@@ -18,10 +18,12 @@
 #pragma once
 
 #include <istream>
-#include <libssh/libssh.h>
 #include <memory>
 #include <ostream>
 #include <string>
+
+struct ssh_channel_struct;
+typedef struct ssh_channel_struct* ssh_channel;
 
 namespace multipass
 {

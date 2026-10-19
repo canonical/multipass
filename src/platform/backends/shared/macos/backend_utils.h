@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <multipass/availability_zone_manager.h>
 #include <multipass/ip_address.h>
 
 #include <optional>
@@ -25,4 +26,5 @@
 namespace multipass::backend
 {
 std::optional<IPAddress> get_neighbour_ip(const std::string& mac_address);
+void enable_cross_zone_routing(const AvailabilityZoneManager& az_manager);
 } // namespace multipass::backend

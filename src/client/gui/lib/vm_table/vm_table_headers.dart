@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../copyable_text.dart';
 import '../extensions.dart';
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../sidebar.dart';
 import '../tooltip.dart';
@@ -16,6 +17,14 @@ import 'search_box.dart';
 import 'table.dart';
 import 'vms.dart';
 
+/// Returns a [childBuilder] for [TableHeader] that renders a localized column label.
+Widget Function(String) _l10nHeader(String Function(AppLocalizations) label) {
+  return (_) => Builder(
+        builder: (context) => TableHeader.defaultHeaderBuilder(
+            label(AppLocalizations.of(context)!)),
+      );
+}
+
 final headers = <TableHeader<VmInfo>>[
   TableHeader(
     name: 'checkbox',
@@ -26,6 +35,7 @@ final headers = <TableHeader<VmInfo>>[
   ),
   TableHeader(
     name: 'NAME',
+    childBuilder: _l10nHeader((l10n) => l10n.vmTableColumnName),
     width: 115,
     minWidth: 70,
     sortKey: (info) => info.name,
@@ -33,6 +43,7 @@ final headers = <TableHeader<VmInfo>>[
   ),
   TableHeader(
     name: 'STATE',
+    childBuilder: _l10nHeader((l10n) => l10n.vmStatState),
     width: 110,
     minWidth: 70,
     sortKey: (info) => info.instanceStatus.status.name,
@@ -44,13 +55,31 @@ final headers = <TableHeader<VmInfo>>[
     ),
   ),
   TableHeader(
+    name: 'ZONE',
+    width: 100,
+    minWidth: 70,
+    // Sorting is data-only and has no BuildContext, so this fallback is not user-visible.
+    sortKey: (info) => info.zone.name.isEmpty ? 'n/a' : info.zone.name,
+    cellBuilder: (info) => Builder(
+      builder: (context) => Text(
+        (info.zone.name.isEmpty
+                ? AppLocalizations.of(context)!.vmTableZoneUnsupported
+                : info.zone.name)
+            .nonBreaking,
+        overflow: TextOverflow.ellipsis,
+      ),
+    ),
+  ),
+  TableHeader(
     name: 'CPU USAGE',
+    childBuilder: _l10nHeader((l10n) => l10n.vmStatCpuUsage),
     width: 130,
     minWidth: 100,
     cellBuilder: (info) => CpuSparkline(info.name),
   ),
   TableHeader(
     name: 'MEMORY USAGE',
+    childBuilder: _l10nHeader((l10n) => l10n.vmStatMemoryUsage),
     width: 140,
     minWidth: 130,
     cellBuilder: (info) => MemoryUsage(
@@ -60,15 +89,15 @@ final headers = <TableHeader<VmInfo>>[
   ),
   TableHeader(
     name: 'DISK USAGE',
+    childBuilder: _l10nHeader((l10n) => l10n.vmStatDiskUsage),
     width: 130,
     minWidth: 100,
-    cellBuilder: (info) => MemoryUsage(
-      used: info.instanceInfo.diskUsage,
-      total: info.diskTotal,
-    ),
+    cellBuilder: (info) =>
+        MemoryUsage(used: info.instanceInfo.diskUsage, total: info.diskTotal),
   ),
   TableHeader(
     name: 'IMAGE',
+    childBuilder: _l10nHeader((l10n) => l10n.vmStatImage),
     width: 140,
     minWidth: 70,
     cellBuilder: (info) {
@@ -78,12 +107,14 @@ final headers = <TableHeader<VmInfo>>[
   ),
   TableHeader(
     name: 'PRIVATE IP',
+    childBuilder: _l10nHeader((l10n) => l10n.vmStatPrivateIp),
     width: 140,
     minWidth: 100,
     cellBuilder: (info) => IpAddresses(info.instanceInfo.ipv4.take(1)),
   ),
   TableHeader(
     name: 'PUBLIC IP',
+    childBuilder: _l10nHeader((l10n) => l10n.vmStatPublicIp),
     width: 140,
     minWidth: 100,
     cellBuilder: (info) => IpAddresses(info.instanceInfo.ipv4.skip(1)),
@@ -108,7 +139,7 @@ class SelectAllCheckbox extends ConsumerWidget {
 
     void toggleSelectedAll(bool isSelected) {
       final newState = isSelected ? vmNames.toBuiltSet() : BuiltSet<String>();
-      ref.read(selectedVmsProvider.notifier).state = newState;
+      ref.read(selectedVmsProvider.notifier).set(newState);
     }
 
     return Center(
@@ -128,16 +159,14 @@ class SelectVmCheckbox extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selected = ref.watch(selectedVmsProvider.select((selectedVms) {
-      return selectedVms.contains(name);
-    }));
+    final selected = ref.watch(
+      selectedVmsProvider.select((selectedVms) {
+        return selectedVms.contains(name);
+      }),
+    );
 
     void toggleSelected(bool isSelected) {
-      ref.read(selectedVmsProvider.notifier).update((state) {
-        return state.rebuild((set) {
-          isSelected ? set.add(name) : set.remove(name);
-        });
-      });
+      ref.read(selectedVmsProvider.notifier).toggle(name, isSelected);
     }
 
     return Center(
