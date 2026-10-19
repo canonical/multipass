@@ -20,6 +20,7 @@
 #include <multipass/ip_address.h>
 #include <multipass/platform.h>
 
+#include <boost/asio/error.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/udp.hpp>
 
@@ -63,9 +64,15 @@ TEST(PlatformWin_IntegrationTests, dnsProviderResolvesHostsThroughTheHostResolve
 // Other local DNS servers may hold the platform's first address: the provider moves on.
 TEST(PlatformWin_IntegrationTests, dnsProviderSkipsTakenAddresses)
 {
+    // Takes the first address, unless something else (e.g. an installed Multipass) already has.
+    // This never answers, so lookups routed here would fail.
     asio::io_context io;
-    // Never answers, so lookups routed here would fail.
-    const asio::ip::udp::socket squatter{io, {asio::ip::make_address("127.77.0.1"), 53}};
+    asio::ip::udp::socket squatter{io, asio::ip::udp::v4()};
+    boost::system::error_code error;
+    squatter.bind({asio::ip::make_address("127.77.0.1"), 53}, error);
+    ASSERT_TRUE(!error || error == asio::error::address_in_use ||
+                error == asio::error::access_denied)
+        << error.message();
 
     const auto dns = MP_PLATFORM.make_dns_provider();
     dns->set_host("probe", {mp::IPAddress{"10.99.0.43"}});

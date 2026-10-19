@@ -1646,13 +1646,14 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_one_zone_two_networks)
     EXPECT_TRUE(HCN().delete_network("b4d77a0e-2507-45f0-99aa-c638f3e47498"));
 }
 
-// End-to-end: from the host, an instance resolves as "<name>.multipass.local" through the
-// platform's DNS provider (a built-in DNS server, routed with NRPT on Windows). Unlike the
-// ICS-based tests above, the guest does not need to advertise its hostname over DHCP, and the
-// host's ICS and DNS client settings are left alone.
+// End-to-end: from the host, an instance resolves as "<name>.<domain>" through the platform's DNS
+// provider (a built-in DNS server, routed with NRPT on Windows). Unlike the ICS-based tests above,
+// the guest does not need to advertise its hostname over DHCP, and the host's ICS and DNS client
+// settings are left alone.
 TEST_F(HyperV_ComponentIntegrationTests, dns_provider_resolves_instance_by_name)
 {
-    constexpr auto zone = "multipass.local";
+    // Not the default domain, whose routing an installed Multipass would share with this test.
+    constexpr auto zone = "multipass-e2e.local";
     constexpr auto vm_name = "mp-dns-server-vm";
     constexpr auto mac = "00-15-5D-9D-CF-B1";
     constexpr auto network_guid = "b4d77a0e-2507-45f0-99aa-c638f3e47499";
