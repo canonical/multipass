@@ -22,6 +22,7 @@
 #include <src/daemon/mount_motd_cloud_init.h>
 
 #include <multipass/format.h>
+#include <multipass/guest_mount_record.h>
 
 #include <QProcess>
 
@@ -81,7 +82,7 @@ struct MountMotdScript : public Test
     {
         auto script = QString::fromStdString(
             mp::mount_motd_cloud_init()["content"].as<std::string>());
-        script.replace("/run/multipass/mounts", dir);
+        script.replace(mp::GuestMountRecord::records_dir, dir);
 
         QProcess bash;
         bash.start("bash", {"-c", script});

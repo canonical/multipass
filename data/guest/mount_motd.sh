@@ -19,7 +19,7 @@
 LC_ALL=C # for deterministic sorting and character classes
 replacement=$'\xef\xbf\xbd' # U+FFFD, shown for control characters
 
-set -- /run/multipass/mounts/*
+set -- @MULTIPASS_GUEST_MOUNT_RECORDS_DIR@/*
 [[ -e "$1" ]] || exit 0
 
 printf '\nFolders mounted from your host by Multipass:\n\n'
