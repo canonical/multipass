@@ -30,6 +30,8 @@ class VirtualMachine;
 class GuestMountRecord : private DisabledCopyMove
 {
 public:
+    static constexpr auto records_dir = "/run/multipass/mounts";
+
     GuestMountRecord(const std::string& source, const std::string& target);
 
     void deploy(VirtualMachine& vm) const;

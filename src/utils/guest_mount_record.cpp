@@ -26,8 +26,6 @@ namespace mpu = mp::utils;
 
 namespace
 {
-constexpr auto records_dir = "/run/multipass/mounts";
-
 // Encode a path as a unique, reversible file name, by replacing slashes with %2F and % (the escape
 // character) with %25
 std::string encode_path(const std::string& path)
@@ -48,7 +46,8 @@ std::string encode_path(const std::string& path)
 
 std::string escaped_record_path(const std::string& encoded_target)
 {
-    return mpu::escape_for_shell(fmt::format("{}/{}", records_dir, encoded_target));
+    return mpu::escape_for_shell(
+        fmt::format("{}/{}", mp::GuestMountRecord::records_dir, encoded_target));
 }
 } // namespace
 
