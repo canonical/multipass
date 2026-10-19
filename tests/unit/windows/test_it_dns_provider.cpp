@@ -59,3 +59,17 @@ TEST(PlatformWin_IntegrationTests, dnsProviderResolvesHostsThroughTheHostResolve
     EXPECT_THAT(resolve("PROBE.Multipass-IT.local"), Contains("10.99.0.42"));
     EXPECT_THAT(resolve("unknown.multipass-it.local"), IsEmpty());
 }
+
+// Other local DNS servers may hold the platform's first address: the provider moves on.
+TEST(PlatformWin_IntegrationTests, dnsProviderSkipsTakenAddresses)
+{
+    asio::io_context io;
+    // Never answers, so lookups routed here would fail.
+    const asio::ip::udp::socket squatter{io, {asio::ip::make_address("127.77.0.1"), 53}};
+
+    const auto dns = MP_PLATFORM.make_dns_provider();
+    dns->set_host("probe", {mp::IPAddress{"10.99.0.43"}});
+    dns->start("multipass-it-walk.local"); // not cached by the host's resolver, unlike the above
+
+    EXPECT_THAT(resolve("probe.multipass-it-walk.local"), Contains("10.99.0.43"));
+}

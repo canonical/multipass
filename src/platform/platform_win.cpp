@@ -882,11 +882,15 @@ std::string mp::platform::Platform::bridge_nomenclature() const
 mp::DnsProvider::UPtr mp::platform::Platform::make_dns_provider() const
 {
     // A Name Resolution Policy Table rule points the host's resolver at the built-in DNS server.
+    // NRPT rules cannot name a port, so the server needs port 53, on the first free address from
+    // 127.77.0.1 to 127.77.0.254: other local DNS servers commonly take 127.0.0.1.
     return std::make_unique<LocalDnsProvider>(
         [](const std::string& domain, const std::string& name_server) -> std::shared_ptr<void> {
             return std::make_shared<hyperv::dns::NrptRule>(fmt::format(".{}", domain),
                                                            std::vector{name_server});
-        });
+        },
+        boost::asio::ip::udp::endpoint{boost::asio::ip::make_address_v4("127.77.0.1"), 53},
+        254);
 }
 
 bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const

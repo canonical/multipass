@@ -35,11 +35,12 @@ class Server : private DisabledCopyMove
 {
 public:
     // Listens on `endpoint` (port 0 picks a free one), looking hosts up with `lookup`, which is
-    // called from the server's thread. Throws std::runtime_error if the endpoint cannot be bound.
+    // called from the server's thread. Throws boost::system::system_error (a std::runtime_error)
+    // if the endpoint cannot be bound.
     Server(Zone zone, const boost::asio::ip::udp::endpoint& endpoint, HostLookup lookup);
     ~Server();
 
-    [[nodiscard]] std::uint16_t port() const;
+    [[nodiscard]] const boost::asio::ip::udp::endpoint& endpoint() const;
 
 private:
     void receive();
@@ -48,7 +49,8 @@ private:
     const HostLookup lookup;
     boost::asio::io_context io;
     boost::asio::ip::udp::socket socket;
-    const std::uint16_t bound_port; // cached, as the socket is used from the server's thread
+    // Cached, as the socket is used from the server's thread.
+    const boost::asio::ip::udp::endpoint bound_endpoint;
     std::array<std::uint8_t, 4096> buffer{};
     boost::asio::ip::udp::endpoint sender;
     std::thread thread;
