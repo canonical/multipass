@@ -17,93 +17,46 @@
 
 #pragma once
 
+#include <multipass/disabled_copy_move.h>
+
 #include <string>
 #include <vector>
 
 namespace multipass::hyperv::dns
 {
-
-/**
- * DisplayName written to every NRPT rule created by @ref NrptRule. It identifies rules that
- * Multipass owns, e.g. to clean up rules left behind by a crash.
- */
+// The DisplayName of the NRPT rules Multipass creates, to tell them apart from others (e.g. to
+// clean up after a crash).
 inline constexpr auto nrpt_rule_display_name = "Multipass";
 
-/**
- * Encode a list of DNS namespaces as a REG_MULTI_SZ payload: each entry is NUL-terminated and
- * the list is terminated by a trailing empty string (double NUL). Empty entries are skipped.
- * Exposed for testing the multi-suffix encoding without touching the registry.
- */
+// Encodes namespaces as a REG_MULTI_SZ payload, skipping empty ones. Exposed for testing.
 std::wstring make_namespace_multi_sz(const std::vector<std::string>& dns_namespaces);
 
 /**
- * RAII wrapper around a single local Windows Name Resolution Policy Table (NRPT) rule.
+ * A local Windows Name Resolution Policy Table (NRPT) rule: while it lives, the host sends DNS
+ * queries for its namespaces (e.g. ".multipass.local") to its name servers.
  *
- * An NRPT rule routes DNS queries for a namespace (e.g. ".multipass.test") to a
- * specific set of DNS servers, bypassing the default resolver path. This is the
- * host-side glue that points a custom suffix at the Multipass ICS DNS shim.
- *
- * The rule is written directly to the registry under
- *   HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters\DnsPolicyConfig\{GUID}
- * which is exactly what `Add-DnsClientNrptRule` does, so no PowerShell dependency is
- * required. The rule is removed on destruction; it is safe to call @ref remove early.
- *
- * Creating a rule requires administrative privileges (write access to HKLM).
+ * It is written to HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters\DnsPolicyConfig,
+ * like `Add-DnsClientNrptRule` does, which requires administrative privileges.
  */
-class NrptRule
+class NrptRule : private DisabledCopyMove
 {
 public:
     /**
-     * Create and apply an NRPT rule for a single namespace.
-     *
-     * @param dns_namespace The namespace to match, including the leading dot
-     *                      (e.g. ".multipass.test").
-     * @param name_servers  The DNS server IPs to route the namespace to.
-     * @throws std::invalid_argument if @p dns_namespace is empty or @p name_servers has no
-     *                               non-empty entry.
-     * @throws std::runtime_error if the rule could not be written to the registry.
-     */
-    NrptRule(const std::string& dns_namespace, const std::vector<std::string>& name_servers);
-
-    /**
-     * Create and apply an NRPT rule for multiple namespaces.
-     *
-     * A single rule can match more than one DNS suffix (e.g. ".multipass.zone1" and
-     * ".multipass.zone2"), all routed to the same override resolvers. This maps onto the
-     * REG_MULTI_SZ "Name" value the NRPT supports natively.
-     *
-     * @param dns_namespaces The namespaces to match, each including the leading dot.
-     * @param name_servers   The DNS server IPs to route the namespaces to.
-     * @throws std::invalid_argument if @p dns_namespaces or @p name_servers has no non-empty
-     *                               entry.
-     * @throws std::runtime_error if the rule could not be written to the registry.
+     * @throws std::invalid_argument without any non-empty namespace or name server.
+     * @throws std::runtime_error if the rule cannot be written to the registry.
      */
     NrptRule(const std::vector<std::string>& dns_namespaces,
              const std::vector<std::string>& name_servers);
-
+    NrptRule(const std::string& dns_namespace, const std::vector<std::string>& name_servers);
     ~NrptRule();
 
-    NrptRule(NrptRule&& other) noexcept;
-    NrptRule& operator=(NrptRule&& other) noexcept;
-
-    NrptRule(const NrptRule&) = delete;
-    NrptRule& operator=(const NrptRule&) = delete;
-
-    /**
-     * Remove the rule from the registry. Idempotent; safe to call more than once.
-     */
-    void remove() noexcept;
-
-    /**
-     * The registry rule identifier, formatted as "{GUID}".
-     */
+    // The rule's registry key, "{GUID}".
     const std::string& guid() const noexcept
     {
         return rule_guid;
     }
 
 private:
-    std::string rule_guid{};
+    const std::string rule_guid;
 };
-
 } // namespace multipass::hyperv::dns

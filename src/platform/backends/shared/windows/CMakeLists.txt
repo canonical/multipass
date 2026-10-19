@@ -38,6 +38,5 @@ target_link_libraries(shared_win
   Iphlpapi
   logger
   OpenSSL::Crypto
-  Rpcrt4
   sftp_client
   utils)
