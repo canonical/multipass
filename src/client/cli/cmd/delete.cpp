@@ -88,6 +88,11 @@ std::string cmd::Delete::name() const
     return "delete";
 }
 
+std::vector<std::string> cmd::Delete::aliases() const
+{
+    return {name(), "rm"};
+}
+
 QString cmd::Delete::short_help() const
 {
     return QStringLiteral("Delete instances and snapshots");
@@ -183,13 +188,13 @@ bool cmd::Delete::confirm() const
 void cmd::Delete::remove_aliases_for(const std::string& instance)
 {
     for (const auto& [removal_context, removed_alias_name] :
-         aliases.remove_aliases_for_instance(instance))
+         aliases_dict.remove_aliases_for_instance(instance))
     {
         try
         {
             MP_PLATFORM.remove_alias_script(removal_context + "." + removed_alias_name);
 
-            if (!aliases.exists_alias(removed_alias_name))
+            if (!aliases_dict.exists_alias(removed_alias_name))
                 MP_PLATFORM.remove_alias_script(removed_alias_name);
         }
         catch (const std::runtime_error& e)

@@ -30,18 +30,19 @@ public:
     using Command::Command;
 
     Delete(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
-        : Command(stub, term), aliases(dict)
+        : Command(stub, term), aliases_dict(dict)
     {
     }
 
     ReturnCodeVariant run(ArgParser* parser) override;
 
     std::string name() const override;
+    std::vector<std::string> aliases() const override;
     QString short_help() const override;
     QString description() const override;
 
 private:
-    AliasDict aliases;
+    AliasDict aliases_dict;
     DeleteRequest request;
     bool delete_all = false;
 
