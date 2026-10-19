@@ -143,10 +143,11 @@ const auto decoded_targets = Scenario{
                        .target = "/l%2Fb", // literal %2F
                        .source = "/c"}}};
 
-const auto verbatim_sources = Scenario{.name = "verbatimSources",
-                                       .records = {Record{.encoded_target = "%2Fdata",
-                                                          .target = "/data",
-                                                          .source = R"(C:\Users\alice\my data)"}}};
+const auto verbatim_sources = Scenario{
+    .name = "verbatimSources",
+    .records = {Record{.encoded_target = "%2Fdata",
+                       .target = "/data",
+                       .source = R"(  C:\Users\alice\my data  )"}}};
 
 const auto no_trailing_newline = Scenario{.name = "noTrailingNewline",
                                           .records = {Record{.encoded_target = "%2Fdata",
