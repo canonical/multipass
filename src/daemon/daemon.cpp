@@ -950,7 +950,7 @@ auto instances_running(const Instances& instances)
 {
     for (const auto& instance : instances)
     {
-        if (MP_UTILS.is_running(instance.second->current_state()))
+        if (MP_UTILS.is_running(instance.second->fetch_state()))
             return true;
     }
 
@@ -1580,7 +1580,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             assert(operative_instances.contains(name));
             // If the VM was in running state before, we need to do some additional
             // work to ensure everything is in sync.
-            switch (operative_instances[name]->current_state())
+            switch (operative_instances[name]->fetch_state())
             {
             case e_state::running:
             case e_state::starting:
@@ -2018,7 +2018,7 @@ try
 
     auto fetch_instance = [this, request, &response, &deleted](VirtualMachine& vm) {
         const auto& name = vm.get_name();
-        auto present_state = vm.current_state();
+        auto present_state = vm.fetch_state();
         auto entry = response.mutable_instance_list()->add_instances();
         entry->set_name(name);
         if (config->factory->supports_availability_zones())
@@ -2233,7 +2233,7 @@ try
             continue;
         }
 
-        if (vm->current_state() == VirtualMachine::State::unavailable)
+        if (vm->fetch_state() == VirtualMachine::State::unavailable)
         {
             add_fmt_to(errors, "instance '{}' is not available", name);
             continue;
@@ -2252,7 +2252,7 @@ try
 
         VMMount vm_mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
         vm_mounts[target_path] = make_mount(vm.get(), target_path, vm_mount);
-        if (vm->current_state() == mp::VirtualMachine::State::running)
+        if (vm->fetch_state() == mp::VirtualMachine::State::running)
         {
             try
             {
@@ -2391,7 +2391,7 @@ try
         std::lock_guard lock{start_mutex};
         const auto& name = vm_it->first;
         auto& vm = *vm_it->second;
-        switch (vm.current_state())
+        switch (vm.fetch_state())
         {
         case VirtualMachine::State::unknown:
         {
@@ -2409,8 +2409,8 @@ try
             fmt::format_to(std::back_inserter(start_errors),
                            "Cannot start the instance '{}' while {}.",
                            name,
-                           vm.current_state() == VirtualMachine::State::suspending ? "suspending"
-                                                                                   : "unavailable");
+                           vm.fetch_state() == VirtualMachine::State::suspending ? "suspending"
+                                                                                 : "unavailable");
             continue;
         case VirtualMachine::State::delayed_shutdown:
             delayed_shutdown_instances.erase(name);
@@ -2504,7 +2504,7 @@ try
     if (status.ok())
     {
         status = cmd_vms(instance_selection.operative_selection, [this](auto& vm) {
-            if (vm.current_state() == VirtualMachine::State::unavailable)
+            if (vm.fetch_state() == VirtualMachine::State::unavailable)
             {
                 mpl::log(mpl::Level::info,
                          vm.get_name(),
@@ -2761,7 +2761,7 @@ try
             continue;
         }
 
-        if (vm->second->current_state() == VirtualMachine::State::unavailable)
+        if (vm->second->fetch_state() == VirtualMachine::State::unavailable)
         {
             mpl::log(mpl::Level::info, name, "Ignoring umount since instance unavailable.");
             continue;
@@ -3040,7 +3040,7 @@ try
         auto* vm_ptr = std::get<0>(instance_trail)->second.get();
         assert(vm_ptr);
 
-        if (auto state = vm_ptr->current_state(); state != VirtualMachine::State::stopped)
+        if (auto state = vm_ptr->fetch_state(); state != VirtualMachine::State::stopped)
             return context->set_value(
                 grpc::Status{grpc::FAILED_PRECONDITION,
                              "Multipass can only take snapshots of stopped instances."});
@@ -3094,7 +3094,7 @@ try
         // result is discarded
         std::ignore = vm_ptr->get_snapshot(request->snapshot());
 
-        if (auto state = vm_ptr->current_state(); state != VirtualMachine::State::stopped)
+        if (auto state = vm_ptr->fetch_state(); state != VirtualMachine::State::stopped)
             return context->set_value(
                 grpc::Status{grpc::FAILED_PRECONDITION,
                              "Multipass can only restore snapshots of stopped instances."});
@@ -3174,7 +3174,7 @@ try
         assert(src_instance_trail.index() == 0);
         const auto source_vm_ptr = std::get<0>(src_instance_trail)->second;
         assert(source_vm_ptr);
-        const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
+        const VirtualMachine::State source_vm_state = source_vm_ptr->fetch_state();
         if (source_vm_state != VirtualMachine::State::stopped)
         {
             return context->set_value(grpc::Status{grpc::FAILED_PRECONDITION,
@@ -3761,7 +3761,7 @@ void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, DeleteReply& response)
 
     if (&erase_from == &operative_instances)
     {
-        if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
+        if (instance->fetch_state() == VirtualMachine::State::delayed_shutdown)
             delayed_shutdown_instances.erase(name);
 
         mounts[name].clear();
@@ -3778,7 +3778,7 @@ void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, DeleteReply& response)
 
 grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, bool running_only)
 {
-    const auto st = vm.current_state();
+    const auto st = vm.fetch_state();
     if (running_only && !MP_UTILS.is_running(st))
         return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
                             fmt::format("Instance '{}' is not running", vm.get_name()),
@@ -3895,14 +3895,14 @@ grpc::Status mp::Daemon::cancel_vm_shutdown(const VirtualMachine& vm)
 grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response)
 {
     const auto& name = vm.get_name();
-    if (vm.current_state() == VirtualMachine::State::unknown)
+    if (vm.fetch_state() == VirtualMachine::State::unknown)
         throw std::runtime_error("Cannot retrieve credentials in unknown state");
 
-    if (!MP_UTILS.is_running(vm.current_state()))
+    if (!MP_UTILS.is_running(vm.fetch_state()))
         return grpc::Status{grpc::StatusCode::ABORTED,
                             fmt::format("instance \"{}\" is not running", name)};
 
-    if (vm.current_state() == VirtualMachine::State::delayed_shutdown &&
+    if (vm.fetch_state() == VirtualMachine::State::delayed_shutdown &&
         delayed_shutdown_instances[name]->get_time_remaining() <= std::chrono::minutes(1))
         return grpc::Status{
             grpc::StatusCode::FAILED_PRECONDITION,
@@ -4234,7 +4234,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
 {
     auto* info = response.add_details();
     auto instance_info = info->mutable_instance_info();
-    auto present_state = vm.current_state();
+    auto present_state = vm.fetch_state();
 
     const auto& name = vm.get_name();
     info->set_name(name);

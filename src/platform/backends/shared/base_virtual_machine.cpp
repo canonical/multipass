@@ -207,12 +207,12 @@ std::string mp::BaseVirtualMachine::get_instance_id_from_the_cloud_init() const
 void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_policy) const
 {
     // A mutex should already be locked by the caller here
-    if (get_state() == St::stopped || get_state() == St::unavailable)
+    if (cached_state() == St::stopped || cached_state() == St::unavailable)
     {
         // TODO: format state directly
         throw VMStateIdempotentException{
             fmt::format("Ignoring shutdown since instance is {}.",
-                        (get_state() == St::unavailable) ? "unavailable" : "already stopped")};
+                        (cached_state() == St::unavailable) ? "unavailable" : "already stopped")};
     }
 
     if (shutdown_policy == ShutdownPolicy::Poweroff)
@@ -220,7 +220,7 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
         return;
     }
 
-    if (get_state() == St::suspended)
+    if (cached_state() == St::suspended)
     {
         if (shutdown_policy == ShutdownPolicy::Halt)
         {
@@ -235,13 +235,13 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
         }
     }
 
-    if (get_state() == St::suspending)
+    if (cached_state() == St::suspending)
     {
         throw VMStateInvalidException{
             fmt::format("Cannot shut down instance {} while suspending.", vm_name)};
     }
 
-    if (get_state() == St::starting || get_state() == St::restarting)
+    if (cached_state() == St::starting || cached_state() == St::restarting)
     {
         throw VMStateInvalidException{
             fmt::format("Cannot shut down instance {} while starting.", vm_name)};
@@ -251,18 +251,18 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
 bool mp::BaseVirtualMachine::set_available(bool available)
 {
     // Ignore idempotent calls
-    if (available == (get_state() != St::unavailable))
+    if (available == (cached_state() != St::unavailable))
         return false;
 
     if (available)
     {
-        assert(get_state() == St::unavailable);
+        assert(cached_state() == St::unavailable);
         set_state_impl(St::stopped);
         return was_running;
     }
 
-    was_running = get_state() == St::running || get_state() == St::starting ||
-                  get_state() == St::restarting;
+    was_running = cached_state() == St::running || cached_state() == St::starting ||
+                  cached_state() == St::restarting;
     shutdown(ShutdownPolicy::Poweroff);
     set_state(St::unavailable);
     return false;
@@ -283,7 +283,7 @@ std::unique_ptr<mp::SSHProcess> mp::BaseVirtualMachine::ssh_exec_process(const s
     bool reconnect = true;
 
     // Fail fast: a stale cached session would otherwise block until timeout
-    if (!MP_UTILS.is_running(current_state()))
+    if (!MP_UTILS.is_running(fetch_state()))
     {
         drop_ssh_session();
         throw SSHVMNotRunning{"SSH unavailable on instance {}: not running", vm_name};
@@ -351,7 +351,7 @@ std::unique_ptr<multipass::SSHSession> multipass::BaseVirtualMachine::new_ssh_se
 {
     {
         const std::unique_lock lock{state_mutex};
-        if (!MP_UTILS.is_running(current_state())) // avoid wasting time
+        if (!MP_UTILS.is_running(fetch_state())) // avoid wasting time
             throw SSHVMNotRunning{"SSH unavailable on instance {}: not running", vm_name};
     }
 
@@ -364,7 +364,7 @@ std::unique_ptr<multipass::SSHSession> multipass::BaseVirtualMachine::new_ssh_se
 
 bool multipass::BaseVirtualMachine::unplugged()
 {
-    auto st = current_state();
+    auto st = fetch_state();
     return st == St::stopped;
 }
 
@@ -479,7 +479,7 @@ auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
 {
     std::vector<IPAddress> all_ipv4;
 
-    if (MP_UTILS.is_running(current_state()))
+    if (MP_UTILS.is_running(fetch_state()))
     {
         try
         {
@@ -934,7 +934,7 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
 
     auto snapshot = get_snapshot(name);
 
-    assert_vm_stopped(get_state());           // precondition
+    assert_vm_stopped(cached_state());        // precondition
     assert_vm_stopped(snapshot->get_state()); // precondition
 
     const auto head_path = derive_head_path(instance_dir);
@@ -1035,7 +1035,7 @@ void mp::BaseVirtualMachine::timeout_ssh()
     throw SSHTimeoutException("{}: timed out waiting for response", vm_name);
 }
 
-St mp::BaseVirtualMachine::current_state()
+St mp::BaseVirtualMachine::fetch_state()
 {
     // TODO: SSH healthcheck when running/starting/restarting/unknown to switch between unknown and
     // the other states
@@ -1047,9 +1047,9 @@ St mp::BaseVirtualMachine::current_state()
 
 void mp::BaseVirtualMachine::set_state(St new_state)
 {
-    if (get_state() == new_state)
+    if (cached_state() == new_state)
         return;
-    if (get_state() == St::unavailable)
+    if (cached_state() == St::unavailable)
         return;
     set_state_impl(new_state);
 }
@@ -1072,5 +1072,5 @@ void mp::BaseVirtualMachine::update_backend_state()
 
 void mp::BaseVirtualMachine::handle_state_update()
 {
-    monitor.persist_state_for(get_name(), get_state());
+    monitor.persist_state_for(get_name(), cached_state());
 }

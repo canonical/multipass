@@ -122,7 +122,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
     void simulate_state(St state)
     {
         mp::BaseVirtualMachine::set_state(state);
-        ON_CALL(*this, current_state).WillByDefault(Return(state));
+        ON_CALL(*this, fetch_state).WillByDefault(Return(state));
     }
 
     // TODO@rewiressh replace premock where possible?
@@ -1361,7 +1361,7 @@ TEST_F(BaseVM, rollsbackFailedRestore)
 TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
 {
     vm.simulate_cloud_init();
-    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(vm, fetch_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(vm, ssh_exec).WillOnce(DoDefault());
 
     std::chrono::milliseconds timeout(1);
@@ -1371,7 +1371,7 @@ TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
 TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
 {
     vm.simulate_cloud_init();
-    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(vm, fetch_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::SSHExecFailure{"no worky", 1}));
 
     std::chrono::milliseconds timeout(1);
@@ -1384,7 +1384,7 @@ TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
 TEST_F(BaseVM, waitForCloudInitVMDownReconnects)
 {
     vm.simulate_cloud_init();
-    EXPECT_CALL(vm, current_state)
+    EXPECT_CALL(vm, fetch_state)
         .WillOnce(Return(mp::VirtualMachine::State::running))    // when 1st waiting for cloud-init
         .WillOnce(Return(mp::VirtualMachine::State::restarting)) // when retrying to ssh
         .WillOnce(Return(mp::VirtualMachine::State::running));   // back waiting for cloud-init
@@ -1409,7 +1409,7 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
     static constexpr auto thrower = [](const auto& e) { throw e; };
 
     vm.simulate_waiting_for_ssh();
-    EXPECT_CALL(vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::starting));
+    EXPECT_CALL(vm, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::starting));
     EXPECT_CALL(vm, handle_state_update).WillRepeatedly(Return());
 
     auto timeout = std::chrono::milliseconds{100};
@@ -1543,7 +1543,7 @@ TEST_F(BaseVM, sshExecProcessPropagatesNonSSHExceptions)
 TEST_F(BaseVM, newSshSessionThrowsIfNotRunning)
 {
     StubBaseVirtualMachine stub{zone};
-    ASSERT_EQ(stub.current_state(), mp::VirtualMachine::State::stopped);
+    ASSERT_EQ(stub.fetch_state(), mp::VirtualMachine::State::stopped);
 
     try
     {
@@ -1596,7 +1596,7 @@ TEST_F(BaseVM, sshExecThrowsSSHExecFailureOnNonZeroExitCode)
 
 TEST_F(BaseVM, setUnavailableShutsdownRunning)
 {
-    ON_CALL(vm, current_state).WillByDefault(Return(St::running));
+    ON_CALL(vm, fetch_state).WillByDefault(Return(St::running));
     EXPECT_CALL(vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff)).Times(1);
 
     vm.set_available(false);
@@ -1607,13 +1607,13 @@ TEST_F(BaseVM, setAvailableRemembersRunning)
     StubBaseVirtualMachine base_vm(zone, St::running);
 
     EXPECT_FALSE(base_vm.set_available(false));
-    ASSERT_EQ(base_vm.current_state(), St::unavailable);
+    ASSERT_EQ(base_vm.fetch_state(), St::unavailable);
 
     EXPECT_FALSE(base_vm.set_available(false));
-    ASSERT_EQ(base_vm.current_state(), St::unavailable);
+    ASSERT_EQ(base_vm.fetch_state(), St::unavailable);
 
     EXPECT_TRUE(base_vm.set_available(true));
-    EXPECT_EQ(base_vm.current_state(), St::stopped);
+    EXPECT_EQ(base_vm.fetch_state(), St::stopped);
 }
 
 TEST_F(BaseVM, setAvailableRemembersStopped)
@@ -1621,10 +1621,10 @@ TEST_F(BaseVM, setAvailableRemembersStopped)
     StubBaseVirtualMachine base_vm(zone, St::stopped);
 
     EXPECT_FALSE(base_vm.set_available(false));
-    ASSERT_EQ(base_vm.current_state(), St::unavailable);
+    ASSERT_EQ(base_vm.fetch_state(), St::unavailable);
 
     EXPECT_FALSE(base_vm.set_available(true));
-    EXPECT_EQ(base_vm.current_state(), St::stopped);
+    EXPECT_EQ(base_vm.fetch_state(), St::stopped);
 }
 
 TEST_F(BaseVM, coreImageDiskResizeReturnsAMessage)

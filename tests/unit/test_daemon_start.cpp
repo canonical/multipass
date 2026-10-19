@@ -64,7 +64,7 @@ struct TestDaemonStart : public mpt::DaemonTestFixture
     {
         auto mock_vm = std::make_unique<MockVM>();
         EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
-        EXPECT_CALL(*mock_vm, current_state()).WillRepeatedly(Return(state));
+        EXPECT_CALL(*mock_vm, fetch_state()).WillRepeatedly(Return(state));
         return mock_vm;
     }
 

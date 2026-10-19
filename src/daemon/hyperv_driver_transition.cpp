@@ -95,7 +95,7 @@ grpc::Status mhv::DriverTransition::release_hcs_instances() const
             if (!vm)
                 continue;
 
-            const auto state = vm->current_state();
+            const auto state = vm->fetch_state();
             if (state != VirtualMachine::State::stopped)
                 not_stopped.push_back(name);
         }

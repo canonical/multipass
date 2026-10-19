@@ -306,7 +306,7 @@ struct HyperVMigrationEligibility : Test
             data_dir / "hcs" / "multipassd-vm-instances.json",
             mp::pretty_print(boost::json::object{{"vm", boost::json::value_from(vm_spec())}}));
 
-        EXPECT_CALL(*vm, current_state()).Times(0);
+        EXPECT_CALL(*vm, fetch_state()).Times(0);
     }
 
     mhv::InstanceMigrationResult migrate()
@@ -512,7 +512,7 @@ struct HyperVBulkMigration : Test
             mp::VirtualMachine::State::stopped);
         ON_CALL(*vm, instance_directory())
             .WillByDefault(Return(QDir{QString::fromStdWString(source_dir(name).wstring())}));
-        EXPECT_CALL(*vm, current_state()).Times(0);
+        EXPECT_CALL(*vm, fetch_state()).Times(0);
         EXPECT_CALL(*vm, start()).Times(0);
         EXPECT_CALL(*vm, shutdown(_)).Times(0);
         EXPECT_CALL(*vm, suspend()).Times(0);
