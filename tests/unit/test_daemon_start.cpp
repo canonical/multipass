@@ -173,7 +173,7 @@ TEST_F(TestDaemonStart, startedInstanceResolvesByName)
 TEST_F(TestDaemonStart, startSucceedsWhenInstanceCannotResolveByName)
 {
     auto dns_provider = std::make_unique<NiceMock<mpt::MockDnsProvider>>();
-    EXPECT_CALL(*dns_provider, set_host).WillOnce(Throw(std::invalid_argument{"bad host"}));
+    EXPECT_CALL(*dns_provider, set_host).WillOnce(Throw(std::runtime_error{"unavailable"}));
     config_builder.dns_provider = std::move(dns_provider);
 
     auto mock_vm = make_mock_vm(VMState::stopped);

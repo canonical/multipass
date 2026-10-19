@@ -54,10 +54,8 @@ public:
     virtual void teardown() noexcept = 0;
 
     /**
-     * Makes `host` resolve to `addresses`, replacing previous ones. Hosts are kept across
-     * start() and teardown().
-     *
-     * @throws std::invalid_argument if `host` is not a valid DNS label.
+     * Makes `host` (a DNS label, e.g. an instance name) resolve to `addresses`, replacing previous
+     * ones. Hosts are kept across start() and teardown().
      */
     virtual void set_host(const std::string& host, const std::vector<IPAddress>& addresses) = 0;
 

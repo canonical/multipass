@@ -53,13 +53,13 @@ public:
 
 private:
     std::unique_ptr<dns::Server> listen(const std::string& zone);
-    std::vector<boost::asio::ip::address> lookup(std::string_view host) const;
+    std::vector<boost::asio::ip::address_v4> lookup(std::string_view host) const;
 
     const RouteDomain route_domain;
     const boost::asio::ip::udp::endpoint first;
     const unsigned address_count;
     mutable std::mutex mutex;
-    std::unordered_map<std::string, std::vector<boost::asio::ip::address>> hosts;
+    std::unordered_map<std::string, std::vector<boost::asio::ip::address_v4>> hosts;
     std::unique_ptr<dns::Server> server;
     std::shared_ptr<void> route;
 };
