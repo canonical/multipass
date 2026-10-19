@@ -123,13 +123,13 @@ const auto no_records = Scenario{.name = "noRecords", .records = {}};
 
 const auto sorted_by_target = Scenario{
     .name = "sortedByTarget",
-    .records = {Record{.encoded_target = "%2Fhome%2Fubuntu%2Fdata",
+    .records = {Record{.encoded_target = "%2Fhome%2Fubuntu%2Fdata", // sources in reverse order
                        .target = "/home/ubuntu/data",
-                       .source = "/home/alice/data"},
+                       .source = "/srv/c"},
                 Record{.encoded_target = "%2Fhome%2Fubuntu%2Fsrc",
                        .target = "/home/ubuntu/src",
-                       .source = "/home/alice/src"},
-                Record{.encoded_target = "%2Fmnt", .target = "/mnt", .source = "/srv"}}};
+                       .source = "/srv/b"},
+                Record{.encoded_target = "%2Fmnt", .target = "/mnt", .source = "/srv/a"}}};
 
 const auto decoded_targets = Scenario{
     .name = "decodedTargets",
