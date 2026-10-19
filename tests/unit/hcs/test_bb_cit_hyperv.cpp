@@ -26,7 +26,6 @@
 
 #include <fmt/xchar.h>
 
-#include <src/platform/backends/hcs/api/dns/nrpt_rule.h>
 #include <src/platform/backends/hcs/api/hcn/hcn_create_endpoint_params.h>
 #include <src/platform/backends/hcs/api/hcn/hcn_create_network_params.h>
 #include <src/platform/backends/hcs/api/hcn/hcn_endpoint_info.h>
@@ -37,6 +36,7 @@
 #include <src/platform/backends/hcs/api/virtdisk/virtdisk_wrapper.h>
 #include <src/platform/backends/hcs/hcs_virtual_machine.h>
 #include <src/platform/backends/hcs/hcs_virtual_machine_resources.h>
+#include <src/platform/backends/shared/windows/nrpt_rule.h>
 
 #include <computecore.h>
 #include <multipass/ip_address.h>

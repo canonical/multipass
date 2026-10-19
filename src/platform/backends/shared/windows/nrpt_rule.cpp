@@ -15,7 +15,7 @@
  *
  */
 
-#include <hcs/api/dns/nrpt_rule.h>
+#include "nrpt_rule.h"
 
 // clang-format off
 #ifndef WIN32_LEAN_AND_MEAN

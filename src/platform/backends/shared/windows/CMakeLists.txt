@@ -24,6 +24,7 @@ add_library(shared_win STATIC
   net_io_api.cpp
   network_utils.cpp
   native_path.cpp
+  nrpt_rule.cpp
   windows_feature_status.cpp)
 
 include_directories(shared_win
@@ -31,11 +32,13 @@ include_directories(shared_win
 
 target_link_libraries(shared_win
   Qt6::Core
+  Advapi32
   Boost::json
   fmt::fmt-header-only
   Iphlpapi
   logger
   OpenSSL::Crypto
+  Rpcrt4
   sftp_client
   utils
   ztd::out_ptr)

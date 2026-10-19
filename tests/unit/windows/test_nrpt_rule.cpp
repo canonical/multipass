@@ -17,7 +17,7 @@
 
 #include "tests/unit/common.h"
 
-#include <hcs/api/dns/nrpt_rule.h>
+#include <shared/windows/nrpt_rule.h>
 
 #include <stdexcept>
 #include <string>
