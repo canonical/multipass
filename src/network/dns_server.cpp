@@ -37,20 +37,19 @@ mp::dns::Server::Server(Zone zone, const udp::endpoint& endpoint, HostLookup loo
       socket{io, endpoint},
       bound_endpoint{socket.local_endpoint()}
 {
-    receive();
-    thread = std::thread{[this] { io.run(); }};
-
     mpl::debug(category,
                "Serving DNS zone {} on {}:{}",
                this->zone.name,
                bound_endpoint.address().to_string(),
                bound_endpoint.port());
+
+    receive();
+    thread = std::jthread{[this] { io.run(); }}; // last, as nothing would stop it if we threw
 }
 
 mp::dns::Server::~Server()
 {
-    io.stop();
-    thread.join();
+    io.stop(); // for the thread to finish, and join
 }
 
 const udp::endpoint& mp::dns::Server::endpoint() const

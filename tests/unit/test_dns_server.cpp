@@ -24,11 +24,12 @@
 #include <ares.h>
 
 #include <array>
+#include <bit>
 #include <chrono>
-#include <cstring>
 #include <map>
 #include <memory>
 #include <optional>
+#include <span>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -38,14 +39,9 @@ using namespace testing;
 
 namespace
 {
-struct RecordDeleter
-{
-    void operator()(ares_dns_record_t* record) const noexcept
-    {
-        ares_dns_record_destroy(record);
-    }
-};
-using Record = std::unique_ptr<ares_dns_record_t, RecordDeleter>;
+using Record = std::unique_ptr<ares_dns_record_t, decltype([](ares_dns_record_t* record) {
+                                   ares_dns_record_destroy(record);
+                               })>;
 
 struct Query
 {
@@ -105,26 +101,24 @@ std::string render(const ares_dns_rr_t* rr)
     if (ares_dns_rr_get_type(rr) != ARES_REC_TYPE_A)
         return fmt::format("TYPE{}", static_cast<int>(ares_dns_rr_get_type(rr)));
 
-    asio::ip::address_v4::bytes_type bytes;
-    std::memcpy(bytes.data(), ares_dns_rr_get_addr(rr, ARES_RR_A_ADDR), bytes.size());
+    const auto bytes = std::bit_cast<asio::ip::address_v4::bytes_type>(
+        *ares_dns_rr_get_addr(rr, ARES_RR_A_ADDR));
     return "A " + asio::ip::address_v4{bytes}.to_string();
 }
 
-Response decode(const std::vector<std::uint8_t>& bytes)
+Response decode(std::span<const std::uint8_t> bytes)
 {
     ares_dns_record_t* raw = nullptr;
     if (ares_dns_parse(bytes.data(), bytes.size(), 0, &raw) != ARES_SUCCESS)
         throw std::runtime_error{"failed to parse response"};
     const Record record{raw};
 
-    Response response{ares_dns_record_get_id(record.get()),
-                      ares_dns_record_get_flags(record.get()),
-                      ares_dns_record_get_rcode(record.get()),
-                      {},
-                      {},
-                      {},
-                      ares_dns_record_rr_cnt(record.get(), ARES_SECTION_AUTHORITY) +
-                          ares_dns_record_rr_cnt(record.get(), ARES_SECTION_ADDITIONAL)};
+    Response response{
+        .id = ares_dns_record_get_id(record.get()),
+        .flags = ares_dns_record_get_flags(record.get()),
+        .rcode = ares_dns_record_get_rcode(record.get()),
+        .extra_records = ares_dns_record_rr_cnt(record.get(), ARES_SECTION_AUTHORITY) +
+                         ares_dns_record_rr_cnt(record.get(), ARES_SECTION_ADDITIONAL)};
 
     for (std::size_t i = 0; i < ares_dns_record_query_cnt(record.get()); ++i)
     {
@@ -161,7 +155,7 @@ std::optional<Response> exchange(const udp::endpoint& server,
         sender,
         [&](const boost::system::error_code& error, std::size_t size) {
             if (!error)
-                response = decode(std::vector<std::uint8_t>(buffer.begin(), buffer.begin() + size));
+                response = decode({buffer.data(), size});
         });
     io.run_for(timeout);
     return response;
