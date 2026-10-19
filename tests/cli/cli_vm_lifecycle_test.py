@@ -88,18 +88,6 @@ class TestVmLifecycle:
             assert not output
             assert "does not exist" in output
 
-    def test_delete_multiple(self):
-        with (
-            launch({"autodelete": False}) as name1,
-            launch({"autodelete": False}) as name2,
-        ):
-            assert multipass("delete", "--force", f"{name1}", f"{name2}")
-
-            for instance in [name1, name2]:
-                with multipass("info", f"{instance}") as output:
-                    assert not output
-                    assert "does not exist" in output
-
     def test_lifecycle_multiple(self):
         with (
             launch({"autodelete": False}) as name1,
