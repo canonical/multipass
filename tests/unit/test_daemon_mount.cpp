@@ -25,6 +25,7 @@
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
+#include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
 #include "stub_availability_zone.h"
 #include "stub_availability_zone_manager.h"
@@ -192,8 +193,8 @@ TEST_F(TestDaemonMount, mountIgnoresTrailingSlash)
 
 TEST_F(TestDaemonMount, skipStartMountIfInstanceIsNotRunning)
 {
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     EXPECT_CALL(*mock_mount_handler, activate_impl).Times(0);
@@ -226,8 +227,8 @@ TEST_F(TestDaemonMount, skipStartMountIfInstanceIsNotRunning)
 
 TEST_F(TestDaemonMount, startsMountIfInstanceRunning)
 {
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     EXPECT_CALL(*mock_mount_handler, activate_impl).Times(1);
@@ -260,8 +261,8 @@ TEST_F(TestDaemonMount, startsMountIfInstanceRunning)
 
 TEST_F(TestDaemonMount, mountFailsErrorMounting)
 {
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     auto error = "permission denied";
@@ -297,8 +298,8 @@ TEST_F(TestDaemonMount, mountFailsErrorMounting)
 
 TEST_F(TestDaemonMount, performanceMountsNotImplementedHasErrorFails)
 {
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
@@ -330,8 +331,8 @@ TEST_F(TestDaemonMount, performanceMountsNotImplementedHasErrorFails)
 TEST_F(TestDaemonMount, mountUsesResolvedSource)
 {
     // can't use _ since _ is needed for gmock matching later.
-    const auto [temp_dir, ignored_filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir, ignored_filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     const auto target_path = config_builder.data_directory.toStdString();

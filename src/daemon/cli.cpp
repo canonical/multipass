@@ -17,6 +17,8 @@
 
 #include "cli.h"
 
+#include "daemon_config.h"
+
 #include <multipass/logging/standard_logger.h>
 #include <multipass/platform.h>
 #include <multipass/utils.h>

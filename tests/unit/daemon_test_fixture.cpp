@@ -24,6 +24,7 @@
 #include "mock_daemon_rpc_context.h"
 #include "mock_server_reader_writer.h"
 #include "mock_standard_paths.h"
+#include "mock_virtual_machine_factory.h"
 #include "stub_availability_zone_manager.h"
 #include "stub_cert_store.h"
 #include "stub_image_host.h"

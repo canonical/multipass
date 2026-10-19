@@ -16,6 +16,8 @@
  */
 
 #include "daemon.h"
+
+#include "daemon_config.h"
 #include "daemon_init_settings.h"
 #include "hyperv_driver_transition.h"
 #include "instance_settings_handler.h"

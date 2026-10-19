@@ -21,7 +21,6 @@
 #include "mock_ssh_test_fixture.h"
 
 #include "mock_server_reader_writer.h"
-#include "mock_virtual_machine_factory.h"
 #include "temp_dir.h"
 
 #include <src/daemon/daemon.h>
@@ -33,24 +32,24 @@
 
 #include <QEventLoop>
 #include <QThread>
+#include <gtest/gtest.h>
 
 #include <memory>
 #include <unordered_map>
 
 using namespace testing;
-namespace mp = multipass;
 
-namespace multipass
+namespace multipass::test
 {
-namespace test
-{
+
+class MockVirtualMachineFactory;
 
 struct fake_vm_properties
 {
     std::string name{"real-zebraphant"};
     std::string default_mac{};
-    std::vector<mp::NetworkInterface> extra_ifaces{};
-    std::unordered_map<std::string, mp::VMMount> mounts{};
+    std::vector<NetworkInterface> extra_ifaces{};
+    std::unordered_map<std::string, VMMount> mounts{};
     bool deleted = false;
     VirtualMachine::State state = VirtualMachine::State::starting;
 };
@@ -76,8 +75,8 @@ struct DaemonTestFixture : public ::Test
     int total_lines_of_output(std::stringstream& output);
 
     std::string fake_json_contents(const std::string& default_mac,
-                                   const std::vector<mp::NetworkInterface>& extra_ifaces,
-                                   const std::unordered_map<std::string, mp::VMMount>& mounts = {});
+                                   const std::vector<NetworkInterface>& extra_ifaces,
+                                   const std::unordered_map<std::string, VMMount>& mounts = {});
 
     std::string fake_json_contents(const fake_vm_properties& vm_properties);
 
@@ -89,15 +88,15 @@ struct DaemonTestFixture : public ::Test
 
     /**
      * Helper function to call one of the <em>daemon slots</em> that ultimately handle RPC requests
-     *  (e.g. @c mp::Daemon::get). It takes care of promise/future boilerplate. This will generally
+     *  (e.g. @c Daemon::get). It takes care of promise/future boilerplate. This will generally
      * be given a
      *  @c mpt::MockServerReaderWriter, which can be used to verify replies.
      * @tparam DaemonSlotPtr The method pointer type for the provided slot. Example:
      *  @code
-     *  void (mp::Daemon::*)(const mp::GetRequest *, grpc::ServerReaderWriterInterface<mp::GetReply>
+     *  void (Daemon::*)(const GetRequest *, grpc::ServerReaderWriterInterface<GetReply>
      * *, DaemonRpcContext *)>
      *  @endcode
-     * @tparam Request The request type that the provided slot expects. Example: @c mp::GetRequest
+     * @tparam Request The request type that the provided slot expects. Example: @c GetRequest
      * @tparam Server The concrete @c grpc::ServerWriterInterface type that the provided slot
      * expects. The template needs to be instantiated with the correct reply type. Example: <tt>
      * grpc::ServerWriterInterface\<mp\::GetReply\>
@@ -193,7 +192,7 @@ struct DaemonTestFixture : public ::Test
 #else
     std::string server_address{"unix:/tmp/test-multipassd.socket"};
 #endif
-    QEventLoop loop; // needed as signal/slots used internally by mp::Daemon
+    QEventLoop loop; // needed as signal/slots used internally by Daemon
     TempDir cache_dir;
     TempDir data_dir;
     TempDir instance_dir;
@@ -202,5 +201,4 @@ struct DaemonTestFixture : public ::Test
         trash_stream{}; // this may have contents (that we don't care about)
 };
 
-} // namespace test
-} // namespace multipass
+} // namespace multipass::test
