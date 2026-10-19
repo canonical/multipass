@@ -155,6 +155,11 @@ const auto no_trailing_newline = Scenario{.name = "noTrailingNewline",
                                                              .source = "/src",
                                                              .terminator = ""}}};
 
+const auto unchanged_utf8 = Scenario{.name = "unchangedUtf8",
+                                     .records = {Record{.encoded_target = "%2Fdonnées%2F日本",
+                                                        .target = "/données/日本",
+                                                        .source = "/home/zoë/café"}}};
+
 const auto neutralized_control_characters = Scenario{
     .name = "neutralizedControlCharacters",
     .records = {Record{.encoded_target = "%2Fx\x1b[2Jy\nz\tw",
@@ -169,6 +174,7 @@ INSTANTIATE_TEST_SUITE_P(MountMotdScript,
                                 decoded_targets,
                                 verbatim_sources,
                                 no_trailing_newline,
+                                unchanged_utf8,
                                 neutralized_control_characters),
                          [](const TestParamInfo<Scenario>& info) { return info.param.name; });
 } // namespace
