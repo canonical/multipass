@@ -22,9 +22,13 @@
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
 
+#include <multipass/platform.h>
 #include <multipass/subnet.h>
 
 #include <fmt/xchar.h>
+
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/udp.hpp>
 
 #include <src/platform/backends/hcs/api/hcn/hcn_create_endpoint_params.h>
 #include <src/platform/backends/hcs/api/hcn/hcn_create_network_params.h>
@@ -111,6 +115,21 @@ std::string neighbor_ip_for_mac(const std::string& mac_dashed,
                     "Select-Object -First 1).IPAddress",
                     mac_dashed,
                     subnet_glob));
+}
+
+// Resolves `name` the way applications do (getaddrinfo), through the host's resolver.
+std::vector<std::string> resolve_with_host(const std::string& name)
+{
+    boost::asio::io_context io;
+    boost::asio::ip::udp::resolver resolver{io};
+    boost::system::error_code error;
+    const auto results = resolver.resolve(name, "", error);
+
+    std::vector<std::string> addresses;
+    if (!error)
+        for (const auto& entry : results)
+            addresses.push_back(entry.endpoint().address().to_string());
+    return addresses;
 }
 
 // PowerShell-style registry path of the DNS client parameters (suffix append, NRPT lives below).
@@ -1625,6 +1644,53 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_one_zone_two_networks)
     EXPECT_TRUE(HCN().delete_endpoint("aee79cf9-54d1-4653-81fb-8110db970342"));
     EXPECT_TRUE(HCN().delete_network("b4d77a0e-2507-45f0-99aa-c638f3e47497"));
     EXPECT_TRUE(HCN().delete_network("b4d77a0e-2507-45f0-99aa-c638f3e47498"));
+}
+
+// End-to-end: from the host, an instance resolves as "<name>.multipass.local" through the
+// platform's DNS provider (a built-in DNS server, routed with NRPT on Windows). Unlike the
+// ICS-based tests above, the guest does not need to advertise its hostname over DHCP, and the
+// host's ICS and DNS client settings are left alone.
+TEST_F(HyperV_ComponentIntegrationTests, dns_provider_resolves_instance_by_name)
+{
+    constexpr auto zone = "multipass.local";
+    constexpr auto vm_name = "mp-dns-server-vm";
+    constexpr auto mac = "00-15-5D-9D-CF-B1";
+    constexpr auto network_guid = "b4d77a0e-2507-45f0-99aa-c638f3e47499";
+    constexpr auto endpoint_guid = "aee79cf9-54d1-4653-81fb-8110db970351";
+
+    const auto vhdx = make_tempfile_path(".vhdx");
+    reassemble_alpine_vhdx(vhdx);
+    const std::filesystem::path iso{fmt::format("{}/cloud-init/cloud-init.iso", test_data_path)};
+
+    const ScopedHcsResources resources{{vm_name}, {endpoint_guid}, {network_guid}};
+    auto handle = boot_guest(network_guid,
+                             endpoint_guid,
+                             vm_name,
+                             mac,
+                             "172.50.224.0/20",
+                             "172.50.224.1",
+                             vhdx,
+                             iso);
+
+    std::string lease{};
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(180);
+    while ((lease = neighbor_ip_for_mac(mac)).empty() &&
+           std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+    ASSERT_FALSE(lease.empty()) << "Guest never obtained a DHCP lease.";
+
+    const auto dns_provider = MP_PLATFORM.make_dns_provider();
+    dns_provider->set_host(vm_name, {IPAddress{lease}});
+    dns_provider->start(zone);
+
+    const auto fqdn = fmt::format("{}.{}", vm_name, zone);
+    EXPECT_THAT(resolve_with_host(fqdn), testing::Contains(lease));
+    EXPECT_EQ(run_powershell(fmt::format("Test-Connection -ComputerName {} -Count 1 -Quiet", fqdn)),
+              "True")
+        << fqdn << " did not reach the guest";
+
+    (void)HCS().terminate_compute_system(handle);
+    handle.reset();
 }
 
 } // namespace multipass::test

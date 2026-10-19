@@ -11,7 +11,8 @@ target_sources(multipass_cpp_tests
 # These need administrative privileges, as they change the host's configuration.
 target_sources(multipass_integration_tests
   PRIVATE
+  ${CMAKE_CURRENT_LIST_DIR}/test_it_dns_provider.cpp
   ${CMAKE_CURRENT_LIST_DIR}/test_it_nrpt_rule.cpp
 )
 
-target_link_libraries(multipass_integration_tests PRIVATE shared_win)
+target_link_libraries(multipass_integration_tests PRIVATE Boost::asio platform)

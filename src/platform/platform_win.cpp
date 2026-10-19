@@ -33,12 +33,14 @@
 #include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "shared/sshfs_server_process_spec.h"
+#include "shared/windows/nrpt_rule.h"
 #include "shared/windows/powershell.h"
 #include "shared/windows/process_factory.h"
 #include "shared/windows/wchar_conversion.h"
 #include "shared/windows/wsa_init_wrapper.h"
 #include <daemon/default_vm_image_vault.h>
 #include <default_update_prompt.h>
+#include <network/local_dns_provider.h>
 
 #include <QCoreApplication>
 #include <QDir>
@@ -875,6 +877,16 @@ QString mp::platform::Platform::default_privileged_mounts() const
 std::string mp::platform::Platform::bridge_nomenclature() const
 {
     return "switch";
+}
+
+mp::DnsProvider::UPtr mp::platform::Platform::make_dns_provider() const
+{
+    // A Name Resolution Policy Table rule points the host's resolver at the built-in DNS server.
+    return std::make_unique<LocalDnsProvider>(
+        [](const std::string& domain, const std::string& name_server) -> std::shared_ptr<void> {
+            return std::make_shared<hyperv::dns::NrptRule>(fmt::format(".{}", domain),
+                                                           std::vector{name_server});
+        });
 }
 
 bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const

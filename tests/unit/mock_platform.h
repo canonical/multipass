@@ -71,6 +71,7 @@ public:
     MOCK_METHOD(Subnet, get_preferred_subnet, (const std::filesystem::path&), (const, override));
     MOCK_METHOD(std::filesystem::path, get_root_cert_dir, (), (const, override));
     MOCK_METHOD(void, shutdown_socket, (Socket), (const, override));
+    MOCK_METHOD(DnsProvider::UPtr, make_dns_provider, (), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockPlatform, Platform);
 };
