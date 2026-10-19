@@ -1341,7 +1341,7 @@ constexpr bool allowed_during_migration = is_one_of_v<Request,
                                                       mp::ZonesRequest>;
 
 std::pair<mp::VirtualMachine*, grpc::Status>
-suspend_validate_args(const InstanceTrail& instance_trail, const mp::SnapshotRequest* request)
+snapshot_validate_args(const InstanceTrail& instance_trail, const mp::SnapshotRequest* request)
 {
     assert(instance_trail.index() == 0);
     auto* vm_ptr = std::get<0>(instance_trail)->second.get();
@@ -2982,7 +2982,7 @@ try
     if (!find_instance_status.ok())
         return context->set_value(find_instance_status);
 
-    auto [vm_ptr, args_status] = suspend_validate_args(instance_trail, request);
+    auto [vm_ptr, args_status] = snapshot_validate_args(instance_trail, request);
     if (!args_status.ok())
         return context->set_value(args_status);
 
@@ -3948,7 +3948,7 @@ template <typename LogMsgReply, typename Request>
 mp::ReadinessResult
 mp::Daemon::async_wait_vm_ready(const std::string& name,
                                 const std::chrono::seconds& timeout,
-                                grpc::ServerReaderWriterInterface<Reply, Request>* server)
+                                grpc::ServerReaderWriterInterface<LogMsgReply, Request>* server)
 {
     try
     {
@@ -4451,13 +4451,12 @@ void mp::Daemon::snapshot_restart_vm(
                          this->async_future_watchers.erase(future_key);
                      });
     future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_for_ready_all<SnapshotReply, SnapshotRequest>,
+        QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<SnapshotReply, SnapshotRequest>,
                           this,
                           server,
                           std::vector<std::string>{vm_name},
                           mp::default_timeout,
                           context,
-                          std::string(),
                           std::string()));
     async_future_watchers.insert({future_key, std::move(future_watcher)});
 }
