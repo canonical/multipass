@@ -88,7 +88,8 @@ void main() {
             s == Status.STOPPED ||
                 s == Status.SUSPENDED ||
                 s == Status.RUNNING ||
-                s == Status.UNAVAILABLE
+                s == Status.UNAVAILABLE ||
+                s == Status.DELETED
           ),
       ]);
     });

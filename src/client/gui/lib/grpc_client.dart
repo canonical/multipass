@@ -144,6 +144,7 @@ class GrpcClient {
         instanceSnapshotPairs: names.map(
           (name) => InstanceSnapshotPair(instanceName: name),
         ),
+        force: true,
       ),
     );
   }

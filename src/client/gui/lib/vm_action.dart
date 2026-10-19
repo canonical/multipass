@@ -28,6 +28,7 @@ enum VmAction {
             Status.SUSPENDED,
             Status.RUNNING,
             Status.UNAVAILABLE,
+            Status.DELETED,
           },
         recover => const {Status.DELETED},
         edit => const {Status.STOPPED},
