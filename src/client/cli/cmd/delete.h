@@ -44,7 +44,6 @@ private:
     AliasDict aliases;
     DeleteRequest request;
     bool delete_all = false;
-    bool ask_for_confirmation = true;
 
     ParseCode parse_args(ArgParser* parser);
     bool confirm() const;

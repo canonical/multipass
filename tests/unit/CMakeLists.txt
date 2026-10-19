@@ -82,6 +82,7 @@ add_executable(multipass_cpp_tests
   test_daemon.cpp
   test_daemon_authenticate.cpp
   test_daemon_clone.cpp
+  test_daemon_delete.cpp
   test_daemon_images.cpp
   test_daemon_migration_guard.cpp # TODO hyperv migration, remove
   test_daemon_mount.cpp

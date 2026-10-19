@@ -2838,6 +2838,7 @@ TEST_F(Daemon, deleteReportsAndPersistsInstancesDeletedBeforeAFailure)
         .WillOnce(Return(true));
 
     mp::DeleteRequest request;
+    request.set_force(true);
     for (const auto* name : {deleted_name, failing_name})
         request.add_instance_snapshot_pairs()->set_instance_name(name);
 

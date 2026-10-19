@@ -2561,25 +2561,46 @@ try
             // avoid deleting if any snapshot is missing
             verify_snapshot_picks(instance_selection, instance_snapshots_map);
 
-            for (const auto* selection :
-                 {&instance_selection.deleted_selection, &instance_selection.operative_selection})
+            auto confirmed = request->force() || (instance_selection.operative_selection.empty() &&
+                                                  instance_selection.deleted_selection.empty());
+            if (!confirmed)
             {
-                for (const auto& vm_it : *selection)
+                DeleteReply confirm_action{};
+                confirm_action.set_confirm_deletion(true);
+                if (!server->Write(confirm_action))
+                    throw std::runtime_error(
+                        "Cannot request confirmation from client. Aborting...");
+
+                DeleteRequest client_response;
+                if (server->Read(&client_response))
+                    confirmed = client_response.force();
+                else
+                    status = grpc::Status{grpc::StatusCode::CANCELLED,
+                                          "Cannot get confirmation from client. Aborting..."};
+            }
+
+            if (confirmed)
+            {
+                for (const auto* selection : {&instance_selection.deleted_selection,
+                                              &instance_selection.operative_selection})
                 {
-                    const auto& instance_name = vm_it->first;
-
-                    auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
-                    const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end()
-                                                ? SnapshotPick{{}, true}
-                                                : snapshot_pick_it->second;
-
-                    if (!all) // snapshots of instances being deleted go away with them
-                        for (const auto& snapshot_name : pick)
-                            vm_it->second->delete_snapshot(snapshot_name);
-                    else
+                    for (const auto& vm_it : *selection)
                     {
-                        delete_vm(vm_it, response);
-                        instances_dirty = true;
+                        const auto& instance_name = vm_it->first;
+
+                        auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
+                        const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end()
+                                                    ? SnapshotPick{{}, true}
+                                                    : snapshot_pick_it->second;
+
+                        if (!all) // snapshots of instances being deleted go away with them
+                            for (const auto& snapshot_name : pick)
+                                vm_it->second->delete_snapshot(snapshot_name);
+                        else
+                        {
+                            delete_vm(vm_it, response);
+                            instances_dirty = true;
+                        }
                     }
                 }
             }

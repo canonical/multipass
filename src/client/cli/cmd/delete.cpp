@@ -33,17 +33,12 @@ mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
     if (const auto ret = parse_args(parser); ret != ParseCode::Ok)
         return parser->returnCodeFrom(ret);
 
-    if (ask_for_confirmation)
-    {
-        if (!term->is_live())
-            throw std::runtime_error{"Unable to query client for confirmation. Use '--force' to "
-                                     "delete without confirmation."};
+    auto declined = false;
 
-        if (!confirm())
-            return ReturnCode::CommandFail;
-    }
+    auto on_success = [this, &declined](mp::DeleteReply&) -> ReturnCodeVariant {
+        if (declined)
+            return mp::ReturnCode::CommandFail;
 
-    auto on_success = [this](mp::DeleteReply&) -> ReturnCodeVariant {
         for (const auto& item : request.instance_snapshot_pairs())
             if (item.has_snapshot_name())
                 cout << fmt::format("{}.{} is deleted.\n",
@@ -58,9 +53,25 @@ mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
     };
 
     using Client = grpc::ClientReaderWriterInterface<DeleteRequest, DeleteReply>;
-    auto streaming_callback = [this](const mp::DeleteReply& reply, Client*) {
+    auto streaming_callback = [this, &declined](const mp::DeleteReply& reply, Client* client) {
         if (!reply.log_line().empty())
             cerr << reply.log_line();
+
+        if (reply.confirm_deletion())
+        {
+            if (!term->is_live())
+            {
+                cerr << "Unable to query client for confirmation. Use '--force' to delete without "
+                        "confirmation.\n";
+                client->WritesDone();
+                return;
+            }
+
+            DeleteRequest client_response;
+            client_response.set_force(confirm());
+            declined = !client_response.force();
+            client->Write(client_response);
+        }
 
         for (const auto& instance : reply.deleted_instances())
         {
@@ -108,7 +119,7 @@ mp::ParseCode cmd::Delete::parse_args(mp::ArgParser* parser)
 
     request.set_verbosity_level(parser->verbosityLevel());
     delete_all = parser->isSet(all_option);
-    ask_for_confirmation = !parser->isSet(force_option);
+    request.set_force(parser->isSet(force_option));
 
     const auto items = cmd::add_instance_and_snapshot_names(parser);
     std::unordered_set<std::string> instances;
