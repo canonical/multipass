@@ -88,7 +88,7 @@ std::vector<std::uint8_t> encode(const Query& query)
     return bytes;
 }
 
-// A decoded response, with its records rendered as "<TYPE> <data>" strings.
+// A decoded response, with its answers rendered as "<TYPE> <data>" strings.
 struct Response
 {
     unsigned short id;
@@ -96,34 +96,18 @@ struct Response
     ares_dns_rcode_t rcode;
     std::vector<std::string> questions;
     std::vector<std::string> answers;
-    std::vector<std::string> authority;
     std::vector<unsigned int> ttls;
+    std::size_t extra_records; // in the authority and additional sections
 };
 
 std::string render(const ares_dns_rr_t* rr)
 {
-    switch (ares_dns_rr_get_type(rr))
-    {
-    case ARES_REC_TYPE_A:
-    {
-        asio::ip::address_v4::bytes_type bytes;
-        std::memcpy(bytes.data(), ares_dns_rr_get_addr(rr, ARES_RR_A_ADDR), bytes.size());
-        return "A " + asio::ip::address_v4{bytes}.to_string();
-    }
-    case ARES_REC_TYPE_AAAA:
-    {
-        asio::ip::address_v6::bytes_type bytes;
-        std::memcpy(bytes.data(), ares_dns_rr_get_addr6(rr, ARES_RR_AAAA_ADDR), bytes.size());
-        return "AAAA " + asio::ip::address_v6{bytes}.to_string();
-    }
-    case ARES_REC_TYPE_SOA:
-        return fmt::format("SOA {} {} {}",
-                           ares_dns_rr_get_name(rr),
-                           ares_dns_rr_get_str(rr, ARES_RR_SOA_RNAME),
-                           ares_dns_rr_get_u32(rr, ARES_RR_SOA_MINIMUM));
-    default:
+    if (ares_dns_rr_get_type(rr) != ARES_REC_TYPE_A)
         return fmt::format("TYPE{}", static_cast<int>(ares_dns_rr_get_type(rr)));
-    }
+
+    asio::ip::address_v4::bytes_type bytes;
+    std::memcpy(bytes.data(), ares_dns_rr_get_addr(rr, ARES_RR_A_ADDR), bytes.size());
+    return "A " + asio::ip::address_v4{bytes}.to_string();
 }
 
 Response decode(const std::vector<std::uint8_t>& bytes)
@@ -139,7 +123,8 @@ Response decode(const std::vector<std::uint8_t>& bytes)
                       {},
                       {},
                       {},
-                      {}};
+                      ares_dns_record_rr_cnt(record.get(), ARES_SECTION_AUTHORITY) +
+                          ares_dns_record_rr_cnt(record.get(), ARES_SECTION_ADDITIONAL)};
 
     for (std::size_t i = 0; i < ares_dns_record_query_cnt(record.get()); ++i)
     {
@@ -155,9 +140,6 @@ Response decode(const std::vector<std::uint8_t>& bytes)
         response.answers.push_back(render(rr));
         response.ttls.push_back(ares_dns_rr_get_ttl(rr));
     }
-    for (std::size_t i = 0; i < ares_dns_record_rr_cnt(record.get(), ARES_SECTION_AUTHORITY); ++i)
-        response.authority.push_back(
-            render(ares_dns_record_rr_get_const(record.get(), ARES_SECTION_AUTHORITY, i)));
 
     return response;
 }
@@ -185,8 +167,6 @@ std::optional<Response> exchange(const udp::endpoint& server,
     return response;
 }
 
-constexpr auto zone_soa = "SOA multipass.local hostmaster.multipass.local 30";
-
 struct DnsMessageTest : public Test
 {
     std::optional<std::vector<std::uint8_t>> respond_raw(const std::vector<std::uint8_t>& query)
@@ -203,12 +183,12 @@ struct DnsMessageTest : public Test
     }
 
     mp::dns::Zone zone{"multipass.local", 30};
-    std::map<std::string, std::vector<asio::ip::address>> hosts{
-        {"vm1", {asio::ip::make_address("10.0.0.1")}},
-        {"dual", {asio::ip::make_address("10.0.0.2"), asio::ip::make_address("fd00::2")}}};
+    std::map<std::string, std::vector<asio::ip::address_v4>> hosts{
+        {"vm1", {asio::ip::make_address_v4("10.0.0.1")}},
+        {"multi", {asio::ip::make_address_v4("10.0.0.2"), asio::ip::make_address_v4("10.0.0.3")}}};
     mp::dns::HostLookup lookup = [this](std::string_view host) {
         const auto it = hosts.find(std::string{host});
-        return it == hosts.end() ? std::vector<asio::ip::address>{} : it->second;
+        return it == hosts.end() ? std::vector<asio::ip::address_v4>{} : it->second;
     };
 };
 } // namespace
@@ -223,22 +203,14 @@ TEST_F(DnsMessageTest, answersAQueryForAKnownHost)
     EXPECT_THAT(response.questions, ElementsAre("vm1.multipass.local"));
     EXPECT_THAT(response.answers, ElementsAre("A 10.0.0.1"));
     EXPECT_THAT(response.ttls, ElementsAre(30u));
-    EXPECT_THAT(response.authority, IsEmpty());
+    EXPECT_EQ(response.extra_records, 0u);
 }
 
-TEST_F(DnsMessageTest, answersAaaaQueryWithIpv6Addresses)
+TEST_F(DnsMessageTest, answersWithAllTheAddressesOfAHost)
 {
-    const auto response = respond({.name = "dual.multipass.local", .type = ARES_REC_TYPE_AAAA});
+    const auto response = respond({.name = "multi.multipass.local"});
 
-    EXPECT_EQ(response.rcode, ARES_RCODE_NOERROR);
-    EXPECT_THAT(response.answers, ElementsAre("AAAA fd00::2"));
-}
-
-TEST_F(DnsMessageTest, answersAnyQueryWithAllAddresses)
-{
-    const auto response = respond({.name = "dual.multipass.local", .type = ARES_REC_TYPE_ANY});
-
-    EXPECT_THAT(response.answers, UnorderedElementsAre("A 10.0.0.2", "AAAA fd00::2"));
+    EXPECT_THAT(response.answers, ElementsAre("A 10.0.0.2", "A 10.0.0.3"));
 }
 
 TEST_F(DnsMessageTest, answersEdnsQueriesWithoutEdns)
@@ -246,15 +218,18 @@ TEST_F(DnsMessageTest, answersEdnsQueriesWithoutEdns)
     const auto response = respond({.name = "vm1.multipass.local", .edns = true});
 
     EXPECT_THAT(response.answers, ElementsAre("A 10.0.0.1"));
+    EXPECT_EQ(response.extra_records, 0u);
 }
 
-TEST_F(DnsMessageTest, repliesNoDataForMissingRecordType)
+TEST_F(DnsMessageTest, repliesNoDataForOtherRecordTypes)
 {
-    const auto response = respond({.name = "vm1.multipass.local", .type = ARES_REC_TYPE_AAAA});
+    for (const auto type : {ARES_REC_TYPE_AAAA, ARES_REC_TYPE_ANY, ARES_REC_TYPE_MX})
+    {
+        const auto response = respond({.name = "vm1.multipass.local", .type = type});
 
-    EXPECT_EQ(response.rcode, ARES_RCODE_NOERROR);
-    EXPECT_THAT(response.answers, IsEmpty());
-    EXPECT_THAT(response.authority, ElementsAre(zone_soa));
+        EXPECT_EQ(response.rcode, ARES_RCODE_NOERROR) << type;
+        EXPECT_THAT(response.answers, IsEmpty()) << type;
+    }
 }
 
 TEST_F(DnsMessageTest, repliesNxDomainForUnknownHosts)
@@ -266,8 +241,15 @@ TEST_F(DnsMessageTest, repliesNxDomainForUnknownHosts)
         EXPECT_EQ(response.rcode, ARES_RCODE_NXDOMAIN) << name;
         EXPECT_EQ(response.flags & ARES_FLAG_AA, ARES_FLAG_AA) << name;
         EXPECT_THAT(response.answers, IsEmpty()) << name;
-        EXPECT_THAT(response.authority, ElementsAre(zone_soa)) << name;
     }
+}
+
+TEST_F(DnsMessageTest, repliesNoDataForTheZoneItself)
+{
+    const auto response = respond({.name = "multipass.local"});
+
+    EXPECT_EQ(response.rcode, ARES_RCODE_NOERROR);
+    EXPECT_THAT(response.answers, IsEmpty());
 }
 
 TEST_F(DnsMessageTest, matchesNamesCaseInsensitivelyAndEchoesTheQuestion)
@@ -278,45 +260,21 @@ TEST_F(DnsMessageTest, matchesNamesCaseInsensitivelyAndEchoesTheQuestion)
     EXPECT_THAT(response.answers, ElementsAre("A 10.0.0.1"));
 }
 
-TEST_F(DnsMessageTest, refusesQueriesOutsideTheZone)
+TEST_F(DnsMessageTest, dropsQueriesOutsideTheZone)
 {
     for (const auto* name : {"example.com", "vm1.evilmultipass.local", "local"})
-    {
-        const auto response = respond({.name = name});
-
-        EXPECT_EQ(response.rcode, ARES_RCODE_REFUSED) << name;
-        EXPECT_EQ(response.flags & ARES_FLAG_AA, 0) << name;
-        EXPECT_THAT(response.answers, IsEmpty()) << name;
-    }
+        EXPECT_FALSE(respond_raw(encode({.name = name}))) << name;
 }
 
-TEST_F(DnsMessageTest, refusesNonInternetClasses)
+TEST_F(DnsMessageTest, dropsNonInternetClasses)
 {
-    const auto response = respond({.name = "vm1.multipass.local", .qclass = ARES_CLASS_CHAOS});
-
-    EXPECT_EQ(response.rcode, ARES_RCODE_REFUSED);
+    EXPECT_FALSE(respond_raw(encode({.name = "vm1.multipass.local", .qclass = ARES_CLASS_CHAOS})));
 }
 
-TEST_F(DnsMessageTest, answersSoaAtTheZoneApex)
+TEST_F(DnsMessageTest, dropsUnsupportedOpcodes)
 {
-    const auto soa = respond({.name = "multipass.local", .type = ARES_REC_TYPE_SOA});
-    EXPECT_EQ(soa.rcode, ARES_RCODE_NOERROR);
-    EXPECT_THAT(soa.answers, ElementsAre(zone_soa));
-
-    const auto address = respond({.name = "multipass.local"});
-    EXPECT_EQ(address.rcode, ARES_RCODE_NOERROR);
-    EXPECT_THAT(address.answers, IsEmpty());
-    EXPECT_THAT(address.authority, ElementsAre(zone_soa));
-}
-
-TEST_F(DnsMessageTest, rejectsUnsupportedOpcodes)
-{
-    const auto response = respond({.name = "vm1.multipass.local", .opcode = ARES_OPCODE_STATUS});
-
-    EXPECT_EQ(response.rcode, ARES_RCODE_NOTIMP);
-    EXPECT_EQ(response.flags & ARES_FLAG_AA, 0);
-    EXPECT_THAT(response.questions, ElementsAre("vm1.multipass.local"));
-    EXPECT_THAT(response.answers, IsEmpty());
+    EXPECT_FALSE(
+        respond_raw(encode({.name = "vm1.multipass.local", .opcode = ARES_OPCODE_STATUS})));
 }
 
 TEST_F(DnsMessageTest, dropsMalformedMessages)
@@ -332,19 +290,6 @@ TEST_F(DnsMessageTest, dropsResponses)
         respond_raw(encode({.name = "vm1.multipass.local", .flags = ARES_FLAG_QR | ARES_FLAG_AA})));
 }
 
-TEST_F(DnsMessageTest, truncatesResponsesThatDoNotFitInADatagram)
-{
-    auto& addresses = hosts["many"];
-    for (int i = 1; i <= 40; ++i)
-        addresses.push_back(asio::ip::make_address(fmt::format("fd00::{:x}", i)));
-
-    const auto response = respond({.name = "many.multipass.local", .type = ARES_REC_TYPE_AAAA});
-
-    EXPECT_EQ(response.flags & ARES_FLAG_TC, ARES_FLAG_TC);
-    EXPECT_THAT(response.answers, IsEmpty());
-    EXPECT_THAT(response.questions, ElementsAre("many.multipass.local"));
-}
-
 TEST(DnsName, normalizesCaseAndDots)
 {
     EXPECT_EQ(mp::dns::normalize_name(".Multipass.LOCAL."), "multipass.local");
@@ -357,8 +302,8 @@ TEST(DnsServer, answersQueriesOverUdp)
                                  udp::endpoint{asio::ip::make_address("127.0.0.1"), 0},
                                  [](std::string_view host) {
                                      return host == "vm1"
-                                              ? std::vector{asio::ip::make_address("10.0.0.1")}
-                                              : std::vector<asio::ip::address>{};
+                                              ? std::vector{asio::ip::make_address_v4("10.0.0.1")}
+                                              : std::vector<asio::ip::address_v4>{};
                                  }};
     ASSERT_NE(server.endpoint().port(), 0);
 
@@ -511,13 +456,8 @@ TEST_F(LocalDnsProviderTest, failsWhenEveryAddressIsTaken)
     EXPECT_THAT(events, IsEmpty());
 }
 
-TEST_F(LocalDnsProviderTest, rejectsInvalidDomainsAndHosts)
+TEST_F(LocalDnsProviderTest, rejectsInvalidDomains)
 {
     EXPECT_THROW(provider.start(".."), std::invalid_argument);
     EXPECT_THAT(events, IsEmpty());
-
-    const std::vector address{mp::IPAddress{"10.0.0.1"}};
-    EXPECT_THROW(provider.set_host("", address), std::invalid_argument);
-    EXPECT_THROW(provider.set_host("a.b", address), std::invalid_argument);
-    EXPECT_THROW(provider.set_host(std::string(64, 'a'), address), std::invalid_argument);
 }

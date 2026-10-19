@@ -35,15 +35,6 @@ namespace
 {
 constexpr auto category = "dns";
 constexpr std::uint32_t ttl = 30; // in seconds; short, as addresses change
-constexpr std::size_t max_label_size = 63;
-
-std::string parse_host(const std::string& host)
-{
-    auto name = mp::dns::normalize_name(host);
-    if (name.empty() || name.size() > max_label_size || name.find('.') != std::string::npos)
-        throw std::invalid_argument{fmt::format("Invalid DNS host name: \"{}\"", host)};
-    return name;
-}
 } // namespace
 
 mp::LocalDnsProvider::LocalDnsProvider(RouteDomain route_domain,
@@ -112,13 +103,13 @@ void mp::LocalDnsProvider::teardown() noexcept
 void mp::LocalDnsProvider::set_host(const std::string& host,
                                     const std::vector<IPAddress>& addresses)
 {
-    auto name = parse_host(host);
+    auto name = dns::normalize_name(host);
 
-    std::vector<asio::ip::address> records;
+    std::vector<asio::ip::address_v4> records;
     std::vector<std::string> shown;
     for (const auto& address : addresses)
     {
-        records.emplace_back(asio::ip::address_v4{address.octets});
+        records.emplace_back(address.octets);
         shown.push_back(address.as_string());
     }
     mpl::debug(category, "{} resolves to {}", name, fmt::join(shown, ", "));
@@ -135,9 +126,9 @@ void mp::LocalDnsProvider::remove_host(const std::string& host)
     hosts.erase(name);
 }
 
-std::vector<asio::ip::address> mp::LocalDnsProvider::lookup(std::string_view host) const
+std::vector<asio::ip::address_v4> mp::LocalDnsProvider::lookup(std::string_view host) const
 {
     const std::lock_guard lock{mutex};
     const auto it = hosts.find(std::string{host});
-    return it == hosts.end() ? std::vector<asio::ip::address>{} : it->second;
+    return it == hosts.end() ? std::vector<asio::ip::address_v4>{} : it->second;
 }
