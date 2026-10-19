@@ -37,6 +37,9 @@ std::wstring make_namespace_multi_sz(const std::vector<std::string>& dns_namespa
  *
  * It is written to HKLM\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters\DnsPolicyConfig,
  * like `Add-DnsClientNrptRule` does, which requires administrative privileges.
+ *
+ * Rules are identified by their namespaces: a rule overwrites one for the same namespaces (e.g.
+ * left behind by a crash) instead of adding another. So only one should live at a time.
  */
 class NrptRule : private DisabledCopyMove
 {
@@ -50,7 +53,7 @@ public:
     NrptRule(const std::string& dns_namespace, const std::vector<std::string>& name_servers);
     ~NrptRule();
 
-    // The rule's registry key, "{GUID}".
+    // The rule's registry key, "{GUID}", derived from its namespaces.
     const std::string& guid() const noexcept
     {
         return rule_guid;

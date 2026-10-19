@@ -54,7 +54,7 @@ bool has_non_empty(const std::vector<std::string>& values)
     return std::ranges::any_of(values, [](const std::string& value) { return !value.empty(); });
 }
 
-std::wstring join_non_empty(const std::vector<std::string>& values, char separator)
+std::string join_non_empty(const std::vector<std::string>& values, char separator)
 {
     std::string joined;
     for (const auto& value : values)
@@ -65,7 +65,16 @@ std::wstring join_non_empty(const std::vector<std::string>& values, char separat
             joined += separator;
         joined += value;
     }
-    return widen(joined);
+    return joined;
+}
+
+// Derived from the namespaces, so that a rule left behind (e.g. by a crash) is reused.
+std::string rule_guid_for(const std::vector<std::string>& dns_namespaces)
+{
+    return fmt::format(
+        "{{{}}}",
+        multipass::utils::make_uuid(
+            fmt::format("Multipass NRPT rule ({})", join_non_empty(dns_namespaces, ';'))));
 }
 
 std::wstring rule_key_path(const std::string& guid)
@@ -97,7 +106,7 @@ NrptRule::NrptRule(const std::string& dns_namespace, const std::vector<std::stri
 
 NrptRule::NrptRule(const std::vector<std::string>& dns_namespaces,
                    const std::vector<std::string>& name_servers)
-    : rule_guid{fmt::format("{{{}}}", multipass::utils::make_uuid())}
+    : rule_guid{rule_guid_for(dns_namespaces)}
 {
     // An empty "Name" makes the rule inert, and an empty "GenericDNSServers" makes every name in
     // the namespaces fail to resolve. Neither is ever intended.
@@ -106,6 +115,7 @@ NrptRule::NrptRule(const std::vector<std::string>& dns_namespaces,
     if (!has_non_empty(name_servers))
         throw std::invalid_argument{"NRPT: at least one name server is required"};
 
+    // Opens the key if it exists, and overwrites all of its values below.
     const auto key_path = rule_key_path(rule_guid);
     HKEY key = nullptr;
     if (const auto status = ::RegCreateKeyExW(HKEY_LOCAL_MACHINE,
@@ -143,7 +153,7 @@ NrptRule::NrptRule(const std::vector<std::string>& dns_namespaces,
     const auto names = make_namespace_multi_sz(dns_namespaces);
     set(L"Version", REG_DWORD, &nrpt_rule_version, sizeof(DWORD));
     set(L"Name", REG_MULTI_SZ, names.data(), names.size() * sizeof(wchar_t));
-    set_string(L"GenericDNSServers", join_non_empty(name_servers, ';'));
+    set_string(L"GenericDNSServers", widen(join_non_empty(name_servers, ';')));
     set(L"ConfigOptions", REG_DWORD, &nrpt_override_dns, sizeof(DWORD));
     set_string(L"DisplayName", widen(nrpt_rule_display_name));
     set_string(L"Comment", L"Created by Multipass");

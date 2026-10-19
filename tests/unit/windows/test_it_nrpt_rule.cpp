@@ -26,6 +26,7 @@
 #include <windows.h>
 // clang-format on
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -116,6 +117,27 @@ TEST_F(HyperVNrptRule_IntegrationTests, multi_suffix_rule_written_and_removed)
     }
 
     EXPECT_FALSE(key_exists(guid)) << "NRPT rule not removed on destruction.";
+}
+
+// A rule left behind (e.g. by a crash) is overwritten by the next one for the same namespaces,
+// instead of rules piling up.
+TEST_F(HyperVNrptRule_IntegrationTests, rule_overwrites_a_leftover_one_for_the_same_namespaces)
+{
+    auto leftover = std::make_unique<dns::NrptRule>(".multipass.reuse",
+                                                    std::vector<std::string>{"172.50.224.1"});
+    const auto guid = leftover->guid();
+
+    {
+        const dns::NrptRule rule{".multipass.reuse", {"172.50.225.1"}};
+        EXPECT_EQ(rule.guid(), guid);
+        EXPECT_EQ(std::wstring{read_value(guid, L"GenericDNSServers").c_str()}, L"172.50.225.1");
+
+        const dns::NrptRule other{".multipass.other", {"172.50.225.1"}};
+        EXPECT_NE(other.guid(), guid);
+    }
+
+    EXPECT_FALSE(key_exists(guid)) << "NRPT rule not removed on destruction.";
+    leftover.reset(); // its key is already gone
 }
 
 } // namespace multipass::test
