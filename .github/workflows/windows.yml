@@ -36,7 +36,14 @@ jobs:
 
           matrix.include.push({
               "name": "Windows Server 2025",
-              "runs-on": "windows-2025"
+              "runs-on": "windows-2025",
+              "build-type": "Debug",
+          });
+
+          matrix.include.push({
+              "name": "Windows Server 2025",
+              "runs-on": "windows-2025",
+              "build-type": "RelWithDebInfo",
           });
 
           core.setOutput('matrix', JSON.stringify(matrix));
@@ -201,7 +208,7 @@ jobs:
       run: >
         cmake
         -B${{ env.BUILD_DIR }}
-        -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
         -GNinja
         -DMULTIPASS_UPSTREAM=origin
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
