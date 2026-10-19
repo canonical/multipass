@@ -47,6 +47,7 @@ impl PetnameBackend {
     ) -> Result<Box<Self>, PetnameError> {
         let separator = separator_c as u8 as char;
         if !matches!(separator, '-' | '_') {
+            #[allow(clippy::unnecessary_cast)]
             return Err(PetnameError::InvalidSeparator(separator_c as i8));
         }
         if !matches!(num_words, NumWords::One | NumWords::Two | NumWords::Three) {
