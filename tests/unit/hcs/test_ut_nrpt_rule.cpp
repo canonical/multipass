@@ -19,6 +19,7 @@
 
 #include <hcs/api/dns/nrpt_rule.h>
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -95,6 +96,23 @@ TEST_F(HyperVNrptRule_UnitTests, empty_list_is_double_nul_terminated)
     ASSERT_EQ(multi.size(), 2u);
     EXPECT_EQ(multi[0], L'\0');
     EXPECT_EQ(multi[1], L'\0');
+}
+
+// ---------------------------------------------------------
+
+// Both cases are rejected before the registry is touched, so they need no privileges.
+TEST_F(HyperVNrptRule_UnitTests, rejects_rule_without_namespaces)
+{
+    const std::vector<std::string> servers{"172.50.224.1"};
+    EXPECT_THROW(dns::NrptRule(std::vector<std::string>{}, servers), std::invalid_argument);
+    EXPECT_THROW(dns::NrptRule(std::vector<std::string>{"", ""}, servers), std::invalid_argument);
+    EXPECT_THROW(dns::NrptRule(std::string{}, servers), std::invalid_argument);
+}
+
+TEST_F(HyperVNrptRule_UnitTests, rejects_rule_without_name_servers)
+{
+    EXPECT_THROW(dns::NrptRule(".multipass", {}), std::invalid_argument);
+    EXPECT_THROW(dns::NrptRule(".multipass", {""}), std::invalid_argument);
 }
 
 } // namespace multipass::test

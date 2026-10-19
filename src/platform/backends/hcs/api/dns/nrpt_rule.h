@@ -24,6 +24,12 @@ namespace multipass::hyperv::dns
 {
 
 /**
+ * DisplayName written to every NRPT rule created by @ref NrptRule. It identifies rules that
+ * Multipass owns, e.g. to clean up rules left behind by a crash.
+ */
+inline constexpr auto nrpt_rule_display_name = "Multipass";
+
+/**
  * Encode a list of DNS namespaces as a REG_MULTI_SZ payload: each entry is NUL-terminated and
  * the list is terminated by a trailing empty string (double NUL). Empty entries are skipped.
  * Exposed for testing the multi-suffix encoding without touching the registry.
@@ -53,6 +59,8 @@ public:
      * @param dns_namespace The namespace to match, including the leading dot
      *                      (e.g. ".multipass.test").
      * @param name_servers  The DNS server IPs to route the namespace to.
+     * @throws std::invalid_argument if @p dns_namespace is empty or @p name_servers has no
+     *                               non-empty entry.
      * @throws std::runtime_error if the rule could not be written to the registry.
      */
     NrptRule(const std::string& dns_namespace, const std::vector<std::string>& name_servers);
@@ -66,6 +74,8 @@ public:
      *
      * @param dns_namespaces The namespaces to match, each including the leading dot.
      * @param name_servers   The DNS server IPs to route the namespaces to.
+     * @throws std::invalid_argument if @p dns_namespaces or @p name_servers has no non-empty
+     *                               entry.
      * @throws std::runtime_error if the rule could not be written to the registry.
      */
     NrptRule(const std::vector<std::string>& dns_namespaces,
