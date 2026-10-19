@@ -20,6 +20,7 @@
 #include <multipass/alias_definition.h>
 #include <multipass/availability_zone_manager.h>
 #include <multipass/days.h>
+#include <multipass/dns_provider.h>
 #include <multipass/logging/logger.h>
 #include <multipass/network_interface_info.h>
 #include <multipass/process/process.h>
@@ -92,6 +93,10 @@ public:
 
     // Shuts down I/O on a socket in both directions, without closing it
     virtual void shutdown_socket(Socket socket) const;
+
+    // Creates the provider that makes instances resolvable by name from the host. Where the
+    // platform cannot do that, the provider does nothing.
+    [[nodiscard]] virtual DnsProvider::UPtr make_dns_provider() const;
 };
 
 QString interpret_setting(const QString& key, const QString& val);
