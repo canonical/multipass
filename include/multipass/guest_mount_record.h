@@ -17,8 +17,8 @@
 
 #pragma once
 
+#include <multipass/build_constants.h>
 #include <multipass/disabled_copy_move.h>
-#include <multipass/guest_paths.h>
 
 #include <string>
 

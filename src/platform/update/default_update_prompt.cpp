@@ -18,8 +18,8 @@
 #include "default_update_prompt.h"
 #include "new_release_monitor.h"
 
+#include <multipass/build_constants.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
-#include <multipass/version.h>
 
 namespace mp = multipass;
 

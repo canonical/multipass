@@ -17,6 +17,7 @@
 
 #include <multipass/url_downloader.h>
 
+#include <multipass/build_constants.h>
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/file_ops.h>
@@ -24,7 +25,6 @@
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/utils.h>
-#include <multipass/version.h>
 
 #include <QDir>
 #include <QEventLoop>
