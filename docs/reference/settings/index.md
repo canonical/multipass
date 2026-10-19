@@ -21,6 +21,7 @@ As of now, this is the total set of settings available:
 - [client.apps.windows-terminal.profiles](client-apps-windows-terminal-profiles)
 - [client.primary-name](client-primary-name)
 - [local.bridged-network](local-bridged-network)
+- [local.dns-domain](local-dns-domain)
 - [local.driver](local-driver)
 - [local.\<instance-name>.bridged](local-instance-name-bridged)
 - [local.\<instance-name>.cpus](local-instance-name-cpus)
