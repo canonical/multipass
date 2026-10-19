@@ -1022,18 +1022,19 @@ TEST_P(DaemonCreateLaunchTestSuite, addsMountMotdScriptToCloudInitConfig)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, prepare_instance_image)
-        .WillOnce([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
-            const auto motd_scripts = motd_scripts_in(desc.vendor_data_config);
-            ASSERT_THAT(motd_scripts, SizeIs(1));
-            const auto& script = motd_scripts.front();
-
-            verify_motd_filename(script);
-            verify_motd_permissions(script);
-            EXPECT_THAT(script["content"].as<std::string>(), StartsWith("#!"));
-        });
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
     send_command({GetParam()});
+
+    const auto motd_scripts = motd_scripts_in(cloud_init_file_in(cloud_init_iso, "vendor-data"));
+    ASSERT_THAT(motd_scripts, SizeIs(1));
+    const auto& script = motd_scripts.front();
+
+    verify_motd_filename(script);
+    verify_motd_permissions(script);
+    EXPECT_THAT(script["content"].as<std::string>(), StartsWith("#!"));
 }
 
 TEST_P(DaemonCreateLaunchTestSuite, omitsMountMotdScriptOnFedora)
@@ -1041,12 +1042,13 @@ TEST_P(DaemonCreateLaunchTestSuite, omitsMountMotdScriptOnFedora)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    EXPECT_CALL(*mock_factory, prepare_instance_image(_, _))
-        .WillOnce([](const multipass::VMImage&, const mp::VirtualMachineDescription& desc) {
-            EXPECT_THAT(motd_scripts_in(desc.vendor_data_config), IsEmpty());
-        });
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
     send_command({GetParam(), "fedora"});
+
+    EXPECT_THAT(motd_scripts_in(cloud_init_file_in(cloud_init_iso, "vendor-data")), IsEmpty());
 }
 
 TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
