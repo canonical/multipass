@@ -166,6 +166,7 @@ protected:
     void handle_state_update() override;
 
 private:
+    void set_state_impl(State state);
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
 
     template <typename LockT>
