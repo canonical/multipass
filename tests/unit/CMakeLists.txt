@@ -98,6 +98,7 @@ add_executable(multipass_cpp_tests
   test_daemon_zones.cpp
   test_delayed_shutdown.cpp
   test_disabled_copy_move.cpp
+  test_dns_server.cpp
   test_exception.cpp
   test_file_ops.cpp
   test_format_utils.cpp
@@ -179,6 +180,7 @@ target_link_libraries(multipass_cpp_tests
   client
   daemon
   delayed_shutdown
+  dns
   GTest::gtest_main
   GTest::gmock_main
   ip_address

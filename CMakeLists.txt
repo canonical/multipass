@@ -240,7 +240,11 @@ if(UNIX)
 endif()
 
 # Boost config
-find_package(Boost CONFIG REQUIRED COMPONENTS json uuid)
+find_package(Boost CONFIG REQUIRED COMPONENTS asio json uuid)
+
+# c-ares config (DNS message encoding/decoding)
+find_package(c-ares CONFIG REQUIRED)
+# targets: c-ares::cares
 
 # OpenSSL config
 find_package(OpenSSL CONFIG REQUIRED)
