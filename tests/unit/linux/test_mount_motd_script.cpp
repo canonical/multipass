@@ -136,7 +136,12 @@ const auto decoded_targets = Scenario{
     .records = {Record{.encoded_target = "%2Fhome%2Fubuntu%2Fmy data",
                        .target = "/home/ubuntu/my data",
                        .source = "/a"},
-                Record{.encoded_target = "%2Fz%25%2525", .target = "/z%%25", .source = "/b"}}};
+                Record{.encoded_target = "%2Fj%25%2525",
+                       .target = "/j%%25", // literal %25
+                       .source = "/b"},
+                Record{.encoded_target = "%2Fl%252Fb",
+                       .target = "/l%2Fb", // literal %2F
+                       .source = "/c"}}};
 
 const auto verbatim_sources = Scenario{.name = "verbatimSources",
                                        .records = {Record{.encoded_target = "%2Fdata",
