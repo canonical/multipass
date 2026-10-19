@@ -18,6 +18,7 @@
 #pragma once
 
 #include <multipass/disabled_copy_move.h>
+#include <multipass/guest_paths.h>
 
 #include <string>
 
@@ -30,7 +31,7 @@ class VirtualMachine;
 class GuestMountRecord : private DisabledCopyMove
 {
 public:
-    static constexpr auto records_dir = "/run/multipass/mounts";
+    static constexpr auto records_dir = guest_mount_records_dir;
 
     GuestMountRecord(const std::string& source, const std::string& target);
 

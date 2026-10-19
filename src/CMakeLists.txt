@@ -18,6 +18,14 @@ configure_file(
   @ONLY
 )
 
+# Where the daemon records mounts in guests, for the MOTD script to list them
+set(MULTIPASS_GUEST_MOUNT_RECORDS_DIR /run/multipass/mounts)
+configure_file(
+  guest_paths.h.in
+  ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/guest_paths.h
+  @ONLY
+)
+
 add_subdirectory(cert)
 add_subdirectory(client)
 add_subdirectory(daemon)
