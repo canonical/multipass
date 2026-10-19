@@ -56,6 +56,7 @@ from cli.multipass import (
     get_multipass_path,
     get_multipassd_path,
     get_multipass_version,
+    skip_if_feature_not_supported,
 )
 
 from cli.config import cfg
@@ -361,12 +362,23 @@ def pytest_collection_modifyitems(config, items):
                 )
             )
 
+    def maybe_skip_dns_test(item):
+        if not item.get_closest_marker("dns"):
+            return
+        if sys.platform != "win32":
+            item.add_marker(
+                pytest.mark.skip(
+                    "Skipped -- Resolving instances by name is only implemented on Windows yet."
+                )
+            )
+
     for item in items:
         maybe_skip_mount_test(item)
         maybe_skip_clone_test(item)
         maybe_skip_snapshot_test(item)
         maybe_skip_suspend_test(item)
         maybe_skip_az_test(item)
+        maybe_skip_dns_test(item)
 
 
 def pytest_runtest_setup(item):
@@ -634,6 +646,22 @@ def windows_privileged_mounts(multipassd):
         if "true" in multipass("get", "local.privileged-mounts"):
             return
         assert multipass("set", "local.privileged-mounts=1")
+
+
+@pytest.fixture
+def dns_domain(multipassd):
+    """Sets `local.dns-domain` for a test, and restores the default after it."""
+
+    skip_if_feature_not_supported("dns_domain")
+
+    def set_dns_domain(domain):
+        assert multipass("set", f"local.dns-domain={domain}")
+        multipassd.wait_for_restart()  # on settings changes
+
+    yield set_dns_domain
+
+    if multipass("get", "local.dns-domain") != "multipass.local":
+        set_dns_domain("multipass.local")
 
 
 @pytest.fixture(scope="function")

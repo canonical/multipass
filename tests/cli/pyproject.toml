@@ -45,4 +45,5 @@ markers = [
     "images: Images tests",
     "exec: Exec tests",
     "az: Availability zone tests",
+    "dns: Tests for resolving instances by name from the host",
 ]

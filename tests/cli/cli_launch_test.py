@@ -31,7 +31,8 @@ from cli.multipass import (
     info,
     state,
     vm_exists,
-    skip_if_feature_not_supported
+    skip_if_feature_not_supported,
+    assert_resolves_by_name,
 )
 
 
@@ -72,6 +73,7 @@ class TestLaunch:
                 "ipv4": is_valid_ipv4_addr,
             },
         )
+        assert_resolves_by_name(instance)
 
         if feat_snapshot:
             assert snapshot_count(instance) == 0
