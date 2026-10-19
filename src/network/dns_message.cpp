@@ -21,7 +21,7 @@
 #include <ares.h>
 
 #include <algorithm>
-#include <cstring>
+#include <bit>
 #include <memory>
 #include <stdexcept>
 
@@ -30,14 +30,9 @@ namespace asio = boost::asio;
 
 namespace
 {
-struct RecordDeleter
-{
-    void operator()(ares_dns_record_t* record) const noexcept
-    {
-        ares_dns_record_destroy(record);
-    }
-};
-using Record = std::unique_ptr<ares_dns_record_t, RecordDeleter>;
+using Record = std::unique_ptr<ares_dns_record_t, decltype([](ares_dns_record_t* record) {
+                                   ares_dns_record_destroy(record);
+                               })>;
 
 void check(ares_status_t status)
 {
@@ -70,9 +65,7 @@ void add_address(ares_dns_record_t* record,
                                  ARES_CLASS_IN,
                                  ttl));
 
-    const auto bytes = address.to_bytes();
-    in_addr addr{};
-    std::memcpy(&addr, bytes.data(), bytes.size());
+    const auto addr = std::bit_cast<in_addr>(address.to_bytes());
     check(ares_dns_rr_set_addr(rr, ARES_RR_A_ADDR, &addr));
 }
 } // namespace

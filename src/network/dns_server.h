@@ -53,6 +53,6 @@ private:
     const boost::asio::ip::udp::endpoint bound_endpoint;
     std::array<std::uint8_t, 4096> buffer{};
     boost::asio::ip::udp::endpoint sender;
-    std::thread thread;
+    std::jthread thread; // last, to be joined first
 };
 } // namespace multipass::dns

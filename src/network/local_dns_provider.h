@@ -22,10 +22,10 @@
 #include <multipass/dns_provider.h>
 
 #include <functional>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace multipass
@@ -59,7 +59,7 @@ private:
     const boost::asio::ip::udp::endpoint first;
     const unsigned address_count;
     mutable std::mutex mutex;
-    std::unordered_map<std::string, std::vector<boost::asio::ip::address_v4>> hosts;
+    std::map<std::string, std::vector<boost::asio::ip::address_v4>, std::less<>> hosts;
     std::unique_ptr<dns::Server> server;
     std::shared_ptr<void> route;
 };

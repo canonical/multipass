@@ -23,8 +23,10 @@
 #include <windows.h>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <algorithm>
+#include <ranges>
 #include <stdexcept>
 
 namespace multipass::hyperv::dns
@@ -49,32 +51,23 @@ std::wstring widen(const std::string& s)
     return out;
 }
 
-bool has_non_empty(const std::vector<std::string>& values)
+bool non_empty(const std::string& value)
 {
-    return std::ranges::any_of(values, [](const std::string& value) { return !value.empty(); });
+    return !value.empty();
 }
 
-std::string join_non_empty(const std::vector<std::string>& values, char separator)
+// Separated by semicolons, as in the registry.
+std::string join_non_empty(const std::vector<std::string>& values)
 {
-    std::string joined;
-    for (const auto& value : values)
-    {
-        if (value.empty())
-            continue;
-        if (!joined.empty())
-            joined += separator;
-        joined += value;
-    }
-    return joined;
+    return fmt::format("{}", fmt::join(values | std::views::filter(non_empty), ";"));
 }
 
 // Derived from the namespaces, so that a rule left behind (e.g. by a crash) is reused.
 std::string rule_guid_for(const std::vector<std::string>& dns_namespaces)
 {
-    return fmt::format(
-        "{{{}}}",
-        multipass::utils::make_uuid(
-            fmt::format("Multipass NRPT rule ({})", join_non_empty(dns_namespaces, ';'))));
+    return fmt::format("{{{}}}",
+                       multipass::utils::make_uuid(fmt::format("Multipass NRPT rule ({})",
+                                                               join_non_empty(dns_namespaces))));
 }
 
 std::wstring rule_key_path(const std::string& guid)
@@ -86,13 +79,8 @@ std::wstring rule_key_path(const std::string& guid)
 std::wstring make_namespace_multi_sz(const std::vector<std::string>& dns_namespaces)
 {
     std::wstring multi;
-    for (const auto& ns : dns_namespaces)
-    {
-        if (ns.empty())
-            continue;
-        multi += widen(ns);
-        multi.push_back(L'\0'); // terminate this entry
-    }
+    for (const auto& ns : dns_namespaces | std::views::filter(non_empty))
+        multi += widen(ns) + L'\0'; // terminate this entry
     if (multi.empty())
         multi.push_back(L'\0'); // empty list still needs one terminator before the final one
     multi.push_back(L'\0');     // terminate the list
@@ -110,9 +98,9 @@ NrptRule::NrptRule(const std::vector<std::string>& dns_namespaces,
 {
     // An empty "Name" makes the rule inert, and an empty "GenericDNSServers" makes every name in
     // the namespaces fail to resolve. Neither is ever intended.
-    if (!has_non_empty(dns_namespaces))
+    if (std::ranges::none_of(dns_namespaces, non_empty))
         throw std::invalid_argument{"NRPT: at least one DNS namespace is required"};
-    if (!has_non_empty(name_servers))
+    if (std::ranges::none_of(name_servers, non_empty))
         throw std::invalid_argument{"NRPT: at least one name server is required"};
 
     // Opens the key if it exists, and overwrites all of its values below.
@@ -153,7 +141,7 @@ NrptRule::NrptRule(const std::vector<std::string>& dns_namespaces,
     const auto names = make_namespace_multi_sz(dns_namespaces);
     set(L"Version", REG_DWORD, &nrpt_rule_version, sizeof(DWORD));
     set(L"Name", REG_MULTI_SZ, names.data(), names.size() * sizeof(wchar_t));
-    set_string(L"GenericDNSServers", widen(join_non_empty(name_servers, ';')));
+    set_string(L"GenericDNSServers", widen(join_non_empty(name_servers)));
     set(L"ConfigOptions", REG_DWORD, &nrpt_override_dns, sizeof(DWORD));
     set_string(L"DisplayName", widen(nrpt_rule_display_name));
     set_string(L"Comment", L"Created by Multipass");

@@ -25,6 +25,7 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
+#include <ranges>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -104,18 +105,17 @@ void mp::LocalDnsProvider::set_host(const std::string& host,
                                     const std::vector<IPAddress>& addresses)
 {
     auto name = dns::normalize_name(host);
+    mpl::debug(category,
+               "{} resolves to {}",
+               name,
+               fmt::join(addresses | std::views::transform(&IPAddress::as_string), ", "));
 
-    std::vector<asio::ip::address_v4> records;
-    std::vector<std::string> shown;
-    for (const auto& address : addresses)
-    {
-        records.emplace_back(address.octets);
-        shown.push_back(address.as_string());
-    }
-    mpl::debug(category, "{} resolves to {}", name, fmt::join(shown, ", "));
+    const auto records = addresses | std::views::transform([](const IPAddress& address) {
+                             return asio::ip::address_v4{address.octets};
+                         });
 
     const std::lock_guard lock{mutex};
-    hosts.insert_or_assign(std::move(name), std::move(records));
+    hosts.insert_or_assign(std::move(name), std::vector(records.begin(), records.end()));
 }
 
 void mp::LocalDnsProvider::remove_host(const std::string& host)
@@ -129,6 +129,6 @@ void mp::LocalDnsProvider::remove_host(const std::string& host)
 std::vector<asio::ip::address_v4> mp::LocalDnsProvider::lookup(std::string_view host) const
 {
     const std::lock_guard lock{mutex};
-    const auto it = hosts.find(std::string{host});
+    const auto it = hosts.find(host);
     return it == hosts.end() ? std::vector<asio::ip::address_v4>{} : it->second;
 }
