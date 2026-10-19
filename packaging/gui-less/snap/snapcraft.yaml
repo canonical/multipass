@@ -30,9 +30,6 @@ layout:
     bind: $SNAP/usr/share/icons
 
 environment:
-  # GDK pixbuf
-  GDK_PIXBUF_MODULEDIR: $SNAP/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/gdk-pixbuf-2.0/2.10.0/loaders
-  GDK_PIXBUF_MODULE_FILE: $SNAP_COMMON/loaders.cache
   ARCH_TRIPLET: ${CRAFT_ARCH_TRIPLET_BUILD_FOR}
 
 plugs:
@@ -202,7 +199,7 @@ parts:
     prime:
     - -protobuf
 
-    source: https://github.com/canonical/multipass.git
+    source: ../..
     source-type: git
     override-pull: |
       set -e
@@ -251,13 +248,11 @@ parts:
 
   glue:
     plugin: dump
-    source: https://github.com/canonical/multipass.git
+    source: ../../snap-wrappers
 
 # The Flutter GUI libraries depend on GUI components which are provided by the GNOME
 # extension. The extension is attached at runtime, so the linter incorrectly flags
 # the libraries as "missing dependencies".
-    source-type: git
-    source-subdir: snap-wrappers
 lint:
   ignore:
   - library:
