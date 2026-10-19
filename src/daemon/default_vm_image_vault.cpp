@@ -51,15 +51,16 @@ constexpr auto category = "image vault";
 constexpr auto instance_db_name = "multipassd-instance-image-records.json";
 constexpr auto image_db_name = "multipassd-image-records.json";
 
-std::unordered_map<std::string, mp::VaultRecord> load_db(const QString& db_name)
+std::unordered_map<std::string, mp::VaultRecord> load_db(const std::filesystem::path& db_name)
 {
-    QFile db_file{db_name};
-    auto opened = db_file.open(QIODevice::ReadOnly);
-    if (!opened || db_file.size() == 0)
-        return {};
-
-    auto records = boost::json::parse(std::string_view(db_file.readAll()));
-    return value_to<std::unordered_map<std::string, mp::VaultRecord>>(records);
+    if (auto filedata = MP_FILEOPS.try_read_file(db_name))
+    {
+        if (filedata->empty())
+            return {};
+        auto records = boost::json::parse(*filedata);
+        return value_to<std::unordered_map<std::string, mp::VaultRecord>>(records);
+    }
+    return {};
 }
 
 void remove_source_images(const mp::VMImage& source_image, const mp::VMImage& prepared_image)
@@ -131,8 +132,8 @@ mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hos
       data_dir{QDir(data_dir_path).filePath("vault")},
       images_dir(cache_dir.filePath("images")),
       days_to_expire{days_to_expire},
-      prepared_image_records{load_db(cache_dir.filePath(image_db_name))},
-      instance_image_records{load_db(data_dir.filePath(instance_db_name))}
+      prepared_image_records{load_db(MP_PLATFORM.qstr_to_path(cache_dir.filePath(image_db_name)))},
+      instance_image_records{load_db(MP_PLATFORM.qstr_to_path(data_dir.filePath(instance_db_name)))}
 {
     // TODO: Remove after Multipass 1.17
     // The OS field will be unpopulated for existing images in the vault. As of 1.16, the only
