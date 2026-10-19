@@ -40,7 +40,7 @@ const auto replacement = std::string{"\uFFFD"}; // replacement character: �
 
 struct Record
 {
-    QString name; // the percent-encoded target
+    QString encoded_target; // the record's file name
     std::string target;
     std::string source;
     std::string terminator = "\n";
@@ -57,7 +57,7 @@ struct MountMotdScript : public Test
 {
     void plant(const Record& record)
     {
-        mpt::make_file_with_content(records_dir.filePath(record.name),
+        mpt::make_file_with_content(records_dir.filePath(record.encoded_target),
                                     record.source + record.terminator);
     }
 
@@ -123,33 +123,35 @@ const auto no_records = Scenario{.name = "noRecords", .records = {}};
 
 const auto sorted_by_target = Scenario{
     .name = "sortedByTarget",
-    .records = {Record{.name = "%2Fhome%2Fubuntu%2Fdata",
+    .records = {Record{.encoded_target = "%2Fhome%2Fubuntu%2Fdata",
                        .target = "/home/ubuntu/data",
                        .source = "/home/alice/data"},
-                Record{.name = "%2Fhome%2Fubuntu%2Fsrc",
+                Record{.encoded_target = "%2Fhome%2Fubuntu%2Fsrc",
                        .target = "/home/ubuntu/src",
                        .source = "/home/alice/src"},
-                Record{.name = "%2Fmnt", .target = "/mnt", .source = "/srv"}}};
+                Record{.encoded_target = "%2Fmnt", .target = "/mnt", .source = "/srv"}}};
 
 const auto decoded_targets = Scenario{
     .name = "decodedTargets",
-    .records = {Record{.name = "%2Fhome%2Fubuntu%2Fmy data",
+    .records = {Record{.encoded_target = "%2Fhome%2Fubuntu%2Fmy data",
                        .target = "/home/ubuntu/my data",
                        .source = "/a"},
-                Record{.name = "%2Fz%25%2525", .target = "/z%%25", .source = "/b"}}};
+                Record{.encoded_target = "%2Fz%25%2525", .target = "/z%%25", .source = "/b"}}};
 
-const auto verbatim_sources = Scenario{
-    .name = "verbatimSources",
-    .records = {
-        Record{.name = "%2Fdata", .target = "/data", .source = R"(C:\Users\alice\my data)"}}};
+const auto verbatim_sources = Scenario{.name = "verbatimSources",
+                                       .records = {Record{.encoded_target = "%2Fdata",
+                                                          .target = "/data",
+                                                          .source = R"(C:\Users\alice\my data)"}}};
 
-const auto no_trailing_newline = Scenario{
-    .name = "noTrailingNewline",
-    .records = {Record{.name = "%2Fdata", .target = "/data", .source = "/src", .terminator = ""}}};
+const auto no_trailing_newline = Scenario{.name = "noTrailingNewline",
+                                          .records = {Record{.encoded_target = "%2Fdata",
+                                                             .target = "/data",
+                                                             .source = "/src",
+                                                             .terminator = ""}}};
 
 const auto neutralized_control_characters = Scenario{
     .name = "neutralizedControlCharacters",
-    .records = {Record{.name = "%2Fx\x1b[2Jy",
+    .records = {Record{.encoded_target = "%2Fx\x1b[2Jy",
                        .target = fmt::format("/x{}[2Jy", replacement),
                        .source = "/a\x1b]0;title\ab",
                        .shown_source = fmt::format("/a{0}]0;title{0}b", replacement)}}};
