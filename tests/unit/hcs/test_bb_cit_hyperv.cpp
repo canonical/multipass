@@ -116,6 +116,116 @@ std::string neighbor_ip_for_mac(const std::string& mac_dashed,
 // PowerShell-style registry path of the DNS client parameters (suffix append, NRPT lives below).
 constexpr auto dnscache_key = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters";
 
+// A hostname unique to this run. The ICS DNS proxy keeps the registrations of earlier runs (for
+// about a week), so a reused name could resolve to a stale lease and mask a broken registration.
+std::string unique_hostname(const std::string& prefix)
+{
+    std::mt19937_64 rng{std::random_device{}()};
+    return fmt::format("{}-{:08x}", prefix, static_cast<std::uint32_t>(rng()));
+}
+
+// Builds a NoCloud seed ISO at `iso` whose guest advertises `hostname` over DHCP (option 12), so
+// that the ICS DNS proxy registers it. Requires Python with pycdlib.
+void build_seed_iso(const std::string& hostname, const std::filesystem::path& iso)
+{
+    const auto output = run_powershell(
+        fmt::format("python '{}/cloud-init-fqdn-multipass/make_seed_iso.py' --hostname '{}' "
+                    "--output '{}' 2>&1",
+                    test_data_path,
+                    hostname,
+                    iso.string()));
+    ASSERT_TRUE(std::filesystem::exists(iso)) << "seed ISO build failed: " << output;
+}
+
+// Makes the host's DNS client retry a multi-label name that fails to resolve with `suffix`
+// appended (SuffixSearchList + AppendToMultiLabelName). Both settings are machine-wide, so they
+// are restored on scope exit.
+class ScopedSuffixAppend
+{
+public:
+    explicit ScopedSuffixAppend(const std::string& suffix)
+        : saved_list{run_powershell("(Get-DnsClientGlobalSetting).SuffixSearchList -join ','")},
+          saved_amln{run_powershell(fmt::format(
+              "$v=(Get-ItemProperty -Path '{}' -Name AppendToMultiLabelName -EA SilentlyContinue)."
+              "AppendToMultiLabelName; if ($null -eq $v) {{ 'UNSET' }} else {{ $v }}",
+              dnscache_key))}
+    {
+        (void)run_powershell(fmt::format(
+            "Set-DnsClientGlobalSetting -SuffixSearchList @('{}'); "
+            "Set-ItemProperty -Path '{}' -Name AppendToMultiLabelName -Value 1 -Type DWord",
+            suffix,
+            dnscache_key));
+    }
+
+    ~ScopedSuffixAppend()
+    {
+        (void)run_powershell(
+            saved_list.empty()
+                ? std::string{"Set-DnsClientGlobalSetting -SuffixSearchList @()"}
+                : fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList ('{}' -split ',')",
+                              saved_list));
+        (void)run_powershell(
+            saved_amln == "UNSET"
+                ? fmt::format("Remove-ItemProperty -Path '{}' -Name AppendToMultiLabelName "
+                              "-EA SilentlyContinue",
+                              dnscache_key)
+                : fmt::format("Set-ItemProperty -Path '{}' -Name AppendToMultiLabelName -Value {} "
+                              "-Type DWord",
+                              dnscache_key,
+                              saved_amln));
+        (void)run_powershell("Clear-DnsClientCache");
+    }
+
+    ScopedSuffixAppend(const ScopedSuffixAppend&) = delete;
+    ScopedSuffixAppend& operator=(const ScopedSuffixAppend&) = delete;
+
+private:
+    std::string saved_list;
+    std::string saved_amln;
+};
+
+// Removes the given compute systems, endpoints and networks up front (remnants of an interrupted
+// run) and again on scope exit, so that a failing assertion does not leak a running VM. Declare it
+// after anything the VMs use (e.g. temporary disks), so that the VMs are gone before those are.
+class ScopedHcsResources
+{
+public:
+    ScopedHcsResources(std::vector<std::string> vms,
+                       std::vector<std::string> endpoints,
+                       std::vector<std::string> networks)
+        : vms{std::move(vms)}, endpoints{std::move(endpoints)}, networks{std::move(networks)}
+    {
+        remove();
+    }
+
+    ~ScopedHcsResources()
+    {
+        remove();
+    }
+
+    ScopedHcsResources(const ScopedHcsResources&) = delete;
+    ScopedHcsResources& operator=(const ScopedHcsResources&) = delete;
+
+private:
+    void remove() const noexcept
+    {
+        for (const auto& vm : vms)
+        {
+            if (hyperv::hcs::HcsSystemHandle vm_handle{nullptr};
+                HCS().open_compute_system(vm, vm_handle))
+                (void)HCS().terminate_compute_system(vm_handle);
+        }
+        for (const auto& endpoint : endpoints)
+            (void)HCN().delete_endpoint(endpoint);
+        for (const auto& network : networks)
+            (void)HCN().delete_network(network);
+    }
+
+    std::vector<std::string> vms;
+    std::vector<std::string> endpoints;
+    std::vector<std::string> networks;
+};
+
 // Bring up one network + endpoint + guest on a given subnet/gateway, advertising a dotted hostname.
 // vhdx/iso must already exist and outlive the VM. Returns the started VM handle.
 hyperv::hcs::HcsSystemHandle boot_guest(const std::string& net_guid,
@@ -627,8 +737,8 @@ TEST_F(HyperV_ComponentIntegrationTests, endpoints_tagged_with_same_name_are_fou
 //
 // Two notes on what this exercises:
 //   * The guest must advertise its hostname over DHCP (option 12) for the ICS DHCP/DNS proxy
-//     to register it. Stock Alpine's busybox udhcpc does not, so we boot it with the
-//     "cloud-init-dhcp-hostname" seed that re-runs udhcpc with the hostname.
+//     to register it. Stock Alpine's busybox udhcpc does not, so we boot it with a seed (built
+//     at run time, for a hostname unique to the run) that re-runs udhcpc with the hostname.
 //   * The ICS DNS proxy registers leased hostnames under the machine-wide ICS domain
 //     (HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\ICSDomain, default
 //     "mshome.net"). That domain -- not the per-network HCN DNS suffix -- determines the FQDN
@@ -638,7 +748,7 @@ TEST_F(HyperV_ComponentIntegrationTests, endpoints_tagged_with_same_name_are_fou
 TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_hostname_resolution)
 {
     constexpr auto dns_suffix = "mshome.net";
-    constexpr auto guest_hostname = "multipass-alpine-it"; // set by cloud-init meta-data
+    const auto guest_hostname = unique_hostname("mp-host");
     constexpr auto gateway_ip = "172.50.224.1";
     constexpr auto ics_domain = "mshome.net"; // machine-wide ICS registration domain
     constexpr auto adapter_mac = "00-15-5D-9D-CF-70";
@@ -679,10 +789,9 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_hostname_resolution)
 
     const auto vhdx_path = make_tempfile_path(".vhdx");
     reassemble_alpine_vhdx(vhdx_path);
-    const std::filesystem::path cloud_init_iso_path{
-        fmt::format("{}/cloud-init-dhcp-hostname/cloud-init.iso", test_data_path)};
+    const auto cloud_init_iso_path = make_tempfile_path(".iso");
+    ASSERT_NO_FATAL_FAILURE(build_seed_iso(guest_hostname, cloud_init_iso_path));
     ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(vhdx_path)));
-    ASSERT_TRUE(std::filesystem::exists(cloud_init_iso_path));
 
     const auto vm_name = "multipass-hyperv-cit-dns-vm";
 
@@ -703,14 +812,9 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_hostname_resolution)
         return vm_parameters;
     }();
 
-    // Remove remnants from previous runs, if any.
-    if (HCS().open_compute_system(vm_name, handle))
-    {
-        (void)HCS().terminate_compute_system(handle);
-        handle.reset();
-    }
-    (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
-    (void)HCN().delete_network(network_parameters.guid);
+    const ScopedHcsResources resources{{vm_name},
+                                       {endpoint_parameters.endpoint_guid},
+                                       {network_parameters.guid}};
 
     // Create the DNS-suffixed network.
     {
@@ -811,8 +915,8 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_hostname_resolution)
 TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_nrpt_resolution)
 {
     constexpr auto custom_suffix = "multipass";
-    constexpr auto guest_hostname = "multipass-alpine-it"; // from cloud-init meta-data
-    constexpr auto gateway_ip = "172.50.224.1";            // ICS proxy answers guest names here
+    const auto guest_hostname = unique_hostname("mp-nrpt");
+    constexpr auto gateway_ip = "172.50.224.1"; // ICS proxy answers guest names here
     constexpr auto adapter_mac = "00-15-5D-9D-CF-71";
     const auto clean_fqdn = fmt::format("{}.{}", guest_hostname, custom_suffix); // the goal
 
@@ -887,10 +991,9 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_nrpt_resolution)
 
     const auto vhdx_path = make_tempfile_path(".vhdx");
     reassemble_alpine_vhdx(vhdx_path);
-    const std::filesystem::path cloud_init_iso_path{
-        fmt::format("{}/cloud-init-dhcp-hostname/cloud-init.iso", test_data_path)};
+    const auto cloud_init_iso_path = make_tempfile_path(".iso");
+    ASSERT_NO_FATAL_FAILURE(build_seed_iso(guest_hostname, cloud_init_iso_path));
     ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(vhdx_path)));
-    ASSERT_TRUE(std::filesystem::exists(cloud_init_iso_path));
 
     const auto vm_name = "multipass-hyperv-cit-nrpt-vm";
 
@@ -911,13 +1014,9 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_nrpt_resolution)
         return vm_parameters;
     }();
 
-    if (HCS().open_compute_system(vm_name, handle))
-    {
-        (void)HCS().terminate_compute_system(handle);
-        handle.reset();
-    }
-    (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
-    (void)HCN().delete_network(network_parameters.guid);
+    const ScopedHcsResources resources{{vm_name},
+                                       {endpoint_parameters.endpoint_guid},
+                                       {network_parameters.guid}};
 
     {
         const auto& [status, status_msg] = HCN().create_network(network_parameters);
@@ -1019,10 +1118,7 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_fqdn_append_resolution)
     // registrations across runs (and SharedAccess cannot be restarted while HNS pins it), so
     // reusing a hostname would resolve to a stale lease. A fresh label guarantees the proxy
     // holds no prior record for this name.
-    const auto guest_hostname = [] {
-        std::mt19937_64 rng{std::random_device{}()};
-        return fmt::format("mp-fqdn-{:08x}.multipass", static_cast<std::uint32_t>(rng()));
-    }();
+    const auto guest_hostname = unique_hostname("mp-fqdn") + ".multipass";
     const auto clean_fqdn = guest_hostname; // what the user types (the goal)
     // The name the ICS proxy actually stores (advertised + verbatim global ICSDomain).
     const auto append_suffix = std::string{"mshome.net"};
@@ -1037,44 +1133,7 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_fqdn_append_resolution)
 
     // Host DNS-client config: append "mshome.net" to multi-label names. Saved + restored for
     // test hygiene (in production these are permanent install-time settings).
-    const auto saved_suffix_list = run_powershell(
-        "(Get-DnsClientGlobalSetting).SuffixSearchList -join ','");
-    const auto saved_amln = run_powershell(fmt::format(
-        "$v=(Get-ItemProperty -Path '{}' -Name AppendToMultiLabelName -EA SilentlyContinue)."
-        "AppendToMultiLabelName; if ($null -eq $v) {{ 'UNSET' }} else {{ $v }}",
-        dnscache_key));
-
-    (void)run_powershell(
-        fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList @('{}'); "
-                    "Set-ItemProperty -Path '{}' -Name AppendToMultiLabelName -Value 1 -Type DWord",
-                    append_suffix,
-                    dnscache_key));
-
-    struct DnsClientGuard
-    {
-        std::string suffix_key;
-        std::string saved_list;
-        std::string saved_amln;
-        ~DnsClientGuard()
-        {
-            if (saved_list.empty())
-                (void)run_powershell("Set-DnsClientGlobalSetting -SuffixSearchList @()");
-            else
-                (void)run_powershell(
-                    fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList ('{}' -split ',')",
-                                saved_list));
-            if (saved_amln == "UNSET")
-                (void)run_powershell(fmt::format("Remove-ItemProperty -Path '{}' -Name "
-                                                 "AppendToMultiLabelName -EA SilentlyContinue",
-                                                 suffix_key));
-            else
-                (void)run_powershell(fmt::format("Set-ItemProperty -Path '{}' -Name "
-                                                 "AppendToMultiLabelName -Value {} -Type DWord",
-                                                 suffix_key,
-                                                 saved_amln));
-            (void)run_powershell("Clear-DnsClientCache");
-        }
-    } dns_client_guard{dnscache_key, saved_suffix_list, saved_amln};
+    const ScopedSuffixAppend suffix_append{append_suffix};
 
     // NRPT routes only ".multipass.mshome.net" to the ICS proxy (production NrptRule component).
     hyperv::dns::NrptRule nrpt_rule{nrpt_namespace, {gateway_ip}};
@@ -1114,17 +1173,7 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_fqdn_append_resolution)
 
     // Build a NoCloud seed ISO advertising the unique dotted hostname at run time.
     const auto cloud_init_iso_path = make_tempfile_path(".iso");
-    {
-        const auto script = fmt::format("{}/cloud-init-fqdn-multipass/make_seed_iso.py",
-                                        test_data_path);
-        const std::filesystem::path& iso_ref = cloud_init_iso_path;
-        const auto build_out = run_powershell(
-            fmt::format("python '{}' --hostname '{}' --output '{}' 2>&1",
-                        script,
-                        guest_hostname,
-                        iso_ref.string()));
-        ASSERT_TRUE(std::filesystem::exists(iso_ref)) << "seed ISO build failed: " << build_out;
-    }
+    ASSERT_NO_FATAL_FAILURE(build_seed_iso(guest_hostname, cloud_init_iso_path));
     ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(vhdx_path)));
 
     const auto vm_name = "multipass-hyperv-cit-fqdn-vm";
@@ -1146,13 +1195,9 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_fqdn_append_resolution)
         return vm_parameters;
     }();
 
-    if (HCS().open_compute_system(vm_name, handle))
-    {
-        (void)HCS().terminate_compute_system(handle);
-        handle.reset();
-    }
-    (void)HCN().delete_endpoint(endpoint_parameters.endpoint_guid);
-    (void)HCN().delete_network(network_parameters.guid);
+    const ScopedHcsResources resources{{vm_name},
+                                       {endpoint_parameters.endpoint_guid},
+                                       {network_parameters.guid}};
 
     {
         const auto& [status, status_msg] = HCN().create_network(network_parameters);
@@ -1255,25 +1300,7 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_multi_zone_resolution)
     const auto host1 = fmt::format("mp-z1-{:08x}.zone1", rng());
     const auto host2 = fmt::format("mp-z2-{:08x}.zone2", rng());
 
-    const auto saved_suffix_list = run_powershell(
-        "(Get-DnsClientGlobalSetting).SuffixSearchList -join ','");
-    (void)run_powershell(
-        fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList @('mshome.net'); "
-                    "Set-ItemProperty -Path '{}' -Name AppendToMultiLabelName -Value 1 -Type DWord",
-                    dnscache_key));
-    struct DnsClientGuard
-    {
-        std::string key, saved;
-        ~DnsClientGuard()
-        {
-            (void)run_powershell(
-                saved.empty()
-                    ? std::string{"Set-DnsClientGlobalSetting -SuffixSearchList @()"}
-                    : fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList ('{}' -split ',')",
-                                  saved));
-            (void)run_powershell("Clear-DnsClientCache");
-        }
-    } dns_guard{dnscache_key, saved_suffix_list};
+    const ScopedSuffixAppend suffix_append{"mshome.net"};
 
     // A SINGLE rule, two suffixes -> the ICS proxy (the multi-suffix NrptRule under test).
     hyperv::dns::NrptRule nrpt_rule{
@@ -1347,9 +1374,9 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_multi_zone_resolution)
     const char* vm1n = "multipass-hyperv-cit-mz-vm1";
     const char* vm2n = "multipass-hyperv-cit-mz-vm2";
 
-    (void)HCN().delete_endpoint(ep1.endpoint_guid);
-    (void)HCN().delete_endpoint(ep2.endpoint_guid);
-    (void)HCN().delete_network(net.guid);
+    const ScopedHcsResources resources{{vm1n, vm2n},
+                                       {ep1.endpoint_guid, ep2.endpoint_guid},
+                                       {net.guid}};
     ASSERT_TRUE(bool(HCN().create_network(net)));
     ASSERT_TRUE(bool(HCN().create_endpoint(ep1)));
     ASSERT_TRUE(bool(HCN().create_endpoint(ep2)));
@@ -1422,25 +1449,7 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_two_networks_distinct_zones)
     const auto host1 = fmt::format("mp-na-{:08x}.zone1", rng());
     const auto host2 = fmt::format("mp-nb-{:08x}.zone2", rng());
 
-    const auto saved_suffix = run_powershell(
-        "(Get-DnsClientGlobalSetting).SuffixSearchList -join ','");
-    (void)run_powershell(
-        fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList @('mshome.net'); "
-                    "Set-ItemProperty -Path '{}' -Name AppendToMultiLabelName -Value 1 -Type DWord",
-                    dnscache_key));
-    struct G
-    {
-        std::string s;
-        ~G()
-        {
-            (void)run_powershell(
-                s.empty()
-                    ? std::string{"Set-DnsClientGlobalSetting -SuffixSearchList @()"}
-                    : fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList ('{}' -split ',')",
-                                  s));
-            (void)run_powershell("Clear-DnsClientCache");
-        }
-    } g{saved_suffix};
+    const ScopedSuffixAppend suffix_append{"mshome.net"};
 
     // ONE rule, two suffixes, two gateways (one per network).
     hyperv::dns::NrptRule nrpt{std::vector<std::string>{".zone1.mshome.net", ".zone2.mshome.net"},
@@ -1463,6 +1472,10 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_two_networks_distinct_zones)
     const auto o2 = mk(host2, i2);
     ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(i2))) << o2;
 
+    const ScopedHcsResources resources{
+        {"mp-net1-vm", "mp-net2-vm"},
+        {"aee79cf9-54d1-4653-81fb-8110db970331", "aee79cf9-54d1-4653-81fb-8110db970332"},
+        {"b4d77a0e-2507-45f0-99aa-c638f3e47495", "b4d77a0e-2507-45f0-99aa-c638f3e47496"}};
     auto h1 = boot_guest("b4d77a0e-2507-45f0-99aa-c638f3e47495",
                          "aee79cf9-54d1-4653-81fb-8110db970331",
                          "mp-net1-vm",
@@ -1532,25 +1545,7 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_one_zone_two_networks)
     const auto host1 = fmt::format("mp-sa-{:08x}.zone1", rng());
     const auto host2 = fmt::format("mp-sb-{:08x}.zone1", rng());
 
-    const auto saved_suffix = run_powershell(
-        "(Get-DnsClientGlobalSetting).SuffixSearchList -join ','");
-    (void)run_powershell(
-        fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList @('mshome.net'); "
-                    "Set-ItemProperty -Path '{}' -Name AppendToMultiLabelName -Value 1 -Type DWord",
-                    dnscache_key));
-    struct G
-    {
-        std::string s;
-        ~G()
-        {
-            (void)run_powershell(
-                s.empty()
-                    ? std::string{"Set-DnsClientGlobalSetting -SuffixSearchList @()"}
-                    : fmt::format("Set-DnsClientGlobalSetting -SuffixSearchList ('{}' -split ',')",
-                                  s));
-            (void)run_powershell("Clear-DnsClientCache");
-        }
-    } g{saved_suffix};
+    const ScopedSuffixAppend suffix_append{"mshome.net"};
 
     // ONE suffix routed to BOTH gateways -- the same domain spans both networks.
     hyperv::dns::NrptRule nrpt{".zone1.mshome.net", {gw1, gw2}};
@@ -1572,6 +1567,10 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_one_zone_two_networks)
     const auto o2 = mk(host2, i2);
     ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(i2))) << o2;
 
+    const ScopedHcsResources resources{
+        {"mp-zn1-vm", "mp-zn2-vm"},
+        {"aee79cf9-54d1-4653-81fb-8110db970341", "aee79cf9-54d1-4653-81fb-8110db970342"},
+        {"b4d77a0e-2507-45f0-99aa-c638f3e47497", "b4d77a0e-2507-45f0-99aa-c638f3e47498"}};
     auto h1 = boot_guest("b4d77a0e-2507-45f0-99aa-c638f3e47497",
                          "aee79cf9-54d1-4653-81fb-8110db970341",
                          "mp-zn1-vm",

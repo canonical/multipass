@@ -1,18 +1,27 @@
 # cloud-init-fqdn-multipass
 
-A NoCloud cloud-init seed used by the Hyper-V HCN custom-DNS-suffix end-to-end
-integration test
-(`HyperV_ComponentIntegrationTests.dns_suffix_fqdn_append_resolution` in
-`tests/unit/hyperv_api/test_bb_cit_hyperv.cpp`).
+Builds the NoCloud cloud-init seeds used by the Hyper-V HCN DNS end-to-end
+integration tests (the `HyperV_ComponentIntegrationTests.dns_suffix_*` tests in
+`tests/unit/hcs/test_bb_cit_hyperv.cpp`).
 
 Unlike the other fixtures, the ISO here is **generated at run time** by
-`make_seed_iso.py` rather than committed as a binary. The test passes a *unique*
-dotted DHCP hostname per run (e.g. `mp-fqdn-1dd6e733.multipass`). This matters
-because the ICS DNS proxy persists its name→IP registrations across runs and
-cannot be flushed without restarting SharedAccess (which HNS pins) — so reusing a
-fixed hostname would resolve to a stale lease from an earlier run.
+`make_seed_iso.py` rather than committed as a binary. Each test passes a *unique*
+DHCP hostname per run (e.g. `mp-host-1dd6e733`, or the dotted
+`mp-fqdn-1dd6e733.multipass`). This matters because the ICS DNS proxy persists
+its name→IP registrations across runs (for about a week) and cannot be flushed
+without restarting SharedAccess (which HNS pins) — so reusing a fixed hostname
+could resolve to a stale lease from an earlier run, and hide a broken
+registration.
 
-## The approach under test (no global state mutation)
+Stock Alpine's busybox `udhcpc` does not send DHCP option 12 (host name), so the
+ICS DHCP/DNS proxy would never learn the guest's name. The seed re-runs `udhcpc`
+with `-x hostname:<hostname>` once the network is up, and the proxy registers the
+guest as `<hostname>.<ICSDomain>` (`mshome.net` by default).
+
+## Custom suffixes without global state mutation
+
+`dns_suffix_fqdn_append_resolution` and the multi-zone tests rely on the hostname
+being **dotted**:
 
 1. The guest advertises a **dotted** DHCP host name `<label>.multipass`
    (DHCP option 12, via `udhcpc -x hostname:<label>.multipass`). The ICS DNS
@@ -31,9 +40,14 @@ time-windowed registry values, no extra DNS server/resolver process.
 
 ## Files
 
-- `make_seed_iso.py` — builds the seed ISO for a given `--hostname`/`--output`
-  (requires Python + `pycdlib`). The `user-data`/`meta-data` templates are
-  embedded in the script.
+- `make_seed_iso.py` — builds the seed ISO for a given `--hostname`/`--output`.
+  The `user-data`/`meta-data` templates are embedded in the script.
+
+## Requirements
+
+`python` (3.x) on the `PATH`, with [`pycdlib`](https://pypi.org/project/pycdlib/)
+installed (`python -m pip install pycdlib`). Without it, the tests fail with
+"seed ISO build failed".
 
 ## Regenerating manually
 

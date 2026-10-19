@@ -110,6 +110,9 @@ TEST_F(HyperVNrptRule_IntegrationTests, multi_suffix_rule_written_and_removed)
         const auto resolvers = read_value(guid, L"GenericDNSServers");
         EXPECT_TRUE(contains(resolvers, L"172.50.224.1"));
         EXPECT_TRUE(contains(resolvers, L"172.50.225.1"));
+
+        EXPECT_TRUE(contains(read_value(guid, L"DisplayName"), L"Multipass"));
+        EXPECT_TRUE(contains(read_value(guid, L"Comment"), L"Multipass"));
     }
 
     EXPECT_FALSE(key_exists(guid)) << "NRPT rule not removed on destruction.";

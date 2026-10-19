@@ -27,6 +27,7 @@
 
 #include <fmt/format.h>
 
+#include <algorithm>
 #include <stdexcept>
 
 namespace multipass::hyperv::dns
@@ -40,6 +41,11 @@ constexpr auto nrpt_base =
 
 // ConfigOptions bitmask value meaning "use the provided override DNS resolvers".
 constexpr DWORD nrpt_override_dns = 0x8;
+
+bool has_non_empty(const std::vector<std::string>& values)
+{
+    return std::ranges::any_of(values, [](const std::string& value) { return !value.empty(); });
+}
 
 std::wstring widen(const std::string& s)
 {
@@ -98,6 +104,13 @@ NrptRule::NrptRule(const std::vector<std::string>& dns_namespaces,
                    const std::vector<std::string>& name_servers)
     : rule_guid{generate_rule_guid()}
 {
+    // An empty "Name" yields an inert rule, while an empty "GenericDNSServers" makes every name
+    // in the namespace fail to resolve. Neither is ever intended.
+    if (!has_non_empty(dns_namespaces))
+        throw std::invalid_argument{"NRPT: at least one DNS namespace is required"};
+    if (!has_non_empty(name_servers))
+        throw std::invalid_argument{"NRPT: at least one name server is required"};
+
     HKEY key = nullptr;
     const auto key_path = rule_key_path(rule_guid);
     if (const auto status = ::RegCreateKeyExW(HKEY_LOCAL_MACHINE,
@@ -121,6 +134,18 @@ NrptRule::NrptRule(const std::vector<std::string>& dns_namespaces,
         ::RegDeleteKeyW(HKEY_LOCAL_MACHINE, key_path.c_str());
         rule_guid.clear();
         throw std::runtime_error{fmt::format("NRPT: failed to set {} (error {})", what, status)};
+    };
+
+    const auto set_string = [&](const wchar_t* name, const char* what, const std::wstring& value) {
+        if (const auto s = ::RegSetValueExW(
+                key,
+                name,
+                0,
+                REG_SZ,
+                reinterpret_cast<const BYTE*>(value.c_str()),
+                static_cast<DWORD>((value.size() + 1) * sizeof(wchar_t)));
+            s != ERROR_SUCCESS)
+            fail(what, s);
     };
 
     // Version (DWORD): NRPT rule schema version.
@@ -150,23 +175,21 @@ NrptRule::NrptRule(const std::vector<std::string>& dns_namespaces,
     // GenericDNSServers (REG_SZ): the override resolvers, ';'-separated.
     {
         std::string joined;
-        for (std::size_t i = 0; i < name_servers.size(); ++i)
+        for (const auto& server : name_servers)
         {
-            if (i != 0)
+            if (server.empty())
+                continue;
+            if (!joined.empty())
                 joined += ';';
-            joined += name_servers[i];
+            joined += server;
         }
-        const std::wstring servers = widen(joined);
-        if (const auto s = ::RegSetValueExW(
-                key,
-                L"GenericDNSServers",
-                0,
-                REG_SZ,
-                reinterpret_cast<const BYTE*>(servers.c_str()),
-                static_cast<DWORD>((servers.size() + 1) * sizeof(wchar_t)));
-            s != ERROR_SUCCESS)
-            fail("GenericDNSServers", s);
+        set_string(L"GenericDNSServers", "GenericDNSServers", widen(joined));
     }
+
+    // DisplayName/Comment (REG_SZ): mark the rule as ours, so that a rule left behind (e.g. by a
+    // crash) can be told apart from rules configured by the user or an administrator.
+    set_string(L"DisplayName", "DisplayName", widen(nrpt_rule_display_name));
+    set_string(L"Comment", "Comment", L"Created by Multipass");
 
     // ConfigOptions (DWORD): direct matching queries to the override resolvers.
     if (const auto s = ::RegSetValueExW(key,

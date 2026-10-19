@@ -950,6 +950,54 @@ TEST_F(HyperVHCNAPI_UnitTests, query_network_without_host_vnic)
     EXPECT_FALSE(network_info.host_interface_guid);
 }
 
+TEST_F(HyperVHCNAPI_UnitTests, query_network_reads_flattened_dns)
+{
+    static wchar_t network_properties[] =
+        LR"({"Name":"mpdns","Type":"ICS","DNSDomain":"mshome.net","DNSSuffix":"mshome.net,example.test","DNSServerList":"172.50.224.1,172.50.224.2"})";
+
+    expect_network_query(network_properties);
+
+    hcn::HcnNetworkInfo network_info;
+    const auto result = HCN().query_network("c08cb7b8-9b3c-408e-8e30-5e16a3aeb444", network_info);
+
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(network_info.dns);
+    EXPECT_EQ(network_info.dns->domain, "mshome.net");
+    EXPECT_THAT(network_info.dns->search, testing::ElementsAre("mshome.net", "example.test"));
+    EXPECT_THAT(network_info.dns->server_list,
+                testing::ElementsAre("172.50.224.1", "172.50.224.2"));
+}
+
+TEST_F(HyperVHCNAPI_UnitTests, query_network_reads_empty_dns_fields_as_empty_lists)
+{
+    static wchar_t network_properties[] =
+        LR"({"Name":"mpdns","Type":"ICS","DNSDomain":"mshome.net","DNSSuffix":"","DNSServerList":""})";
+
+    expect_network_query(network_properties);
+
+    hcn::HcnNetworkInfo network_info;
+    const auto result = HCN().query_network("c08cb7b8-9b3c-408e-8e30-5e16a3aeb444", network_info);
+
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(network_info.dns);
+    EXPECT_EQ(network_info.dns->domain, "mshome.net");
+    EXPECT_TRUE(network_info.dns->search.empty());
+    EXPECT_TRUE(network_info.dns->server_list.empty());
+}
+
+TEST_F(HyperVHCNAPI_UnitTests, query_network_without_dns)
+{
+    static wchar_t network_properties[] = LR"({"Name":"mpdns","Type":"ICS"})";
+
+    expect_network_query(network_properties);
+
+    hcn::HcnNetworkInfo network_info;
+    const auto result = HCN().query_network("c08cb7b8-9b3c-408e-8e30-5e16a3aeb444", network_info);
+
+    ASSERT_TRUE(result);
+    EXPECT_FALSE(network_info.dns);
+}
+
 TEST(HcnEndpointInfo, rejects_malformed_ip_configurations)
 {
     const auto endpoint_properties = boost::json::parse(R"({"IpConfigurations":"invalid"})");
