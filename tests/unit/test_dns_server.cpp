@@ -17,11 +17,13 @@
 
 #include "common.h"
 
-#include <src/network/dns_message.h>
+#include <src/network/dns_server.h>
 
-// After Boost.Asio (via dns_message.h), which brings in the platform's socket headers first.
+// After Boost.Asio (via dns_server.h), which brings in the platform's socket headers first.
 #include <ares.h>
 
+#include <array>
+#include <chrono>
 #include <cstring>
 #include <map>
 #include <memory>
@@ -30,6 +32,7 @@
 
 namespace mp = multipass;
 namespace asio = boost::asio;
+using asio::ip::udp;
 using namespace testing;
 
 namespace
@@ -155,6 +158,28 @@ Response decode(const std::vector<std::uint8_t>& bytes)
         response.authority.push_back(
             render(ares_dns_record_rr_get_const(record.get(), ARES_SECTION_AUTHORITY, i)));
 
+    return response;
+}
+
+// Sends `query` to the server on `port` over UDP, waiting a bit for the response.
+std::optional<Response> exchange(std::uint16_t port, const Query& query)
+{
+    asio::io_context io;
+    udp::socket socket{io, udp::endpoint{udp::v4(), 0}};
+    socket.send_to(asio::buffer(encode(query)),
+                   udp::endpoint{asio::ip::make_address("127.0.0.1"), port});
+
+    std::array<std::uint8_t, 4096> buffer{};
+    udp::endpoint sender;
+    std::optional<Response> response;
+    socket.async_receive_from(
+        asio::buffer(buffer),
+        sender,
+        [&](const boost::system::error_code& error, std::size_t size) {
+            if (!error)
+                response = decode(std::vector<std::uint8_t>(buffer.begin(), buffer.begin() + size));
+        });
+    io.run_for(std::chrono::seconds{5});
     return response;
 }
 
@@ -322,4 +347,35 @@ TEST(DnsName, normalizesCaseAndDots)
 {
     EXPECT_EQ(mp::dns::normalize_name(".Multipass.LOCAL."), "multipass.local");
     EXPECT_EQ(mp::dns::normalize_name("..."), "");
+}
+
+TEST(DnsServer, answersQueriesOverUdp)
+{
+    const mp::dns::Server server{{"multipass.local", 30},
+                                 udp::endpoint{asio::ip::make_address("127.0.0.1"), 0},
+                                 [](std::string_view host) {
+                                     return host == "vm1"
+                                              ? std::vector{asio::ip::make_address("10.0.0.1")}
+                                              : std::vector<asio::ip::address>{};
+                                 }};
+    ASSERT_NE(server.port(), 0);
+
+    const auto known = exchange(server.port(), {.name = "vm1.multipass.local"});
+    ASSERT_TRUE(known);
+    EXPECT_THAT(known->answers, ElementsAre("A 10.0.0.1"));
+
+    const auto unknown = exchange(server.port(), {.name = "vm2.multipass.local"});
+    ASSERT_TRUE(unknown);
+    EXPECT_EQ(unknown->rcode, ARES_RCODE_NXDOMAIN);
+}
+
+TEST(DnsServer, throwsWhenTheAddressIsTaken)
+{
+    const udp::endpoint endpoint{asio::ip::make_address("127.0.0.1"), 0};
+    const mp::dns::Server first{{"multipass.local", 30}, endpoint, {}};
+
+    EXPECT_THROW(mp::dns::Server({"multipass.local", 30},
+                                 udp::endpoint{endpoint.address(), first.port()},
+                                 {}),
+                 std::runtime_error);
 }
