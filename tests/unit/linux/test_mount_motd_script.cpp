@@ -119,23 +119,48 @@ TEST_P(MountMotdScriptListing, listsRecordedMounts)
     EXPECT_EQ(run(), listing(records));
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    MountMotdScript,
-    MountMotdScriptListing,
-    Values(Scenario{"noRecords", {}},
-           Scenario{"sortedByTarget",
-                    {{"%2Fhome%2Fubuntu%2Fdata", "/home/ubuntu/data", "/home/alice/data"},
-                     {"%2Fhome%2Fubuntu%2Fsrc", "/home/ubuntu/src", "/home/alice/src"},
-                     {"%2Fmnt", "/mnt", "/srv"}}},
-           Scenario{"decodedTargets",
-                    {{"%2Fhome%2Fubuntu%2Fmy data", "/home/ubuntu/my data", "/a"},
-                     {"%2Fz%25%2525", "/z%%25", "/b"}}},
-           Scenario{"verbatimSources", {{"%2Fdata", "/data", "C:\\Users\\alice\\my data"}}},
-           Scenario{"noTrailingNewline", {{"%2Fdata", "/data", "/src", /*terminator=*/""}}},
-           Scenario{"neutralizedControlCharacters",
-                    {{.name = "%2Fx\x1b[2Jy",
-                      .target = fmt::format("/x{}[2Jy", replacement),
-                      .source = "/a\x1b]0;title\ab",
-                      .shown_source = fmt::format("/a{0}]0;title{0}b", replacement)}}}),
-    [](const TestParamInfo<Scenario>& info) { return info.param.name; });
+const auto no_records = Scenario{.name = "noRecords", .records = {}};
+
+const auto sorted_by_target = Scenario{
+    .name = "sortedByTarget",
+    .records = {Record{.name = "%2Fhome%2Fubuntu%2Fdata",
+                       .target = "/home/ubuntu/data",
+                       .source = "/home/alice/data"},
+                Record{.name = "%2Fhome%2Fubuntu%2Fsrc",
+                       .target = "/home/ubuntu/src",
+                       .source = "/home/alice/src"},
+                Record{.name = "%2Fmnt", .target = "/mnt", .source = "/srv"}}};
+
+const auto decoded_targets = Scenario{
+    .name = "decodedTargets",
+    .records = {Record{.name = "%2Fhome%2Fubuntu%2Fmy data",
+                       .target = "/home/ubuntu/my data",
+                       .source = "/a"},
+                Record{.name = "%2Fz%25%2525", .target = "/z%%25", .source = "/b"}}};
+
+const auto verbatim_sources = Scenario{
+    .name = "verbatimSources",
+    .records = {
+        Record{.name = "%2Fdata", .target = "/data", .source = R"(C:\Users\alice\my data)"}}};
+
+const auto no_trailing_newline = Scenario{
+    .name = "noTrailingNewline",
+    .records = {Record{.name = "%2Fdata", .target = "/data", .source = "/src", .terminator = ""}}};
+
+const auto neutralized_control_characters = Scenario{
+    .name = "neutralizedControlCharacters",
+    .records = {Record{.name = "%2Fx\x1b[2Jy",
+                       .target = fmt::format("/x{}[2Jy", replacement),
+                       .source = "/a\x1b]0;title\ab",
+                       .shown_source = fmt::format("/a{0}]0;title{0}b", replacement)}}};
+
+INSTANTIATE_TEST_SUITE_P(MountMotdScript,
+                         MountMotdScriptListing,
+                         Values(no_records,
+                                sorted_by_target,
+                                decoded_targets,
+                                verbatim_sources,
+                                no_trailing_newline,
+                                neutralized_control_characters),
+                         [](const TestParamInfo<Scenario>& info) { return info.param.name; });
 } // namespace
