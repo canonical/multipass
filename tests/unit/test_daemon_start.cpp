@@ -184,6 +184,20 @@ TEST_F(TestDaemonStart, startSucceedsWhenInstanceCannotResolveByName)
     EXPECT_TRUE(start_instance(*daemon).ok());
 }
 
+TEST_F(TestDaemonStart, startedInstanceWithoutAnAddressDoesNotResolveByName)
+{
+    auto dns_provider = std::make_unique<NiceMock<mpt::MockDnsProvider>>();
+    EXPECT_CALL(*dns_provider, set_host).Times(0);
+    config_builder.dns_provider = std::move(dns_provider);
+
+    auto mock_vm = make_mock_vm(VMState::stopped);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_vm, management_ipv4).WillRepeatedly(Return(std::nullopt));
+
+    auto daemon = make_daemon(std::move(mock_vm));
+    EXPECT_TRUE(start_instance(*daemon).ok());
+}
+
 TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
 {
     auto event_dopoll = [](auto...) { return SSH_ERROR; };

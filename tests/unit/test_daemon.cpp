@@ -218,6 +218,17 @@ TEST_F(Daemon, stopsResolvingInstancesThatBecomeUnreachable)
     monitor.persist_state_for("restarting-vm", mp::VirtualMachine::State::restarting);
 }
 
+TEST_F(Daemon, survivesDnsProviderFailingToStopResolving)
+{
+    auto dns_provider = std::make_unique<NiceMock<mpt::MockDnsProvider>>();
+    EXPECT_CALL(*dns_provider, remove_host).WillOnce(Throw(std::runtime_error{"unavailable"}));
+    config_builder.dns_provider = std::move(dns_provider);
+
+    mp::Daemon daemon{config_builder.build()};
+    mp::VMStatusMonitor& monitor = daemon;
+    EXPECT_NO_THROW(monitor.persist_state_for("stopped-vm", mp::VirtualMachine::State::stopped));
+}
+
 TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
 {
     mpt::MockDaemon daemon{config_builder.build()};

@@ -32,6 +32,9 @@ namespace multipass
  * Hides how: what answers the queries (a built-in DNS server, or one the platform already runs)
  * and how the host's resolver is pointed at it (e.g. NRPT, /etc/resolver, systemd-resolved).
  * Destroying a started provider tears it down.
+ *
+ * set_host() and remove_host() may be called from any thread, concurrently with each other and
+ * with start() and teardown().
  */
 class DnsProvider : private DisabledCopyMove
 {

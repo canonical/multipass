@@ -1403,10 +1403,23 @@ try
 {
     if (const auto address = vm.management_ipv4())
         dns.set_host(name, {*address});
+    else
+        mpl::debug(category, "{} will not resolve by name: its IP address is unknown", name);
 }
 catch (const std::exception& e)
 {
     mpl::warn(category, "{} will not resolve by name: {}", name, e.what());
+}
+
+// Stops an instance from resolving by name. Never fails the caller either.
+void unpublish_dns_record(mp::DnsProvider& dns, const std::string& name)
+try
+{
+    dns.remove_host(name);
+}
+catch (const std::exception& e)
+{
+    mpl::warn(category, "{} may still resolve by name: {}", name, e.what());
 }
 
 void start_dns_provider(mp::DnsProvider& dns, const std::string& domain)
@@ -3351,7 +3364,7 @@ void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine
 
     using enum VirtualMachine::State;
     if (state == stopped || state == suspended || state == unavailable)
-        config->dns_provider->remove_host(name);
+        unpublish_dns_record(*config->dns_provider, name);
 }
 
 void mp::Daemon::update_metadata_for(const std::string& name, const boost::json::object& metadata)
@@ -3379,7 +3392,7 @@ void mp::Daemon::release_resources(const std::string& instance)
 {
     config->vault->remove(instance);
     config->factory->remove_resources_for(instance);
-    config->dns_provider->remove_host(instance);
+    unpublish_dns_record(*config->dns_provider, instance);
 
     auto spec_it = vm_instance_specs.find(instance);
     if (spec_it != cend(vm_instance_specs))
