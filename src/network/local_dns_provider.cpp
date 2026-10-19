@@ -19,6 +19,9 @@
 
 #include <multipass/logging/log.h>
 
+#include <boost/asio/error.hpp>
+#include <boost/system/system_error.hpp>
+
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
@@ -44,8 +47,9 @@ std::string parse_host(const std::string& host)
 } // namespace
 
 mp::LocalDnsProvider::LocalDnsProvider(RouteDomain route_domain,
-                                       const asio::ip::udp::endpoint& endpoint)
-    : route_domain{std::move(route_domain)}, endpoint{endpoint}
+                                       const asio::ip::udp::endpoint& first,
+                                       unsigned address_count)
+    : route_domain{std::move(route_domain)}, first{first}, address_count{address_count}
 {
 }
 
@@ -64,14 +68,39 @@ void mp::LocalDnsProvider::start(const std::string& domain)
 
     // Answer first, then route, so that the host's resolver is never pointed at a server that is
     // not there. If routing fails, the new server goes away with the exception.
-    auto new_server = std::make_unique<dns::Server>(
-        dns::Zone{zone, ttl},
-        endpoint,
-        [this](std::string_view host) { return lookup(host); });
-    route = route_domain(zone, endpoint.address().to_string());
+    auto new_server = listen(zone);
+    route = route_domain(zone, new_server->endpoint().address().to_string());
     server = std::move(new_server);
 
     mpl::info(category, "Instances resolve as <name>.{}", zone);
+}
+
+std::unique_ptr<mp::dns::Server> mp::LocalDnsProvider::listen(const std::string& zone)
+{
+    auto address = first.address().to_v4().to_uint();
+    for (unsigned attempt = 1;; ++attempt, ++address)
+    {
+        const asio::ip::udp::endpoint endpoint{asio::ip::address_v4{address}, first.port()};
+        try
+        {
+            return std::make_unique<dns::Server>(
+                dns::Zone{zone, ttl},
+                endpoint,
+                [this](std::string_view host) { return lookup(host); });
+        }
+        catch (const boost::system::system_error& e)
+        {
+            const auto taken = e.code() == asio::error::address_in_use ||
+                               e.code() == asio::error::access_denied;
+            if (!taken || attempt >= address_count)
+                throw;
+
+            mpl::debug(category,
+                       "{}:{} is taken, trying the next address",
+                       endpoint.address().to_string(),
+                       endpoint.port());
+        }
+    }
 }
 
 void mp::LocalDnsProvider::teardown() noexcept

@@ -39,11 +39,11 @@ public:
     using RouteDomain = std::function<std::shared_ptr<void>(const std::string& domain,
                                                             const std::string& name_server)>;
 
-    // The host's resolver needs the server on port 53; tests can pick another `endpoint`.
-    explicit LocalDnsProvider(RouteDomain route_domain,
-                              const boost::asio::ip::udp::endpoint& endpoint = {
-                                  boost::asio::ip::address_v4::loopback(),
-                                  53});
+    // Listens on the first free one of `address_count` consecutive IPv4 addresses from `first`, on
+    // its port, to steer clear of other servers on the loopback interface.
+    LocalDnsProvider(RouteDomain route_domain,
+                     const boost::asio::ip::udp::endpoint& first,
+                     unsigned address_count = 1);
     ~LocalDnsProvider() override;
 
     void start(const std::string& domain) override;
@@ -52,10 +52,12 @@ public:
     void remove_host(const std::string& host) override;
 
 private:
+    std::unique_ptr<dns::Server> listen(const std::string& zone);
     std::vector<boost::asio::ip::address> lookup(std::string_view host) const;
 
     const RouteDomain route_domain;
-    const boost::asio::ip::udp::endpoint endpoint;
+    const boost::asio::ip::udp::endpoint first;
+    const unsigned address_count;
     mutable std::mutex mutex;
     std::unordered_map<std::string, std::vector<boost::asio::ip::address>> hosts;
     std::unique_ptr<dns::Server> server;

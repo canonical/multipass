@@ -35,7 +35,7 @@ mp::dns::Server::Server(Zone zone, const udp::endpoint& endpoint, HostLookup loo
     : zone{std::move(zone)},
       lookup{std::move(lookup)},
       socket{io, endpoint},
-      bound_port{socket.local_endpoint().port()}
+      bound_endpoint{socket.local_endpoint()}
 {
     receive();
     thread = std::thread{[this] { io.run(); }};
@@ -43,8 +43,8 @@ mp::dns::Server::Server(Zone zone, const udp::endpoint& endpoint, HostLookup loo
     mpl::debug(category,
                "Serving DNS zone {} on {}:{}",
                this->zone.name,
-               endpoint.address().to_string(),
-               bound_port);
+               bound_endpoint.address().to_string(),
+               bound_endpoint.port());
 }
 
 mp::dns::Server::~Server()
@@ -53,9 +53,9 @@ mp::dns::Server::~Server()
     thread.join();
 }
 
-std::uint16_t mp::dns::Server::port() const
+const udp::endpoint& mp::dns::Server::endpoint() const
 {
-    return bound_port;
+    return bound_endpoint;
 }
 
 void mp::dns::Server::receive()
