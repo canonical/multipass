@@ -35,7 +35,7 @@ const auto success = mp::ProcessState{.exit_code = 0, .error = std::nullopt};
 const auto failure = mp::ProcessState{.exit_code = 1, .error = std::nullopt};
 const auto crash = mp::ProcessState{
     .exit_code = std::nullopt,
-    .error = mp::ProcessState::Error{.state = QProcess::Crashed, .message = "core dumped"}};
+    .error = mp::ProcessState::Error{QProcess::Crashed, "core dumped"}};
 const auto null_string_matcher = static_cast<std::optional<decltype(_)>>(std::nullopt);
 
 auto expected_qemu_img_path()

@@ -54,8 +54,7 @@ mp::BasicProcess::BasicProcess(std::shared_ptr<mp::ProcessSpec> spec)
                 }
                 else // crash
                 {
-                    process_state.error = mp::ProcessState::Error{.state = process.error(),
-                                                                  .message = error_string()};
+                    process_state.error = mp::ProcessState::Error{process.error(), error_string()};
                 }
                 emit mp::Process::finished(process_state);
             });
@@ -156,7 +155,7 @@ mp::ProcessState mp::BasicProcess::process_state() const
 
     if (process.error() != QProcess::ProcessError::UnknownError)
     {
-        state.error = mp::ProcessState::Error{.state = process.error(), .message = error_string()};
+        state.error = mp::ProcessState::Error{process.error(), error_string()};
     }
     else if (process.state() != QProcess::Running && process.exitStatus() == QProcess::NormalExit)
     {
@@ -212,8 +211,7 @@ mp::ProcessState mp::BasicProcess::execute(const int timeout)
         mpl::log_message(mpl::Level::error,
                          qUtf8Printable(process_spec->program()),
                          qUtf8Printable(process.errorString()));
-        exit_state.error = mp::ProcessState::Error{.state = process.error(),
-                                                   .message = error_string()};
+        exit_state.error = mp::ProcessState::Error{process.error(), error_string()};
         return exit_state;
     }
 

@@ -39,8 +39,7 @@ struct HyperVHCNNetworkPolicy_UnitTests : public ::testing::Test
 TEST_F(HyperVHCNNetworkPolicy_UnitTests, format_narrow)
 {
     uut_t uut{hyperv::hcn::HcnNetworkPolicyType::NetAdapterName()};
-    uut.settings = hyperv::hcn::HcnNetworkPolicyNetAdapterName{
-        .net_adapter_name = "client eastwood"};
+    uut.settings = hyperv::hcn::HcnNetworkPolicyNetAdapterName{"client eastwood"};
 
     const auto result = fmt::to_string(uut);
     constexpr auto expected_result = R"json(
@@ -65,8 +64,7 @@ TEST_F(HyperVHCNNetworkPolicy_UnitTests, format_narrow)
 TEST_F(HyperVHCNNetworkPolicy_UnitTests, format_wide)
 {
     uut_t uut{hyperv::hcn::HcnNetworkPolicyType::NetAdapterName()};
-    uut.settings = hyperv::hcn::HcnNetworkPolicyNetAdapterName{
-        .net_adapter_name = "client eastwood"};
+    uut.settings = hyperv::hcn::HcnNetworkPolicyNetAdapterName{"client eastwood"};
 
     const auto result = fmt::to_wstring(uut);
     constexpr auto expected_result = LR"json(

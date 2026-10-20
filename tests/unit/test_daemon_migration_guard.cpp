@@ -479,10 +479,9 @@ TEST_F(TestDaemonMigrationGuard, driverChangeReleasesHcsResourcesBeforeSettingsW
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
     EXPECT_CALL(*vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*hcs_mock.first, open_compute_system("stopped", _))
-        .WillOnce(
-            Return(mp::hyperv::OperationResult{.code = HCS_E_SYSTEM_NOT_FOUND, .status_msg = L""}));
+        .WillOnce(Return(mp::hyperv::OperationResult{HCS_E_SYSTEM_NOT_FOUND, L""}));
     EXPECT_CALL(*hcn_mock.first, find_endpoints_by_name("multipass-stopped", _))
-        .WillOnce(Return(mp::hyperv::OperationResult{.code = 0, .status_msg = L""}));
+        .WillOnce(Return(mp::hyperv::OperationResult{0, L""}));
     EXPECT_CALL(mock_settings, set(Eq(mp::driver_key), Eq("hyperv"), _)).WillOnce([&daemon] {
         EXPECT_TRUE(daemon.is_migrating());
     });
@@ -509,8 +508,7 @@ TEST_F(TestDaemonMigrationGuard, driverChangeDoesNotWriteSettingsWhenResourceCle
     EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillOnce(Return(QStringLiteral("hcs")));
     EXPECT_CALL(*vm, current_state()).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*hcs_mock.first, open_compute_system("stopped", _))
-        .WillOnce(Return(
-            mp::hyperv::OperationResult{.code = E_ACCESSDENIED, .status_msg = L"access denied"}));
+        .WillOnce(Return(mp::hyperv::OperationResult{E_ACCESSDENIED, L"access denied"}));
 
     mp::SetRequest request;
     request.set_key(mp::driver_key);

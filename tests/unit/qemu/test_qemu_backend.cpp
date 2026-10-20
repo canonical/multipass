@@ -163,8 +163,8 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                         EXPECT_CALL(*process, kill()).WillOnce([process] {
                             mp::ProcessState exit_state{
                                 .exit_code = std::nullopt,
-                                .error = mp::ProcessState::Error{.state = QProcess::Crashed,
-                                                                 .message = QStringLiteral("")}};
+                                .error = mp::ProcessState::Error{QProcess::Crashed,
+                                                                 QStringLiteral("")}};
                             emit process->error_occurred(QProcess::Crashed, "Crashed");
                             emit process->finished(exit_state);
                         });
@@ -728,8 +728,8 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
             EXPECT_CALL(*process, kill()).WillOnce([process] {
                 mp::ProcessState exit_state{
                     .exit_code = std::nullopt,
-                    .error = mp::ProcessState::Error{.state = QProcess::Crashed,
-                                                     .message = QStringLiteral("Force stopped")}};
+                    .error = mp::ProcessState::Error{QProcess::Crashed,
+                                                     QStringLiteral("Force stopped")}};
                 emit process->error_occurred(QProcess::Crashed, "Killed");
                 emit process->finished(exit_state);
             });
@@ -1145,8 +1145,7 @@ TEST_F(QemuBackend, returnsVersionStringWhenExecFailed)
             process->arguments().contains("--version"))
         {
             mp::ProcessState exit_state;
-            exit_state.error = mp::ProcessState::Error{.state = QProcess::Crashed,
-                                                       .message = "Error message"};
+            exit_state.error = mp::ProcessState::Error{QProcess::Crashed, "Error message"};
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
             EXPECT_CALL(*process, read_all_standard_output()).Times(0);
         }

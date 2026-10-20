@@ -162,7 +162,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, create_child_disk)
         const CreateVirtualDiskParameters params{
             .size_in_bytes = 0,
             .path = child_temp_path,
-            .predecessor = ParentPathParameters{.path = parent_temp_path}};
+            .predecessor = ParentPathParameters{parent_temp_path}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -192,7 +192,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_virtual_disk)
         const CreateVirtualDiskParameters params{
             .size_in_bytes = 0,
             .path = child_temp_path,
-            .predecessor = ParentPathParameters{.path = parent_temp_path}};
+            .predecessor = ParentPathParameters{parent_temp_path}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -227,7 +227,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_reparent_virtual_disk)
         const CreateVirtualDiskParameters params{
             .size_in_bytes = 0,
             .path = child_temp_path,
-            .predecessor = ParentPathParameters{.path = parent_temp_path}};
+            .predecessor = ParentPathParameters{parent_temp_path}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -242,7 +242,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, merge_reparent_virtual_disk)
         const CreateVirtualDiskParameters params{
             .size_in_bytes = 0,
             .path = grandchild_temp_path,
-            .predecessor = ParentPathParameters{.path = child_temp_path}};
+            .predecessor = ParentPathParameters{child_temp_path}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -288,7 +288,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, list_parents)
         const CreateVirtualDiskParameters params{
             .size_in_bytes = test_vhdx_size,
             .path = child1_temp_path,
-            .predecessor = ParentPathParameters{.path = parent_temp_path}};
+            .predecessor = ParentPathParameters{parent_temp_path}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);
@@ -302,7 +302,7 @@ TEST_F(HyperVVirtDisk_IntegrationTests, list_parents)
         const CreateVirtualDiskParameters params{
             .size_in_bytes = test_vhdx_size,
             .path = child2_temp_path,
-            .predecessor = ParentPathParameters{.path = child1_temp_path}};
+            .predecessor = ParentPathParameters{child1_temp_path}};
 
         const auto result = VirtDisk().create_virtual_disk(params);
         ASSERT_TRUE(result);

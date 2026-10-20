@@ -111,8 +111,8 @@ void mp::NewReleaseMonitor::latest_release_found(const NewReleaseInfo& latest_re
 {
     try
     {
-        const multipass::opaque_semver current{.value = current_version};
-        const multipass::opaque_semver latest{.value = latest_release.version};
+        const multipass::opaque_semver current{current_version};
+        const multipass::opaque_semver latest{latest_release.version};
         // Deliberately keeping all version string parsing here. If any version string
         // not of correct form, throw.
         if (current < latest)

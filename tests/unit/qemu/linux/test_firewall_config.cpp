@@ -69,8 +69,7 @@ TEST_F(FirewallConfig, iptablesNftErrorLogsWarningUsesIptablesLegacyByDefault)
         {
             mp::ProcessState exit_state{
                 .exit_code = 1,
-                .error = mp::ProcessState::Error{.state = QProcess::FailedToStart,
-                                                 .message = error_msg}};
+                .error = mp::ProcessState::Error{QProcess::FailedToStart, error_msg}};
             EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
         }
     };

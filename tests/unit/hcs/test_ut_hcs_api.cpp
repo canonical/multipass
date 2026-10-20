@@ -2292,7 +2292,7 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_happy_path)
         EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         HcsRequest req{.resource_path = HcsResourcePath::Memory(),
                        .request_type = HcsRequestType::Update(),
-                       .settings = HcsModifyMemorySettings{.size_in_mb = 16384}};
+                       .settings = HcsModifyMemorySettings{16384}};
 
         return HCS().modify_compute_system(handle, req);
     });
@@ -2307,7 +2307,7 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_hcs_open_fail)
         EXPECT_FALSE(HCS().open_compute_system("test_vm", handle));
         HcsRequest req{.resource_path = HcsResourcePath::Memory(),
                        .request_type = HcsRequestType::Update(),
-                       .settings = HcsModifyMemorySettings{.size_in_mb = 16384}};
+                       .settings = HcsModifyMemorySettings{16384}};
         return HCS().modify_compute_system(handle, req);
     });
 }
@@ -2321,7 +2321,7 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_create_operation_
         EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         HcsRequest req{.resource_path = HcsResourcePath::Memory(),
                        .request_type = HcsRequestType::Update(),
-                       .settings = HcsModifyMemorySettings{.size_in_mb = 16384}};
+                       .settings = HcsModifyMemorySettings{16384}};
         return HCS().modify_compute_system(handle, req);
     });
 }
@@ -2357,7 +2357,7 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_fail)
         EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         HcsRequest req{.resource_path = HcsResourcePath::Memory(),
                        .request_type = HcsRequestType::Update(),
-                       .settings = HcsModifyMemorySettings{.size_in_mb = 16384}};
+                       .settings = HcsModifyMemorySettings{16384}};
         return HCS().modify_compute_system(handle, req);
     });
 }
@@ -2393,7 +2393,7 @@ TEST_F(HyperVHCSAPI_UnitTests, resize_memory_of_compute_system_wait_for_operatio
         EXPECT_TRUE(HCS().open_compute_system("test_vm", handle));
         HcsRequest req{.resource_path = HcsResourcePath::Memory(),
                        .request_type = HcsRequestType::Update(),
-                       .settings = HcsModifyMemorySettings{.size_in_mb = 16384}};
+                       .settings = HcsModifyMemorySettings{16384}};
         return HCS().modify_compute_system(handle, req);
     });
 }

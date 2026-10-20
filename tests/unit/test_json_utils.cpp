@@ -150,24 +150,23 @@ void tag_invoke(const boost::json::value_from_tag&, boost::json::value& json, co
 }
 Animal tag_invoke(const boost::json::value_to_tag<Animal>&, const boost::json::value& json)
 {
-    return {.name = value_to<std::string>(json.at("name"))};
+    return {value_to<std::string>(json.at("name"))};
 }
 
 TEST(TestJsonUtils, mapToJsonArray)
 {
-    std::map<std::string, Animal> map = {{"dog", {.name = "fido"}},
-                                         {"goat", {.name = "philipp"}},
-                                         {"panda", {.name = "coco"}}};
+    std::map<std::string, Animal> map = {{"dog", {"fido"}},
+                                         {"goat", {"philipp"}},
+                                         {"panda", {"coco"}}};
     boost::json::array json_array = {{{"species", "dog"}, {"name", "fido"}},
                                      {{"species", "goat"}, {"name", "philipp"}},
                                      {{"species", "panda"}, {"name", "coco"}}};
 
-    auto json_result = boost::json::value_from(map, mp::MapAsJsonArray{.key_field = "species"});
+    auto json_result = boost::json::value_from(map, mp::MapAsJsonArray{"species"});
     EXPECT_EQ(json_result, json_array);
 
-    auto map_result = value_to<std::map<std::string, Animal>>(
-        json_array,
-        mp::MapAsJsonArray{.key_field = "species"});
+    auto map_result = value_to<std::map<std::string, Animal>>(json_array,
+                                                              mp::MapAsJsonArray{"species"});
     EXPECT_EQ(map_result, map);
 }
 
@@ -175,18 +174,17 @@ TEST(TestJsonUtils, mapToJsonArrayDoesntRecurse)
 {
     // MapAsJsonArray should apply only to the top-level `std::map`, but not the inner `std::map`.
     using MapOfMap = std::map<std::string, std::map<std::string, Animal>>;
-    MapOfMap map_of_map = {{"pet", {{"dog", {.name = "fido"}}, {"goat", {.name = "philipp"}}}},
-                           {"wild", {{"panda", {.name = "coco"}}}}};
+    MapOfMap map_of_map = {{"pet", {{"dog", {"fido"}}, {"goat", {"philipp"}}}},
+                           {"wild", {{"panda", {"coco"}}}}};
 
     boost::json::array json_array = {
         {{"_where", "pet"}, {"dog", {{"name", "fido"}}}, {"goat", {{"name", "philipp"}}}},
         {{"_where", "wild"}, {"panda", {{"name", "coco"}}}}};
 
-    auto json_result = boost::json::value_from(map_of_map,
-                                               mp::MapAsJsonArray{.key_field = "_where"});
+    auto json_result = boost::json::value_from(map_of_map, mp::MapAsJsonArray{"_where"});
     EXPECT_EQ(json_result, json_array);
 
-    auto map_result = value_to<MapOfMap>(json_array, mp::MapAsJsonArray{.key_field = "_where"});
+    auto map_result = value_to<MapOfMap>(json_array, mp::MapAsJsonArray{"_where"});
     EXPECT_EQ(map_result, map_of_map);
 }
 

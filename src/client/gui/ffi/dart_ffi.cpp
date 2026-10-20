@@ -84,12 +84,12 @@ struct KeyCertificatePair get_cert_pair()
     catch (const std::exception& e)
     {
         mpl::warn(category, "{}: {}", error, e.what());
-        return KeyCertificatePair{.pem_cert = nullptr, .pem_priv_key = nullptr};
+        return KeyCertificatePair{nullptr, nullptr};
     }
     catch (...)
     {
         mpl::log_message(mpl::Level::warning, category, error);
-        return KeyCertificatePair{.pem_cert = nullptr, .pem_priv_key = nullptr};
+        return KeyCertificatePair{nullptr, nullptr};
     }
 }
 
