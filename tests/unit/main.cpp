@@ -20,12 +20,17 @@
 
 #include <QCoreApplication>
 
+#include <cstdlib>
+
 namespace mp = multipass;
 
 // Normally one would just use libgtest_main but our static library dependencies
 // also define main... DAMN THEM!
 int main(int argc, char* argv[])
 {
+    // TEMPORARY: intentional crash to test coredump collection in CI. Do not merge.
+    std::abort();
+
     // Verify that the version of the library that we linked against is
     // compatible with the version of the headers we compiled against.
     GOOGLE_PROTOBUF_VERIFY_VERSION;
