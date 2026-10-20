@@ -229,7 +229,7 @@ QString Images::description() const
 
 std::vector<std::string> Images::aliases() const
 {
-    return {name(), deprecated_name};
+    return {name(), std::string{deprecated_name}};
 }
 
 } // namespace multipass::cmd
