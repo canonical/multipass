@@ -199,7 +199,7 @@ parts:
     prime:
     - -protobuf
 
-    source: https://github.com/canonical/multipass.git
+    source: ../..
     source-type: git
     override-pull: |
       set -e
@@ -248,13 +248,11 @@ parts:
 
   glue:
     plugin: dump
-    source: https://github.com/canonical/multipass.git
+    source: ../../snap-wrappers
 
 # The Flutter GUI libraries depend on GUI components which are provided by the GNOME
 # extension. The extension is attached at runtime, so the linter incorrectly flags
 # the libraries as "missing dependencies".
-    source-type: git
-    source-subdir: snap-wrappers
 lint:
   ignore:
   - library:

@@ -2624,7 +2624,6 @@ try
     for (const auto& path_entry : request->target_paths())
     {
         const auto& name = path_entry.instance_name();
-        const auto target_path = mpu::normalize_path(path_entry.target_path());
 
         auto vm = operative_instances.find(name);
         if (vm == operative_instances.end())
@@ -2663,15 +2662,20 @@ try
         };
 
         // Empty target path indicates removing all mounts for the VM instance
-        if (target_path.empty())
-            std::erase_if(vm_mounts, do_unmount);
-        else if (auto it = vm_mounts.find(target_path); it != vm_mounts.end())
+        if (path_entry.target_path().empty())
         {
-            if (do_unmount(*it))
-                vm_mounts.erase(it);
+            std::erase_if(vm_mounts, do_unmount);
         }
         else
-            add_fmt_to(errors, "path \"{}\" is not mounted in '{}'", target_path, name);
+        {
+            const auto q_target_path = QString::fromStdString(path_entry.target_path());
+            const auto target_path = MP_UTILS.normalize_mount_target(q_target_path).toStdString();
+
+            if (auto it = vm_mounts.find(target_path); it == vm_mounts.end())
+                add_fmt_to(errors, "path \"{}\" is not mounted in '{}'", target_path, name);
+            else if (do_unmount(*it))
+                vm_mounts.erase(it);
+        }
     }
 
     persist_instances();
