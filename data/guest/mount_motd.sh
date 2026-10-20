@@ -35,5 +35,5 @@ for record in "$@"; do
     source_dir=${source_dir//[[:cntrl:]]/${replacement}}
     target_dir=${target_dir//[[:cntrl:]]/${replacement}}
 
-    printf ' * %s <- %s\n' "${target_dir}" "${source_dir}"
+    printf ' * %s (from %s)\n' "${target_dir}" "${source_dir}"
 done
