@@ -22,6 +22,8 @@
 #include <multipass/logging/log.h>
 #include <multipass/virtual_machine.h>
 
+#include <cassert>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -57,9 +59,11 @@ void mp::MountHandler::activate(ServerVariant server, std::chrono::milliseconds 
     if (!is_active())
     {
         activate_impl(server, timeout);
+        active = true; // in case record deployment throws
         update_record(&GuestMountRecord::deploy, "deploy");
     }
-    active = true;
+
+    assert(active);
 }
 
 void mp::MountHandler::deactivate(bool force)
@@ -68,9 +72,11 @@ void mp::MountHandler::deactivate(bool force)
     if (is_active())
     {
         deactivate_impl(force);
+        active = false; // in case record undeployment throws
         update_record(&GuestMountRecord::undeploy, "undeploy");
     }
-    active = false;
+
+    active = false; // is_active may have returned false even if active was true
 }
 
 void mp::MountHandler::update_record(void (GuestMountRecord::*update)(VirtualMachine&) const,

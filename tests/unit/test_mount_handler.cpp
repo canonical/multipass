@@ -142,6 +142,7 @@ TEST_F(MountHandlerRecords, activationPropagatesOtherDeployExceptions)
     using ExceptionType = std::runtime_error;
     EXPECT_CALL(vm, ssh_exec(expected_deploy_cmd, _)).WillOnce(Throw(ExceptionType{"unexpected"}));
     EXPECT_THROW(handler.activate({}), ExceptionType);
+    EXPECT_TRUE(handler.is_active());
 }
 
 TEST_F(MountHandlerRecords, deactivationPropagatesOtherUndeployExceptions)
@@ -152,6 +153,7 @@ TEST_F(MountHandlerRecords, deactivationPropagatesOtherUndeployExceptions)
     EXPECT_CALL(vm, ssh_exec(expected_undeploy_cmd, _))
         .WillOnce(Throw(ExceptionType{"unexpected"}));
     EXPECT_THROW(handler.deactivate(), ExceptionType);
+    EXPECT_FALSE(handler.is_active());
 }
 
 struct MountHandlerRecordWarnings : public MountHandlerRecords,
