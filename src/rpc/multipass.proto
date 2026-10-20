@@ -459,14 +459,14 @@ message RestartReply {
 
 message DeleteRequest {
     repeated InstanceSnapshotPair instance_snapshot_pairs = 1;
-    int32 verbosity_level = 2;
-    bool force = 3;
+    int32 verbosity_level = 3;
+    bool force = 5;
 }
 
 message DeleteReply {
     string log_line = 1;
-    repeated string deleted_instances = 2;
-    bool confirm_deletion = 3;
+    repeated string deleted_instances = 4;
+    bool confirm_deletion = 5;
 }
 
 message UmountRequest {
