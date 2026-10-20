@@ -13,12 +13,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #Set build variables
-if (CMAKE_BUILD_TYPE_LOWER MATCHES "release")
-  set(RUST_BUILD "release")
-  set(RUST_BUILD_FLAG "--release")
+if(CMAKE_BUILD_TYPE_LOWER MATCHES "^(release|relwithdebinfo)$")
+  set(RUST_PROFILE "${CMAKE_BUILD_TYPE_LOWER}")
+  set(RUST_BUILD "${RUST_PROFILE}")
 else()
+  set(RUST_PROFILE "dev")
   set(RUST_BUILD "debug")
-  set(RUST_BUILD_FLAG "")
 endif()
 if (WIN32)
   set(LIB_PREFIX "")
@@ -47,6 +47,20 @@ if(WIN32)
   # avoid LNK2038 mismatches.
   if(CMAKE_BUILD_TYPE_LOWER MATCHES "debug")
     set(RUST_MSVC_CRT_FLAG "/MDd")
+    # Rust defaults to the release CRT even when native dependencies use /MDd.
+    set(RUST_FLAGS "-Clink-arg=/NODEFAULTLIB:msvcrt -Clink-arg=/DEFAULTLIB:msvcrtd")
+    if(DEFINED ENV{CARGO_ENCODED_RUSTFLAGS})
+      # Cargo's encoded flags take precedence and use ASCII 31 as a separator.
+      string(ASCII 31 RUST_FLAG_SEPARATOR)
+      string(REPLACE " " "${RUST_FLAG_SEPARATOR}" RUST_FLAGS "${RUST_FLAGS}")
+      if(NOT "$ENV{CARGO_ENCODED_RUSTFLAGS}" STREQUAL "")
+        string(PREPEND RUST_FLAGS "$ENV{CARGO_ENCODED_RUSTFLAGS}${RUST_FLAG_SEPARATOR}")
+      endif()
+      list(APPEND CARGO_ENV "CARGO_ENCODED_RUSTFLAGS=${RUST_FLAGS}")
+    else()
+      set(RUST_FLAGS "$ENV{RUSTFLAGS} ${RUST_FLAGS}")
+      list(APPEND CARGO_ENV "RUSTFLAGS=${RUST_FLAGS}")
+    endif()
   else()
     set(RUST_MSVC_CRT_FLAG "/MD")
   endif()
@@ -124,7 +138,7 @@ add_custom_command(
   COMMAND ${CARGO_CMD} build
   --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
   --workspace
-  ${RUST_BUILD_FLAG}
+  --profile "${RUST_PROFILE}"
   --lib
   --features "${FEATURES_CSV}"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -147,6 +161,7 @@ add_test(
   NAME      multipass_rust_tests
   COMMAND   ${CARGO_CMD} test
   --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
+  --profile "${RUST_PROFILE}"
   --no-fail-fast
   --workspace
   --lib
