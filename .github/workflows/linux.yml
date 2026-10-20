@@ -234,20 +234,11 @@ jobs:
       if: ${{ matrix.build-type == 'Debug' }}
       timeout-minutes: 5
       run: |
-        instance_name=$(/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass)
-        trap '
-          EXIT_STATUS=$?
-          echo "MULTIPASS_TESTS_EXIT_CODE=$EXIT_STATUS" >> $GITHUB_ENV
-          # Check if any files were generated in /coredump/
-          if /snap/bin/lxc --project snapcraft exec "$instance_name" -- bash -c "[ \"\$(ls -A /coredump 2>/dev/null)\" ]"; then
-            echo "CORE_DUMPS_FOUND=true" >> $GITHUB_ENV
-          fi
-        ' EXIT
+        source "$GITHUB_WORKSPACE/.github/scripts/coredump-helpers.sh"
         /snap/bin/lxc --project snapcraft start $instance_name
         # Let's print the core pattern so we can check if it's successfully propagated to the container.
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cat /proc/sys/kernel/core_pattern'
-        # Create the directory for the coredumps and ensure the directory is empty
-        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump && rm -f /coredump/*'
+        prepare_test_coredumps
         # Enable coredumps by setting the core dump size to "unlimited", and run the tests.
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
            cd /root/parts/multipass/build && \
@@ -260,14 +251,11 @@ jobs:
       if: ${{ matrix.build-type == 'Debug' }}
       timeout-minutes: 2
       run: |
-
-        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
-        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
-        /snap/bin/lxc --project snapcraft start $instance_name | true
+        source "$GITHUB_WORKSPACE/.github/scripts/coredump-helpers.sh"
+        /snap/bin/lxc --project snapcraft start "$instance_name" || true
         # Let's print the core pattern so we can check if it's successfully propagated to the container.
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cat /proc/sys/kernel/core_pattern'
-        # Create the directory for the coredumps
-        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump'
+        prepare_test_coredumps
         # Enable coredumps by setting the core dump size to "unlimited", and run the tests.
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
            ulimit -c unlimited &&        \
@@ -280,9 +268,7 @@ jobs:
       if: ${{ matrix.build-type == 'Coverage' }}
       timeout-minutes: 10
       run: |
-
-        trap 'echo "MULTIPASS_TESTS_EXIT_CODE=$?" >> $GITHUB_ENV' EXIT
-        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
+        source "$GITHUB_WORKSPACE/.github/scripts/coredump-helpers.sh"
         /snap/bin/lxc --project snapcraft start $instance_name
 
         # Wait for snapd to actually finish- in particular, that snaps are mounted
@@ -301,8 +287,7 @@ jobs:
         /snap/bin/lxc --project snapcraft exec $instance_name -- \
            sh -c "sudo sed -i \"s/use JSON::PP/use JSON::XS/\" \`which geninfo\`"
 
-        # Create the directory for the coredumps
-        /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'mkdir -p /coredump'
+        prepare_test_coredumps
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
           ulimit -c unlimited && \
           env CTEST_OUTPUT_ON_FAILURE=1 \
@@ -329,7 +314,6 @@ jobs:
         # Make a directory in tmp to pull the coredump(s) and the test executable.
         # We'll need both to debug the crash.
         mkdir -p /tmp/coredump
-        instance_name=`/snap/bin/lxc --project snapcraft --format=csv --columns=n list | grep multipass`
         # Pull the crashed executable from the container
         /snap/bin/lxc --project snapcraft file pull \
           -p -r "$instance_name/root/parts/multipass/build/bin/multipass_cpp_tests" /tmp/coredump/multipass_cpp_tests
