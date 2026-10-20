@@ -234,7 +234,7 @@ jobs:
       if: ${{ matrix.build-type == 'Debug' }}
       timeout-minutes: 5
       run: |
-        source "$GITHUB_WORKSPACE/.github/scripts/test-coredumps.sh"
+        source "$GITHUB_WORKSPACE/.github/scripts/coredump-helpers.sh"
         /snap/bin/lxc --project snapcraft start $instance_name
         # Let's print the core pattern so we can check if it's successfully propagated to the container.
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cat /proc/sys/kernel/core_pattern'
@@ -251,7 +251,7 @@ jobs:
       if: ${{ matrix.build-type == 'Debug' }}
       timeout-minutes: 2
       run: |
-        source "$GITHUB_WORKSPACE/.github/scripts/test-coredumps.sh"
+        source "$GITHUB_WORKSPACE/.github/scripts/coredump-helpers.sh"
         /snap/bin/lxc --project snapcraft start "$instance_name" || true
         # Let's print the core pattern so we can check if it's successfully propagated to the container.
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c 'cat /proc/sys/kernel/core_pattern'
@@ -268,7 +268,7 @@ jobs:
       if: ${{ matrix.build-type == 'Coverage' }}
       timeout-minutes: 10
       run: |
-        source "$GITHUB_WORKSPACE/.github/scripts/test-coredumps.sh"
+        source "$GITHUB_WORKSPACE/.github/scripts/coredump-helpers.sh"
         /snap/bin/lxc --project snapcraft start $instance_name
 
         # Wait for snapd to actually finish- in particular, that snaps are mounted
