@@ -50,6 +50,14 @@ boost::json::value format_images(
     return result;
 }
 
+boost::json::value format_zone(const mp::Zone& zone)
+{
+    if (zone.name().empty())
+        return nullptr;
+
+    return boost::json::object{{"name", zone.name()}, {"available", zone.available()}};
+}
+
 boost::json::object generate_snapshot_details(const mp::DetailedInfoItem& item)
 {
     const auto& snapshot_details = item.snapshot_info();
@@ -76,11 +84,7 @@ boost::json::object generate_instance_details(const mp::DetailedInfoItem& item)
     const auto& instance_details = item.instance_info();
 
     boost::json::object instance_info = {
-        {"zone",
-         !item.zone().name().empty()
-             ? boost::json::value(boost::json::object{{"name", item.zone().name()},
-                                                      {"available", item.zone().available()}})
-             : boost::json::value(nullptr)},
+        {"zone", format_zone(item.zone())},
         {"state", mp::format::status_string_for(item.instance_status())},
         {"image_hash", instance_details.id()},
         {"image_release", instance_details.image_release()},
@@ -172,11 +176,7 @@ boost::json::value generate_instances_list(const mp::InstancesList& instance_lis
             {"state", mp::format::status_string_for(instance.instance_status())},
             {"ipv4", boost::json::value_from(instance.ipv4())},
             {"release", std::move(release)},
-            {"zone",
-             !instance.zone().name().empty() ? boost::json::value(boost::json::object{
-                                                   {"name", instance.zone().name()},
-                                                   {"available", instance.zone().available()}})
-                                             : boost::json::value(nullptr)},
+            {"zone", format_zone(instance.zone())},
             {"mounts", instance.mount_count()},
         });
     }
