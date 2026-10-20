@@ -668,24 +668,19 @@ struct SelectionReaction
 };
 
 const SelectionReaction require_operative_instances_reaction{
-    .operative_reaction = {.status_code = grpc::StatusCode::OK},
-    .deleted_reaction = {.status_code = grpc::StatusCode::INVALID_ARGUMENT,
-                         .message_template = "instance \"{}\" is deleted"},
-    .missing_reaction = {.status_code = grpc::StatusCode::NOT_FOUND,
-                         .message_template = "instance \"{}\" does not exist"}};
+    .operative_reaction = {grpc::StatusCode::OK},
+    .deleted_reaction = {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" is deleted"},
+    .missing_reaction = {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist"}};
 
 const SelectionReaction require_existing_instances_reaction{
-    .operative_reaction = {.status_code = grpc::StatusCode::OK},
-    .deleted_reaction = {.status_code = grpc::StatusCode::OK},
-    .missing_reaction = {.status_code = grpc::StatusCode::NOT_FOUND,
-                         .message_template = "instance \"{}\" does not exist"}};
+    .operative_reaction = {grpc::StatusCode::OK},
+    .deleted_reaction = {grpc::StatusCode::OK},
+    .missing_reaction = {grpc::StatusCode::NOT_FOUND, "instance \"{}\" does not exist"}};
 
 const SelectionReaction require_missing_instances_reaction{
-    .operative_reaction = {.status_code = grpc::StatusCode::INVALID_ARGUMENT,
-                           .message_template = "instance \"{}\" already exists"},
-    .deleted_reaction = {.status_code = grpc::StatusCode::INVALID_ARGUMENT,
-                         .message_template = "instance \"{}\" already exists"},
-    .missing_reaction = {.status_code = grpc::StatusCode::OK}};
+    .operative_reaction = {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" already exists"},
+    .deleted_reaction = {grpc::StatusCode::INVALID_ARGUMENT, "instance \"{}\" already exists"},
+    .missing_reaction = {grpc::StatusCode::OK}};
 
 // call only with InstanceTable::iterator or std::reference_wrapper<std::string>
 template <typename InstanceElem>
@@ -2341,10 +2336,9 @@ try
     if (!instances_running(operative_instances))
         config->factory->hypervisor_health_check();
 
-    const SelectionReaction custom_reaction{
-        .operative_reaction = {.status_code = grpc::StatusCode::OK},
-        .deleted_reaction = {.status_code = grpc::StatusCode::ABORTED},
-        .missing_reaction = {.status_code = grpc::StatusCode::ABORTED}};
+    const SelectionReaction custom_reaction{.operative_reaction = {grpc::StatusCode::OK},
+                                            .deleted_reaction = {grpc::StatusCode::ABORTED},
+                                            .missing_reaction = {grpc::StatusCode::ABORTED}};
     auto [instance_selection,
           status] = select_instances_and_react(operative_instances,
                                                deleted_instances,
@@ -4039,8 +4033,7 @@ mp::Daemon::async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Repl
         }
     }
 
-    return {.status = mp::grpc_status_for_readiness<Reply>(results, start_errors),
-            .context = context};
+    return {mp::grpc_status_for_readiness<Reply>(results, start_errors), context};
 }
 
 void mp::Daemon::finish_async_operation(const std::string& async_future_key)

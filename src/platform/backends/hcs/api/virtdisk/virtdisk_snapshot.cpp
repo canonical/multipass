@@ -121,7 +121,7 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
 
     const virtdisk::CreateVirtualDiskParameters params{
         .path = child,
-        .predecessor = virtdisk::ParentPathParameters{.path = parent}};
+        .predecessor = virtdisk::ParentPathParameters{parent}};
 
     if (const auto result = VirtDisk().create_virtual_disk(params); !result)
     {

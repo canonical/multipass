@@ -30,8 +30,7 @@ public:
     StubProcess(std::unique_ptr<mp::ProcessSpec>&& spec,
                 std::vector<mpt::StubProcessFactory::ProcessInfo>& process_list)
     {
-        mpt::StubProcessFactory::ProcessInfo p{.command = spec->program(),
-                                               .arguments = spec->arguments()};
+        mpt::StubProcessFactory::ProcessInfo p{spec->program(), spec->arguments()};
         process_list.emplace_back(p);
     }
 
@@ -70,8 +69,7 @@ public:
     {
         mp::ProcessState exit_state{
             .exit_code = std::nullopt,
-            .error = mp::ProcessState::Error{.state = QProcess::Crashed,
-                                             .message = QStringLiteral("")}};
+            .error = mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("")}};
         emit finished(exit_state);
     }
 

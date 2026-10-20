@@ -175,7 +175,7 @@ TEST_F(BaseFactory, virtualSizeForThrowsWhenQemuImgCrashes)
 {
     auto scope = fake_qemuimg_info(
         {.exit_code = std::nullopt,
-         .error = mp::ProcessState::Error{.state = QProcess::Crashed, .message = "core dumped"}},
+         .error = mp::ProcessState::Error{QProcess::Crashed, "core dumped"}},
         "about to crash");
 
     mpt::TempFile image;

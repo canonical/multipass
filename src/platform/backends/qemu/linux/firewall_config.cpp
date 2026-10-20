@@ -351,8 +351,7 @@ bool kernel_supports_nftables()
     try
     {
         using namespace multipass::literals;
-        const auto kernel_supported{multipass::opaque_semver{.value = kernel_version_str} >=
-                                    "5.2.0"_semver};
+        const auto kernel_supported{multipass::opaque_semver{kernel_version_str} >= "5.2.0"_semver};
 
         if (!kernel_supported)
         {

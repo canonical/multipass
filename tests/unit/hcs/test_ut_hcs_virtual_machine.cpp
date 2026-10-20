@@ -407,7 +407,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, create_continues_when_stale_neighbors_
     default_create_success();
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).WillOnce([] {
         auto table = mhv::IpNetTable{nullptr, [](MIB_IPNET_TABLE2*) {}};
-        return mhv::IpNetTableResult{.error = ERROR_ACCESS_DENIED, .table = std::move(table)};
+        return mhv::IpNetTableResult{ERROR_ACCESS_DENIED, std::move(table)};
     });
 
     EXPECT_NO_THROW(construct_vm());

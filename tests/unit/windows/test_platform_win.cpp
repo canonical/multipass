@@ -222,8 +222,8 @@ TEST_F(PermanentIpv4Neighbor, returnsEmptyWhenGetIpNetTableFails)
                                         "GetIpNetTable2 failed with error code 5");
     auto table = mp::hyperv::IpNetTable{nullptr, [](MIB_IPNET_TABLE2*) {}};
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET))
-        .WillOnce(Return(ByMove(mp::hyperv::IpNetTableResult{.error = ERROR_ACCESS_DENIED,
-                                                             .table = std::move(table)})));
+        .WillOnce(
+            Return(ByMove(mp::hyperv::IpNetTableResult{ERROR_ACCESS_DENIED, std::move(table)})));
 
     EXPECT_FALSE(mp::permanent_ipv4_neighbor("aa:bb:cc:dd:ee:ff", mgmt_interface));
 }

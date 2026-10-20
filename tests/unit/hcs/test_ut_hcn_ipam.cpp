@@ -41,10 +41,10 @@ TEST_F(HyperVHCNIpam_UnitTests, format_narrow)
     uut_t uut;
     uut.type = hyperv::hcn::HcnIpamType::Static();
     uut.subnets.emplace_back(
-        hyperv::hcn::HcnSubnet{.ip_address_prefix = "192.168.1.0/24",
-                               .routes = {hcn::HcnRoute{.next_hop = "192.168.1.1",
-                                                        .destination_prefix = "0.0.0.0/0",
-                                                        .metric = 123}}});
+        hyperv::hcn::HcnSubnet{"192.168.1.0/24",
+                               {hcn::HcnRoute{.next_hop = "192.168.1.1",
+                                              .destination_prefix = "0.0.0.0/0",
+                                              .metric = 123}}});
     const auto result = fmt::to_string(uut);
     constexpr auto expected_result = R"json(
         {
@@ -81,10 +81,10 @@ TEST_F(HyperVHCNIpam_UnitTests, format_wide)
     uut_t uut;
     uut.type = hyperv::hcn::HcnIpamType::Dhcp();
     uut.subnets.emplace_back(
-        hyperv::hcn::HcnSubnet{.ip_address_prefix = "192.168.1.0/24",
-                               .routes = {hcn::HcnRoute{.next_hop = "192.168.1.1",
-                                                        .destination_prefix = "0.0.0.0/0",
-                                                        .metric = 123}}});
+        hyperv::hcn::HcnSubnet{"192.168.1.0/24",
+                               {hcn::HcnRoute{.next_hop = "192.168.1.1",
+                                              .destination_prefix = "0.0.0.0/0",
+                                              .metric = 123}}});
     const auto result = fmt::to_wstring(uut);
     constexpr auto expected_result = LR"json(
         {
