@@ -17,18 +17,22 @@
 
 #pragma once
 
+#include <multipass/exceptions/ip_unavailable_exception.h>
+#include <multipass/exceptions/ssh_exception.h>
 #include <multipass/file_ops.h>
+#include <multipass/guest_mount_record.h>
+#include <multipass/logging/log.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
 #include <multipass/ssh/ssh_key_provider.h>
+#include <multipass/virtual_machine.h>
 #include <multipass/vm_mount.h>
 
 #include <chrono>
+#include <string_view>
 #include <variant>
 
 namespace multipass
 {
-class VirtualMachine;
-
 using ServerVariant =
     std::variant<grpc::ServerReaderWriterInterface<StartReply, StartRequest>*,
                  grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>*,
@@ -56,7 +60,10 @@ public:
     {
         std::lock_guard active_lock{active_mutex};
         if (!is_active())
+        {
             activate_impl(server, timeout);
+            update_record(&GuestMountRecord::deploy, "deploy");
+        }
         active = true;
     }
 
@@ -64,7 +71,10 @@ public:
     {
         std::lock_guard active_lock{active_mutex};
         if (is_active())
+        {
             deactivate_impl(force);
+            update_record(&GuestMountRecord::undeploy, "undeploy");
+        }
         active = false;
     }
 
@@ -128,5 +138,40 @@ protected:
     const std::string& source = mount_spec.get_source_path();
     bool active = false;
     std::mutex active_mutex;
+
+private:
+    // Records are best-effort: an unreachable instance only warrants a warning
+    void update_record(void (GuestMountRecord::*update)(VirtualMachine&) const,
+                       std::string_view action) const
+    {
+        if (!vm)
+            return;
+
+        try
+        {
+            (record.*update)(*vm);
+        }
+        catch (const SSHException& e)
+        {
+            warn_record_failure(action, e);
+        }
+        catch (const IPUnavailableException& e)
+        {
+            warn_record_failure(action, e);
+        }
+    }
+
+    void warn_record_failure(std::string_view action, const std::exception& e) const
+    {
+        logging::warn(log_category,
+                      "Failed to {} the record of mount \"{}\" in instance '{}': {}",
+                      action,
+                      target,
+                      vm->get_name(),
+                      e.what());
+    }
+
+    static constexpr auto log_category = "mount-handler";
+    const GuestMountRecord record{source, target};
 };
 } // namespace multipass

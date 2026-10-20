@@ -117,6 +117,8 @@ struct QemuMountHandlerTest : public ::Test
             .WillOnce(
                 Return(mp::fs::file_status{mp::fs::file_type::directory, mp::fs::perms::all}));
         EXPECT_CALL(vm, modifiable_mount_args).WillOnce(ReturnRef(mount_args));
+        // let other commands through when tests expect specific ones (e.g. mount records)
+        EXPECT_CALL(vm, ssh_exec).Times(AnyNumber());
     }
 
     template <bool Success>

@@ -73,6 +73,8 @@ struct SmbMountHandlerTest : public ::Test
         EXPECT_CALL(utils, make_uuid(std::make_optional(target))).WillOnce(Return(target_uuid));
         EXPECT_CALL(utils, make_uuid(std::make_optional(username.toStdString())))
             .WillOnce(Return(username_uuid));
+        // let other commands through when tests expect specific ones (e.g. mount records)
+        EXPECT_CALL(vm, ssh_exec).Times(AnyNumber());
         EXPECT_CALL(logger, log).WillRepeatedly(Return());
         logger.expect_log(mpl::Level::info,
                           fmt::format("Initializing native mount {} => {} in '{}'",
