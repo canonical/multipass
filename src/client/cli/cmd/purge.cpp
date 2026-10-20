@@ -105,7 +105,7 @@ mp::ParseCode cmd::Purge::parse_args(mp::ArgParser* parser)
 
     cerr << mp::make_deprecation_warning(
         "`multipass purge`",
-        "Use `multipass delete <instance>` to permanently delete an instance");
+        "Use `multipass delete <instance>` to permanently delete an instance.");
 
     return status;
 }

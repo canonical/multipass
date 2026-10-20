@@ -40,7 +40,7 @@ multipass delete --force keen-yak
 
 ## Remove instances deleted by earlier versions
 
-> See also: [`recover`](reference-command-line-interface-recover)
+> See also: [`recover`](reference-command-line-interface-recover), [`delete`](reference-command-line-interface-delete)
 
 Earlier versions of Multipass only marked instances as `Deleted`, so they could be recovered later. If you still have instances in that state, you can recover them with `multipass recover`, or remove them for good with `multipass delete`:
 
