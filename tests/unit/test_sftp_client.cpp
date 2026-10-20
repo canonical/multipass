@@ -1053,11 +1053,10 @@ TEST_F(SFTPClient, pullDirFailDir)
 
     auto sftp_client = make_sftp_client();
 
-    mock_logger->expect_log(
-        mpl::Level::error,
-        fmt::format("cannot create local directory {}: {}",
-                    canon(target_path / "dir"),
-                    err.message()));
+    mock_logger->expect_log(mpl::Level::error,
+                            fmt::format("cannot create local directory {}: {}",
+                                        canon(target_path / "dir"),
+                                        err.message()));
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
@@ -1143,11 +1142,10 @@ TEST_F(SFTPClient, pullDirCannotCreateSymlink)
 
     auto sftp_client = make_sftp_client();
 
-    mock_logger->expect_log(
-        mpl::Level::error,
-        fmt::format("cannot create local symlink {}: {}",
-                    canon(target_path / "symlink"),
-                    err.message()));
+    mock_logger->expect_log(mpl::Level::error,
+                            fmt::format("cannot create local symlink {}: {}",
+                                        canon(target_path / "symlink"),
+                                        err.message()));
     EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
