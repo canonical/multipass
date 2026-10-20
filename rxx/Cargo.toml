@@ -49,3 +49,7 @@ incremental = false #Removing incremental compilation allows lower codegen count
 [profile.release]
 lto = true #Removes unused code sections
 codegen-units = 1 #Less threads to compete with C++ compilation
+
+[profile.relwithdebinfo]
+inherits = "release"
+debug = true
