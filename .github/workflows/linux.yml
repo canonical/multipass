@@ -337,7 +337,7 @@ jobs:
       uses: actions/upload-artifact@v7
       if: ${{ failure() && env.MULTIPASS_TESTS_EXIT_CODE != '0' && env.CORE_DUMPS_FOUND }}
       with:
-        name: buildandtest-test-crash-${{ runner.os }}-${{ runner.arch }}-${{ matrix.build-type }}
+        name: buildandtest-test-crash-${{ runner.os }}-${{ matrix.build-type }}
         path: /tmp/coredump/**
 
     - name: Continue on Error comment
