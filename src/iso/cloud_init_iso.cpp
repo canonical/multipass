@@ -477,7 +477,7 @@ mp::CloudInitIso::CloudInitIso(const CloudInitConfig& config)
             {"user-data", mpu::emit_cloud_config(config.user_data)}}
 {
     if (!config.network_data.IsNull())
-        files.push_back({"network-config", mpu::emit_cloud_config(config.network_data)});
+        files.push_back(FileEntry{"network-config", mpu::emit_cloud_config(config.network_data)});
 }
 
 bool mp::CloudInitIso::contains(const std::string& name) const

@@ -50,21 +50,23 @@ std::string tag_invoke(const boost::json::value_to_tag<std::string>&,
 
 TEST(TestJsonUtils, updatesUniqueIdentifiersOfMetadata)
 {
-    mp::VMSpecs src_specs = {1,
-                             mp::MemorySize::from_bytes(0),
-                             mp::MemorySize::from_bytes(0),
-                             "01:ff:00:00:00:01",
-                             {{"id", "01:ff:00:00:00:02", false}},
-                             "username",
-                             mp::VirtualMachine::State::stopped,
-                             {},
-                             false,
-                             {},
-                             0,
-                             "zone"};
+    mp::VMSpecs src_specs = {
+        .num_cores = 1,
+        .mem_size = mp::MemorySize::from_bytes(0),
+        .disk_space = mp::MemorySize::from_bytes(0),
+        .default_mac_address = "01:ff:00:00:00:01",
+        .extra_interfaces = {{.id = "id", .mac_address = "01:ff:00:00:00:02", .auto_mode = false}},
+        .ssh_username = "username",
+        .state = mp::VirtualMachine::State::stopped,
+        .mounts = {},
+        .deleted = false,
+        .metadata = {},
+        .clone_count = 0,
+        .zone = "zone"};
     mp::VMSpecs dst_specs = src_specs;
     dst_specs.default_mac_address = "aa:ff:00:00:00:01";
-    dst_specs.extra_interfaces = {{"id", "aa:ff:00:00:00:02", false}};
+    dst_specs.extra_interfaces = {
+        {.id = "id", .mac_address = "aa:ff:00:00:00:02", .auto_mode = false}};
 
     boost::json::object src_metadata = {{"arguments",
                                          {"instances/src_vm",
@@ -163,8 +165,8 @@ TEST(TestJsonUtils, mapToJsonArray)
     auto json_result = boost::json::value_from(map, mp::MapAsJsonArray{"species"});
     EXPECT_EQ(json_result, json_array);
 
-    auto map_result =
-        value_to<std::map<std::string, Animal>>(json_array, mp::MapAsJsonArray{"species"});
+    auto map_result = value_to<std::map<std::string, Animal>>(json_array,
+                                                              mp::MapAsJsonArray{"species"});
     EXPECT_EQ(map_result, map);
 }
 

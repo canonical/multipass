@@ -90,7 +90,9 @@ ethernets:
     set-name: eth2
 )";
 
-    const mp::NetworkInterface extra_interface{"id", "52:54:00:d8:12:9c", true};
+    const mp::NetworkInterface extra_interface{.id = "id",
+                                               .mac_address = "52:54:00:d8:12:9c",
+                                               .auto_mode = true};
     const std::string default_mac_addr = "52:54:00:56:78:90";
 
     const auto new_network_node = mpu::add_extra_interface_to_network_config(
@@ -123,7 +125,9 @@ ethernets:
     set-name: eth1
 )";
 
-    const mp::NetworkInterface extra_interface{"id", "52:54:00:d8:12:9c", true};
+    const mp::NetworkInterface extra_interface{.id = "id",
+                                               .mac_address = "52:54:00:d8:12:9c",
+                                               .auto_mode = true};
     const std::string default_mac_addr = "52:54:00:56:78:90";
 
     const auto new_network_node =
@@ -134,7 +138,9 @@ ethernets:
 
 TEST(YAMLNodeUtilsTests, addOneExtraInterfaceFalseExtraInterface)
 {
-    const mp::NetworkInterface extra_interface{"id", "52:54:00:d8:12:9c", false};
+    const mp::NetworkInterface extra_interface{.id = "id",
+                                               .mac_address = "52:54:00:d8:12:9c",
+                                               .auto_mode = false};
     const auto new_network_node =
         mpu::add_extra_interface_to_network_config("", extra_interface, "");
     EXPECT_TRUE(new_network_node.IsNull());

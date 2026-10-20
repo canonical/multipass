@@ -384,8 +384,10 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_multiple_ipams)
         params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
         hcn::HcnIpam ipam1;
         ipam1.type = hcn::HcnIpamType::Static();
-        ipam1.subnets.push_back(
-            hcn::HcnSubnet{"10.0.0.10/10", {hcn::HcnRoute{"10.0.0.1", "0.0.0.0/0", 0}}});
+        ipam1.subnets.push_back(hcn::HcnSubnet{"10.0.0.10/10",
+                                               {hcn::HcnRoute{.next_hop = "10.0.0.1",
+                                                              .destination_prefix = "0.0.0.0/0",
+                                                              .metric = 0}}});
         hcn::HcnIpam ipam2;
         ipam2.type = hcn::HcnIpamType::Dhcp();
 

@@ -200,7 +200,8 @@ TEST_F(AppleVZUtils_UnitTests, conversionRemovesAsifOnFailure)
             {
                 asif_path = args.at(4);
                 MP_UTILS.make_file_with_content(asif_path.toStdString(), "placeholder", true);
-                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{1, std::nullopt}));
+                EXPECT_CALL(*process, execute)
+                    .WillOnce(Return(mp::ProcessState{.exit_code = 1, .error = std::nullopt}));
             }
         }
     });
@@ -357,7 +358,8 @@ TEST_F(AppleVZUtils_UnitTests, resizeAsifImageThrowsOnDiskutilFailure)
         {
             const auto args = process->arguments();
             if (args.contains("image") && args.contains("resize"))
-                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{1, std::nullopt}));
+                EXPECT_CALL(*process, execute)
+                    .WillOnce(Return(mp::ProcessState{.exit_code = 1, .error = std::nullopt}));
             else if (args.contains("info"))
                 EXPECT_CALL(*process, read_all_standard_output)
                     .WillOnce(Return(asif_info_plist(target_size.in_bytes() - 1)));
@@ -455,7 +457,8 @@ TEST_F(AppleVZUtils_UnitTests, conversionDeletesFilesOnFailure)
             {
                 asif_path = args.at(4);
                 MP_UTILS.make_file_with_content(asif_path.toStdString(), "placeholder", false);
-                EXPECT_CALL(*process, execute).WillOnce(Return(mp::ProcessState{1, std::nullopt}));
+                EXPECT_CALL(*process, execute)
+                    .WillOnce(Return(mp::ProcessState{.exit_code = 1, .error = std::nullopt}));
             }
         }
     });

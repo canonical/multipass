@@ -38,7 +38,7 @@ static_assert(pty_size_changed.is_always_lock_free,
 
 bool update_local_pty_size(int cout_fd)
 {
-    struct winsize win = {0, 0, 0, 0};
+    struct winsize win = {.ws_row = 0, .ws_col = 0, .ws_xpixel = 0, .ws_ypixel = 0};
     ioctl(cout_fd, TIOCGWINSZ, &win);
 
     bool local_pty_size_changed = local_pty_size.rows != win.ws_row ||

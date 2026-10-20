@@ -40,10 +40,10 @@ constexpr auto json_description = "description";
 mp::NewReleaseInfo mp::tag_invoke(const boost::json::value_to_tag<mp::NewReleaseInfo>&,
                                   const boost::json::value& json)
 {
-    return {value_to<std::string>(json.at(::json_tag_name)),
-            value_to<std::string>(json.at(::json_html_url)),
-            mp::lookup_or<std::string>(json, ::json_title, ""),
-            mp::lookup_or<std::string>(json, ::json_description, "")};
+    return {.version = value_to<std::string>(json.at(::json_tag_name)),
+            .url = value_to<std::string>(json.at(::json_html_url)),
+            .title = mp::lookup_or<std::string>(json, ::json_title, ""),
+            .description = mp::lookup_or<std::string>(json, ::json_description, "")};
 }
 
 class mp::LatestReleaseChecker : public QThread

@@ -40,9 +40,9 @@ int main_impl(int argc, char* argv[])
 
     mp::client::register_global_settings_handlers();
 
-    mp::ClientConfig config{mp::client::get_server_address(),
-                            mp::client::get_cert_provider(),
-                            term.get()};
+    mp::ClientConfig config{.server_address = mp::client::get_server_address(),
+                            .cert_provider = mp::client::get_cert_provider(),
+                            .term = term.get()};
     mp::Client client{config};
     return std::visit([](auto&& value) -> int { return static_cast<int>(value); },
                       client.run(QCoreApplication::arguments()));

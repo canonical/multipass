@@ -243,7 +243,9 @@ struct Client : public Test
 
     int setup_client_and_run(const std::vector<std::string>& command, mp::Terminal& term)
     {
-        mp::ClientConfig client_config{server_address, get_client_cert_provider(), &term};
+        mp::ClientConfig client_config{.server_address = server_address,
+                                       .cert_provider = get_client_cert_provider(),
+                                       .term = &term};
         mp::Client client{client_config};
         QStringList args = QStringList() << "multipass_cpp_test";
 
@@ -4272,7 +4274,9 @@ TEST_F(ClientAlias, aliasCreatesAlias)
 {
     EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
-    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", "map"}}});
+    populate_db_file(AliasesVector{
+        {"an_alias",
+         {.instance = "an_instance", .command = "a_command", .working_directory = "map"}}});
 
     EXPECT_EQ(
         send_command(
@@ -4364,7 +4368,9 @@ TEST_F(ClientAlias, aliasDoesNotOverwriteAlias)
 {
     EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
-    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", "map"}}});
+    populate_db_file(AliasesVector{
+        {"an_alias",
+         {.instance = "an_instance", .command = "a_command", .working_directory = "map"}}});
 
     std::stringstream cerr_stream;
     EXPECT_EQ(
@@ -4478,7 +4484,9 @@ TEST_F(ClientAlias, tooManyAliasesArguments)
 
 TEST_F(ClientAlias, executeExistingAlias)
 {
-    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", "map"}}});
+    populate_db_file(AliasesVector{
+        {"some_alias",
+         {.instance = "some_instance", .command = "some_command", .working_directory = "map"}}});
 
     EXPECT_CALL(mock_daemon, info(_, _)).WillOnce(make_info_function());
     EXPECT_CALL(mock_daemon, ssh_info(_, _));
@@ -4488,7 +4496,9 @@ TEST_F(ClientAlias, executeExistingAlias)
 
 TEST_F(ClientAlias, executeNonexistentAlias)
 {
-    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", "map"}}});
+    populate_db_file(AliasesVector{
+        {"some_alias",
+         {.instance = "some_instance", .command = "some_command", .working_directory = "map"}}});
 
     EXPECT_CALL(mock_daemon, ssh_info(_, _)).Times(0);
 
@@ -4500,7 +4510,9 @@ TEST_F(ClientAlias, executeNonexistentAlias)
 
 TEST_F(ClientAlias, executeAliasWithArguments)
 {
-    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", "map"}}});
+    populate_db_file(AliasesVector{
+        {"some_alias",
+         {.instance = "some_instance", .command = "some_command", .working_directory = "map"}}});
 
     EXPECT_CALL(mock_daemon, info(_, _)).WillOnce(make_info_function());
     EXPECT_CALL(mock_daemon, ssh_info(_, _));
@@ -4510,7 +4522,9 @@ TEST_F(ClientAlias, executeAliasWithArguments)
 
 TEST_F(ClientAlias, failsExecutingAliasWithoutSeparator)
 {
-    populate_db_file(AliasesVector{{"some_alias", {"some_instance", "some_command", "map"}}});
+    populate_db_file(AliasesVector{
+        {"some_alias",
+         {.instance = "some_instance", .command = "some_command", .working_directory = "map"}}});
 
     EXPECT_CALL(mock_daemon, ssh_info(_, _)).Times(0);
 
@@ -4526,7 +4540,9 @@ TEST_F(ClientAlias, aliasRefusesCreationNonexistentInstance)
 {
     EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
-    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", "map"}}});
+    populate_db_file(AliasesVector{
+        {"an_alias",
+         {.instance = "an_instance", .command = "a_command", .working_directory = "map"}}});
 
     std::stringstream cout_stream, cerr_stream;
     send_command({"alias", "foo:another_command", "another_alias"}, cout_stream, cerr_stream);
@@ -4544,7 +4560,9 @@ TEST_F(ClientAlias, aliasRefusesCreationRpcError)
     EXPECT_CALL(mock_daemon, info(_, _))
         .WillOnce(Return(grpc::Status{grpc::StatusCode::NOT_FOUND, "msg"}));
 
-    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", "map"}}});
+    populate_db_file(AliasesVector{
+        {"an_alias",
+         {.instance = "an_instance", .command = "a_command", .working_directory = "map"}}});
 
     std::stringstream cout_stream, cerr_stream;
     send_command({"alias", "foo:another_command", "another_alias"}, cout_stream, cerr_stream);
@@ -4896,7 +4914,8 @@ TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
 {
     EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
-    populate_db_file(AliasesVector{{"an_alias", {"primary", "a_command", "map"}}});
+    populate_db_file(AliasesVector{
+        {"an_alias", {.instance = "primary", .command = "a_command", .working_directory = "map"}}});
 
     std::stringstream cout_stream, cerr_stream;
     send_command({"alias", "primary:another_command", "an_alias"}, cout_stream, cerr_stream);
@@ -4913,7 +4932,8 @@ TEST_F(ClientAlias, aliasCreatesAliasThatExistsInAnotherContext)
 {
     EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
-    populate_db_file(AliasesVector{{"an_alias", {"primary", "a_command", "map"}}});
+    populate_db_file(AliasesVector{
+        {"an_alias", {.instance = "primary", .command = "a_command", .working_directory = "map"}}});
 
     EXPECT_EQ(send_command({"prefer", "new_context"}), mp::ReturnCode::Ok);
 
@@ -4934,9 +4954,13 @@ TEST_F(ClientAlias, aliasCreatesAliasThatExistsInAnotherContext)
 
 TEST_F(ClientAlias, unaliasRemovesExistingAlias)
 {
-    populate_db_file(
-        AliasesVector{{"an_alias", {"an_instance", "a_command", "default"}},
-                      {"another_alias", {"another_instance", "another_command", "map"}}});
+    populate_db_file(AliasesVector{
+        {"an_alias",
+         {.instance = "an_instance", .command = "a_command", .working_directory = "default"}},
+        {"another_alias",
+         {.instance = "another_instance",
+          .command = "another_command",
+          .working_directory = "map"}}});
 
     EXPECT_EQ(send_command({"unalias", "another_alias"}), mp::ReturnCode::Ok);
 
@@ -4953,9 +4977,13 @@ TEST_F(ClientAlias, unaliasSucceedsEvenIfScriptCannotBeRemoved)
         .Times(1)
         .WillRepeatedly(Throw(std::runtime_error("bbb")));
 
-    populate_db_file(
-        AliasesVector{{"an_alias", {"an_instance", "a_command", "map"}},
-                      {"another_alias", {"another_instance", "another_command", "default"}}});
+    populate_db_file(AliasesVector{
+        {"an_alias",
+         {.instance = "an_instance", .command = "a_command", .working_directory = "map"}},
+        {"another_alias",
+         {.instance = "another_instance",
+          .command = "another_command",
+          .working_directory = "default"}}});
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "another_alias"}, trash_stream, cerr_stream),
@@ -4971,9 +4999,13 @@ TEST_F(ClientAlias, unaliasSucceedsEvenIfScriptCannotBeRemoved)
 
 TEST_F(ClientAlias, unaliasDoesNotRemoveNonexistentAlias)
 {
-    populate_db_file(
-        AliasesVector{{"an_alias", {"an_instance", "a_command", "map"}},
-                      {"another_alias", {"another_instance", "another_command", "default"}}});
+    populate_db_file(AliasesVector{
+        {"an_alias",
+         {.instance = "an_instance", .command = "a_command", .working_directory = "map"}},
+        {"another_alias",
+         {.instance = "another_instance",
+          .command = "another_command",
+          .working_directory = "default"}}});
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "nonexistent_alias"}, trash_stream, cerr_stream),
@@ -4990,9 +5022,13 @@ TEST_F(ClientAlias, unaliasDoesNotRemoveNonexistentAlias)
 
 TEST_F(ClientAlias, unaliasDoesNotRemoveNonexistentAliases)
 {
-    populate_db_file(
-        AliasesVector{{"an_alias", {"an_instance", "a_command", "default"}},
-                      {"another_alias", {"another_instance", "another_command", "map"}}});
+    populate_db_file(AliasesVector{
+        {"an_alias",
+         {.instance = "an_instance", .command = "a_command", .working_directory = "default"}},
+        {"another_alias",
+         {.instance = "another_instance",
+          .command = "another_command",
+          .working_directory = "map"}}});
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "nonexistent_alias", "another_nonexistent_alias"},
@@ -5016,9 +5052,13 @@ TEST_F(ClientAlias, unaliasDoesNotRemoveNonexistentAliases)
 
 TEST_F(ClientAlias, unaliasDashDashAllWorks)
 {
-    populate_db_file(
-        AliasesVector{{"an_alias", {"an_instance", "a_command", "map"}},
-                      {"another_alias", {"another_instance", "another_command", "default"}}});
+    populate_db_file(AliasesVector{
+        {"an_alias",
+         {.instance = "an_instance", .command = "a_command", .working_directory = "map"}},
+        {"another_alias",
+         {.instance = "another_instance",
+          .command = "another_command",
+          .working_directory = "default"}}});
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "--all"}, trash_stream, cerr_stream), mp::ReturnCode::Ok);
@@ -5032,9 +5072,13 @@ TEST_F(ClientAlias, unaliasDashDashAllWorks)
 
 TEST_F(ClientAlias, unaliasDashDashAllClashesWithOtherArguments)
 {
-    populate_db_file(
-        AliasesVector{{"an_alias", {"an_instance", "a_command", "map"}},
-                      {"another_alias", {"another_instance", "another_command", "default"}}});
+    populate_db_file(AliasesVector{
+        {"an_alias",
+         {.instance = "an_instance", .command = "a_command", .working_directory = "map"}},
+        {"another_alias",
+         {.instance = "another_instance",
+          .command = "another_command",
+          .working_directory = "default"}}});
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "arg", "--all"}, trash_stream, cerr_stream),
@@ -5127,7 +5171,8 @@ TEST_F(ClientAlias, execAliasRewritesMountedDir)
 
     EXPECT_CALL(mock_daemon, info(_, _)).WillOnce(make_info_function(source_dir, target_dir));
 
-    populate_db_file(AliasesVector{{alias_name, {instance_name, cmd, "map"}}});
+    populate_db_file(AliasesVector{
+        {alias_name, {.instance = instance_name, .command = cmd, .working_directory = "map"}}});
 
     REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
         *val = 0;
@@ -5178,8 +5223,10 @@ TEST_P(NotDirRewriteTestsuite, execAliasDoesNotRewriteMountedDir)
     else
         EXPECT_CALL(mock_daemon, info(_, _)).Times(0);
 
-    populate_db_file(
-        AliasesVector{{alias_name, {instance_name, cmd, map_dir ? "map" : "default"}}});
+    populate_db_file(AliasesVector{{alias_name,
+                                    {.instance = instance_name,
+                                     .command = cmd,
+                                     .working_directory = map_dir ? "map" : "default"}}});
 
     REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
         *val = 0;

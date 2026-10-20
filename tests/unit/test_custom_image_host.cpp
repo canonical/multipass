@@ -48,7 +48,11 @@ struct CustomImageHost : public Test
 
     mp::Query make_query(std::string release, std::string remote)
     {
-        return {"", std::move(release), false, std::move(remote), mp::Query::Type::Alias};
+        return {.name = "",
+                .release = std::move(release),
+                .persistent = false,
+                .remote_name = std::move(remote),
+                .query_type = mp::Query::Type::Alias};
     }
 
     QByteArray payload = mpt::load_test_file("custom_image_host/good_manifest.json");

@@ -54,7 +54,11 @@ struct UbuntuImageHost : public testing::Test
 
     mp::Query make_query(std::string release, std::string remote)
     {
-        return {"", std::move(release), false, std::move(remote), mp::Query::Type::Alias};
+        return {.name = "",
+                .release = std::move(release),
+                .persistent = false,
+                .remote_name = std::move(remote),
+                .query_type = mp::Query::Type::Alias};
     }
 
     QString test_host = QUrl::fromLocalFile(mpt::test_data_path()).toString();
@@ -499,8 +503,8 @@ TEST_F(UbuntuImageHost, infoForFullHashFindsImage)
     mp::UbuntuVMImageHost host{all_remote_specs, &url_downloader};
     host.update_manifests(false);
 
-    auto image_info =
-        host.info_for_full_hash("AB115B83E7A8BEBF3D3A02BF55AD0CB75A0ED515FCBC65FB0C9ABE76C752921C");
+    auto image_info = host.info_for_full_hash(
+        "AB115B83E7A8BEBF3D3A02BF55AD0CB75A0ED515FCBC65FB0C9ABE76C752921C");
 
     EXPECT_EQ(image_info.release, "zesty");
 }
