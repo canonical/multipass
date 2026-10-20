@@ -37,7 +37,10 @@ mp::ReturnCodeVariant cmd::Delete::run(mp::ArgParser* parser)
 
     auto on_success = [this, &declined](mp::DeleteReply&) -> ReturnCodeVariant {
         if (declined)
-            return mp::ReturnCode::CommandFail;
+        {
+            cout << "Aborted, no instances were deleted.\n";
+            return mp::ReturnCode::Ok;
+        }
 
         for (const auto& item : request.instance_snapshot_pairs())
             if (item.has_snapshot_name())

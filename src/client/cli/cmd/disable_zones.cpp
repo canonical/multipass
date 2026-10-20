@@ -45,7 +45,10 @@ ReturnCodeVariant DisableZones::run(ArgParser* parser)
         }
 
         if (!confirm())
-            return ReturnCode::CommandFail;
+        {
+            cout << "Aborted, zone(s) was not disabled.\n";
+            return ReturnCode::Ok;
+        }
     }
 
     AnimatedSpinner spinner{cout};

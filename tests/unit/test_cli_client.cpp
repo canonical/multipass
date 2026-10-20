@@ -3484,7 +3484,8 @@ TEST_F(ClientDeleteConfirmation, defaultAnswerDoesNotDelete)
     EXPECT_CALL(mock_daemon, delet).WillOnce(ask_for_confirmation(false));
 
     cin.str("\n");
-    EXPECT_EQ(setup_client_and_run({"delete", "my-vm"}, term), mp::ReturnCode::CommandFail);
+    EXPECT_EQ(setup_client_and_run({"delete", "my-vm"}, term), mp::ReturnCode::Ok);
+    EXPECT_THAT(cout.str(), HasSubstr("Aborted, no instances were deleted."));
     EXPECT_THAT(cout.str(), Not(HasSubstr("is deleted")));
 }
 
@@ -3502,7 +3503,8 @@ TEST_F(ClientDeleteConfirmation, noAnswerDoesNotDelete)
     EXPECT_CALL(mock_daemon, delet).WillOnce(ask_for_confirmation(false));
 
     cin.str("N\n");
-    EXPECT_EQ(setup_client_and_run({"delete", "my-vm"}, term), mp::ReturnCode::CommandFail);
+    EXPECT_EQ(setup_client_and_run({"delete", "my-vm"}, term), mp::ReturnCode::Ok);
+    EXPECT_THAT(cout.str(), HasSubstr("Aborted, no instances were deleted."));
     EXPECT_THAT(cout.str(), Not(HasSubstr("is deleted")));
 }
 
@@ -3533,7 +3535,7 @@ TEST_F(ClientDeleteConfirmation, instanceOverridesItsSnapshots)
 
     cin.str("n\n");
     EXPECT_EQ(setup_client_and_run({"delete", "foo", "foo.snap1", "bar.snap2"}, term),
-              mp::ReturnCode::CommandFail);
+              mp::ReturnCode::Ok);
     EXPECT_THAT(cout.str(),
                 HasSubstr("Instance 'foo', and snapshot 'bar.snap2' will be deleted permanently"));
 }
@@ -4927,7 +4929,7 @@ TEST_F(ClientZone, disableZonesCmdConfirm)
     EXPECT_EQ(setup_client_and_run({"disable-zones", "zone1"}, term), mp::ReturnCode::Ok);
 
     cin.str("no\n");
-    EXPECT_EQ(setup_client_and_run({"disable-zones", "zone1"}, term), mp::ReturnCode::CommandFail);
+    EXPECT_EQ(setup_client_and_run({"disable-zones", "zone1"}, term), mp::ReturnCode::Ok);
 }
 
 TEST_F(ClientZone, disableZonesCmdInvalidZoneDoesntConfirm)
