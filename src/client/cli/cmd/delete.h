@@ -30,26 +30,25 @@ public:
     using Command::Command;
 
     Delete(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
-        : Command(stub, term), aliases(dict)
+        : Command(stub, term), aliases_dict(dict)
     {
     }
 
     ReturnCodeVariant run(ArgParser* parser) override;
 
     std::string name() const override;
+    std::vector<std::string> aliases() const override;
     QString short_help() const override;
     QString description() const override;
 
 private:
-    AliasDict aliases;
+    AliasDict aliases_dict;
     DeleteRequest request;
-    std::string instance_args;
-    std::string snapshot_args;
+    bool delete_all = false;
 
     ParseCode parse_args(ArgParser* parser);
-    ParseCode parse_instances_snapshots(ArgParser* parser);
-    std::string generate_snapshot_purge_msg() const;
-    bool confirm_snapshot_purge() const;
+    bool confirm() const;
+    void remove_aliases_for(const std::string& instance);
 };
 } // namespace cmd
 } // namespace multipass

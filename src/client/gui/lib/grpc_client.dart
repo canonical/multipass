@@ -144,6 +144,7 @@ class GrpcClient {
         instanceSnapshotPairs: names.map(
           (name) => InstanceSnapshotPair(instanceName: name),
         ),
+        force: true,
       ),
     );
   }
@@ -152,18 +153,6 @@ class GrpcClient {
     return doRpc(
       _client.recover,
       RecoverRequest(instanceNames: InstanceNames(instanceName: names)),
-    );
-  }
-
-  Future<DeleteReply?> purge(Iterable<String> names) {
-    return doRpc(
-      _client.delet,
-      DeleteRequest(
-        purge: true,
-        instanceSnapshotPairs: names.map(
-          (name) => InstanceSnapshotPair(instanceName: name),
-        ),
-      ),
     );
   }
 

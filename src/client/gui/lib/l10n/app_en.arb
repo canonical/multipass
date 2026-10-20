@@ -157,7 +157,7 @@
             }
         }
     },
-    "deleteInstanceBody": "{count, plural, =1{You can't recover this instance.} other{You can't recover these instances.}}",
+    "deleteInstanceBody": "{count, plural, =1{Are you sure you want to delete this instance?} other{Are you sure you want to delete these instances?}}",
     "@deleteInstanceBody": {
         "description": "Body text of the delete instance confirmation dialog",
         "placeholders": {

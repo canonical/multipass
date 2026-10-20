@@ -59,7 +59,7 @@ class BulkActionsBar extends ConsumerWidget {
           barrierDismissible: false,
           builder: (_) => DeleteInstanceDialog(
             count: selectedVms.length,
-            onDelete: () => wrapInNotification(client.purge)(action),
+            onDelete: () => wrapInNotification(client.delete)(action),
           ),
         );
       },

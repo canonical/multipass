@@ -40,6 +40,7 @@ class SettingsException;
 namespace cmd
 {
 const QString all_option_name{"all"};
+const QString force_option_name{"force"};
 const QString format_option_name{"format"};
 const QString format_option_details{
     "Valid formats are: table (default), json, csv and yaml. The json, csv and yaml formats "

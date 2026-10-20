@@ -9,7 +9,7 @@ The commands below follow the life of an instance, from launching it to working 
 
 ## Instance creation and removal
 
-Every instance you work with starts with a launch or a clone. Removing an instance takes two steps: a deleted instance can still be recovered until you purge it.
+Every instance you work with starts with a launch or a clone. Deleting an instance removes it permanently, so it cannot be recovered.
 
 - [`launch`](reference-command-line-interface-launch)
 - [`clone`](reference-command-line-interface-clone)

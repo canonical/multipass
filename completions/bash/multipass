@@ -252,7 +252,7 @@ _multipass_complete()
             _add_nonrepeating_args "--format"
         ;;
         "delete")
-            _add_nonrepeating_args "--all --purge"
+            _add_nonrepeating_args "--all"
         ;;
         "launch")
             _add_nonrepeating_args "--cpus --disk --memory --name --cloud-init --bridged --mount"

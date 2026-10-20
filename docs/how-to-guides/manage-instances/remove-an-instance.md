@@ -3,61 +3,51 @@
 
 > See also: [Instance](explanation-instance)
 
-This guide demonstrates how to remove an instance, either temporarily or permanently.
+This guide demonstrates how to remove an instance permanently.
 
-## Move an instance to the recycle bin
+## Delete an instance
 
-> See also: [`delete`](reference-command-line-interface-delete), [`recover`](reference-command-line-interface-recover)
+> See also: [`delete`](reference-command-line-interface-delete)
 
-To mark an instance as deleted, run:
+To delete an instance, run:
 
 ```{code-block} text
 multipass delete keen-yak
 ```
 
-Now, if you run `multipass list` to list the instances, you will see that it is actually just marked for deletion (or to put it in other words, moved to the recycle bin):
+Multipass asks you to confirm. Answer `y` to proceed; the default answer is no, so pressing Enter cancels:
 
 ```{code-block} text
-Name                    State             IPv4             Release
-keen-yak                DELETED           --               Not Available
+Instance 'keen-yak' will be deleted permanently. Would you like to proceed? [y/N]: y
+keen-yak is deleted.
 ```
 
-You can move all instances to the recycle bin at once using the `--all` option:
+```{caution}
+Deleted instances cannot be recovered.
+```
+
+You can delete all instances at once using the `--all` option:
 
 ```{code-block} text
 multipass delete --all
 ```
 
-Instances that have been marked as deleted can later be recovered; for example:
+To skip the confirmation, for example in a script, add the `--force` option:
 
 ```{code-block} text
-multipass recover keen-yak
+multipass delete --force keen-yak
 ```
 
-If you try `multipass list` again, you'll see that the instance is no longer marked for deletion:
+## Remove instances deleted by earlier versions
+
+> See also: [`recover`](reference-command-line-interface-recover), [`purge`](reference-command-line-interface-purge)
+
+Earlier versions of Multipass only marked instances as `Deleted`, so they could be recovered later. If you still have instances in that state, you can recover them with `multipass recover`, or remove them for good with:
 
 ```{code-block} text
-Name                    State             IPv4             Image
-keen-yak                Stopped           --               Ubuntu 26.04 LTS
-```
-
-## Remove an instance permanently
-
-> See also: [`delete`](reference-command-line-interface-delete), [`purge`](reference-command-line-interface-purge)
-
-If you want to get rid of all instances in `Deleted` status for good, you can purge them:
-
-```{code-block} text
-multipass delete keen-yak
 multipass purge
 ```
 
 ```{caution}
 The `purge` command does not take an argument. It will permanently remove all instances marked as `Deleted`.
-```
-
-You can also use the `--purge` option to permanently delete an instance in a single command; for example:
-
-```{code-block} text
-multipass delete --purge keen-yak
 ```

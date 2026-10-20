@@ -32,10 +32,6 @@ class Command : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<Command>;
-    Command(Rpc::StubInterface& stub, std::ostream& cout, std::ostream& cerr)
-        : stub{&stub}, cout{cout}, cerr{cerr}
-    {
-    }
 
     Command(Rpc::StubInterface& stub, Terminal* term)
         : stub{&stub}, term{term}, cout{term->cout()}, cerr{term->cerr()}

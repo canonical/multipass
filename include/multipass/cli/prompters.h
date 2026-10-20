@@ -89,6 +89,17 @@ public:
     std::string prompt(const std::string& text = "Please re-enter passphrase") const override;
 };
 
+class YesNoPrompter : private DisabledCopyMove
+{
+public:
+    explicit YesNoPrompter(Terminal* term) : term(term) {};
+
+    bool prompt(const std::string& text, bool default_answer) const;
+
+private:
+    Terminal* term;
+};
+
 class BridgePrompter : private DisabledCopyMove
 {
 public:
