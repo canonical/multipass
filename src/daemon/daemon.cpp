@@ -2645,34 +2645,7 @@ try
                 return {status, nullptr};
 
             const auto& instance_targets = instance_selection.operative_selection;
-            const auto& suspended_instances = filter_instances_by_state(
-                instance_targets,
-                mp::VirtualMachine::State::suspended);
-            std::vector<std::string> suspended_vms;
-            std::transform(suspended_instances.begin(),
-                           suspended_instances.end(),
-                           std::back_inserter(suspended_vms),
-                           [](const auto it) { return it->first; });
-
-            status = parallel_cmd_vms(
-                operative_instances,
-                suspended_vms,
-                [this, timeout](VirtualMachine& vm) {
-                    try
-                    {
-                        {
-                            std::lock_guard start_guard{start_mutex};
-                            vm.start();
-                        }
-                        // We only need the instance to achieve an SSH session for restart
-                        vm.wait_until_ssh_up(timeout);
-                        return grpc::Status::OK;
-                    }
-                    catch (const std::runtime_error& e)
-                    {
-                        return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
-                    }
-                });
+            status = restart_handle_suspended_instances(instance_targets, timeout);
             return {status, nullptr};
         }
         catch (const std::exception& e)
@@ -4475,4 +4448,54 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
                                          instance_name,
                                          preferred_net);
     }
+}
+
+grpc::Status mp::Daemon::restart_handle_suspended_instances(
+    const LinearInstanceSelection& instance_targets,
+    std::chrono::seconds timeout)
+{
+    const auto& suspended_instances = filter_instances_by_state(
+        instance_targets,
+        mp::VirtualMachine::State::suspended);
+    std::vector<std::string> suspended_vms;
+    std::transform(suspended_instances.begin(),
+                   suspended_instances.end(),
+                   std::back_inserter(suspended_vms),
+                   [](const auto it) { return it->first; });
+
+    // Start suspended VMs
+    auto status = cmd_vms(
+        suspended_instances,
+        [this](VirtualMachine& vm) {
+            try
+            {
+                std::lock_guard start_guard{start_mutex};
+                vm.start();
+                return grpc::Status::OK;
+            }
+            catch (const std::runtime_error& e)
+            {
+                return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
+            }
+        },
+        /*fail_early=*/false);
+
+    if (!status.ok())
+        return status;
+
+    // Wait asynchronously for the ssh up
+    status = parallel_cmd_vms(operative_instances, suspended_vms, [timeout](VirtualMachine& vm) {
+        try
+        {
+            // We only need the instance to achieve an SSH session for restart
+            vm.wait_until_ssh_up(timeout);
+            return grpc::Status::OK;
+        }
+        catch (const std::runtime_error& e)
+        {
+            return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
+        }
+    });
+
+    return status;
 }

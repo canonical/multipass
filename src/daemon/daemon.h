@@ -215,6 +215,10 @@ private:
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
 
+    grpc::Status restart_handle_suspended_instances(
+        const std::vector<InstanceTable::iterator>& instance_targets,
+        std::chrono::seconds timeout);
+
     void init_mounts(const std::string& name);
     void stop_mounts(const std::string& name);
 
