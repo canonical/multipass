@@ -26,6 +26,17 @@
 #include <cstring>
 #include <memory>
 
+// TEMPORARY: intentional crash to test coredump collection in CI. Do not merge.
+namespace
+{
+[[maybe_unused]] const bool crash_on_startup = []
+{
+    if (std::getenv("MULTIPASS_TEST_INTENTIONAL_CRASH"))
+        std::abort();
+    return false;
+}();
+} // namespace
+
 TEST(Libssh, eventNewReturnsNonNullAndCanBeFreed)
 {
     ssh_event event = MP_LIBSSH.ssh_event_new();

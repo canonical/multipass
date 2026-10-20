@@ -260,6 +260,7 @@ jobs:
         /snap/bin/lxc --project snapcraft exec $instance_name -- bash -c "\
            ulimit -c unlimited &&        \
            env CTEST_OUTPUT_ON_FAILURE=1 \
+           MULTIPASS_TEST_INTENTIONAL_CRASH=1 \
            LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
            /root/parts/multipass/build/bin/multipass_integration_tests"
 
