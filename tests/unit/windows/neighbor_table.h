@@ -55,9 +55,8 @@ inline hyperv::IpNetTableResult make_neighbor_table(std::initializer_list<Neighb
         std::ranges::copy(mac, row.PhysicalAddress);
     }
 
-    return {.error = NO_ERROR,
-            .table = hyperv::IpNetTable{table, [](MIB_IPNET_TABLE2* table) {
-                                            delete[] reinterpret_cast<std::byte*>(table);
-                                        }}};
+    return {NO_ERROR, hyperv::IpNetTable{table, [](MIB_IPNET_TABLE2* table) {
+                                             delete[] reinterpret_cast<std::byte*>(table);
+                                         }}};
 }
 } // namespace multipass::test

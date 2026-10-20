@@ -29,7 +29,7 @@ namespace mp = multipass;
 
 namespace
 {
-mp::Console::ConsoleGeometry local_pty_size{.rows = 0, .columns = 0};
+mp::Console::ConsoleGeometry local_pty_size{0, 0};
 ssh_channel global_channel;
 int global_cout_fd;
 std::atomic<std::sig_atomic_t> pty_size_changed{0};

@@ -49,8 +49,7 @@ struct AliasDictionary : public FakeAliasConfig, public Test
 {
 protected:
     AliasDictionary()
-        : trash_term(trash_stream, trash_stream, trash_stream),
-          json_context{.term = &trash_term, .filename = ""}
+        : trash_term(trash_stream, trash_stream, trash_stream), json_context{&trash_term, ""}
     {
     }
 
