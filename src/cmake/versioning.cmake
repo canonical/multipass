@@ -21,7 +21,7 @@ function(determine_version OUTPUT_VARIABLE)
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
   is_release_branch(GIT_IS_RELEASE_BRANCH)
-  # only use -rc tags on release/* branches
+  # only use -rc tags on release/* and stable branches
   if(GIT_IS_RELEASE_BRANCH)
       if(NOT DEFINED MULTIPASS_UPSTREAM)
         message(FATAL_ERROR "You need to set MULTIPASS_UPSTREAM for a release build.\
