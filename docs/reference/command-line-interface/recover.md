@@ -3,6 +3,10 @@
 
 > See also: [`delete`](/reference/command-line-interface/delete)
 
+```{caution}
+The `recover` command is deprecated and will be removed in an upcoming release. When removed, all `DELETED` instances will be automatically recovered.
+```
+
 The `multipass recover` command will revive an instance that was marked as deleted by an earlier version of Multipass. Instances deleted with the current `multipass delete` are removed permanently and cannot be recovered.
 
 Use the `--all` option to recover all deleted instances at once:
