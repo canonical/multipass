@@ -32,9 +32,9 @@ class TestRestart:
     def test_restart_all_with_mixed_states(self):
         """`multipass restart` succeeds across running, stopped and suspended instances."""
         with (
-            launch({"autopurge": False}) as running_name,
-            launch({"autopurge": False}) as stopped_name,
-            launch({"autopurge": False}) as suspended_name,
+            launch({"autodelete": False}) as running_name,
+            launch({"autodelete": False}) as stopped_name,
+            launch({"autodelete": False}) as suspended_name,
         ):
             assert state(running_name) == "Running"
 
@@ -55,6 +55,6 @@ class TestRestart:
 
             assert get_boot_id(running_name) != running_boot_id_before
 
-            assert multipass("delete", running_name, stopped_name,suspended_name)
+            assert multipass("delete", "--force", running_name, stopped_name, suspended_name)
             assert state(running_name) == "Deleted" and state(stopped_name) == "Deleted" and state(suspended_name) == "Deleted"
             assert multipass("purge")

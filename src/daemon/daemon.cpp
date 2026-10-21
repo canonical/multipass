@@ -4457,20 +4457,17 @@ grpc::Status mp::Daemon::restart_handle_suspended_instances(
     const auto& suspended_instances = filter_instances_by_state(
         instance_targets,
         mp::VirtualMachine::State::suspended);
-    std::vector<std::string> suspended_vms;
-    std::transform(suspended_instances.begin(),
-                   suspended_instances.end(),
-                   std::back_inserter(suspended_vms),
-                   [](const auto it) { return it->first; });
 
+    std::vector<std::string> started_instances;
     // Start suspended VMs
     auto status = cmd_vms(
         suspended_instances,
-        [this](VirtualMachine& vm) {
+        [this, &started_instances](VirtualMachine& vm) {
             try
             {
                 std::lock_guard start_guard{start_mutex};
                 vm.start();
+                started_instances.push_back(vm.get_name());
                 return grpc::Status::OK;
             }
             catch (const std::runtime_error& e)
@@ -4480,22 +4477,22 @@ grpc::Status mp::Daemon::restart_handle_suspended_instances(
         },
         /*fail_early=*/false);
 
-    if (!status.ok())
-        return status;
-
     // Wait asynchronously for the ssh up
-    status = parallel_cmd_vms(operative_instances, suspended_vms, [timeout](VirtualMachine& vm) {
-        try
-        {
-            // We only need the instance to achieve an SSH session for restart
-            vm.wait_until_ssh_up(timeout);
-            return grpc::Status::OK;
-        }
-        catch (const std::runtime_error& e)
-        {
-            return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
-        }
-    });
+    status = grpc_concatenate_status(
+        status,
+        parallel_cmd_vms(operative_instances, started_instances, [timeout](VirtualMachine& vm) {
+            try
+            {
+                // We only need the instance to achieve an SSH session for
+                // restart
+                vm.wait_until_ssh_up(timeout);
+                return grpc::Status::OK;
+            }
+            catch (const std::runtime_error& e)
+            {
+                return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
+            }
+        }));
 
     return status;
 }

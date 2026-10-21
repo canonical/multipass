@@ -97,7 +97,7 @@ def restart_epilogue(args, kwargs, result, prologue_result):
                         f"prev boot id {prologue_result[vm_name]} matches the current {boot_id}, VM hasn't restarted yet.")
                 return v
 
-        if state(vm_name) == "Running":
+        if result and state(vm_name) == "Running":
             assert attempt_ssh(vm_name)
 
 
