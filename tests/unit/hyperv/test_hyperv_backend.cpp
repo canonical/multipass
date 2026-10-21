@@ -243,8 +243,7 @@ TEST_P(HyperVStart, removesNeighborsOnlyForConfirmedColdStart)
     if (remove_neighbors)
         runs.push_back(default_switch_lookup_run);
     runs.insert(runs.end(),
-                {{"-ExpandProperty State", state_query.will_output},
-                 {"Start-VM"},
+                {{"Start-VM"},
                  {"-ExpandProperty State", "Running"}, // fetch_state() after start
                  min_dtor_run});
     ps_helper.setup_mocked_run_sequence(runs);
@@ -277,7 +276,8 @@ INSTANTIATE_TEST_SUITE_P(
            HyperVStartParams{"Saved", {"-ExpandProperty State", "Saved"}, false},
            HyperVStartParams{"Off", {"-ExpandProperty State", "Running"}, false},
            HyperVStartParams{"Off", {"-ExpandProperty State", "Starting"}, false},
-           HyperVStartParams{"Paused", {"-ExpandProperty State", "Paused"}, false},
+           // Unmapped backend states keep the managed state, which is `stopped` here
+           HyperVStartParams{"Paused", {"-ExpandProperty State", "Paused"}, true},
            HyperVStartParams{"Saved", {"-ExpandProperty State", "", false}, false}));
 
 TEST_F(HyperVBackend, setsMacAddressOnDefaultNetworkAdapter)
