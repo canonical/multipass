@@ -62,8 +62,8 @@ def src_to_dst(src_path):
 MOTD_HEADER = "Folders mounted from your host by Multipass:"
 
 
-def motd_line(target, source):
-    """The line of the MOTD that lists a mount."""
+def expected_motd_line(target, source):
+    """The line we expect the MOTD to include in order to list a mount."""
     return f" * {target} (from {source})"
 
 
@@ -128,7 +128,7 @@ class TestMount:
 
             motd = login_motd(instance)
             assert MOTD_HEADER in motd
-            assert motd_line(mount_dst, mount_src) in motd
+            assert expected_motd_line(mount_dst, mount_src) in motd
 
             assert multipass("unmount", instance)
 
@@ -164,8 +164,8 @@ class TestMount:
             assert multipass("start", instance)
 
             motd = login_motd(instance)
-            line_a = motd_line(target_a, mount_src_a)
-            line_b = motd_line(target_b, mount_src_b)
+            line_a = expected_motd_line(target_a, mount_src_a)
+            line_b = expected_motd_line(target_b, mount_src_b)
 
             assert line_a in motd
             assert line_b in motd
