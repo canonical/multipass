@@ -57,7 +57,7 @@ struct MockVirtualMachineT : public T
     template <typename... Args>
         requires(!std::same_as<VirtualMachine, T>)
     explicit MockVirtualMachineT(std::unique_ptr<TempDir>&& tmp_dir, Args&&... args)
-        : T{std::forward<Args>(args)..., tmp_dir->path()}, tmp_dir{std::move(tmp_dir)}
+        : T{std::forward<Args>(args)..., *tmp_dir}, tmp_dir{std::move(tmp_dir)}
     {
         setup_default_actions();
     }

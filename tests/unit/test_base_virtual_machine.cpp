@@ -19,6 +19,7 @@
 #include "dummy_ssh_key_provider.h"
 #include "file_operations.h"
 #include "mock_cloud_init_file_ops.h"
+#include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_snapshot.h"
 #include "mock_ssh_test_fixture.h"
@@ -167,7 +168,7 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
                                  stub_monitor,
                                  mpt::StubSSHKeyProvider{},
                                  zone,
-                                 tmp_dir->path()},
+                                 *tmp_dir},
           tmp_dir{std::move(tmp_dir)}
     {
     }
@@ -1226,12 +1227,15 @@ TEST_F(BaseVM, removesGenericSnapshotInfoFilesOnFirstFailure)
     ASSERT_FALSE(QFileInfo{head_path}.exists());
     ASSERT_FALSE(QFileInfo{count_path}.exists());
 
-    MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock_utils,
-                                                 make_file_with_content,
-                                                 mp::Utils,
-                                                 (EndsWith(head_filename), _, Eq(true)));
-    EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(head_filename), _, Eq(true)));
-    EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(count_filename), _, Eq(true)))
+    MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(
+        mock_utils,
+        make_file_with_content,
+        mp::Utils,
+        (mpt::FileNameMatches(head_filename), _, Eq(true)));
+    EXPECT_CALL(mock_utils,
+                make_file_with_content(mpt::FileNameMatches(head_filename), _, Eq(true)));
+    EXPECT_CALL(mock_utils,
+                make_file_with_content(mpt::FileNameMatches(count_filename), _, Eq(true)))
         .WillOnce(Throw(std::runtime_error{"intentional"}));
 
     EXPECT_ANY_THROW(vm.take_snapshot({}, "", ""));
@@ -1261,8 +1265,11 @@ TEST_F(BaseVM, restoresGenericSnapshotInfoFileContents)
                                                  make_file_with_content,
                                                  mp::Utils,
                                                  (_, _, Eq(true)));
-    EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(head_filename), _, Eq(true))).Times(2);
-    EXPECT_CALL(mock_utils, make_file_with_content(EndsWith(count_filename), _, Eq(true)))
+    EXPECT_CALL(mock_utils,
+                make_file_with_content(mpt::FileNameMatches(head_filename), _, Eq(true)))
+        .Times(2);
+    EXPECT_CALL(mock_utils,
+                make_file_with_content(mpt::FileNameMatches(count_filename), _, Eq(true)))
         .WillOnce(Throw(std::runtime_error{"intentional"}))
         .WillOnce(DoDefault());
 

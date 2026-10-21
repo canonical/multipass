@@ -313,8 +313,7 @@ auto fetch_image_for(const std::string& name,
 std::filesystem::path cloud_init_iso_path(const mp::VirtualMachineFactory& factory,
                                           const std::string& name)
 {
-    return MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)) /
-           mp::cloud_init_file_name;
+    return factory.get_instance_directory(name) / mp::cloud_init_file_name;
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
