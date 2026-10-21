@@ -81,7 +81,6 @@ if(WIN32)
 
   target_link_libraries(hcs_backend PRIVATE
     fmt::fmt-header-only
-    ztd::out_ptr
     Boost::json
     platform
     utils
