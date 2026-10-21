@@ -147,7 +147,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromStoppedThrowsError)
 
     EXPECT_CALL(mock_applevz, get_state(_))
         .WillOnce(Return(applevz::AppleVMState::error))
-        .WillOnce(Return(applevz::AppleVMState::stopped));
+        .WillRepeatedly(Return(applevz::AppleVMState::stopped));
 
     EXPECT_CALL(mock_applevz, can_start(_)).WillOnce(Return(true));
     EXPECT_CALL(mock_applevz, start_vm(_))
@@ -159,7 +159,9 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromStoppedThrowsError)
     MP_EXPECT_THROW_THAT(uut->start(),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("failed to start")));
-    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::unknown);
+    // A backend error is not a state change; the next valid backend state is adopted.
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::starting);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::stopped);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromPausedThrowsError)
@@ -168,7 +170,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromPausedThrowsError)
 
     EXPECT_CALL(mock_applevz, get_state(_))
         .WillOnce(Return(applevz::AppleVMState::error))
-        .WillOnce(Return(applevz::AppleVMState::stopped));
+        .WillRepeatedly(Return(applevz::AppleVMState::stopped));
 
     EXPECT_CALL(mock_applevz, can_resume(_)).WillOnce(Return(true));
     EXPECT_CALL(mock_applevz, resume_vm(_))
@@ -180,7 +182,9 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromPausedThrowsError)
     MP_EXPECT_THROW_THAT(uut->start(),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("failed to start")));
-    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::unknown);
+    // A backend error is not a state change; the next valid backend state is adopted.
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::starting);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::stopped);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, shutdownVMFromRunningWithPowerdownSuccess)
@@ -245,7 +249,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, shutdownGracefulStopError)
     MP_EXPECT_THROW_THAT(uut->shutdown(),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("failed to stop")));
-    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::unknown);
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::running);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, shutdownForcedStopError)
@@ -298,7 +302,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, suspendThrowsNotImplemented)
     EXPECT_THROW(uut->suspend(), mp::NotImplementedOnThisBackendException);
 }
 
-TEST_F(AppleVZVirtualMachine_UnitTests, currentStateReportsUnavailableWhenZoneUnavailable)
+TEST_F(AppleVZVirtualMachine_UnitTests, fetchStateReportsUnavailableWhenZoneUnavailable)
 {
     auto uut = construct_vm(applevz::AppleVMState::running);
 

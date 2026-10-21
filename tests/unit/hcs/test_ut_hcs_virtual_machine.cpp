@@ -600,6 +600,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, compute_system_open_error_preserves_st
     expect_failed_recreation();
     EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
 
+    // The missing compute system settles the last known state to `stopped`.
+    ASSERT_EQ(uut->fetch_state(), mp::VirtualMachine::State::stopped);
+
     // Only the explicit query: the destructor goes by the last known state.
     EXPECT_CALL(mock_hcs, open_compute_system(dummy_vm_name, _))
         .WillOnce(Return(hcs_op_result_t{E_ACCESSDENIED, L"Access denied"}));
@@ -1250,7 +1253,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_returns_empty_without_
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSVirtualMachine_UnitTests, update_state_calls_persist_state_only_on_change)
+TEST_F(HyperVHCSVirtualMachine_UnitTests, fetch_state_calls_persist_state_only_on_change)
 {
     default_open_success();
     api_state = hcs_system_state_t::running;
