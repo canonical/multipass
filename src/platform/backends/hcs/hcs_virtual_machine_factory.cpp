@@ -39,19 +39,17 @@
 
 #include <fmt/std.h> // for the std::filesystem::path formatter
 
+#include <algorithm>
+
 namespace
 {
 void update_adapter_authorizations(std::vector<multipass::NetworkInterfaceInfo>& adapters,
                                    const std::vector<multipass::NetworkInterfaceInfo>& switches)
 {
     for (auto& adapter : adapters)
-        adapter.needs_authorization = std::none_of(
-            switches.cbegin(),
-            switches.cend(),
-            [&adapter](const auto& switch_) {
-                return std::find(switch_.links.cbegin(), switch_.links.cend(), adapter.id) !=
-                       switch_.links.cend();
-            });
+        adapter.needs_authorization = std::ranges::none_of(switches, [&adapter](const auto& s) {
+            return std::ranges::contains(s.links, adapter.id);
+        });
 }
 
 NET_LUID luid_for_hcn_network(const std::string& network_name)

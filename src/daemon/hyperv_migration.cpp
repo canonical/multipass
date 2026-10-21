@@ -39,6 +39,7 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <fmt/std.h>
+#include <ranges>
 #include <system_error>
 
 namespace
@@ -522,10 +523,7 @@ multipass::hyperv::MigrationOutcome multipass::hyperv::DaemonHyperVInstanceMigra
     auto outcome = MigrationOutcome::completed;
     std::vector<std::string> migrated;
 
-    std::vector<std::string> names;
-    names.reserve(specs.size());
-    for (const auto& [name, _] : specs)
-        names.push_back(name);
+    auto names = specs | std::views::keys | std::ranges::to<std::vector<std::string>>();
     std::ranges::sort(names);
 
     for (const auto& name : names)
