@@ -23,6 +23,7 @@
 #include <multipass/format.h>
 #include <multipass/yaml_node_utils.h>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cctype>
@@ -483,9 +484,7 @@ mp::CloudInitIso::CloudInitIso(const CloudInitConfig& config)
 
 bool mp::CloudInitIso::contains(const std::string& name) const
 {
-    return std::find_if(files.cbegin(), files.cend(), [name](const FileEntry& file_entry) -> bool {
-               return file_entry.name == name;
-           }) != std::cend(files);
+    return std::ranges::contains(files, name, &FileEntry::name);
 }
 
 std::size_t mp::CloudInitIso::index_of(const std::string& name) const

@@ -31,6 +31,7 @@
 
 #include <QUrl>
 
+#include <algorithm>
 #include <cstddef>
 #include <optional>
 #include <unordered_set>
@@ -305,12 +306,8 @@ TEST_F(UbuntuImageHost, supportedRemotesReturnsExpectedValues)
     const size_t expected_size{2};
     EXPECT_THAT(supported_remotes.size(), Eq(expected_size));
 
-    EXPECT_TRUE(std::find(supported_remotes.begin(),
-                          supported_remotes.end(),
-                          release_remote_spec.first) != supported_remotes.end());
-    EXPECT_TRUE(std::find(supported_remotes.begin(),
-                          supported_remotes.end(),
-                          daily_remote_spec.first) != supported_remotes.end());
+    EXPECT_TRUE(std::ranges::contains(supported_remotes, release_remote_spec.first));
+    EXPECT_TRUE(std::ranges::contains(supported_remotes, daily_remote_spec.first));
 }
 
 TEST_F(UbuntuImageHost, invalidRemoteThrowsError)

@@ -327,7 +327,7 @@ TEST_P(TestSettingsSetMultipleHandlers, setDelegatesOnMultipleHandlers)
         auto mock_handler = std::make_unique<MockSettingsHandler>();
         auto& expectation = EXPECT_CALL(*mock_handler, set(Eq(key), Eq(val), _));
 
-        if (std::find(hit_indices.begin(), hit_indices.end(), i) == hit_indices.end())
+        if (!std::ranges::contains(hit_indices, i))
             expectation.WillOnce(Throw(mp::UnrecognizedSettingException{key}));
 
         MP_SETTINGS.register_handler(std::move(mock_handler));

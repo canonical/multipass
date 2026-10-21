@@ -27,6 +27,7 @@
 
 #include <scope_guard.hpp>
 
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <utility>
@@ -97,7 +98,7 @@ TEST_F(HyperVHCNAPI_IntegrationTests, enumerate_networks)
         std::vector<std::string> guids;
         const auto result = HCN().enumerate_networks(guids);
         ASSERT_TRUE(result);
-        EXPECT_NE(std::find(guids.cbegin(), guids.cend(), network_guid), guids.cend());
+        EXPECT_TRUE(std::ranges::contains(guids, network_guid));
     }
 
     {
@@ -109,7 +110,7 @@ TEST_F(HyperVHCNAPI_IntegrationTests, enumerate_networks)
         std::vector<std::string> guids;
         const auto result = HCN().enumerate_networks(guids);
         ASSERT_TRUE(result);
-        EXPECT_EQ(std::find(guids.cbegin(), guids.cend(), network_guid), guids.cend());
+        EXPECT_FALSE(std::ranges::contains(guids, network_guid));
     }
 }
 
