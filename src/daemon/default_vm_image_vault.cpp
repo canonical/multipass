@@ -40,7 +40,9 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/json.hpp>
 
+#include <algorithm>
 #include <exception>
+#include <ranges>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -399,10 +401,9 @@ void mp::DefaultVMImageVault::prune_expired_images()
                              return record.second.image.image_path.generic_string().starts_with(
                                  entry.path().generic_string());
                          }) == prepared_image_records.cend() &&
-            !std::any_of(
-                in_progress_image_fetches.cbegin(),
-                in_progress_image_fetches.cend(),
-                [&entry](const auto& fetch) { return fetch.second.first == entry.path(); }))
+            !std::ranges::contains(in_progress_image_fetches | std::views::values |
+                                       std::views::keys,
+                                   entry.path()))
         {
             mpl::info(category,
                       "Source image {} is no longer valid. Removing it from the cache.",
