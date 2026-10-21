@@ -153,13 +153,12 @@ std::optional<Response> exchange(const udp::endpoint& server,
     std::array<std::uint8_t, 4096> buffer{};
     udp::endpoint sender;
     std::optional<Response> response;
-    socket.async_receive_from(
-        asio::buffer(buffer),
-        sender,
-        [&](const boost::system::error_code& error, std::size_t size) {
-            if (!error)
-                response = decode({buffer.data(), size});
-        });
+    socket.async_receive_from(asio::buffer(buffer),
+                              sender,
+                              [&](const boost::system::error_code& error, std::size_t size) {
+                                  if (!error)
+                                      response = decode({buffer.data(), size});
+                              });
     io.run_for(timeout);
     return response;
 }
