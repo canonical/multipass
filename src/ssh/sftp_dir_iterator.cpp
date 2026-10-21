@@ -59,7 +59,7 @@ SFTPAttributesUPtr SFTPDirIterator::next()
 
         std::string_view filename{attr->name};
         if (filename.find('/') != std::string_view::npos ||
-            filename.find('\\' != std::string_view::npos))
+            filename.find('\\') != std::string_view::npos)
             throw SFTPError{"remote entry name is not a single path component: {:?}",
                             std::string_view{attr->name}};
 
