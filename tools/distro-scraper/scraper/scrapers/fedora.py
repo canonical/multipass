@@ -103,7 +103,7 @@ class FedoraScraper(BaseScraper):
 
             items: dict[str, dict] = {}
             for label, result in zip(SUPPORTED_ARCHITECTURES, results):
-                if isinstance(result, BaseException):
+                if isinstance(result, Exception):
                     self.logger.error("Failed to fetch arch %s: %s", label, result)
                 else:
                     _, data = result
