@@ -120,10 +120,8 @@ try
         const auto release_title = lookup_or<std::string>(product, "release_title", "");
         const auto release_codename = lookup_or<std::string>(product, "release_codename", "");
 
-        // TODO(C++23): Use `std::ranges::contains` instead of `std::ranges::find`.
         const auto supported = lookup_or<bool>(product, "supported", false) ||
-                               std::ranges::find(product_aliases, "devel") !=
-                                   product_aliases.end() ||
+                               std::ranges::contains(product_aliases, "devel") ||
                                (os == "ubuntu-core" && image_type == "stable");
 
         const auto* versions = if_contains_object(product, "versions");

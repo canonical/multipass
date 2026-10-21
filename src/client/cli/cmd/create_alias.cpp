@@ -20,6 +20,8 @@
 #include <multipass/format.h>
 #include <multipass/platform.h>
 
+#include <algorithm>
+
 namespace mp = multipass;
 
 mp::ReturnCodeVariant mp::cmd::create_alias(AliasDict& aliases,
@@ -73,7 +75,10 @@ mp::ReturnCodeVariant mp::cmd::create_alias(AliasDict& aliases,
 
     auto alias_folder = MP_PLATFORM.get_alias_scripts_folder().absolutePath();
 
-    if (empty_before_add && std::find(path.cbegin(), path.cend(), alias_folder) == path.cend())
+    // aliases.size() is the amount of contexts defined. If the alias dictionary is empty and a new
+    // alias is created in a context different to the default context, the dictionary will have two
+    // contexts, although only one defined alias.
+    if (empty_before_add && aliases.size() > 0 && !std::ranges::contains(path, alias_folder))
         cout << MP_PLATFORM.alias_path_message();
 
     return ReturnCode::Ok;
