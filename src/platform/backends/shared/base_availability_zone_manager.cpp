@@ -25,6 +25,8 @@
 
 #include <fmt/format.h>
 
+#include <functional>
+#include <ranges>
 #include <utility>
 
 namespace mpl = multipass::logging;
@@ -81,20 +83,14 @@ const AvailabilityZone& BaseAvailabilityZoneManager::get_zone(const std::string&
 
 BaseAvailabilityZoneManager::Zones BaseAvailabilityZoneManager::get_zones()
 {
-    Zones zone_list;
-    zone_list.reserve(zones().size());
-    for (auto& zone : zones())
-        zone_list.emplace_back(*zone);
-    return zone_list;
+    return zones() | std::views::transform([](const auto& zone) { return std::ref(*zone); }) |
+           std::ranges::to<Zones>();
 }
 
 BaseAvailabilityZoneManager::ConstZones BaseAvailabilityZoneManager::get_zones() const
 {
-    ConstZones zone_list;
-    zone_list.reserve(zones().size());
-    for (auto& zone : zones())
-        zone_list.emplace_back(*zone);
-    return zone_list;
+    return zones() | std::views::transform([](const auto& zone) { return std::cref(*zone); }) |
+           std::ranges::to<ConstZones>();
 }
 
 std::string BaseAvailabilityZoneManager::get_automatic_zone_name()

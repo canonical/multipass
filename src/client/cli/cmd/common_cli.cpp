@@ -248,8 +248,7 @@ bool multipass::cmd::detail::do_normalize_zone_name(std::string& zone, const Zon
             return false;
         zone = reply.zones()[zone_index - 1].name();
     }
-    // TODO@C++23: Use `std::ranges::contains`.
-    else if (std::ranges::find(reply.zones(), zone, zone_name) == reply.zones().end())
+    else if (!std::ranges::contains(reply.zones(), zone, zone_name))
         return false;
     return true;
 }

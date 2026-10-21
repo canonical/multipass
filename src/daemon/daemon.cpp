@@ -638,10 +638,8 @@ LinearInstanceSelection select_instances_by_zones(InstanceTable& instances, cons
     LinearInstanceSelection selection;
     for (auto it = instances.begin(); it != instances.end(); ++it)
     {
-        // TODO(C++23): Use `std::ranges::contains` instead of `std::ranges::find`.
         const auto& name = it->second->get_zone().get_name();
-        if (std::ranges::find(zones, name, [](const auto& i) { return i.get().get_name(); }) !=
-            zones.end())
+        if (std::ranges::contains(zones, name, [](const auto& i) { return i.get().get_name(); }))
         {
             selection.push_back(it);
         }
@@ -876,14 +874,8 @@ grpc::Status cmd_vms(const LinearInstanceSelection& tgts, const VMCommand& cmd)
 
 std::vector<std::string> names_from(const LinearInstanceSelection& instances)
 {
-    std::vector<std::string> ret;
-    ret.reserve(instances.size());
-    std::transform(std::cbegin(instances),
-                   std::cend(instances),
-                   std::back_inserter(ret),
-                   [](const auto& item) { return item->first; });
-
-    return ret;
+    return instances | std::views::transform([](const auto& item) { return item->first; }) |
+           std::ranges::to<std::vector<std::string>>();
 }
 
 template <typename Instances>
@@ -1799,8 +1791,7 @@ try
 
         for (auto& [remote, info] : vm_images_info)
         {
-            // TODO(C++23): Use `std::ranges::contains` instead of `std::ranges::find`.
-            if (std::ranges::find(info.aliases, request->search_string()) != info.aliases.end())
+            if (std::ranges::contains(info.aliases, request->search_string()))
                 info.aliases = {request->search_string()};
             else
                 info.aliases = {info.id.substr(0, 12)};
@@ -2148,12 +2139,14 @@ try
             "information\n"
             "on how to enable them."));
 
-    mp::id_mappings uid_mappings, gid_mappings;
-    for (const auto& map : request->mount_maps().uid_mappings())
-        uid_mappings.push_back({map.host_id(), map.instance_id()});
-
-    for (const auto& map : request->mount_maps().gid_mappings())
-        gid_mappings.push_back({map.host_id(), map.instance_id()});
+    const auto to_id_mappings = [](const auto& maps) {
+        return maps | std::views::transform([](const auto& map) {
+                   return std::pair{map.host_id(), map.instance_id()};
+               }) |
+               std::ranges::to<mp::id_mappings>();
+    };
+    const auto uid_mappings = to_id_mappings(request->mount_maps().uid_mappings());
+    const auto gid_mappings = to_id_mappings(request->mount_maps().gid_mappings());
 
     fmt::memory_buffer errors;
     for (const auto& path_entry : request->target_paths())
@@ -3988,11 +3981,9 @@ mp::Daemon::async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Repl
         }
     }
 
-    std::vector<ReadinessResult> results;
-    results.reserve(vms.size());
-
-    for (const auto& future : start_synchronizer.futures())
-        results.push_back(future.result());
+    const auto results = start_synchronizer.futures() |
+                         std::views::transform([](const auto& future) { return future.result(); }) |
+                         std::ranges::to<std::vector<ReadinessResult>>();
 
     if constexpr (std::is_same_v<Reply, StartReply> || std::is_same_v<Reply, RestartReply>)
     {

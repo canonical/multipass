@@ -18,6 +18,8 @@
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/settings/bool_setting_spec.h>
 
+#include <algorithm>
+
 namespace mp = multipass;
 
 namespace
@@ -29,11 +31,9 @@ QString interpret_bool(QString val)
     static constexpr auto convert_to_false = {"off", "no", "0"};
     auto lower_val = val.toLower();
 
-    if (std::find(cbegin(convert_to_true), cend(convert_to_true), lower_val) !=
-        cend(convert_to_true))
+    if (std::ranges::contains(convert_to_true, lower_val))
         val = QStringLiteral("true");
-    else if (std::find(cbegin(convert_to_false), cend(convert_to_false), lower_val) !=
-             cend(convert_to_false))
+    else if (std::ranges::contains(convert_to_false, lower_val))
         val = QStringLiteral("false");
 
     return val;

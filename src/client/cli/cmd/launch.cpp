@@ -43,6 +43,7 @@
 #include <QTimeZone>
 #include <QUrl>
 #include <filesystem>
+#include <ranges>
 #include <unordered_map>
 
 namespace mp = multipass;
@@ -683,11 +684,7 @@ auto cmd::Launch::mount(const mp::ArgParser* parser,
 
 bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 {
-    std::vector<std::string> nets;
-
-    std::copy(reply.nets_need_bridging().cbegin(),
-              reply.nets_need_bridging().cend(),
-              std::back_inserter(nets));
+    const auto nets = reply.nets_need_bridging() | std::ranges::to<std::vector<std::string>>();
 
     mp::BridgePrompter prompter(term);
     return prompter.bridge_prompt(nets);

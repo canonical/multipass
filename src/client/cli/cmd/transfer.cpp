@@ -27,6 +27,8 @@
 
 #include <QRegularExpression>
 
+#include <ranges>
+
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 namespace fs = mp::fs;
@@ -269,12 +271,8 @@ mp::ParseCode cmd::Transfer::parse_non_streaming(
         return ParseCode::CommandLineError;
     }
 
-    std::vector<fs::path> source_paths;
-    source_paths.reserve(split_sources.size());
-    std::transform(split_sources.begin(),
-                   split_sources.end(),
-                   std::back_inserter(source_paths),
-                   [](auto& item) { return std::move(item.second); });
+    auto source_paths = split_sources | std::views::values | std::views::as_rvalue |
+                        std::ranges::to<std::vector<fs::path>>();
     arguments = LocalSourcesInstanceTarget{std::move(source_paths), std::move(split_target.second)};
     return ParseCode::Ok;
 }

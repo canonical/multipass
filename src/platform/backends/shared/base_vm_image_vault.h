@@ -24,6 +24,7 @@
 #include <multipass/vm_image_vault.h>
 #include <multipass/vm_image_vault_utils.h>
 
+#include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
@@ -71,12 +72,8 @@ public:
 
     std::vector<std::string> get_remotes() const override
     {
-        std::vector<std::string> remotes;
-        for (const auto& [name, host] : remote_image_host_map)
-        {
-            remotes.emplace_back(name);
-        }
-        return remotes;
+        return remote_image_host_map | std::views::keys |
+               std::ranges::to<std::vector<std::string>>();
     }
 
 protected:
