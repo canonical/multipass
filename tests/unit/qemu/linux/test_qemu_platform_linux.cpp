@@ -256,19 +256,19 @@ TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected
     // Tests the order and correctness of the arguments returned
     std::vector<QString> expected_platform_args{
     // clang-format off
-#if defined Q_PROCESSOR_X86
+#ifdef Q_PROCESSOR_X86
         "-drive",
         QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on,file.locking=off")
             .arg(mp::QemuPlatform::firmware_path()),
-#elif defined Q_PROCESSOR_ARM
+#elifdef Q_PROCESSOR_ARM
         "-bios",
         "QEMU_EFI.fd",
         "-machine",
         "virt",
-#elif defined Q_PROCESSOR_S390
+#elifdef Q_PROCESSOR_S390
         "-machine",
         "s390-ccw-virtio",
-#elif defined Q_PROCESSOR_POWER
+#elifdef Q_PROCESSOR_POWER
         "-machine",
         "pseries,cap-large-decr=off",
 #endif
