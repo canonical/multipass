@@ -45,4 +45,5 @@ markers = [
     "images: Images tests",
     "exec: Exec tests",
     "az: Availability zone tests",
+    "daemon_port: Daemon port configuration tests",
 ]

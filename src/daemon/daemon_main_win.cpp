@@ -19,6 +19,7 @@
 #include "daemon.h"
 #include "daemon_config.h"
 #include "daemon_init_settings.h"
+#include "shared/windows/server_port.h"
 
 #include <multipass/cli/client_common.h>
 #include <multipass/client_cert_store.h>
@@ -139,6 +140,17 @@ int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
     mp::daemon::register_global_settings_handlers();
 
     auto builder = mp::cli::parse(app);
+
+    // Resolve the listening address up front (the --address option, the
+    // environment, the registry setting, in that order): a pinned address is
+    // verified - failing fast and clearly on conflict - and otherwise a
+    // usable port is kept or picked, so that clients (which read the same
+    // registry value) find this server.
+    builder.server_address = mp::ServerPortConfig{}.resolve_address(
+        builder.server_address,
+        qEnvironmentVariable(mp::server_address_env_var).toStdString(),
+        builder.max_port_attempts);
+
     auto config = builder.build();
 
     mp::daemon::monitor_and_quit_on_settings_change();
@@ -180,8 +192,17 @@ try
 
     logger->log(mpl::Level::info, "service_main", "service is running");
 
-    auto exit_code =
-        daemon_main(daemon_argv.size(), daemon_argv.data(), RegisterConsoleHandler::no);
+    auto exit_code = EXIT_FAILURE;
+    try
+    {
+        exit_code = daemon_main(daemon_argv.size(), daemon_argv.data(), RegisterConsoleHandler::no);
+    }
+    catch (const std::exception& e)
+    {
+        logger->log(mpl::Level::error,
+                    "service_main",
+                    fmt::format("the Multipass service stopped due to an error: {}", e.what()));
+    }
 
     status.dwCurrentState = SERVICE_STOPPED;
     status.dwWin32ExitCode = exit_code;
@@ -229,6 +250,24 @@ try
             QCoreApplication::setApplicationName(mp::daemon_name);
             QCoreApplication::setApplicationVersion(mp::version_string);
             create_client_cert_if_necessary();
+
+            // Setup-time port check: pick a free port and remember it in the
+            // registry if the (default or configured) one is already taken.
+            try
+            {
+                // Register the logger: /install returns before the daemon
+                // installs its own (in DaemonConfigBuilder::build), and
+                // without one the port-search logs would only go to stderr -
+                // which the MSI invocation discards - instead of the Windows
+                // event log.
+                mpl::set_logger(std::move(logger));
+                const auto port = mp::ServerPortConfig{}.usable_port();
+                mpl::info("main", "Multipass daemon port configured to {}", port);
+            }
+            catch (const std::exception& e)
+            {
+                mpl::error("main", "could not configure the Multipass daemon port: {}", e.what());
+            }
             return EXIT_SUCCESS;
         }
 

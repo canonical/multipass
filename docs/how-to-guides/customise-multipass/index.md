@@ -14,6 +14,7 @@ The following guides provide step-by-step instructions on how to customise Multi
 - [Integrate with Windows Terminal](how-to-guides-customise-multipass-integrate-with-windows-terminal)
 - [Configure where Multipass stores external data](how-to-guides-customise-multipass-configure-where-multipass-stores-external-data)
 - [Configure Multipass’s default logging level](how-to-guides-customise-multipass-configure-multipass-default-logging-level)
+- [Configure the daemon port on Windows](how-to-guides-customise-multipass-configure-the-daemon-port-on-windows)
 
 <!-- REMOVED FROM DOCS AND MOVED TO COMMUNITY KNOWLEDGE
 - [Use Multipass remotely](/)
@@ -36,4 +37,5 @@ use-a-different-terminal-from-the-system-icon
 integrate-with-windows-terminal
 configure-where-multipass-stores-external-data
 configure-multipass-default-logging-level
+configure-the-daemon-port-on-windows
 ```

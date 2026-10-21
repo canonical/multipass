@@ -89,8 +89,8 @@ mp::ReturnCode mp::cmd::standard_failure_handler_for(const std::string& command,
                                                      const grpc::Status& status,
                                                      const std::string& error_details)
 {
-    const auto trimmed =
-        std::string_view(error_details).substr(0, error_details.find_last_not_of("\r\n") + 1);
+    const auto trimmed = std::string_view(error_details)
+                             .substr(0, error_details.find_last_not_of("\r\n") + 1);
 
     fmt::print(cerr,
                "{} failed: {}\n{}",
@@ -122,10 +122,10 @@ std::string mp::cmd::update_notice(const mp::UpdateInfo& update_info)
  */
 QString mp::client::persistent_settings_filename()
 {
-    static const auto file_pattern =
-        QStringLiteral("%2%1").arg(mp::settings_extension); // note the order
-    static const auto user_config_path =
-        QDir{MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
+    static const auto file_pattern = QStringLiteral("%2%1").arg(
+        mp::settings_extension); // note the order
+    static const auto user_config_path = QDir{
+        MP_STDPATHS.writableLocation(mp::StandardPaths::GenericConfigLocation)};
     static const auto dir_path = QDir{user_config_path.absoluteFilePath(mp::client_name)};
     static const auto path = dir_path.absoluteFilePath(file_pattern.arg(mp::client_name));
 
@@ -134,9 +134,8 @@ QString mp::client::persistent_settings_filename()
 
 void mp::client::register_global_settings_handlers()
 {
-    auto settings =
-        MP_PLATFORM
-            .extra_client_settings(); // platform settings override inserts with the same key below
+    auto settings = MP_PLATFORM.extra_client_settings(); // platform settings override inserts with
+                                                         // the same key below
     settings.insert(
         std::make_unique<CustomSettingSpec>(mp::petenv_key, petenv_default, petenv_interpreter));
 
@@ -158,7 +157,7 @@ std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& serve
 
 std::string mp::client::get_server_address()
 {
-    const auto address = qgetenv("MULTIPASS_SERVER_ADDRESS").toStdString();
+    const auto address = qgetenv(server_address_env_var).toStdString();
     if (!address.empty())
     {
         mp::utils::validate_server_address(address);
