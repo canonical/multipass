@@ -117,6 +117,9 @@ Response decode(std::span<const std::uint8_t> bytes)
         .id = ares_dns_record_get_id(record.get()),
         .flags = ares_dns_record_get_flags(record.get()),
         .rcode = ares_dns_record_get_rcode(record.get()),
+        .questions = {},
+        .answers = {},
+        .ttls = {},
         .extra_records = ares_dns_record_rr_cnt(record.get(), ARES_SECTION_AUTHORITY) +
                          ares_dns_record_rr_cnt(record.get(), ARES_SECTION_ADDITIONAL)};
 
