@@ -19,7 +19,6 @@
 """Multipass command line tests for the `mount` feature."""
 
 import os
-import sys
 from pathlib import Path
 from contextlib import contextmanager
 
@@ -42,7 +41,6 @@ from cli.multipass import (
     move_path,
     validate_list_output,
     requires_multipass,
-    shell,
 )
 
 
@@ -71,7 +69,8 @@ def login_motd(name):
     """
     Return what an instance shell prints before its first prompt (e.g. the MOTD).
     """
-    with shell(name) as vm_shell:
+    # not shell(), which does not log in on Windows, so it shows no MOTD there
+    with multipass("shell", name, interactive=True) as vm_shell:
         vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
         motd = vm_shell.before
         vm_shell.sendline("exit")
@@ -117,7 +116,6 @@ class TestMount:
             assert mounts(instance) == {}
 
     @requires_multipass(">=1.18")
-    @pytest.mark.skipif(sys.platform == "win32", reason="Windows test shells skip the MOTD")
     def test_mount_listed_in_motd(self, instance, mount_type):
         with TempDirectory() as mount_src, src_to_dst(mount_src) as mount_dst:
             if mount_type == "native":
@@ -133,7 +131,6 @@ class TestMount:
             assert multipass("unmount", instance)
 
     @requires_multipass(">=1.18")
-    @pytest.mark.skipif(sys.platform == "win32", reason="Windows test shells skip the MOTD")
     def test_unmounted_folder_leaves_motd(self, instance, mount_type):
         with TempDirectory() as mount_src:
             if mount_type == "native":
@@ -150,7 +147,6 @@ class TestMount:
             assert str(mount_src) not in fresh_motd
 
     @requires_multipass(">=1.18")
-    @pytest.mark.skipif(sys.platform == "win32", reason="Windows test shells skip the MOTD")
     def test_motd_lists_mounts_in_order(self, instance, mount_type):
         with TempDirectory() as mount_src_a, TempDirectory() as mount_src_b:
             target_a = "/tmp/motd-a"
