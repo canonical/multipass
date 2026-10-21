@@ -12,6 +12,7 @@ Junos
 Kaspersky
 libssh
 misconfiguration
+MOTD
 multipassd
 NIC
 NICs
