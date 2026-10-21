@@ -117,6 +117,12 @@ class MultipassdGovernor:
             except asyncio.CancelledError:
                 error_reason = None
 
+            # A cancellation of this task that lands while awaiting stdout_task
+            # is forwarded to it and absorbed there, so it may surface here as a
+            # normal result or as the child's CancelledError. Honour it.
+            if asyncio.current_task().cancelling():
+                raise asyncio.CancelledError()
+
             if error_reason:
                 error_reasons.append(
                     f"\nReason: {error_reason}")

@@ -60,8 +60,14 @@ class TestGovernorStopAsync:
 
         monitor_task = asyncio.create_task(slow_monitor())
         governor.monitor_task = monitor_task
+        real_wait_for = asyncio.wait_for
 
-        with patch("asyncio.wait_for", side_effect=asyncio.TimeoutError):
+        async def wait_for(aw, timeout):
+            if aw is monitor_task:
+                raise TimeoutError
+            return await real_wait_for(aw, timeout)
+
+        with patch("asyncio.wait_for", new=wait_for):
             await governor.stop_async()
 
             assert governor.controller.stop_called
@@ -199,6 +205,36 @@ class TestGovernorMonitor:
 
         assert monitor_task.cancelled()
         assert read_stream_cancelled.is_set()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "stream_started", [True, False], ids=["stream-started", "stream-not-started"]
+    )
+    async def test_monitor_cancelled_while_awaiting_stdout_task(self, stream_started):
+        """A cancel landing while _monitor awaits stdout_task must not be swallowed."""
+        ctrl = MockController(exit_code=2)
+        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
+        monitor_task = None
+
+        async def follow_output():
+            await asyncio.sleep(3600)
+            yield ""
+
+        async def wait_exit():
+            if stream_started:
+                await asyncio.sleep(0.01)
+            # Runs after _monitor has cancelled stdout_task and suspended on it.
+            asyncio.get_running_loop().call_soon(monitor_task.cancel)
+            return 2
+
+        ctrl.follow_output = follow_output
+        ctrl.wait_exit = wait_exit
+        monitor_task = asyncio.create_task(governor._monitor())
+
+        with pytest.raises(asyncio.CancelledError):
+            await monitor_task
+
+        assert monitor_task.cancelled()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -340,6 +376,30 @@ class TestWaitForMultipassdReady:
             assert result is True
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "cli_ver,daemon_ver,expected",
+        [
+            ("1.17.0-dev.10+g12345678.win", "1.17.0-dev.10+g12345678.win", True),
+            ("1.17.0-dev.10+g12345678", "1.17.0-dev.9+g87654321", False),
+            ("1.17.0", "1.17.0-dev.10+g12345678", False),
+            ("1.17.0+mac", "1.17.0+win", False),
+        ],
+    )
+    async def test_compares_full_version_strings(
+        self, mock_env, cli_ver, daemon_ver, expected
+    ):
+        """Builds of the same release with different suffixes are a mismatch."""
+        version_out = f"multipass  {cli_ver}\nmultipassd  {daemon_ver}\n".encode()
+
+        with patch(
+            "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
+            side_effect=[MockSubprocess(), MockSubprocess(stdout=version_out)],
+        ):
+            result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
+
+        assert result is expected
+
+    @pytest.mark.asyncio
     async def test_returns_false_on_timeout(self, mock_env):
         """Returns False when daemon doesn't respond within timeout."""
         timeout_proc = MockSubprocess()
@@ -368,7 +428,7 @@ class TestWaitForMultipassdReady:
         def subprocess(*args, **kwargs):
             command = args[1]
             commands.append(command)
-            if command == "find" and commands.count("find") == 1:
+            if command == "images" and commands.count("images") == 1:
                 proc = MockSubprocess()
                 proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError)
                 return proc
@@ -385,7 +445,7 @@ class TestWaitForMultipassdReady:
             result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=2)
 
         assert result is True
-        assert commands == ["find", "find", "version"]
+        assert commands == ["images", "images", "version"]
 
     @pytest.mark.asyncio
     async def test_propagates_cancelled_error(self, mock_env):
@@ -431,7 +491,7 @@ class TestWaitForMultipassdReady:
             result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
 
         assert result is False
-        assert commands == ["find", "version", "find", "version"]
+        assert commands == ["images", "version", "images", "version"]
 
     @pytest.mark.asyncio
     async def test_missing_cli_version_raises(self, mock_env):
