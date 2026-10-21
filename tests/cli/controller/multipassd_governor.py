@@ -89,9 +89,6 @@ class MultipassdGovernor:
                     if re.search(pattern, line):
                         return reason
 
-        except asyncio.CancelledError:
-            # Handle it gracefully.
-            pass
         except Exception as e:
             if self.print_daemon_output:
                 print(f"Error in log reader: {e}", file=sys.stderr)
@@ -115,13 +112,12 @@ class MultipassdGovernor:
             try:
                 error_reason = await stdout_task
             except asyncio.CancelledError:
+                # A cancellation of this task that lands while awaiting
+                # stdout_task is forwarded to it, so it surfaces here as the
+                # child's CancelledError. Honour it.
+                if asyncio.current_task().cancelling():
+                    raise
                 error_reason = None
-
-            # A cancellation of this task that lands while awaiting stdout_task
-            # is forwarded to it and absorbed there, so it may surface here as a
-            # normal result or as the child's CancelledError. Honour it.
-            if asyncio.current_task().cancelling():
-                raise asyncio.CancelledError()
 
             if error_reason:
                 error_reasons.append(

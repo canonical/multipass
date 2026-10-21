@@ -19,7 +19,7 @@
 
 import asyncio
 import re
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import DEFAULT, AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -60,14 +60,13 @@ class TestGovernorStopAsync:
 
         monitor_task = asyncio.create_task(slow_monitor())
         governor.monitor_task = monitor_task
-        real_wait_for = asyncio.wait_for
 
-        async def wait_for(aw, timeout):
+        def wait_for(aw, timeout):
             if aw is monitor_task:
                 raise TimeoutError
-            return await real_wait_for(aw, timeout)
+            return DEFAULT
 
-        with patch("asyncio.wait_for", new=wait_for):
+        with patch("asyncio.wait_for", side_effect=wait_for, wraps=asyncio.wait_for):
             await governor.stop_async()
 
             assert governor.controller.stop_called
@@ -159,22 +158,6 @@ class TestGovernorReadStream:
 
         assert await governor._read_stream() == expected
 
-    @pytest.mark.asyncio
-    async def test_read_stream_handles_cancelled_error(self):
-        """_read_stream should handle CancelledError gracefully."""
-        governor = MultipassdGovernor(
-            MockController(exit_code=None), None, print_daemon_output=False
-        )
-
-        async def mock_output():
-            raise asyncio.CancelledError()
-            yield
-
-        governor.controller.follow_output = mock_output
-
-        result = await governor._read_stream()
-
-        assert result is None
 
 class TestGovernorMonitor:
     """Test governor _monitor task cancellation propagation."""
