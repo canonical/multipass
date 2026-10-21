@@ -124,6 +124,7 @@ parts:
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
+    - g++-14  # newer libstdc++ for C++23 (picked up by clang too) and the GCC coverage build
     - ccache
     - lcov
     - clang-19  # \
