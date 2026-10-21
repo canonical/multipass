@@ -276,9 +276,6 @@ find_package(Qt6 COMPONENTS Core Concurrent Network REQUIRED)
 # xz-embedded config
 find_package(xz-embedded CONFIG)
 
-# out_ptr config
-find_package(out_ptr CONFIG REQUIRED)
-
 include(src/cmake/versioning.cmake)
 determine_version(MULTIPASS_VERSION)
 set(MULTIPASS_VERSION ${MULTIPASS_VERSION})

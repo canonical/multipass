@@ -35,9 +35,6 @@
 
 #include <boost/json.hpp>
 #include <fmt/xchar.h>
-#include <ztd/out_ptr.hpp>
-
-using ztd::out_ptr::out_ptr;
 
 namespace multipass::hyperv::hcs
 {
@@ -107,7 +104,7 @@ OperationResult wait_for_operation_result(
 
     UniqueHlocalString result_msg{};
     const auto hresult_code = ResultCode{
-        API().HcsWaitForOperationResult(op.get(), timeout.count(), out_ptr(result_msg))};
+        API().HcsWaitForOperationResult(op.get(), timeout.count(), std::out_ptr(result_msg))};
     mpl::debug(log_category,
                "wait_for_operation_result(...) > finished ({}), result_code: {}",
                fmt::ptr(op.get()),
@@ -176,7 +173,7 @@ OperationResult HCSWrapper::open_compute_system(const std::string& name,
     UniqueHcsSystem system{};
     const ResultCode result = API().HcsOpenComputeSystem(name_w.c_str(),
                                                          requested_access_level,
-                                                         out_ptr(system));
+                                                         std::out_ptr(system));
     if (!result.success())
     {
         mpl::debug(log_category,
@@ -231,7 +228,7 @@ OperationResult HCSWrapper::create_compute_system(const CreateComputeSystemParam
                                                                 vm_settings.c_str(),
                                                                 operation.get(),
                                                                 nullptr,
-                                                                out_ptr(system))};
+                                                                std::out_ptr(system))};
 
     if (!result.success())
     {
