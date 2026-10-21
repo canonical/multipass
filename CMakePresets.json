@@ -158,11 +158,11 @@
             "cacheVariables": {
                 "CMAKE_C_COMPILER": {
                     "type": "STRING",
-                    "value": "gcc"
+                    "value": "gcc-14"
                 },
                 "CMAKE_CXX_COMPILER": {
                     "type": "STRING",
-                    "value": "g++"
+                    "value": "g++-14"
                 },
                 "CMAKE_BUILD_TYPE": {
                     "type": "STRING",
