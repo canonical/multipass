@@ -31,7 +31,7 @@ Two prompt files in `.github/prompts/` give one-step entry points in VS Code Cop
 | `/cli-test-gherkin` | Mode 1 — Generate Gherkin | issue/PR (optionally `in owner/repo`), extra guidance |
 | `/cli-test-from-gherkin` | Mode 2 — Generate test from Gherkin | `.feature` path, extra guidance or forced destination file |
 
-The agent's tools come from its own definition, and VS Code does not restrict them the way the scripts do, so the "no diff, no git" rules rely on the agent's instructions.
+The agent's tools (`read`, `search`, `edit`) come from its own definition and include no command execution, so it cannot run git or read a diff. Because it cannot run commands, give it the issue/PR context yourself (run `fetch-context.sh` and paste the JSON, or use `generate-gherkin.sh --interactive`), and after Mode 2 run the checks with `./tools/cli-test-generator/generate-test.sh --check-only --test-path <test file>`; it compiles and collects the test and prints the validation command (in this mode it cannot tell which tests are new, so it selects every class in the file; narrow it to the new tests before running).
 
 ## Mode 1 — Generate Gherkin
 
@@ -53,7 +53,7 @@ Prompt examples:
 > Generate the test from `tests/cli/issue_1234.feature` and put it in
 > `tests/cli/cli_mount_test.py`.
 
-The agent adds one pytest method per scenario to the most pertinent existing `tests/cli/cli_*_test.py` file (or a new aptly-named one), with the Gherkin copied above the test class, then runs a compile and collection check and tells you how to validate.
+The agent adds one pytest method per scenario to the most pertinent existing `tests/cli/cli_*_test.py` file (or a new aptly-named one), with the Gherkin copied above the test class, then tells you how to run the compile and collection checks; the shell wrapper runs those checks automatically.
 
 ## Run it from the shell (scripts)
 

@@ -72,7 +72,16 @@ if [[ -z "$SLUG" ]]; then
   fi
 fi
 
+if [[ ! "$SLUG" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+  echo "Error: --slug must be a valid Python identifier (letters, digits, underscores): $SLUG" >&2
+  exit 1
+fi
+
 FEATURE_PATH="tests/cli/${SLUG}.feature"
+if [[ -e "$REPO_ROOT/$FEATURE_PATH" ]]; then
+  echo "Error: ${FEATURE_PATH} already exists; remove it or choose another --slug." >&2
+  exit 1
+fi
 
 echo "==> Fetching behavior-only context (no diff) for repo=$REPO issue=${ISSUE_NUMBER:-<none>} pr=${PR_NUMBER:-<none>}" >&2
 FETCH_ARGS=(--repo "$REPO")
@@ -109,7 +118,7 @@ if [[ "$INTERACTIVE" -eq 1 ]]; then
   copilot --agent cli-test-generator \
     -i "$PROMPT" \
     --allow-all-tools \
-    --available-tools view grep glob create \
+    --available-tools view grep glob create edit \
     -C "$REPO_ROOT"
 else
   echo "==> Invoking copilot to draft ${FEATURE_PATH}" >&2

@@ -120,6 +120,9 @@ if [[ -n "$PR_NUMBER" ]]; then
   if [[ -n "$linked_number" ]]; then
     if linked_fetch=$(fetch_issue "$linked_number"); then
       LINKED_ISSUE_JSON="$linked_fetch"
+    else
+      echo "Error: failed to fetch linked issue #$linked_number from $REPO." >&2
+      exit 1
     fi
   fi
 fi
