@@ -20,6 +20,7 @@
 #pragma once
 
 #include <multipass/singleton.h>
+#include <multipass/utils/forward_like.h>
 
 #include <cstddef>
 #include <filesystem>
@@ -39,7 +40,8 @@ public:
     explicit CloudInitIso(const CloudInitConfig& config);
 
     bool contains(const std::string& name) const;
-    auto& at(this auto& self, const std::string& name)
+    template <typename Self>
+    auto at(this Self& self, const std::string& name) -> forward_like_t<Self&, std::string>
     {
         return self.files[self.index_of(name)].data;
     }
