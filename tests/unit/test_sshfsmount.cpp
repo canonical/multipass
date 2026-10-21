@@ -62,7 +62,7 @@ struct SshfsMount : public mp::test::SftpServerTest
 
             for (const auto& expected_cmd : expected_cmds)
             {
-                if (cmd.find(expected_cmd) != std::string::npos)
+                if (cmd.contains(expected_cmd))
                 {
                     invoked = true;
                     exit_status_mock.set_exit_status(exit_status_mock.failure_status);
@@ -100,7 +100,7 @@ struct SshfsMount : public mp::test::SftpServerTest
 
             std::string cmd{raw_cmd};
 
-            if (fail_cmd && cmd.find(*fail_cmd) != std::string::npos)
+            if (fail_cmd && cmd.contains(*fail_cmd))
             {
                 if (fail_invoked)
                 {

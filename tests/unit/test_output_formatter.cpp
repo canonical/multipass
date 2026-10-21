@@ -1649,7 +1649,7 @@ TEST_P(PetenvFormatterSuite, petEnvFirstInOutput)
         {
             add_petenv_to_reply(reply_copy,
                                 dynamic_cast<const mp::CSVFormatter*>(formatter),
-                                test_name.find("snapshot") != std::string::npos);
+                                test_name.contains("snapshot"));
             reply_copy.MergeFrom(*input);
         }
         else
@@ -1657,7 +1657,7 @@ TEST_P(PetenvFormatterSuite, petEnvFirstInOutput)
             reply_copy.CopyFrom(*input);
             add_petenv_to_reply(reply_copy,
                                 dynamic_cast<const mp::CSVFormatter*>(formatter),
-                                test_name.find("snapshot") != std::string::npos);
+                                test_name.contains("snapshot"));
         }
         output = formatter->format(reply_copy);
 

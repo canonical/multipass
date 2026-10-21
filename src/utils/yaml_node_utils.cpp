@@ -120,7 +120,7 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
                 const std::string value = n.Scalar();
                 // If the node is a scalar string that contains a colon, emit it explicitly as a
                 // double-quoted string to prevent YAML from interpreting it as e.g. a timestamp.
-                if (value.find(':') != std::string::npos)
+                if (value.contains(':'))
                 {
                     emitter << YAML::DoubleQuoted << value;
                     break;
