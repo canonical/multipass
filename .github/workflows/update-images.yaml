@@ -12,6 +12,8 @@ permissions:
 
 jobs:
   run-scraper:
+    if: ${{ github.repository == 'canonical/multipass' }}
+
     runs-on: ubuntu-slim
 
     steps:
