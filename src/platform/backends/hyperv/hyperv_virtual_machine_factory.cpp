@@ -255,13 +255,9 @@ void update_adapter_authorizations(std::vector<mp::NetworkInterfaceInfo>& adapte
                                    const std::vector<mp::NetworkInterfaceInfo>& switches)
 {
     for (auto& adapter : adapters)
-        adapter.needs_authorization = std::none_of(
-            switches.cbegin(),
-            switches.cend(),
-            [&adapter](const auto& switch_) {
-                return std::find(switch_.links.cbegin(), switch_.links.cend(), adapter.id) !=
-                       switch_.links.cend();
-            });
+        adapter.needs_authorization = std::ranges::none_of(switches, [&adapter](const auto& s) {
+            return std::ranges::contains(s.links, adapter.id);
+        });
 }
 
 std::string error_msg_helper(const std::string& msg_core, const QString& ps_output)

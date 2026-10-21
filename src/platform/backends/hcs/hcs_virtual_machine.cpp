@@ -336,16 +336,13 @@ bool HCSVirtualMachine::maybe_create_compute_system()
                           .name = "cloud-init ISO file",
                           .path = desc.cloud_init_iso.toStdString(),
                           .read_only = true}},
-        .network_adapters =
-            [&] {
-                const auto view = endpoints |
-                                  std::views::transform(
-                                      [](const auto& endpoint) -> hcs::HcsNetworkAdapter {
-                                          return {.endpoint_guid = endpoint.endpoint_guid,
-                                                  .mac_address = endpoint.mac_address.value()};
-                                      });
-                return std::vector(std::ranges::begin(view), std::ranges::end(view));
-            }(),
+        .network_adapters = endpoints |
+                            std::views::transform(
+                                [](const auto& endpoint) -> hcs::HcsNetworkAdapter {
+                                    return {.endpoint_guid = endpoint.endpoint_guid,
+                                            .mac_address = endpoint.mac_address.value()};
+                                }) |
+                            std::ranges::to<std::vector>(),
         .guest_state = {.guest_state_file_path = get_guest_state_file_path(),
                         .runtime_state_file_path = get_runtime_state_file_path(),
                         .save_state_file_path = has_saved_state_file()
