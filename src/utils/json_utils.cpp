@@ -26,6 +26,7 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
+#include <ranges>
 #include <sstream>
 #include <stack>
 #include <stdexcept>
@@ -93,14 +94,11 @@ boost::json::object mp::update_unique_identifiers_of_metadata(const boost::json:
     {
         auto str = value_to<std::string>(item);
         boost::replace_all(str, src_specs.default_mac_address, dest_specs.default_mac_address);
-        for (size_t i = 0; i < src_specs.extra_interfaces.size(); ++i)
+        for (const auto& [src, dest] :
+             std::views::zip(src_specs.extra_interfaces, dest_specs.extra_interfaces))
         {
-            const std::string& src_mac = src_specs.extra_interfaces[i].mac_address;
-            if (!src_mac.empty())
-            {
-                const std::string& dest_mac = dest_specs.extra_interfaces[i].mac_address;
-                boost::replace_all(str, src_mac, dest_mac);
-            }
+            if (!src.mac_address.empty())
+                boost::replace_all(str, src.mac_address, dest.mac_address);
         }
         // string replacement is "instances/<src_name>"->"instances/<dest_name>" instead of
         // "<src_name>"->"<dest_name>", because the second one might match other substrings of
