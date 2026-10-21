@@ -75,6 +75,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 
 #include <libssh/sftp.h>
 
@@ -376,15 +377,16 @@ QString systemprofile_app_data_path()
 
 [[nodiscard]] mp::fs::path get_wellknown_path(REFKNOWNFOLDERID rfid)
 {
-    PWSTR out = nullptr;
-    auto guard = sg::make_scope_guard([&out]() noexcept { ::CoTaskMemFree(out); });
+    // The buffer must be freed even when the call fails.
+    std::unique_ptr<wchar_t, decltype(&::CoTaskMemFree)> out{nullptr, ::CoTaskMemFree};
 
-    if (auto err = SHGetKnownFolderPath(rfid, KF_FLAG_DEFAULT, NULL, &out); err != S_OK)
+    if (auto err = SHGetKnownFolderPath(rfid, KF_FLAG_DEFAULT, NULL, std::out_ptr(out));
+        err != S_OK)
     {
         throw std::system_error(err, std::system_category(), "Failed to get well known path");
     }
 
-    return out;
+    return out.get();
 }
 
 DWORD set_privilege(HANDLE handle, LPCTSTR privilege, bool enable)
@@ -411,13 +413,9 @@ DWORD set_privilege(HANDLE handle, LPCTSTR privilege, bool enable)
 DWORD set_file_owner(LPSTR path, PSID new_owner)
 {
     std::unique_ptr<void, decltype(&CloseHandle)> token(nullptr, CloseHandle);
-    if (HANDLE t; !OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &t))
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, std::out_ptr(token)))
     {
         return GetLastError();
-    }
-    else
-    {
-        token.reset(t);
     }
 
     if (auto err = set_privilege(token.get(), SE_TAKE_OWNERSHIP_NAME, true); err != ERROR_SUCCESS)
@@ -438,8 +436,10 @@ DWORD set_file_owner(LPSTR path, PSID new_owner)
 
 DWORD set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask, bool inherit)
 {
-    PACL pOldDACL = NULL, pDACL = NULL;
-    PSECURITY_DESCRIPTOR pSD = NULL;
+    // pOldDACL points into pSD, so it is borrowed rather than owned.
+    PACL pOldDACL = NULL;
+    std::unique_ptr<SECURITY_DESCRIPTOR, decltype(&LocalFree)> pSD{nullptr, LocalFree};
+    std::unique_ptr<ACL, decltype(&LocalFree)> pDACL{nullptr, LocalFree};
     EXPLICIT_ACCESS ea;
 
     GetNamedSecurityInfo(path,
@@ -449,7 +449,7 @@ DWORD set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask, bool inherit)
                          NULL,
                          &pOldDACL,
                          NULL,
-                         &pSD);
+                         std::out_ptr(pSD));
 
     ZeroMemory(&ea, sizeof(EXPLICIT_ACCESS));
 
@@ -460,21 +460,16 @@ DWORD set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask, bool inherit)
     ea.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
     ea.Trustee.ptstrName = (LPTSTR)pSid;
 
-    SetEntriesInAcl(1, &ea, pOldDACL, &pDACL);
-    auto error_code = SetNamedSecurityInfo(path,
-                                           SE_FILE_OBJECT,
-                                           DACL_SECURITY_INFORMATION |
-                                               ((inherit) ? UNPROTECTED_DACL_SECURITY_INFORMATION
-                                                          : PROTECTED_DACL_SECURITY_INFORMATION),
-                                           NULL,
-                                           NULL,
-                                           pDACL,
-                                           NULL);
-
-    LocalFree((HLOCAL)pSD);
-    LocalFree((HLOCAL)pDACL);
-
-    return error_code;
+    SetEntriesInAcl(1, &ea, pOldDACL, std::out_ptr(pDACL));
+    return SetNamedSecurityInfo(path,
+                                SE_FILE_OBJECT,
+                                DACL_SECURITY_INFORMATION |
+                                    ((inherit) ? UNPROTECTED_DACL_SECURITY_INFORMATION
+                                               : PROTECTED_DACL_SECURITY_INFORMATION),
+                                NULL,
+                                NULL,
+                                pDACL.get(),
+                                NULL);
 }
 
 // returns a PSID unique_ptr for a well known pid
@@ -975,9 +970,8 @@ auto new_ACL(LPSTR path)
     auto deleter = [](ACL* acl) noexcept { return LocalFree(HLOCAL(acl)); };
     auto newACL = std::unique_ptr<ACL, decltype(deleter)>{NULL, deleter};
 
-    PSECURITY_DESCRIPTOR pSD{nullptr};
-    auto pSD_guard = sg::make_scope_guard([&pSD]() noexcept { LocalFree((HLOCAL)(pSD)); });
-
+    // pOldDACL points into pSD, so it is borrowed rather than owned.
+    std::unique_ptr<SECURITY_DESCRIPTOR, decltype(&LocalFree)> pSD{nullptr, LocalFree};
     PACL pOldDACL = nullptr;
     if (GetNamedSecurityInfo(path,
                              SE_FILE_OBJECT,
@@ -986,7 +980,7 @@ auto new_ACL(LPSTR path)
                              NULL,
                              &pOldDACL,
                              NULL,
-                             &pSD) != ERROR_SUCCESS)
+                             std::out_ptr(pSD)) != ERROR_SUCCESS)
     {
         return newACL;
     }
@@ -1009,17 +1003,14 @@ auto new_ACL(LPSTR path)
         PSID sid = (PSID)(&pACE->SidStart);
 
         // convert SID to string so we can examine it.
-        LPSTR sidStr = NULL;
-        if (ConvertSidToStringSid(sid, &sidStr))
+        std::unique_ptr<char, decltype(&LocalFree)> sidStr{nullptr, LocalFree};
+        if (ConvertSidToStringSid(sid, std::out_ptr(sidStr)))
         {
             // Magic string given to us by
             // https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers#well-known-sids
             // All Hyper-V SIDs begin with this magic string.
             static constexpr char VM_SID_ID[] = "S-1-5-83-";
-            auto cmp = strncmp(sidStr, VM_SID_ID, sizeof(VM_SID_ID) - 1);
-            LocalFree((HLOCAL)sidStr);
-
-            if (cmp == 0)
+            if (strncmp(sidStr.get(), VM_SID_ID, sizeof(VM_SID_ID) - 1) == 0)
             {
                 aces.emplace_back(pACE);
                 size += GetLengthSid(sid);
