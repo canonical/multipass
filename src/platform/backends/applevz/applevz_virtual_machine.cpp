@@ -75,7 +75,7 @@ void AppleVZVirtualMachine::start()
     mpl::debug(log_category,
                "start() -> Starting VM `{}`, current state {}",
                vm_name,
-               fetch_state());
+               cached_state());
 
     // TODO: Drop condition after suspend to disk implemented
     if (!vm_handle)
