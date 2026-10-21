@@ -14,8 +14,8 @@ On some platforms, it is possible to select a driver during installation. Until 
 Different sets of drivers are available on different platforms:
 
 - On Linux, Multipass uses QEMU.
-- On macOS, the options are QEMU, the Apple Virtualization framework, and VirtualBox (deprecated).
-- On Windows, Multipass supports the Host Compute System API, Hyper-V (deprecated), and VirtualBox (deprecated).
+- On macOS, the options are QEMU and the Apple Virtualization framework.
+- On Windows, Multipass supports the Host Compute System API, and Hyper-V (deprecated).
 
 ## Default drivers
 
@@ -31,11 +31,11 @@ Linux:
 
 macOS:
 - As of Multipass version 1.13, Hyperkit is no longer available.
-- As of Multipass version 1.17, VirtualBox is deprecated (see [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver)).
+- As of Multipass version 1.18, VirtualBox is no longer available.
 
 Windows:
 - As of Multipass version 1.17, the `hyperv` driver is deprecated in favor of the `hcs` driver (see [Migrate from Hyper-V to the HCS driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows))
-- Also as of Multipass version 1.17 VirtualBox is deprecated with no migration planned (see [Move from VirtualBox to another driver](/how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver)).
+- Also as of Multipass version 1.18, VirtualBox is no longer available.
 
 ## Instance scopes
 
@@ -60,16 +60,9 @@ While we strive to offer a uniform interface across the board, not all features 
 
 | Feature | Not supported on... | Notes |
 |--- | --- | --- |
-| **Native mounts** | <ul><li>Apple Virtualization framework</li><li>VirtualBox</li></ul> | This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command). |
+| **Native mounts** | <ul><li>Apple Virtualization framework</li></ul> | This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command. |
 | **Snapshots** | <ul><li>Apple Virtualization framework</li></ul> | This affects the [`snapshot`](/reference/command-line-interface/snapshot) command. |
 | **Suspend** | <ul><li>Apple Virtualization framework</li></ul> | This affects the [`suspend`](/reference/command-line-interface/suspend) command. |
-
-<!-- old formatting
-- **Native mounts** are supported only on Hyper-V and QEMU. This affects the `--type` option in the [`mount`](/reference/command-line-interface/mount) command).
-- **Extra networks** are supported only on Hyper-V, VirtualBox, and QEMU on macOS. This affects the [`networks`](/reference/command-line-interface/networks) command, as well as the `--network` and `--bridged` options in [`launch`](/reference/command-line-interface/launch).
-- **Snapshots** are supported only on QEMU, Hyper-V, and VirtualBox *[the latter since version 1.15]*.
-- **VM suspension** is supported on QEMU, libvirt, Hyper-V, and VirtualBox. This affects the [`suspend`](/reference/command-line-interface/suspend) command.
--->
 
 ```{note}
 There are also feature disparities depending on the host platform. See [Platform](/explanation/platform) for more details.
