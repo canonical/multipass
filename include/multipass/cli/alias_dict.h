@@ -76,23 +76,13 @@ public:
     std::optional<ContextAliasPair> get_context_and_alias(const std::string& alias) const;
     std::optional<AliasDefinition> get_alias_from_current_context(const std::string& alias) const;
     std::optional<AliasDefinition> get_alias(const std::string& alias) const;
-    DictType::iterator begin()
+    auto begin(this auto& self)
     {
-        return aliases.begin();
+        return self.aliases.begin();
     }
-    DictType::iterator end()
+    auto end(this auto& self)
     {
-        return aliases.end();
-    }
-
-    // TODO: Replace these overloads with "deducing `this`" when we upgrade to C++23?
-    DictType::const_iterator begin() const
-    {
-        return aliases.begin();
-    }
-    DictType::const_iterator end() const
-    {
-        return aliases.end();
+        return self.aliases.end();
     }
 
     DictType::const_iterator cbegin() const
