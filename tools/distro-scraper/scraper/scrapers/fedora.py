@@ -1,23 +1,17 @@
-import re
 import aiohttp
 import asyncio
-from urllib.parse import urljoin
-from bs4 import BeautifulSoup
+import json
 from dateutil import parser
 from ..base import BaseScraper, DEFAULT_TIMEOUT, make_session
 from ..models import SUPPORTED_ARCHITECTURES
 
 
-PRIMARY_RELEASES_URL = "https://dl.fedoraproject.org/pub/fedora/linux/releases/"
-SECONDARY_RELEASES_URL = "https://dl.fedoraproject.org/pub/fedora-secondary/releases/"
+RELEASES_URL = "https://fedoraproject.org/releases.json"
 
 ARCH_MAP = {
     "arm64": "aarch64",
     "power64le": "ppc64le",
 }
-
-# Arches that are hosted on the secondary mirror
-SECONDARY_ARCHES = {"power64le", "s390x"}
 
 
 class FedoraScraper(BaseScraper):
@@ -28,77 +22,43 @@ class FedoraScraper(BaseScraper):
     def name(self) -> str:
         return "Fedora"
 
-    async def _fetch_latest_version(self, session: aiohttp.ClientSession) -> str:
+    def _latest_version(self, releases: list[dict]) -> str:
         """
-        Fetch the primary releases directory listing and return the highest numeric version.
+        Return the highest numeric version.
         """
-        entries = await self._fetch_dir_listing(session, PRIMARY_RELEASES_URL)
-        versions = [e.rstrip("/") for e in entries if re.fullmatch(r"\d+/", e)]
+        versions = [r["version"] for r in releases if r["version"].isdigit()]
         if not versions:
-            raise RuntimeError("No numeric release versions found in directory listing")
+            raise RuntimeError("No numeric release versions found")
         latest = str(max(int(v) for v in versions))
         self.logger.info("Latest Fedora version: %s", latest)
         return latest
 
-    async def _fetch_dir_listing(
-        self, session: aiohttp.ClientSession, url: str
-    ) -> list[str]:
-        """
-        Fetch an Apache-style HTML directory listing and return the linked filenames.
-        """
-        text = await self._fetch_text(session, url)
-        soup = BeautifulSoup(text)
-        entries = (soup.find("pre").find(string="Parent Directory").parent
-                      .find_next_siblings("a"))
-        return [i.text for i in entries]
-
-    async def _fetch_checksum_file(
-        self, session: aiohttp.ClientSession, url: str
-    ) -> dict[str, str]:
-        """
-        Fetch a Fedora CHECKSUM file and return a mapping of filename -> sha256.
-        """
-        text = await self._fetch_text(session, url)
-        return {
-            m.group(1): m.group(2)
-            for m in re.finditer(
-                r"SHA256\s*\(([^)]+)\)\s*=\s*([0-9a-f]+)", text, re.IGNORECASE
-            )
-        }
-
     async def _fetch_image_for_arch(
-        self, session: aiohttp.ClientSession, version: str, label: str
+        self,
+        session: aiohttp.ClientSession,
+        releases: list[dict],
+        version: str,
+        label: str,
     ) -> tuple[str, dict]:
         """
-        Locate, verify, and return image metadata for a single architecture.
+        Locate and return image metadata for a single architecture.
         """
         fedora_arch = ARCH_MAP.get(label, label)
-        base = SECONDARY_RELEASES_URL if label in SECONDARY_ARCHES else PRIMARY_RELEASES_URL
-        images_url = urljoin(base, f"{version}/Cloud/{fedora_arch}/images/")
 
-        self.logger.info("Fetching image listing for %s from %s", fedora_arch, images_url)
-        files = await self._fetch_dir_listing(session, images_url)
-
-        qcow2_files = [
-            f for f in files if re.match(r"Fedora-Cloud-Base-Generic-.*\.qcow2$", f)
+        images = [
+            r
+            for r in releases
+            if r["version"] == version
+            and r["arch"] == fedora_arch
+            and r["subvariant"] == "Cloud_Base"
+            and r["link"].endswith(".qcow2")
         ]
-        if not qcow2_files:
+        if not images:
             raise RuntimeError(
                 f"No Generic qcow2 found for arch={fedora_arch} version={version}"
             )
-        qcow2_filename = qcow2_files[0]
-        qcow2_url = images_url + qcow2_filename
-
-        checksum_files = [f for f in files if "CHECKSUM" in f]
-        if not checksum_files:
-            raise RuntimeError(
-                f"No CHECKSUM file found for arch={fedora_arch} version={version}"
-            )
-        checksums = await self._fetch_checksum_file(session, images_url + checksum_files[0])
-
-        sha256 = checksums.get(qcow2_filename)
-        if not sha256:
-            raise RuntimeError(f"SHA256 not found for {qcow2_filename}")
+        image = images[0]
+        qcow2_url = image["link"]
 
         self.logger.info("Sending HEAD request to %s", qcow2_url)
         async with session.head(
@@ -107,7 +67,6 @@ class FedoraScraper(BaseScraper):
             allow_redirects=True,
         ) as resp:
             resp.raise_for_status()
-            size = int(resp.headers.get("Content-Length", 0))
             last_mod_str = resp.headers.get("Last-Modified")
 
         last_mod = None
@@ -121,9 +80,9 @@ class FedoraScraper(BaseScraper):
 
         return label, {
             "image_location": qcow2_url,
-            "id": sha256,
+            "id": image["sha256"],
             "version": last_mod.strftime("%Y%m%d") if last_mod else "",
-            "size": size,
+            "size": int(image["size"]),
         }
 
     async def fetch(self) -> dict:
@@ -131,11 +90,12 @@ class FedoraScraper(BaseScraper):
         Fetch Fedora Cloud Base Generic images for all supported architectures.
         """
         async with make_session() as session:
-            version = await self._fetch_latest_version(session)
+            releases = json.loads(await self._fetch_text(session, RELEASES_URL))
+            version = self._latest_version(releases)
 
             results = await asyncio.gather(
                 *[
-                    self._fetch_image_for_arch(session, version, label)
+                    self._fetch_image_for_arch(session, releases, version, label)
                     for label in SUPPORTED_ARCHITECTURES
                 ],
                 return_exceptions=True,
@@ -143,7 +103,7 @@ class FedoraScraper(BaseScraper):
 
             items: dict[str, dict] = {}
             for label, result in zip(SUPPORTED_ARCHITECTURES, results):
-                if isinstance(result, Exception):
+                if isinstance(result, BaseException):
                     self.logger.error("Failed to fetch arch %s: %s", label, result)
                 else:
                     _, data = result
