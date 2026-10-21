@@ -87,6 +87,7 @@
 #include <optional>
 #include <ranges>
 #include <stdexcept>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -1170,7 +1171,7 @@ mp::SettingsHandler* register_snapshot_mod(
     }
     catch (const mp::NotImplementedOnThisBackendException& e)
     {
-        assert(std::string{e.what()}.find("snapshots") != std::string::npos);
+        assert(std::string_view{e.what()}.contains("snapshots"));
     }
 
     return nullptr;
@@ -4099,7 +4100,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
     catch (const NotImplementedOnThisBackendException& e)
     {
         // TODO find a better way to identify the missing feature
-        assert(std::string{e.what()}.find("snapshots") != std::string::npos);
+        assert(std::string_view{e.what()}.contains("snapshots"));
     }
     instance_info->set_image_release(original_release);
     instance_info->set_os(os);
