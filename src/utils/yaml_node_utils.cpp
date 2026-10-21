@@ -85,8 +85,7 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
     emitter.SetIndent(2);
 
     // Helper function to handle nodes recursively
-    std::function<void(const YAML::Node&)> emit_node;
-    emit_node = [&emitter, &emit_node](const YAML::Node& n) {
+    const auto emit_node = [&emitter](this const auto& self, const YAML::Node& n) -> void {
         switch (n.Type())
         {
         case YAML::NodeType::Map:
@@ -95,9 +94,9 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
             for (const auto& kv : n)
             {
                 emitter << YAML::Key;
-                emit_node(kv.first);
+                self(kv.first);
                 emitter << YAML::Value;
-                emit_node(kv.second);
+                self(kv.second);
             }
             emitter << YAML::EndMap;
             break;
@@ -107,7 +106,7 @@ std::string mp::utils::emit_yaml(const YAML::Node& node)
             emitter << YAML::BeginSeq;
             for (const auto& v : n)
             {
-                emit_node(v);
+                self(v);
             }
             emitter << YAML::EndSeq;
             break;
