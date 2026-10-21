@@ -19,9 +19,11 @@
 """Multipass command line tests for the `mount` feature."""
 
 import os
+import sys
 from pathlib import Path
 from contextlib import contextmanager
 
+import pexpect
 import pytest
 
 from cli.utilities import TempDirectory, retry
@@ -39,6 +41,8 @@ from cli.multipass import (
     read_file,
     move_path,
     validate_list_output,
+    requires_multipass,
+    shell,
 )
 
 
@@ -53,6 +57,28 @@ def src_to_dst(src_path):
             return Path(self).as_posix()
 
     yield PosixStrPath("/home") / "ubuntu" / src_path.name
+
+
+MOTD_HEADER = "Folders mounted from your host by Multipass:"
+
+
+def motd_line(target, source):
+    """The line of the MOTD that lists a mount."""
+    return f" * {target} (from {source})"
+
+
+def login_motd(name):
+    """
+    Return what an instance shell prints before its first prompt (e.g. the MOTD).
+    """
+    with shell(name) as vm_shell:
+        vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
+        motd = vm_shell.before
+        vm_shell.sendline("exit")
+        vm_shell.expect(pexpect.EOF)
+
+    # Unix spawns have no encoding, so they produce bytes
+    return motd.decode("utf-8", errors="replace") if isinstance(motd, bytes) else motd
 
 
 # todo: test custom uid/gid maps
@@ -89,6 +115,22 @@ class TestMount:
 
             assert multipass(unmount_cmd, instance)
             assert mounts(instance) == {}
+
+    @requires_multipass(">=1.18")
+    @pytest.mark.skipif(sys.platform == "win32", reason="Windows test shells skip the MOTD")
+    def test_mount_listed_in_motd(self, instance, mount_type):
+        with TempDirectory() as mount_src, src_to_dst(mount_src) as mount_dst:
+            if mount_type == "native":
+                assert multipass("stop", instance)
+
+            assert multipass("mount", "--type", mount_type, str(mount_src), instance)
+            assert multipass("start", instance)
+
+            motd = login_motd(instance)
+            assert MOTD_HEADER in motd
+            assert motd_line(mount_dst, mount_src) in motd
+
+            assert multipass("unmount", instance)
 
     def test_mount_to_specific_target(self, instance, mount_type):
         with TempDirectory() as mount_src:
