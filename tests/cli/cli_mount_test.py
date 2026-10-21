@@ -144,7 +144,10 @@ class TestMount:
             assert MOTD_HEADER in login_motd(instance)
 
             assert multipass("unmount", instance)
-            assert MOTD_HEADER not in login_motd(instance)
+
+            fresh_motd = login_motd(instance)
+            assert MOTD_HEADER not in fresh_motd
+            assert str(mount_src) not in fresh_motd
 
     @requires_multipass(">=1.18")
     @pytest.mark.skipif(sys.platform == "win32", reason="Windows test shells skip the MOTD")
@@ -172,6 +175,11 @@ class TestMount:
             assert motd.index(line_a) < motd.index(line_b)
 
             assert multipass("unmount", instance)
+
+            motd = login_motd(instance)
+            assert MOTD_HEADER not in motd
+            assert line_a not in motd
+            assert line_b not in motd
 
     def test_mount_to_specific_target(self, instance, mount_type):
         with TempDirectory() as mount_src:
