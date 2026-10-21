@@ -274,10 +274,10 @@ TEST_F(QemuMountHandlerTest, recordsMountInGuest)
     expect_ssh_success(*session, "mount -t 9p");
     EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
 
-    const auto deploy_cmd = mpt::mount_record_cmd(default_source,
+    const auto deploy_cmd = mpt::mount_record_cmd(mount.get_source_path(),
                                                   default_target,
                                                   &mp::GuestMountRecord::deploy);
-    const auto undeploy_cmd = mpt::mount_record_cmd(default_source,
+    const auto undeploy_cmd = mpt::mount_record_cmd(mount.get_source_path(),
                                                     default_target,
                                                     &mp::GuestMountRecord::undeploy);
 

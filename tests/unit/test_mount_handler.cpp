@@ -90,14 +90,14 @@ struct MountHandlerRecords : public Test
 
     const std::string source = "/home/alice/data";
     const std::string target = "/home/ubuntu/data";
-    const std::string expected_deploy_cmd = mpt::mount_record_cmd(source,
+    const mp::VMMount mount{source, {}, {}, mp::VMMount::MountType::Classic};
+    const std::string expected_deploy_cmd = mpt::mount_record_cmd(mount.get_source_path(),
                                                                   target,
                                                                   &mp::GuestMountRecord::deploy);
     const std::string expected_undeploy_cmd = mpt::mount_record_cmd(
-        source,
+        mount.get_source_path(),
         target,
         &mp::GuestMountRecord::undeploy);
-    const mp::VMMount mount{source, {}, {}, mp::VMMount::MountType::Classic};
 
     mpt::MockFileOps::GuardedMock file_ops_injection = inject_source_dir();
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
