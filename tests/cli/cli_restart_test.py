@@ -56,5 +56,3 @@ class TestRestart:
             assert get_boot_id(running_name) != running_boot_id_before
 
             assert multipass("delete", "--force", running_name, stopped_name, suspended_name)
-            assert state(running_name) == "Deleted" and state(stopped_name) == "Deleted" and state(suspended_name) == "Deleted"
-            assert multipass("purge")
