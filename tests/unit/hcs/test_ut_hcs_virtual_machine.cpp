@@ -753,7 +753,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_poweroff_suspended_removes
     bool state_file_removed = false;
 
     auto is_suspend_state_file = [](const std::filesystem::path& p) {
-        return p.string().find(".SavedState.vmrs") != std::string::npos;
+        return p.string().contains(".SavedState.vmrs");
     };
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
@@ -796,7 +796,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests,
     bool state_file_removal_attempted = false;
 
     auto is_suspend_state_file = [](const std::filesystem::path& p) {
-        return p.string().find(".SavedState.vmrs") != std::string::npos;
+        return p.string().contains(".SavedState.vmrs");
     };
 
     EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))

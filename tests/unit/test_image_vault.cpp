@@ -249,7 +249,7 @@ TEST_F(ImageVault, returnedImageContainsInstanceName)
                                       std::nullopt,
                                       instance_dir);
 
-    EXPECT_TRUE(vm_image.image_path.string().find(instance_name) != std::string::npos);
+    EXPECT_TRUE(vm_image.image_path.string().contains(instance_name));
 }
 
 TEST_F(ImageVault, imageCloneSuccess)
