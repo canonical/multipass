@@ -146,6 +146,33 @@ class TestMount:
             assert multipass("unmount", instance)
             assert MOTD_HEADER not in login_motd(instance)
 
+    @requires_multipass(">=1.18")
+    @pytest.mark.skipif(sys.platform == "win32", reason="Windows test shells skip the MOTD")
+    def test_motd_lists_mounts_in_order(self, instance, mount_type):
+        with TempDirectory() as mount_src_a, TempDirectory() as mount_src_b:
+            target_a = "/tmp/motd-a"
+            target_b = "/tmp/motd-b"
+            instance_target_a = f"{instance}:{target_a}"
+            instance_target_b = f"{instance}:{target_b}"
+
+            if mount_type == "native":
+                assert multipass("stop", instance)
+
+            # mount in reverse alphabetical order, to ensure that doesn't affect the MOTD
+            assert multipass("mount", "--type", mount_type, str(mount_src_b), instance_target_b)
+            assert multipass("mount", "--type", mount_type, str(mount_src_a), instance_target_a)
+            assert multipass("start", instance)
+
+            motd = login_motd(instance)
+            line_a = motd_line(target_a, mount_src_a)
+            line_b = motd_line(target_b, mount_src_b)
+
+            assert line_a in motd
+            assert line_b in motd
+            assert motd.index(line_a) < motd.index(line_b)
+
+            assert multipass("unmount", instance)
+
     def test_mount_to_specific_target(self, instance, mount_type):
         with TempDirectory() as mount_src:
             if mount_type == "native":
