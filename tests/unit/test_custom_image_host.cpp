@@ -29,6 +29,7 @@
 
 #include <QUrl>
 
+#include <algorithm>
 #include <unordered_set>
 
 #include <boost/json.hpp>
@@ -132,8 +133,7 @@ TEST_F(CustomImageHost, supportedRemotesReturnsExpectedValues)
 
     EXPECT_EQ(supported_remotes.size(), 1);
 
-    EXPECT_TRUE(std::find(supported_remotes.begin(), supported_remotes.end(), "") !=
-                supported_remotes.end());
+    EXPECT_TRUE(std::ranges::contains(supported_remotes, ""));
 }
 
 TEST_F(CustomImageHost, invalidImageReturnsFalse)
