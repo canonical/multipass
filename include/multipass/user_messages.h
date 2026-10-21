@@ -30,22 +30,13 @@ public:
     using iterator = std::vector<std::string>::iterator;
     using const_iterator = std::vector<std::string>::const_iterator;
 
-    iterator begin()
+    auto begin(this auto& self)
     {
-        return _messages.begin();
+        return self._messages.begin();
     }
-    iterator end()
+    auto end(this auto& self)
     {
-        return _messages.end();
-    }
-
-    const_iterator begin() const
-    {
-        return _messages.begin();
-    }
-    const_iterator end() const
-    {
-        return _messages.end();
+        return self._messages.end();
     }
 
     void clear()
