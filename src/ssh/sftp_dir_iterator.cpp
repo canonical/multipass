@@ -20,6 +20,8 @@
 #include <multipass/ssh/sftp_dir_iterator.h>
 #include <multipass/ssh/sftp_utils.h>
 
+#include <string_view>
+
 namespace multipass
 {
 void SFTPDirIterator::push_dir(const std::string& path)
@@ -54,6 +56,12 @@ SFTPAttributesUPtr SFTPDirIterator::next()
     {
         if (strcmp(attr->name, ".") == 0 || strcmp(attr->name, "..") == 0)
             continue;
+
+        std::string_view filename{attr->name};
+        if (filename.find('/') != std::string_view::npos ||
+            filename.find('\\') != std::string_view::npos)
+            throw SFTPError{"remote entry name is not a single path component: {:?}",
+                            std::string_view{attr->name}};
 
         auto path = fmt::format("{}/{}", dir->name, attr->name);
         if (attr->type == SSH_FILEXFER_TYPE_DIRECTORY)
