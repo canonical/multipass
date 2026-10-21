@@ -18,6 +18,7 @@
 #include <multipass/logging/multiplexing_logger.h>
 
 #include <algorithm>
+#include <mutex>
 
 namespace mpl = multipass::logging;
 
