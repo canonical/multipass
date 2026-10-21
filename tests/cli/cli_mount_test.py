@@ -132,6 +132,20 @@ class TestMount:
 
             assert multipass("unmount", instance)
 
+    @requires_multipass(">=1.18")
+    @pytest.mark.skipif(sys.platform == "win32", reason="Windows test shells skip the MOTD")
+    def test_unmounted_folder_leaves_motd(self, instance, mount_type):
+        with TempDirectory() as mount_src:
+            if mount_type == "native":
+                assert multipass("stop", instance)
+
+            assert multipass("mount", "--type", mount_type, str(mount_src), instance)
+            assert multipass("start", instance)
+            assert MOTD_HEADER in login_motd(instance)
+
+            assert multipass("unmount", instance)
+            assert MOTD_HEADER not in login_motd(instance)
+
     def test_mount_to_specific_target(self, instance, mount_type):
         with TempDirectory() as mount_src:
             if mount_type == "native":
