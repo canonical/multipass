@@ -1374,10 +1374,8 @@ TEST_P(BadCloudInitFile, launchCmdCloudinitOptionFailsWithMissingFile)
 
     EXPECT_THAT(send_command({"launch", "--cloud-init", missing_file}, trash_stream, cerr_stream),
                 Eq(mp::ReturnCode::CommandLineError));
-    EXPECT_NE(std::string::npos, cerr_stream.str().find("Could not load"))
-        << "cerr has: " << cerr_stream.str();
-    EXPECT_NE(std::string::npos, cerr_stream.str().find(missing_file))
-        << "cerr has: " << cerr_stream.str();
+    EXPECT_TRUE(cerr_stream.str().contains("Could not load")) << "cerr has: " << cerr_stream.str();
+    EXPECT_TRUE(cerr_stream.str().contains(missing_file)) << "cerr has: " << cerr_stream.str();
 }
 
 INSTANTIATE_TEST_SUITE_P(Client,
@@ -4174,7 +4172,7 @@ TEST_F(RestoreCommandClient, restoreCmdNotDestructiveNotLiveTermFails)
 
     EXPECT_EQ(setup_client_and_run({"restore", "foo.snapshot1"}, mock_terminal),
               mp::ReturnCode::CommandFail);
-    EXPECT_NE(cerr.str().find("Unable to query client for confirmation"), std::string::npos);
+    EXPECT_TRUE(cerr.str().contains("Unable to query client for confirmation"));
 }
 
 // authenticate cli tests
