@@ -2554,6 +2554,16 @@ try
     if (!status.ok())
         return context->set_value(status);
 
+    std::vector<std::string> instance_names;
+    instance_names.reserve(instance_selection.operative_selection.size());
+    for (const auto& it : instance_selection.operative_selection)
+        instance_names.push_back(it->first);
+
+    if (instance_names.empty())
+        return context->set_value(grpc::Status{grpc::FAILED_PRECONDITION,
+                                               "No instances could be selected for restart ",
+                                               ""});
+
     const auto running_only = request->running_only();
 
     // Suspended instances do not need to be resumed if only running instances are restarted
@@ -2566,9 +2576,6 @@ try
     // Only the wait for SSH runs in the background
     auto resume_future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
     auto future_key = utils::make_uuid();
-    std::vector<std::string> instance_names{request->instance_names().instance_name().begin(),
-                                            request->instance_names().instance_name().end()};
-
     QObject::connect(
         resume_future_watcher.get(),
         &QFutureWatcher<AsyncOperationStatus>::finished,

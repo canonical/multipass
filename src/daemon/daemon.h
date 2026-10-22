@@ -215,7 +215,8 @@ private:
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
 
-    // Starts the suspended targets (main thread only); returns the names of the VMs that were started
+    // Starts the suspended targets (main thread only); returns the names of the VMs that were
+    // started
     grpc::Status restart_start_suspended_instances(
         const std::vector<InstanceTable::iterator>& instance_targets,
         std::vector<std::string>& started_vms);
