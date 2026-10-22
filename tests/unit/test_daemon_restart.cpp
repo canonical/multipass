@@ -28,7 +28,12 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/ssh_exception.h>
 
+#include <QTimer>
+
+#include <atomic>
+#include <chrono>
 #include <deque>
+#include <future>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -394,4 +399,49 @@ TEST_F(TestDaemonRestart, restartSucceedsForOtherInstancesWhenOneSuspendedInstan
     EXPECT_EQ(status.error_code(), grpc::INVALID_ARGUMENT);
     EXPECT_THAT(status.error_message(),
                 AllOf(HasSubstr("ssh timed out resuming instance"), HasSubstr(fails_resume_name)));
+}
+
+TEST_F(TestDaemonRestart, restartDoesNotBlockMainThreadWhileWaitingForSuspendedInstanceToResume)
+{
+    const std::string resumed_name{"resumed-zebraphant"};
+    const std::string other_name{"other-zebraphant"};
+
+    auto [daemon, resumed_instance, other_instance] =
+        build_daemon_with_two_mock_instances(resumed_name,
+                                             VMState::suspended,
+                                             other_name,
+                                             VMState::running);
+
+    std::promise<void> event_processed;
+    auto event_processed_future = event_processed.get_future();
+    std::atomic_bool main_thread_was_responsive{false};
+    std::atomic_int ssh_waits{0};
+
+    // start() is called on the main thread: queue an event on its loop, which can only be
+    // processed if the main thread is not blocked waiting for the instance to come up
+    EXPECT_CALL(*resumed_instance, start).WillOnce([&event_processed] {
+        QTimer::singleShot(0, [&event_processed] { event_processed.set_value(); });
+    });
+    EXPECT_CALL(*resumed_instance, wait_until_ssh_up(_))
+        .Times(2)
+        .WillRepeatedly([&](auto) {
+            // The first wait is the resume one, running in a worker thread: block until the main
+            // thread has processed the event
+            if (ssh_waits++ == 0)
+                main_thread_was_responsive =
+                    event_processed_future.wait_for(std::chrono::seconds(10)) ==
+                    std::future_status::ready;
+            resumed_instance->state = VMState::running;
+        });
+
+    mp::RestartRequest request{};
+    request.mutable_instance_names()->add_instance_name(resumed_name);
+
+    ServerMock mock_server{};
+    EXPECT_CALL(mock_server, Write(_, _)).Times(1);
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, std::move(mock_server));
+
+    EXPECT_TRUE(main_thread_was_responsive);
+    EXPECT_TRUE(status.ok()) << status.error_message();
 }

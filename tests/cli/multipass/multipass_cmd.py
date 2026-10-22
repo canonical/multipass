@@ -72,10 +72,7 @@ def restart_prologue(args, kwargs):
 
     boot_ids = {}
     for vm_name in filtered_args:
-        if state(vm_name) == "Running":
-            boot_ids[vm_name] = get_boot_id(vm_name)
-        else:
-            boot_ids[vm_name] = None
+        boot_ids[vm_name] = get_boot_id(vm_name) if state(vm_name) == "Running"else None
     return boot_ids
 
 
