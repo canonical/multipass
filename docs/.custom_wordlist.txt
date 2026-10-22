@@ -12,6 +12,7 @@ Junos
 Kaspersky
 libssh
 loopback
+Malwarebytes
 misconfiguration
 multipassd
 NIC
@@ -20,8 +21,10 @@ overallocate
 passwordless
 Portainer
 Sonoma
+subnets
 Symantec
 teardown
+Tunnelblick
 unmount
 unmounts
 vcpkg

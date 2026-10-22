@@ -86,8 +86,6 @@ QString mp::daemon::interpret_driver(QString val)
 
     if (val == QStringLiteral("hyper-v"))
         val = QStringLiteral("hyperv");
-    else if (val == QStringLiteral("vbox"))
-        val = QStringLiteral("virtualbox");
 
     if (!MP_PLATFORM.is_backend_supported(val))
         throw mp::InvalidSettingException(mp::driver_key, val, "Invalid driver");

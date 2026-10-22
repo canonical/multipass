@@ -170,7 +170,7 @@ pytest tests/cli/ --daemon-controller=snapd --driver=lxd # Test the `lxd` backen
 ```
 
 ```bash
-pytest tests/cli/ --daemon-controller=winsvc --driver=virtualbox # Test the `virtualbox` backend on Windows
+pytest tests/cli/ --daemon-controller=winsvc --driver=hyperv # Test the `hyperv` backend on Windows
 ```
 
 ```bash
@@ -187,7 +187,7 @@ Some backends do not support all Multipass features. The test suite automaticall
 
 #### `--remove-all-instances` flag
 
-Additionally, there's a convenience flag called `--remove-all-instances`. The test executor would remove the instance storage directories (including backend-specific ones), like `vault/instances`, `qemu/vault/instances`, `virtualbox/vault/instances` while keeping the image cache and other things intact. This would allow reuse of a `MULTIPASS_STORAGE_DIR` without having adverse effects on future test runs due to persisted instances.
+Additionally, there's a convenience flag called `--remove-all-instances`. The test executor would remove the instance storage directories (including backend-specific ones), like `vault/instances`, `qemu/vault/instances` while keeping the image cache and other things intact. This would allow reuse of a `MULTIPASS_STORAGE_DIR` without having adverse effects on future test runs due to persisted instances.
 
 **Caution:** This flag will remove all the instances you have in the `MULTIPASS_STORAGE_DIR` for the daemon controller.
 

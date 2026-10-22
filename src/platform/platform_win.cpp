@@ -30,7 +30,6 @@
 
 #include "backends/hcs/hcs_virtual_machine_factory.h"
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
-#include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "shared/sshfs_server_process_spec.h"
 #include "shared/windows/powershell.h"
@@ -803,7 +802,6 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
     constexpr std::string_view supported_backends[] = {
         "hyperv",
-        "virtualbox",
         "hcs",
     };
     return std::ranges::any_of(supported_backends,
@@ -928,16 +926,6 @@ mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_m
 
     if (driver == QStringLiteral("hyperv"))
         return std::make_unique<HyperVVirtualMachineFactory>(data_dir, az_manager);
-    else if (driver == QStringLiteral("virtualbox"))
-    {
-        qputenv("Path", qgetenv("Path") + ";C:\\Program Files\\Oracle\\VirtualBox"); /*
-          This is where the Virtualbox installer puts things, and relying on PATH
-          allows the user to do something about it, if the binaries are not found
-          there.
-        */
-
-        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
-    }
     else if (driver == "hcs")
     {
         return std::make_unique<hyperv::HCSVirtualMachineFactory>(data_dir, az_manager);
@@ -949,7 +937,7 @@ mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_m
 bool mp::platform::backend_supports_availability_zones()
 {
     const auto driver = MP_SETTINGS.get(mp::driver_key);
-    return driver != QStringLiteral("hyperv") && driver != QStringLiteral("virtualbox");
+    return driver != QStringLiteral("hyperv");
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(

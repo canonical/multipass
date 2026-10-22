@@ -32,10 +32,6 @@
 
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 
-#ifdef VIRTUALBOX_ENABLED
-#include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
-#endif
-
 #ifdef MULTIPASS_JOURNALD_ENABLED
 #include "logger/journald_logger.h"
 #else
@@ -257,11 +253,7 @@ mp::platform::Platform::get_network_interfaces_info() const
 
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
-    return
-#ifdef VIRTUALBOX_ENABLED
-        backend == "virtualbox" ||
-#endif
-        backend == "qemu";
+    return backend == "qemu";
 }
 
 bool mp::platform::Platform::link(const char* target, const char* link) const
@@ -455,18 +447,12 @@ mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_m
     if (driver == QStringLiteral("qemu"))
         return std::make_unique<QemuVirtualMachineFactory>(data_dir, az_manager);
 
-#if VIRTUALBOX_ENABLED
-    if (driver == QStringLiteral("virtualbox"))
-        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
-#endif
-
     throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
 }
 
 bool mp::platform::backend_supports_availability_zones()
 {
-    const auto& driver = MP_SETTINGS.get(mp::driver_key);
-    return driver != QStringLiteral("virtualbox");
+    return true;
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(

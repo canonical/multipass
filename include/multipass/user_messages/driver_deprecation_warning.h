@@ -40,25 +40,18 @@ template <typename DeprecatedDriverName,
           typename RecommendedDriverId>
 std::string make_driver_deprecation_warning(DeprecatedDriverName&& deprecated_name,
                                             RecommendedDriverName&& recommended_name,
-                                            RecommendedDriverId&& recommended_id,
-                                            bool migrationful)
+                                            RecommendedDriverId&& recommended_id)
 {
     const auto deprecated_feature = fmt::format(
         "the {} driver",
         std::forward<DeprecatedDriverName>(deprecated_name));
-
-    constexpr auto migrationless_advice =
-        "We recommend switching to the new {0} driver as soon as possible (multipass set "
-        "local.driver={1}). Your instances will not be destroyed but they will be unreachable from "
-        "the new driver. You can switch back to the old driver for now, but you will need to "
-        "manually recreate any instances you want to keep in the next release.";
 
     constexpr auto migrationful_advice =
         "When you are ready to have your instances migrated, please stop them (multipass stop "
         "--all) and switch to the new {0} driver (multipass set local.driver={1}).";
 
     const auto deprecation_advice = fmt::format(
-        fmt::runtime(migrationful ? migrationful_advice : migrationless_advice),
+        migrationful_advice,
         std::forward<RecommendedDriverName>(recommended_name),
         std::forward<RecommendedDriverId>(recommended_id));
 
