@@ -506,7 +506,7 @@ You have created and deleted quite a few instances. It is time to run `multipass
 $ multipass list
 Name               State     IPv4            Image              Mounts  Zone
 primary            Running   10.110.66.242   Ubuntu 26.04 LTS   1       zone1
-ltsInstance        Running   10.110.66.139   Ubuntu 26.04 LTS   0       zone3
+ltsInstance        Running   10.110.66.139   Ubuntu 26.04 LTS   0       zone1
 ```
 
 The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs.
@@ -522,7 +522,7 @@ You have created and deleted quite a few instances. It is time to run `multipass
 $ multipass list
 Name               State     IPv4            Image              Mounts  Zone
 primary            Running   10.110.66.242   Ubuntu 26.04 LTS   1       zone1
-ltsInstance        Running   10.110.66.139   Ubuntu 26.04 LTS   0       zone3
+ltsInstance        Running   10.110.66.139   Ubuntu 26.04 LTS   0       zone1
 ```
 
 The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs.
@@ -538,7 +538,7 @@ You have created and deleted quite a few instances. It is time to run `multipass
 C:\WINDOWS\system32> multipass list
 Name               State     IPv4            Image              Mounts  Zone
 primary            Running   10.110.66.242   Ubuntu 26.04 LTS   0       zone1
-ltsInstance        Running   10.110.66.139   Ubuntu 26.04 LTS   0       zone3
+ltsInstance        Running   10.110.66.139   Ubuntu 26.04 LTS   0       zone1
 ```
 
 The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs.
