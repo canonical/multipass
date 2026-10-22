@@ -74,7 +74,7 @@ struct MountMotdScript : public Test
                                record.target,
                                record.shown_source.value_or(record.source));
 
-        return ret;
+        return ret + "\n";
     }
 
     // Run the script against the given records directory, returning its output

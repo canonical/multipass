@@ -37,3 +37,7 @@ for record in "$@"; do
 
     printf ' * %s (from %s)\n' "${target_dir}" "${source_dir}"
 done
+
+printf '\n' # separate from what follows, which may not lead with a blank line (e.g. on Ubuntu Core)
+            # we pay the cost of a double blank line when it does, which is not as bad
+            # (no reliable way to tell which is going to be the case from here)
