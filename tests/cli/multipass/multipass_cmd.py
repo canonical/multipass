@@ -78,6 +78,7 @@ def restart_prologue(args, kwargs):
 
 
 def restart_epilogue(args, kwargs, result, prologue_result):
+    from .helpers import state
     logging.debug(
         f"epilogue: args: {args}, kwargs: {kwargs}, result: {result}, prologue_result: {prologue_result}")
     if not result:
@@ -92,6 +93,9 @@ def restart_epilogue(args, kwargs, result, prologue_result):
         # must come back up with a new boot id
         if running_only and prologue_result[vm_name] is None:
             continue
+
+        # Check before exec'ing, as exec would auto-start a non-running instance and mask the failure
+        assert state(vm_name) == "Running", f"{vm_name} is not running after restart"
 
         @retry(retries=50, delay=20)
         def attempt_ssh(vm_name):

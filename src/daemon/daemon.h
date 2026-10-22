@@ -219,7 +219,7 @@ private:
     // started
     grpc::Status restart_start_suspended_instances(
         const std::vector<InstanceTable::iterator>& instance_targets,
-        std::vector<std::string>& started_vms);
+        std::vector<VirtualMachine::ShPtr>& started_vms);
 
     void init_mounts(const std::string& name);
     void stop_mounts(const std::string& name);

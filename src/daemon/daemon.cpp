@@ -909,28 +909,20 @@ grpc::Status cmd_vms(const LinearInstanceSelection& tgts,
     return global_st;
 }
 
-// Runs in a worker thread: VMs are looked up by name at execution time, as they may have been
-// deleted or moved in the meantime
-grpc::Status wait_for_ssh_up(const InstanceTable& instance_table,
-                             const std::vector<std::string>& vm_names,
+// Runs in a worker thread, so it only touches the given VMs and never the instance tables
+grpc::Status wait_for_ssh_up(const std::vector<mp::VirtualMachine::ShPtr>& vms,
                              std::chrono::seconds timeout)
 {
     auto global_st{grpc::Status::OK};
     std::mutex status_mutex;
     mpu::parallel_for_each(
-        vm_names,
-        [timeout, &global_st, &status_mutex, &instance_table](const std::string& vm_name) {
+        vms,
+        [timeout, &global_st, &status_mutex](const mp::VirtualMachine::ShPtr& vm) {
             auto status = grpc::Status::OK;
             try
             {
-                const auto it = instance_table.find(vm_name);
-                if (it == instance_table.end())
-                    status = grpc::Status(
-                        grpc::FAILED_PRECONDITION,
-                        fmt::format("Instance '{}' could not be found.", vm_name));
-                else
-                    // We only need the instance to achieve an SSH session for restart
-                    it->second->wait_until_ssh_up(timeout);
+                // We only need the instance to achieve an SSH session for restart
+                vm->wait_until_ssh_up(timeout);
             }
             catch (const std::runtime_error& e)
             {
@@ -2567,7 +2559,7 @@ try
     const auto running_only = request->running_only();
 
     // Suspended instances do not need to be resumed if only running instances are restarted
-    std::vector<std::string> resumed_vms;
+    std::vector<VirtualMachine::ShPtr> resumed_vms;
     auto resume_status = grpc::Status::OK;
     if (!running_only)
         resume_status = restart_start_suspended_instances(instance_selection.operative_selection,
@@ -2648,8 +2640,8 @@ try
         });
 
     resume_future_watcher->setFuture(QtConcurrent::run(
-        [this, resumed_vms = std::move(resumed_vms), timeout]() -> AsyncOperationStatus {
-            return {wait_for_ssh_up(operative_instances, resumed_vms, timeout), nullptr};
+        [resumed_vms = std::move(resumed_vms), timeout]() -> AsyncOperationStatus {
+            return {wait_for_ssh_up(resumed_vms, timeout), nullptr};
         }));
     async_future_watchers.insert({future_key, std::move(resume_future_watcher)});
 }
@@ -4449,7 +4441,7 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
 
 grpc::Status mp::Daemon::restart_start_suspended_instances(
     const LinearInstanceSelection& instance_targets,
-    std::vector<std::string>& started_vms)
+    std::vector<VirtualMachine::ShPtr>& started_vms)
 {
     const auto& suspended_instances = filter_instances_by_state(
         instance_targets,
@@ -4462,7 +4454,7 @@ grpc::Status mp::Daemon::restart_start_suspended_instances(
             {
                 std::lock_guard start_guard{start_mutex};
                 vm.start();
-                started_vms.push_back(vm.get_name());
+                started_vms.push_back(operative_instances.at(vm.get_name()));
                 return grpc::Status::OK;
             }
             catch (const std::runtime_error& e)
