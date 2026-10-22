@@ -67,6 +67,12 @@ namespace
 constexpr auto suspend_tag = "suspend";
 // we need a whitespace to terminate the tag column in the fake output of qemu-img
 const QByteArray fake_snapshot_list_with_suspend_tag = QByteArray{suspend_tag} + " ";
+
+struct QemuVMWithSettableState : public mp::QemuVirtualMachine
+{
+    using mp::QemuVirtualMachine::QemuVirtualMachine;
+    using mp::QemuVirtualMachine::set_state; // promote to public
+};
 } // namespace
 
 struct QemuBackend : public mpt::TestWithMockedBinPath
@@ -195,6 +201,17 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
     std::unique_ptr<mpt::MockQemuPlatform> mock_qemu_platform{
         std::make_unique<mpt::MockQemuPlatform>()};
 
+    std::unique_ptr<QemuVMWithSettableState> make_vm_with_settable_state(
+        mp::VMStatusMonitor& monitor)
+    {
+        return std::make_unique<QemuVMWithSettableState>(default_description,
+                                                         mock_qemu_platform.get(),
+                                                         monitor,
+                                                         key_provider,
+                                                         zone,
+                                                         instance_dir.path());
+    }
+
     mpt::MockQemuPlatformFactory::GuardedMock qemu_platform_factory_attr{
         mpt::MockQemuPlatformFactory::inject<NiceMock>()};
     mpt::MockQemuPlatformFactory* mock_qemu_platform_factory{qemu_platform_factory_attr.first};
@@ -245,7 +262,7 @@ TEST_F(QemuBackend, machineStartShutdownSendsMonitoringEvents)
     machine->start();
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::running));
-    machine->set_state(mp::VirtualMachine::State::running);
+    machine->set_running();
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     EXPECT_CALL(mock_monitor, on_shutdown());
@@ -270,7 +287,7 @@ TEST_F(QemuBackend, machineStartSuspendSendsMonitoringEvent)
     machine->start();
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::running));
-    machine->set_state(mp::VirtualMachine::State::running);
+    machine->set_running();
 
     EXPECT_CALL(mock_monitor, on_suspend());
     EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::suspending));
@@ -316,7 +333,7 @@ TEST_F(QemuBackend, QMPErrorGetsLogged)
     logger_scope.mock_logger->expect_log(mpl::Level::error, "QMP error: some error");
     machine->start();
     EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::running));
-    machine->set_state(mp::VirtualMachine::State::running); // Necessary to properly shutdown
+    machine->set_running(); // Necessary to properly shutdown
 }
 
 TEST_F(QemuBackend, QMPHandlerIgnoresNonJsonLines)
@@ -356,7 +373,7 @@ TEST_F(QemuBackend, QMPHandlerIgnoresNonJsonLines)
 
     machine->start();
     EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::running));
-    machine->set_state(mp::VirtualMachine::State::running);
+    machine->set_running();
 }
 
 TEST_F(QemuBackend, QMPHandlerProcessesInterleavedJson)
@@ -397,7 +414,7 @@ TEST_F(QemuBackend, QMPHandlerProcessesInterleavedJson)
     logger_scope.mock_logger->expect_log(mpl::Level::error, "QMP error: some error");
     machine->start();
     EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::running));
-    machine->set_state(mp::VirtualMachine::State::running);
+    machine->set_running();
 }
 
 TEST_F(QemuBackend, throwsWhenShutdownWhileStarting)
@@ -560,7 +577,7 @@ TEST_F(QemuBackend, throwsOnShutdownTimeout)
     EXPECT_CALL(*vmproc, wait_for_finished).WillOnce(Return(false)).WillRepeatedly(Return(true));
     EXPECT_CALL(*vmproc, running).WillOnce(Return(true)).WillRepeatedly(Return(false));
 
-    machine->set_state(mp::VirtualMachine::State::running);
+    machine->set_running();
 
     MP_EXPECT_THROW_THAT(
         machine->shutdown(),
@@ -624,16 +641,10 @@ TEST_F(QemuBackend, includesErrorWhenShutdownWhileStarting)
 
 TEST_F(QemuBackend, machineUnknownStateProperlyShutsDown)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
-        return std::move(mock_qemu_platform);
-    });
-
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
-
     process_factory->register_callback(handle_qemu_system);
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    auto machine = make_vm_with_settable_state(mock_monitor);
 
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     EXPECT_CALL(mock_monitor, on_resume());
@@ -653,13 +664,7 @@ TEST_F(QemuBackend, suspendedStateNoForceShutdownThrows)
 {
     const std::string sub_error_msg{"Cannot shut down suspended instance"};
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
-        return std::move(mock_qemu_platform);
-    });
-
-    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
-
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    auto machine = make_vm_with_settable_state(stub_monitor);
 
     machine->set_state(mp::VirtualMachine::State::suspended);
 
@@ -675,13 +680,7 @@ TEST_F(QemuBackend, suspendingStateNoForceShutdownThrows)
     const std::string sub_error_msg1{"Cannot shut down instance"};
     const std::string sub_error_msg2{"while suspending."};
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
-        return std::move(mock_qemu_platform);
-    });
-
-    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
-
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    auto machine = make_vm_with_settable_state(stub_monitor);
 
     machine->set_state(mp::VirtualMachine::State::suspending);
 
@@ -698,13 +697,7 @@ TEST_F(QemuBackend, startingStateNoForceShutdownThrows)
     const std::string sub_error_msg1{"Cannot shut down instance"};
     const std::string sub_error_msg2{"while starting."};
 
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
-        return std::move(mock_qemu_platform);
-    });
-
-    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
-
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    auto machine = make_vm_with_settable_state(stub_monitor);
 
     machine->set_state(mp::VirtualMachine::State::starting);
 
@@ -757,7 +750,7 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
 
     ASSERT_TRUE(vmproc);
 
-    machine->set_state(mp::VirtualMachine::State::running);
+    machine->set_running();
 
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff); // force shutdown
 
@@ -766,18 +759,12 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
 
 TEST_F(QemuBackend, forceShutdownNoProcessLogs)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
-        return std::move(mock_qemu_platform);
-    });
-
     logger_scope.mock_logger->screen_logs(mpl::Level::debug);
     logger_scope.mock_logger->expect_log(mpl::Level::info, "State changed", AnyNumber());
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "No process to kill");
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
-
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    auto machine = make_vm_with_settable_state(stub_monitor);
 
     machine->set_state(mp::VirtualMachine::State::unknown);
 
@@ -788,10 +775,6 @@ TEST_F(QemuBackend, forceShutdownNoProcessLogs)
 
 TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
-        return std::move(mock_qemu_platform);
-    });
-
     mpt::MockProcessFactory::Callback snapshot_list_suspend_tag_callback =
         [](mpt::MockProcess* process) {
             if (process->program().contains("qemu-img") &&
@@ -809,10 +792,7 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "No process to kill");
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Deleting suspend image");
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
-
-    const auto machine =
-        backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    const auto machine = make_vm_with_settable_state(stub_monitor);
     machine->set_state(mp::VirtualMachine::State::suspended);
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
@@ -828,10 +808,6 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
 
 TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
-        return std::move(mock_qemu_platform);
-    });
-
     logger_scope.mock_logger->screen_logs(mpl::Level::debug);
     logger_scope.mock_logger->expect_log(mpl::Level::info, "State changed", AnyNumber());
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
@@ -840,10 +816,7 @@ TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
         mpl::Level::warning,
         "Image has no suspension snapshot, but the state is suspended");
 
-    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
-
-    const auto machine =
-        backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    const auto machine = make_vm_with_settable_state(stub_monitor);
     machine->set_state(mp::VirtualMachine::State::suspended);
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
@@ -880,7 +853,7 @@ TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
 
     const auto machine =
         backend.create_virtual_machine(default_description, key_provider, stub_monitor);
-    machine->set_state(mp::VirtualMachine::State::running);
+    machine->set_running();
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
     EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::stopped);
@@ -904,7 +877,7 @@ TEST_F(QemuBackend, verifyDnsmasqQemuimgAndQemuProcessesCreated)
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->start();
-    machine->set_state(mp::VirtualMachine::State::running);
+    machine->set_running();
 
     auto processes = factory->process_list();
     EXPECT_TRUE(std::find_if(processes.cbegin(),
@@ -941,7 +914,7 @@ TEST_F(QemuBackend, verifySomeCommonQemuArguments)
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->start();
-    machine->set_state(mp::VirtualMachine::State::running);
+    machine->set_running();
 
     ASSERT_TRUE(qemu != nullptr);
 
@@ -966,7 +939,7 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImage)
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->start();
-    machine->set_state(mp::VirtualMachine::State::running);
+    machine->set_running();
 
     auto processes = process_factory->process_list();
     auto qemu = std::find_if(processes.cbegin(),
@@ -999,7 +972,7 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImageUsesMetadata)
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
     machine->start();
-    machine->set_state(mp::VirtualMachine::State::running);
+    machine->set_running();
 
     auto processes = process_factory->process_list();
     auto qemu = std::find_if(processes.cbegin(),
@@ -1044,7 +1017,7 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
     machine->start();
-    machine->set_state(mp::VirtualMachine::State::running);
+    machine->set_running();
 
     auto processes = process_factory->process_list();
     auto qemu = std::find_if(processes.cbegin(),
@@ -1180,7 +1153,7 @@ TEST_F(QemuBackend, sshHostnameReturnsExpectedValue)
                                    zone,
                                    instance_dir.path()};
     machine.start();
-    machine.set_state(mp::VirtualMachine::State::running);
+    machine.set_running();
 
     EXPECT_EQ(machine.ssh_hostname(), expected_ip);
 }
@@ -1199,7 +1172,7 @@ TEST_F(QemuBackend, getsManagementIp)
                                    zone,
                                    instance_dir.path()};
     machine.start();
-    machine.set_state(mp::VirtualMachine::State::running);
+    machine.set_running();
 
     EXPECT_EQ(machine.management_ipv4(), expected_ip);
 }
@@ -1217,7 +1190,7 @@ TEST_F(QemuBackend, failsToGetManagementIpIfDnsmasqDoesNotReturnAnIp)
                                    zone,
                                    instance_dir.path()};
     machine.start();
-    machine.set_state(mp::VirtualMachine::State::running);
+    machine.set_running();
 
     EXPECT_EQ(machine.management_ipv4(), std::nullopt);
 }
@@ -1237,7 +1210,7 @@ TEST_F(QemuBackend, sshHostnameThrowsImmediatelyWhenIPUnavailable)
                                    zone,
                                    instance_dir.path()};
     machine.start();
-    machine.set_state(mp::VirtualMachine::State::running);
+    machine.set_running();
 
     EXPECT_THROW((void)machine.ssh_hostname(), mp::IPUnavailableException);
     EXPECT_EQ(machine.fetch_state(), mp::VirtualMachine::State::running);
@@ -1258,7 +1231,7 @@ TEST_F(QemuBackend, dropsSSHSessionWhenStopping)
                                  stub_monitor,
                                  key_provider,
                                  zone};
-    machine.set_state(multipass::VirtualMachine::State::running);
+    machine.set_running();
 
     EXPECT_CALL(machine, drop_ssh_session());
 

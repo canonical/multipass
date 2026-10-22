@@ -369,8 +369,8 @@ TEST_F(HyperVMigrationEligibility, confirmsStoppedStateBeforeCheckingTargetColli
 
 TEST_F(HyperVMigrationEligibility, acceptsHostStoppedStateDespiteStaleRunningState)
 {
-    EXPECT_CALL(*vm, set_state(mp::VirtualMachine::State::running));
-    vm->set_state(mp::VirtualMachine::State::running);
+    EXPECT_CALL(*vm, set_running());
+    vm->set_running();
     mock_query("Off");
 
     EXPECT_EQ(migrate(), "name already taken by a hcs instance");
