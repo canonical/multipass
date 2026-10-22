@@ -41,6 +41,8 @@ class TestRestart:
             assert multipass("stop", stopped_name)
             assert state(stopped_name) == "Stopped"
 
+            # Captured before suspending, to check that the resumed instance also gets rebooted
+            suspended_boot_id_before = get_boot_id(suspended_name)
             if cfg.driver != "applevz":
                 assert multipass("suspend", suspended_name)
                 assert state(suspended_name) == "Suspended"
@@ -54,5 +56,6 @@ class TestRestart:
             assert state(suspended_name) == "Running"
 
             assert get_boot_id(running_name) != running_boot_id_before
+            assert get_boot_id(suspended_name) != suspended_boot_id_before
 
             assert multipass("delete", "--force", running_name, stopped_name, suspended_name)
