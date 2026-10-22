@@ -165,8 +165,8 @@ const auto neutralized_control_characters = Scenario{
     .name = "neutralizedControlCharacters",
     .records = {Record{.encoded_target = "%2Fx\x1b[2Jy\nz\tw",
                        .target = fmt::format("/x{0}[2Jy{0}z{0}w", replacement),
-                       .source = "/a\x1b]0;title\ab",
-                       .shown_source = fmt::format("/a{0}]0;title{0}b", replacement)}}};
+                       .source = "/a\x1b]0;title\ab\nc",
+                       .shown_source = fmt::format("/a{0}]0;title{0}b{0}c", replacement)}}};
 
 INSTANTIATE_TEST_SUITE_P(MountMotdScript,
                          MountMotdScriptListing,

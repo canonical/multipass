@@ -24,7 +24,8 @@ set -- @MULTIPASS_GUEST_MOUNT_RECORDS_DIR@/*
 
 printf '\nFolders mounted from your host by Multipass:\n\n'
 for record in "$@"; do
-    IFS= read -r source_dir < "${record}"
+    IFS= read -r -d '' source_dir < "${record}" # whole record (paths can contain newlines)
+    source_dir=${source_dir%$'\n'}
 
     # decode mount target from percent-encoded filename
     target_dir=${record##*/}
