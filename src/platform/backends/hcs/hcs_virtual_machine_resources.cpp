@@ -91,7 +91,9 @@ std::optional<std::string> multipass::hyperv::management_ipv4_neighbor(
     const std::string& mac_address)
 {
     const auto luid = host_interface_luid(network_guid);
-    return luid ? permanent_ipv4_neighbor(mac_address, *luid) : std::nullopt;
+    return luid.and_then([&mac_address](const NET_LUID& interface_luid) {
+        return permanent_ipv4_neighbor(mac_address, interface_luid);
+    });
 }
 
 bool multipass::hyperv::remove_management_ipv4_neighbors(const std::string& network_guid,
