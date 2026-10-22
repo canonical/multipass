@@ -56,7 +56,7 @@ Now, stop the primary and launch another instance:
 
 ```{code-block} text
 multipass stop
-multipass launch eoan
+multipass launch --zone 2
 ```
 
 Sample output:
