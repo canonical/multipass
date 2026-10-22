@@ -1,29 +1,32 @@
-name: Close inactive issues
+name: Close inactive PRs/issues
 on:
   schedule:
     - cron: "17 1 * * *"
 
 permissions:
   issues: write
+  pull-requests: write
 
 jobs:
   close-issues:
+    if: ${{ github.repository == 'canonical/multipass' }}
     runs-on: ubuntu-slim
     steps:
       - uses: actions/stale@v11
         with:
-          days-before-issue-stale: 30
-          days-before-issue-close: 14
+          days-before-stale: 30
+          days-before-close: 14
+
           stale-issue-label: "stale"
           stale-issue-message: "This issue was marked stale because it has been labelled with \"needs-info\" for 30 days."
           close-issue-message: "This issue was closed because it has been 14 days since being marked as stale."
 
-          # Leave PRs alone
-          days-before-pr-stale: -1
-          days-before-pr-close: -1
+          stale-pr-label: "stale"
+          stale-pr-message: "This PR was marked stale because it has been labelled with \"needs-info\" for 30 days."
+          close-pr-message: "This PR was closed because it has been 14 days since being marked as stale."
 
-          only-issue-labels: "needs-info"
-          start-date: 2025-10-20
+          only-labels: "needs-info"
+          labels-to-remove-when-unstale: "needs-info"
           exempt-all-milestones: true
           exempt-all-assignees: true
           repo-token: ${{ secrets.GITHUB_TOKEN }}
