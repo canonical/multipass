@@ -11,6 +11,7 @@ IPs
 Junos
 Kaspersky
 libssh
+Malwarebytes
 misconfiguration
 multipassd
 NIC
@@ -19,8 +20,10 @@ overallocate
 passwordless
 Portainer
 Sonoma
+subnets
 Symantec
 teardown
+Tunnelblick
 unmount
 unmounts
 vcpkg
