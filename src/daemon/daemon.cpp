@@ -2552,9 +2552,11 @@ try
         instance_names.push_back(it->first);
 
     if (instance_names.empty())
-        return context->set_value(grpc::Status{grpc::FAILED_PRECONDITION,
-                                               "No instances could be selected for restart ",
-                                               ""});
+        return context->set_value(request->instance_names().instance_name().empty()
+                                      ? grpc::Status::OK
+                                      : grpc::Status{grpc::FAILED_PRECONDITION,
+                                                     "No instances could be selected for restart ",
+                                                     ""});
 
     const auto running_only = request->running_only();
 
