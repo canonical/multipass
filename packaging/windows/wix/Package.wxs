@@ -132,6 +132,9 @@
             Return="ignore" Execute="deferred" Impersonate="no" />
         <CustomAction Id="EnableHyperVAction.SetProperty" Property="EnableHyperVAction"
             Value="[UILevel]|[DRIVER]" />
+        <!-- TODO hyperv migration, remove: on upgrade, the custom action reads the existing driver -->
+        <CustomAction Id="EnableHyperVAction.SetPropertyUpgrade" Property="EnableHyperVAction"
+            Value="[UILevel]|upgrade|[MP_DATA_DIR]" />
         <util:CheckRebootRequired />
 
         <CustomAction Id="GUI.TaskClose.SetCmdLine" Execute="immediate"
@@ -156,11 +159,14 @@
             <Custom Action="UninstallExeMPAction" After="InstallInitialize"
                 Condition="NOT Installed AND UNINSTALLER_PATH" />
 
-            <!-- TODO hyperv migration, revert: drop DRIVER = "hyperv" from both conditions below -->
+            <!-- TODO hyperv migration, revert: drop DRIVER = "hyperv" from the conditions below,
+                 and remove the upgrade action -->
             <Custom Action="EnableHyperVAction.SetProperty" Before="EnableHyperVAction"
-                Condition="(DRIVER = &quot;hyperv&quot; OR DRIVER = &quot;hcs&quot;) AND NOT Installed" />
+                Condition="(DRIVER = &quot;hyperv&quot; OR DRIVER = &quot;hcs&quot;) AND NOT Installed AND NOT WIX_UPGRADE_DETECTED" />
+            <Custom Action="EnableHyperVAction.SetPropertyUpgrade" Before="EnableHyperVAction"
+                Condition="WIX_UPGRADE_DETECTED AND NOT Installed" />
             <Custom Action="EnableHyperVAction" After="InstallInitialize"
-                Condition="(DRIVER = &quot;hyperv&quot; OR DRIVER = &quot;hcs&quot;) AND NOT Installed" />
+                Condition="(DRIVER = &quot;hyperv&quot; OR DRIVER = &quot;hcs&quot; OR WIX_UPGRADE_DETECTED) AND NOT Installed" />
 
             <Custom Action="AskRemoveDataMsgBox" Before="InstallInitialize"
                 Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA &lt;&gt; &quot;yes&quot; AND REMOVE_DATA &lt;&gt; &quot;no&quot;" />
