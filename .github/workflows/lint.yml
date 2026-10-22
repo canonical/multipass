@@ -51,7 +51,7 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt
+          components: rustfmt, clippy
 
       - name: Run Rust format check
         working-directory: rxx
@@ -59,6 +59,15 @@ jobs:
           if ! cargo fmt --all -- --check; then
             echo -n "##[error] Rust code is not properly formatted. "
             echo "Run 'cargo fmt --all' in rxx/ to fix formatting."
+            exit 1
+          fi
+
+      - name: Run Clippy
+        working-directory: rxx
+        run: |
+          if ! cargo clippy --workspace --all-targets -- -D warnings; then
+            echo -n "##[error] Clippy found issues in the Rust code. "
+            echo "Run 'cargo clippy --workspace --all-targets' in rxx/ and review the suggestions."
             exit 1
           fi
 
