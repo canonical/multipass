@@ -39,10 +39,8 @@ final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
     return [];
   }
 
-  final images = await ref
-      .watch(grpcClientProvider)
-      .images()
-      .then((r) => sortImages(r.imagesInfo));
+  final images =
+      await ref.watch(grpcClientProvider).images().then((r) => r.imagesInfo);
 
   // artificial delay so that we can see the loading spinner a bit
   // otherwise the reply arrives too quickly and we only see a flash of the spinner
@@ -51,69 +49,34 @@ final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
   return images;
 });
 
-// sorts the images in a more user-friendly way
-// the current LTS > other releases sorted by most recent > current devel > core images
-List<ImageInfo> sortImages(List<ImageInfo> images) {
-  final ltsIndex = images.indexWhere((image) {
-    return image.aliases.any((a) => a == 'lts');
-  });
-  final lts = ltsIndex != -1 ? images.removeAt(ltsIndex) : null;
-
-  final develIndex = images.indexWhere((image) {
-    return image.aliases.any((a) => a == 'devel');
-  });
-  final devel = develIndex != -1 ? images.removeAt(develIndex) : null;
-
-  bool coreFilter(ImageInfo image) {
-    return image.aliases.any((a) => a.contains('core'));
-  }
-
-  bool ubuntuFilter(ImageInfo image) {
-    return image.os.toLowerCase() == 'ubuntu';
-  }
-
-  int decreasingReleaseSorter(ImageInfo a, ImageInfo b) {
-    return b.release.compareTo(a.release);
-  }
-
-  final ubuntuImages = images
-      .whereNot(coreFilter)
-      .where(ubuntuFilter)
-      .sorted(decreasingReleaseSorter);
-  final coreImages = images.where(coreFilter).sorted(decreasingReleaseSorter);
-  final thirdPartyImages = images
-      .whereNot(coreFilter)
-      .whereNot(ubuntuFilter)
-      .sorted(decreasingReleaseSorter);
-
-  return [
-    if (lts != null) lts,
-    ...ubuntuImages,
-    if (devel != null) devel,
-    ...coreImages,
-    ...thirdPartyImages,
-  ];
-}
-
 List<Widget> _groupAndCreateCards(List<ImageInfo> images, double cardWidth) {
   bool isCore(ImageInfo image) {
-    return image.aliases.any((a) => a.contains('core'));
+    return image.remoteName == 'core';
   }
 
-  bool isUbuntu(ImageInfo image) {
-    return image.os.toLowerCase() == 'ubuntu';
+  bool isUbuntuRelease(ImageInfo image) {
+    return image.remoteName == 'release';
+  }
+
+  bool isUbuntuDaily(ImageInfo image) {
+    return image.remoteName == 'daily';
   }
 
   bool isOther(ImageInfo image) {
-    return !isCore(image) && !isUbuntu(image);
+    return image.remoteName == '';
   }
 
-  final ubuntuImages = images
-      .where((i) => isUbuntu(i) && !isCore(i))
+  final releaseImages = images.where((i) => isUbuntuRelease(i));
+
+  final unlistedDailyImages = images.where((i) =>
+      isUbuntuDaily(i) && !releaseImages.any((r) => r.release == i.release));
+
+  final ubuntuImages = releaseImages
+      .followedBy(unlistedDailyImages)
       .sorted((a, b) => b.release.compareTo(a.release));
 
   final coreImages = images
-      .where((i) => isUbuntu(i) && isCore(i))
+      .where((i) => isCore(i))
       .sorted((a, b) => b.release.compareTo(a.release));
 
   final otherImages = images
