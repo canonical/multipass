@@ -29,9 +29,21 @@ multipass alias crazy-cat:pwd pwdcc --no-map-working-directory
 
 > See also: [`prefer`](reference-command-line-interface-prefer)
 
-Contexts are sets of aliases. While one can safely work with one context, named `default`, contexts can be useful in some scenarios; for example, to define aliases with the same name in different instances.
+```{caution}
+Context switching and the `prefer` command are deprecated. Only the `default` context remains active. Existing non-default contexts are inactive, even if one was selected before upgrading.
+```
 
-You can switch to using another context with `multipass prefer secondary`. Then, defining an alias in the new context is done in the usual way. The name of the alias can coincide with an already defined one. For example, `multipass alias cozy-canary:ls lscc`.
+Contexts are sets of aliases. Multipass keeps existing non-default contexts and their definitions so that you can inspect and recreate aliases, but those aliases cannot run. This applies to both `multipass <alias>` and alias scripts on your `PATH`, including context-qualified names.
+
+To migrate an inactive alias, use `multipass aliases` to find its instance, command, and working-directory setting. For example, recreate an alias `secondary.lscc` that runs `ls` on `cozy-canary` with a unique name:
+
+```{code-block} text
+multipass alias cozy-canary:ls ls-secondary
+```
+
+The new alias belongs to `default` and can be run with `multipass ls-secondary`. If the original working-directory setting is `default`, include `--no-map-working-directory` when recreating it.
+
+The inactive definition remains available until you remove it, for example with `multipass unalias secondary.lscc`. `multipass prefer` reports an error and cannot reactivate contexts.
 
 ## List the existing aliases
 
@@ -42,13 +54,13 @@ To see the list of aliases defined so far, use the `multipass aliases` command.
 The output will be similar to the following:
 
 ```{code-block} text
-Alias   Instance     Command   Context      Working directory
-lscc    crazy-cat    ls        default      map
-pwdcc   crazy-cat    pwd       default      default
-lscc    cozy-canary  ls        secondary*   map
+Alias   Instance      Command   Context     Working directory   Context status
+lscc    crazy-cat     ls        default*    map                 active
+pwdcc   crazy-cat     pwd       default*    default             active
+lscc    cozy-canary   ls        secondary   map                 inactive
 ```
 
-The current context is marked with an asterisk.
+The active `default` context is marked with an asterisk. The `Context status` column distinguishes usable aliases in `default` from retained definitions in inactive contexts.
 
 The column `Working directory` tells us on which directory of the host the alias will be run. The value `default` means that the alias will be run in the instance default working directory (normally, `/home/ubuntu`). The value `map` means that, in case the host directory from which the user calls the alias is mounted on the instance, the alias will be run on the mounted directory on the instance. The value will be `default` only if the `--no-map-working-directory` argument is present at alias creation.
 
@@ -66,9 +78,9 @@ The first way of running an alias is invoking it with `multipass <alias>`, for e
 multipass lscc
 ```
 
-This command opens a shell into the instance `cozy-canary`, runs `ls` and returns to the host command line, as if it was an `exec` command. Since we have defined two aliases with the same name, `lscc`, the one in the current context will be run.
+This command opens a shell into the instance `crazy-cat`, runs `ls` and returns to the host command line, as if it was an `exec` command. The alias in `default` runs; the definition with the same name in the inactive `secondary` context cannot run.
 
-If you want to run an alias outside the current context, you can use a fully-qualified alias name:
+You can also use the fully-qualified name of an alias in `default`:
 
 ```{code-block} text
 multipass default.lscc

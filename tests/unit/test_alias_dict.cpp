@@ -307,7 +307,7 @@ TEST_F(AliasDictionary, correctlyGetsAliasInDefaultContext)
     ASSERT_FALSE(dict.empty());
 }
 
-TEST_F(AliasDictionary, correctlyGetsUniqueAliasInAnotherContext)
+TEST_F(AliasDictionary, defaultAliasWorksRegardlessOfPreviouslySelectedContext)
 {
     auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
 
@@ -323,7 +323,7 @@ TEST_F(AliasDictionary, correctlyGetsUniqueAliasInAnotherContext)
     ASSERT_FALSE(dict.empty());
 }
 
-TEST_F(AliasDictionary, correctlyGetsAliasInNonDefaultContext)
+TEST_F(AliasDictionary, nonDefaultAliasIsInactive)
 {
     auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
 
@@ -336,8 +336,57 @@ TEST_F(AliasDictionary, correctlyGetsAliasInNonDefaultContext)
     dict.set_active_context("default");
 
     auto result = dict.get_alias(context + '.' + alias_name);
-    ASSERT_EQ(result, alias_def);
+    ASSERT_EQ(result, std::nullopt);
+    EXPECT_EQ(dict.get_alias(alias_name), std::nullopt);
+    EXPECT_TRUE(dict.is_inactive_alias(alias_name));
+    EXPECT_TRUE(dict.is_inactive_alias(context + '.' + alias_name));
     ASSERT_FALSE(dict.empty());
+}
+
+TEST_F(AliasDictionary, qualifiedDefaultAliasStillWorks)
+{
+    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    const mp::AliasDefinition alias{"instance", "command", "map"};
+    dict.add_alias("show", alias);
+
+    EXPECT_EQ(dict.get_alias("default.show"), alias);
+    EXPECT_FALSE(dict.is_inactive_alias("default.show"));
+    EXPECT_FALSE(dict.is_inactive_alias("unknown"));
+}
+
+TEST_F(AliasDictionary, loadingOldConfigurationCreatesDefaultContext)
+{
+    const mp::AliasDefinition alias{"instance", "command", "map"};
+    populate_db_file({{"show", alias}}, "secondary");
+    std::stringstream warnings;
+    mpt::StubTerminal term(trash_stream, warnings, trash_stream);
+
+    {
+        auto dict = mp::AliasDict::load_file(&term);
+        EXPECT_EQ(dict.active_context_name(), mp::default_context_name);
+        EXPECT_TRUE(dict.get_active_context().empty());
+        EXPECT_EQ(dict.size(), 2u);
+        EXPECT_TRUE(dict.is_inactive_alias("show"));
+        EXPECT_EQ(dict.get_alias("show"), std::nullopt);
+        EXPECT_EQ(dict.get_alias("secondary.show"), std::nullopt);
+    }
+    EXPECT_THAT(warnings.str(), HasSubstr("alias context 'secondary' is inactive"));
+    EXPECT_THAT(warnings.str(), HasSubstr("multipass alias <instance>:<command> <new-name>"));
+
+    const auto filename = QString::fromStdString(db_filename());
+    const auto migrated_file = mpt::load(filename);
+    const auto migrated_json = boost::json::parse(migrated_file.toStdString());
+    EXPECT_EQ(migrated_json.at("active-context"), "default");
+    EXPECT_EQ(migrated_json.at("contexts").at("secondary").at("show"),
+              boost::json::value_from(alias));
+
+    warnings.str("");
+    {
+        auto dict = mp::AliasDict::load_file(&term);
+        EXPECT_EQ(dict.active_context_name(), mp::default_context_name);
+    }
+    EXPECT_THAT(warnings.str(), IsEmpty());
+    EXPECT_EQ(mpt::load(filename), migrated_file);
 }
 
 TEST_F(AliasDictionary, getUnexistingAliasReturnsNullopt)
@@ -397,6 +446,69 @@ INSTANTIATE_TEST_SUITE_P(
                            AliasesVector{{"docker", {"docker", "docker", "map"}},
                                          {"docker-compose", {"docker", "docker-compose", "map"}}},
                            "alias_dict/formatter/docker_aliases")));
+
+TEST_F(AliasDictionary, migrationPreservesDefinitionsAndKeepsOnlyDefaultActive)
+{
+    const mp::AliasDefinition default_alias{"primary", "ls", "map"};
+    const mp::AliasDefinition secondary_alias{"secondary", "pwd", "default"};
+    const auto filename = QString::fromStdString(db_filename());
+
+    {
+        auto writer = mp::AliasDict(&trash_term, mp::default_context_name, db_filename());
+        writer.add_alias("show", default_alias);
+        writer.set_active_context("secondary");
+        writer.add_alias("show", secondary_alias);
+    }
+
+    const auto original_file = mpt::load(filename).toStdString();
+    auto migrated_json = boost::json::parse(original_file);
+    migrated_json.as_object()["active-context"] = "default";
+    EXPECT_FALSE(migrated_json.as_object().contains("context-status"));
+
+    {
+        auto dict = mp::AliasDict::load_file(&trash_term);
+
+        EXPECT_EQ(mp::TableFormatter().format(dict),
+                  "Alias   Instance    Command   Context     Working directory   Context status\n"
+                  "show    primary     ls        default*    map                 active\n"
+                  "show    secondary   pwd       secondary   default             inactive\n");
+        EXPECT_EQ(mp::CSVFormatter().format(dict),
+                  "Alias,Instance,Command,Working directory,Context,Context status\n"
+                  "show,primary,ls,map,default*,active\n"
+                  "show,secondary,pwd,default,secondary,inactive\n");
+
+        auto expected_json = migrated_json;
+        expected_json.as_object()["context-status"] = {{"default", "active"},
+                                                       {"secondary", "inactive"}};
+        EXPECT_EQ(boost::json::parse(mp::JsonFormatter().format(dict)), expected_json);
+        EXPECT_EQ(mp::YamlFormatter().format(dict),
+                  "active_context: default\n"
+                  "aliases:\n"
+                  "  default:\n"
+                  "    - alias: show\n"
+                  "      command: ls\n"
+                  "      instance: primary\n"
+                  "      working-directory: map\n"
+                  "  secondary:\n"
+                  "    - alias: show\n"
+                  "      command: pwd\n"
+                  "      instance: secondary\n"
+                  "      working-directory: default\n"
+                  "context_status:\n"
+                  "  default: active\n"
+                  "  secondary: inactive\n");
+
+        EXPECT_EQ(dict.active_context_name(), "default");
+        EXPECT_EQ(dict.get_alias("show"), std::make_optional(default_alias));
+        EXPECT_EQ(dict.get_alias("default.show"), std::make_optional(default_alias));
+        EXPECT_FALSE(dict.is_inactive_alias("show"));
+        EXPECT_EQ(dict.get_alias("secondary.show"), std::nullopt);
+        EXPECT_TRUE(dict.is_inactive_alias("secondary.show"));
+        EXPECT_EQ(boost::json::value_from(dict), migrated_json);
+    }
+
+    EXPECT_EQ(boost::json::parse(mpt::load(filename).toStdString()), migrated_json);
+}
 
 struct RemoveInstanceTestsuite
     : public AliasDictionary,
@@ -530,13 +642,13 @@ TEST_P(DaemonAliasTestsuite, deleteRemovesDeletedInstanceAliasesAndScripts)
     EXPECT_EQ(cout.str(), expected_output);
 }
 
-const std::string csv_head{"Alias,Instance,Command,Working directory,Context\n"};
+const std::string csv_head{"Alias,Instance,Command,Working directory,Context,Context status\n"};
 
 INSTANTIATE_TEST_SUITE_P(
     AliasDictionary,
     DaemonAliasTestsuite,
     Values(std::make_tuple(CmdList{{"delete", "--force", "real-zebraphant"}},
-                           csv_head + "lsp,primary,ls,map,default*\n",
+                           csv_head + "lsp,primary,ls,map,default*,active\n",
                            std::vector<std::string>{"lsz"},
                            std::vector<std::string>{}),
            std::make_tuple(CmdList{{"delete", "--force", "primary", "real-zebraphant"}},
@@ -553,7 +665,7 @@ INSTANTIATE_TEST_SUITE_P(
                            std::vector<std::string>{"lsp"},
                            std::vector<std::string>{"lsz"}),
            std::make_tuple(CmdList{{"delete", "--force", "real-zebraphant"}},
-                           csv_head + "lsp,primary,ls,map,default*\n",
+                           csv_head + "lsp,primary,ls,map,default*,active\n",
                            std::vector<std::string>{},
                            std::vector<std::string>{"lsz"}),
            std::make_tuple(CmdList{{"delete", "--force", "real-zebraphant", "primary"}},
@@ -590,7 +702,7 @@ TEST_F(DaemonAliasTestsuite, keepsAliasesOfInstancesThatFailedToDelete)
     EXPECT_THAT(cerr.str(), HasSubstr("stuck"));
 
     send_command({"aliases", "--format", "csv"}, cout);
-    EXPECT_EQ(cout.str(), csv_head + "lsp,primary,ls,map,default*\n");
+    EXPECT_EQ(cout.str(), csv_head + "lsp,primary,ls,map,default*,active\n");
 }
 
 TEST_F(AliasDictionary, unexistingActiveContextThrows)
@@ -621,7 +733,7 @@ TEST_F(AliasDictionary, removeContextWorks)
     dict.set_active_context("another");
     ASSERT_EQ(dict.active_context_name(), "another");
     ASSERT_EQ(dict.get_active_context().size(), 1u);
-    auto a2 = dict.get_alias("alias2");
+    auto a2 = dict.get_alias_from_current_context("alias2");
     ASSERT_TRUE(a2);
 
     dict.remove_context("another");
@@ -645,7 +757,7 @@ TEST_F(AliasDictionary, removeDefaultContextWorks)
     dict.set_active_context("another");
     ASSERT_EQ(dict.active_context_name(), "another");
     ASSERT_EQ(dict.get_active_context().size(), 1u);
-    auto a2 = dict.get_alias("alias2");
+    auto a2 = dict.get_alias_from_current_context("alias2");
     ASSERT_TRUE(a2);
 
     dict.set_active_context("default");

@@ -516,12 +516,8 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             AliasDefinition alias_definition{alias_to_be_created.instance(),
                                              alias_to_be_created.command(),
                                              alias_to_be_created.working_directory()};
-            if (create_alias(aliases,
-                             alias_to_be_created.name(),
-                             alias_definition,
-                             cout,
-                             cerr,
-                             instance_name.toStdString()) == ReturnCode::Ok)
+            if (create_alias(aliases, alias_to_be_created.name(), alias_definition, cout, cerr) !=
+                ReturnCode::Ok)
                 warning_aliases.push_back(alias_to_be_created.name());
         }
 

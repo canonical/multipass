@@ -36,13 +36,12 @@ class TestAlias:
         indirect=True,
     )
     def test_create_alias(self, instance):
-        """Switch into the default alias context and try aliasing whoami.
+        """Create an alias in the default context.
         Then verify that;
         - the alias works as expected
         - alias is listed correctly
         - alias is removed correctly
         """
-        assert multipass("prefer", "default")
         assert multipass("alias", f"{instance}:whoami", "wai")
         assert multipass("wai") == "ubuntu"
         assert multipass("default.wai") == "ubuntu"
@@ -57,6 +56,7 @@ class TestAlias:
                     }
                 }
             },
+            "context-status": {"default": "active"},
         }
         # Delete the instance and verify that the alias is also removed
         assert multipass("delete", instance, "--force")
@@ -64,39 +64,30 @@ class TestAlias:
         assert multipass("aliases", "--format=json").json() == {
             "active-context": "default",
             "contexts": {"default": {}},
+            "context-status": {"default": "active"},
         }
 
-    def test_create_alias_in_another_context(self, instance):
-        """Switch into the non-default alias context (foo) and try aliasing
-        whoami and sudo.
-        Then verify that;
-        - the aliases work as expected
-        - aliases are listed correctly
-        - aliases are removed correctly
-        """
-        assert multipass("prefer", "foo")
+    def test_prefer_does_not_switch_context(self, instance):
+        """Rejected context switches leave aliases usable in default."""
+        assert not multipass("prefer", "foo")
         assert multipass("alias", f"{instance}:whoami", "wai")
-        assert multipass("prefer", "bar")
+        assert not multipass("prefer", "bar")
         assert multipass(
             "alias", f"{instance}:sudo", "si", "--no-map-working-directory"
         )
-        assert multipass("prefer", "foo")
         assert multipass("wai") == "ubuntu"
-        assert multipass("foo.wai") == "ubuntu"
-        assert multipass("prefer", "bar")
+        assert multipass("default.wai") == "ubuntu"
         assert multipass("si", "whoami") == "root"
-        assert multipass("bar.si", "whoami") == "root"
+        assert multipass("default.si", "whoami") == "root"
         assert multipass("aliases", "--format=json").json() == {
-            "active-context": "bar",
+            "active-context": "default",
             "contexts": {
-                "bar": {
+                "default": {
                     "si": {
                         "command": "sudo",
                         "instance": instance,
                         "working-directory": "default",
-                    }
-                },
-                "foo": {
+                    },
                     "wai": {
                         "command": "whoami",
                         "instance": instance,
@@ -104,12 +95,14 @@ class TestAlias:
                     }
                 },
             },
+            "context-status": {"default": "active"},
         }
         assert multipass("unalias", "si")
-        assert multipass("unalias", "foo.wai")
+        assert multipass("unalias", "default.wai")
         assert multipass("aliases", "--format=json").json() == {
-            "active-context": "bar",
+            "active-context": "default",
             "contexts": {
-                "bar": {},
+                "default": {},
             },
+            "context-status": {"default": "active"},
         }

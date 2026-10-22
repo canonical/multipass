@@ -72,7 +72,22 @@ mp::AliasDict mp::AliasDict::load_file(mp::Terminal* term, const std::filesystem
         try
         {
             auto json = boost::json::parse(*filedata);
-            return value_to<AliasDict>(json, JSONContext{term, filename});
+            auto result = value_to<AliasDict>(json, JSONContext{term, filename});
+            const auto previous_context = result.active_context_name();
+            result.set_active_context(default_context_name);
+            if (result.modified)
+            {
+                // Commands copy this dictionary; do not leave stale copies pending a save.
+                result.save_file();
+                result.modified = false;
+            }
+            if (previous_context != default_context_name)
+                result.cerr << fmt::format(
+                    "Warning: alias context '{}' is inactive. Only the default context is active. "
+                    "Use `multipass aliases` to inspect retained definitions and "
+                    "`multipass alias <instance>:<command> <new-name>` to recreate them.\n",
+                    previous_context);
+            return result;
         }
         catch (const boost::system::system_error& e)
         {
@@ -126,6 +141,30 @@ bool mp::AliasDict::add_alias(const std::string& alias, const mp::AliasDefinitio
     return false;
 }
 
+bool mp::AliasDict::is_context_active(const std::string& context) const
+{
+    return context == default_context_name;
+}
+
+bool mp::AliasDict::is_inactive_alias(const std::string& alias) const
+{
+    if (get_alias(alias))
+        return false;
+
+    for (const auto& [context_name, context] : aliases)
+    {
+        if (is_context_active(context_name))
+            continue;
+
+        const auto prefix = context_name + ".";
+        if (context.contains(alias) ||
+            (alias.starts_with(prefix) && context.contains(alias.substr(prefix.size()))))
+            return true;
+    }
+
+    return false;
+}
+
 bool mp::AliasDict::exists_alias(const std::string& alias) const
 {
     for (const auto& [_, context_dict] : aliases)
@@ -137,11 +176,6 @@ bool mp::AliasDict::exists_alias(const std::string& alias) const
     }
 
     return false;
-}
-
-bool mp::AliasDict::is_alias_unique(const std::string& alias) const
-{
-    return get_alias_from_all_contexts(alias) ? true : false;
 }
 
 bool mp::AliasDict::remove_alias(const std::string& alias)
@@ -216,21 +250,16 @@ std::optional<mp::ContextAliasPair> mp::AliasDict::get_context_and_alias(
     if (aliases.at(active_context).contains(alias))
         return std::make_pair(active_context, alias);
 
-    std::string::size_type dot_pos = alias.rfind('.');
+    for (auto dot_pos = alias.rfind('.'); dot_pos != std::string::npos;
+         dot_pos = dot_pos == 0 ? std::string::npos : alias.rfind('.', dot_pos - 1))
+    {
+        const auto context = aliases.find(alias.substr(0, dot_pos));
+        const auto alias_only = alias.substr(dot_pos + 1);
+        if (context != aliases.end() && context->second.contains(alias_only))
+            return std::make_pair(context->first, alias_only);
+    }
 
-    if (dot_pos == std::string::npos)
-        return std::nullopt;
-
-    std::string context = alias.substr(0, dot_pos);
-
-    if (!aliases.contains(context))
-        return std::nullopt;
-
-    std::string alias_only = alias.substr(dot_pos + 1);
-
-    return aliases.at(context).contains(alias_only)
-             ? std::make_optional(std::make_pair(context, alias_only))
-             : std::nullopt;
+    return std::nullopt;
 }
 
 std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_current_context(
@@ -246,46 +275,24 @@ std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_current_context
     }
 }
 
-// Returns an alias definition if:
-// - the given alias exists in the current context, or
-// - exists in another context and is unique, or
-// - is fully qualified (that is, contains a dot) and exists.
-// The given alias can be fully qualified or not.
 std::optional<mp::AliasDefinition> mp::AliasDict::get_alias(const std::string& alias) const
 {
-    std::optional<mp::AliasDefinition> alias_in_current_context =
-        get_alias_from_current_context(alias);
-
-    if (alias_in_current_context)
-        return alias_in_current_context;
-
-    // If the alias is not on the current context, look for it in the rest of the contexts. But make
-    // sure there is only one existing alias with that name.
-
-    auto unique_alias_in_all_contexts = get_alias_from_all_contexts(alias);
-
-    if (unique_alias_in_all_contexts)
-        return unique_alias_in_all_contexts;
-
-    // If the alias given was not found, then it is in the form "context.alias": the input string
-    // must be split.
-
-    // No dot, no alias.
-    std::string::size_type dot_pos;
-    if ((dot_pos = alias.find('.')) == std::string::npos)
+    const auto context = aliases.find(default_context_name);
+    if (context == aliases.end())
         return std::nullopt;
 
-    std::string context = alias.substr(0, dot_pos);
-    std::string alias_only = alias.substr(dot_pos + 1);
+    if (const auto found = context->second.find(alias); found != context->second.end())
+        return found->second;
 
-    try
+    const auto prefix = std::string{default_context_name} + ".";
+    if (alias.starts_with(prefix))
     {
-        return aliases.at(context).at(alias_only);
+        if (const auto found = context->second.find(alias.substr(prefix.size()));
+            found != context->second.end())
+            return found->second;
     }
-    catch (const std::out_of_range&)
-    {
-        return std::nullopt;
-    }
+
+    return std::nullopt;
 }
 
 void mp::AliasDict::save_file()
@@ -305,35 +312,6 @@ void mp::AliasDict::sanitize_contexts()
 
     if (removed > 0)
         modified = true;
-}
-
-// Returns an alias definition iff the given alias name is unique across all the contexts. The given
-// alias name cannot be fully qualified, that is, it must not be prepended by a context name.
-std::optional<mp::AliasDefinition> mp::AliasDict::get_alias_from_all_contexts(
-    const std::string& alias) const
-{
-    const AliasDefinition* ret;
-    bool found{false};
-
-    for (const auto& [_, context_dict] : aliases)
-    {
-        auto found_alias = context_dict.find(alias);
-
-        if (found_alias != context_dict.cend())
-        {
-            if (found) // This means that the alias exists in more than one context.
-            {
-                return std::nullopt;
-            }
-            else
-            {
-                found = true;
-                ret = &(found_alias->second);
-            }
-        }
-    }
-
-    return found ? std::make_optional(*ret) : std::nullopt;
 }
 
 void mp::tag_invoke(const boost::json::value_from_tag&,
