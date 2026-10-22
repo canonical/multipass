@@ -447,7 +447,7 @@ TEST_F(PlatformLinux, findOsReleaseEtc)
     InSequence seq;
     EXPECT_CALL(
         *mock_file_ops,
-        open(mpt::FileNameMatches(Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
+        open(mpt::QFileNameMatches(Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
         .Times(1)
         .WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(0); // no other open attempts
@@ -464,12 +464,12 @@ TEST_F(PlatformLinux, findOsReleaseUsrLib)
 
     InSequence seq;
     EXPECT_CALL(*mock_file_ops,
-                open(mpt::FileNameMatches(Eq("/var/lib/snapd/hostfs/etc/os-release")),
+                open(mpt::QFileNameMatches(Eq("/var/lib/snapd/hostfs/etc/os-release")),
                      QIODevice::ReadOnly | QIODevice::Text))
         .WillOnce(Return(false));
     EXPECT_CALL(
         *mock_file_ops,
-        open(mpt::FileNameMatches(Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
+        open(mpt::QFileNameMatches(Eq(expected_filename)), QIODevice::ReadOnly | QIODevice::Text))
         .WillOnce(Return(true));
     EXPECT_CALL(*mock_file_ops, open(_, _)).Times(0); // no other open attempts
 

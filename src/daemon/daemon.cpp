@@ -307,7 +307,7 @@ auto fetch_image_for(const std::string& name,
                              stub_prepare,
                              stub_progress,
                              std::nullopt,
-                             factory.get_instance_directory(name));
+                             MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)));
 }
 
 std::filesystem::path cloud_init_iso_path(const mp::VirtualMachineFactory& factory,
@@ -3561,7 +3561,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 prepare_action,
                 progress_monitor,
                 checksum,
-                config->factory->get_instance_directory(name));
+                MP_PLATFORM.qstr_to_path(config->factory->get_instance_directory(name)));
 
             const auto image_size = config->factory->virtual_size_for(vm_image.image_path);
             vm_desc.disk_space = compute_final_image_size(
