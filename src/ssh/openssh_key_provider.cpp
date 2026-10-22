@@ -45,13 +45,12 @@ mp::OpenSSHKeyProvider::KeyUPtr create_priv_key(const QString& priv_key_path)
     if (ret != SSH_OK)
         throw std::runtime_error("unable to set ssh key size");
 
-    ssh_key priv_key{nullptr};
-    ret = MP_LIBSSH.ssh_pki_generate_key(SSH_KEYTYPE_RSA, context.get(), &priv_key);
+    mp::OpenSSHKeyProvider::KeyUPtr key;
+    ret = MP_LIBSSH.ssh_pki_generate_key(SSH_KEYTYPE_RSA, context.get(), std::out_ptr(key));
     if (ret != SSH_OK)
         throw std::runtime_error("unable to generate ssh key");
 
-    mp::OpenSSHKeyProvider::KeyUPtr key{priv_key};
-    ret = MP_LIBSSH.ssh_pki_export_privkey_file(priv_key,
+    ret = MP_LIBSSH.ssh_pki_export_privkey_file(key.get(),
                                                 nullptr,
                                                 nullptr,
                                                 nullptr,
@@ -69,15 +68,15 @@ mp::OpenSSHKeyProvider::KeyUPtr get_priv_key(const QDir& key_dir)
     auto priv_key_path = key_dir.filePath("id_rsa");
     if (QFile::exists(priv_key_path))
     {
-        ssh_key priv_key;
+        mp::OpenSSHKeyProvider::KeyUPtr priv_key;
         auto imported = MP_LIBSSH.ssh_pki_import_privkey_file(priv_key_path.toStdString().c_str(),
                                                               nullptr,
                                                               nullptr,
                                                               nullptr,
-                                                              &priv_key);
+                                                              std::out_ptr(priv_key));
         if (imported != SSH_OK)
             return create_priv_key(priv_key_path);
-        return mp::OpenSSHKeyProvider::KeyUPtr{priv_key};
+        return priv_key;
     }
     return create_priv_key(priv_key_path);
 }
@@ -108,14 +107,13 @@ std::string mp::OpenSSHKeyProvider::private_key_as_base64() const
 
 std::string mp::OpenSSHKeyProvider::public_key_as_base64() const
 {
-    char* base64{nullptr};
-    auto ret = MP_LIBSSH.ssh_pki_export_pubkey_base64(priv_key.get(), &base64);
-    std::unique_ptr<char, decltype(std::free)*> base64_output{base64, std::free};
+    std::unique_ptr<char, decltype(std::free)*> base64{nullptr, std::free};
+    auto ret = MP_LIBSSH.ssh_pki_export_pubkey_base64(priv_key.get(), std::out_ptr(base64));
 
     if (ret != SSH_OK)
         throw std::runtime_error("unable to export public key as base64");
 
-    return {base64};
+    return {base64.get()};
 }
 
 ssh_key mp::OpenSSHKeyProvider::private_key() const

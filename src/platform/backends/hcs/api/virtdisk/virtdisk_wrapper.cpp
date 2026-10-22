@@ -26,16 +26,16 @@
 
 #include <fmt/std.h>
 #include <fmt/xchar.h>
-#include <ztd/out_ptr.hpp>
 
 #include <multipass/exceptions/formatted_exception_base.h>
 #include <multipass/file_ops.h>
 #include <multipass/logging/log.h>
 
+#include <memory>
+
 namespace multipass::hyperv::virtdisk
 {
 
-using ztd::out_ptr::out_ptr;
 namespace mpl = logging;
 using lvl = mpl::Level;
 
@@ -116,7 +116,7 @@ UniqueHandle open_virtual_disk(
         // [in, optional] POPEN_VIRTUAL_DISK_PARAMETERS Parameters
         params,
         // [out] PHANDLE Handle
-        out_ptr(handle));
+        std::out_ptr(handle));
 
     if (!result.success())
     {
@@ -286,7 +286,7 @@ OperationResult VirtDiskWrapper::create_virtual_disk(
         // [in, optional] LPOVERLAPPED Overlapped
         nullptr,
         // [out] PHANDLE Handle
-        out_ptr(result_handle));
+        std::out_ptr(result_handle));
 
     if (result == ERROR_SUCCESS)
         return OperationResult::success();

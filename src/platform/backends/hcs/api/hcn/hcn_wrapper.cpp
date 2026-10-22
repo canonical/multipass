@@ -37,15 +37,13 @@
 
 #include <boost/json.hpp>
 #include <fmt/xchar.h>
-#include <ztd/out_ptr.hpp>
 
 #include <cassert>
 #include <exception>
+#include <memory>
 #include <optional>
 #include <string>
 #include <type_traits>
-
-using ztd::out_ptr::out_ptr;
 
 namespace multipass::hyperv::hcn
 {
@@ -130,7 +128,7 @@ OperationResult perform_hcn_operation(const FnType& fn)
     // Perform the operation. The last argument of the all HCN operations (except HcnClose*) is
     // ErrorRecord, which is a JSON-formatted document emitted by the API describing the error, if
     // it occurred. Therefore, we can streamline all API calls through perform_hcn_operation.
-    const auto result = ResultCode{fn(out_ptr(result_msgbuf))};
+    const auto result = ResultCode{fn(std::out_ptr(result_msgbuf))};
 
     mpl::trace(log_category, "perform_hcn_operation(...) > result: {}", result.success());
 
@@ -146,7 +144,7 @@ std::pair<OperationResult, UniqueHcnNetwork> open_network(const std::string& net
 
     UniqueHcnNetwork network{};
     const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
-        return API().HcnOpenNetwork(guid_from_string(network_guid), out_ptr(network), rmsgbuf);
+        return API().HcnOpenNetwork(guid_from_string(network_guid), std::out_ptr(network), rmsgbuf);
     });
 
     return std::make_pair(result, std::move(network));
@@ -158,7 +156,9 @@ std::pair<OperationResult, UniqueHcnEndpoint> open_endpoint(const std::string& e
 
     UniqueHcnEndpoint endpoint{};
     const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
-        return API().HcnOpenEndpoint(guid_from_string(endpoint_guid), out_ptr(endpoint), rmsgbuf);
+        return API().HcnOpenEndpoint(guid_from_string(endpoint_guid),
+                                     std::out_ptr(endpoint),
+                                     rmsgbuf);
     });
 
     return std::make_pair(result, std::move(endpoint));
@@ -185,7 +185,7 @@ OperationResult HCNWrapper::create_network(const CreateNetworkParameters& params
     return perform_hcn_operation([&](auto&& rmsgbuf) {
         return API().HcnCreateNetwork(guid_from_string(params.guid),
                                       network_settings.c_str(),
-                                      out_ptr(network),
+                                      std::out_ptr(network),
                                       rmsgbuf);
     });
 }
@@ -221,7 +221,7 @@ OperationResult HCNWrapper::create_endpoint(const CreateEndpointParameters& para
         return API().HcnCreateEndpoint(network.get(),
                                        guid_from_string(params.endpoint_guid),
                                        params_json.c_str(),
-                                       out_ptr(endpoint),
+                                       std::out_ptr(endpoint),
                                        rmsgbuf);
     });
 }
@@ -257,7 +257,7 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
     const auto result = perform_hcn_operation([&](auto&& rmsgbuf) {
         return API().HcnQueryEndpointProperties(endpoint.get(),
                                                 query,
-                                                out_ptr(properties),
+                                                std::out_ptr(properties),
                                                 rmsgbuf);
     });
     if (!result)
@@ -298,8 +298,8 @@ OperationResult HCNWrapper::enumerate_attached_endpoints(
     UniqueCotaskmemString json_output{}, result_msgbuf{};
 
     const auto result = API().HcnEnumerateEndpoints(query_wstring.c_str(),
-                                                    out_ptr(json_output),
-                                                    out_ptr(result_msgbuf));
+                                                    std::out_ptr(json_output),
+                                                    std::out_ptr(result_msgbuf));
 
     if (json_output)
     {
@@ -329,8 +329,8 @@ OperationResult HCNWrapper::find_endpoints_by_name(const std::string& name,
     // No filter -- enumerate every endpoint known to HCN, then inspect each one's `Name`
     // individually. This does not require the owning compute system to be open/alive.
     const auto result = API().HcnEnumerateEndpoints(L"{}",
-                                                    out_ptr(json_output),
-                                                    out_ptr(result_msgbuf));
+                                                    std::out_ptr(json_output),
+                                                    std::out_ptr(result_msgbuf));
 
     if (FAILED(result) || !json_output)
     {
@@ -362,8 +362,8 @@ OperationResult HCNWrapper::find_endpoints_by_name(const std::string& name,
         UniqueCotaskmemString query_result{}, query_error{};
         const auto query_status = API().HcnQueryEndpointProperties(endpoint.get(),
                                                                    L"{}",
-                                                                   out_ptr(query_result),
-                                                                   out_ptr(query_error));
+                                                                   std::out_ptr(query_result),
+                                                                   std::out_ptr(query_error));
         if (FAILED(query_status) || !query_result)
         {
             mpl::warn(log_category,
@@ -404,8 +404,8 @@ OperationResult HCNWrapper::query_network(const std::string& network_guid,
         UniqueCotaskmemString query_result{}, result_msgbuf{};
         const auto result = API().HcnQueryNetworkProperties(network.get(),
                                                             L"{}",
-                                                            out_ptr(query_result),
-                                                            out_ptr(result_msgbuf));
+                                                            std::out_ptr(query_result),
+                                                            std::out_ptr(result_msgbuf));
         if (query_result)
         {
             try
@@ -458,8 +458,8 @@ OperationResult HCNWrapper::enumerate_networks(std::vector<std::string>& out_net
 
     // List all HCN network GUIDs
     const auto result = API().HcnEnumerateNetworks(L"{}",
-                                                   out_ptr(enumerate_result),
-                                                   out_ptr(result_msgbuf));
+                                                   std::out_ptr(enumerate_result),
+                                                   std::out_ptr(result_msgbuf));
     if (enumerate_result)
     {
         // json_output would contain the network GUIDs.
