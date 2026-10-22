@@ -17,6 +17,7 @@
 
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/argparser.h>
+#include <multipass/user_messages/deprecation_warning.h>
 
 #include "common_cli.h"
 #include "prefer.h"
@@ -75,6 +76,10 @@ mp::ParseCode cmd::Prefer::parse_args(mp::ArgParser* parser)
         cerr << "Wrong number of arguments given\n";
         return ParseCode::CommandLineError;
     }
+
+    cerr << mp::make_deprecation_warning(
+        "`multipass prefer`",
+        "Use unique alias names to avoid switching alias contexts.");
 
     return status;
 }

@@ -3,6 +3,10 @@
 
 > See also:  [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases)
 
+```{caution}
+The `prefer` command is deprecated and will be removed in an upcoming release. Use unique alias names to avoid switching alias contexts.
+```
+
 The `prefer` command, introduced in Multipass release 1.11.0,  is used to switch alias contexts. It accepts a single argument, specifying the name of the context to switch to.
 
 For example, the command `multipass prefer secondary` makes `secondary` the current context. If the given context does not exist, Multipass creates it.

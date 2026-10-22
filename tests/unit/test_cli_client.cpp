@@ -5388,12 +5388,36 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_F(ClientAliasNameSuite, preferWithNoArgumentFails)
 {
-    EXPECT_EQ(send_command({"prefer"}), mp::ReturnCode::CommandLineError);
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"prefer"}, trash_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("is deprecated")));
 }
 
 TEST_F(ClientAliasNameSuite, preferWithManyArgumentsFails)
 {
-    EXPECT_EQ(send_command({"prefer", "arg", "arg"}), mp::ReturnCode::CommandLineError);
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"prefer", "arg", "arg"}, trash_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("is deprecated")));
+}
+
+TEST_F(ClientAliasNameSuite, preferHelpDoesNotPrintDeprecationWarning)
+{
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"prefer", "--help"}, trash_stream, cerr_stream), mp::ReturnCode::Ok);
+    EXPECT_THAT(cerr_stream.str(), IsEmpty());
+}
+
+TEST_F(ClientAliasNameSuite, preferPrintsDeprecationWarning)
+{
+    std::stringstream cout_stream, cerr_stream;
+    EXPECT_EQ(send_command({"prefer", "new_context"}, cout_stream, cerr_stream),
+              mp::ReturnCode::Ok);
+    EXPECT_THAT(cout_stream.str(), IsEmpty());
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("`multipass prefer` is deprecated"));
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr("Use unique alias names to avoid switching alias contexts."));
 }
 
 TEST_F(ClientAliasNameSuite, preferWorks)
