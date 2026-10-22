@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright (C) Canonical, Ltd.
 #
@@ -253,10 +252,37 @@ def get_mac_addr_of(name, interface_name):
 
 @lru_cache(maxsize=None)
 def get_multipass_version():
+    """Return the CLI release version (MAJ.MIN.REV), for feature gating."""
     with multipass("version") as version_output:
-        match = re.search(r"multipass\s*(\d+\.\d+\.\d+)", version_output.content,re.MULTILINE)
-        assert match, f"Could not extract MAJ.MIN.REV from {version_output.content}!"
-        return version.parse(match.group(1))
+        cli_version, _ = parse_multipass_versions(version_output.content)
+        return _release_version(cli_version)
+
+
+def _release_version(full_version):
+    """Parse the MAJ.MIN.REV release part of a full Multipass version string."""
+    return version.parse(re.match(r"\d+\.\d+\.\d+", full_version).group())
+
+
+def parse_multipass_versions(version_output):
+    """Return the full CLI and daemon version strings from `multipass version`.
+
+    Pre-release, build and platform suffixes are preserved, so different builds
+    of the same release compare unequal. The daemon version is None when absent.
+    """
+    cli_match = re.search(
+        r"^multipass\s*(\d+\.\d+\.\d+\S*)", version_output, re.MULTILINE
+    )
+    assert cli_match, f"Could not extract Multipass version from {version_output}!"
+
+    daemon_line = re.search(r"^multipassd\b.*$", version_output, re.MULTILINE)
+    daemon_match = re.search(
+        r"^multipassd\s*(\d+\.\d+\.\d+\S*)", version_output, re.MULTILINE
+    )
+    assert not daemon_line or daemon_match, (
+        f"Could not extract multipassd version from {version_output}!"
+    )
+
+    return cli_match.group(1), daemon_match.group(1) if daemon_match else None
 
 
 def default_driver_name():

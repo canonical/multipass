@@ -1,0 +1,85 @@
+#
+# Copyright (C) Canonical, Ltd.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+
+"""Unit tests for wait_for_future utility function."""
+
+import threading
+import time
+from concurrent.futures import Future
+from unittest import mock
+
+import pytest
+
+from cli.utilities.threadutils import wait_for_future
+
+
+class TestWaitForFuture:
+    """Test wait_for_future polling-based future waiter."""
+
+    def test_returns_result_when_future_completes(self):
+        """wait_for_future should return result when future completes."""
+        future = Future()
+        future.set_result(42)
+
+        result = wait_for_future(future, timeout=1.0)
+
+        assert result == 42
+
+    def test_raises_timeout_error_when_future_doesnt_complete(self):
+        """wait_for_future should raise TimeoutError when future doesn't complete."""
+        future = Future()
+
+        with pytest.raises(TimeoutError, match="Operation timed out"):
+            wait_for_future(future, timeout=0.1, poll_interval=0.01)
+
+        assert future.cancelled()
+
+    def test_propagates_exception_from_future(self):
+        """wait_for_future should propagate exception raised by the future."""
+        future = Future()
+        future.set_exception(ValueError("test error"))
+
+        with pytest.raises(ValueError, match="test error"):
+            wait_for_future(future, timeout=1.0)
+
+    def test_waits_for_delayed_completion(self):
+        """wait_for_future should wait for future that completes after delay."""
+        future = Future()
+
+        def delayed_set():
+            time.sleep(0.05)
+            future.set_result("delayed")
+
+        thread = threading.Thread(target=delayed_set)
+        thread.start()
+
+        result = wait_for_future(future, timeout=1.0, poll_interval=0.01)
+
+        thread.join()
+        assert result == "delayed"
+
+    def test_respects_custom_poll_interval(self):
+        """wait_for_future should respect custom poll interval."""
+        future = mock.Mock(spec=Future)
+        future.done.side_effect = [False, True, True]
+        future.result.return_value = 42
+
+        with mock.patch("cli.utilities.threadutils.time.sleep") as sleep:
+            result = wait_for_future(future, timeout=1.0, poll_interval=0.5)
+
+        assert result == 42
+        sleep.assert_called_once_with(0.5)
