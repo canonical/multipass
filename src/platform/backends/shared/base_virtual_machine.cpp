@@ -1047,6 +1047,16 @@ St mp::BaseVirtualMachine::fetch_state()
     return state;
 }
 
+void mp::BaseVirtualMachine::set_running()
+{
+    set_state(St::running);
+}
+
+void mp::BaseVirtualMachine::set_delayed_shutdown()
+{
+    set_state(St::delayed_shutdown);
+}
+
 void mp::BaseVirtualMachine::set_state(St new_state)
 {
     if (cached_state() == new_state)

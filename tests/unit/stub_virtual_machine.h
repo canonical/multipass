@@ -69,9 +69,14 @@ struct StubVirtualMachine final : public VirtualMachine
         return state;
     }
 
-    void set_state(State new_state) override
+    void set_running() override
     {
-        state = new_state;
+        state = State::running;
+    }
+
+    void set_delayed_shutdown() override
+    {
+        state = State::delayed_shutdown;
     }
 
     int ssh_port() override

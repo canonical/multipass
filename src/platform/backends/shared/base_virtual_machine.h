@@ -110,7 +110,8 @@ public:
     const AvailabilityZone& get_zone() const noexcept override;
 
     [[nodiscard]] State fetch_state() override;
-    void set_state(State state) override;
+    void set_running() override;
+    void set_delayed_shutdown() override;
 
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
@@ -163,6 +164,7 @@ protected:
     [[nodiscard]] virtual std::optional<State> get_backend_state() = 0;
     // Direct fetch to avoid infinite recursion in fetch_state()
     State cached_state() const;
+    void set_state(State state);
     void handle_state_update() override;
 
 private:

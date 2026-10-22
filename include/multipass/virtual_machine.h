@@ -80,7 +80,8 @@ public:
     virtual void suspend() = 0;
     virtual bool set_available(bool available) = 0;
     virtual State fetch_state() = 0;
-    virtual void set_state(State state) = 0;
+    virtual void set_running() = 0;
+    virtual void set_delayed_shutdown() = 0;
     [[nodiscard]] virtual int ssh_port() = 0;
     [[nodiscard]] virtual std::string ssh_hostname() = 0;
     [[nodiscard]] virtual std::string ssh_username() const = 0;
