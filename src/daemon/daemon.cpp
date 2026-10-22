@@ -924,7 +924,7 @@ grpc::Status wait_for_ssh_up(const std::vector<mp::VirtualMachine::ShPtr>& vms,
                 // We only need the instance to achieve an SSH session for restart
                 vm->wait_until_ssh_up(timeout);
             }
-            catch (const std::runtime_error& e)
+            catch (const std::exception& e)
             {
                 status = grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
             }
@@ -2557,6 +2557,10 @@ try
                                                ""});
 
     const auto running_only = request->running_only();
+
+    // Non-running instances get started, so check the hypervisor's health as start() does
+    if (!running_only && !instances_running(operative_instances))
+        config->factory->hypervisor_health_check();
 
     // Suspended instances do not need to be resumed if only running instances are restarted
     std::vector<VirtualMachine::ShPtr> resumed_vms;

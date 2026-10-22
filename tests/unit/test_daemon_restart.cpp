@@ -442,3 +442,50 @@ TEST_F(TestDaemonRestart, restartDoesNotBlockMainThreadWhileWaitingForSuspendedI
     EXPECT_TRUE(main_thread_was_responsive);
     EXPECT_TRUE(status.ok()) << status.error_message();
 }
+
+TEST_F(TestDaemonRestart, restartRunsHypervisorHealthCheckWhenNoInstanceIsRunning)
+{
+    mp::RestartRequest request{};
+    request.mutable_instance_names()->add_instance_name(mock_instance_name);
+    auto [daemon, instance] = build_daemon_with_mock_instance(VMState::stopped);
+
+    EXPECT_CALL(mock_factory, hypervisor_health_check())
+        .WillOnce(Throw(std::runtime_error{"dnsmasq is down"}));
+    EXPECT_CALL(*instance, start).Times(0);
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, ServerMock());
+
+    EXPECT_EQ(status.error_code(), grpc::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(), HasSubstr("dnsmasq is down"));
+}
+
+TEST_F(TestDaemonRestart, restartSkipsHypervisorHealthCheckWithRunningOnly)
+{
+    mp::RestartRequest request{};
+    request.mutable_instance_names()->add_instance_name(mock_instance_name);
+    request.set_running_only(true);
+    auto [daemon, instance] = build_daemon_with_mock_instance(VMState::stopped);
+
+    EXPECT_CALL(mock_factory, hypervisor_health_check()).Times(0);
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, ServerMock());
+
+    EXPECT_EQ(status.error_code(), grpc::FAILED_PRECONDITION);
+    EXPECT_THAT(status.error_message(), HasSubstr("is not running"));
+}
+
+TEST_F(TestDaemonRestart, restartSkipsHypervisorHealthCheckWhenAnInstanceIsRunning)
+{
+    mp::RestartRequest request{};
+    request.mutable_instance_names()->add_instance_name(mock_instance_name);
+    auto [daemon, instance] = build_daemon_with_mock_instance(VMState::running);
+
+    EXPECT_CALL(mock_factory, hypervisor_health_check()).Times(0);
+
+    ServerMock mock_server{};
+    EXPECT_CALL(mock_server, Write(_, _)).Times(1);
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::restart, request, std::move(mock_server));
+
+    EXPECT_EQ(status.error_code(), grpc::OK);
+}
