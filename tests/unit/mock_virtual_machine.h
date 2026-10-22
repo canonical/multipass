@@ -69,16 +69,20 @@ struct MockVirtualMachineT : public T
         if constexpr (std::same_as<VirtualMachine, T>)
         {
             ON_CALL(*this, fetch_state).WillByDefault([this] { return state; });
-            ON_CALL(*this, set_state).WillByDefault([this](VirtualMachine::State new_state) {
-                state = new_state;
+            ON_CALL(*this, set_running).WillByDefault([this] {
+                state = VirtualMachine::State::running;
+            });
+            ON_CALL(*this, set_delayed_shutdown).WillByDefault([this] {
+                state = VirtualMachine::State::delayed_shutdown;
             });
         }
         else
         {
             ON_CALL(*this, fetch_state)
                 .WillByDefault(Return(multipass::VirtualMachine::State::stopped));
-            ON_CALL(*this, set_state).WillByDefault([this](VirtualMachine::State new_state) {
-                T::set_state(new_state);
+            ON_CALL(*this, set_running).WillByDefault([this] { T::set_running(); });
+            ON_CALL(*this, set_delayed_shutdown).WillByDefault([this] {
+                T::set_delayed_shutdown();
             });
         }
         ON_CALL(*this, ssh_port).WillByDefault(Return(42));
@@ -96,7 +100,8 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(void, suspend, (), (override));
     MOCK_METHOD(bool, set_available, (bool), (override));
     MOCK_METHOD(VirtualMachine::State, fetch_state, (), (override));
-    MOCK_METHOD(void, set_state, (VirtualMachine::State), (override));
+    MOCK_METHOD(void, set_running, (), (override));
+    MOCK_METHOD(void, set_delayed_shutdown, (), (override));
     MOCK_METHOD(int, ssh_port, (), (override));
     MOCK_METHOD(std::string, ssh_hostname, (), (override));
     MOCK_METHOD(std::string, ssh_username, (), (const, override));

@@ -38,7 +38,7 @@ struct DelayedShutdown : public Test
     DelayedShutdown()
     {
         vm = std::make_unique<mpt::StubVirtualMachine>();
-        vm->set_state(mp::VirtualMachine::State::running);
+        vm->set_running();
     }
 
     mpt::MockSSHTestFixture mock_ssh_test_fixture;

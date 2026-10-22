@@ -50,7 +50,13 @@ namespace mpt = multipass::test;
 using namespace testing;
 
 namespace mhv = multipass::hyperv;
-using uut_t = mhv::HCSVirtualMachine;
+struct HCSVMWithSettableState : public mhv::HCSVirtualMachine
+{
+    using mhv::HCSVirtualMachine::HCSVirtualMachine;
+    using mhv::HCSVirtualMachine::set_state; // promote to public
+};
+
+using uut_t = HCSVMWithSettableState;
 using hcs_handle_t = mhv::hcs::HcsSystemHandle;
 using hcs_op_result_t = mhv::OperationResult;
 using hcs_system_state_t = mhv::hcs::ComputeSystemState;
