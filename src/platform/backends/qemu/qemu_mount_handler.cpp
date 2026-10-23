@@ -19,6 +19,7 @@
 
 #include <multipass/logging/log_location.h>
 #include <multipass/ssh/ssh_process.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 
 #include <QUuid>
@@ -155,7 +156,7 @@ catch (const std::exception& e)
 
 QemuMountHandler::~QemuMountHandler()
 {
-    deactivate(/*force=*/true);
+    top_catch_all(category, [this] { deactivate(/*force=*/true); });
     vm_mount_args.erase(tag);
 }
 

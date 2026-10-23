@@ -20,6 +20,7 @@
 #include "daemon_config.h"
 #include "daemon_init_settings.h"
 
+#include <multipass/build_constants.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
@@ -31,7 +32,6 @@
 #include <multipass/standard_paths.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
-#include <multipass/version.h>
 
 #include <QCoreApplication>
 

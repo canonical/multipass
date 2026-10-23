@@ -21,6 +21,7 @@
 
 #include "cli.h"
 
+#include <multipass/build_constants.h>
 #include <multipass/constants.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform_unix.h>
@@ -28,7 +29,6 @@
 #include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
-#include <multipass/version.h>
 
 #include <multipass/format.h>
 

@@ -45,6 +45,7 @@
 #include <src/daemon/default_vm_image_vault.h>
 #include <src/daemon/instance_settings_handler.h>
 
+#include <multipass/build_constants.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/start_exception.h>
@@ -53,7 +54,6 @@
 #include <multipass/logging/log.h>
 #include <multipass/name_generator.h>
 #include <multipass/signal.h>
-#include <multipass/version.h>
 #include <multipass/virtual_machine_factory.h>
 
 #include <yaml-cpp/yaml.h>
@@ -65,12 +65,16 @@
 #include <QString>
 #include <QSysInfo>
 
+#include <algorithm>
+#include <cctype>
+#include <filesystem>
 #include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <string>
 #include <variant>
 
+namespace fs = std::filesystem;
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
@@ -590,6 +594,33 @@ namespace
 {
 struct DaemonCreateLaunchTestSuite : public Daemon, public WithParamInterface<std::string>
 {
+    static std::vector<YAML::Node> motd_scripts_in(const YAML::Node& vendor_data_config)
+    {
+        std::vector<YAML::Node> ret;
+        for (const auto& file : vendor_data_config["write_files"])
+            if (fs::path{file["path"].as<std::string>()}.parent_path() == "/etc/update-motd.d")
+                ret.push_back(file);
+
+        return ret;
+    }
+
+    static void verify_motd_filename(const YAML::Node& script)
+    {
+        const auto name = fs::path{script["path"].as<std::string>()}.filename().string();
+        EXPECT_THAT(name, Not(IsEmpty()));
+        EXPECT_TRUE(std::ranges::all_of(name, [](unsigned char c) {
+            return std::isalnum(c) || c == '_' || c == '-'; // run-parts skips other files
+        })) << name;
+    }
+
+    static void verify_motd_permissions(const YAML::Node& script)
+    {
+        const auto mode = script["permissions"].as<std::string>();
+        const auto perms = fs::perms(std::stoi(mode, nullptr, 8));
+        EXPECT_NE(perms & fs::perms::owner_exec, fs::perms::none) << mode;
+        EXPECT_EQ(perms & (fs::perms::group_write | fs::perms::others_write), fs::perms::none)
+            << mode;
+    }
 };
 
 struct DaemonCreateLaunchPollinateDataTestSuite
@@ -984,6 +1015,40 @@ TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudIn
     const auto vendor_data = cloud_init_file_in(cloud_init_iso, "vendor-data");
     ASSERT_THAT(vendor_data, YAMLNodeContainsSequence("write_files"));
     EXPECT_THAT(vendor_data["write_files"], YAMLSequenceContainsStringMap(expected_pollinate_map));
+}
+
+TEST_P(DaemonCreateLaunchTestSuite, addsMountMotdScriptToCloudInitConfig)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
+
+    send_command({GetParam()});
+
+    const auto motd_scripts = motd_scripts_in(cloud_init_file_in(cloud_init_iso, "vendor-data"));
+    ASSERT_THAT(motd_scripts, SizeIs(1));
+    const auto& script = motd_scripts.front();
+
+    verify_motd_filename(script);
+    verify_motd_permissions(script);
+    EXPECT_THAT(script["content"].as<std::string>(), StartsWith("#!"));
+}
+
+TEST_P(DaemonCreateLaunchTestSuite, omitsMountMotdScriptOnFedora)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::Path cloud_init_iso;
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
+
+    send_command({GetParam(), "fedora"});
+
+    EXPECT_THAT(motd_scripts_in(cloud_init_file_in(cloud_init_iso, "vendor-data")), IsEmpty());
 }
 
 TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)

@@ -249,7 +249,7 @@ parts:
       mkdir -p ${CRAFT_PART_INSTALL}/etc/bash_completion.d/
       echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
       cat ../src/completions/bash/multipass >> ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
-      VERSION=$( awk -F\" '/version_string/ { print $2 }' gen/multipass/version.h )
+      VERSION=$( awk -F\" '/version_string/ { print $2 }' gen/multipass/build_constants.h )
       craftctl set version=${VERSION}
       craftctl set grade=$( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+\($\|-rc\)' && echo stable || echo devel )
       [ -f ${CRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop ] && \

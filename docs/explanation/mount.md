@@ -26,6 +26,20 @@ Native mounts use driver-dependent technologies to achieve the high performance.
 
 > See also: {ref}`driver-feature-disparities`.
 
+(explanation-mount-in-instance)=
+## Mounts inside an instance
+
+When you log into an instance, its message of the day (MOTD) lists the folders that Multipass mounted from your host, along with their sources:
+
+```{code-block} text
+Folders mounted from your host by Multipass:
+
+ * /home/ubuntu/data (from /home/alice/sample-data)
+ * /home/ubuntu/project (from /home/alice/project)
+```
+
+This is available on instances with a dynamic MOTD (see [`update-motd(5)`](https://manpages.ubuntu.com/manpages/resolute/man5/update-motd.5.html)), like Ubuntu and Debian, but not Fedora. The list is kept up to date on a best-effort basis: if Multipass cannot reach an instance, or if a mount is removed without going through Multipass, the list may go out of date until the instance restarts.
+
 (security-considerations-mount)=
 ## Security considerations
 

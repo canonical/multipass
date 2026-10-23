@@ -26,6 +26,7 @@
 #include <multipass/ssh/sftp_utils.h>
 #include <multipass/ssh/ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine.h>
 
@@ -446,6 +447,6 @@ catch (const std::exception& e)
 
 SmbMountHandler::~SmbMountHandler()
 {
-    deactivate(/*force=*/true);
+    top_catch_all(category, [this] { deactivate(/*force=*/true); });
 }
 } // namespace multipass

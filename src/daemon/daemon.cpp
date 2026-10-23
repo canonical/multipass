@@ -21,10 +21,12 @@
 #include "daemon_init_settings.h"
 #include "hyperv_driver_transition.h"
 #include "instance_settings_handler.h"
+#include "mount_motd_cloud_init.h"
 #include "runtime_instance_info_helper.h"
 #include "snapshot_settings_handler.h"
 
 #include <multipass/alias_definition.h>
+#include <multipass/build_constants.h>
 #include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
@@ -59,7 +61,6 @@
 #include <multipass/top_catch_all.h>
 #include <multipass/user_messages/driver_deprecation_warning.h>
 #include <multipass/utils/grpc_utils.h>
-#include <multipass/version.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
@@ -180,6 +181,11 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
     // Ubuntu/Debian systems
     if (request->image() != "fedora")
     {
+        // Fedora's pam_motd does not run update-motd.d scripts.
+        // Also, this goes first because cloud-init gives up at the first file it fails to write
+        // (like the pollinate stuff ahead, on Ubuntu Core... we need to get rid of that).
+        config["write_files"].push_back(mp::mount_motd_cloud_init());
+
         config["packages"].push_back("pollinate");
 
         auto pollinate_user_agent_string = fmt::format(

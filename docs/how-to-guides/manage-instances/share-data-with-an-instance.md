@@ -34,6 +34,8 @@ Mounts:         /home/michal => /home/michal
 
 From this point the local home directory `/home/michal` will be available inside the instance.
 
+The instance also lists its mounts when you [`shell`](reference-command-line-interface-shell) into it (see {ref}`explanation-mount-in-instance`).
+
 If you want to mount a local directory to a different path in your instance, you can specify the target path as follows:
 
 ```{code-block} text

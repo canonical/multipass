@@ -22,6 +22,7 @@ add_library(daemon STATIC
   daemon_rpc.cpp
   default_vm_image_vault.cpp
   instance_settings_handler.cpp
+  mount_motd_cloud_init.cpp
   runtime_instance_info_helper.cpp
   snapshot_settings_handler.cpp)
 
@@ -36,6 +37,23 @@ endif()
 
 include_directories(daemon
   ${CMAKE_SOURCE_DIR}/src/platform/backends)
+
+# Bake the mount MOTD script in, as a raw string literal
+set(MOUNT_MOTD_SCRIPT_FILE ${CMAKE_SOURCE_DIR}/data/guest/mount_motd.sh)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${MOUNT_MOTD_SCRIPT_FILE})
+file(READ ${MOUNT_MOTD_SCRIPT_FILE} MOUNT_MOTD_SCRIPT)
+if(NOT MULTIPASS_GUEST_MOUNT_RECORDS_DIR)
+  message(FATAL_ERROR "MULTIPASS_GUEST_MOUNT_RECORDS_DIR is not set")
+endif()
+string(CONFIGURE "${MOUNT_MOTD_SCRIPT}" MOUNT_MOTD_SCRIPT @ONLY)
+if(MOUNT_MOTD_SCRIPT MATCHES "\\)sh\"")
+  message(FATAL_ERROR "${MOUNT_MOTD_SCRIPT_FILE} contains the raw string delimiter `)sh\"`")
+endif()
+file(CONFIGURE
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mount_motd.sh.inc
+  CONTENT "R\"sh(@MOUNT_MOTD_SCRIPT@)sh\"\n"
+  @ONLY)
+target_include_directories(daemon PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(daemon
   cert

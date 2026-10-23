@@ -19,11 +19,21 @@
 
 #include <multipass/mount_handler.h>
 
+#include <filesystem>
+
 namespace multipass::test
 {
 class MockMountHandler : public MountHandler
 {
 public:
+    MockMountHandler()
+        : MountHandler{nullptr,
+                       nullptr,
+                       {std::filesystem::temp_directory_path().string(), {}, {}, {}},
+                       {}}
+    {
+    }
+
     MOCK_METHOD(void, activate_impl, (ServerVariant, std::chrono::milliseconds), (override));
     MOCK_METHOD(void, deactivate_impl, (bool), (override));
     MOCK_METHOD(bool, is_active, (), (override));

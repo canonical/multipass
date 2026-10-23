@@ -23,6 +23,7 @@
 #include "tests/unit/mock_ssh_process.h"
 #include "tests/unit/mock_ssh_session.h"
 #include "tests/unit/mock_virtual_machine.h"
+#include "tests/unit/mount_record_commands.h"
 #include "tests/unit/stub_availability_zone.h"
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
@@ -117,6 +118,8 @@ struct QemuMountHandlerTest : public ::Test
             .WillOnce(
                 Return(mp::fs::file_status{mp::fs::file_type::directory, mp::fs::perms::all}));
         EXPECT_CALL(vm, modifiable_mount_args).WillOnce(ReturnRef(mount_args));
+        // let other commands through when tests expect specific ones (e.g. mount records)
+        EXPECT_CALL(vm, ssh_exec).Times(AnyNumber());
     }
 
     template <bool Success>
@@ -261,6 +264,30 @@ TEST_F(QemuMountHandlerTest, startSuccessStopSuccess)
     mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
     EXPECT_NO_THROW(handler.activate(&server));
     EXPECT_NO_THROW(handler.deactivate());
+}
+
+TEST_F(QemuMountHandlerTest, recordsMountInGuest)
+{
+    auto session = std::make_unique<NiceMock<mpt::MockSSHSession>>();
+    expect_ssh_success(*session, "echo $PWD/target", "/home/ubuntu/target");
+    expect_ssh_success(*session, "P=\"/home/ubuntu/target\"", "/home/ubuntu/target");
+    expect_ssh_success(*session, "mount -t 9p");
+    EXPECT_CALL(vm, new_ssh_session()).WillOnce(Return(std::move(session)));
+
+    const auto deploy_cmd = mpt::mount_record_cmd(mount.get_source_path(),
+                                                  default_target,
+                                                  &mp::GuestMountRecord::deploy);
+    const auto undeploy_cmd = mpt::mount_record_cmd(mount.get_source_path(),
+                                                    default_target,
+                                                    &mp::GuestMountRecord::undeploy);
+
+    InSequence seq;
+    EXPECT_CALL(vm, ssh_exec(deploy_cmd, _));
+    EXPECT_CALL(vm, ssh_exec(undeploy_cmd, _));
+
+    mp::QemuMountHandler handler{&vm, &key_provider, default_target, mount};
+    handler.activate(&server);
+    handler.deactivate();
 }
 
 TEST_F(QemuMountHandlerTest, stopFailNonforceThrows)

@@ -13,10 +13,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
- *
  */
+
+#pragma once
+
+#include <yaml-cpp/yaml.h>
+
 namespace multipass
 {
-constexpr auto version_string = "@MULTIPASS_VERSION@";
-}
+// Obtain a ready cloud-init node to plant a MOTD script that lists mounts
+YAML::Node mount_motd_cloud_init();
+} // namespace multipass

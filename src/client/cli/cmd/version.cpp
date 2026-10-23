@@ -17,9 +17,9 @@
 
 #include "version.h"
 #include "common_cli.h"
+#include <multipass/build_constants.h>
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/formatter.h>
-#include <multipass/version.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;

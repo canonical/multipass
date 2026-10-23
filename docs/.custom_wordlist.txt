@@ -13,6 +13,7 @@ Kaspersky
 libssh
 Malwarebytes
 misconfiguration
+MOTD
 multipassd
 NIC
 NICs
