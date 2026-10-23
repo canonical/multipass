@@ -29,6 +29,7 @@ from contextlib import suppress
 
 from cli.utilities import (
     get_sudo_tool,
+    retry,
     run_in_new_interpreter,
     run_in_new_interpreter_async,
     StdoutAsyncSubprocess,
@@ -143,29 +144,39 @@ def _service_loaded(label: str) -> bool:
     return rc == 0
 
 
-def _bootout_and_wait(label: str, timeout: float = 30.0) -> None:
+def _bootout_and_wait(label: str, retries: int = 60, delay: float = 0.5) -> None:
     """bootout is asynchronous: it returns before the job is fully torn down.
     Wait until the service is actually gone so the following bootstrap of the
     same label doesn't race it into `5: Input/output error`."""
+    # TODO: macOS 26 adds `launchctl bootout --wait`; use it and drop the
+    # polling below once these tests require macOS 26 or later.
     run_sync("launchctl", "bootout", f"system/{label}")
-    deadline = time.monotonic() + timeout
-    while _service_loaded(label) and time.monotonic() < deadline:
-        time.sleep(0.5)
-    if _service_loaded(label):
+
+    @retry(retries=retries, delay=delay)
+    def service_unloaded() -> bool:
+        return not _service_loaded(label)
+
+    if not service_unloaded():
         raise RuntimeError(
-            f"launchctl service `system/{label}` still loaded after bootout (timeout={timeout}s)"
+            f"launchctl service `system/{label}` still loaded after bootout "
+            f"({retries} retries, {delay}s apart)"
         )
+
 
 def _bootstrap(domain: str, plist: str, retries: int = 5) -> tuple[int, str]:
     """bootstrap, retrying the transient EIO that launchd returns while a prior
     job for the same label is still settling."""
-    rc, out = run_sync("launchctl", "bootstrap", domain, plist)
-    for _ in range(retries):
-        if rc == 0 or "Input/output error" not in out:
-            break
-        time.sleep(1.0)
-        rc, out = run_sync("launchctl", "bootstrap", domain, plist)
-    return rc, out
+
+    @retry(
+        retries=retries,
+        delay=1.0,
+        success_fn=lambda result: result[0] == 0
+        or "Input/output error" not in result[1],
+    )
+    def bootstrap() -> tuple[int, str]:
+        return run_sync("launchctl", "bootstrap", domain, plist)
+
+    return bootstrap()
 
 
 class LaunchdMultipassdController:
