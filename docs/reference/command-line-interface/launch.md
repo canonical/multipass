@@ -36,6 +36,14 @@ You can also mount folders in the instance after it is launched using the  `--mo
 
 Use the `--timeout` option to change how long Multipass waits for the machine to boot and initialise.
 
+If the timeout expires, the command exits with status `75`. The instance may continue starting in the background. Run `multipass list` to find the instance and check its state. If Multipass timed out while waiting for the instance to initialise, check cloud-init with:
+
+```{code-block} text
+multipass exec <vm-name> -- cloud-init status
+```
+
+Mounts requested with `--mount` are applied only after the instance starts and initialises. If the timeout message reports that mounts were not performed, apply them manually with `multipass mount`.
+
 ---
 
 The full `multipass help launch` output explains the available options:

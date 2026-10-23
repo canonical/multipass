@@ -13,6 +13,8 @@ Launching primary |
 
 Only instances in `Stopped` or `Suspended` status can be started. Running instances can be restarted with [`multipass restart`](/reference/command-line-interface/restart), stopped with [`multipass stop`](/reference/command-line-interface/stop), and suspended with [`multipass suspend`](/reference/command-line-interface/suspend).
 
+If the timeout expires, the command exits with status `75`. Instance startup may continue in the background.
+
 ---
 
 The full `multipass help start` output explains the available options:

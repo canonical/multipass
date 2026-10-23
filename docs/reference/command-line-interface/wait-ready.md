@@ -7,7 +7,7 @@ The `multipass wait-ready` command blocks execution until the Multipass daemon i
 
 By waiting for the daemon to reach a ready state, scripts and services can safely perform operations such as launching or listing instances without encountering transient "daemon not ready" errors.
 
-Use the `--timeout` option to limit how long the command waits for readiness before exiting with a non-zero status code.
+Use the `--timeout` option to limit how long the command waits for readiness. If the timeout expires, the command exits with status `75`.
 For example, to wait up to 30 seconds for the daemon to become ready:
 
 ```bash
@@ -50,4 +50,4 @@ This command ensures that the daemon is ready before launching an instance.
 
 - `wait-ready` checks the daemon’s readiness via a gRPC endpoint.
 - If the daemon is not running, `wait-ready` attempts to connect until it becomes available or the timeout elapses.
-- The command exits with status `0` when the daemon is ready, and non-zero otherwise.
+- The command exits with status `0` when the daemon is ready. A timeout returns status `75`; other failures return a different non-zero status.
