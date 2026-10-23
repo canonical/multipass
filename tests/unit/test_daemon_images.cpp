@@ -33,6 +33,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/download_exception.h>
 #include <multipass/format.h>
+#include <multipass/rpc/multipass.pb.h>
 
 #include <utility>
 
@@ -252,12 +253,135 @@ TEST_F(DaemonImages, invalidRemoteName)
     }
 }
 
+TEST_F(DaemonImages, returnUsageHintWhenRemoteUsedAsFilter)
+{
+    add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    send_command({"images", "custom"}, stream);
+
+    constexpr auto expected_result =
+        "No images found. To search a specific remote, use ‘multipass images custom:’\n"
+        "Run ‘multipass images --remotes’ to see all available remotes.\n";
+    EXPECT_THAT(stream.str(), Eq(expected_result));
+}
+
+TEST_F(DaemonImages, doFilterByAlias)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info("a", {"carot", "orange"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("b", {"banana"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("c", {"apple-pie"}));
+
+    auto daemon = mp::Daemon{config_builder.build()};
+    auto request = mp::ImagesRequest{};
+
+    request.set_search_string("carot");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(UnorderedElementsAre(
+                    mpt::ImageAliases(UnorderedElementsAre("carot", "orange"))))));
+
+    request.set_search_string("bAnAnA");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(
+                    UnorderedElementsAre(mpt::ImageAliases(UnorderedElementsAre("banana"))))));
+}
+
+TEST_F(DaemonImages, doFilterByAliasPrefix)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info("a", {"carot", "orange"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("b", {"camembert"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("c", {"camomilla", "flower"}));
+
+    auto daemon = mp::Daemon{config_builder.build()};
+    auto request = mp::ImagesRequest{};
+
+    request.set_search_string("ca");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(UnorderedElementsAre(
+                    mpt::ImageAliases(UnorderedElementsAre("carot", "orange")),
+                    mpt::ImageAliases(UnorderedElementsAre("camembert")),
+                    mpt::ImageAliases(UnorderedElementsAre("camomilla", "flower"))))));
+
+    request.set_search_string("CAM");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(UnorderedElementsAre(
+                    mpt::ImageAliases(UnorderedElementsAre("camembert")),
+                    mpt::ImageAliases(UnorderedElementsAre("camomilla", "flower"))))));
+
+    request.set_search_string("rot");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(IsEmpty())));
+}
+
+TEST_F(DaemonImages, doFilterByMajorVersion)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info("a", {"13.04"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("b", {"13.6"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("c", {"24.04"}));
+
+    auto daemon = mp::Daemon{config_builder.build()};
+    auto request = mp::ImagesRequest{};
+
+    request.set_search_string("1");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(IsEmpty())));
+
+    request.set_search_string("2");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(IsEmpty())));
+
+    request.set_search_string("13");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(
+                    UnorderedElementsAre(mpt::ImageAliases(UnorderedElementsAre("13.04")),
+                                         mpt::ImageAliases(UnorderedElementsAre("13.6"))))));
+
+    request.set_search_string("24");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(
+                    UnorderedElementsAre(mpt::ImageAliases(UnorderedElementsAre("24.04"))))));
+
+    request.set_search_string("04");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(IsEmpty())));
+}
+
+TEST_F(DaemonImages, doNotFilterByHash)
+{
+    const auto alias = "toto";
+    const auto full_hash = "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac";
+    const auto short_hash = "1797c5c";
+
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info(full_hash, {alias}));
+
+    auto daemon = mp::Daemon{config_builder.build()};
+    auto request = mp::ImagesRequest{};
+
+    request.set_search_string(alias);
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(ElementsAre(mpt::ImageHash(full_hash)))));
+
+    request.set_search_string(full_hash);
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(IsEmpty())));
+
+    request.set_search_string(short_hash);
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(IsEmpty())));
+}
+
 TEST_F(DaemonImages, returnSameResultsWhenFilteredByDifferentAliases)
 {
     auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
     image_host.add_image(mp::release_remote, make_dummy_info("image", {"toto", "tata"}));
 
-    mp::Daemon daemon{config_builder.build()};
+    auto daemon = mp::Daemon{config_builder.build()};
 
     std::stringstream s1;
     send_command({"images", "toto"}, s1);

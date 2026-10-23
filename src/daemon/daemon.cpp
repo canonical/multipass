@@ -1188,6 +1188,7 @@ void add_aliases(google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>* 
         entry->set_version(info.version);
         entry->set_codename(info.release_codename);
         entry->set_remote_name(remote_name);
+        entry->set_hash(info.id);
         entry->set_is_default_remote(is_default_remote);
     }
 }
@@ -1835,7 +1836,9 @@ try
         remotes.emplace_back(request->remote_name());
     }
 
+    const auto& filter = request->search_string();
     const auto force_manifest_update = request->force_manifest_network_download();
+
     if (!remotes.empty() || force_manifest_update)
     {
         wait_update_manifests_all_and_optionally_applied_force(force_manifest_update);
@@ -1848,7 +1851,7 @@ try
             try
             {
                 const auto query = SearchQuery{
-                    .filter = request->search_string(),
+                    .filter = filter,
                     .remote_name = remote,
                     .allow_unsupported = request->allow_unsupported(),
                 };
@@ -1866,7 +1869,7 @@ try
             {
                 mpl::warn(category,
                           "An unexpected error occurred while fetching images matching \"{}\": {}",
-                          request->search_string(),
+                          filter,
                           e.what());
             }
 
@@ -1876,6 +1879,14 @@ try
                                                default_remotes.end();
                 add_aliases(response.mutable_images_info(), remote, info, is_default_remote);
             }
+        }
+    }
+
+    if (response.images_info().empty() && !filter.empty() && request->remote_name().empty())
+    {
+        if (config->vault->image_host_for(filter) != nullptr)
+        {
+            response.set_retry_with_remote(filter);
         }
     }
 

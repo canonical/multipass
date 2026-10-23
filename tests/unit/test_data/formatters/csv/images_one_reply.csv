@@ -1,2 +1,2 @@
-Image,Remote,Aliases,OS,Release,Version,Type
-ubuntu,,,Ubuntu,18.04 LTS,20190516,Cloud Image
+Image,Remote,Aliases,OS,Release,Version,Hash,Type
+ubuntu,,,Ubuntu,18.04 LTS,20190516,8dd2e6b5e5aad20c3f836123b300cba9861249408cbb07c359145a65d6bab6b6,Cloud Image

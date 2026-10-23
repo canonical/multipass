@@ -52,6 +52,7 @@ std::map<std::string, YAML::Node> format_images(const ImageInfo& images_info)
         image_node["os"] = image.os();
         image_node["release"] = image.release();
         image_node["version"] = image.version();
+        image_node["hash"] = image.hash();
         image_node["remote"] = image.remote_name();
 
         images_node[mp::format::image_string_for(image.remote_name(), aliases[0])] = image_node;
