@@ -9,8 +9,11 @@
 
 ## Description
 
-Which profiles should be enabled in Windows Terminal.
-<!-- TODO: needs explanation -->
+Which Multipass profiles should be managed in Windows Terminal.
+
+When set to `primary`, Multipass adds or keeps a Windows Terminal profile for the
+{ref}`primary-instance`. When set to `none`, Multipass removes its Windows Terminal
+profile if one exists.
 
 ## Possible values
 
