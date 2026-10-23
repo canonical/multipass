@@ -19,6 +19,7 @@
 
 #include <multipass/ssh/libssh_wrapper.h>
 
+#include <memory>
 #include <stdexcept>
 
 namespace mp = multipass;
@@ -27,14 +28,14 @@ namespace
 {
 mp::SSHClientKeyProvider::KeyUPtr import_priv_key(const std::string& priv_key_blob)
 {
-    ssh_key priv_key;
+    mp::SSHClientKeyProvider::KeyUPtr priv_key;
     MP_LIBSSH.ssh_pki_import_privkey_base64(priv_key_blob.c_str(),
                                             nullptr,
                                             nullptr,
                                             nullptr,
-                                            &priv_key);
+                                            std::out_ptr(priv_key));
 
-    return mp::SSHClientKeyProvider::KeyUPtr{priv_key};
+    return priv_key;
 }
 } // namespace
 

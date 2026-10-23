@@ -31,18 +31,18 @@
 #include <multipass/virtual_machine.h>
 
 #include <QHostInfo>
-#include <ztd/out_ptr.hpp>
 
 #include <Windows.h>
 #include <Aclapi.h>
 #include <lm.h>
 #include <sddl.h>
 
+#include <memory>
+
 #pragma comment(lib, "Netapi32.lib")
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
-using ztd::out_ptr::out_ptr;
 
 using sid_buffer = std::vector<unsigned char>;
 
@@ -124,7 +124,7 @@ bool has_full_control(const std::filesystem::path& path, const sid_buffer& user_
                                          nullptr,
                                          &pDACL,
                                          nullptr,
-                                         out_ptr(pSD));
+                                         std::out_ptr(pSD));
 
     if (result != ERROR_SUCCESS)
         throw std::runtime_error("Failed to get security info");
