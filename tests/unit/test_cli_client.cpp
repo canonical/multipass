@@ -4388,7 +4388,7 @@ TEST_P(TimeoutSuite, commandExitsOnTimeout)
     EXPECT_CALL(mock_daemon, restart).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, ssh_info).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, wait_ready).Times(AtMost(1));
-    EXPECT_CALL(*mock_utils, exit(mp::timeout_exit_code));
+    EXPECT_CALL(*mock_utils, exit(mp::ReturnCode::TimeoutFailure));
 
     std::stringstream cerr_stream;
     send_command({GetParam(), "--timeout", "1"}, trash_stream, cerr_stream);
