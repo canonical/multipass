@@ -69,10 +69,16 @@ mp::DaemonConfigBuilder mp::cli::parse(const QCoreApplication& app)
                                       "specifies which address to use for the multipassd service;"
                                       " a socket can be specified using unix:<socket_file>",
                                       "server_name:port"};
+    QCommandLineOption port_attempts_option{
+        "port-attempts",
+        "specifies the maximum number of candidate ports to try when"
+        " looking for a free daemon port (Windows)",
+        "count"};
 
     parser.addOption(logger_option);
     parser.addOption(verbosity_option);
     parser.addOption(address_option);
+    parser.addOption(port_attempts_option);
 
     parser.process(app);
 
@@ -97,6 +103,17 @@ mp::DaemonConfigBuilder mp::cli::parse(const QCoreApplication& app)
         auto address = parser.value(address_option).toStdString();
         mp::utils::validate_server_address(address);
         builder.server_address = address;
+    }
+
+    if (parser.isSet(port_attempts_option))
+    {
+        auto attempts = parser.value(port_attempts_option).toInt();
+        if (attempts <= 0)
+            throw std::runtime_error(
+                fmt::format("invalid number of port attempts: {}. It must be positive.",
+                            parser.value(port_attempts_option).toStdString()));
+
+        builder.max_port_attempts = attempts;
     }
 
     return builder;

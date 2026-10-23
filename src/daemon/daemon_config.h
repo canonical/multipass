@@ -20,6 +20,7 @@
 #include <multipass/availability_zone_manager.h>
 #include <multipass/cert_provider.h>
 #include <multipass/cert_store.h>
+#include <multipass/constants.h>
 #include <multipass/days.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/logging/logger.h>
@@ -80,6 +81,7 @@ struct DaemonConfigBuilder
     multipass::Path data_directory;
     std::string server_address;
     std::string ssh_username;
+    int max_port_attempts{default_max_port_attempts};
     multipass::days days_to_expire{14};
     std::chrono::hours image_refresh_timer{6};
     multipass::logging::Level verbosity_level{multipass::logging::Level::info};

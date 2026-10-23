@@ -18,6 +18,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstdint>
 #include <initializer_list>
 
 using namespace std::chrono_literals;
@@ -41,14 +42,15 @@ constexpr auto default_memory_size = "1G";
 constexpr auto default_disk_size = "5G";
 constexpr auto default_cpu_cores = min_cpu_cores;
 constexpr auto default_timeout = std::chrono::seconds(300);
-constexpr auto image_resize_timeout =
-    std::chrono::duration_cast<std::chrono::milliseconds>(5min).count();
+constexpr auto image_resize_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(5min)
+                                          .count();
 
 constexpr auto home_automount_dir = "Home";
 
 constexpr auto multipass_storage_env_var = "MULTIPASS_STORAGE";
 constexpr auto driver_env_var = "MULTIPASS_VM_DRIVER";
 constexpr auto distributions_url_env_var = "MULTIPASS_DISTRIBUTIONS_URL";
+constexpr auto server_address_env_var = "MULTIPASS_SERVER_ADDRESS";
 
 constexpr auto winterm_profile_guid =
     "{aaaa9e6d-1e09-4be6-b76c-82b4ba1885fb}"; // identifies the primary Multipass profile in Windows
@@ -82,4 +84,13 @@ constexpr std::chrono::milliseconds vm_shutdown_timeout =
 constexpr auto default_ssh_port = 22;
 constexpr auto default_zone_names = {"zone1", "zone2", "zone3"};
 constexpr auto default_grpc_server_tcp_listen_address = "localhost:25051";
+constexpr std::uint16_t default_grpc_server_tcp_port =
+    25051; // keep in sync with default_grpc_server_tcp_listen_address
+constexpr std::uint16_t max_tcp_port = 65535;
+constexpr int default_max_port_attempts = 100; // candidate ports to try when searching for one
+
+// Windows-specific location of the machine-wide setting with the TCP port
+// that the daemon listens on (see src/platform/backends/shared/windows/server_port.h).
+constexpr auto windows_daemon_port_registry_key = "SOFTWARE\\Canonical\\Multipass";
+constexpr auto windows_daemon_port_registry_value = "ServerPort";
 } // namespace multipass
