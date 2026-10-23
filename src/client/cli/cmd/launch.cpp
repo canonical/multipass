@@ -33,6 +33,7 @@
 #include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
 #include <multipass/url_downloader.h>
+#include <multipass/user_messages/launch_messages.h>
 #include <multipass/utils.h>
 
 #include <yaml-cpp/yaml.h>
@@ -51,33 +52,6 @@ namespace cmd = multipass::cmd;
 
 namespace
 {
-
-constexpr auto client_timeout_message = R"(Timed out waiting for the launch operation.
-The instance status is unknown and it may still be starting. Check with:
-
-    multipass list)";
-
-constexpr auto client_mount_timeout_message = R"(
-
-Mounts may not have been performed. Apply any missing mounts manually with:
-
-    multipass mount <source> {}:<target>)";
-
-constexpr auto server_timeout_message = R"(Timed out waiting for {}.
-The instance was created but may still be starting. Check with:
-
-    multipass list
-
-Check its initialization status with:
-
-    multipass exec {} -- cloud-init status)";
-
-constexpr auto server_mount_timeout_message = R"(
-
-No mounts were performed. Apply any missing mounts manually with:
-
-    multipass mount <source> {}:<target>)";
-
 auto checked_mode(const std::string& mode)
 {
     if (mode == "auto")
@@ -516,19 +490,16 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         request.set_zone(zone);
     }
 
-    const auto vm_name = request.instance_name().empty() ? "<vm-name>" : request.instance_name();
+    const auto vm_name = request.instance_name();
     const auto has_mount_options = parser->isSet("mount");
     if (timer)
         timer->resume();
     else if (parser->isSet("timeout"))
     {
-        const auto mount_timeout_message = has_mount_options
-                                             ? fmt::format(client_mount_timeout_message, vm_name)
-                                             : std::string{};
         timer = cmd::make_timer(parser->value("timeout").toInt(),
                                 spinner.get(),
                                 cerr,
-                                fmt::format("{}{}", client_timeout_message, mount_timeout_message));
+                                LaunchUserMessages::client_timeout(vm_name, has_mount_options));
         timer->start();
     }
 
@@ -606,7 +577,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
 
     auto on_failure =
         [this, &parser, vm_name, has_mount_options](grpc::Status& status,
-                                                    mp::LaunchReply& reply) -> ReturnCodeVariant {
+                                                    LaunchReply& reply) -> ReturnCodeVariant {
         spinner->stop();
         if (timer)
             timer->pause();
@@ -661,20 +632,12 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         {
             assert(launch_error.error_codes().empty());
 
-            const auto readiness_stage = readiness_error == ReadinessError::SSH_TIMEOUT
-                                           ? "SSH"
-                                           : "cloud-init";
             const auto& server_vm_name = reply.vm_instance_name().empty()
                                            ? vm_name
                                            : reply.vm_instance_name();
-            const auto mount_timeout_message = has_mount_options
-                                                 ? fmt::format(server_mount_timeout_message,
-                                                               server_vm_name)
-                                                 : std::string{};
-            error_details = fmt::format(
-                "{}{}",
-                fmt::format(server_timeout_message, readiness_stage, server_vm_name),
-                mount_timeout_message);
+            error_details = LaunchUserMessages::server_timeout(readiness_error,
+                                                               server_vm_name,
+                                                               has_mount_options);
         }
 
         return standard_failure_handler_for(name(), cerr, status, error_details);
