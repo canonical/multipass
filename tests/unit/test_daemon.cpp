@@ -25,6 +25,7 @@
 #include "mock_cert_provider.h"
 #include "mock_daemon.h"
 #include "mock_daemon_rpc_context.h"
+#include "mock_dns_provider.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
 #include "mock_image_host.h"
@@ -170,6 +171,62 @@ TEST_F(Daemon, buildsConfig)
     auto config = config_builder.build();
     EXPECT_EQ(config->ssh_username, "ubuntu");
     EXPECT_THAT(config->image_hosts, Not(IsEmpty()));
+}
+
+TEST_F(Daemon, startsDnsProviderForTheConfiguredDomain)
+{
+    auto dns_provider = std::make_unique<StrictMock<mpt::MockDnsProvider>>();
+    EXPECT_CALL(*dns_provider, start(Eq("multipass.local")));
+    config_builder.dns_provider = std::move(dns_provider);
+    config_builder.dns_domain = "multipass.local";
+
+    mp::Daemon daemon{config_builder.build()};
+}
+
+TEST_F(Daemon, doesNotStartDnsProviderWithoutADomain)
+{
+    // StrictMock: any call fails the test.
+    config_builder.dns_provider = std::make_unique<StrictMock<mpt::MockDnsProvider>>();
+
+    mp::Daemon daemon{config_builder.build()};
+}
+
+TEST_F(Daemon, startsDespiteDnsProviderFailingToStart)
+{
+    auto dns_provider = std::make_unique<NiceMock<mpt::MockDnsProvider>>();
+    EXPECT_CALL(*dns_provider, start).WillOnce(Throw(std::runtime_error{"address in use"}));
+    config_builder.dns_provider = std::move(dns_provider);
+    config_builder.dns_domain = "multipass.local";
+
+    EXPECT_NO_THROW(mp::Daemon{config_builder.build()});
+}
+
+TEST_F(Daemon, stopsResolvingInstancesThatBecomeUnreachable)
+{
+    auto dns_provider = std::make_unique<StrictMock<mpt::MockDnsProvider>>();
+    EXPECT_CALL(*dns_provider, remove_host(Eq("stopped-vm")));
+    EXPECT_CALL(*dns_provider, remove_host(Eq("suspended-vm")));
+    EXPECT_CALL(*dns_provider, remove_host(Eq("unavailable-vm")));
+    config_builder.dns_provider = std::move(dns_provider);
+
+    mp::Daemon daemon{config_builder.build()};
+    mp::VMStatusMonitor& monitor = daemon; // as instances report their state
+    monitor.persist_state_for("stopped-vm", mp::VirtualMachine::State::stopped);
+    monitor.persist_state_for("suspended-vm", mp::VirtualMachine::State::suspended);
+    monitor.persist_state_for("unavailable-vm", mp::VirtualMachine::State::unavailable);
+    monitor.persist_state_for("running-vm", mp::VirtualMachine::State::running);
+    monitor.persist_state_for("restarting-vm", mp::VirtualMachine::State::restarting);
+}
+
+TEST_F(Daemon, survivesDnsProviderFailingToStopResolving)
+{
+    auto dns_provider = std::make_unique<NiceMock<mpt::MockDnsProvider>>();
+    EXPECT_CALL(*dns_provider, remove_host).WillOnce(Throw(std::runtime_error{"unavailable"}));
+    config_builder.dns_provider = std::move(dns_provider);
+
+    mp::Daemon daemon{config_builder.build()};
+    mp::VMStatusMonitor& monitor = daemon;
+    EXPECT_NO_THROW(monitor.persist_state_for("stopped-vm", mp::VirtualMachine::State::stopped));
 }
 
 TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)

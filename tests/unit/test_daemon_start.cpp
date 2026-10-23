@@ -19,6 +19,7 @@
 #include "daemon_test_fixture.h"
 
 #include "common.h"
+#include "mock_dns_provider.h"
 #include "mock_mount_handler.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
@@ -152,6 +153,49 @@ TEST_F(TestDaemonStart, successfulStartOkStatus)
     auto status = start_instance(*daemon);
 
     EXPECT_TRUE(status.ok());
+}
+
+TEST_F(TestDaemonStart, startedInstanceResolvesByName)
+{
+    const mp::IPAddress address{"10.1.2.3"};
+    auto dns_provider = std::make_unique<NiceMock<mpt::MockDnsProvider>>();
+    EXPECT_CALL(*dns_provider, set_host(Eq(mock_instance_name), ElementsAre(address)));
+    config_builder.dns_provider = std::move(dns_provider);
+
+    auto mock_vm = make_mock_vm(VMState::stopped);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_vm, management_ipv4).WillRepeatedly(Return(address));
+
+    auto daemon = make_daemon(std::move(mock_vm));
+    EXPECT_TRUE(start_instance(*daemon).ok());
+}
+
+TEST_F(TestDaemonStart, startSucceedsWhenInstanceCannotResolveByName)
+{
+    auto dns_provider = std::make_unique<NiceMock<mpt::MockDnsProvider>>();
+    EXPECT_CALL(*dns_provider, set_host).WillOnce(Throw(std::runtime_error{"unavailable"}));
+    config_builder.dns_provider = std::move(dns_provider);
+
+    auto mock_vm = make_mock_vm(VMState::stopped);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_vm, management_ipv4).WillRepeatedly(Return(mp::IPAddress{"10.1.2.3"}));
+
+    auto daemon = make_daemon(std::move(mock_vm));
+    EXPECT_TRUE(start_instance(*daemon).ok());
+}
+
+TEST_F(TestDaemonStart, startedInstanceWithoutAnAddressDoesNotResolveByName)
+{
+    auto dns_provider = std::make_unique<NiceMock<mpt::MockDnsProvider>>();
+    EXPECT_CALL(*dns_provider, set_host).Times(0);
+    config_builder.dns_provider = std::move(dns_provider);
+
+    auto mock_vm = make_mock_vm(VMState::stopped);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
+    EXPECT_CALL(*mock_vm, management_ipv4).WillRepeatedly(Return(std::nullopt));
+
+    auto daemon = make_daemon(std::move(mock_vm));
+    EXPECT_TRUE(start_instance(*daemon).ok());
 }
 
 TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)

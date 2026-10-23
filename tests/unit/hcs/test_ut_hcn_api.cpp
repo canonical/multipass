@@ -35,6 +35,7 @@ namespace mpt = multipass::test;
 namespace hcn = multipass::hyperv::hcn;
 
 using testing::DoAll;
+using testing::ElementsAre;
 using testing::Return;
 using testing::StrictMock;
 
@@ -307,6 +308,83 @@ TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_flags_multiple_polici
                                      hcn::HcnNetworkPolicyNetAdapterName{"test adapter"}};
         params.policies.push_back(policy);
         params.policies.push_back(policy);
+
+        const auto& [status, status_msg] = HCN().create_network(params);
+        ASSERT_TRUE(status.success());
+        ASSERT_TRUE(status_msg.empty());
+    }
+}
+
+// ---------------------------------------------------------
+
+/**
+ * Success scenario: a network created with DNS settings includes the
+ * "Dns" object in the generated configuration.
+ */
+TEST_F(HyperVHCNAPI_UnitTests, create_network_success_with_dns)
+{
+    { // Verify that the dependencies are called with right data.
+        EXPECT_CALL(mock_hcn_api, HcnCreateNetwork)
+            .WillOnce(DoAll(
+                [&](REFGUID id, PCWSTR settings, PHCN_NETWORK network, PWSTR* error_record) {
+                    constexpr auto expected_network_settings = LR"""(
+                    {
+                        "SchemaVersion": {
+                            "Major": 2,
+                            "Minor": 2
+                        },
+                        "Name": "multipass-hyperv-api-hcn-create-test",
+                        "Type": "ICS",
+                        "Ipams": [
+                            {
+                                "Type": "static",
+                                "Subnets": [
+                                    {
+                                        "Policies": [],
+                                        "Routes": [],
+                                        "IpAddressPrefix": "172.50.224.0/20",
+                                        "IpSubnets": null
+                                    }
+                                ]
+                            }
+                        ],
+                        "Flags" : 0,
+                        "Policies": [],
+                        "Dns": {
+                            "Domain": "mshome.net",
+                            "Search": ["mshome.net","example.test"],
+                            "ServerList": ["172.50.224.1"],
+                            "Options": []
+                        }
+                    }
+                    )""";
+                    ASSERT_NE(nullptr, network);
+                    ASSERT_EQ(nullptr, *network);
+                    ASSERT_NE(nullptr, error_record);
+                    ASSERT_EQ(nullptr, *error_record);
+                    const auto config_no_whitespace = trim_whitespace(settings);
+                    const auto expected_no_whitespace = trim_whitespace(expected_network_settings);
+                    ASSERT_STREQ(config_no_whitespace.c_str(), expected_no_whitespace.c_str());
+                    ASSERT_EQ("b70c479d-f808-4053-aafa-705bc15b6d68", fmt::to_string(id));
+                    *network = mock_network_object;
+                },
+                Return(NOERROR)));
+
+        EXPECT_CALL(mock_hcn_api, HcnCloseNetwork)
+            .WillOnce(
+                DoAll([&](HCN_NETWORK n) { ASSERT_EQ(n, mock_network_object); }, Return(NOERROR)));
+    }
+
+    { // Verify the expected outcome.
+        hcn::CreateNetworkParameters params{};
+        params.name = "multipass-hyperv-api-hcn-create-test";
+        params.guid = "{b70c479d-f808-4053-aafa-705bc15b6d68}";
+        params.ipams = {
+            hcn::HcnIpam{hcn::HcnIpamType::Static(), {hcn::HcnSubnet{"172.50.224.0/20"}}}};
+        params.dns = hcn::HcnDns{"mshome.net",
+                                 {"mshome.net", "example.test"},
+                                 {"172.50.224.1"},
+                                 {}};
 
         const auto& [status, status_msg] = HCN().create_network(params);
         ASSERT_TRUE(status.success());
@@ -753,7 +831,7 @@ TEST_F(HyperVHCNAPI_UnitTests, delete_endpoint_failure)
 TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_success)
 {
     static wchar_t endpoint_properties[] =
-        LR"({"MacAddress":"52-54-00-E9-36-7E","IpConfigurations":[{"IpAddress":"172.20.1.2","PrefixLength":20},{"IpAddress":"fe80::1","PrefixLength":64}]})";
+        LR"({"HostComputeNetwork":"c08cb7b8-9b3c-408e-8e30-5e16a3aeb444","MacAddress":"52-54-00-E9-36-7E","IpConfigurations":[{"IpAddress":"172.20.1.2","PrefixLength":20},{"IpAddress":"fe80::1","PrefixLength":64}],"Dns":{"Domain":"multipass.test","Search":["multipass.test","example.test"],"ServerList":["172.20.1.1"]}})";
 
     expect_endpoint_query(endpoint_properties);
 
@@ -761,6 +839,12 @@ TEST_F(HyperVHCNAPI_UnitTests, query_endpoint_success)
     const auto result = HCN().query_endpoint("af3fb745-2f23-463c-8ded-443f876d9e81", endpoint_info);
 
     ASSERT_TRUE(result);
+    EXPECT_EQ(endpoint_info.guid, "af3fb745-2f23-463c-8ded-443f876d9e81");
+    EXPECT_EQ(endpoint_info.network_guid, "c08cb7b8-9b3c-408e-8e30-5e16a3aeb444");
+    ASSERT_TRUE(endpoint_info.dns);
+    EXPECT_EQ(endpoint_info.dns->domain, "multipass.test");
+    EXPECT_THAT(endpoint_info.dns->search, ElementsAre("multipass.test", "example.test"));
+    EXPECT_THAT(endpoint_info.dns->server_list, ElementsAre("172.20.1.1"));
     ASSERT_TRUE(endpoint_info.mac_address);
     EXPECT_EQ(*endpoint_info.mac_address, "52-54-00-E9-36-7E");
     ASSERT_EQ(endpoint_info.ip_addresses.size(), 2);
@@ -864,6 +948,54 @@ TEST_F(HyperVHCNAPI_UnitTests, query_network_without_host_vnic)
 
     ASSERT_TRUE(result);
     EXPECT_FALSE(network_info.host_interface_guid);
+}
+
+TEST_F(HyperVHCNAPI_UnitTests, query_network_reads_flattened_dns)
+{
+    static wchar_t network_properties[] =
+        LR"({"Name":"mpdns","Type":"ICS","DNSDomain":"mshome.net","DNSSuffix":"mshome.net,example.test","DNSServerList":"172.50.224.1,172.50.224.2"})";
+
+    expect_network_query(network_properties);
+
+    hcn::HcnNetworkInfo network_info;
+    const auto result = HCN().query_network("c08cb7b8-9b3c-408e-8e30-5e16a3aeb444", network_info);
+
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(network_info.dns);
+    EXPECT_EQ(network_info.dns->domain, "mshome.net");
+    EXPECT_THAT(network_info.dns->search, testing::ElementsAre("mshome.net", "example.test"));
+    EXPECT_THAT(network_info.dns->server_list,
+                testing::ElementsAre("172.50.224.1", "172.50.224.2"));
+}
+
+TEST_F(HyperVHCNAPI_UnitTests, query_network_reads_empty_dns_fields_as_empty_lists)
+{
+    static wchar_t network_properties[] =
+        LR"({"Name":"mpdns","Type":"ICS","DNSDomain":"mshome.net","DNSSuffix":"","DNSServerList":""})";
+
+    expect_network_query(network_properties);
+
+    hcn::HcnNetworkInfo network_info;
+    const auto result = HCN().query_network("c08cb7b8-9b3c-408e-8e30-5e16a3aeb444", network_info);
+
+    ASSERT_TRUE(result);
+    ASSERT_TRUE(network_info.dns);
+    EXPECT_EQ(network_info.dns->domain, "mshome.net");
+    EXPECT_TRUE(network_info.dns->search.empty());
+    EXPECT_TRUE(network_info.dns->server_list.empty());
+}
+
+TEST_F(HyperVHCNAPI_UnitTests, query_network_without_dns)
+{
+    static wchar_t network_properties[] = LR"({"Name":"mpdns","Type":"ICS"})";
+
+    expect_network_query(network_properties);
+
+    hcn::HcnNetworkInfo network_info;
+    const auto result = HCN().query_network("c08cb7b8-9b3c-408e-8e30-5e16a3aeb444", network_info);
+
+    ASSERT_TRUE(result);
+    EXPECT_FALSE(network_info.dns);
 }
 
 TEST(HcnEndpointInfo, rejects_malformed_ip_configurations)

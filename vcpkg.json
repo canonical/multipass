@@ -2,8 +2,10 @@
     "builtin-baseline": "fbb0f7bb200b07a9eb9081c7a3cf51d1aa1c51a1",
     "dependencies": [
         "boost-algorithm",
+        "boost-asio",
         "boost-json",
         "boost-uuid",
+        "c-ares",
         "grpc",
         "fmt",
         "scope-guard",

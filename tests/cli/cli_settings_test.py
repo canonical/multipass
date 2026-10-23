@@ -21,7 +21,13 @@
 import sys
 import pytest
 
-from cli.multipass import multipass, default_driver_name
+from cli.multipass import (
+    multipass,
+    default_driver_name,
+    multipass_version_has_feature,
+    assert_resolves_by_name,
+    assert_does_not_resolve_by_name,
+)
 
 
 @pytest.mark.settings
@@ -36,6 +42,11 @@ class TestSettings:
             ),
             "client.primary-name",
             "local.bridged-network",
+            *(
+                ["local.dns-domain"]
+                if multipass_version_has_feature("dns_domain")
+                else []
+            ),
             "local.driver",
             "local.image.mirror",
             "local.passphrase",
@@ -59,3 +70,40 @@ class TestSettings:
         # Daemon will autorestart here. We should wait until it's back.
         multipassd.wait_for_restart()
         assert multipass("get", "local.driver") == default_driver_name()
+
+    def test_dns_domain_defaults_to_multipass_local(self, dns_domain):
+        assert multipass("get", "local.dns-domain") == "multipass.local"
+
+    def test_set_dns_domain(self, dns_domain):
+        dns_domain("Mp-Test.Local")
+        assert multipass("get", "local.dns-domain") == "mp-test.local"
+
+    def test_set_empty_dns_domain(self, dns_domain):
+        dns_domain("")
+        assert multipass("get", "local.dns-domain") == "<empty>"
+
+    @pytest.mark.parametrize(
+        "domain",
+        [
+            ".mp.local",
+            "mp.local.",
+            "mp..local",
+            "-mp.local",
+            "mp_test.local",
+            f"{'a' * 64}.local",
+        ],
+    )
+    def test_set_invalid_dns_domain(self, dns_domain, domain):
+        with multipass("set", f"local.dns-domain={domain}") as output:
+            assert not output
+            assert "Invalid DNS domain" in output
+        assert multipass("get", "local.dns-domain") == "multipass.local"
+
+    @pytest.mark.dns
+    def test_instances_resolve_under_the_dns_domain(self, dns_domain, instance):
+        dns_domain("mp-cli-test.internal")
+        assert_resolves_by_name(instance, "mp-cli-test.internal")
+        assert_does_not_resolve_by_name(instance)  # under the previous domain
+
+        dns_domain("")
+        assert_does_not_resolve_by_name(instance, "mp-cli-test.internal")

@@ -31,6 +31,7 @@ def _feature_version(name):
         "fedora_images": {"min": ver.parse("1.17")},
         "wait_ready": {"min": ver.parse("1.17")},
         "az": {"min": ver.parse("1.17")},
+        "dns_domain": {"min": ver.parse("1.18")},
     }
     assert name in feats, f"No such feature: {name}"
     return feats[name]

@@ -32,12 +32,14 @@
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
 #include "logger/win_event_logger.h"
 #include "shared/sshfs_server_process_spec.h"
+#include "shared/windows/nrpt_rule.h"
 #include "shared/windows/powershell.h"
 #include "shared/windows/process_factory.h"
 #include "shared/windows/wchar_conversion.h"
 #include "shared/windows/wsa_init_wrapper.h"
 #include <daemon/default_vm_image_vault.h>
 #include <default_update_prompt.h>
+#include <network/local_dns_provider.h>
 
 #include <QCoreApplication>
 #include <QDir>
@@ -873,6 +875,20 @@ QString mp::platform::Platform::default_privileged_mounts() const
 std::string mp::platform::Platform::bridge_nomenclature() const
 {
     return "switch";
+}
+
+mp::DnsProvider::UPtr mp::platform::Platform::make_dns_provider() const
+{
+    // A Name Resolution Policy Table rule points the host's resolver at the built-in DNS server.
+    // NRPT rules cannot name a port, so the server needs port 53, on the first free address from
+    // 127.77.0.1 to 127.77.0.254: other local DNS servers commonly take 127.0.0.1.
+    return std::make_unique<LocalDnsProvider>(
+        [](const std::string& domain, const std::string& name_server) -> std::shared_ptr<void> {
+            return std::make_shared<hyperv::dns::NrptRule>(fmt::format(".{}", domain),
+                                                           std::vector{name_server});
+        },
+        boost::asio::ip::udp::endpoint{boost::asio::ip::make_address_v4("127.77.0.1"), 53},
+        254);
 }
 
 bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
