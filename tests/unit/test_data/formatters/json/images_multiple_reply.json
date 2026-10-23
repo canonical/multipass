@@ -21,15 +21,13 @@
             ],
             "remote": "release"
         },
-        "daily:19.10": {
-            "os": "Ubuntu",
-            "release": "19.10",
-            "version": "20190516",
+        "custom": {
+            "os": "OS",
+            "release": "26.10",
+            "version": "20261007",
             "aliases": [
-                "eoan",
-                "devel"
             ],
-            "remote": "daily"
+            "remote": ""
         }
     }
 }

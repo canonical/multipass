@@ -185,7 +185,9 @@ class GrpcClient {
   Future<ImagesReply> images() {
     return doRpc(
       _client.images,
-      ImagesRequest(),
+      ImagesRequest(
+        allRemotes: true,
+      ),
     ).then((r) => r!);
   }
 

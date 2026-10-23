@@ -30,9 +30,11 @@
 
 #include <src/daemon/default_vm_image_vault.h>
 
+#include <multipass/constants.h>
 #include <multipass/exceptions/aborted_download_exception.h>
 #include <multipass/exceptions/create_image_exception.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
+#include <multipass/exceptions/remote_not_found_exception.h>
 #include <multipass/exceptions/unsupported_image_exception.h>
 #include <multipass/format.h>
 #include <multipass/platform.h>
@@ -832,7 +834,7 @@ TEST_F(ImageVault, invalidRemoteThrows)
     query.remote_name = "foo";
 
     EXPECT_THROW(vault.fetch_image(query, stub_prepare, stub_monitor, std::nullopt, instance_dir),
-                 std::runtime_error);
+                 mp::RemoteNotFoundException);
 }
 
 TEST_F(ImageVault, DISABLE_ON_WINDOWS_AND_MACOS(invalidImageAliasThrow))
@@ -940,7 +942,7 @@ TEST_F(ImageVault, abortedDownloadThrows)
         mp::AbortedDownloadException);
 }
 
-TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)
+TEST_F(ImageVault, anyInfoForNoRemoteGivenReturnsFirstFound)
 {
     mpt::StubURLDownloader stub_url_downloader;
     mp::DefaultVMImageVault vault{hosts,
@@ -949,25 +951,30 @@ TEST_F(ImageVault, allInfoForNoRemoteGivenReturnsExpectedData)
                                   data_dir.path(),
                                   mp::days{0}};
 
-    const std::string remote_name{"release"};
-    EXPECT_CALL(host, all_info_for(_))
-        .WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
-            {remote_name, host.mock_bionic_image_info},
-            {remote_name, host.mock_another_image_info}}));
+    EXPECT_CALL(host, info_for(_))
+        .WillOnce(Return(std::make_optional(host.mock_bionic_image_info)));
 
-    auto images = vault.all_info_for({"", "e3", false, "", mp::Query::Type::Alias, true});
+    const auto query = mp::SearchQuery{.filter = "e3", .allow_unsupported = true};
+    auto image = vault.any_info_for(query);
 
-    EXPECT_EQ(images.size(), 2u);
+    EXPECT_NE(image, std::nullopt);
+    EXPECT_EQ(image->id, mpt::default_id);
+    EXPECT_EQ(image->version, mpt::default_version);
+}
 
-    const auto& [first_image_remote, first_image_info] = images[0];
-    EXPECT_EQ(first_image_remote, remote_name);
-    EXPECT_EQ(first_image_info.id, mpt::default_id);
-    EXPECT_EQ(first_image_info.version, mpt::default_version);
+TEST_F(ImageVault, allInfoForNoRemoteGivenThrows)
+{
+    mpt::StubURLDownloader stub_url_downloader;
+    mp::DefaultVMImageVault vault{hosts,
+                                  &stub_url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
 
-    const auto& [second_image_remote, second_image_info] = images[1];
-    EXPECT_EQ(second_image_remote, remote_name);
-    EXPECT_EQ(second_image_info.id, mpt::another_image_id);
-    EXPECT_EQ(second_image_info.version, mpt::another_image_version);
+    EXPECT_CALL(host, all_info_for).Times(0);
+
+    const auto query = mp::SearchQuery{.filter = "e3", .allow_unsupported = true};
+    EXPECT_THROW(vault.all_info_for(query), mp::RemoteNotFoundException);
 }
 
 TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
@@ -979,25 +986,42 @@ TEST_F(ImageVault, allInfoForRemoteGivenReturnsExpectedData)
                                   data_dir.path(),
                                   mp::days{0}};
 
-    const std::string remote_name{"release"};
     EXPECT_CALL(host, all_info_for(_))
-        .WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{
-            {remote_name, host.mock_bionic_image_info},
-            {remote_name, host.mock_another_image_info}}));
+        .WillOnce(Return(std::vector<mp::VMImageInfo>{host.mock_bionic_image_info,
+                                                      host.mock_another_image_info}));
 
-    auto images = vault.all_info_for({"", "e3", false, remote_name, mp::Query::Type::Alias, true});
+    const auto query = mp::SearchQuery{.filter = "e3",
+                                       .remote_name = mp::release_remote,
+                                       .allow_unsupported = true};
+    auto images = vault.all_info_for(query);
 
     EXPECT_EQ(images.size(), 2u);
 
-    const auto& [first_image_remote, first_image_info] = images[0];
-    EXPECT_EQ(first_image_remote, remote_name);
+    const auto& first_image_info = images[0];
     EXPECT_EQ(first_image_info.id, mpt::default_id);
     EXPECT_EQ(first_image_info.version, mpt::default_version);
 
-    const auto& [second_image_remote, second_image_info] = images[1];
-    EXPECT_EQ(second_image_remote, remote_name);
+    const auto& second_image_info = images[1];
     EXPECT_EQ(second_image_info.id, mpt::another_image_id);
     EXPECT_EQ(second_image_info.version, mpt::another_image_version);
+}
+
+TEST_F(ImageVault, anyInfoForNoImagesReturnsEmpty)
+{
+    mpt::StubURLDownloader stub_url_downloader;
+    mp::DefaultVMImageVault vault{hosts,
+                                  &stub_url_downloader,
+                                  cache_dir.path(),
+                                  data_dir.path(),
+                                  mp::days{0}};
+
+    const std::string name{"foo"};
+    EXPECT_CALL(host, info_for(_)).WillOnce(Return(std::nullopt));
+
+    const auto query = mp::SearchQuery{.filter = name,
+                                       .remote_name = mp::release_remote,
+                                       .allow_unsupported = true};
+    EXPECT_EQ(vault.any_info_for(query), std::nullopt);
 }
 
 TEST_F(ImageVault, allInfoForNoImagesReturnsEmpty)
@@ -1010,10 +1034,12 @@ TEST_F(ImageVault, allInfoForNoImagesReturnsEmpty)
                                   mp::days{0}};
 
     const std::string name{"foo"};
-    EXPECT_CALL(host, all_info_for(_))
-        .WillOnce(Return(std::vector<std::pair<std::string, mp::VMImageInfo>>{}));
+    EXPECT_CALL(host, all_info_for(_)).WillOnce(Return(std::vector<mp::VMImageInfo>{}));
 
-    EXPECT_TRUE(vault.all_info_for({"", name, false, "", mp::Query::Type::Alias, true}).empty());
+    const auto query = mp::SearchQuery{.filter = name,
+                                       .remote_name = mp::release_remote,
+                                       .allow_unsupported = true};
+    EXPECT_TRUE(vault.all_info_for(query).empty());
 }
 
 TEST_F(ImageVault, updateImagesLogsWarningOnUnsupportedImage)

@@ -65,36 +65,41 @@ class TestImages:
             skip_if_feature_not_supported("blueprints")
 
         # Confirm that it shows at least 1 devel, 2 LTS releases
-        (output, header) = multipass(cmd, "--format=json", show).json_with_header()
+        (output, header) = multipass(
+            cmd, "--all", "--format=json", show
+        ).json_with_header()
         assert ("Warning:" in header) == (cmd == "find")
         assert "images" in output or show == "--only-blueprints"
 
         if multipass_version_has_feature("blueprints"):
             if show in ["", "--only-blueprints"]:
-                assert "blueprints (deprecated)" in output or (show == "--only-images")
+                assert "blueprints (deprecated)" in output or (
+                    show == "--only-images"
+                )
                 # Check blueprints
                 blueprints = output.jq(
-                    '."blueprints (deprecated)" | keys[] ').all()
+                    '."blueprints (deprecated)" | keys[]'
+                ).all()
                 assert blueprints == supported_blueprints
 
         if show in ["", "--only-images"]:
             assert "images" in output
             # Verify that find has at least 2 LTS images
             lts_images = output.jq(
-                '.images | with_entries(select(.value.release | contains("LTS")))'
+                '.images | with_entries(select(.value.remote == "release" and (.value.release | contains("LTS"))))'
             ).first()
             assert len(lts_images) >= 2
 
             # Verify that find has only one image aliased with "lts"
             current_lts = output.jq(
-                '.images | with_entries(select(.value.aliases | index("lts")))'
+                '.images | with_entries(select(.value.remote == "release" and (.value.aliases | index("lts"))))'
             ).first()
             assert len(current_lts) == 1
             logging.debug(f"Current LTS is {current_lts}")
 
             # Verify that find has only one image aliased with "devel"
             current_devel = output.jq(
-                '.images | with_entries(select(.value.aliases | index("devel")))'
+                '.images | with_entries(select(.value.remote == "daily" and (.value.aliases | index("devel"))))'
             ).first()
             assert len(current_devel) == 1
             logging.debug(f"Current devel is {current_devel}")
@@ -107,60 +112,72 @@ class TestImages:
                 assert appliances == supported_appliances
 
     @pytest.mark.parametrize(
-        "param",
+        ("query", "image", "aliases", "expected_release", "show_unsupported"),
         [
-            {"name": "noble", "expected_release": "24.04 LTS"},
-            {"name": "24.04", "expected_release": "24.04 LTS"},
-            {"name": "20.04", "expected_release": "20.04 LTS", "unsupported": True},
-            {"name": "18.04", "expected_release": "18.04 LTS", "unsupported": True},
+            ("noble", "24.04", ["noble"], "24.04 LTS", False),
+            ("24.04", "24.04", ["noble"], "24.04 LTS", False),
+            ("20.04", "20.04", ["focal"], "20.04 LTS", True),
+            ("18.04", "18.04", ["bionic"], "18.04 LTS", True),
         ],
     )
-    def test_query_image_ubuntu(self, cmd, param):
+    def test_query_image_ubuntu(
+        self,
+        cmd,
+        query,
+        image,
+        aliases,
+        expected_release,
+        show_unsupported,
+    ):
         (output, header) = multipass(
             cmd,
-            param["name"],
+            query,
             "--format=json",
-            *( ["--show-unsupported"] if param.get("unsupported") else []),
+            *(["--show-unsupported"] if show_unsupported else []),
         ).json_with_header()
 
         assert ("Warning:" in header) == (cmd == "find")
 
         assert output
         images = output["images"]
-        image = images[param["name"]]
+        image_data = images[image]
 
         expected_image = {
-            "aliases": [],
+            "aliases": aliases,
             "os": "Ubuntu",
-            "release": param["expected_release"],
-            "remote": "",
+            "release": expected_release,
+            "remote": "release",
         }
 
         # Pull the keys present in expected and do a comparison
-        assert {k: image[k] for k in expected_image} == expected_image
+        assert {key: image_data[key] for key in expected_image} == expected_image
 
     def test_query_image_debian(self, cmd):
         skip_if_feature_not_supported("debian_images")
 
-        (output, header) = multipass(cmd, "debian", "--format=json").json_with_header()
+        (output, header) = multipass(
+            cmd, "debian", "--format=json"
+        ).json_with_header()
         assert ("Warning:" in header) == (cmd == "find")
 
         assert output
         image = output["images"]["debian"]
 
         expected_image = {
-            "aliases": [],
+            "aliases": ["trixie"],
             "os": "Debian",
             "remote": "",
         }
 
-        assert {k: image[k] for k in expected_image} == expected_image
+        assert {key: image[key] for key in expected_image} == expected_image
         assert image["release"]
 
     def test_query_image_fedora(self, cmd):
         skip_if_feature_not_supported("fedora_images")
 
-        (output, header) = multipass(cmd, "fedora", "--format=json").json_with_header()
+        (output, header) = multipass(
+            cmd, "fedora", "--format=json"
+        ).json_with_header()
         assert ("Warning:" in header) == (cmd == "find")
 
         assert output
@@ -172,11 +189,13 @@ class TestImages:
             "remote": "",
         }
 
-        assert {k: image[k] for k in expected_image} == expected_image
+        assert {key: image[key] for key in expected_image} == expected_image
         assert image["release"]
 
     def test_query_remotes(self, cmd):
-        (output, header) = multipass(cmd, "--remotes", "--format=json").json_with_header()
+        (output, header) = multipass(
+            cmd, "--remotes", "--format=json"
+        ).json_with_header()
         assert ("Warning:" in header) == (cmd == "find")
 
         assert output

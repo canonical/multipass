@@ -36,6 +36,7 @@
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
+#include <multipass/exceptions/remote_not_found_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
@@ -448,8 +449,11 @@ void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& va
     // to avoid calls
     //       later that accomplish the same thing.
     auto image_query = query_from(request, "");
-    if (image_query.query_type == mp::Query::Type::Alias && vault.all_info_for(image_query).empty())
+    if (image_query.query_type == mp::Query::Type::Alias &&
+        !vault.any_info_for(image_query).has_value())
+    {
         throw mp::ImageNotFoundException(request->image(), request->remote_name());
+    }
 }
 
 auto validate_create_arguments(const mp::LaunchRequest* request, const mp::DaemonConfig* config)
@@ -1119,7 +1123,8 @@ void verify_snapshot_picks(const InstanceSelectionReport& report,
 
 void add_aliases(google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>* container,
                  const std::string& remote_name,
-                 const mp::VMImageInfo& info)
+                 const mp::VMImageInfo& info,
+                 bool is_default_remote)
 {
     if (!info.aliases.empty())
     {
@@ -1134,6 +1139,7 @@ void add_aliases(google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>* 
         entry->set_version(info.version);
         entry->set_codename(info.release_codename);
         entry->set_remote_name(remote_name);
+        entry->set_is_default_remote(is_default_remote);
     }
 }
 
@@ -1762,89 +1768,66 @@ try
     warn_driver_deprecation(*server); // TODO@deprecations remove
 
     ImagesReply response;
+    response.set_all_remotes(false);
 
-    if (!request->search_string().empty())
+    auto remotes = std::vector<std::string>{};
+
+    if (request->all_remotes())
     {
-        if (!request->remote_name().empty())
-        {
-            // This is a compromised solution for now, it throws if remote_name is invalid.
-            // In principle, it should catch the returned VMImageHost in the valid remote_name case
-            // and get the found VMImageHost reused in the follow-up code. However, because of the
-            // current framework, That would involve more changes because the query carries the
-            // remote name and there is another dispatch in the all_info_for function.
-            const auto& remote_name = request->remote_name();
-            config->vault->image_host_for(remote_name);
-        }
-
-        wait_update_manifests_all_and_optionally_applied_force(
-            request->force_manifest_network_download());
-        std::vector<std::pair<std::string, VMImageInfo>> vm_images_info;
-
-        try
-        {
-            vm_images_info = config->vault->all_info_for({"",
-                                                          request->search_string(),
-                                                          false,
-                                                          request->remote_name(),
-                                                          Query::Type::Alias,
-                                                          request->allow_unsupported()});
-        }
-        catch (const std::exception& e)
-        {
-            mpl::warn(category,
-                      "An unexpected error occurred while fetching images matching \"{}\": {}",
-                      request->search_string(),
-                      e.what());
-        }
-
-        for (auto& [remote, info] : vm_images_info)
-        {
-            // TODO(C++23): Use `std::ranges::contains` instead of `std::ranges::find`.
-            if (std::ranges::find(info.aliases, request->search_string()) != info.aliases.end())
-                info.aliases = {request->search_string()};
-            else
-                info.aliases = {info.id.substr(0, 12)};
-
-            auto remote_name = (!request->remote_name().empty() ||
-                                (request->remote_name().empty() && vm_images_info.size() > 1 &&
-                                 remote != mp::release_remote))
-                                 ? remote
-                                 : "";
-
-            add_aliases(response.mutable_images_info(), remote_name, info);
-        }
+        remotes = config->vault->get_remotes();
+        response.set_all_remotes(true);
     }
     else if (request->remote_name().empty())
     {
-        wait_update_manifests_all_and_optionally_applied_force(
-            request->force_manifest_network_download());
-        for (const auto& image_host : config->image_hosts)
-        {
-            std::unordered_set<std::string> images_found;
-            auto action = [&images_found, request, &response](const std::string& remote,
-                                                              const mp::VMImageInfo& info) {
-                if (remote != mp::snapcraft_remote &&
-                    (info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
-                    !images_found.contains(info.release_title))
-                {
-                    add_aliases(response.mutable_images_info(), remote, info);
-                    images_found.insert(info.release_title);
-                }
-            };
-
-            image_host->for_each_entry_do(action);
-        }
+        remotes.insert(remotes.end(), default_remotes.begin(), default_remotes.end());
     }
     else
     {
-        wait_update_manifests_all_and_optionally_applied_force(
-            request->force_manifest_network_download());
-        const auto& remote = request->remote_name();
-        auto image_host = config->vault->image_host_for(remote);
-        auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
+        remotes.emplace_back(request->remote_name());
+    }
 
-        for (const auto& info : vm_images_info)
-            add_aliases(response.mutable_images_info(), remote, info);
+    const auto force_manifest_update = request->force_manifest_network_download();
+    if (!remotes.empty() || force_manifest_update)
+    {
+        wait_update_manifests_all_and_optionally_applied_force(force_manifest_update);
+
+        std::vector<VMImageInfo> vm_images_info;
+        for (const auto& remote : remotes)
+        {
+            vm_images_info.clear();
+
+            try
+            {
+                const auto query = SearchQuery{
+                    .filter = request->search_string(),
+                    .remote_name = remote,
+                    .allow_unsupported = request->allow_unsupported(),
+                };
+
+                vm_images_info = config->vault->all_info_for(query);
+            }
+            catch (const RemoteNotFoundException& e)
+            {
+                if (!request->remote_name().empty())
+                {
+                    throw;
+                }
+            }
+            catch (const std::exception& e)
+            {
+                mpl::warn(category,
+                          "An unexpected error occurred while fetching images matching \"{}\": {}",
+                          request->search_string(),
+                          e.what());
+            }
+
+            for (auto& info : vm_images_info)
+            {
+                const auto is_default_remote = std::ranges::find(default_remotes, remote) !=
+                                               default_remotes.end();
+                add_aliases(response.mutable_images_info(), remote, info, is_default_remote);
+            }
+        }
     }
 
     server->Write(response);

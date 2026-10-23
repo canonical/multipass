@@ -46,9 +46,11 @@ struct CustomImageHost : public Test
     {
     }
 
-    mp::Query make_query(std::string release, std::string remote)
+    mp::SearchQuery make_query(std::string release, std::string remote)
     {
-        return {"", std::move(release), false, std::move(remote), mp::Query::Type::Alias};
+        return mp::SearchQuery{.filter = std::move(release),
+                               .remote_name = std::move(remote),
+                               .allow_unsupported = false};
     }
 
     QByteArray payload = mpt::load_test_file("custom_image_host/good_manifest.json");
@@ -96,7 +98,7 @@ TEST_F(CustomImageHost, allImagesForNoRemoteReturnsAppropriateMatches)
 
     host.update_manifests(false);
 
-    auto images = host.all_images_for("", false);
+    auto images = host.all_info_for(make_query("", ""));
     int supported_count = num_images_for_arch(payload);
 
     EXPECT_EQ(images.size(), supported_count);
@@ -136,14 +138,14 @@ TEST_F(CustomImageHost, supportedRemotesReturnsExpectedValues)
                 supported_remotes.end());
 }
 
-TEST_F(CustomImageHost, invalidImageReturnsFalse)
+TEST_F(CustomImageHost, invalidImageReturnsNullopt)
 {
     EXPECT_CALL(mock_url_downloader, download(_, _)).WillOnce(Return(payload));
     mp::CustomVMImageHost host{&mock_url_downloader};
 
     host.update_manifests(false);
 
-    EXPECT_FALSE(host.info_for(make_query("foo", "")));
+    EXPECT_EQ(host.info_for(make_query("foo", "")), std::nullopt);
 }
 
 TEST_F(CustomImageHost, invalidRemoteThrowsError)
@@ -166,11 +168,11 @@ TEST_F(CustomImageHost, handlesAndRecoversFromInitialNetworkFailure)
     int supported_count = num_images_for_arch(payload);
 
     host.update_manifests(false);
-    auto images_info = host.all_images_for("", false);
+    auto images_info = host.all_info_for(make_query("", ""));
     EXPECT_EQ(images_info.size(), 0);
 
     host.update_manifests(false);
-    images_info = host.all_images_for("", false);
+    images_info = host.all_info_for(make_query("", ""));
     EXPECT_EQ(images_info.size(), supported_count);
 }
 
@@ -185,13 +187,13 @@ TEST_F(CustomImageHost, handlesAndRecoversFromLaterNetworkFailure)
     int supported_count = num_images_for_arch(payload);
 
     host.update_manifests(false);
-    EXPECT_EQ(host.all_images_for("", false).size(), supported_count);
+    EXPECT_EQ(host.all_info_for(make_query("", "")).size(), supported_count);
 
     host.update_manifests(false);
-    EXPECT_EQ(host.all_images_for("", false).size(), 0);
+    EXPECT_EQ(host.all_info_for(make_query("", "")).size(), 0);
 
     host.update_manifests(false);
-    EXPECT_EQ(host.all_images_for("", false).size(), supported_count);
+    EXPECT_EQ(host.all_info_for(make_query("", "")).size(), supported_count);
 }
 
 TEST_F(CustomImageHost, infoForFullHashReturnsEmptyImageInfo)
@@ -238,7 +240,7 @@ TEST_F(CustomImageHost, badJsonLogsAndReturnsEmptyImages)
 
     host.update_manifests(false);
 
-    auto images = host.all_images_for("", false);
+    auto images = host.all_info_for(make_query("", ""));
 
     EXPECT_EQ(images.size(), 0);
 }

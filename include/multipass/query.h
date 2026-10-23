@@ -25,6 +25,14 @@
 
 namespace multipass
 {
+
+struct SearchQuery
+{
+    std::string filter = {};
+    std::string remote_name = {};
+    bool allow_unsupported = false;
+};
+
 class Query
 {
 public:
@@ -34,6 +42,13 @@ public:
         LocalFile,
         HttpDownload
     };
+
+    operator SearchQuery() const
+    {
+        return SearchQuery{.filter = release,
+                           .remote_name = remote_name,
+                           .allow_unsupported = allow_unsupported};
+    }
 
     std::string name;
     std::string release;
