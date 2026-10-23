@@ -297,7 +297,7 @@ set(MULTIPASS_VERSION_PATCH ${CMAKE_MATCH_3})
 
 message(STATUS "Version components: ${MULTIPASS_VERSION_MAJOR}.${MULTIPASS_VERSION_MINOR}.${MULTIPASS_VERSION_PATCH} (build: ${MULTIPASS_BUILD_NUMBER})")
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -347,7 +347,9 @@ endif()
 include(src/cmake/qemu-img-install-and-copy.cmake)
 
 if(CMAKE_BUILD_TYPE_LOWER  MATCHES "coverage")
-  find_program(GCOV gcov)
+  # gcov must match the compiler that produced the .gcno files (e.g. gcov-14 for g++-14)
+  string(REGEX MATCH "^[0-9]+" CXX_COMPILER_VERSION_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
+  find_program(GCOV NAMES gcov-${CXX_COMPILER_VERSION_MAJOR} gcov)
   find_program(LCOV lcov)
   find_program(GENHTML genhtml)
 
@@ -408,7 +410,7 @@ if(CMAKE_BUILD_TYPE_LOWER  MATCHES "coverage")
       WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
       COMMAND ${LCOV} --directory . --zerocounters
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test
-      COMMAND ${LCOV} --directory . --capture --output-file coverage.info ${LCOV_IGNORE_ERRORS}
+      COMMAND ${LCOV} --directory . --capture --gcov-tool ${GCOV} --output-file coverage.info ${LCOV_IGNORE_ERRORS}
       COMMAND ${LCOV}
         --remove coverage.info
         --ignore-errors unused
