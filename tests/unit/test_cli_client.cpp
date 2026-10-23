@@ -1352,7 +1352,7 @@ struct LaunchReadinessTimeout
 {
 };
 
-TEST_P(LaunchReadinessTimeout, returnsTimeoutFailureAndWarnsThatMountsWereSkipped)
+TEST_P(LaunchReadinessTimeout, returnsTimeoutFailureWithoutMountGuidance)
 {
     const auto& [readiness_error, readiness_stage] = GetParam();
     const std::string instance_name{"my-vm"};
@@ -1374,6 +1374,34 @@ TEST_P(LaunchReadinessTimeout, returnsTimeoutFailureAndWarnsThatMountsWereSkippe
     EXPECT_THAT(cerr_stream.str(), HasSubstr("multipass list"));
     EXPECT_THAT(cerr_stream.str(),
                 HasSubstr(fmt::format("multipass exec {} -- cloud-init status", instance_name)));
+    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("No mounts were performed.")));
+    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass mount")));
+}
+
+TEST_P(LaunchReadinessTimeout, includesMountGuidanceForMountOption)
+{
+    const auto& [readiness_error, readiness_stage] = GetParam();
+    const std::string instance_name{"my-vm"};
+    const QTemporaryDir mount_source{};
+
+    mp::LaunchError launch_error;
+    launch_error.set_readiness_error(readiness_error);
+    const grpc::Status failure{grpc::StatusCode::DEADLINE_EXCEEDED,
+                               "readiness timed out",
+                               launch_error.SerializeAsString()};
+
+    EXPECT_CALL(mock_daemon, launch(_, _)).WillOnce(Return(failure));
+    EXPECT_CALL(mock_daemon, mount).Times(0);
+
+    std::stringstream cerr_stream;
+    EXPECT_THAT(
+        send_command(
+            {"launch", "--name", instance_name, "--mount", mount_source.path().toStdString()},
+            trash_stream,
+            cerr_stream),
+        Eq(mp::ReturnCode::TimeoutFailure));
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr(fmt::format("Timed out waiting for {}.", readiness_stage)));
     EXPECT_THAT(cerr_stream.str(), HasSubstr("No mounts were performed."));
     EXPECT_THAT(cerr_stream.str(),
                 HasSubstr(fmt::format("multipass mount <source> {}:<target>", instance_name)));
@@ -4397,9 +4425,27 @@ TEST_P(TimeoutSuite, commandExitsOnTimeout)
     {
         EXPECT_THAT(cerr_stream.str(), HasSubstr("The instance status is unknown"));
         EXPECT_THAT(cerr_stream.str(), HasSubstr("multipass list"));
-        EXPECT_THAT(cerr_stream.str(), HasSubstr("Mounts may not have been performed"));
-        EXPECT_THAT(cerr_stream.str(), HasSubstr("multipass mount"));
+        EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("Mounts may not have been performed")));
+        EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass mount")));
     }
+}
+
+TEST_F(Client, launchClientTimeoutIncludesMountGuidanceForMountOption)
+{
+    const QTemporaryDir mount_source{};
+
+    EXPECT_CALL(mock_daemon, launch)
+        .WillOnce(TimeoutSuite::request_sleeper<mp::LaunchRequest, mp::LaunchReply>);
+    EXPECT_CALL(mock_daemon, mount).WillOnce(Return(ok));
+    EXPECT_CALL(*mock_utils, exit(mp::ReturnCode::TimeoutFailure));
+
+    std::stringstream cerr_stream;
+    send_command({"launch", "--timeout", "1", "--mount", mount_source.path().toStdString()},
+                 trash_stream,
+                 cerr_stream);
+
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("Mounts may not have been performed"));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("multipass mount <source> <vm-name>:<target>"));
 }
 
 TEST_P(TimeoutSuite, commandCompletesWithoutTimeout)

@@ -55,7 +55,9 @@ namespace
 constexpr auto client_timeout_message = R"(Timed out waiting for the launch operation.
 The instance status is unknown and it may still be starting. Check with:
 
-    multipass list
+    multipass list)";
+
+constexpr auto client_mount_timeout_message = R"(
 
 Mounts may not have been performed. Apply any missing mounts manually with:
 
@@ -68,7 +70,9 @@ The instance was created but may still be starting. Check with:
 
 Check its initialization status with:
 
-    multipass exec {} -- cloud-init status
+    multipass exec {} -- cloud-init status)";
+
+constexpr auto server_mount_timeout_message = R"(
 
 No mounts were performed. Apply any missing mounts manually with:
 
@@ -513,14 +517,18 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
     }
 
     const auto vm_name = request.instance_name().empty() ? "<vm-name>" : request.instance_name();
+    const auto has_mount_options = parser->isSet("mount");
     if (timer)
         timer->resume();
     else if (parser->isSet("timeout"))
     {
+        const auto mount_timeout_message = has_mount_options
+                                             ? fmt::format(client_mount_timeout_message, vm_name)
+                                             : std::string{};
         timer = cmd::make_timer(parser->value("timeout").toInt(),
                                 spinner.get(),
                                 cerr,
-                                fmt::format(client_timeout_message, vm_name));
+                                fmt::format("{}{}", client_timeout_message, mount_timeout_message));
         timer->start();
     }
 
@@ -596,8 +604,9 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &parser, vm_name](grpc::Status& status,
-                                               mp::LaunchReply& reply) -> ReturnCodeVariant {
+    auto on_failure =
+        [this, &parser, vm_name, has_mount_options](grpc::Status& status,
+                                                    mp::LaunchReply& reply) -> ReturnCodeVariant {
         spinner->stop();
         if (timer)
             timer->pause();
@@ -655,7 +664,14 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             const auto readiness_stage = readiness_error == ReadinessError::SSH_TIMEOUT
                                            ? "SSH"
                                            : "cloud-init";
-            error_details = fmt::format(server_timeout_message, readiness_stage, vm_name, vm_name);
+            const auto mount_timeout_message = has_mount_options
+                                                 ? fmt::format(server_mount_timeout_message,
+                                                               vm_name)
+                                                 : std::string{};
+            error_details = fmt::format(
+                "{}{}",
+                fmt::format(server_timeout_message, readiness_stage, vm_name),
+                mount_timeout_message);
         }
 
         return standard_failure_handler_for(name(), cerr, status, error_details);
