@@ -337,5 +337,5 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, createVirtualMachine)
     uut->prepare_networking(desc.extra_interfaces);
     auto ptr = uut->create_virtual_machine(desc, stub_key_provider, stub_monitor);
     ASSERT_NE(ptr, nullptr);
-    EXPECT_EQ(ptr->state, mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(ptr->fetch_state(), mp::VirtualMachine::State::stopped);
 }
