@@ -32,11 +32,11 @@ import re
 import sys
 import subprocess
 import threading
-import time
 from contextlib import suppress
 from typing import AsyncIterator, Optional
 
 from cli.utilities import (
+    retry,
     StdoutAsyncSubprocess,
     SilentAsyncSubprocess,
     sudo,
@@ -108,7 +108,7 @@ class WindowsServiceMultipassdController:
         self,
         command: str,
         *,
-        timeout: float = 720,
+        retries: int = 360,
         delay: float = 2.0,
         benign: tuple[int, ...] = (),
     ) -> None:
@@ -119,54 +119,60 @@ class WindowsServiceMultipassdController:
         `benign` are exit codes that already mean the desired end state (1056
         "already running" for start, 1062 "not active" for stop). Retry —
         telling the user we are waiting — so the in-flight transition can
-        settle; raise loudly for any other failure or once the deadline passes.
+        settle; raise loudly for any other failure or once the retries run out.
         """
-        deadline = time.monotonic() + timeout
         warned = False
-        while True:
+
+        @retry(retries=retries, delay=delay)
+        async def run_command() -> bool:
+            nonlocal warned
             async with SilentAsyncSubprocess(
                 *sudo("sc.exe", command, self.service_name)
             ) as proc:
                 await proc.communicate()
                 if proc.returncode in (0, *benign):
-                    return
+                    return True
                 if proc.returncode != 1061:
                     raise RuntimeError(
                         f"Failed to {command} service `{self.service_name}`: "
                         f"`sc.exe {command}` exited {proc.returncode}"
                     )
-            if time.monotonic() + delay >= deadline:
-                break
             if not warned:
                 logging.warning(
                     "`sc.exe %s %s`: a service-control change is still in "
-                    "progress; waiting up to %.0fs for it to settle...",
-                    command, self.service_name, timeout,
+                    "progress; waiting up to ~%.0fs for it to settle...",
+                    command, self.service_name, retries * delay,
                 )
                 warned = True
-            await asyncio.sleep(delay)
+            return False
 
-        raise RuntimeError(
-            f"`sc.exe {command} {self.service_name}` still had a service-control "
-            f"change in progress after {timeout:.0f}s"
-        )
+        if not await run_command():
+            raise RuntimeError(
+                f"`sc.exe {command} {self.service_name}` still had a service-control "
+                f"change in progress after {retries} retries"
+            )
 
-    async def _wait_for_state(self, active: bool, timeout: float = 60) -> None:
-        """Poll until the service is RUNNING (active) or not; fail on timeout.
+    async def _wait_for_state(
+        self, active: bool, retries: int = 120, delay: float = 0.5
+    ) -> None:
+        """Poll until the service is RUNNING (active) or not; fail once retries
+        run out.
 
         Bounds the poll so a service that never reaches the desired state fails
         fast with the real condition instead of spinning until the caller's
         external timeout cancels us.
         """
-        deadline = time.monotonic() + timeout
-        while await self.is_active() != active:
-            if time.monotonic() >= deadline:
-                desired = "running" if active else "stopped"
-                raise RuntimeError(
-                    f"Service `{self.service_name}` did not become {desired} "
-                    f"within {timeout}s"
-                )
-            await asyncio.sleep(0.5)
+
+        @retry(retries=retries, delay=delay)
+        async def reached_state() -> bool:
+            return await self.is_active() == active
+
+        if not await reached_state():
+            desired = "running" if active else "stopped"
+            raise RuntimeError(
+                f"Service `{self.service_name}` did not become {desired} "
+                f"after {retries} retries, {delay}s apart"
+            )
 
     async def restart(self) -> None:
         await self.stop(graceful=True)
