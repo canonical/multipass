@@ -20,7 +20,8 @@ extension InstanceDetailsExtensions on InstanceDetails {
   String formattedCreationTime({required bool isLaunching}) {
     final ts = creationTimestamp;
     if (isLaunching && ts.seconds == 0 && ts.nanos == 0) return '-';
-    return DateFormat('yyyy-MM-dd HH:mm:ss').format(ts.toDateTime());
+    return DateFormat('yyyy-MM-dd HH:mm:ss')
+        .format(ts.toDateTime(toLocal: true));
   }
 }
 
