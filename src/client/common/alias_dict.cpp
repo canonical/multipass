@@ -74,13 +74,9 @@ mp::AliasDict mp::AliasDict::load_file(mp::Terminal* term, const std::filesystem
             auto json = boost::json::parse(*filedata);
             auto result = value_to<AliasDict>(json, JSONContext{term, filename});
             const auto previous_context = result.active_context_name();
-            result.set_active_context(default_context_name);
-            if (result.modified)
-            {
-                // Commands copy this dictionary; do not leave stale copies pending a save.
-                result.save_file();
-                result.modified = false;
-            }
+            // Normalize in memory without marking this dictionary or its copies for saving.
+            result.active_context = default_context_name;
+            result.aliases.try_emplace(default_context_name, AliasContext{});
             if (previous_context != default_context_name)
                 result.cerr << fmt::format(
                     "Warning: alias context '{}' is inactive. Only the default context is active. "

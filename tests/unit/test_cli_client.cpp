@@ -21,6 +21,7 @@
 #include "disabling_macros.h"
 #include "fake_alias_config.h"
 #include "fake_key_data.h"
+#include "file_operations.h"
 #include "mock_cert_provider.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
@@ -5091,6 +5092,24 @@ TEST_F(ClientAlias, aliasCreatesInDefaultDespiteInactiveContext)
     EXPECT_THAT(cout_stream.str(),
                 csv_header + "an_alias,primary,another_command,map,default*,active\n"
                              "an_alias,primary,a_command,map,secondary,inactive\n");
+}
+
+TEST_F(ClientAlias, readOnlyLegacyAliasesDoNotPreventCommands)
+{
+    populate_db_file(AliasesVector{{"old_alias", {"primary", "whoami", "map"}}}, "secondary");
+    const auto filename = QString::fromStdString(db_filename());
+    const auto original_file = mpt::load(filename).toStdString();
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, try_read_file(_)).Times(2).WillRepeatedly(Return(original_file));
+    ON_CALL(*mock_file_ops, write_transactionally(_, _))
+        .WillByDefault(Throw(std::runtime_error("read-only filesystem")));
+    EXPECT_CALL(*mock_file_ops, write_transactionally(_, _)).Times(0);
+
+    std::stringstream cout_stream;
+    EXPECT_EQ(send_command({"aliases", "--format=csv"}, cout_stream), mp::ReturnCode::Ok);
+    EXPECT_EQ(cout_stream.str(), csv_header + "old_alias,primary,whoami,map,secondary,inactive\n");
+    EXPECT_EQ(send_command({"help", "prefer"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(mpt::load(filename).toStdString(), original_file);
 }
 
 TEST_F(ClientAlias, inactiveAliasesCannotExecute)
