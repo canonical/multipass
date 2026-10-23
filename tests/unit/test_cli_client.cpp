@@ -2376,6 +2376,16 @@ TEST_F(Client, recoverCmdFailsWithNamesAndAll)
                 Eq(mp::ReturnCode::CommandLineError));
 }
 
+TEST_F(Client, recoverCmdPrintsDeprecationWarning)
+{
+    EXPECT_CALL(mock_daemon, recover(_, _));
+
+    std::stringstream cerr_stream;
+    EXPECT_THAT(send_command({"recover", "foo"}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::Ok));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("`multipass recover` is deprecated"));
+}
+
 // start cli tests
 TEST_F(Client, startCmdOkWithOneArg)
 {
