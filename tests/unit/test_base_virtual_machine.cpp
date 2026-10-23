@@ -31,6 +31,7 @@
 
 #include <shared/base_virtual_machine.h>
 
+#include <multipass/exceptions/cloud_init_failed_exception.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
@@ -1357,21 +1358,59 @@ TEST_F(BaseVM, rollsbackFailedRestore)
     EXPECT_EQ(vm.take_snapshot(current_specs, "", "")->get_parent().get(), &last_snapshot);
 }
 
-TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
+std::unique_ptr<mp::SSHProcess> make_cloud_init_status_proc(const std::string& output,
+                                                            int exit_code = 0)
 {
+    auto proc = std::make_unique<NiceMock<mpt::MockSSHProcess>>();
+    ON_CALL(*proc, exit_code(_)).WillByDefault(Return(exit_code));
+    ON_CALL(*proc, read_std_output()).WillByDefault(Return(output));
+    return proc;
+}
+
+using CloudInitStatus = std::tuple<std::string, int>;
+struct TestWaitForCloudInitFinished : public BaseVM, WithParamInterface<CloudInitStatus>
+{
+};
+
+TEST_P(TestWaitForCloudInitFinished, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
+{
+    const auto& [output, exit_code] = GetParam();
+
     vm.simulate_cloud_init();
     EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
-    EXPECT_CALL(vm, ssh_exec).WillOnce(DoDefault());
+    EXPECT_CALL(vm, ssh_exec_process("cloud-init status", _))
+        .WillOnce(Return(ByMove(make_cloud_init_status_proc(output, exit_code))));
 
     std::chrono::milliseconds timeout(1);
     EXPECT_NO_THROW(vm.wait_for_cloud_init(timeout));
 }
 
-TEST_F(BaseVM, waitForCloudInitErrorTimesOutThrows)
+INSTANTIATE_TEST_SUITE_P(BaseVM,
+                         TestWaitForCloudInitFinished,
+                         Values(CloudInitStatus{"status: done\n", 0},
+                                CloudInitStatus{"status: degraded done\n", 2},
+                                CloudInitStatus{"status: disabled\n", 0}));
+
+TEST_F(BaseVM, waitForCloudInitErrorThrowsWithoutWaitingForTimeout)
 {
     vm.simulate_cloud_init();
     EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
-    EXPECT_CALL(vm, ssh_exec).WillOnce(Throw(mp::SSHExecFailure{"no worky", 1}));
+    EXPECT_CALL(vm, ssh_exec_process("cloud-init status", _))
+        .WillOnce(Return(ByMove(make_cloud_init_status_proc("status: error\n", 1))));
+
+    std::chrono::milliseconds timeout(std::chrono::minutes(5));
+    MP_EXPECT_THROW_THAT(vm.wait_for_cloud_init(timeout),
+                         mp::CloudInitFailedException,
+                         mpt::match_what(HasSubstr("cloud-init failed")));
+}
+
+TEST_F(BaseVM, waitForCloudInitStillRunningTimesOutThrows)
+{
+    vm.simulate_cloud_init();
+    EXPECT_CALL(vm, current_state()).WillRepeatedly(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(vm, ssh_exec_process("cloud-init status", _)).WillRepeatedly([](auto&&...) {
+        return make_cloud_init_status_proc("status: running\n");
+    });
 
     std::chrono::milliseconds timeout(1);
     MP_EXPECT_THROW_THAT(
@@ -1390,9 +1429,9 @@ TEST_F(BaseVM, waitForCloudInitVMDownReconnects)
     EXPECT_CALL(vm, ssh_hostname());
     EXPECT_CALL(vm, ssh_port());
     EXPECT_CALL(vm, ssh_username());
-    EXPECT_CALL(vm, ssh_exec)
+    EXPECT_CALL(vm, ssh_exec_process("cloud-init status", _))
         .WillOnce(Throw(mp::SSHVMNotRunning{"VM is touching grass"}))
-        .WillOnce(Return(""));
+        .WillOnce(Return(ByMove(make_cloud_init_status_proc("status: done\n"))));
 
     std::chrono::milliseconds timeout(2000);
     EXPECT_NO_THROW(vm.wait_for_cloud_init(timeout));
