@@ -16,11 +16,13 @@
  */
 
 #include "common.h"
-#include "mock_ssh.h"
+#include "mock_ssh_callback_engine.h"
 #include "mock_ssh_test_fixture.h"
 #include "stub_ssh_key_provider.h"
 
+#include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/ssh/plain_ssh_session.h>
+#include <multipass/ssh/ssh_signal.h>
 
 #include <algorithm>
 #include <thread>
@@ -34,27 +36,34 @@ namespace
 {
 struct SSHProcess : public Test
 {
+    SSHProcess()
+    {
+        ON_CALL(mock_libssh, ssh_is_connected).WillByDefault(Return(1));
+        ON_CALL(mock_libssh, ssh_channel_new).WillByDefault([](auto...) {
+            return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef);
+        });
+        ON_CALL(mock_libssh, ssh_event_new).WillByDefault([](auto...) {
+            return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef);
+        });
+        ON_CALL(mock_libssh, ssh_event_add_session).WillByDefault([](auto...) { return SSH_OK; });
+    }
     const mpt::StubSSHKeyProvider key_provider;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     mp::PlainSSHSession session{"theanswertoeverything", 42, "ubuntu", key_provider};
+    mpt::MockLibssh::GuardedMock libssh_guard{mpt::MockLibssh::inject()};
+    mpt::MockLibssh& mock_libssh = *libssh_guard.first;
+    mpt::CallbackEngineMock callback_mock_engine{mock_libssh,
+                                                 mpt::CallbackEngineMock::channel_exit_success};
 };
 } // namespace
 
 TEST_F(SSHProcess, canRetrieveExitStatus)
 {
     static constexpr int expected_status{42};
-    REPLACE(ssh_channel_new,
-            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
-    REPLACE(ssh_channel_free, [](auto...) { return; });
-    REPLACE(ssh_add_channel_callbacks, [](ssh_channel, ssh_channel_callbacks_struct* cb) {
-        cb->channel_exit_status_function(nullptr, nullptr, expected_status, cb->userdata);
-        return SSH_OK;
-    });
-    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
-    REPLACE(ssh_event_free, [](auto...) { return; });
-    REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
+    mpt::CallbackChannelState cb_state{};
+    cb_state.exit_code = expected_status;
+    callback_mock_engine.push_state(cb_state);
+    callback_mock_engine.pop_state();
 
     auto proc = session.exec("something");
     EXPECT_THAT(proc->exit_code(), Eq(expected_status));
@@ -62,7 +71,7 @@ TEST_F(SSHProcess, canRetrieveExitStatus)
 
 TEST_F(SSHProcess, exitCodeTimesOut)
 {
-    REPLACE(ssh_event_dopoll, [](ssh_event, int timeout) {
+    EXPECT_CALL(mock_libssh, ssh_event_dopoll).WillRepeatedly([](ssh_event, int timeout) {
         std::this_thread::sleep_for(std::chrono::milliseconds(timeout + 1));
         return SSH_OK;
     });
@@ -77,7 +86,7 @@ TEST_F(SSHProcess, specifiesStderrCorrectly)
         EXPECT_THAT(expected_is_stderr, Eq(is_stderr));
         return 0;
     };
-    REPLACE(ssh_channel_read_timeout, channel_read);
+    EXPECT_CALL(mock_libssh, ssh_channel_read_timeout).WillRepeatedly(channel_read);
 
     auto proc = session.exec("something");
     proc->read_std_output();
@@ -88,8 +97,6 @@ TEST_F(SSHProcess, specifiesStderrCorrectly)
 
 TEST_F(SSHProcess, readingOutputReturnsEmptyIfChannelClosed)
 {
-    REPLACE(ssh_channel_is_closed, [](auto...) { return 1; });
-
     auto proc = session.exec("something");
     auto output = proc->read_std_output();
     EXPECT_TRUE(output.empty());
@@ -102,18 +109,20 @@ TEST_F(SSHProcess, readingOutputDrainsBufferedDataEvenIfChannelClosed)
     std::string expected_output{"buffered content"};
     auto remaining = expected_output.size();
     auto channel_read = [&expected_output,
-                         &remaining](ssh_channel, void* dest, uint32_t count, int, int) {
+                         &remaining](ssh_channel, void* dest, uint32_t count, int, int) -> int {
+        if (remaining == 0)
+        {
+            // Everything was drained: libssh now reports the closure and fails further reads
+            MP_LIBSSH.ssh_event_dopoll(nullptr, 0);
+            return -1;
+        }
         const auto num_to_copy = std::min(count, static_cast<uint32_t>(remaining));
         const auto begin = expected_output.begin() + expected_output.size() - remaining;
         std::copy_n(begin, num_to_copy, reinterpret_cast<char*>(dest));
         remaining -= num_to_copy;
         return num_to_copy;
     };
-    REPLACE(ssh_channel_new,
-            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
-    REPLACE(ssh_channel_free, [](auto...) { return; });
-    REPLACE(ssh_channel_read_timeout, channel_read);
-    REPLACE(ssh_channel_is_closed, [](auto...) { return 1; });
+    EXPECT_CALL(mock_libssh, ssh_channel_read_timeout).WillRepeatedly(channel_read);
 
     auto proc = session.exec("something");
     auto output = proc->read_std_output();
@@ -123,12 +132,10 @@ TEST_F(SSHProcess, readingOutputDrainsBufferedDataEvenIfChannelClosed)
 
 TEST_F(SSHProcess, readingFailureReturnsEmptyIfChannelClosed)
 {
-    int channel_closed{0};
-    REPLACE(ssh_channel_read_timeout, [&channel_closed](auto...) {
-        channel_closed = 1;
+    EXPECT_CALL(mock_libssh, ssh_channel_read_timeout).WillRepeatedly([](auto...) {
+        MP_LIBSSH.ssh_event_dopoll(nullptr, 0);
         return -1;
     });
-    REPLACE(ssh_channel_is_closed, [&channel_closed](auto...) { return channel_closed; });
 
     auto proc = session.exec("something");
     auto output = proc->read_std_output();
@@ -137,10 +144,7 @@ TEST_F(SSHProcess, readingFailureReturnsEmptyIfChannelClosed)
 
 TEST_F(SSHProcess, throwsOnReadErrors)
 {
-    REPLACE(ssh_channel_new,
-            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
-    REPLACE(ssh_channel_free, [](auto...) { return; });
-    REPLACE(ssh_channel_read_timeout, [](auto...) { return -1; });
+    EXPECT_CALL(mock_libssh, ssh_channel_read_timeout).WillOnce([](auto...) { return -1; });
 
     auto proc = session.exec("something");
     EXPECT_THROW(proc->read_std_output(), std::runtime_error);
@@ -148,7 +152,7 @@ TEST_F(SSHProcess, throwsOnReadErrors)
 
 TEST_F(SSHProcess, readStdOutputReturnsEmptyStringOnEof)
 {
-    REPLACE(ssh_channel_read_timeout, [](auto...) { return 0; });
+    EXPECT_CALL(mock_libssh, ssh_channel_read_timeout).WillOnce([](auto...) { return 0; });
 
     auto proc = session.exec("something");
     auto output = proc->read_std_output();
@@ -168,10 +172,7 @@ TEST_F(SSHProcess, canReadOutput)
         remaining -= num_to_copy;
         return num_to_copy;
     };
-    REPLACE(ssh_channel_new,
-            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
-    REPLACE(ssh_channel_free, [](auto...) { return; });
-    REPLACE(ssh_channel_read_timeout, channel_read);
+    EXPECT_CALL(mock_libssh, ssh_channel_read_timeout).WillRepeatedly(channel_read);
 
     auto proc = session.exec("something");
     auto output = proc->read_std_output();
@@ -185,3 +186,80 @@ TEST_F(SSHProcess, getCmdReturnsCommandName)
     auto proc = session.exec(cmd);
     EXPECT_EQ(proc->get_cmd(), cmd);
 }
+
+TEST_F(SSHProcess, exitCodeThrowsWhenEventAllocationFails)
+{
+    EXPECT_CALL(mock_libssh, ssh_event_new).WillOnce([](auto...) { return nullptr; });
+
+    auto proc = session.exec("something");
+    MP_EXPECT_THROW_THAT(proc->exit_code(),
+                         mp::SSHProcessExitError,
+                         mpt::match_what(HasSubstr("could not allocate a libssh event context")));
+}
+
+TEST_F(SSHProcess, exitCodeThrowsWhenAddSessionFails)
+{
+    static constexpr auto* raw_error = "boom";
+    EXPECT_CALL(mock_libssh, ssh_event_add_session).WillOnce([](auto...) { return SSH_ERROR; });
+    EXPECT_CALL(mock_libssh, ssh_get_error).WillOnce([](auto...) { return raw_error; });
+
+    auto proc = session.exec("something");
+    MP_EXPECT_THROW_THAT(
+        proc->exit_code(),
+        mp::SSHProcessExitError,
+        mpt::match_what(AllOf(HasSubstr("could not add a libssh event context to the SSH session"),
+                              HasSubstr(raw_error))));
+}
+
+TEST_F(SSHProcess, exitCodeThrowsWhenAddSessionFailsWithoutErrorDetail)
+{
+    EXPECT_CALL(mock_libssh, ssh_event_add_session).WillOnce([](auto...) { return SSH_ERROR; });
+    EXPECT_CALL(mock_libssh, ssh_get_error).WillOnce([](auto...) { return nullptr; });
+
+    auto proc = session.exec("something");
+    MP_EXPECT_THROW_THAT(
+        proc->exit_code(),
+        mp::SSHProcessExitError,
+        mpt::match_what(AllOf(HasSubstr("could not add a libssh event context to the SSH session"),
+                              HasSubstr("no detail"))));
+}
+
+struct SSHProcessSignals : public SSHProcess, public ::testing::WithParamInterface<const char*>
+{
+};
+
+TEST_P(SSHProcessSignals, exitSignalIsProcessedAccordingly)
+{
+    constexpr auto base_signal_exit_code{128};
+    const auto signal = GetParam();
+    const auto signal_pos = signal && *signal ? std::find_if(mp::SSH::signal_map.begin(),
+                                                             mp::SSH::signal_map.end(),
+                                                             [signal](const auto& sigmap) {
+                                                                 return sigmap.name.find(signal) !=
+                                                                        std::string::npos;
+                                                             })
+                                              : mp::SSH::signal_map.end();
+    const auto signal_code = (signal_pos == mp::SSH::signal_map.end()
+                                  ? base_signal_exit_code
+                                  : signal_pos->offset + base_signal_exit_code);
+    mpt::CallbackChannelState cb_state{};
+    cb_state.signal = signal ? signal : "";
+    callback_mock_engine.push_state(cb_state);
+    callback_mock_engine.pop_state();
+
+    auto proc = session.exec("something");
+    EXPECT_THAT(proc->exit_code(), Eq(signal_code));
+}
+
+INSTANTIATE_TEST_SUITE_P(SSHProcess,
+                         SSHProcessSignals,
+                         ::testing::Values("HUP",
+                                           "INT",
+                                           "QUIT",
+                                           "USR1",
+                                           "SEGV",
+                                           "USR2",
+                                           "TERM",
+                                           "UNKNOWN",
+                                           "",
+                                           nullptr));
