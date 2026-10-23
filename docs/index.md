@@ -218,7 +218,6 @@ Developers can use Multipass to prototype cloud deployments and to create fresh,
 
 {doc}`Hyperkit to QEMU on macOS <how-to-guides/customise-multipass/migrate-from-hyperkit-to-qemu-on-macos>`
 {doc}`Hyper-V to HCS on Windows <how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows>`
-{doc}`VirtualBox to another driver <how-to-guides/customise-multipass/move-from-virtualbox-to-another-driver>`
 ```
 
 ```{slice} Platform specific
