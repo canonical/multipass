@@ -1389,19 +1389,23 @@ TEST_P(LaunchReadinessTimeout, includesMountGuidanceForMountOption)
     const grpc::Status failure{grpc::StatusCode::DEADLINE_EXCEEDED,
                                "readiness timed out",
                                launch_error.SerializeAsString()};
+    mp::LaunchReply reply;
+    reply.set_vm_instance_name(instance_name);
 
-    EXPECT_CALL(mock_daemon, launch(_, _)).WillOnce(Return(failure));
+    EXPECT_CALL(mock_daemon, launch)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(_, failure, reply)));
     EXPECT_CALL(mock_daemon, mount).Times(0);
 
     std::stringstream cerr_stream;
-    EXPECT_THAT(
-        send_command(
-            {"launch", "--name", instance_name, "--mount", mount_source.path().toStdString()},
-            trash_stream,
-            cerr_stream),
-        Eq(mp::ReturnCode::TimeoutFailure));
+    EXPECT_THAT(send_command({"launch", "--mount", mount_source.path().toStdString()},
+                             trash_stream,
+                             cerr_stream),
+                Eq(mp::ReturnCode::TimeoutFailure));
     EXPECT_THAT(cerr_stream.str(),
                 HasSubstr(fmt::format("Timed out waiting for {}.", readiness_stage)));
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr(fmt::format("multipass exec {} -- cloud-init status", instance_name)));
     EXPECT_THAT(cerr_stream.str(), HasSubstr("No mounts were performed."));
     EXPECT_THAT(cerr_stream.str(),
                 HasSubstr(fmt::format("multipass mount <source> {}:<target>", instance_name)));

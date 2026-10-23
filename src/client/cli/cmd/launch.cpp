@@ -664,13 +664,16 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             const auto readiness_stage = readiness_error == ReadinessError::SSH_TIMEOUT
                                            ? "SSH"
                                            : "cloud-init";
+            const auto& server_vm_name = reply.vm_instance_name().empty()
+                                           ? vm_name
+                                           : reply.vm_instance_name();
             const auto mount_timeout_message = has_mount_options
                                                  ? fmt::format(server_mount_timeout_message,
-                                                               vm_name)
+                                                               server_vm_name)
                                                  : std::string{};
             error_details = fmt::format(
                 "{}{}",
-                fmt::format(server_timeout_message, readiness_stage, vm_name),
+                fmt::format(server_timeout_message, readiness_stage, server_vm_name),
                 mount_timeout_message);
         }
 
