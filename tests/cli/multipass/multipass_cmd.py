@@ -65,22 +65,36 @@ def get_boot_id(name):
 
 
 def restart_prologue(args, kwargs):
+    from .helpers import state
     logging.debug(f"restart_prologue: args: {args}, kwargs: {kwargs}")
     filtered_args = _restart_hook_common(args)
 
     boot_ids = {}
     for vm_name in filtered_args:
-        boot_ids[vm_name] = get_boot_id(vm_name)
-
+        # Non-running instances have no boot id yet
+        boot_ids[vm_name] = get_boot_id(vm_name) if state(vm_name) == "Running" else None
     return boot_ids
 
 
 def restart_epilogue(args, kwargs, result, prologue_result):
+    from .helpers import state
     logging.debug(
         f"epilogue: args: {args}, kwargs: {kwargs}, result: {result}, prologue_result: {prologue_result}")
+    if not result:
+        return
+
+    running_only = "--running-only" in args
     filtered_args = _restart_hook_common(args)
     for vm_name in filtered_args:
         assert vm_name in prologue_result
+
+        # Only --running-only leaves non-running instances untouched; otherwise every instance
+        # must come back up with a new boot id
+        if running_only and prologue_result[vm_name] is None:
+            continue
+
+        # Check before exec'ing, as exec would auto-start a non-running instance and mask the failure
+        assert state(vm_name) == "Running", f"{vm_name} is not running after restart"
 
         @retry(retries=50, delay=20)
         def attempt_ssh(vm_name):

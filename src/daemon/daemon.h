@@ -208,12 +208,17 @@ private:
                    DaemonRpcContext* context,
                    bool start);
     void delete_vm(InstanceTable::iterator vm_it, DeleteReply& response);
-    grpc::Status reboot_vm(VirtualMachine& vm);
+    grpc::Status reboot_vm(VirtualMachine& vm, bool running_only);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status switch_off_vm(VirtualMachine& vm);
     grpc::Status make_vm_unavailable(VirtualMachine& vm);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
+
+    // Starts the suspended targets (main thread only); returns the VMs that were started
+    grpc::Status restart_start_suspended_instances(
+        const std::vector<InstanceTable::iterator>& instance_targets,
+        std::vector<VirtualMachine::ShPtr>& started_vms);
 
     void init_mounts(const std::string& name);
     void stop_mounts(const std::string& name);
