@@ -230,7 +230,7 @@ std::unique_ptr<multipass::utils::Timer> multipass::cmd::make_timer(int timeout,
                                                                if (spinner)
                                                                    spinner->stop();
                                                                cerr << msg << std::endl;
-                                                               MP_UTILS.exit(mp::timeout_exit_code);
+                                                               MP_UTILS.exit(ReturnCode::TimeoutFailure);
                                                            });
 
     return timer;

@@ -35,8 +35,6 @@ enum ReturnCode
     CommandFail = 2,
     DaemonFail = 3,
     Retry = 4,
-    // For now server-side timeout and client-side (mp::timeout_exit_code) timeout return the same
-    // exit code of 75.
     TimeoutFailure = 75,
     ShellExecFail = 255,
 };
