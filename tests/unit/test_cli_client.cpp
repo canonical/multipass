@@ -1346,6 +1346,80 @@ TEST_F(Client, launchCmdWithUnavailableZoneFails)
     EXPECT_THAT(send_command({"launch", "--zone", "zone1"}), Eq(mp::ReturnCode::CommandFail));
 }
 
+struct LaunchReadinessTimeout
+    : Client,
+      WithParamInterface<std::pair<mp::ReadinessError::ErrorCode, std::string>>
+{
+};
+
+TEST_P(LaunchReadinessTimeout, returnsTimeoutFailureWithoutMountGuidance)
+{
+    const auto& [readiness_error, readiness_stage] = GetParam();
+    const std::string instance_name{"my-vm"};
+
+    mp::LaunchError launch_error;
+    launch_error.set_readiness_error(readiness_error);
+    const grpc::Status failure{grpc::StatusCode::DEADLINE_EXCEEDED,
+                               "readiness timed out",
+                               launch_error.SerializeAsString()};
+
+    EXPECT_CALL(mock_daemon, launch(_, _)).WillOnce(Return(failure));
+    EXPECT_CALL(mock_daemon, mount).Times(0);
+
+    std::stringstream cerr_stream;
+    EXPECT_THAT(send_command({"launch", "--name", instance_name}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::TimeoutFailure));
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr(fmt::format("Timed out waiting for {}.", readiness_stage)));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr(fmt::format("multipass info {}", instance_name)));
+    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass list")));
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr(fmt::format("multipass exec {} -- cloud-init status", instance_name)));
+    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("No mounts were performed.")));
+    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass mount")));
+}
+
+TEST_P(LaunchReadinessTimeout, includesMountGuidanceForMountOption)
+{
+    const auto& [readiness_error, readiness_stage] = GetParam();
+    const std::string instance_name{"my-vm"};
+    const QTemporaryDir mount_source{};
+
+    mp::LaunchError launch_error;
+    launch_error.set_readiness_error(readiness_error);
+    const grpc::Status failure{grpc::StatusCode::DEADLINE_EXCEEDED,
+                               "readiness timed out",
+                               launch_error.SerializeAsString()};
+    mp::LaunchReply reply;
+    reply.set_vm_instance_name(instance_name);
+
+    EXPECT_CALL(mock_daemon, launch)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(_, failure, reply)));
+    EXPECT_CALL(mock_daemon, mount).Times(0);
+
+    std::stringstream cerr_stream;
+    EXPECT_THAT(send_command({"launch", "--mount", mount_source.path().toStdString()},
+                             trash_stream,
+                             cerr_stream),
+                Eq(mp::ReturnCode::TimeoutFailure));
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr(fmt::format("Timed out waiting for {}.", readiness_stage)));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr(fmt::format("multipass info {}", instance_name)));
+    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass list")));
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr(fmt::format("multipass exec {} -- cloud-init status", instance_name)));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("No mounts were performed."));
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr(fmt::format("multipass mount <source> {}:<target>", instance_name)));
+}
+
+INSTANTIATE_TEST_SUITE_P(Client,
+                         LaunchReadinessTimeout,
+                         Values(std::make_pair(mp::ReadinessError::SSH_TIMEOUT, "SSH"),
+                                std::make_pair(mp::ReadinessError::CLOUD_INIT_TIMEOUT,
+                                               "cloud-init")));
+
 TEST_F(Client, launchCmdWithTimer)
 {
     EXPECT_CALL(mock_daemon, launch(_, _));
@@ -4344,15 +4418,52 @@ struct TimeoutSuite : Client, WithParamInterface<std::string>
 
 TEST_P(TimeoutSuite, commandExitsOnTimeout)
 {
-
     EXPECT_CALL(mock_daemon, launch).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, restart).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, ssh_info).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, wait_ready).Times(AtMost(1));
-    EXPECT_CALL(*mock_utils, exit(mp::timeout_exit_code));
+    EXPECT_CALL(*mock_utils, exit(mp::ReturnCode::TimeoutFailure));
 
-    send_command({GetParam(), "--timeout", "1"});
+    std::stringstream cerr_stream;
+    send_command({GetParam(), "--timeout", "1"}, trash_stream, cerr_stream);
+
+    if (GetParam() == "launch")
+    {
+        EXPECT_THAT(cerr_stream.str(), HasSubstr("The instance status is unknown"));
+        EXPECT_THAT(cerr_stream.str(), HasSubstr("multipass list"));
+        EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass info")));
+        EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("Mounts may not have been performed")));
+        EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass mount")));
+    }
+}
+
+TEST_F(Client, launchClientTimeoutIncludesMountGuidanceForMountOption)
+{
+    const QTemporaryDir mount_source{};
+    const std::string instance_name{"my-vm"};
+
+    EXPECT_CALL(mock_daemon, launch)
+        .WillOnce(TimeoutSuite::request_sleeper<mp::LaunchRequest, mp::LaunchReply>);
+    EXPECT_CALL(mock_daemon, mount).WillOnce(Return(ok));
+    EXPECT_CALL(*mock_utils, exit(mp::ReturnCode::TimeoutFailure));
+
+    std::stringstream cerr_stream;
+    send_command({"launch",
+                  "--name",
+                  instance_name,
+                  "--timeout",
+                  "1",
+                  "--mount",
+                  mount_source.path().toStdString()},
+                 trash_stream,
+                 cerr_stream);
+
+    EXPECT_THAT(cerr_stream.str(), HasSubstr(fmt::format("multipass info {}", instance_name)));
+    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass list")));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("Mounts may not have been performed"));
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr(fmt::format("multipass mount <source> {}:<target>", instance_name)));
 }
 
 TEST_P(TimeoutSuite, commandCompletesWithoutTimeout)

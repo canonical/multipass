@@ -15,6 +15,8 @@ For example:
 multipass restart desirable-earwig
 ```
 
+If the timeout expires, the command exits with status `75`. The restart operation may continue in the background.
+
 ---
 
 The full `multipass help restart` output explains the available options:

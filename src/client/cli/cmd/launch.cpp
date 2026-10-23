@@ -33,6 +33,7 @@
 #include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
 #include <multipass/url_downloader.h>
+#include <multipass/user_messages/launch_messages.h>
 #include <multipass/utils.h>
 
 #include <yaml-cpp/yaml.h>
@@ -489,6 +490,8 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         request.set_zone(zone);
     }
 
+    const auto vm_name = request.instance_name();
+    const auto has_mount_options = parser->isSet("mount");
     if (timer)
         timer->resume();
     else if (parser->isSet("timeout"))
@@ -496,7 +499,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         timer = cmd::make_timer(parser->value("timeout").toInt(),
                                 spinner.get(),
                                 cerr,
-                                "Timed out waiting for instance launch.");
+                                mp::LaunchUserMessages::client_timeout(vm_name, has_mount_options));
         timer->start();
     }
 
@@ -572,8 +575,9 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &parser](grpc::Status& status,
-                                      mp::LaunchReply& reply) -> ReturnCodeVariant {
+    auto on_failure =
+        [this, &parser, vm_name, has_mount_options](grpc::Status& status,
+                                                    mp::LaunchReply& reply) -> ReturnCodeVariant {
         spinner->stop();
         if (timer)
             timer->pause();
@@ -618,6 +622,22 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             {
                 error_details = fmt::format("Unavailable zone name supplied: {}", request.zone());
             }
+        }
+
+        const auto readiness_error = launch_error.readiness_error();
+        const auto readiness_timed_out = readiness_error == ReadinessError::SSH_TIMEOUT ||
+                                         readiness_error == ReadinessError::CLOUD_INIT_TIMEOUT;
+
+        if (readiness_timed_out)
+        {
+            assert(launch_error.error_codes().empty());
+
+            const auto& server_vm_name = reply.vm_instance_name().empty()
+                                           ? vm_name
+                                           : reply.vm_instance_name();
+            error_details = mp::LaunchUserMessages::server_timeout(readiness_error,
+                                                                   server_vm_name,
+                                                                   has_mount_options);
         }
 
         return standard_failure_handler_for(name(), cerr, status, error_details);

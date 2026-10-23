@@ -34,6 +34,8 @@ To open a shell in an existing instance, run the command:
 multipass shell <instance name>
 ```
 
+If the timeout expires, the command exits with status `75`. Instance startup may continue in the background.
+
 ---
 
 The full `multipass help shell` output explains the available options:
