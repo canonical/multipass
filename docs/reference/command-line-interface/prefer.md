@@ -3,11 +3,15 @@
 
 > See also:  [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases)
 
-The `prefer` command, introduced in Multipass release 1.11.0,  is used to switch alias contexts. It accepts a single argument, specifying the name of the context to switch to.
+```{caution}
+The `prefer` command is deprecated and will be removed in an upcoming release. Use unique alias names to avoid switching alias contexts.
+```
 
-For example, the command `multipass prefer secondary` makes `secondary` the current context. If the given context does not exist, Multipass creates it.
+The `prefer` command previously switched alias contexts. It remains recognised during the deprecation period, but returns an error instead of creating or switching contexts.
 
-Subsequent calls to [`alias`](/reference/command-line-interface/alias) , [`unalias`](/reference/command-line-interface/unalias) and running any aliases from the command line will use the aliases defined in the given context.
+Only the `default` context is active. Its aliases continue to work. Existing non-default contexts are inactive: their definitions remain visible in [`aliases`](/reference/command-line-interface/aliases), but cannot be executed, even using a context-qualified name.
+
+To use a definition from an inactive context, recreate it in `default` with [`alias`](/reference/command-line-interface/alias), choosing a unique name. See [Use instance command aliases](/how-to-guides/manage-instances/use-instance-command-aliases) for the migration steps.
 
 ---
 
@@ -15,7 +19,8 @@ The full `multipass help prefer` output explains the available options:
 
 ```{code-block} text
 Usage: multipass prefer [options] <name>
-Switch the current alias context. If it does not exist, create it before switching.
+Alias contexts can no longer be switched. Only the default context is active. Use
+'multipass aliases' to inspect inactive definitions.
 
 Options:
   -h, --help     Displays help on commandline options
@@ -24,5 +29,5 @@ Options:
                  v's, i.e. -vvvv.
 
 Arguments:
-  name           Name of the context to switch to
+  name           Name of the context (no longer supported)
 ```

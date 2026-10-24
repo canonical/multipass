@@ -26,19 +26,15 @@ mp::ReturnCodeVariant mp::cmd::create_alias(AliasDict& aliases,
                                             const std::string& alias_name,
                                             const AliasDefinition& alias_definition,
                                             std::ostream& cout,
-                                            std::ostream& cerr,
-                                            const std::optional<std::string>& context)
+                                            std::ostream& cerr)
 {
     bool empty_before_add = aliases.empty();
 
-    auto old_context_name = aliases.active_context_name();
-
-    if (context)
-        aliases.set_active_context(*context);
+    aliases.set_active_context(default_context_name);
 
     if (!aliases.add_alias(alias_name, alias_definition))
     {
-        aliases.set_active_context(old_context_name);
+        cerr << fmt::format("Alias '{}' already exists in the default context\n", alias_name);
         return ReturnCode::CommandLineError;
     }
 
@@ -50,7 +46,6 @@ mp::ReturnCodeVariant mp::cmd::create_alias(AliasDict& aliases,
     catch (std::runtime_error& e)
     {
         aliases.remove_alias(alias_name);
-        aliases.set_active_context(old_context_name);
 
         cerr << fmt::format("Error when creating script for alias: {}\n", e.what());
 
@@ -59,23 +54,17 @@ mp::ReturnCodeVariant mp::cmd::create_alias(AliasDict& aliases,
 
     try
     {
-        if (aliases.is_alias_unique(alias_name))
-        {
-            MP_PLATFORM.create_alias_script(alias_name, alias_definition);
-        }
+        MP_PLATFORM.create_alias_script(alias_name, alias_definition);
     }
     catch (std::runtime_error& e)
     {
         aliases.remove_alias(alias_name);
-        aliases.set_active_context(old_context_name);
         MP_PLATFORM.remove_alias_script(aliases.active_context_name() + "." + alias_name);
 
         cerr << fmt::format("Error when creating script for alias: {}\n", e.what());
 
         return ReturnCode::CommandLineError;
     }
-
-    aliases.set_active_context(old_context_name);
 
 #ifdef MULTIPASS_PLATFORM_WINDOWS
     QChar separator(';');
@@ -88,11 +77,7 @@ mp::ReturnCodeVariant mp::cmd::create_alias(AliasDict& aliases,
 
     auto alias_folder = MP_PLATFORM.get_alias_scripts_folder().absolutePath();
 
-    // aliases.size() is the amount of contexts defined. If the alias dictionary is empty and a new
-    // alias is created in a context different to the default context, the dictionary will have two
-    // contexts, although only one defined alias.
-    if (empty_before_add && aliases.size() > 0 &&
-        std::find(path.cbegin(), path.cend(), alias_folder) == path.cend())
+    if (empty_before_add && std::find(path.cbegin(), path.cend(), alias_folder) == path.cend())
         cout << MP_PLATFORM.alias_path_message();
 
     return ReturnCode::Ok;
