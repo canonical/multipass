@@ -23,11 +23,13 @@ import os
 import plistlib
 import subprocess
 import logging
+import time
 from typing import AsyncIterator, Optional
 from contextlib import suppress
 
 from cli.utilities import (
     get_sudo_tool,
+    retry,
     run_in_new_interpreter,
     run_in_new_interpreter_async,
     StdoutAsyncSubprocess,
@@ -137,6 +139,46 @@ def perform_daemon_shutdown_procedure(daemon_pid: int):
 
 
 
+def _service_loaded(label: str) -> bool:
+    rc, _ = run_sync("launchctl", "print", f"system/{label}")
+    return rc == 0
+
+
+def _bootout_and_wait(label: str, retries: int = 60, delay: float = 0.5) -> None:
+    """bootout is asynchronous: it returns before the job is fully torn down.
+    Wait until the service is actually gone so the following bootstrap of the
+    same label doesn't race it into `5: Input/output error`."""
+    # TODO: macOS 26 adds `launchctl bootout --wait`; use it and drop the
+    # polling below once these tests require macOS 26 or later.
+    run_sync("launchctl", "bootout", f"system/{label}")
+
+    @retry(retries=retries, delay=delay)
+    def service_unloaded() -> bool:
+        return not _service_loaded(label)
+
+    if not service_unloaded():
+        raise RuntimeError(
+            f"launchctl service `system/{label}` still loaded after bootout "
+            f"({retries} retries, {delay}s apart)"
+        )
+
+
+def _bootstrap(domain: str, plist: str, retries: int = 5) -> tuple[int, str]:
+    """bootstrap, retrying the transient EIO that launchd returns while a prior
+    job for the same label is still settling."""
+
+    @retry(
+        retries=retries,
+        delay=1.0,
+        success_fn=lambda result: result[0] == 0
+        or "Input/output error" not in result[1],
+    )
+    def bootstrap() -> tuple[int, str]:
+        return run_sync("launchctl", "bootstrap", domain, plist)
+
+    return bootstrap()
+
+
 class LaunchdMultipassdController:
     """launchd controller for `multipassd` on macOS."""
 
@@ -145,14 +187,14 @@ class LaunchdMultipassdController:
         logging.debug(
             f"LaunchdMultipassdController :: setup_environment {plist_path}")
 
-        # 1) Unload whatever is there (may be inactive; ignore failures)
-        run_sync("launchctl", "bootout", f"system/{label}")
+        # 1) Unload whatever is there (may be inactive; ignore failures) and
+        #    wait for it to actually disappear before re-bootstrapping.
+        _bootout_and_wait(label)
 
         override_plist_path = make_override_plist(plist_path)
 
         # 3) Load the override into system domain
-        rc, out = run_sync("launchctl", "bootstrap",
-                           "system", override_plist_path)
+        rc, out = _bootstrap("system", override_plist_path)
         if rc != 0:
             raise RuntimeError(f"bootstrap(override) failed:\n{out}")
 
@@ -163,10 +205,10 @@ class LaunchdMultipassdController:
         )
 
         # Fully unload override so it doesn’t linger.
-        run_sync("launchctl", "bootout", f"system/{label}")
+        _bootout_and_wait(label)
 
         # Re-bootstrap original plist (restore system “shape”)
-        rc, out = run_sync("launchctl", "bootstrap", "system", plist_path)
+        rc, out = _bootstrap("system", plist_path)
         if rc != 0:
             # Don’t leave the system broken—emit message but keep going.
             print(f"⚠️ restore bootstrap failed:\n{out}")

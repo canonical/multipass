@@ -138,17 +138,25 @@ class AsyncSubprocess:
         return {}
 
     async def __aenter__(self):
-        # Keep the inner task so cancellation of the shield cannot lose the handle.
-        spawn_task = asyncio.create_task(
+        # Shield the spawn so it completes even if we get cancelled mid-await.
+        inner = asyncio.create_task(
             asyncio.create_subprocess_exec(*self.args, **self.kwargs)
         )
+        fut = asyncio.shield(inner)
         try:
             self.proc = await asyncio.shield(spawn_task)
             return self.proc
         except asyncio.CancelledError:
             # If cancellation hit mid-spawn, the process may already exist.
             # Finish the spawn to obtain the handle, clean it up, then re-raise.
-            self.proc = await spawn_task
+            # Await the *inner* task, not the cancelled shield: the shield raises
+            # CancelledError again, bypassing the `except Exception` and the
+            # cleanup below.
+            try:
+                self.proc = await inner
+            except Exception:
+                # Spawn actually failed; nothing to clean.
+                raise
             # Drain & close deterministically
             if self.proc.returncode is None:
                 with suppress(ProcessLookupError):
@@ -220,10 +228,17 @@ def wait_for_future(fut, timeout: float = 60, poll_interval: float = 0.5):
         TimeoutError: If the Future doesn't complete within timeout
         Exception: Whatever exception the Future raised, if any
     """
-    start_time = time.time()
+    start_time = time.monotonic()
 
-    while not fut.done() and (time.time() - start_time) < timeout:
-        time.sleep(poll_interval)
+    try:
+        while not fut.done() and (time.monotonic() - start_time) < timeout:
+            time.sleep(poll_interval)
+    except KeyboardInterrupt:
+        # Ctrl-C: cancel the in-flight coroutine so a stuck daemon operation
+        # (e.g. the stop/start retry loop) doesn't keep running in the
+        # background loop after we unwind, then propagate the interrupt.
+        fut.cancel()
+        raise
 
     if not fut.done():
         fut.cancel()
