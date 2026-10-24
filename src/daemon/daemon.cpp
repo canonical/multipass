@@ -258,12 +258,12 @@ auto name_from(const std::string& requested_name,
 // source of truth, but the VM's file is placed for so the VM is able to take responsibility
 // for its own resources in the future.
 void migrate_instance_record(const std::string& name,
-                             const boost::json::value& record,
+                             const mp::VMSpecs& spec,
                              const mp::VirtualMachineFactory& factory)
 {
     try
     {
-        auto description = record.as_object();
+        auto description = boost::json::value_from(spec).as_object();
         description["vm_name"] = name;
         description["schema_version"] = mp::vm_description_schema_version;
         MP_FILEOPS.write_transactionally(
@@ -309,11 +309,11 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
         if (record.as_object().empty())
             return {};
 
-        migrate_instance_record(std::string{key}, record, factory);
-
         try
         {
-            reconstructed_records.emplace(key, value_to<mp::VMSpecs>(record, az_manager));
+            auto spec = value_to<mp::VMSpecs>(record, az_manager);
+            migrate_instance_record(std::string{key}, spec, factory);
+            reconstructed_records.emplace(key, std::move(spec));
         }
         catch (mp::GhostInstanceException&)
         {
