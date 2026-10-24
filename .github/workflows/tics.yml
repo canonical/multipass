@@ -57,6 +57,8 @@ jobs:
     - name: Configure
       run: |
         cmake -B${{ env.BUILD_DIR }} \
+              -DCMAKE_C_COMPILER=gcc-14 \
+              -DCMAKE_CXX_COMPILER=g++-14 \
               -DCMAKE_BUILD_TYPE=Coverage
 
     - name: Add Flutter to $PATH
@@ -86,6 +88,7 @@ jobs:
         mkdir -p ${{ env.COVERAGE_DIR }}
         gcovr -r ${{ github.workspace }} \
               --object-directory ${{ env.BUILD_DIR }} \
+              --gcov-executable gcov-14 \
               --cobertura ${{ env.COVERAGE_DIR }}/coverage.xml \
               --gcov-ignore-parse-errors \
               --merge-mode-functions=separate

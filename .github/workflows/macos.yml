@@ -42,8 +42,11 @@ jobs:
             "name": "macOS 26 (Apple Silicon)",
             "runs-on": "macos-26",
           },{
-            "name": "macOS 26 Sequoia (Intel Silicon)",
+            "name": "macOS 26 Tahoe (Intel Silicon)",
             "runs-on": "macos-26-intel",
+          },{
+            "name": "macOS 15 Sequoia (Intel Silicon)",
+            "runs-on": "macos-15-intel",
           })
 
           core.setOutput('matrix', JSON.stringify(matrix));
