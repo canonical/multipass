@@ -2856,6 +2856,7 @@ TEST_F(Daemon, purgePersistsInstances)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
     EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
         .WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, try_read_file(_)).WillRepeatedly(Return(std::nullopt));
     EXPECT_CALL(*mock_file_ops,
                 write_transactionally(Truly([](const QString& f) {
                                           return f.endsWith(mp::vm_description_file_name);

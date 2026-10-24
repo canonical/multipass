@@ -19,6 +19,7 @@
 
 #include "daemon_config.h"
 #include "daemon_init_settings.h"
+#include "db_migration.h"
 #include "hyperv_driver_transition.h"
 #include "instance_settings_handler.h"
 #include "mount_motd_cloud_init.h"
@@ -252,31 +253,6 @@ auto name_from(const std::string& requested_name,
     }
 }
 
-// TODO remove once no supported upgrade path predates vm-description.json
-// This splits up the daemon's database by writing each of the VM's specific pieces into
-// their own respective `vm-description.json` file. The daemon's database remains as the
-// source of truth, but the VM's file is placed for so the VM is able to take responsibility
-// for its own resources in the future.
-void migrate_instance_record(const std::string& name,
-                             const mp::VMSpecs& spec,
-                             const mp::VirtualMachineFactory& factory)
-{
-    try
-    {
-        auto description = boost::json::value_from(spec).as_object();
-        description["vm_name"] = name;
-        description["schema_version"] = mp::vm_description_schema_version;
-        MP_FILEOPS.write_transactionally(
-            MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)) /
-                mp::vm_description_file_name,
-            mp::pretty_print(description));
-    }
-    catch (const std::exception& e)
-    {
-        mpl::warn(category, "Could not migrate the instance record of {}: {}", name, e.what());
-    }
-}
-
 std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
                                                      const mp::Path& cache_path,
                                                      const mp::AvailabilityZoneManager& az_manager,
@@ -303,6 +279,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
         return {};
     }
 
+    const mp::DbMigrator legacy_migrator{data_path};
     std::unordered_map<std::string, mp::VMSpecs> reconstructed_records;
     for (const auto& [key, record] : records.as_object())
     {
@@ -311,8 +288,9 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
 
         try
         {
+            const std::string name{key};
             auto spec = value_to<mp::VMSpecs>(record, az_manager);
-            migrate_instance_record(std::string{key}, spec, factory);
+            legacy_migrator.migrate(name, spec, factory.get_instance_directory(name));
             reconstructed_records.emplace(key, std::move(spec));
         }
         catch (mp::GhostInstanceException&)
