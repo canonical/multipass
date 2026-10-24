@@ -36,7 +36,14 @@ jobs:
 
           matrix.include.push({
               "name": "Windows Server 2025",
-              "runs-on": "windows-2025"
+              "runs-on": "windows-2025",
+              "build-type": "Debug",
+          });
+
+          matrix.include.push({
+              "name": "Windows Server 2025",
+              "runs-on": "windows-2025",
+              "build-type": "RelWithDebInfo",
           });
 
           core.setOutput('matrix', JSON.stringify(matrix));
@@ -61,7 +68,7 @@ jobs:
       windows-symbols-artifact-name: ${{ steps.package-data.outputs.windows-2025-symbols-artifact-name }}
       windows-symbols-file-name: ${{ steps.package-data.outputs.windows-2025-symbols-file-name }}
 
-    name: Build and Test (${{ matrix.name }})
+    name: Build and Test (${{ matrix.name }}, ${{ matrix.build-type }})
     runs-on: ${{ matrix.runs-on }}
 
     env:
@@ -136,8 +143,8 @@ jobs:
       uses: actions/cache/restore@v6
       with:
         path: ${{ env.SCCACHE_DIR }}
-        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
-        restore-keys: sccache-${{ matrix.runs-on }}
+        key: "sccache-${{ matrix.runs-on }}-${{ matrix.build-type }}-${{ steps.cache-key.outputs.cache-key }}"
+        restore-keys: sccache-${{ matrix.runs-on }}-${{ matrix.build-type }}-
 
     - name: Run sccache-cache
       uses: mozilla-actions/sccache-action@v0.0.11
@@ -201,7 +208,7 @@ jobs:
       run: >
         cmake
         -B${{ env.BUILD_DIR }}
-        -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
         -GNinja
         -DMULTIPASS_UPSTREAM=origin
         -DMULTIPASS_BUILD_LABEL=${{ steps.build-params.outputs.label }}
@@ -222,7 +229,9 @@ jobs:
       run: |
         ctest -V
 
+    # Test both configurations, but publish only the release build and its symbols.
     - name: Package
+      if: ${{ matrix.build-type == 'RelWithDebInfo' }}
       id: cmake-package
       working-directory: ${{ env.BUILD_DIR }}
       run: >
@@ -241,6 +250,7 @@ jobs:
         runner.os == 'Windows' && 'win64/External/WiXOutput.log' || 'Darwin/productbuild/InstallOutput.log') }}
 
     - name: Upload package
+      if: ${{ matrix.build-type == 'RelWithDebInfo' }}
       uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.runs-on }}-${{ steps.cmake-package.outputs.name }}
@@ -250,6 +260,7 @@ jobs:
 
     # --- Debug symbols (PDBs) for post-mortem crash analysis ---
     - name: Collect debug symbols
+      if: ${{ matrix.build-type == 'RelWithDebInfo' }}
       id: collect-symbols
       shell: pwsh
       working-directory: ${{ env.BUILD_DIR }}
@@ -267,6 +278,7 @@ jobs:
         "path=$zip"          >> $env:GITHUB_OUTPUT
 
     - name: Upload debug symbols
+      if: ${{ matrix.build-type == 'RelWithDebInfo' }}
       uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.runs-on }}-${{ steps.collect-symbols.outputs.name }}
@@ -276,7 +288,7 @@ jobs:
         retention-days: 7
 
     - name: Store package outputs
-      if: always()
+      if: ${{ matrix.build-type == 'RelWithDebInfo' }}
       id: package-data
       shell: bash
       run: |
@@ -293,7 +305,7 @@ jobs:
       if: ${{ github.ref == 'refs/heads/main' }}
       with:
         path: ${{ env.SCCACHE_DIR }}
-        key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
+        key: "sccache-${{ matrix.runs-on }}-${{ matrix.build-type }}-${{ steps.cache-key.outputs.cache-key }}"
 
   PublishWindowsPackage:
     needs: BuildAndTest
