@@ -108,6 +108,19 @@ auto net_digest(const QString& options)
 
     return net;
 }
+
+mp::LaunchUserMessages::MountRoutes user_message_mount_routes(
+    const std::vector<std::pair<QString, QString>>& mount_routes)
+{
+    mp::LaunchUserMessages::MountRoutes result;
+    result.reserve(mount_routes.size());
+
+    for (const auto& [source, target] : mount_routes)
+        result.emplace_back(source.toStdString(), target.toStdString());
+
+    return result;
+}
+
 } // namespace
 
 mp::ReturnCodeVariant cmd::Launch::run(mp::ArgParser* parser)
@@ -118,51 +131,15 @@ mp::ReturnCodeVariant cmd::Launch::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto ret = request_launch(parser);
+    // We prepare the mount routes first so that if an error happens, LaunchUserMessages gets the
+    // correct mount routes.
+    prepare_mount_routes();
 
+    auto ret = request_launch(parser);
     if (ret != ReturnCode::Ok)
         return ret;
 
-    auto got_petenv = instance_name == petenv_name;
-    if (!got_petenv && mount_routes.empty())
-        return ret;
-
-    if (MP_SETTINGS.get_as<bool>(mounts_key))
-    {
-        auto has_home_mount = std::count_if(
-            mount_routes.begin(),
-            mount_routes.end(),
-            [](const auto& route) { return route.second == home_automount_dir; });
-
-        if (got_petenv && !has_home_mount)
-        {
-            try
-            {
-                mount_routes.emplace_back(QString::fromLocal8Bit(mpu::snap_real_home_dir()),
-                                          home_automount_dir);
-            }
-            catch (const SnapEnvironmentException&)
-            {
-                mount_routes.emplace_back(QDir::toNativeSeparators(QDir::homePath()),
-                                          home_automount_dir);
-            }
-        }
-
-        for (const auto& [source, target] : mount_routes)
-        {
-            auto mount_ret = mount(parser, source, target);
-            if (ret == ReturnCode::Ok)
-            {
-                ret = mount_ret;
-            }
-        }
-    }
-    else
-    {
-        cout << "Skipping mount due to disabled mounts feature\n";
-    }
-
-    return ret;
+    return mount_requested_routes(parser);
 }
 
 std::string cmd::Launch::name() const
@@ -490,16 +467,16 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         request.set_zone(zone);
     }
 
-    const auto vm_name = request.instance_name();
-    const auto has_mount_options = parser->isSet("mount");
+    const auto& vm_name = request.instance_name();
     if (timer)
         timer->resume();
     else if (parser->isSet("timeout"))
     {
-        timer = cmd::make_timer(parser->value("timeout").toInt(),
-                                spinner.get(),
-                                cerr,
-                                LaunchUserMessages::client_timeout(vm_name, has_mount_options));
+        timer = cmd::make_timer(
+            parser->value("timeout").toInt(),
+            spinner.get(),
+            cerr,
+            LaunchUserMessages::client_timeout(vm_name, user_message_mount_routes(mount_routes)));
         timer->start();
     }
 
@@ -575,9 +552,8 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure =
-        [this, &parser, vm_name, has_mount_options](grpc::Status& status,
-                                                    LaunchReply& reply) -> ReturnCodeVariant {
+    auto on_failure = [this, &parser, vm_name](grpc::Status& status,
+                                               LaunchReply& reply) -> ReturnCodeVariant {
         spinner->stop();
         if (timer)
             timer->pause();
@@ -635,9 +611,17 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             const auto& server_vm_name = reply.vm_instance_name().empty()
                                            ? vm_name
                                            : reply.vm_instance_name();
-            error_details = LaunchUserMessages::server_timeout(readiness_error,
-                                                               server_vm_name,
-                                                               has_mount_options);
+            error_details = LaunchUserMessages::server_timeout(
+                readiness_error,
+                server_vm_name,
+                user_message_mount_routes(mount_routes));
+
+            // In case of timeout, clear status.error_message since we show a clearer
+            // error in error_details than the one in the timeout exception.
+            return standard_failure_handler_for(name(),
+                                                cerr,
+                                                {status.error_code(), {}},
+                                                error_details);
         }
 
         return standard_failure_handler_for(name(), cerr, status, error_details);
@@ -709,4 +693,52 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 
     mp::BridgePrompter prompter(term);
     return prompter.bridge_prompt(nets);
+}
+
+void cmd::Launch::prepare_mount_routes()
+{
+    const auto got_petenv = !petenv_name.isEmpty() &&
+                            request.instance_name() == petenv_name.toStdString();
+
+    const auto has_home_mount = std::ranges::any_of(mount_routes, [](const auto& route) {
+        return route.second == home_automount_dir;
+    });
+
+    if (got_petenv && !has_home_mount)
+    {
+        try
+        {
+            mount_routes.emplace_back(QString::fromLocal8Bit(mpu::snap_real_home_dir()),
+                                      home_automount_dir);
+        }
+        catch (const SnapEnvironmentException&)
+        {
+            mount_routes.emplace_back(QDir::toNativeSeparators(QDir::homePath()),
+                                      home_automount_dir);
+        }
+    }
+}
+
+mp::ReturnCodeVariant cmd::Launch::mount_requested_routes(const ArgParser* parser)
+{
+    if (mount_routes.empty())
+        return ReturnCode::Ok;
+
+    if (!MP_SETTINGS.get_as<bool>(mounts_key))
+    {
+        cout << "Skipping mount due to disabled mounts feature\n";
+        return ReturnCode::Ok;
+    }
+
+    mp::ReturnCodeVariant ret = ReturnCode::Ok;
+    for (const auto& [source, target] : mount_routes)
+    {
+        auto mount_ret = mount(parser, source, target);
+        if (ret == ReturnCode::Ok)
+        {
+            ret = mount_ret;
+        }
+    }
+
+    return ret;
 }

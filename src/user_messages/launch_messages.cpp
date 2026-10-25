@@ -19,7 +19,9 @@
 
 #include <fmt/format.h>
 
+#include <iterator>
 #include <stdexcept>
+#include <string_view>
 
 namespace multipass
 {
@@ -37,7 +39,7 @@ constexpr auto client_mount_timeout_message = R"(
 
 Mounts may not have been performed. Apply any missing mounts manually with:
 
-    multipass mount <source> {}:<target>)";
+)";
 
 constexpr auto server_timeout_message = R"(Timed out waiting for {}.
 The instance was created but may still be starting. Check with:
@@ -52,20 +54,16 @@ constexpr auto server_mount_timeout_message = R"(
 
 No mounts were performed. Apply any missing mounts manually with:
 
-    multipass mount <source> {}:<target>)";
+)";
 
-auto display_vm_name(const std::string& vm_name) -> std::string_view
+std::string_view display_vm_name(std::string_view vm_name)
 {
-    if (vm_name.empty())
-        return unknown_vm_name;
-
-    return vm_name;
+    return vm_name.empty() ? unknown_vm_name : vm_name;
 }
 
-auto instance_status_command(const std::string& vm_name)
+std::string instance_status_command(std::string_view vm_name)
 {
-    return vm_name.empty() ? std::string{"multipass list"}
-                           : fmt::format("multipass info {}", vm_name);
+    return vm_name.empty() ? "multipass list" : fmt::format("multipass info {}", vm_name);
 }
 
 auto readiness_stage_for(ReadinessError::ErrorCode readiness_error)
@@ -80,29 +78,55 @@ auto readiness_stage_for(ReadinessError::ErrorCode readiness_error)
         throw std::invalid_argument{"Readiness error does not describe a timeout"};
     }
 }
+
+void append_mount_commands(fmt::memory_buffer& message,
+                           const LaunchUserMessages::MountRoutes& mount_routes,
+                           std::string_view vm_name)
+{
+    auto out = std::back_inserter(message);
+    for (const auto& [source, target] : mount_routes)
+    {
+        // Ideally we should shell escape the paths here. This is only a bug if the user
+        // provides an invalid path to begin with.
+        fmt::format_to(out, "    multipass mount \"{}\" {}:\"{}\"\n", source, vm_name, target);
+    }
+}
 } // namespace
 
-std::string LaunchUserMessages::client_timeout(const std::string& vm_name, bool has_mount_options)
+std::string LaunchUserMessages::client_timeout(std::string_view vm_name,
+                                               const MountRoutes& mount_routes)
 {
-    auto message = fmt::format(client_timeout_message, instance_status_command(vm_name));
-    if (has_mount_options)
-        message += fmt::format(client_mount_timeout_message, display_vm_name(vm_name));
+    fmt::memory_buffer message;
+    auto out = std::back_inserter(message);
 
-    return message;
+    fmt::format_to(out, client_timeout_message, instance_status_command(vm_name));
+    if (!mount_routes.empty())
+    {
+        fmt::format_to(out, client_mount_timeout_message);
+        append_mount_commands(message, mount_routes, display_vm_name(vm_name));
+    }
+
+    return fmt::to_string(message);
 }
 
 std::string LaunchUserMessages::server_timeout(ReadinessError::ErrorCode readiness_error,
-                                               const std::string& vm_name,
-                                               bool has_mount_options)
+                                               std::string_view vm_name,
+                                               const MountRoutes& mount_routes)
 {
     const auto name = display_vm_name(vm_name);
-    auto message = fmt::format(server_timeout_message,
-                               readiness_stage_for(readiness_error),
-                               instance_status_command(vm_name),
-                               name);
-    if (has_mount_options)
-        message += fmt::format(server_mount_timeout_message, name);
+    fmt::memory_buffer message;
+    auto out = std::back_inserter(message);
+    fmt::format_to(out,
+                   server_timeout_message,
+                   readiness_stage_for(readiness_error),
+                   instance_status_command(vm_name),
+                   name);
+    if (!mount_routes.empty())
+    {
+        fmt::format_to(out, server_mount_timeout_message);
+        append_mount_commands(message, mount_routes, name);
+    }
 
-    return message;
+    return fmt::to_string(message);
 }
 } // namespace multipass

@@ -19,17 +19,26 @@
 
 #include <multipass/rpc/multipass.pb.h>
 
-#include <string>
+#include <string_view>
+#include <vector>
 
 namespace multipass
 {
 
 struct LaunchUserMessages
 {
-    static std::string client_timeout(const std::string& vm_name, bool has_mount_options);
+    struct MountRoute
+    {
+        std::string source;
+        std::string target;
+    };
+
+    using MountRoutes = std::vector<MountRoute>;
+
+    static std::string client_timeout(std::string_view vm_name, const MountRoutes& mount_routes);
     static std::string server_timeout(ReadinessError::ErrorCode readiness_error,
-                                      const std::string& vm_name,
-                                      bool has_mount_options);
+                                      std::string_view vm_name,
+                                      const MountRoutes& mount_routes);
 };
 
 } // namespace multipass

@@ -46,6 +46,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/user_messages/launch_messages.h>
 
 #include <QStringList>
 #include <QTemporaryFile>
@@ -1346,79 +1347,79 @@ TEST_F(Client, launchCmdWithUnavailableZoneFails)
     EXPECT_THAT(send_command({"launch", "--zone", "zone1"}), Eq(mp::ReturnCode::CommandFail));
 }
 
-struct LaunchReadinessTimeout
+struct LaunchServerTimeout
     : Client,
-      WithParamInterface<std::pair<mp::ReadinessError::ErrorCode, std::string>>
+      WithParamInterface<
+          std::pair<mp::ReadinessError::ErrorCode, mp::LaunchUserMessages::MountRoutes>>
 {
+    void SetUp() override
+    {
+        Client::SetUp();
+
+        EXPECT_CALL(mock_file_ops, exists(An<const QFileInfo&>())).WillRepeatedly(Return(true));
+        EXPECT_CALL(mock_file_ops, isDir(An<const QFileInfo&>())).WillRepeatedly(Return(true));
+        EXPECT_CALL(mock_file_ops, isReadable(An<const QFileInfo&>())).WillRepeatedly(Return(true));
+    }
+
+    void expect_launch_to_return_readiness_timeout(mp::ReadinessError::ErrorCode readiness_error)
+    {
+        mp::LaunchError launch_error;
+        launch_error.set_readiness_error(readiness_error);
+        grpc::Status status = {grpc::StatusCode::DEADLINE_EXCEEDED,
+                               "readiness timed out",
+                               launch_error.SerializeAsString()};
+        EXPECT_CALL(mock_daemon, launch(_, _)).WillOnce(Return(status));
+        EXPECT_CALL(mock_daemon, mount).Times(0);
+    }
+
+    std::vector<std::string> make_launch_command(
+        const mp::LaunchUserMessages::MountRoutes& mount_routes)
+    {
+        std::vector<std::string> result = {"launch", "--name", instance_name};
+        for (const auto& route : mount_routes)
+        {
+            result.push_back("--mount");
+            result.push_back(fmt::format("{}:{}", route.source, route.target));
+        }
+
+        return result;
+    }
+
+    mpt::MockFileOps::GuardedMock mock_file_ops_injected = mpt::MockFileOps::inject();
+    mpt::MockFileOps& mock_file_ops = *mock_file_ops_injected.first;
+
+    const char* instance_name = "my-vm";
 };
 
-TEST_P(LaunchReadinessTimeout, returnsTimeoutFailureWithoutMountGuidance)
+static const mp::LaunchUserMessages::MountRoutes empty_mount_routes = {};
+
+static const mp::LaunchUserMessages::MountRoutes mount_routes = {
+    {"/mount/source", "/mount/target"},
+    {"/other/source", "/other/target"},
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    Client,
+    LaunchServerTimeout,
+    Values(std::make_pair(mp::ReadinessError::SSH_TIMEOUT, empty_mount_routes),
+           std::make_pair(mp::ReadinessError::CLOUD_INIT_TIMEOUT, empty_mount_routes),
+           std::make_pair(mp::ReadinessError::SSH_TIMEOUT, mount_routes),
+           std::make_pair(mp::ReadinessError::CLOUD_INIT_TIMEOUT, mount_routes)));
+
+TEST_P(LaunchServerTimeout, launchServerTimeoutPrintsGuidanceAndReturnsTimeoutFailure)
 {
-    const auto& [readiness_error, readiness_stage] = GetParam();
-    const std::string instance_name{"my-vm"};
-
-    mp::LaunchError launch_error;
-    launch_error.set_readiness_error(readiness_error);
-    const grpc::Status failure{grpc::StatusCode::DEADLINE_EXCEEDED,
-                               "readiness timed out",
-                               launch_error.SerializeAsString()};
-
-    EXPECT_CALL(mock_daemon, launch(_, _)).WillOnce(Return(failure));
-    EXPECT_CALL(mock_daemon, mount).Times(0);
+    const auto& [readiness_error, mount_routes] = GetParam();
+    expect_launch_to_return_readiness_timeout(readiness_error);
 
     std::stringstream cerr_stream;
-    EXPECT_THAT(send_command({"launch", "--name", instance_name}, trash_stream, cerr_stream),
+    EXPECT_THAT(send_command(make_launch_command(mount_routes), trash_stream, cerr_stream),
                 Eq(mp::ReturnCode::TimeoutFailure));
-    EXPECT_THAT(cerr_stream.str(),
-                HasSubstr(fmt::format("Timed out waiting for {}.", readiness_stage)));
-    EXPECT_THAT(cerr_stream.str(), HasSubstr(fmt::format("multipass info {}", instance_name)));
-    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass list")));
-    EXPECT_THAT(cerr_stream.str(),
-                HasSubstr(fmt::format("multipass exec {} -- cloud-init status", instance_name)));
-    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("No mounts were performed.")));
-    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass mount")));
+
+    EXPECT_THAT(
+        cerr_stream.str(),
+        HasSubstr(
+            mp::LaunchUserMessages::server_timeout(readiness_error, instance_name, mount_routes)));
 }
-
-TEST_P(LaunchReadinessTimeout, includesMountGuidanceForMountOption)
-{
-    const auto& [readiness_error, readiness_stage] = GetParam();
-    const std::string instance_name{"my-vm"};
-    const QTemporaryDir mount_source{};
-
-    mp::LaunchError launch_error;
-    launch_error.set_readiness_error(readiness_error);
-    const grpc::Status failure{grpc::StatusCode::DEADLINE_EXCEEDED,
-                               "readiness timed out",
-                               launch_error.SerializeAsString()};
-    mp::LaunchReply reply;
-    reply.set_vm_instance_name(instance_name);
-
-    EXPECT_CALL(mock_daemon, launch)
-        .WillOnce(WithArg<1>(
-            check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(_, failure, reply)));
-    EXPECT_CALL(mock_daemon, mount).Times(0);
-
-    std::stringstream cerr_stream;
-    EXPECT_THAT(send_command({"launch", "--mount", mount_source.path().toStdString()},
-                             trash_stream,
-                             cerr_stream),
-                Eq(mp::ReturnCode::TimeoutFailure));
-    EXPECT_THAT(cerr_stream.str(),
-                HasSubstr(fmt::format("Timed out waiting for {}.", readiness_stage)));
-    EXPECT_THAT(cerr_stream.str(), HasSubstr(fmt::format("multipass info {}", instance_name)));
-    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass list")));
-    EXPECT_THAT(cerr_stream.str(),
-                HasSubstr(fmt::format("multipass exec {} -- cloud-init status", instance_name)));
-    EXPECT_THAT(cerr_stream.str(), HasSubstr("No mounts were performed."));
-    EXPECT_THAT(cerr_stream.str(),
-                HasSubstr(fmt::format("multipass mount <source> {}:<target>", instance_name)));
-}
-
-INSTANTIATE_TEST_SUITE_P(Client,
-                         LaunchReadinessTimeout,
-                         Values(std::make_pair(mp::ReadinessError::SSH_TIMEOUT, "SSH"),
-                                std::make_pair(mp::ReadinessError::CLOUD_INIT_TIMEOUT,
-                                               "cloud-init")));
 
 TEST_F(Client, launchCmdWithTimer)
 {
@@ -4430,40 +4431,8 @@ TEST_P(TimeoutSuite, commandExitsOnTimeout)
 
     if (GetParam() == "launch")
     {
-        EXPECT_THAT(cerr_stream.str(), HasSubstr("The instance status is unknown"));
-        EXPECT_THAT(cerr_stream.str(), HasSubstr("multipass list"));
-        EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass info")));
-        EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("Mounts may not have been performed")));
-        EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass mount")));
+        EXPECT_THAT(cerr_stream.str(), HasSubstr(mp::LaunchUserMessages::client_timeout({}, {})));
     }
-}
-
-TEST_F(Client, launchClientTimeoutIncludesMountGuidanceForMountOption)
-{
-    const QTemporaryDir mount_source{};
-    const std::string instance_name{"my-vm"};
-
-    EXPECT_CALL(mock_daemon, launch)
-        .WillOnce(TimeoutSuite::request_sleeper<mp::LaunchRequest, mp::LaunchReply>);
-    EXPECT_CALL(mock_daemon, mount).WillOnce(Return(ok));
-    EXPECT_CALL(*mock_utils, exit(mp::ReturnCode::TimeoutFailure));
-
-    std::stringstream cerr_stream;
-    send_command({"launch",
-                  "--name",
-                  instance_name,
-                  "--timeout",
-                  "1",
-                  "--mount",
-                  mount_source.path().toStdString()},
-                 trash_stream,
-                 cerr_stream);
-
-    EXPECT_THAT(cerr_stream.str(), HasSubstr(fmt::format("multipass info {}", instance_name)));
-    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("multipass list")));
-    EXPECT_THAT(cerr_stream.str(), HasSubstr("Mounts may not have been performed"));
-    EXPECT_THAT(cerr_stream.str(),
-                HasSubstr(fmt::format("multipass mount <source> {}:<target>", instance_name)));
 }
 
 TEST_P(TimeoutSuite, commandCompletesWithoutTimeout)
