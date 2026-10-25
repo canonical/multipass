@@ -60,12 +60,14 @@ if(WIN32)
     api/hcs/hcs_create_compute_system_params.cpp
     api/hcs/hcs_request.cpp
     api/hcs/hcs_api.cpp
+    api/hcs/hcs_plan9_share_params.cpp
     api/virtdisk/virtdisk_wrapper.cpp
     api/virtdisk/virtdisk_snapshot.cpp
     api/virtdisk/virtdisk_api.cpp
     api/virtdisk/virtdisk_guid.cpp
     api/virtdisk/virtdisk_child_rebuild.cpp
     api/virtdisk/virtdisk_utils.cpp
+    hcs_plan9_mount_handler.cpp
     hcs_virtual_machine.cpp
     hcs_virtual_machine_factory.cpp
     hcs_virtual_machine_resources.cpp
