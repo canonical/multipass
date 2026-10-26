@@ -667,7 +667,7 @@ LinearInstanceSelection filter_instances_by_state(const LinearInstanceSelection&
     LinearInstanceSelection selection;
     for (auto instance : instances)
     {
-        auto vm_state = instance->second->current_state();
+        auto vm_state = instance->second->fetch_state();
         if (vm_state == first_state || ((vm_state == args) || ...))
             selection.push_back(instance);
     }

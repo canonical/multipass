@@ -448,14 +448,14 @@ std::optional<mp::VirtualMachine::State> mp::HyperVVirtualMachine::get_backend_s
 void mp::HyperVVirtualMachine::handle_state_update()
 {
     // Invalidate the management IP address on state update.
-    if (cached_state() == VirtualMachine::State::running)
+    if (fetch_state() == VirtualMachine::State::running)
     {
         // Cached IPs become stale when the guest is restarted from within. By resetting them here
         // we at least cover multipass's restart initiatives, which include state updates.
         mpl::debug(vm_name, "Invalidating cached mgmt IP address upon state update");
         management_ip = std::nullopt;
     }
-    BaseVirtualMachine::handle_state_update();
+    monitor.persist_state_for(get_name(), cached_state());
 }
 
 std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()

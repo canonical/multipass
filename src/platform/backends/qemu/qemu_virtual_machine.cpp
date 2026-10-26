@@ -261,8 +261,6 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
             if (fetch_state() == State::running)
             {
                 suspend();
-                // Persist running state for daemon start
-                set_state(State::running);
             }
             else
             {
@@ -461,7 +459,10 @@ void mp::QemuVirtualMachine::on_shutdown()
 void mp::QemuVirtualMachine::on_suspend()
 {
     drop_ssh_session();
-    set_state(State::suspended);
+    // A suspend on destruction never leaves the running state, which is kept for the daemon to
+    // resume the instance on its next start
+    if (cached_state() == State::suspending)
+        set_state(State::suspended);
     monitor.on_suspend();
 }
 

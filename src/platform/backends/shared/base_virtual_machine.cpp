@@ -1077,7 +1077,7 @@ void mp::BaseVirtualMachine::update_backend_state()
 {
     const auto backend_state = get_backend_state();
     if (!backend_state.has_value() ||
-        backend_to_multipass_equivalence.at(backend_state.value()).contains(state))
+        backend_to_multipass_equivalence.at(backend_state.value()).contains(cached_state()))
         return;
     set_state(backend_state.value());
 }
