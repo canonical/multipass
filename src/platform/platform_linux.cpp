@@ -391,7 +391,7 @@ mp::Subnet mp::platform::Platform::get_preferred_subnet(const std::filesystem::p
     // that Multipass instances from before the introduction of AZs will have the same IP/subnet
     // when migrated into zone1.
     if (auto filedata = MP_FILEOPS.try_read_file(data_dir / "network/multipass_subnet"))
-        return {IPAddress{*filedata + ".0"}, 16};
+        return {IPAddress{mpu::trim(*filedata) + ".0"}, 16};
     return {"10.97.0.0/16"};
 }
 
