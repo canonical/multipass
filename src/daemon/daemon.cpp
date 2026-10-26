@@ -330,6 +330,27 @@ std::filesystem::path cloud_init_iso_path(const mp::VirtualMachineFactory& facto
            mp::cloud_init_file_name;
 }
 
+mp::VirtualMachineDescription load_vm_description(const std::string& name, const QDir& instance_dir)
+{
+    const auto path = instance_dir.filePath(mp::vm_description_file_name);
+    try
+    {
+        if (const auto data = MP_FILEOPS.try_read_file(
+                std::filesystem::path{path.toStdU16String()}))
+            return value_to<mp::VirtualMachineDescription>(boost::json::parse(*data));
+    }
+    catch (const std::exception& e)
+    {
+        mpl::warn(category,
+                  "Could not load the description of {} from {}: {}",
+                  name,
+                  path,
+                  e.what());
+    }
+
+    return {};
+}
+
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
 {
     try
@@ -1532,6 +1553,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             invalid_specs.push_back(name);
             continue;
         }
+
+        // TODO use this instead of building the description from the spec
+        const auto instance_dir = config->factory->get_instance_directory(name);
+        std::ignore = load_vm_description(name, instance_dir);
 
         const auto cloud_init_iso = MP_PLATFORM.path_to_qstr(
             cloud_init_iso_path(*config->factory, name));

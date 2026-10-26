@@ -587,6 +587,12 @@ TEST_F(Daemon, updatesTheDeletedButNonStoppedVmState)
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning,
         fmt::format("{} is deleted but has incompatible state", vm_props.name));
+
+    // there are no vault records to migrate the image from
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::warning,
+        fmt::format("Could not load the description of {}", vm_props.name));
+
     mp::Daemon daemon{std::move(cfg)};
 }
 
