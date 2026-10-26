@@ -295,6 +295,31 @@ TEST_F(QemuBackend, machineStartSuspendSendsMonitoringEvent)
     machine->suspend();
 }
 
+TEST_F(QemuBackend, destroyingRunningMachineSuspendsAndKeepsRunningState)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    process_factory->register_callback(handle_qemu_system);
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
+    EXPECT_CALL(mock_monitor, on_resume());
+    machine->start();
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::running));
+    machine->set_running();
+
+    EXPECT_CALL(mock_monitor, on_suspend());
+    EXPECT_CALL(mock_monitor, persist_state_for).Times(0);
+    machine.reset();
+}
+
 TEST_F(QemuBackend, QMPErrorGetsLogged)
 {
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
