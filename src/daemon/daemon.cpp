@@ -3129,6 +3129,75 @@ try
     if (!request_check_result.ok())
         return context->set_value(request_check_result);
 
+    if (vm_ptr->current_state() != St::suspended)
+        return snapshot_finish(instance_name, *request, restart, server, context);
+
+    // A suspended instance needs to be resumed so that it can be shut down cleanly
+    SnapshotReply starting_reply;
+    starting_reply.set_reply_message(fmt::format("Starting {}", instance_name));
+    server->Write(starting_reply);
+    {
+        std::lock_guard guard{start_mutex};
+        vm_ptr->start();
+    }
+
+    // Only the wait for SSH runs in the background; the rest happens in the main thread
+    auto resume_future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
+    auto future_key = utils::make_uuid();
+    QObject::connect(
+        resume_future_watcher.get(),
+        &QFutureWatcher<AsyncOperationStatus>::finished,
+        [this,
+         resume_future_watcher = resume_future_watcher.get(),
+         future_key,
+         instance_name,
+         request = *request,
+         restart,
+         server,
+         context] {
+            auto sg = sg::make_scope_guard([this, future_key]() noexcept -> void {
+                mp::top_catch_all(category,
+                                  [this, future_key]() { async_future_watchers.erase(future_key); });
+            });
+
+            if (const auto status = resume_future_watcher->future().result().status; !status.ok())
+                return context->set_value(
+                    grpc::Status{grpc::StatusCode::INTERNAL, status.error_message(), ""});
+
+            snapshot_finish(instance_name, request, restart, server, context);
+        });
+
+    resume_future_watcher->setFuture(QtConcurrent::run(
+        [vm = operative_instances.at(instance_name)]() -> AsyncOperationStatus {
+            return {wait_for_ssh_up({vm}, mp::default_timeout), nullptr};
+        }));
+    async_future_watchers.insert({future_key, std::move(resume_future_watcher)});
+}
+catch (const std::exception& e)
+{
+    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+}
+
+void mp::Daemon::snapshot_finish(
+    const std::string& instance_name,
+    const SnapshotRequest& request,
+    bool restart,
+    grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>* server,
+    DaemonRpcContext* context)
+try
+{
+    // Look the instance up again, as it may be gone after waiting for it to resume
+    auto [instance_trail,
+          find_instance_status] = find_instance_and_react(operative_instances,
+                                                          deleted_instances,
+                                                          instance_name,
+                                                          require_operative_instances_reaction);
+    if (!find_instance_status.ok())
+        return context->set_value(find_instance_status);
+
+    auto* vm_ptr = std::get<0>(instance_trail)->second.get();
+    assert(vm_ptr);
+
     auto shutdown_result = snapshot_shutdown_vm(*vm_ptr, server);
 
     if (!shutdown_result.ok())
@@ -3141,7 +3210,7 @@ try
     final_reply.set_reply_message("Taking snapshot");
     server->Write(final_reply);
     final_reply.clear_reply_message();
-    auto final_status = take_snapshot(*vm_ptr, *request, spec_it->second, final_reply);
+    auto final_status = take_snapshot(*vm_ptr, request, spec_it->second, final_reply);
 
     if (!restart) // Only stopped VMs (the function proceeded with restart=false)
     {
@@ -4560,25 +4629,20 @@ grpc::Status mp::Daemon::snapshot_shutdown_vm(
     const auto state = vm.current_state();
     const auto vm_name = vm.get_name();
     // Do a normative restart (bool is true implicitly)
-    if (state == St::delayed_shutdown || state == St::running || state == St::suspended)
+    if (state == St::delayed_shutdown || state == St::running)
     {
-        if (state == St::suspended)
-        {
-            mp::SnapshotReply temp_reply;
-            temp_reply.set_reply_message(fmt::format("Starting {}", vm_name));
-            server->Write(temp_reply);
-            {
-                std::lock_guard guard{start_mutex};
-                vm.start();
-            }
-            vm.wait_until_ssh_up(mp::default_timeout);
-        }
         mp::SnapshotReply temp_reply;
         temp_reply.set_reply_message(fmt::format("Stopping {}", vm_name));
         server->Write(temp_reply);
 
         return shutdown_vm(vm, std::chrono::minutes(0));
     }
+
+    // The state may have changed while waiting for a suspended instance to resume
+    if (state != St::stopped)
+        return grpc::Status{grpc::FAILED_PRECONDITION,
+                            "Multipass can only take snapshots of stopped instances."};
+
     return grpc::Status::OK;
 }
 void mp::Daemon::snapshot_restart_vm(

@@ -214,6 +214,11 @@ private:
     grpc::Status make_vm_unavailable(VirtualMachine& vm);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
+    void snapshot_finish(const std::string& instance_name,
+                         const SnapshotRequest& request,
+                         bool restart,
+                         grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>* server,
+                         DaemonRpcContext* context);
     grpc::Status snapshot_shutdown_vm(
         VirtualMachine& vm,
         grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>* server);
