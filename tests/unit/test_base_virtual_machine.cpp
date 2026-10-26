@@ -43,6 +43,8 @@
 #include <multipass/vm_specs.h>
 
 #include <algorithm>
+#include <future>
+#include <thread>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -227,6 +229,19 @@ struct StubBaseVirtualMachine : public mp::BaseVirtualMachine
 
     std::unique_ptr<mpt::TempDir> tmp_dir;
     using mp::BaseVirtualMachine::core_image_disk_resize_message;
+};
+
+struct DropTrackingBaseVirtualMachine : MockBaseVirtualMachine
+{
+    using MockBaseVirtualMachine::MockBaseVirtualMachine;
+
+    std::promise<void>* drop_promise{};
+
+protected:
+    void drop_ssh_session() override
+    {
+        drop_promise->set_value();
+    }
 };
 
 struct BaseVM : public Test
@@ -1423,6 +1438,43 @@ TEST_P(TestWaitForSSHExceptions, waitForSSHUpRetriesOnExpectedException)
     EXPECT_CALL(*mock_utils_ptr, sleep_for(_)).WillRepeatedly(Return());
 
     EXPECT_NO_THROW(vm.wait_until_ssh_up(timeout));
+}
+
+TEST_F(BaseVM, waitUntilSSHUpDropsSessionUnderStateMutex)
+{
+    NiceMock<DropTrackingBaseVirtualMachine> vm{
+        "mock-vm", mp::VirtualMachineDescription{}, stub_monitor, key_provider, zone};
+    vm.simulate_waiting_for_ssh();
+    ON_CALL(vm, current_state).WillByDefault(Return(St::running));
+
+    std::promise<void> started;
+    std::promise<void> dropped;
+    vm.drop_promise = &dropped;
+    auto started_future = started.get_future();
+    auto dropped_future = dropped.get_future();
+    std::exception_ptr wait_exception;
+
+    std::unique_lock lock{vm.state_mutex};
+    std::thread waiter{[&] {
+        started.set_value();
+        try
+        {
+            vm.wait_until_ssh_up(std::chrono::seconds{1});
+        }
+        catch (...)
+        {
+            wait_exception = std::current_exception();
+        }
+    }};
+
+    started_future.wait();
+    EXPECT_EQ(dropped_future.wait_for(std::chrono::milliseconds{50}),
+              std::future_status::timeout);
+    lock.unlock();
+
+    EXPECT_EQ(dropped_future.wait_for(std::chrono::seconds{1}), std::future_status::ready);
+    waiter.join();
+    EXPECT_EQ(wait_exception, nullptr);
 }
 
 INSTANTIATE_TEST_SUITE_P(TestWaitForSSHExceptions,
