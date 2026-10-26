@@ -315,6 +315,119 @@ TEST_F(TestDaemonSnapshot, restartOptionOnAlreadyStoppedInstanceStartsItAfterSna
     EXPECT_EQ(status.error_code(), grpc::OK);
 }
 
+TEST_F(TestDaemonSnapshot, restartOptionOnSuspendedInstanceSucceeds)
+{
+    mp::SnapshotRequest request{};
+    request.set_instance(mock_instance_name);
+    request.set_restart(true);
+
+    auto [daemon, instance] = build_daemon_with_mock_instance();
+    instance->state = mp::VirtualMachine::State::suspended;
+    EXPECT_CALL(*instance, current_state).WillRepeatedly([instance] { return instance->state; });
+    EXPECT_CALL(*instance, start()).WillRepeatedly([instance] {
+        instance->state = mp::VirtualMachine::State::starting;
+    });
+    EXPECT_CALL(*instance, wait_until_ssh_up).WillRepeatedly([instance](auto) {
+        instance->state = mp::VirtualMachine::State::running;
+    });
+    EXPECT_CALL(*instance, shutdown).WillRepeatedly([instance](auto) {
+        instance->state = mp::VirtualMachine::State::stopped;
+    });
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+    EXPECT_CALL(*instance, take_snapshot)
+        .WillOnce(Return(std::make_shared<NiceMock<mpt::MockSnapshot>>()));
+
+    auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
+    EXPECT_CALL(server, Write(_, _)).WillRepeatedly(Return(true));
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshot, request, server);
+
+    EXPECT_EQ(status.error_code(), grpc::OK) << status.error_message();
+}
+
+TEST_F(TestDaemonSnapshot, snapshotResumesSuspendedInstanceBeforeStoppingIt)
+{
+    mp::SnapshotRequest request{};
+    request.set_instance(mock_instance_name);
+    request.set_restart(true);
+
+    auto [daemon, instance] = build_daemon_with_mock_instance();
+    instance->state = mp::VirtualMachine::State::suspended;
+    EXPECT_CALL(*instance, current_state).WillRepeatedly([instance] { return instance->state; });
+    EXPECT_CALL(*instance, wait_until_ssh_up).WillRepeatedly([instance](auto) {
+        instance->state = mp::VirtualMachine::State::running;
+    });
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+    EXPECT_CALL(*instance, take_snapshot)
+        .WillOnce(Return(std::make_shared<NiceMock<mpt::MockSnapshot>>()));
+
+    {
+        InSequence seq;
+        // Resume first, so that the instance can then be shut down cleanly
+        EXPECT_CALL(*instance, start()).WillOnce([instance] {
+            instance->state = mp::VirtualMachine::State::starting;
+        });
+        EXPECT_CALL(*instance, shutdown).WillOnce([instance](auto) {
+            instance->state = mp::VirtualMachine::State::stopped;
+        });
+        EXPECT_CALL(*instance, start()).WillOnce([instance] {
+            instance->state = mp::VirtualMachine::State::starting;
+        });
+    }
+
+    auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
+    EXPECT_CALL(server, Write(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(server,
+                Write(Property(&mp::SnapshotReply::reply_message,
+                               Eq(fmt::format("Starting {}", mock_instance_name))),
+                      _))
+        .WillOnce(Return(true));
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshot, request, server);
+
+    EXPECT_EQ(status.error_code(), grpc::OK) << status.error_message();
+}
+
+TEST_F(TestDaemonSnapshot, snapshotDoesNotResumeInstanceThatIsNotSuspended)
+{
+    mp::SnapshotRequest request{};
+    request.set_instance(mock_instance_name);
+    request.set_restart(true);
+
+    auto [daemon, instance] = build_daemon_with_mock_instance();
+    instance->state = mp::VirtualMachine::State::running;
+    EXPECT_CALL(*instance, current_state).WillRepeatedly([instance] { return instance->state; });
+    EXPECT_CALL(*instance, wait_until_ssh_up).WillRepeatedly([instance](auto) {
+        instance->state = mp::VirtualMachine::State::running;
+    });
+    EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("false"));
+    EXPECT_CALL(*instance, take_snapshot)
+        .WillOnce(Return(std::make_shared<NiceMock<mpt::MockSnapshot>>()));
+
+    {
+        InSequence seq;
+        // Stopped straight away; the only start is the one after the snapshot is taken
+        EXPECT_CALL(*instance, shutdown).WillOnce([instance](auto) {
+            instance->state = mp::VirtualMachine::State::stopped;
+        });
+        EXPECT_CALL(*instance, start()).WillOnce([instance] {
+            instance->state = mp::VirtualMachine::State::starting;
+        });
+    }
+
+    auto server = StrictMock<mpt::MockServerReaderWriter<mp::SnapshotReply, mp::SnapshotRequest>>{};
+    EXPECT_CALL(server, Write(_, _)).WillRepeatedly(Return(true));
+    EXPECT_CALL(server,
+                Write(Property(&mp::SnapshotReply::reply_message,
+                               Eq(fmt::format("Starting {}", mock_instance_name))),
+                      _))
+        .Times(0);
+
+    auto status = call_daemon_slot(*daemon, &mp::Daemon::snapshot, request, server);
+
+    EXPECT_EQ(status.error_code(), grpc::OK) << status.error_message();
+}
+
 TEST_F(TestDaemonSnapshot, snapshotOfSuspendedInstanceDoesNotBlockMainThreadWhileItResumes)
 {
     static constexpr auto* snapshot_name = "meerkat";

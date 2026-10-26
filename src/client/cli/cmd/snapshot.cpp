@@ -170,7 +170,8 @@ void cmd::Snapshot::handle_snapshot_restart_prompt(
             spinner.print(
                 cerr,
                 "Unable to query client for confirmation. Use '--restart' to automatically "
-                "stop the running instance, take the snapshot and restart it.\n");
+                "stop the instance (resuming it first if suspended), take the snapshot and "
+                "restart it.\n");
             client->WritesDone();
             return;
         }

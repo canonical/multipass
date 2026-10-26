@@ -3138,7 +3138,12 @@ try
     server->Write(starting_reply);
     {
         std::lock_guard guard{start_mutex};
-        vm_ptr->start();
+        if (vm_ptr->current_state() == St::suspended)
+            vm_ptr->start();
+        else
+            return context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                                                   "The instance changed states unexpectedly",
+                                                   ""});
     }
 
     // Only the wait for SSH runs in the background; the rest happens in the main thread
@@ -3156,8 +3161,9 @@ try
          server,
          context] {
             auto sg = sg::make_scope_guard([this, future_key]() noexcept -> void {
-                mp::top_catch_all(category,
-                                  [this, future_key]() { async_future_watchers.erase(future_key); });
+                mp::top_catch_all(category, [this, future_key]() {
+                    async_future_watchers.erase(future_key);
+                });
             });
 
             if (const auto status = resume_future_watcher->future().result().status; !status.ok())
@@ -3167,8 +3173,8 @@ try
             snapshot_finish(instance_name, request, restart, server, context);
         });
 
-    resume_future_watcher->setFuture(QtConcurrent::run(
-        [vm = operative_instances.at(instance_name)]() -> AsyncOperationStatus {
+    resume_future_watcher->setFuture(
+        QtConcurrent::run([vm = operative_instances.at(instance_name)]() -> AsyncOperationStatus {
             return {wait_for_ssh_up({vm}, mp::default_timeout), nullptr};
         }));
     async_future_watchers.insert({future_key, std::move(resume_future_watcher)});
