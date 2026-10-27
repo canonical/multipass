@@ -43,12 +43,21 @@ def is_valid_uuid(in_str):
         return False
 
 
-def _restart_hook_common(args):
+def _restart_instance_names(args):
+    """Return the instance names `restart` will act on, resolving `--all`.
+
+    Empty if no names are given and `--all` is not set, in which case the
+    primary instance is implied and not checked by the hooks.
+    """
     filtered_args = non_option_args(args)
-    assert len(filtered_args) >= 2
-    # Remove "restart" from the filtered args
-    assert filtered_args.pop(0) == "restart"
-    return filtered_args
+    assert filtered_args and filtered_args.pop(0) == "restart"
+    if filtered_args or "--all" not in args:
+        return filtered_args
+
+    # `restart --all` skips deleted instances, which `list` still reports
+    with multipass("list", "--format=json").json() as list_json:
+        assert "list" in list_json, "`list` key not found in list json output!"
+        return list_json.jq('[.list[] | select(.state != "Deleted") | .name]').first()
 
 
 def get_boot_id(name):
@@ -67,10 +76,10 @@ def get_boot_id(name):
 def restart_prologue(args, kwargs):
     from .helpers import state
     logging.debug(f"restart_prologue: args: {args}, kwargs: {kwargs}")
-    filtered_args = _restart_hook_common(args)
+    names = _restart_instance_names(args)
 
     boot_ids = {}
-    for vm_name in filtered_args:
+    for vm_name in names:
         # Non-running instances have no boot id yet
         boot_ids[vm_name] = get_boot_id(vm_name) if state(vm_name) == "Running" else None
     return boot_ids
@@ -84,10 +93,7 @@ def restart_epilogue(args, kwargs, result, prologue_result):
         return
 
     running_only = "--running-only" in args
-    filtered_args = _restart_hook_common(args)
-    for vm_name in filtered_args:
-        assert vm_name in prologue_result
-
+    for vm_name in prologue_result:
         # Only --running-only leaves non-running instances untouched; otherwise every instance
         # must come back up with a new boot id
         if running_only and prologue_result[vm_name] is None:
