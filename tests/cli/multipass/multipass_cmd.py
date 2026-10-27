@@ -31,8 +31,19 @@ from cli.utilities import retry, wrap_call_if
 from .multipass_spawn import spawn_multipass
 
 
-def non_option_args(args):
-    return [a for a in args if isinstance(a, str) and not a.startswith('-')]
+def non_option_args(args, options_with_value=()):
+    """Return the positional arguments, skipping options and the separate values
+    of those named in `options_with_value`."""
+    positionals = []
+    skip_next = False
+    for a in args:
+        if skip_next:
+            skip_next = False
+        elif a in options_with_value:
+            skip_next = True
+        elif isinstance(a, str) and not a.startswith('-'):
+            positionals.append(a)
+    return positionals
 
 
 def is_valid_uuid(in_str):
@@ -49,7 +60,7 @@ def _restart_instance_names(args):
     Empty if no names are given and `--all` is not set, in which case the
     primary instance is implied and not checked by the hooks.
     """
-    filtered_args = non_option_args(args)
+    filtered_args = non_option_args(args, options_with_value=("--timeout",))
     assert filtered_args and filtered_args.pop(0) == "restart"
     if filtered_args or "--all" not in args:
         return filtered_args
