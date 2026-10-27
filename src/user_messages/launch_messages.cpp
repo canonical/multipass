@@ -19,6 +19,9 @@
 
 #include <fmt/format.h>
 
+#include <algorithm>
+#include <cctype>
+#include <filesystem>
 #include <iterator>
 #include <stdexcept>
 #include <string_view>
@@ -79,18 +82,43 @@ auto readiness_stage_for(ReadinessError::ErrorCode readiness_error)
     }
 }
 
+bool nice_path(const std::string& p)
+{
+    return std::ranges::all_of(p, [](unsigned char c) {
+        return std::isalnum(c) || c == '-' || c == '_' || c == '/' || c == ':' ||
+               c == std::filesystem::path::preferred_separator;
+    });
+}
+
+bool nice_route(const LaunchUserMessages::MountRoute& mount_route)
+{
+    return nice_path(mount_route.source) && nice_path(mount_route.target);
+}
+
+bool nice_routes(const LaunchUserMessages::MountRoutes& mount_routes)
+{
+    return std::ranges::all_of(mount_routes, nice_route);
+}
+
 void append_mount_commands(fmt::memory_buffer& message,
                            const LaunchUserMessages::MountRoutes& mount_routes,
                            std::string_view vm_name)
 {
     auto out = std::back_inserter(message);
-    for (const auto& [source, target] : mount_routes)
+    // Ideally we should shell escape the paths here. But instead we opt to show generic message if
+    // we're uncertain about the content of the path. Especially since shell escaping depends on the
+    // shell being used: bash / cmd / powershell.
+    if (nice_routes(mount_routes))
     {
-        // Ideally we should shell escape the paths here. This is only a bug if the user
-        // provides an invalid path to begin with.
-        fmt::format_to(out, "    multipass mount \"{}\" {}:\"{}\"\n", source, vm_name, target);
+        for (const auto& [source, target] : mount_routes)
+            fmt::format_to(out, "    multipass mount \"{}\" {}:\"{}\"\n", source, vm_name, target);
+    }
+    else
+    {
+        fmt::format_to(out, "    multipass mount <source> {}:<target>\n", vm_name);
     }
 }
+
 } // namespace
 
 std::string LaunchUserMessages::client_timeout(std::string_view vm_name,
