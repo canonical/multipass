@@ -60,10 +60,8 @@ class TestRestart:
 
             assert multipass("delete", "--force", running_name, stopped_name, suspended_name)
 
-    @pytest.mark.parametrize("running_only", [False, True])
-    def test_restart_all_option(self, running_only):
-        """`multipass restart --all` restarts every instance, or only running ones with
-        `--running-only`."""
+    def test_restart_all_option(self):
+        """`multipass restart --all` restarts every instance."""
         with (
             launch({"autodelete": False}) as running_name,
             launch({"autodelete": False}) as stopped_name,
@@ -73,11 +71,32 @@ class TestRestart:
 
             running_boot_id_before = get_boot_id(running_name)
 
-            options = ["--all"] + (["--running-only"] if running_only else [])
-            assert multipass("restart", *options)
+            assert multipass("restart", "--all")
 
             assert state(running_name) == "Running"
-            assert state(stopped_name) == ("Stopped" if running_only else "Running")
+            assert state(stopped_name) == "Running"
+            assert get_boot_id(running_name) != running_boot_id_before
+
+            assert multipass("delete", "--force", running_name, stopped_name)
+
+    def test_restart_all_running_only_fails_on_stopped_instances(self):
+        """`multipass restart --all --running-only` reboots the running instances, but fails
+        on the stopped ones, leaving them stopped."""
+        with (
+            launch({"autodelete": False}) as running_name,
+            launch({"autodelete": False}) as stopped_name,
+        ):
+            assert multipass("stop", stopped_name)
+            assert state(stopped_name) == "Stopped"
+
+            running_boot_id_before = get_boot_id(running_name)
+
+            with multipass("restart", "--all", "--running-only") as result:
+                assert not result
+                assert f"Instance '{stopped_name}' is not running" in result
+
+            assert state(running_name) == "Running"
+            assert state(stopped_name) == "Stopped"
             assert get_boot_id(running_name) != running_boot_id_before
 
             assert multipass("delete", "--force", running_name, stopped_name)
