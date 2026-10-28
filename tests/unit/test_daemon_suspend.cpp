@@ -17,7 +17,6 @@
 
 #include "common.h"
 #include "daemon_test_fixture.h"
-#include "mock_mount_handler.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
@@ -47,7 +46,6 @@ struct TestDaemonSuspend : public mpt::DaemonTestFixture
 
     const std::string mock_instance_name{"real-zebraphant"};
     const std::string mac_addr{"52:54:00:73:76:28"};
-    const std::string fake_target_path{"/home/ubuntu/foo"};
 
     std::vector<mp::NetworkInterface> extra_interfaces;
 
@@ -66,21 +64,17 @@ struct TestDaemonSuspend : public mpt::DaemonTestFixture
 TEST_F(TestDaemonSuspend, suspendStopsMounts)
 {
     auto mock_factory = use_a_mock_vm_factory();
-    std::unordered_map<std::string, mp::VMMount> mounts{
-        {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
-
-    const auto [temp_dir, filename] = plant_instance_json(
-        fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
-
-    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
-    EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));
-    EXPECT_CALL(*mock_mount_handler, deactivate_impl);
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
-    EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
-        .WillOnce(Return(std::move(mock_mount_handler)));
+    {
+        InSequence seq;
+        EXPECT_CALL(*mock_vm, stop_mounts);
+        EXPECT_CALL(*mock_vm, suspend);
+    }
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 

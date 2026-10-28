@@ -75,9 +75,10 @@
 // This will redirect the version of `MockWidget::render` that takes one argument of type `Canvas`.
 #define MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock, method, BaseT, ...)                     \
     ON_CALL(mock, method __VA_ARGS__)                                                              \
-        .WillByDefault([m = &mock]<typename... T>(T&&... args) -> decltype(auto) {                 \
-            return m->BaseT::method(std::forward<T>(args)...);                                     \
-        })
+        .WillByDefault(                                                                            \
+            [m = &mock]<typename... DelegateArgs>(DelegateArgs&&... args) -> decltype(auto) {      \
+                return m->BaseT::method(std::forward<DelegateArgs>(args)...);                      \
+            })
 
 // Teach GTest to print Qt stuff
 QT_BEGIN_NAMESPACE

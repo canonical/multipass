@@ -43,6 +43,8 @@
 #include <multipass/cli/command.h>
 #include <multipass/daemon_rpc_context.h>
 
+#include <QCoreApplication>
+
 #include <chrono>
 
 #include <QCoreApplication>
@@ -620,6 +622,10 @@ grpc::Status mpt::DaemonTestFixture::call_daemon_slot(Daemon& daemon,
         {
         }
     }
+
+    // Unlike in production, slots run off the daemon's thread here, so deliver what they queued for
+    // it (e.g. instance updates) as the daemon's event loop would
+    QCoreApplication::sendPostedEvents(&daemon, QEvent::MetaCall);
 
     return status_future.get();
 }

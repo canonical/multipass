@@ -40,6 +40,14 @@ struct MockVMStatusMonitor : public VMStatusMonitor
                 (const std::string&, const boost::json::object&),
                 (override));
     MOCK_METHOD(boost::json::object, retrieve_metadata_for, (const std::string&), (override));
+    MOCK_METHOD(void,
+                update_mounts_for,
+                (const VirtualMachine&, (const std::unordered_map<std::string, VMMount>&)),
+                (override));
+    MOCK_METHOD((std::unordered_map<std::string, VMMount>),
+                retrieve_mounts_for,
+                (const std::string&),
+                (override));
 };
 } // namespace test
 } // namespace multipass

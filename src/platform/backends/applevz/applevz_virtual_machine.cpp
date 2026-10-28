@@ -44,10 +44,13 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
     : BaseVirtualMachine{desc.vm_name, desc, monitor, key_provider, zone, instance_dir}
 {
     initialize_vm_handle();
+    load_mounts();
 }
 
 AppleVZVirtualMachine::~AppleVZVirtualMachine()
 {
+    unload_mounts();
+
     mpl::debug(log_category,
                "AppleVZVirtualMachine::~AppleVZVirtualMachine() -> Destructing VM `{}`",
                vm_name);
