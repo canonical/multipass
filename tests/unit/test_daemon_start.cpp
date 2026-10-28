@@ -19,7 +19,6 @@
 #include "daemon_test_fixture.h"
 
 #include "common.h"
-#include "mock_mount_handler.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
@@ -31,7 +30,6 @@
 #include <src/daemon/daemon.h>
 
 #include <multipass/constants.h>
-#include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/timeout_exception.h>
 #include <multipass/format.h>
@@ -68,12 +66,9 @@ struct TestDaemonStart : public mpt::DaemonTestFixture
         return mock_vm;
     }
 
-    std::unique_ptr<mp::Daemon> make_daemon(
-        std::unique_ptr<MockVM> mock_vm,
-        const std::unordered_map<std::string, mp::VMMount>& mounts = {})
+    std::unique_ptr<mp::Daemon> make_daemon(std::unique_ptr<MockVM> mock_vm)
     {
-        auto instance_data = plant_instance_json(
-            fake_json_contents(mac_addr, extra_interfaces, mounts));
+        auto instance_data = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
         EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
@@ -112,20 +107,9 @@ struct TestDaemonStart : public mpt::DaemonTestFixture
         EXPECT_EQ(error->second, readiness_error);
     }
 
-    std::unordered_map<std::string, mp::VMMount> make_native_mounts() const
-    {
-        const mp::id_mappings uid_mappings{{1000, 1001}}, gid_mappings{{1002, 1003}};
-        const mp::VMMount mount{fake_source_path,
-                                gid_mappings,
-                                uid_mappings,
-                                mp::VMMount::MountType::Native};
-        return {{fake_target_path, mount}};
-    }
-
     const std::string mock_instance_name{"real-zebraphant"};
     const std::string mac_addr{"52:54:00:73:76:28"};
     const std::string fake_target_path{"/home/luke/skywalker"};
-    const std::string fake_source_path{"/home/han/solo"};
     std::vector<mp::NetworkInterface> extra_interfaces;
     mpt::MockVirtualMachineFactory* mock_factory = nullptr;
     std::unique_ptr<mpt::TempDir> instance_data_dir;
@@ -201,36 +185,33 @@ TEST_F(TestDaemonStart, suspendingStateDoesNotStartHasError)
                                       mock_instance_name)));
 }
 
-TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
+TEST_F(TestDaemonStart, activatesMountsAfterSshIsReady)
 {
-    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
-    EXPECT_CALL(*mock_mount_handler, activate_impl).Times(1);
-
     auto mock_vm = make_mock_vm(VMState::stopped);
-    EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
-    EXPECT_CALL(*mock_vm, start).Times(1);
-    EXPECT_CALL(*mock_vm, make_native_mount_handler)
-        .WillOnce(Return(std::move(mock_mount_handler)));
+    {
+        InSequence seq;
+        EXPECT_CALL(*mock_vm, start);
+        EXPECT_CALL(*mock_vm, wait_until_ssh_up);
+        EXPECT_CALL(*mock_vm, activate_mounts);
+    }
 
-    auto daemon = make_daemon(std::move(mock_vm), make_native_mounts());
+    auto daemon = make_daemon(std::move(mock_vm));
     auto status = start_instance(*daemon);
 
     EXPECT_TRUE(status.ok());
 }
 
-TEST_F(TestDaemonStart, removingMountOnFailedStart)
+TEST_F(TestDaemonStart, reportsPrunedMounts)
 {
     auto error = "failed to start mount";
-    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
-    EXPECT_CALL(*mock_mount_handler, activate_impl).WillOnce(Throw(std::runtime_error{error}));
 
     auto mock_vm = make_mock_vm(VMState::stopped);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillRepeatedly(Return());
     EXPECT_CALL(*mock_vm, start).Times(1);
-    EXPECT_CALL(*mock_vm, make_native_mount_handler)
-        .WillOnce(Return(std::move(mock_mount_handler)));
+    EXPECT_CALL(*mock_vm, activate_mounts)
+        .WillOnce(Return(mp::MountActivationResult{{{fake_target_path, error}}, false}));
 
-    auto daemon = make_daemon(std::move(mock_vm), make_native_mounts());
+    auto daemon = make_daemon(std::move(mock_vm));
 
     auto log = fmt::format("Removing mount \"{}\" from '{}': {}\n",
                            fake_target_path,
@@ -248,16 +229,12 @@ TEST_F(TestDaemonStart, removingMountOnFailedStart)
 
 TEST_F(TestDaemonStart, sshfsMissingReturnsStructuredReadinessError)
 {
-    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
-    EXPECT_CALL(*mock_mount_handler, activate_impl).WillOnce(Throw(mp::SSHFSMissingError{}));
-
     auto mock_vm = make_mock_vm(VMState::stopped);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).WillOnce(Return());
     EXPECT_CALL(*mock_vm, start).Times(1);
-    EXPECT_CALL(*mock_vm, make_native_mount_handler)
-        .WillOnce(Return(std::move(mock_mount_handler)));
+    EXPECT_CALL(*mock_vm, activate_mounts).WillOnce(Return(mp::MountActivationResult{{}, true}));
 
-    auto daemon = make_daemon(std::move(mock_vm), make_native_mounts());
+    auto daemon = make_daemon(std::move(mock_vm));
     const auto status = start_instance(*daemon);
 
     expect_readiness_error(status,

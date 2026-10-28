@@ -28,6 +28,7 @@
 #include <multipass/ssh/ssh_process.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/virtual_machine.h>
+#include <shared/base_virtual_machine.h>
 
 #include <concepts>
 #include <memory>
@@ -75,6 +76,21 @@ struct MockVirtualMachineT : public T
         ON_CALL(*this, instance_directory).WillByDefault(Return(this->tmp_dir->path()));
         ON_CALL(*this, ssh_exec_process).WillByDefault(std::make_unique<NiceMock<MockSSHProcess>>);
         ON_CALL(*this, new_ssh_session).WillByDefault(std::make_unique<NiceMock<MockSSHSession>>);
+        if constexpr (!std::same_as<VirtualMachine, T>)
+        {
+            MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, add_mount, T);
+            MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, remove_mount, T);
+            MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, remove_all_mounts, T);
+            MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, activate_mounts, T);
+            MP_DELEGATE_MOCK_CALLS_ON_BASE(*this, stop_mounts, T);
+        }
+    }
+
+    ~MockVirtualMachineT() override
+    {
+        // Handlers refer back to the instance, so they go while it is still whole
+        if constexpr (std::derived_from<T, BaseVirtualMachine>)
+            this->unload_mounts();
     }
 
     MOCK_METHOD(void, start, (), (override));
@@ -108,6 +124,14 @@ struct MockVirtualMachineT : public T
                 make_native_mount_handler,
                 (const std::string&, const VMMount&),
                 (override));
+    MOCK_METHOD(void, add_mount, (const std::string&, const VMMount&, ServerVariant), (override));
+    MOCK_METHOD(void, remove_mount, (const std::string&), (override));
+    MOCK_METHOD((std::vector<std::pair<std::string, std::string>>),
+                remove_all_mounts,
+                (),
+                (override));
+    MOCK_METHOD(MountActivationResult, activate_mounts, (ServerVariant), (override));
+    MOCK_METHOD(void, stop_mounts, (), (override));
     MOCK_METHOD(VirtualMachine::SnapshotVista,
                 view_snapshots,
                 (VirtualMachine::SnapshotPredicate),

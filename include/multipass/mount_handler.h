@@ -20,6 +20,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/guest_mount_record.h>
 #include <multipass/rpc/multipass.grpc.pb.h>
+#include <multipass/server_variant.h>
 #include <multipass/ssh/ssh_key_provider.h>
 #include <multipass/vm_mount.h>
 
@@ -30,12 +31,6 @@
 namespace multipass
 {
 class VirtualMachine;
-
-using ServerVariant =
-    std::variant<grpc::ServerReaderWriterInterface<StartReply, StartRequest>*,
-                 grpc::ServerReaderWriterInterface<LaunchReply, LaunchRequest>*,
-                 grpc::ServerReaderWriterInterface<MountReply, MountRequest>*,
-                 grpc::ServerReaderWriterInterface<RestartReply, RestartRequest>*>;
 
 class NativeMountNeedsStoppedVMException : public std::runtime_error
 {

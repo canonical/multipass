@@ -37,6 +37,7 @@
 #include <multipass/exceptions/ghost_instance_exception.h>
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
+#include <multipass/exceptions/mount_exceptions.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/remote_not_found_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
@@ -44,6 +45,7 @@
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/file_ops.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/ip_address.h>
 #include <multipass/json_utils.h>
@@ -57,7 +59,6 @@
 #include <multipass/settings/settings.h>
 #include <multipass/snapshot.h>
 #include <multipass/ssh/ssh_session.h>
-#include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/user_messages/driver_deprecation_warning.h>
 #include <multipass/utils/grpc_utils.h>
@@ -79,6 +80,7 @@
 #include <QStorageInfo>
 #include <QString>
 #include <QSysInfo>
+#include <QThread>
 #include <QtConcurrent/QtConcurrent>
 
 #include <algorithm>
@@ -1246,24 +1248,6 @@ mp::SettingsHandler* register_snapshot_mod(
     return nullptr;
 }
 
-// Erase any outdated mount handlers for a given VM
-bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& mount_specs,
-                           std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts)
-{
-    auto removed = false;
-    std::erase_if(vm_mounts, [&](auto&& i) {
-        const auto& [target, handler] = i;
-        if (auto specs_it = mount_specs.find(target);
-            specs_it == mount_specs.end() || handler->get_mount_spec() != specs_it->second)
-        {
-            removed = true;
-            return true;
-        }
-        return false;
-    });
-    return removed;
-}
-
 void populate_snapshot_fundamentals(std::shared_ptr<const mp::Snapshot> snapshot,
                                     mp::SnapshotFundamentals* fundamentals)
 {
@@ -1570,7 +1554,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         // No deleted spec must cross this boundary.
         assert(!spec_copy.deleted);
-        init_mounts(name);
 
         std::unique_lock lock{start_mutex};
 
@@ -2239,41 +2222,29 @@ try
             continue;
         }
 
-        auto& vm_mounts = mounts[name];
-        if (vm_mounts.contains(target_path))
-        {
-            add_fmt_to(errors, "\"{}\" is already mounted in '{}'", target_path, name);
-            continue;
-        }
-
         const auto mount_type = request->mount_type() == MountRequest_MountType_CLASSIC
                                   ? VMMount::MountType::Classic
                                   : VMMount::MountType::Native;
 
         VMMount vm_mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
-        vm_mounts[target_path] = make_mount(vm.get(), target_path, vm_mount);
-        if (vm->current_state() == mp::VirtualMachine::State::running)
+        try
         {
-            try
-            {
-                vm_mounts[target_path]->activate(server);
-            }
-            catch (const mp::SSHFSMissingError&)
-            {
-                return context->set_value(grpc_status_for_mount_error(name));
-            }
-            catch (const std::exception& e)
-            {
-                add_fmt_to(errors, "error mounting \"{}\": {}", target_path, e.what());
-                vm_mounts.erase(target_path);
-                continue;
-            }
+            // Handler creation failures are not caught here, so they abort the whole request
+            vm->add_mount(target_path, vm_mount, server);
         }
-
-        vm_instance_specs[name].mounts[target_path] = vm_mount;
+        catch (const mp::MountTargetInUseError& e)
+        {
+            add_fmt_to(errors, "{}", e.what());
+        }
+        catch (const mp::SSHFSMissingError&)
+        {
+            return context->set_value(grpc_status_for_mount_error(name));
+        }
+        catch (const mp::MountActivationError& e)
+        {
+            add_fmt_to(errors, "error mounting \"{}\": {}", target_path, e.what());
+        }
     }
-
-    persist_instances();
 
     context->set_value(grpc_status_for(errors));
 }
@@ -2308,7 +2279,6 @@ try
             vm_instance_specs[name].deleted = false;
             operative_instances[name] = std::move(vm_it->second);
             deleted_instances.erase(vm_it);
-            init_mounts(name);
             mpl::debug(category, "Instance recovered: {}", name);
         }
         persist_instances();
@@ -2512,7 +2482,7 @@ try
                 return grpc::Status::OK;
             }
 
-            stop_mounts(vm.get_name());
+            vm.stop_mounts();
 
             vm.suspend();
             return grpc::Status::OK;
@@ -2754,60 +2724,49 @@ try
     {
         const auto& name = path_entry.instance_name();
 
-        auto vm = operative_instances.find(name);
-        if (vm == operative_instances.end())
+        auto it = operative_instances.find(name);
+        if (it == operative_instances.end())
         {
             add_fmt_to(errors, "instance '{}' does not exist", name);
             continue;
         }
 
-        if (vm->second->current_state() == VirtualMachine::State::unavailable)
+        auto& vm = *it->second;
+        if (vm.current_state() == VirtualMachine::State::unavailable)
         {
             mpl::log(mpl::Level::info, name, "Ignoring umount since instance unavailable.");
             continue;
         }
 
-        auto& vm_spec_mounts = vm_instance_specs[name].mounts;
-        auto& vm_mounts = mounts[name];
-
-        auto do_unmount = [&](const auto& entry) {
-            const auto& [target, mount] = entry;
-            try
-            {
-                mount->deactivate();
-                vm_spec_mounts.erase(target);
-                return true;
-            }
-            catch (const std::runtime_error& e)
-            {
-                add_fmt_to(errors,
-                           "failed to unmount \"{}\" from '{}': {}",
-                           target,
-                           name,
-                           e.what());
-            }
-
-            return false;
-        };
-
         // Empty target path indicates removing all mounts for the VM instance
         if (path_entry.target_path().empty())
         {
-            std::erase_if(vm_mounts, do_unmount);
+            for (const auto& [target, error] : vm.remove_all_mounts())
+                add_fmt_to(errors, "failed to unmount \"{}\" from '{}': {}", target, name, error);
         }
         else
         {
             const auto q_target_path = QString::fromStdString(path_entry.target_path());
             const auto target_path = MP_UTILS.normalize_mount_target(q_target_path).toStdString();
 
-            if (auto it = vm_mounts.find(target_path); it == vm_mounts.end())
-                add_fmt_to(errors, "path \"{}\" is not mounted in '{}'", target_path, name);
-            else if (do_unmount(*it))
-                vm_mounts.erase(it);
+            try
+            {
+                vm.remove_mount(target_path);
+            }
+            catch (const mp::MountNotFoundError& e)
+            {
+                add_fmt_to(errors, "{}", e.what());
+            }
+            catch (const std::runtime_error& e)
+            {
+                add_fmt_to(errors,
+                           "failed to unmount \"{}\" from '{}': {}",
+                           target_path,
+                           name,
+                           e.what());
+            }
         }
     }
-
-    persist_instances();
 
     context->set_value(grpc_status_for(errors));
 }
@@ -3137,10 +3096,7 @@ try
         auto old_specs = vm_specs;
         vm_ptr->restore_snapshot(request->snapshot(), vm_specs);
 
-        auto mounts_it = mounts.find(instance_name);
-        assert(mounts_it != mounts.end() && "uninitialized mounts");
-
-        if (update_mounts(vm_specs, mounts_it->second, vm_ptr) || vm_specs != old_specs)
+        if (vm_specs != old_specs)
             persist_instances();
 
         server->Write(reply);
@@ -3218,7 +3174,6 @@ try
         // preparing instance is done
         preparing_instances.erase(destination_name);
         persist_instances();
-        init_mounts(destination_name);
 
         CloneReply rpc_response;
         rpc_response.set_reply_message(
@@ -3416,7 +3371,9 @@ void mp::Daemon::on_suspend()
 
 void mp::Daemon::on_restart(const std::string& name)
 {
-    stop_mounts(name);
+    if (auto it = operative_instances.find(name); it != operative_instances.end())
+        it->second->stop_mounts();
+
     auto future_watcher = create_future_watcher([this, name]() {
         try
         {
@@ -3460,6 +3417,56 @@ boost::json::object mp::Daemon::retrieve_metadata_for(const std::string& name)
     return vm_instance_specs[name].metadata;
 }
 
+void mp::Daemon::update_mounts_for(const VirtualMachine& vm,
+                                   const std::unordered_map<std::string, VMMount>& mounts)
+{
+    // Only the reporting instance's own record may change. Reports may lag behind, e.g. after the
+    // instance was deleted and its name reused, so `vm` is compared but never dereferenced later.
+    const auto revision = next_mount_report_revision.fetch_add(1, std::memory_order_relaxed) + 1;
+    auto apply = [this, vm_ptr = &vm, name = vm.get_name(), mounts, revision] {
+        const auto spec_it = vm_instance_specs.find(name);
+        if (spec_it == vm_instance_specs.end() || !is_current_instance(name, vm_ptr))
+        {
+            mpl::debug(category, "Ignoring mounts reported by a stale instance '{}'", name);
+            return;
+        }
+
+        // A daemon-thread report can overtake an older report queued by a readiness worker.
+        auto& applied_revision = applied_mount_report_revisions[name];
+        if (revision <= applied_revision)
+            return;
+
+        applied_revision = revision;
+        spec_it->second.mounts = mounts;
+        persist_instances();
+    };
+
+    if (QThread::currentThread() == thread())
+        apply();
+    else
+        QMetaObject::invokeMethod(
+            this,
+            [apply = std::move(apply)] { top_catch_all(category, apply); },
+            Qt::QueuedConnection);
+}
+
+std::unordered_map<std::string, mp::VMMount> mp::Daemon::retrieve_mounts_for(
+    const std::string& name)
+{
+    const auto spec_it = vm_instance_specs.find(name);
+    return spec_it == vm_instance_specs.end() ? std::unordered_map<std::string, VMMount>{}
+                                              : spec_it->second.mounts;
+}
+
+bool mp::Daemon::is_current_instance(const std::string& name, const VirtualMachine* vm) const
+{
+    for (const auto* table : {&operative_instances, &deleted_instances})
+        if (const auto it = table->find(name); it != table->end())
+            return it->second.get() == vm;
+
+    return true; // not registered yet, so the instance is reporting from its constructor
+}
+
 void mp::Daemon::persist_instances()
 {
     auto instance_records_json = boost::json::value_from(vm_instance_specs);
@@ -3482,6 +3489,8 @@ void mp::Daemon::release_resources(const std::string& instance)
 
         vm_instance_specs.erase(spec_it);
     }
+
+    applied_mount_report_revisions.erase(instance);
 }
 
 void mp::Daemon::create_vm(const CreateRequest* request,
@@ -3765,7 +3774,7 @@ void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, DeleteReply& response)
         if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
             delayed_shutdown_instances.erase(name);
 
-        mounts[name].clear();
+        top_catch_all(name, [&instance] { instance->stop_mounts(); });
         instance->shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
     }
     else
@@ -3791,7 +3800,7 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, bool running_only)
         [[fallthrough]];
     case VirtualMachine::State::running:
         mpl::debug(category, "Rebooting {}", vm.get_name());
-        stop_mounts(vm.get_name());
+        vm.stop_mounts();
         return ssh_reboot(vm);
 
     case VirtualMachine::State::stopped:
@@ -3806,7 +3815,7 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, bool running_only)
         {
             return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""};
         }
-        stop_mounts(vm.get_name());
+        vm.stop_mounts();
         return grpc::Status::OK;
 
     case VirtualMachine::State::unavailable:
@@ -3841,9 +3850,8 @@ grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::mill
     const auto& name = vm.get_name();
     delayed_shutdown_instances.erase(name);
 
-    auto stop_all_mounts = [this](const std::string& name) { stop_mounts(name); };
     auto& shutdown_timer = delayed_shutdown_instances[name] =
-        std::make_unique<DelayedShutdownTimer>(&vm, stop_all_mounts);
+        std::make_unique<DelayedShutdownTimer>(&vm);
 
     QObject::connect(shutdown_timer.get(), &DelayedShutdownTimer::finished, [this, name]() {
         delayed_shutdown_instances.erase(name);
@@ -3860,7 +3868,7 @@ grpc::Status mp::Daemon::switch_off_vm(VirtualMachine& vm)
     delayed_shutdown_instances.erase(name);
 
     vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
-    stop_mounts(name);
+    vm.stop_mounts();
 
     return grpc::Status::OK;
 }
@@ -3873,7 +3881,7 @@ grpc::Status mp::Daemon::make_vm_unavailable(VirtualMachine& vm)
     try
     {
         vm.set_available(false);
-        stop_mounts(name);
+        vm.stop_mounts();
         return grpc::Status::OK;
     }
     catch (const std::exception& e)
@@ -3921,77 +3929,6 @@ grpc::Status mp::Daemon::get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& r
     (*response.mutable_ssh_info())[name] = ssh_info;
 
     return grpc::Status::OK;
-}
-
-void mp::Daemon::init_mounts(const std::string& name)
-{
-    auto& vm_mounts = mounts[name];
-    auto& vm_spec_mounts = vm_instance_specs[name].mounts;
-
-    if (!create_missing_mounts(vm_spec_mounts, vm_mounts, operative_instances[name].get()))
-        persist_instances();
-}
-
-void mp::Daemon::stop_mounts(const std::string& name)
-{
-    for (auto& [_, mount] : mounts[name])
-        mount->deactivate(/*force=*/true);
-}
-
-bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
-                               std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
-                               mp::VirtualMachine* vm)
-{
-    auto& mount_specs = vm_specs.mounts;
-    const auto mounts_pruned = prune_obsolete_mounts(mount_specs, vm_mounts);
-    const auto all_mount_handlers_created = create_missing_mounts(mount_specs, vm_mounts, vm);
-
-    return mounts_pruned || !all_mount_handlers_created;
-}
-
-bool mp::Daemon::create_missing_mounts(
-    std::unordered_map<std::string, VMMount>& mount_specs,
-    std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
-    mp::VirtualMachine* vm)
-{
-    auto initial_mount_count = mount_specs.size();
-    std::erase_if(mount_specs, [&](auto&& i) {
-        const auto& [target, mount_spec] = i;
-        if (!vm_mounts.contains(target))
-        {
-            try
-            {
-                vm_mounts[target] = make_mount(vm, target, mount_spec);
-            }
-            catch (const std::exception& e)
-            {
-                mpl::warn(category,
-                          R"(Removing mount "{}" => "{}" from '{}': {})",
-                          mount_spec.get_source_path(),
-                          target,
-                          vm->get_name(),
-                          e.what());
-
-                return true;
-            }
-        }
-        return false;
-    });
-
-    assert(mount_specs.size() <= initial_mount_count);
-    return mount_specs.size() != initial_mount_count;
-}
-
-mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
-                                              const std::string& target,
-                                              const VMMount& mount)
-{
-    return mount.get_mount_type() == VMMount::MountType::Classic
-             ? std::make_unique<SSHFSMountHandler>(vm,
-                                                   config->ssh_key_provider.get(),
-                                                   target,
-                                                   mount)
-             : vm->make_native_mount_handler(target, mount);
 }
 
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watcher(
@@ -4046,38 +3983,17 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
 
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
         {
-            std::vector<std::string> invalid_mounts;
-            std::optional<ReadinessResult> mount_error;
-            fmt::memory_buffer warnings;
-            auto& vm_mounts = mounts[name];
-            for (auto& [target, mount] : vm_mounts)
-                try
-                {
-                    mount->activate(server);
-                }
-                catch (const mp::SSHFSMissingError&)
-                {
-                    mount_error = {name,
-                                   ReadinessError::SSHFS_MISSING,
-                                   fmt::format(sshfs_error_template, name)};
-                    break;
-                }
-                catch (const std::exception& e)
-                {
-                    auto msg = fmt::format("Removing mount \"{}\" from '{}': {}\n",
-                                           target,
-                                           name,
-                                           e.what());
-                    mpl::log_message(mpl::Level::warning, category, msg);
-                    warnings.append(msg);
-                    invalid_mounts.push_back(target);
-                }
+            const auto activation = vm->activate_mounts(server);
 
-            auto& vm_spec_mounts = vm_instance_specs[name].mounts;
-            for (const auto& target : invalid_mounts)
+            fmt::memory_buffer warnings;
+            for (const auto& [target, error] : activation.pruned)
             {
-                vm_mounts.erase(target);
-                vm_spec_mounts.erase(target);
+                auto msg = fmt::format("Removing mount \"{}\" from '{}': {}\n",
+                                       target,
+                                       name,
+                                       error);
+                mpl::log_message(mpl::Level::warning, category, msg);
+                warnings.append(msg);
             }
 
             if (server && warnings.size() > 0)
@@ -4087,10 +4003,10 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
                 server->Write(reply);
             }
 
-            persist_instances();
-
-            if (mount_error.has_value())
-                return mount_error.value();
+            if (activation.sshfs_missing)
+                return {name,
+                        ReadinessError::SSHFS_MISSING,
+                        fmt::format(sshfs_error_template, name)};
         }
     }
     catch (const StartException& e)

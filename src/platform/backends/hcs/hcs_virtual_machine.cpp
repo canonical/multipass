@@ -124,10 +124,14 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
     // Persist initial state even if unchanged
     if (prev_state == this->state)
         HCSVirtualMachine::handle_state_update();
+
+    load_mounts();
 }
 
 HCSVirtualMachine::~HCSVirtualMachine()
 {
+    unload_mounts();
+
     top_catch_all(vm_name, [this]() {
         // Use the last known state: querying HCS here would persist any state change, which
         // resurrects the record of an instance that was just purged.

@@ -247,10 +247,14 @@ mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc
     {
         remove_snapshots_from_backend();
     }
+
+    load_mounts();
 }
 
 mp::QemuVirtualMachine::~QemuVirtualMachine()
 {
+    unload_mounts();
+
     if (vm_process)
     {
         update_shutdown_status = false;

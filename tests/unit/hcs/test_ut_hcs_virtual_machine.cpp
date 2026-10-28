@@ -993,6 +993,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_on_destruction_persists_run
         .WillRepeatedly(Return(true));
 
     StrictMock<mpt::MockVMStatusMonitor> monitor;
+    EXPECT_CALL(monitor, retrieve_mounts_for(dummy_vm_name));
     InSequence sequence;
     EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::running));
     EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle))).Times(1);
@@ -1026,6 +1027,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_destruction_leaves_suspended_vm_sus
     EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle))).Times(0);
 
     StrictMock<mpt::MockVMStatusMonitor> monitor;
+    EXPECT_CALL(monitor, retrieve_mounts_for(dummy_vm_name));
     EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::suspended))
         .Times(1);
 
@@ -1049,6 +1051,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_destruction_does_not_persist_state_
     // A purged instance is destroyed after its record is gone, so persisting anything from the
     // destructor would bring the record back.
     StrictMock<mpt::MockVMStatusMonitor> monitor;
+    EXPECT_CALL(monitor, retrieve_mounts_for(dummy_vm_name));
     EXPECT_CALL(monitor, persist_state_for(dummy_vm_name, mp::VirtualMachine::State::stopped))
         .Times(AtMost(1));
 

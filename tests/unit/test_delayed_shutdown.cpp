@@ -50,7 +50,7 @@ struct DelayedShutdown : public Test
 TEST_F(DelayedShutdown, emitsFinishedAfterTimerExpires)
 {
     mp::Signal finished;
-    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get()};
 
     QObject::connect(&delayed_shutdown_timer,
                      &mp::DelayedShutdownTimer::finished,
@@ -74,7 +74,7 @@ TEST_F(DelayedShutdown, wallsImpendingShutdown)
     static const auto now_cmd_matcher = AllOf(HasSubstr("wall"), HasSubstr(msg_now));
 
     mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running};
-    mp::DelayedShutdownTimer delayed_shutdown_timer{&vm, [](const std::string&) {}};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{&vm};
 
     EXPECT_CALL(vm, ssh_exec(upcoming_cmd_matcher, _)).Times(1); // as we start
     EXPECT_CALL(vm, ssh_exec(now_cmd_matcher, _)).Times(1);      // as we finish
@@ -90,7 +90,7 @@ TEST_F(DelayedShutdown, wallsImpendingShutdown)
 TEST_F(DelayedShutdown, handlesExceptionWhenAttemptingToWall)
 {
     mpt::MockVirtualMachine vm{mp::VirtualMachine::State::running};
-    mp::DelayedShutdownTimer delayed_shutdown_timer{&vm, [](const std::string&) {}};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{&vm};
 
     EXPECT_CALL(vm, ssh_exec(HasSubstr("wall"), _))
         .Times(2)
@@ -113,7 +113,7 @@ TEST_F(DelayedShutdown, handlesExceptionWhenAttemptingToWall)
 TEST_F(DelayedShutdown, emitsFinishedWithNoTimer)
 {
     mp::Signal finished;
-    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get()};
 
     QObject::connect(&delayed_shutdown_timer, &mp::DelayedShutdownTimer::finished, [&finished] {
         finished.signal();
@@ -127,14 +127,13 @@ TEST_F(DelayedShutdown, emitsFinishedWithNoTimer)
 TEST_F(DelayedShutdown, stopsMountsBeforeShutdown)
 {
     NiceMock<mpt::MockVirtualMachine> vm{mp::VirtualMachine::State::running};
-    MockFunction<void(const std::string&)> stop_mounts;
     {
         InSequence seq;
-        EXPECT_CALL(stop_mounts, Call(vm.get_name()));
+        EXPECT_CALL(vm, stop_mounts);
         EXPECT_CALL(vm, shutdown);
     }
 
-    mp::DelayedShutdownTimer delayed_shutdown_timer{&vm, stop_mounts.AsStdFunction()};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{&vm};
     delayed_shutdown_timer.start(std::chrono::milliseconds::zero());
 }
 
@@ -155,7 +154,7 @@ TEST_F(DelayedShutdown, vmStateDelayedShutdownWhenTimerRunning)
     REPLACE(ssh_event_dopoll, event_dopoll);
 
     EXPECT_TRUE(vm->state == mp::VirtualMachine::State::running);
-    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
+    mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get()};
     delayed_shutdown_timer.start(std::chrono::milliseconds(1));
 
     EXPECT_TRUE(vm->state == mp::VirtualMachine::State::delayed_shutdown);
@@ -178,7 +177,7 @@ TEST_F(DelayedShutdown, vmStateRunningAfterCancel)
     REPLACE(ssh_event_dopoll, event_dopoll);
 
     {
-        mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get(), [](const std::string&) {}};
+        mp::DelayedShutdownTimer delayed_shutdown_timer{vm.get()};
         delayed_shutdown_timer.start(std::chrono::milliseconds(1));
         EXPECT_TRUE(vm->state == mp::VirtualMachine::State::delayed_shutdown);
     }

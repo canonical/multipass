@@ -23,13 +23,13 @@
 #include <multipass/async_periodic_download_task.h>
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/format.h>
-#include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -70,6 +70,9 @@ protected:
     void persist_state_for(const std::string& name, const VirtualMachine::State& state) override;
     void update_metadata_for(const std::string& name, const boost::json::object& metadata) override;
     boost::json::object retrieve_metadata_for(const std::string& name) override;
+    void update_mounts_for(const VirtualMachine& vm,
+                           const std::unordered_map<std::string, VMMount>& mounts) override;
+    std::unordered_map<std::string, VMMount> retrieve_mounts_for(const std::string& name) override;
 
 public slots:
     virtual void create(const CreateRequest* request,
@@ -220,22 +223,7 @@ private:
         const std::vector<InstanceTable::iterator>& instance_targets,
         std::vector<VirtualMachine::ShPtr>& started_vms);
 
-    void init_mounts(const std::string& name);
-    void stop_mounts(const std::string& name);
-
-    // This returns whether any specs were updated (and need persisting)
-    bool update_mounts(VMSpecs& vm_specs,
-                       std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
-                       VirtualMachine* vm);
-
-    // This returns whether all required mount handlers were successfully created
-    bool create_missing_mounts(std::unordered_map<std::string, VMMount>& mount_specs,
-                               std::unordered_map<std::string, MountHandler::UPtr>& vm_mounts,
-                               VirtualMachine* vm);
-
-    MountHandler::UPtr make_mount(VirtualMachine* vm,
-                                  const std::string& target,
-                                  const VMMount& mount);
+    bool is_current_instance(const std::string& name, const VirtualMachine* vm) const;
 
     struct AsyncOperationStatus
     {
@@ -318,7 +306,8 @@ private:
     QFuture<void> image_update_future;
     SettingsHandler* instance_mod_handler;
     SettingsHandler* snapshot_mod_handler;
-    std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
     std::unordered_set<std::string> user_authorized_bridges;
+    std::atomic<std::uint64_t> next_mount_report_revision{0};
+    std::unordered_map<std::string, std::uint64_t> applied_mount_report_revisions;
 };
 } // namespace multipass

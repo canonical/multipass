@@ -31,8 +31,11 @@
 #include "qemu_mount_handler.h"
 
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/signal.h>
 #include <multipass/utils.h>
 #include <multipass/vm_mount.h>
+
+#include <future>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -224,6 +227,54 @@ TEST_F(QemuMountHandlerTest, mountHandlesMountArgs)
     }
 
     EXPECT_EQ(mount_args.size(), 0);
+}
+
+TEST_F(QemuMountHandlerTest, replacingMountDuringActivationPreservesReplacementArguments)
+{
+    mp::VirtualMachineMounts mounts{
+        "vm",
+        [&](const std::string& target, const mp::VMMount& spec) {
+            return std::make_unique<mp::QemuMountHandler>(&vm, &key_provider, target, spec);
+        },
+        [](const auto&) {},
+        [] { return false; }};
+    mounts.load({{default_target, mount}});
+
+    EXPECT_CALL(mock_file_ops, status)
+        .WillOnce(Return(mp::fs::file_status{mp::fs::file_type::directory, mp::fs::perms::all}));
+    EXPECT_CALL(vm, modifiable_mount_args).WillOnce(ReturnRef(mount_args));
+    EXPECT_CALL(mock_file_ops, weakly_canonical).WillOnce(Return(mp::fs::path{"new-source"}));
+    const mp::VMMount replacement{"new-source",
+                                  gid_mappings,
+                                  uid_mappings,
+                                  mp::VMMount::MountType::Native};
+
+    mp::Signal activating, release;
+    EXPECT_CALL(vm, new_ssh_session).WillOnce([&]() -> std::unique_ptr<mp::SSHSession> {
+        activating.signal();
+        release.wait();
+        throw std::runtime_error{"instance stopped during activation"};
+    });
+
+    auto activation = std::async(std::launch::async,
+                                 [&] { return mounts.activate_all(mp::ServerVariant{}); });
+    activating.wait();
+    auto replacing = std::async(std::launch::async,
+                                [&] { mounts.replace({{default_target, replacement}}); });
+    EXPECT_EQ(replacing.wait_for(std::chrono::milliseconds{100}), std::future_status::timeout);
+
+    release.signal();
+    activation.get();
+    replacing.get();
+
+    EXPECT_EQ(mounts.specs().at(default_target), replacement);
+    const auto tag = tag_from_target(default_target);
+    EXPECT_TRUE(mount_args.contains(tag));
+    if (mount_args.contains(tag))
+    {
+        EXPECT_EQ(mount_args.at(tag).first, replacement.get_source_path());
+    }
+    mounts.unload();
 }
 
 TEST_F(QemuMountHandlerTest, mountLogsInit)

@@ -49,6 +49,15 @@ struct StubVMStatusMonitor : public multipass::VMStatusMonitor
     {
         return {};
     }
+    void update_mounts_for(const VirtualMachine& /*vm*/,
+                           const std::unordered_map<std::string, VMMount>& /*mounts*/) override
+    {
+    }
+    std::unordered_map<std::string, VMMount> retrieve_mounts_for(
+        const std::string& /*name*/) override
+    {
+        return {};
+    }
 };
 } // namespace test
 } // namespace multipass

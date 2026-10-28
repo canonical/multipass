@@ -34,8 +34,10 @@
 #include <multipass/ssh/plain_ssh_process.h>
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_key_provider.h>
+#include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/vm_specs.h>
+#include <multipass/vm_status_monitor.h>
 #include <scope_guard.hpp>
 
 #include <yaml-cpp/yaml.h>
@@ -142,11 +144,70 @@ mp::BaseVirtualMachine::BaseVirtualMachine(State state,
       monitor{monitor},
       key_provider{key_provider},
       zone{zone},
-      instance_dir{instance_dir}
+      instance_dir{instance_dir},
+      mounts{vm_name,
+             [this](const std::string& target, const VMMount& mount) {
+                 return make_mount_handler(target, mount);
+             },
+             [this](const VirtualMachineMounts::MountMap& specs) {
+                 this->monitor.update_mounts_for(*this, specs);
+             },
+             [this] { return current_state() == State::running; }}
 {
 }
 
-mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
+mp::BaseVirtualMachine::~BaseVirtualMachine()
+{
+    assert(mounts.empty() && "concrete backends must unload_mounts() in their destructors");
+}
+
+void mp::BaseVirtualMachine::add_mount(const std::string& target,
+                                       const VMMount& mount,
+                                       ServerVariant server)
+{
+    mounts.add(target, mount, server);
+}
+
+void mp::BaseVirtualMachine::remove_mount(const std::string& target)
+{
+    mounts.remove(target);
+}
+
+std::vector<std::pair<std::string, std::string>> mp::BaseVirtualMachine::remove_all_mounts()
+{
+    return mounts.remove_all();
+}
+
+mp::MountActivationResult mp::BaseVirtualMachine::activate_mounts(ServerVariant server)
+{
+    return mounts.activate_all(server);
+}
+
+void mp::BaseVirtualMachine::stop_mounts()
+{
+    mounts.stop_all();
+}
+
+void mp::BaseVirtualMachine::load_mounts()
+{
+    auto rollback = sg::make_scope_guard([this]() noexcept { mounts.unload(); });
+    mounts.load(monitor.retrieve_mounts_for(vm_name));
+    rollback.dismiss();
+}
+
+void mp::BaseVirtualMachine::unload_mounts()
+{
+    mounts.unload();
+}
+
+std::unique_ptr<mp::MountHandler>
+mp::BaseVirtualMachine::make_mount_handler(const std::string& target, const VMMount& mount)
+{
+    if (mount.get_mount_type() == VMMount::MountType::Classic)
+        return std::make_unique<SSHFSMountHandler>(this, &key_provider, target, mount);
+
+    return make_native_mount_handler(target, mount);
+}
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
     const std::string& default_mac_addr,
@@ -587,12 +648,15 @@ std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
 
     auto rollback_on_failure = make_take_snapshot_rollback(it);
 
+    auto snapshot_specs = specs;
+    snapshot_specs.mounts = mounts.specs();
+
     // get instance id from cloud-init file and pass to make_specific_snapshot
     auto ret = head_snapshot = it->second = make_specific_snapshot(
         sname,
         comment,
         get_instance_id_from_the_cloud_init(),
-        specs,
+        snapshot_specs,
         head_snapshot);
     ret->capture();
 
@@ -926,7 +990,6 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
     const bool are_extra_interfaces_different = specs.extra_interfaces !=
                                                 snapshot->get_extra_interfaces();
     specs.extra_interfaces = snapshot->get_extra_interfaces();
-    specs.mounts = snapshot->get_mounts();
     specs.metadata = snapshot->get_metadata();
 
     if (head_snapshot != snapshot)
@@ -948,6 +1011,9 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
     }
 
     rollback.dismiss();
+
+    // Mounts are reported through the monitor, not written into specs
+    mounts.replace(snapshot->get_mounts());
 }
 
 std::shared_ptr<mp::Snapshot> mp::BaseVirtualMachine::make_specific_snapshot(

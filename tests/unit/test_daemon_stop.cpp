@@ -17,7 +17,6 @@
 
 #include "common.h"
 #include "daemon_test_fixture.h"
-#include "mock_mount_handler.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_server_reader_writer.h"
@@ -43,27 +42,19 @@ struct TestDaemonStop : public mpt::DaemonTestFixture
         config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
     }
 
-    void plant_instance_with_mount(std::unique_ptr<mpt::MockVirtualMachine> mock_vm,
-                                   std::unique_ptr<mpt::MockMountHandler> mock_mount_handler)
+    void plant_instance(std::unique_ptr<mpt::MockVirtualMachine> mock_vm)
     {
         auto mock_factory = use_a_mock_vm_factory();
-        std::unordered_map<std::string, mp::VMMount> mounts{
-            {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
 
-        std::tie(temp_dir,
-                 std::ignore) = plant_instance_json(fake_json_contents(mac_addr, {}, mounts));
+        std::tie(temp_dir, std::ignore) = plant_instance_json(fake_json_contents(mac_addr, {}));
         config_builder.data_directory = temp_dir->path();
 
         EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
-        EXPECT_CALL(*mock_vm, make_native_mount_handler(fake_target_path, _))
-            .WillOnce(Return(std::move(mock_mount_handler)));
-
         EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
     }
 
     const std::string mock_instance_name{"real-zebraphant"};
     const std::string mac_addr{"52:54:00:73:76:28"};
-    const std::string fake_target_path{"/home/ubuntu/foo"};
     std::unique_ptr<mpt::TempDir> temp_dir;
 
     mpt::MockPlatform::GuardedMock platform_attr{mpt::MockPlatform::inject<NiceMock>()};
@@ -82,15 +73,13 @@ TEST_F(TestDaemonStop, forceStopStopsMountsAfterPoweringOff)
 {
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(
         mp::VirtualMachine::State::running);
-    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
     {
         InSequence seq;
         EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff));
-        EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));
-        EXPECT_CALL(*mock_mount_handler, deactivate_impl(true));
+        EXPECT_CALL(*mock_vm, stop_mounts);
     }
 
-    plant_instance_with_mount(std::move(mock_vm), std::move(mock_mount_handler));
+    plant_instance(std::move(mock_vm));
     mp::Daemon daemon{config_builder.build()};
 
     mp::StopRequest request;
@@ -110,15 +99,13 @@ TEST_F(TestDaemonStop, stopStopsMountsBeforeShuttingDown)
 {
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(
         mp::VirtualMachine::State::running);
-    auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();
     {
         InSequence seq;
-        EXPECT_CALL(*mock_mount_handler, is_active).WillOnce(Return(true));
-        EXPECT_CALL(*mock_mount_handler, deactivate_impl(true));
+        EXPECT_CALL(*mock_vm, stop_mounts);
         EXPECT_CALL(*mock_vm, shutdown);
     }
 
-    plant_instance_with_mount(std::move(mock_vm), std::move(mock_mount_handler));
+    plant_instance(std::move(mock_vm));
     mp::Daemon daemon{config_builder.build()};
 
     mp::StopRequest request;

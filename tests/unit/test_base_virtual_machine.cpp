@@ -22,10 +22,12 @@
 #include "mock_logger.h"
 #include "mock_snapshot.h"
 #include "mock_ssh_test_fixture.h"
+#include "mock_status_monitor.h"
 #include "mock_utils.h"
 #include "mock_virtual_machine.h"
 #include "multipass/virtual_machine_description.h"
 #include "stub_availability_zone.h"
+#include "stub_mount_handler.h"
 #include "stub_status_monitor.h"
 #include "temp_dir.h"
 
@@ -116,6 +118,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
                 (override));
 
     using mp::BaseVirtualMachine::desc;
+    using mp::BaseVirtualMachine::load_mounts;       // promote to public
     using mp::BaseVirtualMachine::renew_ssh_session; // promote to public
 
     void simulate_state(St state)
@@ -872,7 +875,78 @@ TEST_F(BaseVM, restoresSnapshots)
 
     vm.restore_snapshot(snapshot_name, changed_specs);
 
+    EXPECT_THAT(changed_specs.mounts, IsEmpty()); // mounts are reported to the monitor instead
+    changed_specs.mounts = original_specs.mounts;
     EXPECT_EQ(original_specs, changed_specs);
+}
+
+TEST_F(BaseVM, restoringSnapshotReconcilesAndReportsMounts)
+{
+    NiceMock<mpt::MockVMStatusMonitor> monitor;
+    NiceMock<MockBaseVirtualMachine> vm{"vm",
+                                        mp::VirtualMachineDescription{},
+                                        monitor,
+                                        key_provider,
+                                        zone};
+
+    mpt::TempDir source;
+    const mp::VMMount kept{source.path().toStdString(), {}, {}, mp::VMMount::MountType::Native};
+    const mp::VMMount gone{source.path().toStdString(),
+                           {{1, 2}},
+                           {},
+                           mp::VMMount::MountType::Native};
+    const std::unordered_map<std::string, mp::VMMount> current{{"/kept", kept}, {"/gone", gone}};
+    const std::unordered_map<std::string, mp::VMMount> restored{{"/kept", kept}, {"/new", kept}};
+
+    EXPECT_CALL(monitor, retrieve_mounts_for(Eq("vm"))).WillOnce(Return(current));
+    EXPECT_CALL(vm, make_native_mount_handler(Eq("/kept"), _))
+        .WillOnce(Return(std::make_unique<mpt::StubMountHandler>()));
+    EXPECT_CALL(vm, make_native_mount_handler(Eq("/gone"), _))
+        .WillOnce(Return(std::make_unique<mpt::StubMountHandler>()));
+    vm.load_mounts();
+
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _))
+        .WillOnce(Return(std::make_shared<NiceMock<mpt::MockSnapshot>>()));
+    auto snapshot = std::const_pointer_cast<mp::Snapshot>(vm.take_snapshot({}, "snap", ""));
+    auto& mock_snapshot = dynamic_cast<mpt::MockSnapshot&>(*snapshot);
+    boost::json::object metadata;
+    EXPECT_CALL(mock_snapshot, get_mounts).WillRepeatedly(ReturnRef(restored));
+    EXPECT_CALL(mock_snapshot, get_metadata).WillRepeatedly(ReturnRef(metadata));
+
+    EXPECT_CALL(vm, make_native_mount_handler(Eq("/new"), _))
+        .WillOnce(Return(std::make_unique<mpt::StubMountHandler>()));
+    EXPECT_CALL(monitor, update_mounts_for(Ref(vm), Eq(restored)));
+
+    mp::VMSpecs specs{};
+    vm.restore_snapshot("snap", specs);
+    EXPECT_THAT(specs.mounts, IsEmpty());
+}
+
+TEST_F(BaseVM, takingSnapshotRecordsTheInstanceMounts)
+{
+    NiceMock<mpt::MockVMStatusMonitor> monitor;
+    NiceMock<MockBaseVirtualMachine> vm{"vm",
+                                        mp::VirtualMachineDescription{},
+                                        monitor,
+                                        key_provider,
+                                        zone};
+
+    mpt::TempDir source;
+    const mp::VMMount mount{source.path().toStdString(), {}, {}, mp::VMMount::MountType::Native};
+    const std::unordered_map<std::string, mp::VMMount> own_mounts{{"/own", mount}};
+
+    EXPECT_CALL(monitor, retrieve_mounts_for).WillOnce(Return(own_mounts));
+    EXPECT_CALL(vm, make_native_mount_handler)
+        .WillOnce(Return(std::make_unique<mpt::StubMountHandler>()));
+    vm.load_mounts();
+
+    mp::VMSpecs specs{};
+    specs.mounts = {{"/stale", mount}};
+
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, Field(&mp::VMSpecs::mounts, Eq(own_mounts)), _))
+        .WillOnce(Return(std::make_shared<NiceMock<mpt::MockSnapshot>>()));
+
+    vm.take_snapshot(specs, "snap", "");
 }
 
 TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)

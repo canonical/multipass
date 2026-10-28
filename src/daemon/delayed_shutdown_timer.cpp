@@ -66,9 +66,8 @@ void write_shutdown_message(mp::VirtualMachine& vm, const std::chrono::milliseco
 }
 } // namespace
 
-mp::DelayedShutdownTimer::DelayedShutdownTimer(VirtualMachine* virtual_machine,
-                                               const StopMounts& stop_mounts)
-    : virtual_machine{virtual_machine}, stop_mounts{stop_mounts}, time_remaining{0}
+mp::DelayedShutdownTimer::DelayedShutdownTimer(VirtualMachine* virtual_machine)
+    : virtual_machine{virtual_machine}, time_remaining{0}
 {
 }
 
@@ -140,7 +139,7 @@ std::chrono::seconds mp::DelayedShutdownTimer::get_time_remaining()
 
 void mp::DelayedShutdownTimer::shutdown_instance()
 {
-    stop_mounts(virtual_machine->get_name());
+    virtual_machine->stop_mounts();
     virtual_machine->shutdown();
     emit finished();
 }
