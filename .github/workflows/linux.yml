@@ -34,13 +34,12 @@ jobs:
             "runs-on": "ubuntu-latest"
           });
 
-          let runners = ["ubuntu-latest", "ubuntu-24.04-arm"];
-          if (context.eventName === 'schedule' &&
-              context.repo.owner === 'canonical' &&
-              context.repo.repo === 'multipass') {
-            runners.push("self-hosted-linux-ppc64el-noble-edge",
-                         "self-hosted-linux-s390x-noble-edge");
-          }
+          let runners = [
+            "ubuntu-latest",
+            "ubuntu-24.04-arm",
+            "self-hosted-linux-ppc64el-noble-edge",
+            "self-hosted-linux-s390x-noble-edge"
+          ];
 
           for (const runner of runners) {
             matrix.include.push({
