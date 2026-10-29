@@ -22,13 +22,10 @@
 #include <comdef.h>
 
 #include <fmt/xchar.h>
-#include <ztd/out_ptr.hpp>
 
 #include <memory>
 
 #pragma comment(lib, "wbemuuid.lib")
-
-using ztd::out_ptr::out_ptr;
 
 namespace
 {
@@ -90,7 +87,7 @@ UniqueComPtr<IWbemServices> prepare_connection()
                                 nullptr,
                                 CLSCTX_INPROC_SERVER,
                                 IID_IWbemLocator,
-                                out_ptr(locator))))
+                                std::out_ptr(locator))))
         return nullptr;
 
     UniqueComPtr<IWbemServices> services;
@@ -101,7 +98,7 @@ UniqueComPtr<IWbemServices> prepare_connection()
                                       0,
                                       nullptr,
                                       nullptr,
-                                      out_ptr(services))))
+                                      std::out_ptr(services))))
         return nullptr;
 
     CoSetProxyBlanket(services.get(),
@@ -136,12 +133,12 @@ std::optional<WindowsFeatureState> get_windows_feature_state(std::wstring_view f
                                    _bstr_t(query.c_str()),
                                    WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
                                    nullptr,
-                                   out_ptr(enumerator))))
+                                   std::out_ptr(enumerator))))
             return {};
 
         UniqueComPtr<IWbemClassObject> obj;
         ULONG count = 0;
-        if (enumerator->Next(WBEM_INFINITE, 1, out_ptr(obj), &count) != S_OK || !count)
+        if (enumerator->Next(WBEM_INFINITE, 1, std::out_ptr(obj), &count) != S_OK || !count)
             return {};
 
         VariantGuard var;
