@@ -150,7 +150,7 @@ std::shared_ptr<grpc::Channel> mp::client::make_channel(const std::string& serve
 
 std::string mp::client::get_server_address()
 {
-    const auto address = qgetenv("MULTIPASS_SERVER_ADDRESS").toStdString();
+    const auto address = qgetenv(server_address_env_var).toStdString();
     if (!address.empty())
     {
         mp::utils::validate_server_address(address);

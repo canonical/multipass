@@ -34,6 +34,7 @@
 #include "shared/sshfs_server_process_spec.h"
 #include "shared/windows/powershell.h"
 #include "shared/windows/process_factory.h"
+#include "shared/windows/server_port.h"
 #include "shared/windows/wchar_conversion.h"
 #include "shared/windows/wsa_init_wrapper.h"
 #include <daemon/default_vm_image_vault.h>
@@ -857,7 +858,10 @@ void mp::platform::sync_winterm_profiles()
 
 std::string mp::platform::default_server_address()
 {
-    return default_grpc_server_tcp_listen_address;
+    // A port configured in the registry (see server_port.h) takes precedence,
+    // so that the daemon and all clients agree on where to meet.
+    const auto port = ServerPortConfig{}.configured().value_or(default_grpc_server_tcp_port);
+    return fmt::format("localhost:{}", port);
 }
 
 QString mp::platform::Platform::default_driver() const
