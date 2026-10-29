@@ -383,7 +383,10 @@ mp::IPAddress mp::BaseVirtualMachine::require_management_ipv4()
 
 void mp::BaseVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout)
 {
-    drop_ssh_session();
+    {
+        const std::lock_guard lock{state_mutex};
+        drop_ssh_session();
+    }
     mpl::debug(vm_name, "Waiting for SSH to be up");
 
     auto action = std::bind_front(&BaseVirtualMachine::try_to_ssh, this);
