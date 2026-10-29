@@ -73,5 +73,9 @@ mp::ParseCode cmd::Recover::parse_args(mp::ArgParser* parser)
 
     request.mutable_instance_names()->CopyFrom(add_instance_names(parser));
 
+    cerr << mp::make_deprecation_warning(
+        "`multipass recover`",
+        "When removed, all `DELETED` instances will be automatically recovered.");
+
     return status;
 }
