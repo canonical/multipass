@@ -150,13 +150,15 @@ struct HyperVBackend : public Test
 
 TEST_F(HyperVBackend, createsInOffState)
 {
-    ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence());
+    auto runs = standard_ps_run_sequence();
+    runs.push_back(min_dtor_run); // fetch_state() queries the backend, as does the dtor
+    ps_helper.setup_mocked_run_sequence(runs);
 
     auto machine = backend.create_virtual_machine(default_description,
                                                   stub_key_provider,
                                                   stub_monitor);
     ASSERT_THAT(machine.get(), NotNull());
-    EXPECT_THAT(machine->state, Eq(mp::VirtualMachine::State::stopped));
+    EXPECT_THAT(machine->fetch_state(), Eq(mp::VirtualMachine::State::stopped));
 }
 
 // Neighbor entries on the Default Switch host vNIC, or on another network's host vNIC.
@@ -241,7 +243,9 @@ TEST_P(HyperVStart, removesNeighborsOnlyForConfirmedColdStart)
     if (remove_neighbors)
         runs.push_back(default_switch_lookup_run);
     runs.insert(runs.end(),
-                {{"-ExpandProperty State", state_query.will_output}, {"Start-VM"}, min_dtor_run});
+                {{"Start-VM"},
+                 {"-ExpandProperty State", "Running"}, // fetch_state() after start
+                 min_dtor_run});
     ps_helper.setup_mocked_run_sequence(runs);
 
     // The mocks are strict, so without expectations no lookup or removal may happen.
@@ -262,7 +266,7 @@ TEST_P(HyperVStart, removesNeighborsOnlyForConfirmedColdStart)
                                                   stub_key_provider,
                                                   stub_monitor);
     EXPECT_NO_THROW(machine->start());
-    EXPECT_EQ(machine->state, mp::VirtualMachine::State::starting);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::starting);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -272,7 +276,8 @@ INSTANTIATE_TEST_SUITE_P(
            HyperVStartParams{"Saved", {"-ExpandProperty State", "Saved"}, false},
            HyperVStartParams{"Off", {"-ExpandProperty State", "Running"}, false},
            HyperVStartParams{"Off", {"-ExpandProperty State", "Starting"}, false},
-           HyperVStartParams{"Paused", {"-ExpandProperty State", "Paused"}, false},
+           // Unmapped backend states keep the managed state, which is `stopped` here
+           HyperVStartParams{"Paused", {"-ExpandProperty State", "Paused"}, true},
            HyperVStartParams{"Saved", {"-ExpandProperty State", "", false}, false}));
 
 TEST_F(HyperVBackend, setsMacAddressOnDefaultNetworkAdapter)

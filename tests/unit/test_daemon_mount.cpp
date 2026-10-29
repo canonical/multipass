@@ -201,7 +201,7 @@ TEST_F(TestDaemonMount, mountExpandsTildes)
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
-    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, make_native_mount_handler(Eq(fake_target_path), _))
         .WillOnce(Return(std::move(mock_mount_handler)));
 
@@ -235,7 +235,7 @@ TEST_F(TestDaemonMount, skipStartMountIfInstanceIsNotRunning)
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
-    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, make_native_mount_handler)
         .WillOnce(Return(std::move(mock_mount_handler)));
 
@@ -269,7 +269,7 @@ TEST_F(TestDaemonMount, startsMountIfInstanceRunning)
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
-    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(*mock_vm, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, make_native_mount_handler)
         .WillOnce(Return(std::move(mock_mount_handler)));
 
@@ -304,7 +304,7 @@ TEST_F(TestDaemonMount, mountFailsErrorMounting)
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
-    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(*mock_vm, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, make_native_mount_handler)
         .WillOnce(Return(std::move(mock_mount_handler)));
 

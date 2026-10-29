@@ -50,7 +50,13 @@ namespace mpt = multipass::test;
 using namespace testing;
 
 namespace mhv = multipass::hyperv;
-using uut_t = mhv::HCSVirtualMachine;
+struct HCSVMWithSettableState : public mhv::HCSVirtualMachine
+{
+    using mhv::HCSVirtualMachine::HCSVirtualMachine;
+    using mhv::HCSVirtualMachine::set_state; // promote to public
+};
+
+using uut_t = HCSVMWithSettableState;
 using hcs_handle_t = mhv::hcs::HcsSystemHandle;
 using hcs_op_result_t = mhv::OperationResult;
 using hcs_system_state_t = mhv::hcs::ComputeSystemState;
@@ -346,7 +352,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, construct_vm_class_exists_open)
 
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::running);
 }
 
 // ---------------------------------------------------------
@@ -370,7 +376,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, construct_vm_class_exists_create)
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::running);
 }
 
 TEST_F(HyperVHCSVirtualMachine_UnitTests, create_removes_stale_neighbors_for_management_mac)
@@ -503,11 +509,11 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_start_success)
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::stopped);
 
     uut->start();
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::starting);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::starting);
 }
 
 TEST_F(HyperVHCSVirtualMachine_UnitTests, existing_vm_cold_start_removes_stale_neighbors)
@@ -558,13 +564,13 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, failed_saved_vm_recreation_remains_sus
         .WillRepeatedly(
             DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
     auto uut = construct_vm();
-    ASSERT_EQ(uut->current_state(), mp::VirtualMachine::State::suspended);
+    ASSERT_EQ(uut->fetch_state(), mp::VirtualMachine::State::suspended);
 
     expect_failed_recreation();
     EXPECT_CALL(mock_net_io_api, GetIpNetTable2(AF_INET)).Times(0);
 
     EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
-    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::suspended);
+    EXPECT_EQ(uut->fetch_state(), mp::VirtualMachine::State::suspended);
     EXPECT_TRUE(std::filesystem::exists(saved_state_path));
 }
 
@@ -575,7 +581,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, failed_cold_vm_recreation_reports_off)
     expect_failed_recreation();
 
     EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
-    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(HyperVHCSVirtualMachine_UnitTests, failure_after_compute_system_creation_drops_handle)
@@ -590,23 +596,27 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, failure_after_compute_system_creation_
     EXPECT_THROW(uut->start(), std::runtime_error);
 
     // The terminated handle would still report `stopped`; reopening finds no compute system.
-    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), mp::VirtualMachine::State::stopped);
 }
 
-TEST_F(HyperVHCSVirtualMachine_UnitTests, compute_system_open_error_reports_unknown_state)
+TEST_F(HyperVHCSVirtualMachine_UnitTests, compute_system_open_error_preserves_state)
 {
     default_open_success();
     auto uut = construct_vm();
     expect_failed_recreation();
     EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
 
+    // The missing compute system settles the last known state to `stopped`.
+    ASSERT_EQ(uut->fetch_state(), mp::VirtualMachine::State::stopped);
+
     // Only the explicit query: the destructor goes by the last known state.
     EXPECT_CALL(mock_hcs, open_compute_system(dummy_vm_name, _))
         .WillOnce(Return(hcs_op_result_t{E_ACCESSDENIED, L"Access denied"}));
 
+    // An unknown HCS state is not a state change: the last known state is kept.
     mp::VirtualMachine::State state{};
-    EXPECT_NO_THROW(state = uut->current_state());
-    EXPECT_EQ(state, mp::VirtualMachine::State::unknown);
+    EXPECT_NO_THROW(state = uut->fetch_state());
+    EXPECT_EQ(state, mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(HyperVHCSVirtualMachine_UnitTests, missing_compute_system_preserves_unavailable_state)
@@ -615,9 +625,9 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, missing_compute_system_preserves_unava
     auto uut = construct_vm();
     expect_failed_recreation();
     EXPECT_THROW(uut->start(), mhv::CreateEndpointException);
-    uut->state = mp::VirtualMachine::State::unavailable;
+    uut->set_state(mp::VirtualMachine::State::unavailable);
 
-    EXPECT_EQ(uut->current_state(), mp::VirtualMachine::State::unavailable);
+    EXPECT_EQ(uut->fetch_state(), mp::VirtualMachine::State::unavailable);
 }
 
 // ---------------------------------------------------------
@@ -633,11 +643,11 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_start_failure)
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::stopped);
 
     EXPECT_THROW(uut->start(), mhv::StartComputeSystemException);
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::stopped);
 }
 
 // ---------------------------------------------------------
@@ -652,11 +662,11 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_start_resume_success)
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::suspended);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::suspended);
 
     uut->start();
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::starting);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::starting);
 }
 
 // ---------------------------------------------------------
@@ -672,11 +682,11 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_start_resume_failure)
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::suspended);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::suspended);
 
     EXPECT_THROW(uut->start(), mhv::StartComputeSystemException);
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::suspended);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::suspended);
 }
 
 // ---------------------------------------------------------
@@ -690,11 +700,11 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_success)
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::running);
 
     uut->shutdown(multipass::VirtualMachine::ShutdownPolicy::Powerdown);
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::stopped);
 }
 
 // ---------------------------------------------------------
@@ -709,7 +719,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_powerdown_fail)
     std::shared_ptr<partially_mocked_uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm<partially_mocked_uut_t>());
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::running);
 
     EXPECT_CALL(*uut, ssh_exec(Eq("sudo shutdown -h now"), _))
         .WillOnce([this](const std::string&, bool) {
@@ -720,7 +730,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_powerdown_fail)
 
     uut->shutdown(multipass::VirtualMachine::ShutdownPolicy::Powerdown);
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::stopped);
 }
 
 // ---------------------------------------------------------
@@ -734,13 +744,13 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_halt)
     std::shared_ptr<partially_mocked_uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm<partially_mocked_uut_t>());
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::running);
 
     EXPECT_CALL(*uut, drop_ssh_session()).Times(1);
 
     uut->shutdown(multipass::VirtualMachine::ShutdownPolicy::Halt);
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::stopped);
 }
 
 // ---------------------------------------------------------
@@ -777,11 +787,11 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_poweroff_suspended_removes
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
 
-    ASSERT_EQ(uut->state, multipass::VirtualMachine::State::suspended);
+    ASSERT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::suspended);
 
     uut->shutdown(multipass::VirtualMachine::ShutdownPolicy::Poweroff);
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::stopped);
     EXPECT_EQ(state_file_removed, true);
 }
 
@@ -821,11 +831,11 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests,
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
 
-    ASSERT_EQ(uut->state, multipass::VirtualMachine::State::suspended);
+    ASSERT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::suspended);
 
     EXPECT_THROW(uut->shutdown(multipass::VirtualMachine::ShutdownPolicy::Poweroff),
                  mhv::ShutdownComputeSystemException);
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::suspended);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::suspended);
     EXPECT_EQ(state_file_removal_attempted, true);
 }
 
@@ -838,17 +848,13 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_shutdown_termination_failure_throws
     EXPECT_CALL(mock_hcs, terminate_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{1, L"termination failed"}));
 
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})));
-
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
     EXPECT_THROW(uut->shutdown(multipass::VirtualMachine::ShutdownPolicy::Poweroff),
                  mhv::ShutdownComputeSystemException);
 
     // Mark the VM stopped to prevent auto suspension on destruction
-    uut->state = multipass::VirtualMachine::State::stopped;
+    uut->set_state(multipass::VirtualMachine::State::stopped);
 }
 
 // ---------------------------------------------------------
@@ -868,21 +874,17 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_success)
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::running);
 
     uut->suspend();
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::suspended);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::suspended);
 }
 
 TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_save_failure_resumes_and_throws)
 {
     default_open_success();
 
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .Times(2)
-        .WillRepeatedly(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})));
     EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
     EXPECT_CALL(mock_hcs, save_compute_system(Eq(mock_handle), _))
@@ -896,7 +898,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_save_failure_resumes_and_th
     EXPECT_THROW(uut->suspend(), mhv::SaveComputeSystemException);
 
     // Mark the VM stopped to prevent auto suspension on destruction
-    uut->state = multipass::VirtualMachine::State::stopped;
+    uut->set_state(multipass::VirtualMachine::State::stopped);
 }
 
 // ---------------------------------------------------------
@@ -905,11 +907,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_save_and_resume_failure_ter
 {
     default_open_success();
 
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})))
-        .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
+    // terminate_compute_system's default action moves api_state to stopped
     EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
     EXPECT_CALL(mock_hcs, save_compute_system(Eq(mock_handle), _))
@@ -922,10 +920,10 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_save_and_resume_failure_ter
     ASSERT_NO_THROW(uut = construct_vm());
 
     EXPECT_THROW(uut->suspend(), mhv::SaveComputeSystemException);
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::stopped);
 
     // Mark the VM stopped to prevent auto suspension on destruction
-    uut->state = multipass::VirtualMachine::State::stopped;
+    uut->set_state(multipass::VirtualMachine::State::stopped);
 }
 
 // ---------------------------------------------------------
@@ -934,9 +932,6 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_save_resume_and_terminate_f
 {
     default_open_success();
 
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})));
     EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
     EXPECT_CALL(mock_hcs, save_compute_system(Eq(mock_handle), _))
@@ -952,7 +947,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_save_resume_and_terminate_f
     EXPECT_THROW(uut->suspend(), mhv::SaveComputeSystemException);
 
     // Mark the VM stopped to prevent auto suspension on destruction
-    uut->state = multipass::VirtualMachine::State::stopped;
+    uut->set_state(multipass::VirtualMachine::State::stopped);
 }
 
 // ---------------------------------------------------------
@@ -961,9 +956,6 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_termination_failure_throws)
 {
     default_open_success();
 
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})));
     EXPECT_CALL(mock_hcs, pause_compute_system(Eq(mock_handle)))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
     EXPECT_CALL(mock_hcs, save_compute_system(Eq(mock_handle), _))
@@ -977,7 +969,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_termination_failure_throws)
     EXPECT_THROW(uut->suspend(), mhv::ShutdownComputeSystemException);
 
     // Mark the VM stopped to prevent auto suspension on destruction
-    uut->state = multipass::VirtualMachine::State::stopped;
+    uut->set_state(multipass::VirtualMachine::State::stopped);
 }
 
 // ---------------------------------------------------------
@@ -1007,7 +999,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_on_destruction_persists_run
 
     {
         auto uut = construct_vm(&monitor);
-        EXPECT_EQ(uut->state, mp::VirtualMachine::State::running);
+        EXPECT_EQ(uut->fetch_state(), mp::VirtualMachine::State::running);
     }
 
     EXPECT_EQ(api_state, hcs_system_state_t::stopped);
@@ -1031,7 +1023,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_destruction_leaves_suspended_vm_sus
 
     {
         auto uut = construct_vm(&monitor);
-        EXPECT_EQ(uut->state, mp::VirtualMachine::State::suspended);
+        EXPECT_EQ(uut->fetch_state(), mp::VirtualMachine::State::suspended);
     }
 
     EXPECT_EQ(api_state, hcs_system_state_t::stopped);
@@ -1054,7 +1046,7 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_destruction_does_not_persist_state_
 
     {
         auto uut = construct_vm(&monitor);
-        EXPECT_EQ(uut->state, mp::VirtualMachine::State::stopped);
+        EXPECT_EQ(uut->fetch_state(), mp::VirtualMachine::State::stopped);
         api_state = hcs_system_state_t::stopped;
     }
 }
@@ -1070,11 +1062,11 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_set_unavailable)
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::running);
 
     uut->set_available(false);
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::unavailable);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::unavailable);
 }
 
 // ---------------------------------------------------------
@@ -1090,11 +1082,11 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, vm_suspend_failure)
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm());
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::running);
 
     ASSERT_THROW(uut->suspend(), multipass::hyperv::SaveComputeSystemException);
 
-    EXPECT_EQ(uut->state, multipass::VirtualMachine::State::running);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::running);
 }
 
 // ---------------------------------------------------------
@@ -1267,21 +1259,12 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, management_ipv4_returns_empty_without_
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVHCSVirtualMachine_UnitTests, update_state_calls_persist_state_only_on_change)
+TEST_F(HyperVHCSVirtualMachine_UnitTests, fetch_state_calls_persist_state_only_on_change)
 {
     default_open_success();
-    api_state = hcs_system_state_t::paused;
+    api_state = hcs_system_state_t::running;
 
     mpt::MockVMStatusMonitor mock_monitor{};
-    EXPECT_CALL(mock_hcs, get_compute_system_state(Eq(mock_handle), _))
-        .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})))
-        .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})))
-        .WillOnce(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::running), Return(hcs_op_result_t{0, L""})))
-        .WillRepeatedly(
-            DoAll(SetArgReferee<1>(hcs_system_state_t::stopped), Return(hcs_op_result_t{0, L""})));
 
     InSequence sequence;
     EXPECT_CALL(
@@ -1294,10 +1277,11 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, update_state_calls_persist_state_only_
     std::shared_ptr<uut_t> uut{nullptr};
     ASSERT_NO_THROW(uut = construct_vm(&mock_monitor));
 
-    EXPECT_EQ(uut->current_state(), multipass::VirtualMachine::State::running);
-    EXPECT_EQ(uut->current_state(), multipass::VirtualMachine::State::running);
-    EXPECT_EQ(uut->current_state(), multipass::VirtualMachine::State::stopped);
-    EXPECT_EQ(uut->current_state(), multipass::VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::running);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::running);
+    api_state = hcs_system_state_t::stopped;
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::stopped);
+    EXPECT_EQ(uut->fetch_state(), multipass::VirtualMachine::State::stopped);
 }
 
 // ---------------------------------------------------------

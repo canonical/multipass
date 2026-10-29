@@ -64,9 +64,19 @@ struct StubVirtualMachine final : public VirtualMachine
         return false;
     }
 
-    State current_state() override
+    State fetch_state() override
     {
-        return State::stopped;
+        return state;
+    }
+
+    void set_running() override
+    {
+        state = State::running;
+    }
+
+    void set_delayed_shutdown() override
+    {
+        state = State::delayed_shutdown;
     }
 
     int ssh_port() override
@@ -231,6 +241,9 @@ struct StubVirtualMachine final : public VirtualMachine
     std::string name;
     StubAvailabilityZone zone{};
     std::unique_ptr<TempDir> tmp_dir;
+
+private:
+    State state{State::stopped};
 };
 } // namespace test
 } // namespace multipass

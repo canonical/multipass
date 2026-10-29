@@ -59,11 +59,10 @@ struct TestDaemonRestart : public mpt::DaemonTestFixture
         const auto [temp_dir,
                     filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
 
-        auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+        auto instance_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(state);
         auto* ret_instance = instance_ptr.get();
 
         ON_CALL(*instance_ptr, get_name).WillByDefault(ReturnRef(mock_instance_name));
-        EXPECT_CALL(*instance_ptr, current_state).WillRepeatedly(Return(state));
         EXPECT_CALL(mock_factory, create_virtual_machine).WillOnce(Return(std::move(instance_ptr)));
 
         config_builder.data_directory = temp_dir->path();
@@ -99,23 +98,13 @@ struct TestDaemonRestart : public mpt::DaemonTestFixture
         const auto& stored_name1 = instance_name_storage.emplace_back(std::move(name1));
         const auto& stored_name2 = instance_name_storage.emplace_back(std::move(name2));
 
-        auto instance1_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+        auto instance1_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(state1);
         auto* ret_instance1 = instance1_ptr.get();
-        auto instance2_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+        auto instance2_ptr = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(state2);
         auto* ret_instance2 = instance2_ptr.get();
 
-        // current_state() reflects the mutable `state` member (inherited from VirtualMachine), so
-        // tests can change an instance's state mid-flight (e.g. once it resumes from suspension).
-        instance1_ptr->state = state1;
-        instance2_ptr->state = state2;
         ON_CALL(*instance1_ptr, get_name).WillByDefault(ReturnRef(stored_name1));
-        EXPECT_CALL(*instance1_ptr, current_state).WillRepeatedly([ret_instance1] {
-            return ret_instance1->state;
-        });
         ON_CALL(*instance2_ptr, get_name).WillByDefault(ReturnRef(stored_name2));
-        EXPECT_CALL(*instance2_ptr, current_state).WillRepeatedly([ret_instance2] {
-            return ret_instance2->state;
-        });
 
         EXPECT_CALL(
             mock_factory,
@@ -228,12 +217,10 @@ TEST_P(TestRestartOnDifferentStates, restartOnStateWithoutRunningOnly)
     request.set_running_only(false);
     auto [state, expected_status] = GetParam();
     auto [daemon, instance] = build_daemon_with_mock_instance(state);
-    instance->state = state;
 
-    EXPECT_CALL(*instance, current_state()).WillRepeatedly([instance] { return instance->state; });
     if (state == mp::VirtualMachine::State::suspended)
         EXPECT_CALL(*instance, wait_until_ssh_up(_)).Times(2).WillRepeatedly([instance](auto...) {
-            instance->state = mp::VirtualMachine::State::running;
+            instance->set_running();
         });
 
     ServerMock mock_server{};
@@ -378,8 +365,7 @@ TEST_F(TestDaemonRestart, restartSucceedsForOtherInstancesWhenOneSuspendedInstan
     // second time once rebooted, as part of the post-reboot wait-for-ready pipeline.
     EXPECT_CALL(*resumes_ok_instance, wait_until_ssh_up(_))
         .Times(2)
-        .WillRepeatedly(
-            [resumes_ok_instance](auto) { resumes_ok_instance->state = VMState::running; });
+        .WillRepeatedly([resumes_ok_instance](auto) { resumes_ok_instance->set_running(); });
     // ... while the second one never comes back up over SSH and remains suspended.
     EXPECT_CALL(*fails_resume_instance, wait_until_ssh_up(_))
         .WillOnce(Throw(std::runtime_error{"ssh timed out resuming instance"}));
@@ -428,7 +414,7 @@ TEST_F(TestDaemonRestart, restartDoesNotBlockMainThreadWhileWaitingForSuspendedI
         if (ssh_waits++ == 0)
             main_thread_was_responsive = event_processed_future.wait_for(
                                              std::chrono::seconds(10)) == std::future_status::ready;
-        resumed_instance->state = VMState::running;
+        resumed_instance->set_running();
     });
 
     mp::RestartRequest request{};

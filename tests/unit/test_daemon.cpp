@@ -457,14 +457,14 @@ TEST_F(Daemon, ensureThatOnRestartFutureCompletes)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{"yakety-yak"}));
-    EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, fetch_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
 
     mp::Signal sig;
-    // handle_state_update is called by the finished() handler of the future. If it's called, then
+    // set_running() is called by the finished() handler of the future. If it's called, then
     // everything's ok.
-    EXPECT_CALL(*mock_vm, handle_state_update).WillOnce([&sig] {
-        // Ensure that handle_state_update is delayed until daemon's destructor call.
+    EXPECT_CALL(*mock_vm, set_running).WillOnce([&sig] {
+        // Ensure that set_running is delayed until daemon's destructor call.
         sig.wait();
         // Wait a bit to ensure that daemon's destructor has been run
         std::this_thread::sleep_for(std::chrono::milliseconds{50});
@@ -491,11 +491,11 @@ TEST_F(Daemon, startsPreviouslyRunningVmsBack)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
-    EXPECT_CALL(*mock_vm, current_state)
+    EXPECT_CALL(*mock_vm, fetch_state)
         .Times(1)
         .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start).Times(1);
-    EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
+    EXPECT_CALL(*mock_vm, set_running).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine)
         .WillOnce([vm = std::move(mock_vm)](
@@ -523,11 +523,11 @@ TEST_F(Daemon, callsOnRestartForAlreadyRunningVmsOnConstruction)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
-    EXPECT_CALL(*mock_vm, current_state)
+    EXPECT_CALL(*mock_vm, fetch_state)
         .Times(1)
         .WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(0);
-    EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
+    EXPECT_CALL(*mock_vm, set_running).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
@@ -547,11 +547,11 @@ TEST_F(Daemon, callsOnRestartForAlreadyStartingVmsOnConstruction)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
-    EXPECT_CALL(*mock_vm, current_state)
+    EXPECT_CALL(*mock_vm, fetch_state)
         .Times(1)
         .WillRepeatedly(Return(mp::VirtualMachine::State::starting));
     EXPECT_CALL(*mock_vm, start).Times(0);
-    EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
+    EXPECT_CALL(*mock_vm, set_running).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
@@ -572,9 +572,9 @@ TEST_F(Daemon, updatesTheDeletedButNonStoppedVmState)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
-    EXPECT_CALL(*mock_vm, current_state).Times(0);
+    EXPECT_CALL(*mock_vm, fetch_state).Times(0);
     EXPECT_CALL(*mock_vm, start).Times(0);
-    EXPECT_CALL(*mock_vm, handle_state_update).Times(0);
+    EXPECT_CALL(*mock_vm, set_running).Times(0);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(0);
 
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
@@ -1752,7 +1752,7 @@ TEST_P(ListIP, listsWithIp)
 
     auto [state, cmd, strs] = GetParam();
 
-    EXPECT_CALL(*instance_ptr, current_state()).WillRepeatedly(Return(state));
+    EXPECT_CALL(*instance_ptr, fetch_state()).WillRepeatedly(Return(state));
     EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
 
     MP_DELEGATE_MOCK_CALLS_ON_BASE(mock_utils, is_running, mp::Utils);
@@ -1796,8 +1796,8 @@ TEST_F(Daemon, disableZonesStopsInstance)
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
     EXPECT_CALL(*mock_vm, get_zone).WillRepeatedly(ReturnRef(zone));
     EXPECT_CALL(*mock_vm, set_available(false)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(vm_props.state));
-    EXPECT_CALL(*mock_vm, handle_state_update).Times(1);
+    EXPECT_CALL(*mock_vm, fetch_state).WillOnce(Return(vm_props.state));
+    EXPECT_CALL(*mock_vm, set_running).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_vm, start).Times(0);
     EXPECT_CALL(*mock_vm, shutdown).Times(0);
@@ -1823,7 +1823,7 @@ TEST_F(Daemon, enableZonesRestoresRunningInstanceState)
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
     EXPECT_CALL(*mock_vm, get_zone).WillRepeatedly(ReturnRef(zone));
     EXPECT_CALL(*mock_vm, set_available(true)).WillOnce(Return(true));
-    EXPECT_CALL(*mock_vm, handle_state_update).Times(0);
+    EXPECT_CALL(*mock_vm, set_running).Times(0);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, shutdown).Times(0);
@@ -1849,7 +1849,7 @@ TEST_F(Daemon, enableZonesRestoresStoppedInstanceState)
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
     EXPECT_CALL(*mock_vm, get_zone).WillRepeatedly(ReturnRef(zone));
     EXPECT_CALL(*mock_vm, set_available(true)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_vm, handle_state_update).Times(0);
+    EXPECT_CALL(*mock_vm, set_running).Times(0);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(0);
     EXPECT_CALL(*mock_vm, start).Times(0);
     EXPECT_CALL(*mock_vm, shutdown).Times(0);
@@ -2012,7 +2012,7 @@ TEST_P(RunningInstanceWithoutIP, doesNotFailListOrInfo)
         return std::move(instance_ptr);
     });
 
-    EXPECT_CALL(*instance_ptr, current_state())
+    EXPECT_CALL(*instance_ptr, fetch_state())
         .WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*instance_ptr, get_zone).WillRepeatedly(ReturnRef(zone));
     EXPECT_CALL(*instance_ptr, management_ipv4()).WillRepeatedly(Return(std::nullopt));
@@ -2188,8 +2188,7 @@ TEST_F(Daemon, startReportsErrorEvenWhenStartExceptionIsIntentional)
     const std::string error_msg{"shutdown requested by cloud-init"};
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
-    EXPECT_CALL(*mock_vm, current_state())
-        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, fetch_state()).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(*mock_vm, start()).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up)
         .WillOnce(Throw(mp::StartException{vm_props.name, error_msg, true}));
@@ -2253,9 +2252,9 @@ TEST_F(Daemon, deleteRemovesUnavailableInstances)
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
-    EXPECT_CALL(*mock_vm, current_state).WillOnce(Return(vm_props.state));
+    EXPECT_CALL(*mock_vm, fetch_state).WillOnce(Return(vm_props.state));
     EXPECT_CALL(*mock_vm, start).Times(0);
-    EXPECT_CALL(*mock_vm, handle_state_update).Times(0);
+    EXPECT_CALL(*mock_vm, set_running).Times(0);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(0);
     EXPECT_CALL(*mock_vm, shutdown).Times(1);
 
