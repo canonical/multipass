@@ -23,6 +23,7 @@
 #include <multipass/settings/persistent_settings_handler.h>
 
 #include <cassert>
+#include <ranges>
 
 namespace mp = multipass;
 namespace mpl = mp::logging;
@@ -140,13 +141,7 @@ void mp::PersistentSettingsHandler::set(const QString& key, const QString& val, 
 
 std::set<QString> mp::PersistentSettingsHandler::keys() const
 {
-    std::set<QString> ret{};
-    std::transform(cbegin(settings),
-                   cend(settings),
-                   std::inserter(ret, begin(ret)),
-                   [](const auto& elem) { return elem.first; });
-
-    return ret;
+    return settings | std::views::keys | std::ranges::to<std::set<QString>>();
 }
 
 auto mp::PersistentSettingsHandler::convert(SettingSpec::Set settings) -> SettingMap

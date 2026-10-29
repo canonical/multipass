@@ -22,6 +22,8 @@
 #include <multipass/ssh/ssh_client.h>
 #include <multipass/utils.h>
 
+#include <ranges>
+
 namespace mp = multipass;
 namespace mpu = multipass::utils;
 namespace cmd = multipass::cmd;
@@ -56,9 +58,9 @@ mp::ReturnCodeVariant cmd::Exec::run(mp::ArgParser* parser)
 
     auto instance_name = ssh_info_request.instance_name(0);
 
-    std::vector<std::string> args;
-    for (int i = 1; i < parser->positionalArguments().size(); ++i)
-        args.push_back(parser->positionalArguments().at(i).toStdString());
+    auto args = parser->positionalArguments() | std::views::drop(1) |
+                std::views::transform([](const QString& arg) { return arg.toStdString(); }) |
+                std::ranges::to<std::vector<std::string>>();
 
     std::optional<std::string> work_dir;
     if (parser->isSet(work_dir_option_name))

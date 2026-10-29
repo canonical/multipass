@@ -43,6 +43,7 @@
 #include <multipass/vm_specs.h>
 
 #include <algorithm>
+#include <ranges>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -536,11 +537,10 @@ TEST_F(BaseVM, providesSnapshotsView)
 
         EXPECT_THAT(snapshots, SizeIs(4));
 
-        std::vector<int> snapshot_indices{};
-        std::transform(snapshots.begin(),
-                       snapshots.end(),
-                       std::back_inserter(snapshot_indices),
-                       [](const auto& snapshot) { return snapshot->get_index(); });
+        const auto snapshot_indices = snapshots | std::views::transform([](const auto& snapshot) {
+                                          return snapshot->get_index();
+                                      }) |
+                                      std::ranges::to<std::vector<int>>();
 
         EXPECT_THAT(snapshot_indices, UnorderedElementsAre(2, 5, 6, 8));
     }
@@ -567,11 +567,10 @@ TEST_F(BaseVM, providesSnapshotsView)
 
         EXPECT_THAT(snapshots, SizeIs(2));
 
-        std::vector<int> snapshot_indices{};
-        std::transform(snapshots.begin(),
-                       snapshots.end(),
-                       std::back_inserter(snapshot_indices),
-                       [](const auto& snapshot) { return snapshot->get_index(); });
+        const auto snapshot_indices = snapshots | std::views::transform([](const auto& snapshot) {
+                                          return snapshot->get_index();
+                                      }) |
+                                      std::ranges::to<std::vector<int>>();
 
         EXPECT_THAT(snapshot_indices, UnorderedElementsAre(2, 5));
     }

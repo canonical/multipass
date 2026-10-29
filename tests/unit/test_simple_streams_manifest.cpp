@@ -24,6 +24,7 @@
 #include <multipass/image_host/image_mutators.h>
 #include <multipass/simple_streams_manifest.h>
 
+#include <algorithm>
 #include <optional>
 
 namespace mp = multipass;
@@ -139,7 +140,7 @@ TEST_F(TestSimpleStreamsManifest, ltsReceivesUbuntuAlias)
 
     info = manifest->image_records.at("zesty");
     ASSERT_THAT(info, NotNull());
-    EXPECT_THAT(std::ranges::find(info->aliases, "ubuntu"), Eq(info->aliases.end()));
+    EXPECT_FALSE(std::ranges::contains(info->aliases, "ubuntu"));
 }
 
 TEST_F(TestSimpleStreamsManifest, filtersSnapcraftImages)
