@@ -46,6 +46,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
+#include <multipass/user_messages/launch_messages.h>
 
 #include <QStringList>
 #include <QTemporaryFile>
@@ -1344,6 +1345,80 @@ TEST_F(Client, launchCmdWithUnavailableZoneFails)
             WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(request_matcher,
                                                                                     failure)));
     EXPECT_THAT(send_command({"launch", "--zone", "zone1"}), Eq(mp::ReturnCode::CommandFail));
+}
+
+struct LaunchServerTimeout
+    : Client,
+      WithParamInterface<
+          std::pair<mp::ReadinessError::ErrorCode, mp::LaunchUserMessages::MountRoutes>>
+{
+    void SetUp() override
+    {
+        Client::SetUp();
+
+        EXPECT_CALL(mock_file_ops, exists(An<const QFileInfo&>())).WillRepeatedly(Return(true));
+        EXPECT_CALL(mock_file_ops, isDir(An<const QFileInfo&>())).WillRepeatedly(Return(true));
+        EXPECT_CALL(mock_file_ops, isReadable(An<const QFileInfo&>())).WillRepeatedly(Return(true));
+    }
+
+    void expect_launch_to_return_readiness_timeout(mp::ReadinessError::ErrorCode readiness_error)
+    {
+        mp::LaunchError launch_error;
+        launch_error.set_readiness_error(readiness_error);
+        grpc::Status status = {grpc::StatusCode::DEADLINE_EXCEEDED,
+                               "readiness timed out",
+                               launch_error.SerializeAsString()};
+        EXPECT_CALL(mock_daemon, launch(_, _)).WillOnce(Return(status));
+        EXPECT_CALL(mock_daemon, mount).Times(0);
+    }
+
+    std::vector<std::string> make_launch_command(
+        const mp::LaunchUserMessages::MountRoutes& mount_routes)
+    {
+        std::vector<std::string> result = {"launch", "--name", instance_name};
+        for (const auto& route : mount_routes)
+        {
+            result.push_back("--mount");
+            result.push_back(fmt::format("{}:{}", route.source, route.target));
+        }
+
+        return result;
+    }
+
+    mpt::MockFileOps::GuardedMock mock_file_ops_injected = mpt::MockFileOps::inject();
+    mpt::MockFileOps& mock_file_ops = *mock_file_ops_injected.first;
+
+    const char* instance_name = "my-vm";
+};
+
+static const mp::LaunchUserMessages::MountRoutes empty_mount_routes = {};
+
+static const mp::LaunchUserMessages::MountRoutes mount_routes = {
+    {"/mount/source", "/mount/target"},
+    {"/other/source", "/other/target"},
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    Client,
+    LaunchServerTimeout,
+    Values(std::make_pair(mp::ReadinessError::SSH_TIMEOUT, empty_mount_routes),
+           std::make_pair(mp::ReadinessError::CLOUD_INIT_TIMEOUT, empty_mount_routes),
+           std::make_pair(mp::ReadinessError::SSH_TIMEOUT, mount_routes),
+           std::make_pair(mp::ReadinessError::CLOUD_INIT_TIMEOUT, mount_routes)));
+
+TEST_P(LaunchServerTimeout, launchServerTimeoutPrintsGuidanceAndReturnsTimeoutFailure)
+{
+    const auto& [readiness_error, mount_routes] = GetParam();
+    expect_launch_to_return_readiness_timeout(readiness_error);
+
+    std::stringstream cerr_stream;
+    EXPECT_THAT(send_command(make_launch_command(mount_routes), trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::TimeoutFailure));
+
+    EXPECT_THAT(
+        cerr_stream.str(),
+        HasSubstr(
+            mp::LaunchUserMessages::server_timeout(readiness_error, instance_name, mount_routes)));
 }
 
 TEST_F(Client, launchCmdWithTimer)
@@ -4344,15 +4419,20 @@ struct TimeoutSuite : Client, WithParamInterface<std::string>
 
 TEST_P(TimeoutSuite, commandExitsOnTimeout)
 {
-
     EXPECT_CALL(mock_daemon, launch).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, start).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, restart).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, ssh_info).Times(AtMost(1));
     EXPECT_CALL(mock_daemon, wait_ready).Times(AtMost(1));
-    EXPECT_CALL(*mock_utils, exit(mp::timeout_exit_code));
+    EXPECT_CALL(*mock_utils, exit(mp::ReturnCode::TimeoutFailure));
 
-    send_command({GetParam(), "--timeout", "1"});
+    std::stringstream cerr_stream;
+    send_command({GetParam(), "--timeout", "1"}, trash_stream, cerr_stream);
+
+    if (GetParam() == "launch")
+    {
+        EXPECT_THAT(cerr_stream.str(), HasSubstr(mp::LaunchUserMessages::client_timeout({}, {})));
+    }
 }
 
 TEST_P(TimeoutSuite, commandCompletesWithoutTimeout)

@@ -13,13 +13,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# For now, this library only contains headers.
-add_library(user_messages INTERFACE)
+add_library(user_messages STATIC
+  launch_messages.cpp
+)
 
-target_link_libraries(user_messages INTERFACE
+target_link_libraries(user_messages PUBLIC
   fmt::fmt-header-only
+  rpc
 )
 
 target_include_directories(user_messages
-    INTERFACE "${CMAKE_SOURCE_DIR}/include"
+  PUBLIC "${CMAKE_SOURCE_DIR}/include"
 )
