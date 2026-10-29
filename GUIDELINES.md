@@ -335,14 +335,8 @@ Descriptive rules of how releases are obtained from Git.
 
 **REL1.** The trunk of Multipass development happens in the `main` branch, which releases branch out
 of.<br>
-**REL2.** Preferably, release branches contain only commits that are directly reachable from `main`
-or cherry-picked from it.<br>
-**REL3.** Cherry-picked commits in release branches may differ from the original ones only where
-necessary to avoid or fix conflicts.<br>
-**REL4.** In exceptional cases, release branches may contain dedicated commits for bug, build, or
-conflict fixes.<br>
-**REL5.** After a release is published, the corresponding release branch is merged back into
-`main`.<br>
+**REL2.** Fixes are merged into the stable branch first (`releases/XX.XX`). After any pushes into the
+stable branch, the author of the fix should open a PR merging that stable branch into `main`.<br>
 
 # Further Information
 
