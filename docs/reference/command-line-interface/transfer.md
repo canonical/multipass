@@ -43,6 +43,18 @@ multipass transfer --recursive ample-pigeon:dir .
 
 ```{caution}Symbolic links are not followed during recursive transfer.```
 
+When copying from an instance to the host, source paths can contain `*`, `?`, and character-range
+wildcards. Quote the source so that your host shell passes the pattern to Multipass unchanged:
+
+```{code-block} text
+multipass transfer 'ample-pigeon:logs/*.txt' .
+```
+
+Wildcard patterns do not match hidden entries unless the pattern component starts with `.` (for
+example, `logs/.*.txt`). When copying to a host directory, multiple matches require a directory
+destination; writing to `-` requires exactly one match. Wildcards in local source paths are expanded
+by the host shell as usual.
+
 ---
 
 The full `multipass help transfer` output explains the available options:
