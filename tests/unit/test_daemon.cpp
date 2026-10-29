@@ -587,6 +587,12 @@ TEST_F(Daemon, updatesTheDeletedButNonStoppedVmState)
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning,
         fmt::format("{} is deleted but has incompatible state", vm_props.name));
+
+    // there are no vault records to migrate the image from
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::warning,
+        fmt::format("Could not load the description of {}", vm_props.name));
+
     mp::Daemon daemon{std::move(cfg)};
 }
 
@@ -1657,6 +1663,17 @@ TEST_F(Daemon, skipsOverInstanceGhostsInDb)
     config_builder.data_directory = temp_dir->path();
     auto mock_factory = use_a_mock_vm_factory();
 
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
+        .WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, write_transactionally(A<const QString&>(), _)).Times(AnyNumber());
+    EXPECT_CALL(*mock_file_ops,
+                write_transactionally(Truly([](const QString& f) {
+                                          return f.endsWith(mp::vm_description_file_name);
+                                      }),
+                                      _))
+        .Times(2);
+
     EXPECT_CALL(*mock_factory, create_virtual_machine).Times(0);
     EXPECT_CALL(*mock_factory,
                 create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, id1), _, _))
@@ -1720,6 +1737,12 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
                 create_virtual_machine(Field(&mp::VirtualMachineDescription::vm_name, gone), _, _))
         .Times(0);
 
+    EXPECT_CALL(*mock_file_ops,
+                write_transactionally(Truly([](const QString& f) {
+                                          return f.endsWith(mp::vm_description_file_name);
+                                      }),
+                                      _))
+        .Times(2);
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
         .WillOnce(WithArg<1>([&stayed, &gone](const QByteArrayView& data) {
@@ -2839,6 +2862,13 @@ TEST_F(Daemon, purgePersistsInstances)
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
     EXPECT_CALL(*mock_file_ops, exists(A<const std::filesystem::path&>()))
         .WillRepeatedly(Return(true));
+    EXPECT_CALL(*mock_file_ops, try_read_file(_)).WillRepeatedly(Return(std::nullopt));
+    EXPECT_CALL(*mock_file_ops,
+                write_transactionally(Truly([](const QString& f) {
+                                          return f.endsWith(mp::vm_description_file_name);
+                                      }),
+                                      _))
+        .Times(2);
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
         .WillOnce(Return())
         .WillOnce(Return())

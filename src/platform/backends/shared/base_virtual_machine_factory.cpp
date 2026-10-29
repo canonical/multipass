@@ -108,7 +108,12 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
                                                dest_spec.extra_interfaces,
                                                dest_spec.ssh_username,
                                                dest_image,
-                                               cloud_init_path.string().c_str()};
+                                               cloud_init_path.string().c_str(),
+                                               dest_spec.metadata,
+                                               dest_spec.state,
+                                               dest_spec.clone_count,
+                                               dest_spec.deleted,
+                                               dest_spec.mounts};
 
     return clone_vm_impl(src_name, src_spec, dest_vm_desc, monitor, key_provider);
 }

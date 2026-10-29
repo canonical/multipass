@@ -282,7 +282,12 @@ TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn
                                                 {},
                                                 "",
                                                 {"", "", "", "", {}, {}},
-                                                ""};
+                                                "",
+                                                {},
+                                                {},
+                                                0,
+                                                false,
+                                                {}};
 
     {
         hyperv::HCSVirtualMachine vm{network_parameters.guid,
