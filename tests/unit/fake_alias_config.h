@@ -47,11 +47,12 @@ struct FakeAliasConfig
         return fake_alias_dir.filePath(file_name).toStdString();
     }
 
-    void populate_db_file(const std::vector<std::pair<std::string, mp::AliasDefinition>>& aliases)
+    void populate_db_file(const std::vector<std::pair<std::string, mp::AliasDefinition>>& aliases,
+                          const std::string& context = mp::default_context_name)
     {
         static std::stringstream trash_stream;
         mpt::StubTerminal term(trash_stream, trash_stream, trash_stream);
-        auto writer = mp::AliasDict(&term, mp::default_context_name, db_filename());
+        auto writer = mp::AliasDict(&term, context, db_filename());
 
         for (const auto& alias : aliases)
             writer.add_alias(alias.first, alias.second);

@@ -15,8 +15,8 @@
  *
  */
 
-#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/argparser.h>
+#include <multipass/user_messages/deprecation_warning.h>
 
 #include "common_cli.h"
 #include "prefer.h"
@@ -32,9 +32,8 @@ mp::ReturnCodeVariant cmd::Prefer::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    aliases.set_active_context(parser->positionalArguments()[0].toStdString());
-
-    return ReturnCode::Ok;
+    cerr << "Alias contexts can no longer be switched. Only the default context is active.\n";
+    return ReturnCode::CommandLineError;
 }
 
 std::string cmd::Prefer::name() const
@@ -44,18 +43,18 @@ std::string cmd::Prefer::name() const
 
 QString cmd::Prefer::short_help() const
 {
-    return QStringLiteral("Switch the current alias context");
+    return QStringLiteral("Deprecated: alias contexts can no longer be switched");
 }
 
 QString cmd::Prefer::description() const
 {
-    return QStringLiteral(
-        "Switch the current alias context. If it does not exist, create it before switching.");
+    return QStringLiteral("Alias contexts can no longer be switched. Only the default context "
+                          "is active. Use 'multipass aliases' to inspect inactive definitions.");
 }
 
 mp::ParseCode cmd::Prefer::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Name of the context to switch to", "<name>");
+    parser->addPositionalArgument("name", "Name of the context (no longer supported)", "<name>");
 
     auto status = parser->commandParse(this);
 
@@ -75,6 +74,10 @@ mp::ParseCode cmd::Prefer::parse_args(mp::ArgParser* parser)
         cerr << "Wrong number of arguments given\n";
         return ParseCode::CommandLineError;
     }
+
+    cerr << mp::make_deprecation_warning(
+        "`multipass prefer`",
+        "Use unique alias names to avoid switching alias contexts.");
 
     return status;
 }

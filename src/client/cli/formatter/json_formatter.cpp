@@ -15,6 +15,7 @@
  *
  */
 
+#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/client_common.h>
 #include <multipass/cli/format_utils.h>
 #include <multipass/cli/json_formatter.h>
@@ -337,7 +338,17 @@ std::string mp::JsonFormatter::format(const VersionReply& reply,
 
 std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
 {
-    return pretty_print(boost::json::value_from(aliases));
+    auto json = boost::json::value_from(aliases);
+    json.as_object()["active-context"] = default_context_name;
+    boost::json::object context_status;
+
+    for (const auto& context : json.as_object().at("contexts").as_object())
+        context_status[context.key()] = context.key() == default_context_name ? "active"
+                                                                              : "inactive";
+
+    json.as_object().emplace("context-status", std::move(context_status));
+
+    return pretty_print(json);
 }
 
 std::string mp::JsonFormatter::format(const ZonesReply& reply) const
