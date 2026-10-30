@@ -41,6 +41,7 @@ private:
     ParseCode parse_args(ArgParser* parser);
 
     Formatter* chosen_formatter;
+    bool table_format = false;
 };
 } // namespace cmd
 } // namespace multipass
