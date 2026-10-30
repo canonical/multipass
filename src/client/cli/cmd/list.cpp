@@ -36,8 +36,7 @@ mp::ReturnCodeVariant cmd::List::run(mp::ArgParser* parser)
     auto on_success = [this](ListReply& reply) -> ReturnCodeVariant {
         cout << chosen_formatter->format(reply);
 
-        if (term->is_live() && update_available(reply.update_info()))
-            cout << update_notice(reply.update_info());
+        print_update_notice(term, reply.update_info());
 
         return ReturnCode::Ok;
     };

@@ -2458,6 +2458,37 @@ TEST_F(Client, startCmdOkWithOneArg)
     EXPECT_THAT(send_command({"start", "foo"}), Eq(mp::ReturnCode::Ok));
 }
 
+TEST_F(Client, startCmdPrintsUpdateNoticeToCerr)
+{
+    std::stringstream cout, cerr;
+    mpt::MockTerminal term;
+    EXPECT_CALL(term, cin()).WillRepeatedly(ReturnRef(trash_stream));
+    EXPECT_CALL(term, cout()).WillRepeatedly(ReturnRef(cout));
+    EXPECT_CALL(term, cerr()).WillRepeatedly(ReturnRef(cerr));
+    EXPECT_CALL(term, cin_is_live()).WillRepeatedly(Return(true));
+    EXPECT_CALL(term, cout_is_live()).WillRepeatedly(Return(true));
+
+    mp::StartReply start_reply;
+    auto update_info = start_reply.mutable_update_info();
+    update_info->set_version("999.0.0");
+    update_info->set_title("Multipass 999.0.0 available");
+    update_info->set_description("A shiny new release");
+    update_info->set_url("https://multipass.run/install");
+
+    EXPECT_CALL(mock_daemon, start)
+        .WillOnce(WithArg<1>(
+            check_request_and_return<mp::StartReply, mp::StartRequest>(_, ok, start_reply)));
+
+    EXPECT_EQ(setup_client_and_run({"start", "foo"}, term), mp::ReturnCode::Ok);
+
+    const auto notice_matcher = AllOf(HasSubstr("Multipass 999.0.0 available"),
+                                      HasSubstr("A shiny new release"),
+                                      HasSubstr("https://multipass.run/install"));
+    EXPECT_THAT(cerr.str(), notice_matcher);
+    EXPECT_THAT(cout.str(), Not(HasSubstr("Multipass 999.0.0 available")));
+    EXPECT_THAT(cout.str(), Not(HasSubstr("https://multipass.run/install")));
+}
+
 TEST_F(Client, startCmdSucceedsWithMultipleArgs)
 {
     EXPECT_CALL(mock_daemon, start(_, _));
@@ -2601,6 +2632,50 @@ TEST_F(Client, versionInfoOnFailure)
 
     EXPECT_CALL(mock_daemon, version(_, _)).WillOnce(Return(notfound));
     EXPECT_THAT(send_command({"version", "--format=yaml"}), Eq(mp::ReturnCode::Ok));
+}
+
+struct VersionUpdateNotice : public Client
+{
+    VersionUpdateNotice()
+    {
+        EXPECT_CALL(term, cin()).WillRepeatedly(ReturnRef(trash_stream));
+        EXPECT_CALL(term, cout()).WillRepeatedly(ReturnRef(cout));
+        EXPECT_CALL(term, cerr()).WillRepeatedly(ReturnRef(cerr));
+        EXPECT_CALL(term, cin_is_live()).WillRepeatedly(Return(true));
+        EXPECT_CALL(term, cout_is_live()).WillRepeatedly(Return(true));
+
+        reply.set_version("Daemon version");
+        auto update_info = reply.mutable_update_info();
+        update_info->set_version("999.0.0");
+        update_info->set_title("Multipass 999.0.0 available");
+        update_info->set_description("A shiny new release");
+        update_info->set_url("https://multipass.run/install");
+
+        EXPECT_CALL(mock_daemon, version)
+            .WillOnce(WithArg<1>(
+                check_request_and_return<mp::VersionReply, mp::VersionRequest>(_, ok, reply)));
+    }
+
+    std::stringstream cout, cerr;
+    mpt::MockTerminal term;
+    mp::VersionReply reply;
+};
+
+TEST_F(VersionUpdateNotice, tableFormatPrintsNoticeToCerr)
+{
+    EXPECT_EQ(setup_client_and_run({"version"}, term), mp::ReturnCode::Ok);
+
+    EXPECT_THAT(cerr.str(), HasSubstr("Multipass 999.0.0 available"));
+    EXPECT_THAT(cout.str(), HasSubstr("Daemon version"));
+    EXPECT_THAT(cout.str(), Not(HasSubstr("Multipass 999.0.0 available")));
+}
+
+TEST_F(VersionUpdateNotice, structuredFormatDoesNotPrintNotice)
+{
+    EXPECT_EQ(setup_client_and_run({"version", "--format=json"}, term), mp::ReturnCode::Ok);
+
+    EXPECT_THAT(cerr.str(), Not(HasSubstr("Multipass 999.0.0 available")));
+    EXPECT_THAT(cout.str(), HasSubstr("https://multipass.run/install"));
 }
 
 grpc::Status aborted_start_status(const std::vector<std::string>& absent_instances = {},
