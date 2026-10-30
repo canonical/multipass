@@ -41,8 +41,7 @@ mp::ReturnCodeVariant cmd::Restart::run(mp::ArgParser* parser)
     AnimatedSpinner spinner{cout};
     auto on_success = [this, &spinner](mp::RestartReply& reply) -> ReturnCodeVariant {
         spinner.stop();
-        if (term->is_live() && update_available(reply.update_info()))
-            cerr << update_notice(reply.update_info());
+        print_update_notice(term, reply.update_info());
         return ReturnCode::Ok;
     };
 

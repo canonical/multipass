@@ -35,8 +35,7 @@ mp::ReturnCodeVariant cmd::Info::run(mp::ArgParser* parser)
     auto on_success = [this](mp::InfoReply& reply) -> ReturnCodeVariant {
         cout << chosen_formatter->format(reply);
 
-        if (term->is_live() && update_available(reply.update_info()))
-            cerr << update_notice(reply.update_info());
+        print_update_notice(term, reply.update_info());
 
         return ReturnCode::Ok;
     };

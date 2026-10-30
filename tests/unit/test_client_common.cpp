@@ -25,6 +25,7 @@
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_standard_paths.h"
+#include "mock_terminal.h"
 #include "mock_utils.h"
 #include "stub_terminal.h"
 #include "temp_dir.h"
@@ -145,4 +146,55 @@ TEST(StandardFailureHandlerFormatting, singleTrailingNewlineWhenDetailsAlreadyEn
     EXPECT_EQ(cerr_stream.str(),
               "start failed: instance(s) missing\n"
               "Instance 'asdf' does not exist.\n");
+}
+
+namespace
+{
+struct PrintUpdateNotice : public Test
+{
+    PrintUpdateNotice()
+    {
+        EXPECT_CALL(term, cout()).WillRepeatedly(ReturnRef(cout));
+        EXPECT_CALL(term, cerr()).WillRepeatedly(ReturnRef(cerr));
+        EXPECT_CALL(term, cin_is_live()).WillRepeatedly(Return(true));
+        EXPECT_CALL(term, cout_is_live()).WillRepeatedly(Return(true));
+
+        update_info.set_version("999.0.0");
+        update_info.set_title("Multipass 999.0.0 available");
+        update_info.set_description("A shiny new release");
+        update_info.set_url("https://multipass.run/install");
+    }
+
+    std::stringstream cout, cerr;
+    NiceMock<mpt::MockTerminal> term;
+    mp::UpdateInfo update_info;
+};
+} // namespace
+
+TEST_F(PrintUpdateNotice, printsToCerr)
+{
+    mp::cmd::print_update_notice(&term, update_info);
+
+    EXPECT_EQ(cerr.str(), mp::cmd::update_notice(update_info));
+    EXPECT_THAT(cout.str(), IsEmpty());
+}
+
+TEST_F(PrintUpdateNotice, printsNothingWithoutUpdate)
+{
+    update_info.clear_version();
+
+    mp::cmd::print_update_notice(&term, update_info);
+
+    EXPECT_THAT(cerr.str(), IsEmpty());
+    EXPECT_THAT(cout.str(), IsEmpty());
+}
+
+TEST_F(PrintUpdateNotice, printsNothingWhenTerminalIsNotLive)
+{
+    EXPECT_CALL(term, cout_is_live()).WillRepeatedly(Return(false));
+
+    mp::cmd::print_update_notice(&term, update_info);
+
+    EXPECT_THAT(cerr.str(), IsEmpty());
+    EXPECT_THAT(cout.str(), IsEmpty());
 }
