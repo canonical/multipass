@@ -3,6 +3,17 @@
 The Multipass team is very open to contributions from the community, whether these are feature ideas, issue/bug reports, change suggestions through pull requests, or discussions about Multipass.
 While we are driven by our passion to improve Multipass and strive for high quality code, we have finite resources and must make careful decisions about where we spend our time.
 
+## Quick contribution workflow
+
+If you are contributing for the first time, the shortest useful path is:
+
+1. Create a branch from `main`.
+2. Make one coherent change.
+3. Build and test the change on your platform.
+4. Review your diff before pushing.
+5. Open a pull request against `main`.
+6. Make sure the Canonical CLA is signed before review can complete.
+
 ## Guidelines
 
 Our [Coding Guidelines](GUIDELINES.md) cover various aspects around Git usage, coding, and processes. Please read them to understand what is important to us.
