@@ -56,7 +56,7 @@ QString cmd::Help::short_help() const
 
 QString cmd::Help::description() const
 {
-    return QStringLiteral("Displays help for the given command.");
+    return QStringLiteral("Display this help message and exit.");
 }
 
 mp::ParseCode cmd::Help::parse_args(mp::ArgParser* parser)
