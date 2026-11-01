@@ -1,3 +1,5 @@
 active_context: default
 aliases:
   default: ~
+context_status:
+  default: active

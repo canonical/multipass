@@ -23,19 +23,12 @@
 
 namespace multipass
 {
-class AliasDict;
-
 namespace cmd
 {
 class Prefer final : public Command
 {
 public:
     using Command::Command;
-
-    Prefer(Rpc::StubInterface& stub, Terminal* term, AliasDict& dict)
-        : Command(stub, term), aliases(dict)
-    {
-    }
 
     ReturnCodeVariant run(ArgParser* parser) override;
     std::string name() const override;
@@ -44,8 +37,6 @@ public:
 
 private:
     ParseCode parse_args(ArgParser* parser);
-
-    AliasDict aliases;
 };
 } // namespace cmd
 } // namespace multipass

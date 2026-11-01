@@ -3,5 +3,8 @@
     "contexts": {
         "default": {
         }
+    },
+    "context-status": {
+        "default": "active"
     }
 }

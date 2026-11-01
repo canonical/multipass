@@ -605,7 +605,8 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
 
     const std::string alias_col_header = "Alias", instance_col_header = "Instance",
                       command_col_header = "Command", context_col_header = "Context",
-                      dir_col_header = "Working directory";
+                      dir_col_header = "Working directory",
+                      context_status_col_header = "Context status";
     const std::string active_context = "*";
     const auto alias_width = width([](const auto& alias) -> int { return alias.first.length(); },
                                    alias_col_header.length());
@@ -615,18 +616,20 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
     const auto command_width = width(
         [](const auto& alias) -> int { return alias.second.command.length(); },
         command_col_header.length());
+    const auto dir_width = width(
+        [](const auto& alias) -> int { return alias.second.working_directory.length(); },
+        dir_col_header.length());
     const auto context_width = mp::format::column_width(
         aliases.cbegin(),
         aliases.cend(),
         [&aliases, &active_context](const auto& alias) -> int {
-            return alias.first == aliases.active_context_name() &&
-                           !aliases.get_active_context().empty()
+            return aliases.is_context_active(alias.first) && !alias.second.empty()
                      ? alias.first.length() + active_context.length()
                      : alias.first.length();
         },
         context_col_header.length());
 
-    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
+    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
 
     fmt::format_to(std::back_inserter(buf),
                    row_format,
@@ -638,11 +641,13 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
                    command_width,
                    context_col_header,
                    context_width,
-                   dir_col_header);
+                   dir_col_header,
+                   dir_width,
+                   context_status_col_header);
 
     for (const auto& [context_name, context_contents] : sorted_map_view(aliases))
     {
-        std::string shown_context = context_name.get() == aliases.active_context_name()
+        std::string shown_context = aliases.is_context_active(context_name.get())
                                       ? context_name.get() + active_context
                                       : context_name.get();
 
@@ -658,7 +663,9 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
                            command_width,
                            shown_context,
                            context_width,
-                           def.get().working_directory);
+                           def.get().working_directory,
+                           dir_width,
+                           aliases.is_context_active(context_name.get()) ? "active" : "inactive");
         }
     }
 

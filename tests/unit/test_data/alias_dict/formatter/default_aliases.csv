@@ -1,3 +1,3 @@
-Alias,Instance,Command,Working directory,Context
-llp,primary,ls,map,default*
-lsp,primary,ls,map,default*
+Alias,Instance,Command,Working directory,Context,Context status
+llp,primary,ls,map,default*,active
+lsp,primary,ls,map,default*,active

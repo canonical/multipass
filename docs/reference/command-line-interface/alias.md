@@ -11,7 +11,7 @@ multipass alias instance:command [name]
 
 If `name` is omitted, the alias name defaults to `command`.
 
-After running this command, a new alias is defined as running the `command` on the given instance.
+After running this command, a new alias is defined in the `default` context as running the `command` on the given instance. Non-default contexts are inactive; use this command with a unique name to recreate an alias from an inactive context.
 
 By default, if the host folder where the alias is being executed is mounted on the instance, the instance's working directory is changed to the mounted directory. This behaviour can be avoided by defining the alias with the option `--no-map-working-directory`.
 
