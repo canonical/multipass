@@ -20,6 +20,7 @@
 #include <multipass/availability_zone.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
+#include <multipass/exceptions/cloud_init_failed_exception.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
@@ -397,18 +398,18 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
 {
     auto action = [this] {
         detect_aborted_start();
+
+        std::string status;
         try
         {
-            ssh_exec("[ -e /var/lib/cloud/instance/boot-finished ]");
-            return mpu::TimeoutAction::done;
+            // cloud-init exits non-zero on errors, so the output is read regardless of exit code
+            auto proc = ssh_exec_process("cloud-init status");
+            proc->exit_code();
+            status = mpu::trim(proc->read_std_output());
         }
         catch (const SSHVMNotRunning& e)
         {
             try_to_ssh();
-            return mpu::TimeoutAction::retry;
-        }
-        catch (const SSHExecFailure& e)
-        {
             return mpu::TimeoutAction::retry;
         }
         catch (const std::exception& e) // transitioning away from catching generic runtime errors
@@ -416,6 +417,17 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
             mpl::log_message(mpl::Level::warning, vm_name, e.what());
             return mpu::TimeoutAction::retry;
         }
+
+        if (status == "status: done" || status == "status: degraded done" ||
+            status == "status: disabled")
+            return mpu::TimeoutAction::done;
+
+        if (status == "status: error")
+            throw CloudInitFailedException{
+                "cloud-init failed to initialize the instance, see /var/log/cloud-init.log in the "
+                "instance for details"};
+
+        return mpu::TimeoutAction::retry;
     };
 
     auto on_timeout = [] {
