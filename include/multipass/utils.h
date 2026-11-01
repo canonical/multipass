@@ -169,6 +169,8 @@ std::string qenum_to_string(RegisteredQtEnum val);
 // other helpers
 QString get_multipass_storage();
 std::string make_uuid(const std::optional<std::string>& seed = std::nullopt);
+// Short, deterministic mount tag: 'm' followed by the first 30 hex digits of the seed's UUID
+std::string make_mount_tag(const std::string& seed);
 
 template <typename OnTimeoutCallable, typename TryAction, typename... Args>
 void try_action_for(OnTimeoutCallable&& on_timeout,

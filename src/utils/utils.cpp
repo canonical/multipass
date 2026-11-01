@@ -381,6 +381,13 @@ std::string mp::utils::make_uuid(const std::optional<std::string>& seed)
     return boost::uuids::to_string(uuid);
 }
 
+std::string mp::utils::make_mount_tag(const std::string& seed)
+{
+    auto uuid = make_uuid(seed);
+    std::erase(uuid, '-');
+    return fmt::format("m{:.30}", uuid);
+}
+
 std::string mp::utils::contents_of(const multipass::Path& file_path)
 {
     // TODO this should protect against long contents
