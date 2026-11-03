@@ -44,12 +44,17 @@ void main() {
       expect(state()[2], same(third));
     });
 
-    test('remove() removes the exact widget object from the list', () {
-      final widget = const SizedBox();
-      notifier().add(widget);
-      expect(state(), hasLength(1));
-      notifier().remove(widget);
-      expect(state(), isEmpty);
+    test('remove() removes only the given widget and keeps the order', () {
+      final before = const SizedBox(key: ValueKey('before'));
+      final target = const SizedBox(key: ValueKey('target'));
+      final after = const SizedBox(key: ValueKey('after'));
+      notifier().add(before);
+      notifier().add(target);
+      notifier().add(after);
+
+      notifier().remove(target);
+
+      expect(state(), orderedEquals([before, after]));
     });
 
     test('remove() of a non-existent widget leaves the list unchanged', () {
@@ -62,9 +67,10 @@ void main() {
     });
 
     test('addError() shows the error toString() by default', () {
-      notifier().addError(Exception('boom'));
+      final error = Exception('boom');
+      notifier().addError(error);
       expect(state(), hasLength(1));
-      expect(errorText(state().first), equals('Exception: boom'));
+      expect(errorText(state().first), error.toString());
     });
 
     test('addError() shows only the message of a GrpcError', () {
