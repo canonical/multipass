@@ -102,21 +102,17 @@ void main() {
   group('OperationNotification', () {
     testWidgets('shows CircularProgressIndicator while pending',
         (tester) async {
-      final completer = Completer<String>();
       await tester.pumpWidget(
         buildWidget(
           OperationNotification(
-            future: completer.future,
+            future: Completer<String>().future,
             text: 'Working...',
           ),
         ),
       );
-      await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(find.text('Working...'), findsOneWidget);
-
-      completer.complete('');
     });
 
     testWidgets('shows success notification when future completes',
