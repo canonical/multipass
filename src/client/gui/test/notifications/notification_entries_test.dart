@@ -162,18 +162,11 @@ void main() {
                   onInvoke: (_) => onClose(),
                 ),
               },
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: 300,
-                  height: 60,
-                  child: TimeoutNotification(
-                    barColor: Colors.green,
-                    icon: const Icon(Icons.check),
-                    duration: const Duration(seconds: 1),
-                    child: const Text('will close'),
-                  ),
-                ),
+              child: TimeoutNotification(
+                barColor: Colors.green,
+                icon: const Icon(Icons.check),
+                duration: const Duration(seconds: 1),
+                child: const Text('will close'),
               ),
             ),
           ),
@@ -195,17 +188,17 @@ void main() {
     testWidgets('hovering pauses the timeout and leaving restarts it',
         (tester) async {
       var closed = false;
-      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-      await mouse.addPointer(location: const Offset(700, 500));
-      addTearDown(mouse.removePointer);
       await pumpTimeout(tester, () => closed = true);
-
       await tester.pump(const Duration(milliseconds: 900));
-      await mouse.moveTo(tester.getCenter(find.text('will close')));
+
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(
+        location: tester.getCenter(find.text('will close')),
+      );
       await tester.pump(const Duration(seconds: 2));
       expect(closed, isFalse);
 
-      await mouse.moveTo(const Offset(700, 500));
+      await mouse.removePointer();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 900));
       expect(closed, isFalse);
