@@ -79,6 +79,7 @@
 #include <QStorageInfo>
 #include <QString>
 #include <QSysInfo>
+#include <QThread>
 #include <QtConcurrent/QtConcurrent>
 
 #include <algorithm>
@@ -1248,7 +1249,7 @@ mp::SettingsHandler* register_snapshot_mod(
 
 // Erase any outdated mount handlers for a given VM
 bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& mount_specs,
-                           std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts)
+                           std::unordered_map<std::string, mp::MountHandler::ShPtr>& vm_mounts)
 {
     auto removed = false;
     std::erase_if(vm_mounts, [&](auto&& i) {
@@ -1673,16 +1674,9 @@ mp::Daemon::~Daemon()
         MP_SETTINGS.unregister_handler(snapshot_mod_handler);
 
         /**
-         * Wait until all futures are finished, so there will
-         * be no outstanding requests left behind. Otherwise, the
-         * futures might be interrupted halfway and the actions
-         * associated with the futures are not going to be
-         * executed.
+         * Wait until all RPCs and async operations are finished
          */
-        for (auto& [_, watcher] : async_future_watchers)
-        {
-            watcher->waitForFinished();
-        }
+        shutdown_grpc_server();
 
         /**
          * AsyncPeriodicDownloadTask maintain its own QFutureWatcher.
@@ -1715,6 +1709,14 @@ void mp::Daemon::shutdown_grpc_server()
     { // RPCs in flight still need this thread to keep pumping events for their slots to finish.
         QCoreApplication::processEvents(QEventLoop::AllEvents);
     } while (shutdown.wait_for(poll_interval) != std::future_status::ready);
+
+    // The completion of some async operations are not tied to the completion of an RPC.
+    // So make sure that all async operations are finished.
+    while (!async_future_watchers.empty())
+    {
+        QThread::sleep(poll_interval);
+        QCoreApplication::processEvents(QEventLoop::AllEvents);
+    }
 
     shutdown.get(); // rethrows if there were exceptions
 }
@@ -3939,7 +3941,7 @@ void mp::Daemon::stop_mounts(const std::string& name)
 }
 
 bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
-                               std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
+                               std::unordered_map<std::string, mp::MountHandler::ShPtr>& vm_mounts,
                                mp::VirtualMachine* vm)
 {
     auto& mount_specs = vm_specs.mounts;
@@ -3951,7 +3953,7 @@ bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
 
 bool mp::Daemon::create_missing_mounts(
     std::unordered_map<std::string, VMMount>& mount_specs,
-    std::unordered_map<std::string, mp::MountHandler::UPtr>& vm_mounts,
+    std::unordered_map<std::string, mp::MountHandler::ShPtr>& vm_mounts,
     mp::VirtualMachine* vm)
 {
     auto initial_mount_count = mount_specs.size();
@@ -3982,9 +3984,9 @@ bool mp::Daemon::create_missing_mounts(
     return mount_specs.size() != initial_mount_count;
 }
 
-mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
-                                              const std::string& target,
-                                              const VMMount& mount)
+mp::MountHandler::ShPtr mp::Daemon::make_mount(VirtualMachine* vm,
+                                               const std::string& target,
+                                               const VMMount& mount)
 {
     return mount.get_mount_type() == VMMount::MountType::Classic
              ? std::make_unique<SSHFSMountHandler>(vm,
@@ -4013,23 +4015,35 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
 }
 
 template <typename Reply, typename Request>
-mp::ReadinessResult
+QFuture<mp::ReadinessResult>
 mp::Daemon::async_wait_vm_ready(const std::string& name,
                                 const std::chrono::seconds& timeout,
                                 grpc::ServerReaderWriterInterface<Reply, Request>* server)
 {
-    try
+    const auto& it = operative_instances.find(name);
+    if (operative_instances.end() == it)
     {
-        const auto& it = operative_instances.find(name);
-        if (operative_instances.end() == it)
-        {
-            return {name,
-                    ReadinessError::NOT_OPERATIVE,
-                    fmt::format("Error starting mounts for VM `{}`, the VM is not in an operative "
-                                "state!",
-                                name)};
-        }
-        const auto vm = it->second;
+        return QtFuture::makeReadyValueFuture(ReadinessResult{
+            name,
+            ReadinessError::NOT_OPERATIVE,
+            fmt::format("Error starting mounts for VM `{}`, the VM is not in an operative "
+                        "state!",
+                        name)});
+    }
+
+    std::unordered_map<std::string, std::weak_ptr<MountHandler>> vm_mounts;
+    for (const auto& [name, mount] : mounts[name])
+    {
+        vm_mounts[name] = mount;
+    }
+
+    struct WaitResult
+    {
+        std::vector<std::string> invalid_mounts;
+        std::exception_ptr sshfs_missing_error;
+    };
+
+    auto wait_op = [=, vm = it->second, vm_mounts = std::move(vm_mounts)]() {
         vm->wait_until_ssh_up(timeout);
 
         if constexpr (std::is_same_v<Reply, LaunchReply>)
@@ -4044,76 +4058,96 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
             vm->wait_for_cloud_init(timeout);
         }
 
-        if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
-        {
-            std::vector<std::string> invalid_mounts;
-            std::optional<ReadinessResult> mount_error;
-            fmt::memory_buffer warnings;
-            auto& vm_mounts = mounts[name];
-            for (auto& [target, mount] : vm_mounts)
-                try
-                {
-                    mount->activate(server);
-                }
-                catch (const mp::SSHFSMissingError&)
-                {
-                    mount_error = {name,
-                                   ReadinessError::SSHFS_MISSING,
-                                   fmt::format(sshfs_error_template, name)};
-                    break;
-                }
-                catch (const std::exception& e)
-                {
-                    auto msg = fmt::format("Removing mount \"{}\" from '{}': {}\n",
-                                           target,
-                                           name,
-                                           e.what());
-                    mpl::log_message(mpl::Level::warning, category, msg);
-                    warnings.append(msg);
-                    invalid_mounts.push_back(target);
-                }
+        WaitResult result;
+        fmt::memory_buffer warnings;
 
-            auto& vm_spec_mounts = vm_instance_specs[name].mounts;
-            for (const auto& target : invalid_mounts)
+        if (!MP_SETTINGS.get_as<bool>(mp::mounts_key))
+            return result;
+
+        for (auto& [target, mount_weak] : vm_mounts)
+            try
+            {
+                auto mount = mount_weak.lock();
+                if (!mount)
+                    continue;
+
+                mount->activate(server);
+            }
+            catch (const mp::SSHFSMissingError& e)
+            {
+                result.sshfs_missing_error = std::current_exception();
+                break;
+            }
+            catch (const std::exception& e)
+            {
+                auto msg = fmt::format("Removing mount \"{}\" from '{}': {}\n",
+                                       target,
+                                       name,
+                                       e.what());
+                mpl::log_message(mpl::Level::warning, category, msg);
+                warnings.append(msg);
+                result.invalid_mounts.push_back(target);
+            }
+
+        if (server && warnings.size() > 0)
+        {
+            Reply reply;
+            reply.set_log_line(fmt::to_string(warnings));
+            server->Write(reply);
+        }
+
+        return result;
+    };
+
+    auto filter_mounts_op = [=, this](const WaitResult& wait_result) {
+        auto vm_mounts_it = mounts.find(name);
+        auto vm_spec = vm_instance_specs.find(name);
+
+        if (vm_mounts_it != mounts.end() && vm_spec != vm_instance_specs.end())
+        {
+            auto& vm_mounts = vm_mounts_it->second;
+            auto& vm_spec_mounts = vm_spec->second.mounts;
+
+            for (const auto& target : wait_result.invalid_mounts)
             {
                 vm_mounts.erase(target);
                 vm_spec_mounts.erase(target);
             }
 
-            if (server && warnings.size() > 0)
-            {
-                Reply reply;
-                reply.set_log_line(fmt::to_string(warnings));
-                server->Write(reply);
-            }
-
-            persist_instances();
-
-            if (mount_error.has_value())
-                return mount_error.value();
+            // Persist instances if we changed their mounts spec
+            if (!wait_result.invalid_mounts.empty())
+                persist_instances();
         }
-    }
-    catch (const StartException& e)
-    {
-        if (!std::is_same_v<Reply, LaunchReply> || !e.was_intentional())
-        {
-            return {name, ReadinessError::UNPLUGGED, e.what()};
-        }
-    }
-    catch (const SSHTimeoutException& e)
-    {
-        return {name, ReadinessError::SSH_TIMEOUT, e.what()};
-    }
-    catch (const CloudInitTimeoutException& e)
-    {
-        return {name, ReadinessError::CLOUD_INIT_TIMEOUT, e.what()};
-    }
-    catch (const std::exception& e)
-    {
-        return {name, ReadinessError::OTHER, e.what()};
-    }
 
-    return {name, ReadinessError::OK, {}};
+        if (wait_result.sshfs_missing_error)
+            std::rethrow_exception(wait_result.sshfs_missing_error);
+    };
+
+    return QtConcurrent::run(wait_op)
+        .then(this, filter_mounts_op)
+        .then([name] { return ReadinessResult{name, ReadinessError::OK, {}}; })
+        .onFailed([](const QUnhandledException& e) -> ReadinessResult {
+            std::rethrow_exception(e.exception());
+        })
+        .onFailed([name](const StartException& e) {
+            if (e.was_intentional() && std::is_same_v<Reply, LaunchReply>)
+                return ReadinessResult{name, ReadinessError::OK, {}};
+            return ReadinessResult{name, ReadinessError::UNPLUGGED, e.what()};
+        })
+        .onFailed([name](const SSHTimeoutException& e) {
+            return ReadinessResult{name, ReadinessError::SSH_TIMEOUT, e.what()};
+        })
+        .onFailed([name](const CloudInitTimeoutException& e) {
+            return ReadinessResult{name, ReadinessError::CLOUD_INIT_TIMEOUT, e.what()};
+        })
+        .onFailed([name](const SSHFSMissingError&) {
+            return ReadinessResult{name,
+                                   ReadinessError::SSHFS_MISSING,
+                                   fmt::format(sshfs_error_template, name)};
+        })
+        .onFailed([name](const std::exception& e) {
+            return ReadinessResult{name, ReadinessError::OTHER, e.what()};
+        });
 }
 
 template <typename Reply, typename Request>
@@ -4135,11 +4169,7 @@ mp::Daemon::async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Repl
             }
             else
             {
-                auto future = QtConcurrent::run(&Daemon::async_wait_vm_ready<Reply, Request>,
-                                                this,
-                                                name,
-                                                timeout,
-                                                server);
+                auto future = async_wait_vm_ready(name, timeout, server);
                 async_running_futures[name] = future;
                 start_synchronizer.addFuture(future);
             }
