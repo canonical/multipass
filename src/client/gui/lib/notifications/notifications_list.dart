@@ -17,11 +17,6 @@ class _NotificationListState extends ConsumerState<NotificationList> {
   final activeNotifications = <Widget>[];
 
   void updateState(BuiltList<Widget> notifications) {
-    for (var i = activeNotifications.length; i < notifications.length; i++) {
-      listKey.currentState?.insertItem(i);
-      activeNotifications.add(notifications[i]);
-    }
-
     for (var i = activeNotifications.length - 1; i >= 0; i--) {
       if (notifications.contains(activeNotifications[i])) continue;
       final notification = activeNotifications.removeAt(i);
@@ -35,6 +30,11 @@ class _NotificationListState extends ConsumerState<NotificationList> {
           ),
         );
       });
+    }
+
+    for (var i = activeNotifications.length; i < notifications.length; i++) {
+      listKey.currentState?.insertItem(i);
+      activeNotifications.add(notifications[i]);
     }
   }
 
