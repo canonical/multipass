@@ -45,6 +45,8 @@
 
 #include <chrono>
 
+#include <QCoreApplication>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 
@@ -570,8 +572,20 @@ std::pair<std::unique_ptr<mpt::TempDir>, QString> mpt::DaemonTestFixture::plant_
 template <typename R>
 bool mpt::DaemonTestFixture::is_ready(std::future<R> const& f) const
 {
+    static constexpr auto poll_interval = std::chrono::milliseconds{50};
+    static constexpr auto process_interval = std::chrono::milliseconds{100};
+
     // 5 seconds should be plenty of time for the work to be complete
-    return f.wait_for(std::chrono::seconds(5)) == std::future_status::ready;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds{5};
+    do
+    {
+        if (f.wait_for(poll_interval) == std::future_status::ready)
+            return true;
+
+        QCoreApplication::processEvents(QEventLoop::AllEvents, process_interval);
+    } while (std::chrono::steady_clock::now() < deadline);
+
+    return f.wait_for(std::chrono::seconds{0}) == std::future_status::ready;
 }
 
 template <typename DaemonSlotPtr, typename Request, typename Server>
@@ -588,20 +602,14 @@ grpc::Status mpt::DaemonTestFixture::call_daemon_slot(Daemon& daemon,
         status_promise.set_value(std::move(status));
     });
 
-    auto thread = QThread::create([&daemon, slot, &request, &server, &ctx] {
-        QEventLoop inner_loop;
-        (daemon.*slot)(&request, &server, &ctx);
-        inner_loop.exec();
-    });
-    QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+    // Queue the daemon slot function call into the event loop
+    QMetaObject::invokeMethod(
+        &daemon,
+        [&daemon, slot, &request, &server, &ctx] { (daemon.*slot)(&request, &server, &ctx); },
+        Qt::QueuedConnection);
 
-    thread->start();
-
+    // is_ready keeps processing the event loop until the promise is set
     EXPECT_TRUE(is_ready(status_future));
-
-    thread->quit();
-    thread->wait();
-
     return status_future.get();
 }
 
