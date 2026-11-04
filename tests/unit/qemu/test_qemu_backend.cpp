@@ -80,22 +80,23 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
 
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
-    mp::VirtualMachineDescription default_description{.num_cores = 2,
-                                                      .mem_size = mp::MemorySize{"3M"},
-                                                      .disk_space = mp::MemorySize{}, // not used
-                                                      .vm_name = "pied-piper-valley",
-                                                      .zone = "zone1",
-                                                      .default_mac_address = "",
-                                                      .extra_interfaces = {},
-                                                      .ssh_username = "",
-                                                      .image = {.image_path = dummy_image.path(),
-                                                                .id = "",
-                                                                .original_release = "",
-                                                                .current_release = "",
-                                                                .release_date = "",
-                                                                .os = "",
-                                                                .aliases = {}},
-                                                      .cloud_init_iso = dummy_cloud_init_iso.name()};
+    mp::VirtualMachineDescription default_description{
+        .num_cores = 2,
+        .mem_size = mp::MemorySize{"3M"},
+        .disk_space = mp::MemorySize{}, // not used
+        .vm_name = "pied-piper-valley",
+        .zone = "zone1",
+        .default_mac_address = "",
+        .extra_interfaces = {},
+        .ssh_username = "",
+        .image = {.image_path = dummy_image.path(),
+                  .id = "",
+                  .original_release = "",
+                  .current_release = "",
+                  .release_date = "",
+                  .os = "",
+                  .aliases = {}},
+        .cloud_init_iso = dummy_cloud_init_iso.name()};
     mpt::TempDir data_dir;
     mpt::TempDir instance_dir;
     const std::string tap_device{"tapfoo"};
@@ -809,8 +810,9 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    const auto machine =
-        backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    const auto machine = backend.create_virtual_machine(default_description,
+                                                        key_provider,
+                                                        stub_monitor);
     machine->state = mp::VirtualMachine::State::suspended;
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
@@ -838,8 +840,9 @@ TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    const auto machine =
-        backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    const auto machine = backend.create_virtual_machine(default_description,
+                                                        key_provider,
+                                                        stub_monitor);
     machine->state = mp::VirtualMachine::State::suspended;
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
@@ -872,8 +875,9 @@ TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    const auto machine =
-        backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    const auto machine = backend.create_virtual_machine(default_description,
+                                                        key_provider,
+                                                        stub_monitor);
     machine->state = mp::VirtualMachine::State::running;
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
@@ -1486,8 +1490,8 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
         true,
     };
 
-    const std::vector<mpt::MockProcessFactory::ProcessInfo> processes =
-        process_factory->process_list();
+    const std::vector<mpt::MockProcessFactory::ProcessInfo> processes = process_factory
+                                                                            ->process_list();
 
     EXPECT_GE(processes.size(), 2);
     const auto lastProcessInfo = processes.back();

@@ -132,22 +132,23 @@ struct HyperVBackend : public Test
     mpt::TempFile dummy_image;
     mpt::TempFile dummy_cloud_init_iso;
     mpt::TempDir data_dir;
-    mp::VirtualMachineDescription default_description{.num_cores = 2,
-                                                      .mem_size = mp::MemorySize{"3M"},
-                                                      .disk_space = mp::MemorySize{}, // not used
-                                                      .vm_name = "pied-piper-valley",
-                                                      .zone = "zone1",
-                                                      .default_mac_address = "ba:ba:ca:ca:ca:ba",
-                                                      .extra_interfaces = {},
-                                                      .ssh_username = "",
-                                                      .image = {.image_path = dummy_image.path(),
-                                                                .id = "",
-                                                                .original_release = "",
-                                                                .current_release = "",
-                                                                .release_date = "",
-                                                                .os = {},
-                                                                .aliases = {}},
-                                                      .cloud_init_iso = dummy_cloud_init_iso.name()};
+    mp::VirtualMachineDescription default_description{
+        .num_cores = 2,
+        .mem_size = mp::MemorySize{"3M"},
+        .disk_space = mp::MemorySize{}, // not used
+        .vm_name = "pied-piper-valley",
+        .zone = "zone1",
+        .default_mac_address = "ba:ba:ca:ca:ca:ba",
+        .extra_interfaces = {},
+        .ssh_username = "",
+        .image = {.image_path = dummy_image.path(),
+                  .id = "",
+                  .original_release = "",
+                  .current_release = "",
+                  .release_date = "",
+                  .os = {},
+                  .aliases = {}},
+        .cloud_init_iso = dummy_cloud_init_iso.name()};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mpt::PowerShellTestHelper ps_helper;
     mpt::StubAvailabilityZone zone{};
