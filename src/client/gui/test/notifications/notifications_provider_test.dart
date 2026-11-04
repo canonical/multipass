@@ -15,7 +15,8 @@ void main() {
 
     setUp(() {
       container = ProviderContainer();
-      // Keep autoDispose provider alive for the duration of each test.
+      // Keeps the autoDispose state alive. Without a listener, it is discarded
+      // once the event loop turns, and the next read starts from an empty list.
       container.listen(notificationsProvider, (_, __) {});
     });
 

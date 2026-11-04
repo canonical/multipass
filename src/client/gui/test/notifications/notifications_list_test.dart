@@ -124,6 +124,22 @@ void main() {
       expect(find.text('old'), findsNothing);
       expect(find.text('new'), findsOneWidget);
     });
+
+    testWidgets('skips a notification added and removed in the same frame',
+        (tester) async {
+      final container = await pumpList(tester);
+      final notifier = container.read(notificationsProvider.notifier);
+      const old = Text('old');
+      const transient = Text('transient');
+
+      notifier.add(old);
+      await tester.pumpAndSettle();
+      notifier.add(transient);
+      notifier.remove(transient);
+      await tester.pumpAndSettle();
+      expect(find.text('transient'), findsNothing);
+      expect(find.text('old'), findsOneWidget);
+    });
   });
 }
 
