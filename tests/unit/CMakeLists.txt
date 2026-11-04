@@ -122,6 +122,7 @@ add_executable(multipass_cpp_tests
   test_private_pass_provider.cpp
   test_qemu_img_utils.cpp
   test_qemuimg_process_spec.cpp
+  test_qt_shared_future.cpp
   test_recursive_dir_iter.cpp
   test_remote_settings_handler.cpp
   test_rust_integration.cpp
