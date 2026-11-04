@@ -80,7 +80,7 @@ public:
                                ? QtFuture::makeReadyVoidFuture()
                                : QtFuture::connect(watcher, &QFutureWatcher<T>::finished);
 
-        return when_finished.then(this, [this] {
+        return when_finished.then([future = this->future]() mutable {
             if constexpr (std::is_same_v<T, void>)
                 return future.waitForFinished();
             else

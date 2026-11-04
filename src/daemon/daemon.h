@@ -24,6 +24,7 @@
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/format.h>
 #include <multipass/mount_handler.h>
+#include <multipass/qt_shared_future.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
@@ -251,7 +252,12 @@ private:
                         const std::chrono::seconds& timeout,
                         grpc::ServerReaderWriterInterface<Reply, Request>* server);
     template <typename Reply, typename Request>
-    AsyncOperationStatus
+    QFuture<ReadinessResult>
+    async_wait_vm_ready_impl(const std::string& name,
+                             const std::chrono::seconds& timeout,
+                             grpc::ServerReaderWriterInterface<Reply, Request>* server);
+    template <typename Reply, typename Request>
+    QFuture<AsyncOperationStatus>
     async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
                                   const std::vector<std::string>& vms,
                                   const std::chrono::seconds& timeout,
@@ -313,7 +319,7 @@ private:
         false};
     std::unordered_map<std::string, std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>>
         async_future_watchers;
-    std::unordered_map<std::string, QFuture<ReadinessResult>> async_running_futures;
+    std::unordered_map<std::string, QtSharedFuture<ReadinessResult>*> async_running_futures;
     std::mutex start_mutex;
     std::unordered_set<std::string> preparing_instances;
     QFuture<void> image_update_future;

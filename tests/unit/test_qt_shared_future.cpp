@@ -23,6 +23,8 @@
 #include <QEventLoop>
 #include <QPromise>
 
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <exception>
 #include <stdexcept>

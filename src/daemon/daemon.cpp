@@ -52,6 +52,7 @@
 #include <multipass/name_generator.h>
 #include <multipass/network_interface.h>
 #include <multipass/platform.h>
+#include <multipass/qt_shared_future.h>
 #include <multipass/query.h>
 #include <multipass/settings/bool_setting_spec.h>
 #include <multipass/settings/settings.h>
@@ -2436,14 +2437,11 @@ try
     }
 
     auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<StartReply, StartRequest>,
-                          this,
-                          server,
-                          starting_vms,
-                          timeout,
-                          context,
-                          fmt::to_string(start_errors)));
+    future_watcher->setFuture(async_wait_multiple_vms_ready(server,
+                                                            starting_vms,
+                                                            timeout,
+                                                            context,
+                                                            fmt::to_string(start_errors)));
 }
 catch (const std::exception& e)
 {
@@ -2629,14 +2627,11 @@ try
                     return context->set_value(status);
 
                 auto future_watcher = create_future_watcher();
-                future_watcher->setFuture(QtConcurrent::run(
-                    &Daemon::async_wait_multiple_vms_ready<RestartReply, RestartRequest>,
-                    this,
-                    server,
-                    starting_vms,
-                    timeout,
-                    context,
-                    status.error_message()));
+                future_watcher->setFuture(async_wait_multiple_vms_ready(server,
+                                                                        starting_vms,
+                                                                        timeout,
+                                                                        context,
+                                                                        status.error_message()));
             }
             catch (const std::exception& e)
             {
@@ -3365,13 +3360,11 @@ try // clang-format on
     {
         auto future_watcher = create_future_watcher();
         future_watcher->setFuture(
-            QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<StartReply, StartRequest>,
-                              this,
-                              nullptr,
-                              starting_vms,
-                              mp::default_timeout,
-                              nullptr,
-                              std::string()));
+            async_wait_multiple_vms_ready<StartReply, StartRequest>(nullptr,
+                                                                    starting_vms,
+                                                                    mp::default_timeout,
+                                                                    nullptr,
+                                                                    std::string()));
 
         for (auto&& z : zones)
             z.get().set_available(request->available());
@@ -3435,13 +3428,11 @@ void mp::Daemon::on_restart(const std::string& name)
         }
     });
     future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<StartReply, StartRequest>,
-                          this,
-                          nullptr,
-                          std::vector<std::string>{name},
-                          mp::default_timeout,
-                          nullptr,
-                          std::string()));
+        async_wait_multiple_vms_ready<StartReply, StartRequest>(nullptr,
+                                                                std::vector<std::string>{name},
+                                                                mp::default_timeout,
+                                                                nullptr,
+                                                                std::string()));
 }
 
 void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine::State& state)
@@ -3553,86 +3544,84 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     auto prepare_future_watcher = new QFutureWatcher<mp::VirtualMachineDescription>();
 
-    QObject::connect(
-        prepare_future_watcher,
-        &QFutureWatcher<mp::VirtualMachineDescription>::finished,
-        [this, server, context, name, timeout, start, prepare_future_watcher] {
-            // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
+    QObject::connect(prepare_future_watcher,
+                     &QFutureWatcher<mp::VirtualMachineDescription>::finished,
+                     [this, server, context, name, timeout, start, prepare_future_watcher] {
+                         // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
 
-            try
-            {
-                auto vm_desc = prepare_future_watcher->future().result();
+                         try
+                         {
+                             auto vm_desc = prepare_future_watcher->future().result();
 
-                vm_instance_specs[name] = {
-                    vm_desc.num_cores,
-                    vm_desc.mem_size,
-                    vm_desc.disk_space,
-                    vm_desc.default_mac_address,
-                    vm_desc.extra_interfaces,
-                    config->ssh_username,
-                    VirtualMachine::State::stopped,
-                    {},
-                    false,
-                    {},
-                    0,
-                    vm_desc.zone,
-                };
-                operative_instances[name] = config->factory->create_virtual_machine(
-                    vm_desc,
-                    *config->ssh_key_provider,
-                    *this);
-                preparing_instances.erase(name);
+                             vm_instance_specs[name] = {
+                                 vm_desc.num_cores,
+                                 vm_desc.mem_size,
+                                 vm_desc.disk_space,
+                                 vm_desc.default_mac_address,
+                                 vm_desc.extra_interfaces,
+                                 config->ssh_username,
+                                 VirtualMachine::State::stopped,
+                                 {},
+                                 false,
+                                 {},
+                                 0,
+                                 vm_desc.zone,
+                             };
+                             operative_instances[name] = config->factory->create_virtual_machine(
+                                 vm_desc,
+                                 *config->ssh_key_provider,
+                                 *this);
+                             preparing_instances.erase(name);
 
-                persist_instances();
+                             persist_instances();
 
-                if (start)
-                {
-                    LaunchReply reply;
-                    reply.set_create_message("Starting " + name);
-                    server->Write(reply);
+                             if (start)
+                             {
+                                 LaunchReply reply;
+                                 reply.set_create_message("Starting " + name);
+                                 server->Write(reply);
 
-                    operative_instances[name]->start();
+                                 operative_instances[name]->start();
 
-                    auto future_watcher = create_future_watcher(
-                        [this, server, name, zone = vm_desc.zone] {
-                            LaunchReply reply;
-                            reply.set_vm_instance_name(name);
-                            config->update_prompt->populate_if_time_to_show(
-                                reply.mutable_update_info());
+                                 auto future_watcher = create_future_watcher(
+                                     [this, server, name, zone = vm_desc.zone] {
+                                         LaunchReply reply;
+                                         reply.set_vm_instance_name(name);
+                                         config->update_prompt->populate_if_time_to_show(
+                                             reply.mutable_update_info());
 
-                            if (config->factory->supports_availability_zones())
-                                reply.set_zone(zone);
-                            server->Write(reply);
-                        });
-                    future_watcher->setFuture(QtConcurrent::run(
-                        &Daemon::async_wait_multiple_vms_ready<LaunchReply, LaunchRequest>,
-                        this,
-                        server,
-                        std::vector<std::string>{name},
-                        timeout,
-                        context,
-                        std::string()));
-                }
-                else
-                {
-                    context->set_value(grpc::Status::OK);
-                }
-            }
-            catch (const std::exception& e)
-            {
-                mp::top_catch_all(category, [this, name]() {
-                    preparing_instances.erase(name);
-                    release_resources(name);
-                    operative_instances.erase(name);
-                    persist_instances();
-                });
+                                         if (config->factory->supports_availability_zones())
+                                             reply.set_zone(zone);
+                                         server->Write(reply);
+                                     });
+                                 future_watcher->setFuture(
+                                     async_wait_multiple_vms_ready<LaunchReply, LaunchRequest>(
+                                         server,
+                                         std::vector<std::string>{name},
+                                         timeout,
+                                         context,
+                                         std::string()));
+                             }
+                             else
+                             {
+                                 context->set_value(grpc::Status::OK);
+                             }
+                         }
+                         catch (const std::exception& e)
+                         {
+                             mp::top_catch_all(category, [this, name]() {
+                                 preparing_instances.erase(name);
+                                 release_resources(name);
+                                 operative_instances.erase(name);
+                                 persist_instances();
+                             });
 
-                context->set_value(
-                    grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
-            }
+                             context->set_value(
+                                 grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+                         }
 
-            prepare_future_watcher->deleteLater();
-        });
+                         prepare_future_watcher->deleteLater();
+                     });
 
     auto make_vm_description = [this, server, request, name, zone_name, checked_args]() mutable
         -> mp::VirtualMachineDescription {
@@ -4016,9 +4005,9 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
 
 template <typename Reply, typename Request>
 QFuture<mp::ReadinessResult>
-mp::Daemon::async_wait_vm_ready(const std::string& name,
-                                const std::chrono::seconds& timeout,
-                                grpc::ServerReaderWriterInterface<Reply, Request>* server)
+mp::Daemon::async_wait_vm_ready_impl(const std::string& name,
+                                     const std::chrono::seconds& timeout,
+                                     grpc::ServerReaderWriterInterface<Reply, Request>* server)
 {
     const auto& it = operative_instances.find(name);
     if (operative_instances.end() == it)
@@ -4151,58 +4140,73 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
 }
 
 template <typename Reply, typename Request>
-mp::Daemon::AsyncOperationStatus
+QFuture<mp::ReadinessResult>
+mp::Daemon::async_wait_vm_ready(const std::string& name,
+                                const std::chrono::seconds& timeout,
+                                grpc::ServerReaderWriterInterface<Reply, Request>* server)
+{
+    // If an existing operation is already running, return a fork of that future
+    if (auto it = async_running_futures.find(name); it != async_running_futures.end())
+        return it->second->fork();
+
+    // Otherwise, start a new operation, and cache it
+    auto* shared_future = new QtSharedFuture<ReadinessResult>(
+        async_wait_vm_ready_impl(name, timeout, server),
+        this);
+    auto [it, success] = async_running_futures.emplace(name, shared_future);
+
+    // Once the operation is finished, remove it from the cache
+    if (success)
+    {
+        QObject::connect(shared_future, &QtSharedFutureBase::finished, this, [=, this]() {
+            async_running_futures.erase(name);
+            shared_future->deleteLater();
+        });
+    }
+
+    return shared_future->fork();
+}
+
+template <typename Reply, typename Request>
+QFuture<mp::Daemon::AsyncOperationStatus>
 mp::Daemon::async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
                                           const std::vector<std::string>& vms,
                                           const std::chrono::seconds& timeout,
                                           DaemonRpcContext* context,
                                           const std::string& start_errors)
 {
-    QFutureSynchronizer<ReadinessResult> start_synchronizer;
-    {
-        std::lock_guard<decltype(start_mutex)> lock{start_mutex};
-        for (const auto& name : vms)
-        {
-            if (async_running_futures.contains(name))
-            {
-                start_synchronizer.addFuture(async_running_futures[name]);
-            }
-            else
-            {
-                auto future = async_wait_vm_ready(name, timeout, server);
-                async_running_futures[name] = future;
-                start_synchronizer.addFuture(future);
-            }
-        }
-    }
+    std::vector<QFuture<ReadinessResult>> futures;
+    for (const auto& name : vms)
+        futures.push_back(async_wait_vm_ready(name, timeout, server));
 
-    start_synchronizer.waitForFinished();
+    return QtFuture::whenAll(futures.begin(), futures.end())
+        .then(
+            QtFuture::Launch::Async, // Run in a worker thread because server->Write might take time
+            [=, update_prompt = config->update_prompt.get()](
+                const QList<QFuture<ReadinessResult>>& finished_futures) {
+                if (std::is_same_v<Reply, StartReply> || std::is_same_v<Reply, RestartReply>)
+                {
+                    if (server)
+                    {
+                        // If we're here, we're sure that update_prompt is still alive, since the
+                        // daemon must be still alive because this RPC hasn't finished yet
+                        // TODO: Move RPC specific behavior to the RPC handlers
+                        Reply reply;
+                        update_prompt->populate_if_time_to_show(reply.mutable_update_info());
+                        server->Write(reply);
+                    }
+                }
 
-    {
-        std::lock_guard<decltype(start_mutex)> lock{start_mutex};
-        for (const auto& name : vms)
-        {
-            async_running_futures.erase(name);
-        }
-    }
+                std::vector<ReadinessResult> results;
+                results.reserve(finished_futures.size());
 
-    std::vector<ReadinessResult> results;
-    results.reserve(vms.size());
+                for (const auto& future : finished_futures)
+                    results.push_back(future.result());
 
-    for (const auto& future : start_synchronizer.futures())
-        results.push_back(future.result());
-
-    if constexpr (std::is_same_v<Reply, StartReply> || std::is_same_v<Reply, RestartReply>)
-    {
-        if (server)
-        {
-            Reply reply;
-            config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
-            server->Write(reply);
-        }
-    }
-
-    return {mp::grpc_status_for_readiness<Reply>(results, start_errors), context};
+                return AsyncOperationStatus{
+                    mp::grpc_status_for_readiness<Reply>(results, start_errors),
+                    context};
+            });
 }
 
 void mp::Daemon::finish_async_operation(const std::string& async_future_key)
