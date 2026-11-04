@@ -24,7 +24,9 @@ add_library(daemon STATIC
   instance_settings_handler.cpp
   mount_motd_cloud_init.cpp
   runtime_instance_info_helper.cpp
-  snapshot_settings_handler.cpp)
+  snapshot_settings_handler.cpp
+  ${CMAKE_SOURCE_DIR}/include/multipass/qt_shared_future.h
+)
 
 # TODO hyperv migration, remove
 if(HCS_ENABLED)
