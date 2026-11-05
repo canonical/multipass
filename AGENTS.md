@@ -186,6 +186,11 @@ cargo test --workspace
 - Keep user-facing documentation in `docs/` (Sphinx: tutorial, how-to-guides,
   reference, explanation) in sync with behavior changes — new/changed commands,
   settings, CLI flags, and workflows need corresponding doc updates.
+- Keep agent guidance current: if a change makes anything in `AGENTS.md`,
+  `.github/copilot-instructions.md`, `.github/skills/`, or `.github/agents/`
+  inaccurate (paths, commands, versions, conventions), update it in the same change.
+  Put general project knowledge only in `AGENTS.md`; tool-specific files should
+  reference it rather than repeat it.
 - Dependencies follow `CONTRIBUTING.md` `DEP1`–`DEP2`: do not vendor copied source;
   new C++ dependencies are vcpkg ports (repo-owned overlays/triplets under
   `3rd-party/vcpkg-ports/` and `3rd-party/vcpkg-triplets/`).
