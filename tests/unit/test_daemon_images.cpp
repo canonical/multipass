@@ -50,19 +50,9 @@ struct DaemonImages : public mpt::DaemonTestFixture
         config_builder.image_hosts.clear();
 
         auto* factory = use_a_mock_vm_factory();
-        EXPECT_CALL(*factory, create_image_vault)
-            .WillRepeatedly([](std::vector<mp::VMImageHost*> image_hosts,
-                               mp::URLDownloader* downloader,
-                               const mp::Path& cache_dir_path,
-                               const mp::Path& data_dir_path,
-                               const mp::days& days_to_expire) {
-                return std::make_unique<mp::DefaultVMImageVault>(
-                    image_hosts,
-                    downloader,
-                    MP_PLATFORM.qstr_to_path(cache_dir_path),
-                    MP_PLATFORM.qstr_to_path(data_dir_path),
-                    days_to_expire);
-            });
+        EXPECT_CALL(*factory, create_image_vault).WillRepeatedly([]<typename... T>(T&&... t) {
+            return std::make_unique<mp::DefaultVMImageVault>(std::forward<T>(t)...);
+        });
 
         EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
         EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
