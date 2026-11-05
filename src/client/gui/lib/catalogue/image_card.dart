@@ -175,8 +175,7 @@ class ImageCard extends ConsumerWidget {
               const SizedBox(width: 8),
               OutlinedButton(
                 onPressed: () {
-                  ref.read(launchingImageProvider.notifier).state =
-                      selectedImage;
+                  ref.read(launchingImageProvider.notifier).set(selectedImage);
                   Scaffold.of(context).openEndDrawer();
                 },
                 child: Text(l10n.commonConfigure),
