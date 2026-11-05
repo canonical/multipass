@@ -60,7 +60,11 @@ public:
     MOCK_METHOD(QString, get_backend_version_string, (), (const, override));
     MOCK_METHOD(std::unique_ptr<VMImageVault>,
                 create_image_vault,
-                (std::vector<VMImageHost*>, URLDownloader*, const Path&, const Path&, const days&),
+                (std::vector<VMImageHost*>,
+                 URLDownloader*,
+                 const std::filesystem::path&,
+                 const std::filesystem::path&,
+                 const days&),
                 (override));
     MOCK_METHOD(std::vector<NetworkInterfaceInfo>, networks, (), (const, override));
     MOCK_METHOD(bool, supports_availability_zones, (), (const, override));

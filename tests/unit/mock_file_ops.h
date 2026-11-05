@@ -125,6 +125,7 @@ public:
                 (const fs::path& path, std::error_code& err),
                 (override, const, noexcept));
     MOCK_METHOD(bool, is_symlink, (const fs::path& path), (override, const));
+    MOCK_METHOD(bool, is_directory, (const fs::path& path), (override, const));
     MOCK_METHOD(bool,
                 is_directory,
                 (const fs::path& path, std::error_code& err),
@@ -133,6 +134,7 @@ public:
                 create_directory,
                 (const fs::path& path, std::error_code& err),
                 (override, const));
+    MOCK_METHOD(bool, create_directories, (const fs::path& path), (override, const));
     MOCK_METHOD(bool,
                 create_directories,
                 (const fs::path& path, std::error_code& err),
@@ -142,6 +144,7 @@ public:
                 remove,
                 (const fs::path& path, std::error_code& err),
                 (override, const, noexcept));
+    MOCK_METHOD(bool, remove_all, (const fs::path& path), (override, const));
     MOCK_METHOD(void,
                 create_symlink,
                 (const fs::path& to, const fs::path& path, std::error_code& err),
@@ -194,10 +197,16 @@ inline std::unique_ptr<std::stringstream> mock_read_data(std::string_view data)
     return filestream;
 }
 
+template <typename InnerMatcher>
+auto FileNameMatches(InnerMatcher&& m)
+{
+    return testing::Property(&std::filesystem::path::filename, std::forward<InnerMatcher>(m));
+}
+
 // Match a Qt object's file name, mainly for use in EXPECT_CALL matchers. The optional first
 // template type is the expected type of the argument.
 template <typename T = QIODevice&, typename InnerMatcher = void>
-testing::Matcher<T> FileNameMatches(const InnerMatcher& m)
+testing::Matcher<T> QFileNameMatches(const InnerMatcher& m)
 {
     using ValueType = std::remove_cvref_t<T>;
     using namespace testing;
