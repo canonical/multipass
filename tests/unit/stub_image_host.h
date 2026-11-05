@@ -27,8 +27,18 @@ struct StubVMImageHost final : public multipass::VMImageHost
 {
     std::optional<multipass::VMImageInfo> info_for(const multipass::SearchQuery&) const override
     {
-        return std::optional<multipass::VMImageInfo>{
-            VMImageInfo{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}}};
+        return std::optional<multipass::VMImageInfo>{VMImageInfo{.aliases = {},
+                                                                 .os = {},
+                                                                 .release = {},
+                                                                 .release_title = {},
+                                                                 .release_codename = {},
+                                                                 .supported = {},
+                                                                 .image_location = {},
+                                                                 .id = {},
+                                                                 .stream_location = {},
+                                                                 .version = {},
+                                                                 .size = -1,
+                                                                 .verify = {}}};
     }
 
     std::vector<multipass::VMImageInfo> all_info_for(const multipass::SearchQuery&) const override
@@ -38,7 +48,18 @@ struct StubVMImageHost final : public multipass::VMImageHost
 
     multipass::VMImageInfo info_for_full_hash(const std::string& /*full_hash*/) const override
     {
-        return {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, -1, {}};
+        return {.aliases = {},
+                .os = {},
+                .release = {},
+                .release_title = {},
+                .release_codename = {},
+                .supported = {},
+                .image_location = {},
+                .id = {},
+                .stream_location = {},
+                .version = {},
+                .size = -1,
+                .verify = {}};
     }
 
     void for_each_entry_do(const Action&) const override

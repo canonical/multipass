@@ -117,7 +117,9 @@ mp::VaultRecord mp::tag_invoke(const boost::json::value_to_tag<mp::VaultRecord>&
         last_accessed = std::chrono::system_clock::time_point(duration);
     }
 
-    return {value_to<VMImage>(json.at("image")), value_to<Query>(json.at("query")), last_accessed};
+    return {.image = value_to<VMImage>(json.at("image")),
+            .query = value_to<Query>(json.at("query")),
+            .last_accessed = last_accessed};
 }
 
 mp::DefaultVMImageVault::DefaultVMImageVault(std::vector<VMImageHost*> image_hosts,
@@ -197,9 +199,10 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const Query& query,
 
         {
             std::lock_guard<decltype(fetch_mutex)> lock{fetch_mutex};
-            instance_image_records[query.name] = {vm_image,
-                                                  query,
-                                                  std::chrono::system_clock::now()};
+            instance_image_records[query.name] = {
+                .image = vm_image,
+                .query = query,
+                .last_accessed = std::chrono::system_clock::now()};
             persist_instance_records();
         }
 
@@ -244,18 +247,18 @@ mp::VMImage mp::DefaultVMImageVault::fetch_image(const Query& query,
             }
             else
             {
-                const VMImageInfo info{{},
-                                       {},
-                                       {},
-                                       {},
-                                       {},
-                                       true,
-                                       image_url.url().toStdString(),
-                                       id,
-                                       {},
-                                       last_modified.toString().toStdString(),
-                                       0,
-                                       checksum.has_value()};
+                const VMImageInfo info{.aliases = {},
+                                       .os = {},
+                                       .release = {},
+                                       .release_title = {},
+                                       .release_codename = {},
+                                       .supported = true,
+                                       .image_location = image_url.url().toStdString(),
+                                       .id = id,
+                                       .stream_location = {},
+                                       .version = last_modified.toString().toStdString(),
+                                       .size = 0,
+                                       .verify = checksum.has_value()};
 
                 const auto image_filename = QFileInfo{image_url.path()}.fileName();
                 // Attempt to make a sane directory name based on the filename of the image
@@ -598,14 +601,14 @@ mp::VMImage mp::DefaultVMImageVault::image_instance_from(const VMImage& prepared
 {
     MP_UTILS.make_dir(dest_dir);
 
-    return {MP_IMAGE_VAULT_UTILS.copy_to_dir(prepared_image.image_path,
-                                             MP_PLATFORM.qstr_to_path(dest_dir)),
-            prepared_image.id,
-            prepared_image.original_release,
-            prepared_image.current_release,
-            prepared_image.release_date,
-            prepared_image.os,
-            {}};
+    return {.image_path = MP_IMAGE_VAULT_UTILS.copy_to_dir(prepared_image.image_path,
+                                                           MP_PLATFORM.qstr_to_path(dest_dir)),
+            .id = prepared_image.id,
+            .original_release = prepared_image.original_release,
+            .current_release = prepared_image.current_release,
+            .release_date = prepared_image.release_date,
+            .os = prepared_image.os,
+            .aliases = {}};
 }
 
 std::optional<QFuture<mp::VMImage>> mp::DefaultVMImageVault::get_image_future(const std::string& id)
@@ -629,13 +632,17 @@ mp::VMImage mp::DefaultVMImageVault::finalize_image_records(const Query& query,
     if (!query.name.empty())
     {
         vm_image = image_instance_from(prepared_image, dest_dir);
-        instance_image_records[query.name] = {vm_image, query, std::chrono::system_clock::now()};
+        instance_image_records[query.name] = {.image = vm_image,
+                                              .query = query,
+                                              .last_accessed = std::chrono::system_clock::now()};
     }
 
     // Do not save the instance name for prepared images
     Query prepared_query{query};
     prepared_query.name = "";
-    prepared_image_records[id] = {prepared_image, prepared_query, std::chrono::system_clock::now()};
+    prepared_image_records[id] = {.image = prepared_image,
+                                  .query = prepared_query,
+                                  .last_accessed = std::chrono::system_clock::now()};
 
     persist_instance_records();
     persist_image_records();

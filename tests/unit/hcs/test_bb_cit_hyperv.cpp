@@ -67,8 +67,8 @@ struct HyperV_ComponentIntegrationTests : public ::testing::Test
         return {.name = "multipass-hyperv-cit",
                 .flags = flags,
                 .guid = "b4d77a0e-2507-45f0-99aa-c638f3e47486",
-                .ipams = {{.type = hyperv::hcn::HcnIpamType::Static(),
-                           .subnets = {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}}};
+                .ipams = {{hyperv::hcn::HcnIpamType::Static(),
+                           {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}}};
     }
 
     static hyperv::hcn::CreateEndpointParameters make_endpoint_parameters(
@@ -246,8 +246,8 @@ TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn
     const hyperv::hcn::CreateNetworkParameters network_parameters{
         .name = "multipass-hyperv-hcn-ip-cit",
         .guid = "b4d77a0e-2507-45f0-99aa-c638f3e47487",
-        .ipams = {{.type = hyperv::hcn::HcnIpamType::Static(),
-                   .subnets = {hyperv::hcn::HcnSubnet{"10.99.100.0/24"}}}}};
+        .ipams = {
+            {hyperv::hcn::HcnIpamType::Static(), {hyperv::hcn::HcnSubnet{"10.99.100.0/24"}}}}};
 
     const std::string vm_name{"multipass-hyperv-hcn-ip-cit-vm"};
     const std::string mac_address{"00:15:5d:9d:cf:69"};
@@ -273,16 +273,22 @@ TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn
     StubAvailabilityZone zone;
     StubSSHKeyProvider key_provider;
     StubVMStatusMonitor monitor;
-    const VirtualMachineDescription description{1,
-                                                MemorySize{"512M"},
-                                                MemorySize{},
-                                                vm_name,
-                                                zone.get_name(),
-                                                mac_address,
-                                                {},
-                                                "",
-                                                {"", "", "", "", {}, {}},
-                                                ""};
+    const VirtualMachineDescription description{.num_cores = 1,
+                                                .mem_size = MemorySize{"512M"},
+                                                .disk_space = MemorySize{},
+                                                .vm_name = vm_name,
+                                                .zone = zone.get_name(),
+                                                .default_mac_address = mac_address,
+                                                .extra_interfaces = {},
+                                                .ssh_username = "",
+                                                .image = {.image_path = "",
+                                                          .id = "",
+                                                          .original_release = "",
+                                                          .current_release = "",
+                                                          .release_date = {},
+                                                          .os = {},
+                                                          .aliases = {}},
+                                                .cloud_init_iso = ""};
 
     {
         hyperv::HCSVirtualMachine vm{network_parameters.guid,
@@ -389,9 +395,9 @@ TEST_F(HyperV_ComponentIntegrationTests, spawn_empty_test_vm_attach_nic_after_bo
     // Add network adapter
     {
         const HcsRequest add_network_adapter_req{
-            HcsResourcePath::NetworkAdapters(network_adapter.endpoint_guid),
-            HcsRequestType::Add(),
-            network_adapter};
+            .resource_path = HcsResourcePath::NetworkAdapters(network_adapter.endpoint_guid),
+            .request_type = HcsRequestType::Add(),
+            .settings = network_adapter};
         const auto& [status, status_msg] = HCS().modify_compute_system(handle,
                                                                        add_network_adapter_req);
         ASSERT_TRUE(status.success());

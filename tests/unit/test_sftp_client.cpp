@@ -102,7 +102,10 @@ struct SFTPClient : public testing::Test
     MockScope<decltype(mock_sftp_free)> free_sftp;
     MockScope<decltype(mock_sftp_close)> close_sftp;
 
-    sftp_limits_struct limits{32768, 32768, 32768, 0};
+    sftp_limits_struct limits{.max_packet_length = 32768,
+                              .max_read_length = 32768,
+                              .max_write_length = 32768,
+                              .max_open_handles = 0};
 
     const mpt::StubSSHKeyProvider key_provider;
     mpt::MockSSHTestFixture mock_ssh_test_fixture;

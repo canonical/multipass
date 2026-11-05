@@ -109,9 +109,9 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
     if (resume_metadata)
     {
         const auto& data = resume_metadata.value();
-        resume_data = mp::QemuVMProcessSpec::ResumeData{suspend_tag,
-                                                        get_vm_machine(data),
-                                                        get_arguments(data)};
+        resume_data = mp::QemuVMProcessSpec::ResumeData{.suspend_tag = suspend_tag,
+                                                        .machine_type = get_vm_machine(data),
+                                                        .arguments = get_arguments(data)};
     }
 
     auto process_spec =
