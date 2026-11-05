@@ -259,7 +259,10 @@ private:
     auto make_finish_readiness_operation_cb(DaemonRpcContext* context,
                                             const std::string& errors = {});
 
+    // Keeps the daemon alive until the preceding work finishes. Use with .then(keep_alive()).
+    // The chain must not be cancelled, since cancellation skips this continuation.
     auto keep_alive();
+
     void update_manifests_all(const bool force_update = false);
     void wait_update_manifests_all_and_optionally_applied_force(
         const bool force_manifest_network_download);

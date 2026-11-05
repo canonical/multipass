@@ -2607,81 +2607,69 @@ try
         resume_status = restart_start_suspended_instances(instance_selection.operative_selection,
                                                           resumed_vms);
 
+    auto wait_for_ssh_op = std::bind(wait_for_ssh_up, std::move(resumed_vms), timeout);
+    auto restart_op = [this,
+                       resume_status,
+                       instance_names = std::move(instance_names),
+                       timeout,
+                       context,
+                       server,
+                       running_only](QFuture<grpc::Status> future) {
+        try
+        {
+            auto [instance_selection,
+                  status] = select_instances_and_react(operative_instances,
+                                                       deleted_instances,
+                                                       instance_names,
+                                                       InstanceGroup::Operative,
+                                                       require_operative_instances_reaction);
+            if (!status.ok())
+                return context->set_value(status);
+
+            const auto& instance_targets = instance_selection.operative_selection;
+            std::vector<std::string> starting_vms;
+
+            status = grpc_concatenate_status(resume_status, future.result());
+            status = grpc_concatenate_status(
+                status,
+                cmd_vms(
+                    instance_targets,
+                    [this, &starting_vms, running_only](VirtualMachine& vm) {
+                        try
+                        {
+                            auto status = this->reboot_vm(vm, running_only);
+                            if (status.ok())
+                                starting_vms.push_back(vm.get_name());
+                            return status;
+                        }
+                        catch (const std::exception& e)
+                        {
+                            return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
+                        }
+                    },
+                    /*fail_early=*/false)); // 1st pass to reboot all targets
+
+            if (starting_vms.empty())
+                return context->set_value(status);
+
+            async_wait_multiple_vms_ready(server, starting_vms, timeout)
+                .then(
+                    QtFuture::Launch::Async,
+                    make_write_update_info_cb<RestartReply, RestartRequest>(*config->update_prompt,
+                                                                            server))
+                .then(this,
+                      make_finish_readiness_operation_cb<RestartReply>(context,
+                                                                       status.error_message()))
+                .then(keep_alive());
+        }
+        catch (const std::exception& e)
+        {
+            return context->set_value({grpc::FAILED_PRECONDITION, e.what(), ""});
+        }
+    };
+
     // Only the wait for SSH runs in the background
-    auto resume_future_watcher = new QFutureWatcher<grpc::Status>(this);
-    QObject::connect(
-        resume_future_watcher,
-        &QFutureWatcher<grpc::Status>::finished,
-        [this,
-         resume_future_watcher,
-         resume_status,
-         instance_names = std::move(instance_names),
-         timeout,
-         context,
-         server,
-         running_only] {
-            try
-            {
-                auto [instance_selection,
-                      status] = select_instances_and_react(operative_instances,
-                                                           deleted_instances,
-                                                           instance_names,
-                                                           InstanceGroup::Operative,
-                                                           require_operative_instances_reaction);
-                if (!status.ok())
-                    return context->set_value(status);
-
-                const auto& instance_targets = instance_selection.operative_selection;
-                std::vector<std::string> starting_vms;
-
-                status = grpc_concatenate_status(resume_status,
-                                                 resume_future_watcher->future().result());
-                status = grpc_concatenate_status(
-                    status,
-                    cmd_vms(
-                        instance_targets,
-                        [this, &starting_vms, running_only](VirtualMachine& vm) {
-                            try
-                            {
-                                auto status = this->reboot_vm(vm, running_only);
-                                if (status.ok())
-                                    starting_vms.push_back(vm.get_name());
-                                return status;
-                            }
-                            catch (const std::exception& e)
-                            {
-                                return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
-                            }
-                        },
-                        /*fail_early=*/false)); // 1st pass to reboot all targets
-
-                if (starting_vms.empty())
-                    return context->set_value(status);
-
-                async_wait_multiple_vms_ready(server, starting_vms, timeout)
-                    .then(QtFuture::Launch::Async,
-                          make_write_update_info_cb<RestartReply, RestartRequest>(
-                              *config->update_prompt,
-                              server))
-                    .then(this,
-                          make_finish_readiness_operation_cb<RestartReply>(context,
-                                                                           status.error_message()))
-                    .then(keep_alive());
-            }
-            catch (const std::exception& e)
-            {
-                return context->set_value({grpc::FAILED_PRECONDITION, e.what(), ""});
-            }
-        });
-    QObject::connect(resume_future_watcher,
-                     &QFutureWatcher<grpc::Status>::finished,
-                     resume_future_watcher,
-                     &QObject::deleteLater);
-
-    resume_future_watcher->setFuture(
-        QtConcurrent::run([resumed_vms = std::move(resumed_vms), timeout]() {
-            return wait_for_ssh_up(resumed_vms, timeout);
-        }));
+    std::ignore = QtConcurrent::run(wait_for_ssh_op).then(this, restart_op).then(keep_alive());
 }
 catch (const std::exception& e)
 {
