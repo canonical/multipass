@@ -22,6 +22,7 @@
 #include "mock_cert_store.h"
 #include "mock_client_rpc.h"
 #include "mock_daemon.h"
+#include "mock_environment_helpers.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
 #include "mock_standard_paths.h"
@@ -30,6 +31,8 @@
 #include "temp_dir.h"
 
 #include <multipass/cli/client_common.h>
+#include <multipass/constants.h>
+#include <multipass/platform.h>
 #include <multipass/utils.h>
 
 #include <grpcpp/support/status.h>
@@ -90,8 +93,9 @@ struct TestClientCommon : public mpt::DaemonTestFixture
 
 TEST_F(TestClientCommon, usesCommonCertWhenItExists)
 {
-    const auto common_cert_dir =
-        MP_UTILS.make_dir(temp_dir.path(), QString(mp::common_client_cert_dir).remove(0, 1));
+    const auto common_cert_dir = MP_UTILS.make_dir(
+        temp_dir.path(),
+        QString(mp::common_client_cert_dir).remove(0, 1));
     const auto common_client_cert_file = common_cert_dir + "/" + mp::client_cert_file;
     const auto common_client_key_file = common_cert_dir + "/" + mp::client_key_file;
 
@@ -145,4 +149,24 @@ TEST(StandardFailureHandlerFormatting, singleTrailingNewlineWhenDetailsAlreadyEn
     EXPECT_EQ(cerr_stream.str(),
               "start failed: instance(s) missing\n"
               "Instance 'asdf' does not exist.\n");
+}
+
+TEST(GetServerAddress, returnsEnvironmentAddressWhenSet)
+{
+    const mpt::SetEnvScope env{mp::server_address_env_var, "localhost:25099"};
+    EXPECT_EQ(mp::client::get_server_address(), "localhost:25099");
+}
+
+TEST(GetServerAddress, throwsOnInvalidEnvironmentAddress)
+{
+    const mpt::SetEnvScope env{mp::server_address_env_var, "localhost:abc"};
+    MP_EXPECT_THROW_THAT(mp::client::get_server_address(),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("invalid port number in address")));
+}
+
+TEST(GetServerAddress, returnsPlatformDefaultWhenEnvironmentUnset)
+{
+    const mpt::UnsetEnvScope env{mp::server_address_env_var};
+    EXPECT_EQ(mp::client::get_server_address(), mp::platform::default_server_address());
 }

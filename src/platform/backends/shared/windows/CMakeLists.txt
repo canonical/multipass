@@ -24,6 +24,7 @@ add_library(shared_win STATIC
   net_io_api.cpp
   network_utils.cpp
   native_path.cpp
+  server_port.cpp
   windows_feature_status.cpp)
 
 include_directories(shared_win
