@@ -30,7 +30,7 @@ Closes # (issue number)
 https://github.com/canonical/multipass/blob/main/CONTRIBUTING.md)
 - [ ] I have signed the [Canonical CLA](
 https://canonical.com/legal/contributors)
-- [ ] I am targeting the appropriate branch (fixes go on stable branch)
+- [ ] I am aware that fixes should be merged into the next stable-release branch (`release/XX.XX`) before being merged into `main`.
 - [ ] I have added unit tests or no new ones were appropriate
 - [ ] I have added integration tests or no new ones were appropriate
 - [ ] I have updated documentation or no changes were appropriate

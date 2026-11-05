@@ -335,8 +335,7 @@ Descriptive rules of how releases are obtained from Git.
 
 **REL1.** The trunk of Multipass development happens in the `main` branch, which releases branch out
 of.<br>
-**REL2.** Fixes are merged into the stable branch first (`release/XX.XX`). After any pushes into the
-stable branch, the author of the fix should open a PR merging that stable branch into `main`.<br>
+**REL2.** Bugs are fixed into the next stable-release branch first (`release/XX.XX`). Once a fix is merged into a release branch, its author should open a PR merging that branch into `main`.<br>
 
 # Further Information
 

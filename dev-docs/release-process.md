@@ -29,7 +29,8 @@ main $ git push --tags
 
 ## Hotfixes
 
-When a bug is discovered and is present in the stable release, then its fix needs to be merged into the associated release branch first: `release/XX.XX`.  
+When a bug is discovered and is present in the stable release, then its fix needs to be merged into the associated release branch first: `release/XX.XX`.
+
 Once merged into that branch, the release branch is then merged into `main`.
 
 ```shell
