@@ -169,6 +169,16 @@ VMImage HCSVirtualMachineFactory::prepare_source_image(const VMImage& source_ima
 void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_image,
                                                       const VirtualMachineDescription& desc)
 {
+    // qemu-img creates sparse files, which the virtdisk API refuses to open. Images copied from
+    // the cache aren't sparse; for those, this is a no-op.
+    const auto unsparse_result = VirtDisk().clear_sparse_flag(instance_image.image_path);
+    if (!unsparse_result)
+    {
+        throw ImageResizeException{"Failed to clear sparse flag of VHDX file `{}`, error code `{}`",
+                                   instance_image.image_path,
+                                   unsparse_result};
+    }
+
     // Resize the instance image to the desired size
     const auto resize_result = VirtDisk().resize_virtual_disk(instance_image.image_path,
                                                               desc.disk_space.in_bytes());

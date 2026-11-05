@@ -243,12 +243,35 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepareInstanceImage)
     multipass::VirtualMachineDescription desc;
     desc.disk_space = multipass::MemorySize::from_bytes(123456);
 
+    ASSERT_NO_THROW(uut = construct_factory());
+
+    InSequence sequence;
+    EXPECT_CALL(mock_virtdisk, clear_sparse_flag(Eq(img.image_path)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
     EXPECT_CALL(mock_virtdisk,
                 resize_virtual_disk(Eq(img.image_path), Eq(desc.disk_space.in_bytes())))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
 
-    ASSERT_NO_THROW(uut = construct_factory());
     uut->prepare_instance_image(img, desc);
+}
+
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepareInstanceImageClearSparseFlagFailed)
+{
+    std::shared_ptr<uut_t> uut{nullptr};
+
+    multipass::VMImage img;
+    img.image_path = "abcdef";
+    multipass::VirtualMachineDescription desc;
+    desc.disk_space = multipass::MemorySize::from_bytes(123456);
+
+    EXPECT_CALL(mock_virtdisk, clear_sparse_flag(Eq(img.image_path)))
+        .WillOnce(Return(hcs_op_result_t{E_FAIL, L""}));
+    EXPECT_CALL(mock_virtdisk, resize_virtual_disk).Times(0);
+
+    ASSERT_NO_THROW(uut = construct_factory());
+    MP_EXPECT_THROW_THAT(uut->prepare_instance_image(img, desc),
+                         mhv::ImageResizeException,
+                         mpt::match_what(HasSubstr("Failed to clear sparse flag")));
 }
 
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepareInstanceImageFailed)
@@ -260,6 +283,8 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepareInstanceImageFailed)
     multipass::VirtualMachineDescription desc;
     desc.disk_space = multipass::MemorySize::from_bytes(123456);
 
+    EXPECT_CALL(mock_virtdisk, clear_sparse_flag(Eq(img.image_path)))
+        .WillOnce(Return(hcs_op_result_t{0, L""}));
     EXPECT_CALL(mock_virtdisk,
                 resize_virtual_disk(Eq(img.image_path), Eq(desc.disk_space.in_bytes())))
         .WillOnce(Return(hcs_op_result_t{1, L""}));
