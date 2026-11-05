@@ -5,6 +5,8 @@ want to spin up a fresh Linux environment with a single command. It uses QEMU on
 Compute System) on Windows and QEMU or the Apple Virtualization Framework on macOS to run virtual
 machines with minimal overhead. Multipass will fetch images for you and keep them up to date.
 
+Multipass lets developers quickly create and manage Ubuntu virtual machines on Linux, Windows, or macOS. It’s ideal for testing, development, or learning Linux environments without setting up a full virtual machine manually.
+
 Since it supports metadata for cloud-init, you can simulate a small cloud deployment on your laptop or workstation.
 
 ## Project status
