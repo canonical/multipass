@@ -31,16 +31,12 @@
 
 #include <atomic>
 #include <chrono>
-#include <future>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
-#include <QFutureWatcher>
 
 namespace multipass
 {
@@ -238,12 +234,6 @@ private:
                                    const std::string& target,
                                    const VMMount& mount);
 
-    struct AsyncOperationStatus
-    {
-        grpc::Status status;
-        DaemonRpcContext* context;
-    };
-
     // These async_* methods need to operate on instance names and look up the VMs again, lest they
     // be gone or moved.
     template <typename Reply, typename Request>
@@ -257,15 +247,13 @@ private:
                              const std::chrono::seconds& timeout,
                              grpc::ServerReaderWriterInterface<Reply, Request>* server);
     template <typename Reply, typename Request>
-    QFuture<AsyncOperationStatus>
+    QFuture<std::vector<ReadinessResult>>
     async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
                                   const std::vector<std::string>& vms,
-                                  const std::chrono::seconds& timeout,
-                                  DaemonRpcContext* context,
-                                  const std::string& errors);
-    void finish_async_operation(const std::string& async_future_key);
-    QFutureWatcher<AsyncOperationStatus>* create_future_watcher(
-        std::function<void()> const& finished_op = []() {});
+                                  const std::chrono::seconds& timeout);
+    void finish_async_operation(DaemonRpcContext* context, QFuture<grpc::Status> future);
+    template <typename T>
+    void register_async_operation(QFuture<T> future);
     void update_manifests_all(const bool force_update = false);
     void wait_update_manifests_all_and_optionally_applied_force(
         const bool force_manifest_network_download);
@@ -317,8 +305,6 @@ private:
         &Daemon::update_manifests_all,
         this,
         false};
-    std::unordered_map<std::string, std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>>
-        async_future_watchers;
     std::unordered_map<std::string, QtSharedFuture<ReadinessResult>*> async_running_futures;
     std::mutex start_mutex;
     std::unordered_set<std::string> preparing_instances;
@@ -327,5 +313,7 @@ private:
     SettingsHandler* snapshot_mod_handler;
     std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::ShPtr>> mounts;
     std::unordered_set<std::string> user_authorized_bridges;
+
+    std::atomic<size_t> pending_async_operations{0};
 };
 } // namespace multipass
