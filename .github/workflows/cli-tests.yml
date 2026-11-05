@@ -122,6 +122,7 @@ jobs:
 
             core.setOutput('matrix', JSON.stringify(matrix));
             core.setOutput('has_targets', String(matrix.include.length > 0));
+
   run-cli-tests:
     concurrency:
       group: cli-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ matrix.concurrency-key }}
@@ -229,14 +230,14 @@ jobs:
 
           # Add installation path to the GITHUB_PATH so subsequent steps can use the binaries
           "$env:ProgramFiles\Multipass\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       ##################################################################
       # Platform-agnostic
       ##################################################################
       - name: Create virtual environment
-        run: python3 -m venv .venv
-
-      - name: Activate virtual environment
-        run: echo "PATH=${GITHUB_WORKSPACE}/.venv/bin:$PATH" >> $GITHUB_ENV
+        run: |
+          python3 -m venv .venv
+          echo "${GITHUB_WORKSPACE}/.venv/bin" >> $GITHUB_PATH
 
       - name: Install cli-tests dependencies
         id: install-cli-test-deps
