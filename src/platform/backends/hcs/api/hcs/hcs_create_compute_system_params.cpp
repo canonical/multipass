@@ -27,11 +27,8 @@ namespace
 template <typename T>
 std::string value_or_null(const std::optional<T>& opt)
 {
-    if (opt)
-    {
-        return fmt::format("\"{}\"", *opt);
-    }
-    return "null";
+    return opt.transform([](const T& value) { return fmt::format("\"{}\"", value); })
+        .value_or("null");
 }
 
 void append_if(auto& target, bool condition, auto&& callable)
