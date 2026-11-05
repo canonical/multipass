@@ -1342,34 +1342,32 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 }
 
 template <typename Reply, typename Request>
-void write_update_info(mp::UpdatePrompt* update_prompt,
+void write_update_info(mp::UpdatePrompt& update_prompt,
                        grpc::ServerReaderWriterInterface<Reply, Request>* server)
 {
     if (server)
     {
         Reply reply;
-        update_prompt->populate_if_time_to_show(reply.mutable_update_info());
+        update_prompt.populate_if_time_to_show(reply.mutable_update_info());
         server->Write(reply);
     }
 }
 
 template <typename Reply, typename Request>
-auto write_update_info_lambda(mp::UpdatePrompt* update_prompt,
-                              grpc::ServerReaderWriterInterface<Reply, Request>* server)
+auto make_write_update_info_cb(mp::UpdatePrompt& update_prompt,
+                               grpc::ServerReaderWriterInterface<Reply, Request>* server)
 {
-    return [=](std::vector<multipass::ReadinessResult> results) {
+    return [&update_prompt, server](std::vector<multipass::ReadinessResult> results) {
         write_update_info(update_prompt, server);
         return results;
     };
 }
 
 template <typename Reply>
-auto grpc_status_for_readiness_lambda(const std::string& start_errors = {})
+auto make_grpc_status_for_readiness_cb(const std::string& start_errors = {})
 {
     // std::bind_back is not supported on some of the compilers that we use in CI
-    return [start_errors](const std::vector<mp::ReadinessResult>& results) {
-        return mp::grpc_status_for_readiness<Reply>(results, start_errors);
-    };
+    return std::bind(mp::grpc_status_for_readiness<Reply>, std::placeholders::_1, start_errors);
 }
 
 // TODO@deprecations remove
@@ -2480,10 +2478,9 @@ try
     }
 
     async_wait_multiple_vms_ready(server, starting_vms, timeout)
-        .then(
-            QtFuture::Launch::Async,
-            write_update_info_lambda<StartReply, StartRequest>(config->update_prompt.get(), server))
-        .then(grpc_status_for_readiness_lambda<StartReply>(fmt::to_string(start_errors)))
+        .then(QtFuture::Launch::Async,
+              make_write_update_info_cb<StartReply, StartRequest>(*config->update_prompt, server))
+        .then(make_grpc_status_for_readiness_cb<StartReply>(fmt::to_string(start_errors)))
         .then(this, std::bind_front(&Daemon::finish_async_operation, this, context));
 }
 catch (const std::exception& e)
@@ -2626,9 +2623,6 @@ try
          running_only] {
             try
             {
-                auto sg = sg::make_scope_guard([resume_future_watcher]() noexcept -> void {
-                    resume_future_watcher->deleteLater();
-                });
                 auto [instance_selection,
                       status] = select_instances_and_react(operative_instances,
                                                            deleted_instances,
@@ -2667,10 +2661,10 @@ try
 
                 async_wait_multiple_vms_ready(server, starting_vms, timeout)
                     .then(QtFuture::Launch::Async,
-                          write_update_info_lambda<RestartReply, RestartRequest>(
-                              config->update_prompt.get(),
+                          make_write_update_info_cb<RestartReply, RestartRequest>(
+                              *config->update_prompt,
                               server))
-                    .then(grpc_status_for_readiness_lambda<RestartReply>(status.error_message()))
+                    .then(make_grpc_status_for_readiness_cb<RestartReply>(status.error_message()))
                     .then(this, std::bind_front(&Daemon::finish_async_operation, this, context));
             }
             catch (const std::exception& e)
@@ -2678,6 +2672,10 @@ try
                 return context->set_value({grpc::FAILED_PRECONDITION, e.what(), ""});
             }
         });
+    QObject::connect(resume_future_watcher,
+                     &QFutureWatcher<grpc::Status>::finished,
+                     resume_future_watcher,
+                     &QObject::deleteLater);
 
     resume_future_watcher->setFuture(
         QtConcurrent::run([resumed_vms = std::move(resumed_vms), timeout]() {
@@ -3401,7 +3399,7 @@ try // clang-format on
             async_wait_multiple_vms_ready<StartReply, StartRequest>(nullptr,
                                                                     starting_vms,
                                                                     mp::default_timeout)
-                .then(grpc_status_for_readiness_lambda<StartReply>())
+                .then(make_grpc_status_for_readiness_cb<StartReply>())
                 .then(this, std::bind_front(&Daemon::finish_async_operation, this, nullptr)));
 
         for (auto&& z : zones)
@@ -4230,7 +4228,7 @@ void mp::Daemon::finish_async_operation(DaemonRpcContext* context, QFuture<grpc:
     catch (const std::exception& e)
     {
         status = grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
-        mpl::error(category, "Failed to finish readiness operation: {}", e.what());
+        mpl::error(category, "Async operation failed: {}", e.what());
     }
 
     if (context)
