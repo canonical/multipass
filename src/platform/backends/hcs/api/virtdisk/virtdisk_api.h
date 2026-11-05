@@ -28,7 +28,7 @@ namespace multipass::hyperv::virtdisk
 {
 
 /**
- * API function table for the virtdisk API
+ * API function table for the virtdisk API and the Win32 file functions used alongside it
  * @ref https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/
  */
 struct VirtDiskAPI : public Singleton<VirtDiskAPI>
@@ -65,6 +65,23 @@ struct VirtDiskAPI : public Singleton<VirtDiskAPI>
         HANDLE VirtualDiskHandle,
         PSET_VIRTUAL_DISK_INFO VirtualDiskInfo) const;
     [[nodiscard]] virtual BOOL CloseHandle(HANDLE hObject) const;
+    [[nodiscard]] virtual DWORD GetFileAttributesW(LPCWSTR lpFileName) const;
+    [[nodiscard]] virtual HANDLE CreateFileW(LPCWSTR lpFileName,
+                                             DWORD dwDesiredAccess,
+                                             DWORD dwShareMode,
+                                             LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+                                             DWORD dwCreationDisposition,
+                                             DWORD dwFlagsAndAttributes,
+                                             HANDLE hTemplateFile) const;
+    [[nodiscard]] virtual BOOL DeviceIoControl(HANDLE hDevice,
+                                               DWORD dwIoControlCode,
+                                               LPVOID lpInBuffer,
+                                               DWORD nInBufferSize,
+                                               LPVOID lpOutBuffer,
+                                               DWORD nOutBufferSize,
+                                               LPDWORD lpBytesReturned,
+                                               LPOVERLAPPED lpOverlapped) const;
+    [[nodiscard]] virtual DWORD GetLastError() const;
 };
 
 } // namespace multipass::hyperv::virtdisk

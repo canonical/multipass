@@ -23,6 +23,7 @@
 #include <initguid.h>
 #include <virtdisk.h>
 #include <strsafe.h>
+#include <winioctl.h>
 
 #include <fmt/std.h>
 #include <fmt/xchar.h>
@@ -336,6 +337,85 @@ OperationResult VirtDiskWrapper::resize_virtual_disk(const NativePath& vhdx_path
                resize_result);
 
     return OperationResult::from_win32(resize_result, L"ResizeVirtualDisk failed");
+}
+
+// ---------------------------------------------------------
+
+OperationResult VirtDiskWrapper::clear_sparse_flag(const NativePath& vhdx_path) const
+{
+    mpl::debug(log_category, "clear_sparse_flag(...) > vhdx_path: {}", vhdx_path);
+    const auto path_w = vhdx_path.wstring();
+
+    // Only touch the file when it is actually sparse. This keeps non-sparse files (e.g. images
+    // copied from the cache) unaffected and avoids failing on volumes without sparse support.
+    const auto attributes = API().GetFileAttributesW(path_w.c_str());
+    if (INVALID_FILE_ATTRIBUTES == attributes)
+    {
+        const auto error = API().GetLastError();
+        mpl::error(log_category,
+                   "clear_sparse_flag(...) > GetFileAttributesW failed with {}!",
+                   error);
+        return OperationResult::from_win32(error, L"GetFileAttributesW failed");
+    }
+
+    if (!(attributes & FILE_ATTRIBUTE_SPARSE_FILE))
+        return OperationResult::success();
+
+    const auto raw_handle = API().CreateFileW(
+        // [in] LPCWSTR lpFileName
+        path_w.c_str(),
+        // [in] DWORD dwDesiredAccess
+        GENERIC_WRITE,
+        // [in] DWORD dwShareMode
+        FILE_SHARE_READ,
+        // [in, optional] LPSECURITY_ATTRIBUTES lpSecurityAttributes
+        nullptr,
+        // [in] DWORD dwCreationDisposition
+        OPEN_EXISTING,
+        // [in] DWORD dwFlagsAndAttributes
+        0,
+        // [in, optional] HANDLE hTemplateFile
+        nullptr);
+
+    if (INVALID_HANDLE_VALUE == raw_handle)
+    {
+        const auto error = API().GetLastError();
+        mpl::error(log_category, "clear_sparse_flag(...) > CreateFileW failed with {}!", error);
+        return OperationResult::from_win32(error, L"CreateFileW failed");
+    }
+
+    const UniqueHandle file_handle{raw_handle};
+
+    FILE_SET_SPARSE_BUFFER sparse_buffer{};
+    sparse_buffer.SetSparse = FALSE;
+    DWORD bytes_returned{0};
+
+    if (!API().DeviceIoControl(
+            // [in] HANDLE hDevice
+            file_handle.get(),
+            // [in] DWORD dwIoControlCode
+            FSCTL_SET_SPARSE,
+            // [in, optional] LPVOID lpInBuffer
+            &sparse_buffer,
+            // [in] DWORD nInBufferSize
+            sizeof(sparse_buffer),
+            // [out, optional] LPVOID lpOutBuffer
+            nullptr,
+            // [in] DWORD nOutBufferSize
+            0,
+            // [out, optional] LPDWORD lpBytesReturned
+            &bytes_returned,
+            // [in, out, optional] LPOVERLAPPED lpOverlapped
+            nullptr))
+    {
+        const auto error = API().GetLastError();
+        mpl::error(log_category,
+                   "clear_sparse_flag(...) > DeviceIoControl(FSCTL_SET_SPARSE) failed with {}!",
+                   error);
+        return OperationResult::from_win32(error, L"DeviceIoControl(FSCTL_SET_SPARSE) failed");
+    }
+
+    return OperationResult::success();
 }
 
 // ---------------------------------------------------------
