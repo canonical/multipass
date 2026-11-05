@@ -168,7 +168,6 @@ protected:
     void handle_state_update() override;
 
 private:
-    void set_state_impl(State state);
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
 
     template <typename LockT>
@@ -219,12 +218,6 @@ private:
     utils::TimeoutAction try_to_ssh();
     void ssh_and_cross_to_running();
     void timeout_ssh();
-    /**
-     * Update the state with the backend state without overriding multipass' state management. This
-     * function only updates the state if the backend state is not compatible with the
-     * multipass-managed state
-     */
-    void update_backend_state();
 
 protected:
     const std::string vm_name;

@@ -259,7 +259,9 @@ bool mp::BaseVirtualMachine::set_available(bool available)
     if (available)
     {
         assert(cached_state() == St::unavailable);
-        set_state_impl(St::stopped);
+        mpl::info(vm_name, "State changed from {} to {}", state, St::stopped);
+        state = St::stopped;
+        handle_state_update();
         return was_running;
     }
 
@@ -1043,7 +1045,11 @@ St mp::BaseVirtualMachine::fetch_state()
     // the other states
 
     // Update the state
-    update_backend_state();
+    const auto backend_state = get_backend_state();
+    if (!backend_state.has_value() ||
+        backend_to_multipass_equivalence.at(backend_state.value()).contains(cached_state()))
+        return state;
+    set_state(backend_state.value());
     return state;
 }
 
@@ -1063,23 +1069,9 @@ void mp::BaseVirtualMachine::set_state(St new_state)
         return;
     if (cached_state() == St::unavailable)
         return;
-    set_state_impl(new_state);
-}
-
-void mp::BaseVirtualMachine::set_state_impl(State new_state)
-{
     mpl::info(vm_name, "State changed from {} to {}", state, new_state);
     state = new_state;
     handle_state_update();
-}
-
-void mp::BaseVirtualMachine::update_backend_state()
-{
-    const auto backend_state = get_backend_state();
-    if (!backend_state.has_value() ||
-        backend_to_multipass_equivalence.at(backend_state.value()).contains(cached_state()))
-        return;
-    set_state(backend_state.value());
 }
 
 void mp::BaseVirtualMachine::handle_state_update()

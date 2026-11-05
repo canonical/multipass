@@ -117,6 +117,9 @@ HCSVirtualMachine::HCSVirtualMachine(const std::string& network_guid,
                created_from_scratch,
                compute_state);
 
+    // The code below avoids a repeated call to handle_state_update while ensuring it is called at
+    // least once in all cases
+
     // Reflect compute system's state
     const auto prev_state = cached_state();
 
