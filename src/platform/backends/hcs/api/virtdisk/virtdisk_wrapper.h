@@ -64,6 +64,16 @@ struct VirtDiskWrapper : public Singleton<VirtDiskWrapper>
     // ---------------------------------------------------------
 
     /**
+     * Clear the sparse attribute (FILE_ATTRIBUTE_SPARSE_FILE) of a virtual disk file, if set.
+     * The virtdisk API refuses to open sparse files.
+     *
+     * @param [in] vhdx_path Path to the virtual disk
+     */
+    [[nodiscard]] virtual OperationResult clear_sparse_flag(const NativePath& vhdx_path) const;
+
+    // ---------------------------------------------------------
+
+    /**
      * Merge a child differencing disk into its parent
      *
      * @param [in] child Path to the differencing disk

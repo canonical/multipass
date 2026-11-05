@@ -92,5 +92,47 @@ BOOL VirtDiskAPI::CloseHandle(HANDLE hObject) const
 {
     return ::CloseHandle(hObject);
 }
+DWORD VirtDiskAPI::GetFileAttributesW(LPCWSTR lpFileName) const
+{
+    return ::GetFileAttributesW(lpFileName);
+}
+HANDLE VirtDiskAPI::CreateFileW(LPCWSTR lpFileName,
+                                DWORD dwDesiredAccess,
+                                DWORD dwShareMode,
+                                LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+                                DWORD dwCreationDisposition,
+                                DWORD dwFlagsAndAttributes,
+                                HANDLE hTemplateFile) const
+{
+    return ::CreateFileW(lpFileName,
+                         dwDesiredAccess,
+                         dwShareMode,
+                         lpSecurityAttributes,
+                         dwCreationDisposition,
+                         dwFlagsAndAttributes,
+                         hTemplateFile);
+}
+BOOL VirtDiskAPI::DeviceIoControl(HANDLE hDevice,
+                                  DWORD dwIoControlCode,
+                                  LPVOID lpInBuffer,
+                                  DWORD nInBufferSize,
+                                  LPVOID lpOutBuffer,
+                                  DWORD nOutBufferSize,
+                                  LPDWORD lpBytesReturned,
+                                  LPOVERLAPPED lpOverlapped) const
+{
+    return ::DeviceIoControl(hDevice,
+                             dwIoControlCode,
+                             lpInBuffer,
+                             nInBufferSize,
+                             lpOutBuffer,
+                             nOutBufferSize,
+                             lpBytesReturned,
+                             lpOverlapped);
+}
+DWORD VirtDiskAPI::GetLastError() const
+{
+    return ::GetLastError();
+}
 
 } // namespace multipass::hyperv::virtdisk

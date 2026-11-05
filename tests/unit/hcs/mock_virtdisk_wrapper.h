@@ -42,6 +42,11 @@ struct MockVirtDiskWrapper : public hyperv::virtdisk::VirtDiskWrapper
                 (const, override));
 
     MOCK_METHOD(hyperv::OperationResult,
+                clear_sparse_flag,
+                (const NativePath& vhdx_path),
+                (const, override));
+
+    MOCK_METHOD(hyperv::OperationResult,
                 merge_virtual_disk_into_parent,
                 (const NativePath& child),
                 (const, override));

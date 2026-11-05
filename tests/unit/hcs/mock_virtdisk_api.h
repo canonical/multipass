@@ -75,6 +75,29 @@ public:
                 (HANDLE VirtualDiskHandle, PSET_VIRTUAL_DISK_INFO VirtualDiskInfo),
                 (const, override));
     MOCK_METHOD(BOOL, CloseHandle, (HANDLE hObject), (const, override));
+    MOCK_METHOD(DWORD, GetFileAttributesW, (LPCWSTR lpFileName), (const, override));
+    MOCK_METHOD(HANDLE,
+                CreateFileW,
+                (LPCWSTR lpFileName,
+                 DWORD dwDesiredAccess,
+                 DWORD dwShareMode,
+                 LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+                 DWORD dwCreationDisposition,
+                 DWORD dwFlagsAndAttributes,
+                 HANDLE hTemplateFile),
+                (const, override));
+    MOCK_METHOD(BOOL,
+                DeviceIoControl,
+                (HANDLE hDevice,
+                 DWORD dwIoControlCode,
+                 LPVOID lpInBuffer,
+                 DWORD nInBufferSize,
+                 LPVOID lpOutBuffer,
+                 DWORD nOutBufferSize,
+                 LPDWORD lpBytesReturned,
+                 LPOVERLAPPED lpOverlapped),
+                (const, override));
+    MOCK_METHOD(DWORD, GetLastError, (), (const, override));
 
     MP_MOCK_SINGLETON_BOILERPLATE(MockVirtDiskAPI, VirtDiskAPI);
 };
