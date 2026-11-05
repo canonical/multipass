@@ -62,8 +62,7 @@ bool core_mutator(VMImageInfo& info)
 
 bool release_mutator(VMImageInfo& info)
 {
-    // TODO(C++23): Use `std::ranges::contains` instead of `std::ranges::find`.
-    if (std::ranges::find(info.aliases, "lts") != info.aliases.end())
+    if (std::ranges::contains(info.aliases, "lts"))
         info.aliases.push_back("ubuntu");
 
     return true;

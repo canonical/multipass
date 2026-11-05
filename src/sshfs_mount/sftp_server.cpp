@@ -32,6 +32,9 @@
 
 #include <fcntl.h>
 
+#include <algorithm>
+#include <ranges>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace fs = std::filesystem;
@@ -378,30 +381,22 @@ inline int mp::SftpServer::reverse_gid_for(const int gid, const int default_id_)
 
 inline bool mp::SftpServer::has_uid_mapping_for(const int uid)
 {
-    return std::any_of(uid_mappings.begin(), uid_mappings.end(), [uid](std::pair<int, int> p) {
-        return uid == p.first;
-    });
+    return std::ranges::contains(uid_mappings | std::views::keys, uid);
 }
 
 inline bool mp::SftpServer::has_gid_mapping_for(const int gid)
 {
-    return std::any_of(gid_mappings.begin(), gid_mappings.end(), [gid](std::pair<int, int> p) {
-        return gid == p.first;
-    });
+    return std::ranges::contains(gid_mappings | std::views::keys, gid);
 }
 
 inline bool mp::SftpServer::has_reverse_uid_mapping_for(const int uid)
 {
-    return std::any_of(uid_mappings.cbegin(), uid_mappings.cend(), [uid](std::pair<int, int> p) {
-        return uid == p.second;
-    });
+    return std::ranges::contains(uid_mappings | std::views::values, uid);
 }
 
 inline bool mp::SftpServer::has_reverse_gid_mapping_for(const int gid)
 {
-    return std::any_of(gid_mappings.cbegin(), gid_mappings.cend(), [gid](std::pair<int, int> p) {
-        return gid == p.second;
-    });
+    return std::ranges::contains(gid_mappings | std::views::values, gid);
 }
 
 bool mp::SftpServer::has_id_mappings_for(const QFileInfo& file_info)

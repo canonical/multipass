@@ -27,8 +27,7 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
-#include <algorithm>
-#include <iterator>
+#include <ranges>
 
 #include <fmt/format.h>
 #include <scope_guard.hpp>
@@ -138,17 +137,16 @@ void VirtDiskSnapshot::create_new_child_disk(const std::filesystem::path& parent
 std::vector<std::filesystem::path> VirtDiskSnapshot::get_children_of_disk(
     const std::filesystem::path& parent_disk) const
 {
-    std::vector<std::filesystem::path> result;
-
     const auto children_of_parent_disk = vm.view_snapshots(
         [this, &parent_disk](const Snapshot& ss) {
             const auto path = make_snapshot_path(ss);
             return &ss != this && is_direct_child_of(path, parent_disk);
         });
 
-    std::ranges::transform(children_of_parent_disk,
-                           std::back_inserter(result),
-                           [this](const auto& ss) { return make_snapshot_path(*ss); });
+    auto result = children_of_parent_disk | std::views::transform([this](const auto& ss) {
+                      return make_snapshot_path(*ss);
+                  }) |
+                  std::ranges::to<std::vector<std::filesystem::path>>();
 
     if (is_direct_child_of(live_disk_path, parent_disk))
         result.push_back(live_disk_path);

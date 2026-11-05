@@ -20,6 +20,7 @@
 #include <multipass/json_utils.h>
 
 #include <filesystem>
+#include <ranges>
 #include <vector>
 
 #include <boost/json.hpp>
@@ -57,9 +58,11 @@ inline void tag_invoke(const boost::json::value_from_tag&,
 
 inline VMImage tag_invoke(const boost::json::value_to_tag<VMImage>&, const boost::json::value& json)
 {
-    std::vector<std::string> aliases;
-    for (const auto& entry : json.at("aliases").as_array())
-        aliases.push_back(value_to<std::string>(entry.at("alias")));
+    auto aliases = json.at("aliases").as_array() |
+                   std::views::transform([](const boost::json::value& entry) {
+                       return value_to<std::string>(entry.at("alias"));
+                   }) |
+                   std::ranges::to<std::vector<std::string>>();
 
     return {value_to<std::filesystem::path>(json.at("path")),
             value_to<std::string>(json.at("id")),

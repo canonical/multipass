@@ -28,6 +28,8 @@
 #include <QUrl>
 
 #include <algorithm>
+#include <ranges>
+#include <unordered_set>
 
 namespace mp = multipass;
 
@@ -108,14 +110,7 @@ mp::UbuntuVMImageHost::UbuntuVMImageHost(
 
 std::vector<std::string> mp::UbuntuVMImageHost::supported_remotes() const
 {
-    std::vector<std::string> supported_remotes;
-
-    for (const auto& [remote_name, _] : remotes)
-    {
-        supported_remotes.push_back(remote_name);
-    }
-
-    return supported_remotes;
+    return remotes | std::views::keys | std::ranges::to<std::vector<std::string>>();
 }
 
 bool mp::UbuntuVMImageHost::collect_images_for_remote(std::vector<VMImageInfo>& images,

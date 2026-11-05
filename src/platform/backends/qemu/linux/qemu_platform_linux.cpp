@@ -27,6 +27,8 @@
 
 #include <QFile>
 
+#include <ranges>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
@@ -150,15 +152,10 @@ mp::QemuPlatformLinux::Bridge::~Bridge()
 
 [[nodiscard]] mp::BridgeSubnetList mp::QemuPlatformLinux::get_bridge_list(const Bridges& subnets)
 {
-    BridgeSubnetList out{};
-    out.reserve(subnets.size());
-
-    for (const auto& [_, subnet] : subnets)
-    {
-        out.emplace_back(subnet.bridge_name, subnet.subnet);
-    }
-
-    return out;
+    return subnets | std::views::values | std::views::transform([](const Bridge& bridge) {
+               return std::pair{bridge.bridge_name, bridge.subnet};
+           }) |
+           std::ranges::to<BridgeSubnetList>();
 }
 
 mp::QemuPlatformLinux::QemuPlatformLinux(const mp::Path& data_dir,

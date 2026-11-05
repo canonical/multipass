@@ -139,8 +139,7 @@ void multipass::cmd::Get::print_keys() const
 
     if (arg.isEmpty())
         fmt::print(cout, format, fmt::join(keys, "\n"));
-    else if (std::find(keys.cbegin(), keys.cend(), arg) !=
-             keys.cend()) // TODO implement key globing
+    else if (keys.contains(arg)) // TODO implement key globing
         fmt::print(cout,
                    format,
                    arg); // not very useful, but just a particular case of (intended) glob matching

@@ -55,6 +55,7 @@
 #include <QDir>
 #include <boost/json.hpp>
 
+#include <algorithm>
 #include <thread>
 
 namespace mp = multipass;
@@ -893,18 +894,15 @@ TEST_F(QemuBackend, verifyDnsmasqQemuimgAndQemuProcessesCreated)
     machine->state = mp::VirtualMachine::State::running;
 
     auto processes = factory->process_list();
-    EXPECT_TRUE(std::find_if(processes.cbegin(),
-                             processes.cend(),
-                             [this](const mpt::StubProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command == expected_qemu_img_path();
-                             }) != processes.cend());
+    EXPECT_TRUE(std::ranges::contains(processes,
+                                      expected_qemu_img_path(),
+                                      &mpt::StubProcessFactory::ProcessInfo::command));
 
-    EXPECT_TRUE(std::find_if(processes.cbegin(),
-                             processes.cend(),
-                             [this](const mpt::StubProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith(
-                                     expected_qemu_system_prefix());
-                             }) != processes.cend());
+    EXPECT_TRUE(std::ranges::any_of(
+        processes,
+        [this](const mpt::StubProcessFactory::ProcessInfo& process_info) {
+            return process_info.command.startsWith(expected_qemu_system_prefix());
+        }));
 }
 
 TEST_F(QemuBackend, verifySomeCommonQemuArguments)

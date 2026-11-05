@@ -29,8 +29,7 @@ struct NetworkInterfaceInfo
 {
     bool has_link(const std::string& net) const
     {
-        auto end = links.cend();
-        return std::find(links.cbegin(), end, net) != end;
+        return std::ranges::contains(links, net);
     }
 
     std::string id;

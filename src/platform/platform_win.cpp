@@ -798,8 +798,7 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
         "hyperv",
         "hcs",
     };
-    return std::ranges::any_of(supported_backends,
-                               [&](std::string_view b) { return backend == b; });
+    return std::ranges::contains(supported_backends, backend.toStdString());
 }
 
 void mp::platform::Platform::set_server_socket_restrictions(const std::string& /* server_address */,
