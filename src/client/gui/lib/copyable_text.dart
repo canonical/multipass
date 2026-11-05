@@ -35,7 +35,7 @@ class _CopyableTextState extends State<CopyableText> {
       child: GestureDetector(
         onTap: () async {
           await Clipboard.setData(ClipboardData(text: widget.text));
-          setState(() => _copied = true);
+          if (mounted) setState(() => _copied = true);
         },
         child: Tooltip(
           message: _copied
