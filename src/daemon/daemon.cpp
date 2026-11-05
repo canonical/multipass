@@ -1363,13 +1363,6 @@ auto make_write_update_info_cb(mp::UpdatePrompt& update_prompt,
     };
 }
 
-template <typename Reply>
-auto make_grpc_status_for_readiness_cb(const std::string& start_errors = {})
-{
-    // std::bind_back is not supported on some of the compilers that we use in CI
-    return std::bind(mp::grpc_status_for_readiness<Reply>, std::placeholders::_1, start_errors);
-}
-
 // TODO@deprecations remove
 template <typename W, typename R>
 void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
@@ -1485,15 +1478,13 @@ void mp::Daemon::connect_rpc(DaemonRpc& rpc)
     connect(&DaemonRpc::on_zones_state, &Daemon::zones_state);
 }
 
-template <typename T>
-void mp::Daemon::register_async_operation(QFuture<T> future)
+auto mp::Daemon::keep_alive()
 {
     ++pending_async_operations;
-
-    // Consume the terminal future without reading its result, including on failure.
-    future.then(this, [this](QFuture<T>) { --pending_async_operations; }).onCanceled(this, [this] {
+    return [this]<typename T>(QFuture<T> result) {
         --pending_async_operations;
-    });
+        return result;
+    };
 }
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1772,6 +1763,13 @@ bool mp::Daemon::reject_if_migrating(std::string_view rpc_name, DaemonRpcContext
     mpl::info(category, "Rejecting '{}' while a migration is in progress", rpc_name);
     context->set_value(mp::hyperv::migration_conflict_status(rpc_name));
     return true;
+}
+
+template <typename Reply>
+auto mp::Daemon::make_finish_readiness_operation_cb(mp::DaemonRpcContext* context,
+                                                    const std::string& errors)
+{
+    return std::bind_front(&Daemon::finish_readiness_operation<Reply>, this, context, errors);
 }
 
 void mp::Daemon::create(const CreateRequest* request,
@@ -2480,8 +2478,9 @@ try
     async_wait_multiple_vms_ready(server, starting_vms, timeout)
         .then(QtFuture::Launch::Async,
               make_write_update_info_cb<StartReply, StartRequest>(*config->update_prompt, server))
-        .then(make_grpc_status_for_readiness_cb<StartReply>(fmt::to_string(start_errors)))
-        .then(this, std::bind_front(&Daemon::finish_async_operation, this, context));
+        .then(this,
+              make_finish_readiness_operation_cb<StartReply>(context, fmt::to_string(start_errors)))
+        .then(keep_alive());
 }
 catch (const std::exception& e)
 {
@@ -2664,8 +2663,10 @@ try
                           make_write_update_info_cb<RestartReply, RestartRequest>(
                               *config->update_prompt,
                               server))
-                    .then(make_grpc_status_for_readiness_cb<RestartReply>(status.error_message()))
-                    .then(this, std::bind_front(&Daemon::finish_async_operation, this, context));
+                    .then(this,
+                          make_finish_readiness_operation_cb<RestartReply>(context,
+                                                                           status.error_message()))
+                    .then(keep_alive());
             }
             catch (const std::exception& e)
             {
@@ -3395,12 +3396,11 @@ try // clang-format on
     auto status = cmd_vms(instances, operation);
     if (status.ok())
     {
-        register_async_operation(
-            async_wait_multiple_vms_ready<StartReply, StartRequest>(nullptr,
-                                                                    starting_vms,
-                                                                    mp::default_timeout)
-                .then(make_grpc_status_for_readiness_cb<StartReply>())
-                .then(this, std::bind_front(&Daemon::finish_async_operation, this, nullptr)));
+        async_wait_multiple_vms_ready<StartReply, StartRequest>(nullptr,
+                                                                starting_vms,
+                                                                mp::default_timeout)
+            .then(this, make_finish_readiness_operation_cb<StartReply>(nullptr))
+            .then(keep_alive());
 
         for (auto&& z : zones)
             z.get().set_available(request->available());
@@ -3448,30 +3448,28 @@ void mp::Daemon::on_suspend()
 void mp::Daemon::on_restart(const std::string& name)
 {
     stop_mounts(name);
-    register_async_operation(
-        async_wait_multiple_vms_ready<StartReply, StartRequest>(nullptr,
-                                                                std::vector<std::string>{name},
-                                                                mp::default_timeout)
-            .then(this,
-                  [this, name](const std::vector<ReadinessResult>& results) {
-                      auto status = mp::grpc_status_for_readiness<StartReply>(results,
-                                                                              std::string());
-                      try
-                      {
-                          auto virtual_machine = operative_instances.at(name);
+    async_wait_multiple_vms_ready<StartReply, StartRequest>(nullptr,
+                                                            std::vector<std::string>{name},
+                                                            mp::default_timeout)
+        .then(this,
+              [this, name](const std::vector<ReadinessResult>& results) {
+                  try
+                  {
+                      auto virtual_machine = operative_instances.at(name);
 
-                          std::lock_guard<decltype(virtual_machine->state_mutex)> lock{
-                              virtual_machine->state_mutex};
-                          virtual_machine->state = VirtualMachine::State::running;
-                          virtual_machine->handle_state_update();
-                      }
-                      catch (const std::out_of_range&)
-                      {
-                          // logging is dangerous since this thread is probably in a corrupt state
-                      }
-                      return status;
-                  })
-            .then(this, std::bind_front(&Daemon::finish_async_operation, this, nullptr)));
+                      std::lock_guard<decltype(virtual_machine->state_mutex)> lock{
+                          virtual_machine->state_mutex};
+                      virtual_machine->state = VirtualMachine::State::running;
+                      virtual_machine->handle_state_update();
+                  }
+                  catch (const std::out_of_range&)
+                  {
+                      // logging is dangerous since this thread is probably in a corrupt state
+                  }
+                  return results;
+              })
+        .then(this, make_finish_readiness_operation_cb<StartReply>(nullptr))
+        .then(keep_alive());
 }
 
 void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine::State& state)
@@ -3583,89 +3581,86 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     auto prepare_future_watcher = new QFutureWatcher<mp::VirtualMachineDescription>();
 
-    QObject::connect(
-        prepare_future_watcher,
-        &QFutureWatcher<mp::VirtualMachineDescription>::finished,
-        [this, server, context, name, timeout, start, prepare_future_watcher] {
-            // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
+    QObject::connect(prepare_future_watcher,
+                     &QFutureWatcher<mp::VirtualMachineDescription>::finished,
+                     [this, server, context, name, timeout, start, prepare_future_watcher] {
+                         // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
 
-            try
-            {
-                auto vm_desc = prepare_future_watcher->future().result();
+                         try
+                         {
+                             auto vm_desc = prepare_future_watcher->future().result();
 
-                vm_instance_specs[name] = {
-                    vm_desc.num_cores,
-                    vm_desc.mem_size,
-                    vm_desc.disk_space,
-                    vm_desc.default_mac_address,
-                    vm_desc.extra_interfaces,
-                    config->ssh_username,
-                    VirtualMachine::State::stopped,
-                    {},
-                    false,
-                    {},
-                    0,
-                    vm_desc.zone,
-                };
-                operative_instances[name] = config->factory->create_virtual_machine(
-                    vm_desc,
-                    *config->ssh_key_provider,
-                    *this);
-                preparing_instances.erase(name);
+                             vm_instance_specs[name] = {
+                                 vm_desc.num_cores,
+                                 vm_desc.mem_size,
+                                 vm_desc.disk_space,
+                                 vm_desc.default_mac_address,
+                                 vm_desc.extra_interfaces,
+                                 config->ssh_username,
+                                 VirtualMachine::State::stopped,
+                                 {},
+                                 false,
+                                 {},
+                                 0,
+                                 vm_desc.zone,
+                             };
+                             operative_instances[name] = config->factory->create_virtual_machine(
+                                 vm_desc,
+                                 *config->ssh_key_provider,
+                                 *this);
+                             preparing_instances.erase(name);
 
-                persist_instances();
+                             persist_instances();
 
-                if (start)
-                {
-                    LaunchReply reply;
-                    reply.set_create_message("Starting " + name);
-                    server->Write(reply);
+                             if (start)
+                             {
+                                 LaunchReply reply;
+                                 reply.set_create_message("Starting " + name);
+                                 server->Write(reply);
 
-                    operative_instances[name]->start();
+                                 operative_instances[name]->start();
 
-                    async_wait_multiple_vms_ready<LaunchReply, LaunchRequest>(
-                        server,
-                        std::vector<std::string>{name},
-                        timeout)
-                        .then(this,
-                              [this, server, name, zone = vm_desc.zone](
-                                  const std::vector<ReadinessResult>& results) {
-                                  auto status = mp::grpc_status_for_readiness<LaunchReply>(
-                                      results,
-                                      std::string());
-                                  LaunchReply reply;
-                                  reply.set_vm_instance_name(name);
-                                  config->update_prompt->populate_if_time_to_show(
-                                      reply.mutable_update_info());
+                                 async_wait_multiple_vms_ready<LaunchReply, LaunchRequest>(
+                                     server,
+                                     std::vector<std::string>{name},
+                                     timeout)
+                                     .then(this,
+                                           [this, server, name, zone = vm_desc.zone](
+                                               const std::vector<ReadinessResult>& results) {
+                                               LaunchReply reply;
+                                               reply.set_vm_instance_name(name);
+                                               config->update_prompt->populate_if_time_to_show(
+                                                   reply.mutable_update_info());
 
-                                  if (config->factory->supports_availability_zones())
-                                      reply.set_zone(zone);
-                                  server->Write(reply);
-                                  return status;
-                              })
-                        .then(this,
-                              std::bind_front(&Daemon::finish_async_operation, this, context));
-                }
-                else
-                {
-                    context->set_value(grpc::Status::OK);
-                }
-            }
-            catch (const std::exception& e)
-            {
-                mp::top_catch_all(category, [this, name]() {
-                    preparing_instances.erase(name);
-                    release_resources(name);
-                    operative_instances.erase(name);
-                    persist_instances();
-                });
+                                               if (config->factory->supports_availability_zones())
+                                                   reply.set_zone(zone);
+                                               server->Write(reply);
+                                               return results;
+                                           })
+                                     .then(this,
+                                           make_finish_readiness_operation_cb<LaunchReply>(context))
+                                     .then(keep_alive());
+                             }
+                             else
+                             {
+                                 context->set_value(grpc::Status::OK);
+                             }
+                         }
+                         catch (const std::exception& e)
+                         {
+                             mp::top_catch_all(category, [this, name]() {
+                                 preparing_instances.erase(name);
+                                 release_resources(name);
+                                 operative_instances.erase(name);
+                                 persist_instances();
+                             });
 
-                context->set_value(
-                    grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
-            }
+                             context->set_value(
+                                 grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+                         }
 
-            prepare_future_watcher->deleteLater();
-        });
+                         prepare_future_watcher->deleteLater();
+                     });
 
     auto make_vm_description = [this, server, request, name, zone_name, checked_args]() mutable
         -> mp::VirtualMachineDescription {
@@ -4215,12 +4210,15 @@ mp::Daemon::async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Repl
         });
 }
 
-void mp::Daemon::finish_async_operation(DaemonRpcContext* context, QFuture<grpc::Status> future)
+template <typename Reply>
+void mp::Daemon::finish_readiness_operation(DaemonRpcContext* context,
+                                            const std::string& errors,
+                                            QFuture<std::vector<ReadinessResult>> future)
 {
     auto status = grpc::Status::OK;
     try
     {
-        status = future.result();
+        status = grpc_status_for_readiness<Reply>(future.result(), errors);
 
         if (!status.ok())
             persist_instances();
@@ -4228,7 +4226,8 @@ void mp::Daemon::finish_async_operation(DaemonRpcContext* context, QFuture<grpc:
     catch (const std::exception& e)
     {
         status = grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
-        mpl::error(category, "Async operation failed: {}", e.what());
+        mpl::error(category, "Error occurred while waiting for VM to be ready: {}", e.what());
+        persist_instances();
     }
 
     if (context)

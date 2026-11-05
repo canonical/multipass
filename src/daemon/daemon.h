@@ -251,9 +251,15 @@ private:
     async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
                                   const std::vector<std::string>& vms,
                                   const std::chrono::seconds& timeout);
-    void finish_async_operation(DaemonRpcContext* context, QFuture<grpc::Status> future);
-    template <typename T>
-    void register_async_operation(QFuture<T> future);
+    template <typename Reply>
+    void finish_readiness_operation(DaemonRpcContext* context,
+                                    const std::string& errors,
+                                    QFuture<std::vector<ReadinessResult>> future);
+    template <typename Reply>
+    auto make_finish_readiness_operation_cb(DaemonRpcContext* context,
+                                            const std::string& errors = {});
+
+    auto keep_alive();
     void update_manifests_all(const bool force_update = false);
     void wait_update_manifests_all_and_optionally_applied_force(
         const bool force_manifest_network_download);
