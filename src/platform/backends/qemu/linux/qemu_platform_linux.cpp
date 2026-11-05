@@ -223,7 +223,7 @@ QStringList mp::QemuPlatformLinux::vm_platform_args(const VirtualMachineDescript
           vm_desc.image.image_path.filename() == "disk1.img"))
     {
         // clang-format off
-#if defined Q_PROCESSOR_X86
+#ifdef Q_PROCESSOR_X86
         // Load the split edk2 firmware (code-only) as a read-only pflash drive,
         // matching the macOS backend. `-drive file=` is not resolved via `-L`,
         // so an explicit path is required. Locking is disabled because the
@@ -234,15 +234,15 @@ QStringList mp::QemuPlatformLinux::vm_platform_args(const VirtualMachineDescript
              << QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on,"
                         "file.locking=off")
                     .arg(firmware_path());
-#elif defined Q_PROCESSOR_ARM
+#elifdef Q_PROCESSOR_ARM
         opts << "-bios"
              << "QEMU_EFI.fd"
              << "-machine"
              << "virt";
-#elif defined Q_PROCESSOR_S390
+#elifdef Q_PROCESSOR_S390
         opts << "-machine"
              << "s390-ccw-virtio";
-#elif defined Q_PROCESSOR_POWER
+#elifdef Q_PROCESSOR_POWER
         opts << "-machine"
              << "pseries,cap-large-decr=off";
 #endif

@@ -179,13 +179,12 @@ TEST(UtilsTests, emitYamlWithOctalString)
     const std::string result = mpu::emit_yaml(node);
 
     // The octal strings should be double-quoted to preserve their format as strings
-    EXPECT_TRUE(result.find("permissions: \"0755\"") != std::string::npos);
-    EXPECT_TRUE(result.find("another_permission: \"0644\"") != std::string::npos);
+    EXPECT_TRUE(result.contains("permissions: \"0755\""));
+    EXPECT_TRUE(result.contains("another_permission: \"0644\""));
     // Non-octal strings should not be quoted (or may be quoted, both are acceptable)
-    EXPECT_TRUE(result.find("not_octal: 0abc") != std::string::npos ||
-                result.find("not_octal: \"0abc\"") != std::string::npos);
-    EXPECT_TRUE(result.find("regular_string: hello") != std::string::npos ||
-                result.find("regular_string: \"hello\"") != std::string::npos);
+    EXPECT_TRUE(result.contains("not_octal: 0abc") || result.contains("not_octal: \"0abc\""));
+    EXPECT_TRUE(result.contains("regular_string: hello") ||
+                result.contains("regular_string: \"hello\""));
 }
 
 TEST(UtilsTests, emitYamlWithStringWithColons)
@@ -193,5 +192,5 @@ TEST(UtilsTests, emitYamlWithStringWithColons)
     YAML::Node node;
     node["key"] = "value:with:colons";
     const std::string result = mpu::emit_yaml(node);
-    EXPECT_TRUE(result.find("key: \"value:with:colons\"") != std::string::npos);
+    EXPECT_TRUE(result.contains("key: \"value:with:colons\""));
 }

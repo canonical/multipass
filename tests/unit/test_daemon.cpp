@@ -872,7 +872,7 @@ MATCHER_P(YAMLNodeContainsSubString, val, "")
         return false;
     }
 
-    return arg[0].Scalar().find(val) != std::string::npos;
+    return arg[0].Scalar().contains(val);
 }
 
 MATCHER_P2(YAMLNodeContainsStringArray, key, values, "")

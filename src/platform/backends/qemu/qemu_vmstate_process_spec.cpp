@@ -34,10 +34,10 @@ QStringList mp::QemuVmStateProcessSpec::arguments() const
     args << "-L"
          << firmware_path();
     args << platform_args
-#if defined Q_PROCESSOR_ARM
+#ifdef Q_PROCESSOR_ARM
          << "-machine"
          << "virt"
-#elif defined Q_PROCESSOR_S390
+#elifdef Q_PROCESSOR_S390
          << "-machine"
          << "s390-ccw-virtio"
 #endif

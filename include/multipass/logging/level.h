@@ -18,6 +18,7 @@
 #pragma once
 
 #include <string_view>
+#include <utility>
 
 namespace multipass
 {
@@ -62,7 +63,7 @@ constexpr std::string_view as_string(Level l) noexcept
 
 constexpr auto enum_type(Level e) noexcept
 {
-    return static_cast<std::underlying_type_t<Level>>(e);
+    return std::to_underlying(e);
 }
 
 constexpr Level level_from(std::underlying_type_t<Level> in)

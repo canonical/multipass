@@ -454,7 +454,7 @@ std::string mp::utils::match_line_for(const std::string& output, const std::stri
 
     while (std::getline(ss, line, '\n'))
     {
-        if (line.find(matcher) != std::string::npos)
+        if (line.contains(matcher))
         {
             return line;
         }

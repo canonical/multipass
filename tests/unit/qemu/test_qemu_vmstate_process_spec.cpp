@@ -35,9 +35,9 @@ TEST_F(TestQemuVmStateProcessSpec, defaultArgumentsCorrect)
     QStringList default_arguments;
 
     default_arguments << "-L" << spec.firmware_path();
-#if defined Q_PROCESSOR_S390
+#ifdef Q_PROCESSOR_S390
     default_arguments << "-machine" << "s390-ccw-virtio";
-#elif defined Q_PROCESSOR_ARM
+#elifdef Q_PROCESSOR_ARM
     default_arguments << "-machine" << "virt";
 #endif
 

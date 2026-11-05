@@ -281,7 +281,7 @@ inline void multipass::BaseVirtualMachine::refresh_start()
 
 inline bool multipass::BaseVirtualMachine::is_core() const
 {
-    return desc.image.original_release.find("Core") != std::string::npos;
+    return desc.image.original_release.contains("Core");
 }
 
 inline std::string multipass::BaseVirtualMachine::core_image_disk_resize_message()
