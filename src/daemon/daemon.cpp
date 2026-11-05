@@ -4213,16 +4213,16 @@ void mp::Daemon::wait_update_manifests_all_and_optionally_applied_force(
     }
 }
 
-template <typename Reply, typename Request>
+template <typename Reply, typename Request, typename Message>
 void mp::Daemon::reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                           std::string&& msg,
+                           Message&& msg,
                            bool sticky)
 {
     Reply reply{};
     if (sticky)
-        reply.set_reply_message(fmt::format("{}\n", std::forward<decltype(msg)>(msg)));
+        reply.set_reply_message(fmt::format("{}\n", std::forward<Message>(msg)));
     else
-        reply.set_reply_message(std::forward<decltype(msg)>(msg));
+        reply.set_reply_message(std::forward<Message>(msg));
 
     server->Write(reply);
 }
