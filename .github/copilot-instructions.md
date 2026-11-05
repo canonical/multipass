@@ -20,19 +20,3 @@ Copilot-specific behavior.
   tree, commit, or branch, built on the code-review skill. Does not edit files.
 - **`master-software-architect`** (`.github/agents/`): system-level design, architecture review,
   and tradeoff advice. Read-only.
-
-## Tooling notes
-
-- **Formatting** — Run formatters before finishing a task, per AGENTS.md:
-  `git clang-format <base>` for C++ so only changed lines are formatted (matching
-  CI), and the vendored Flutter SDK (`flutter pub get`, then `dart format`) for
-  Dart, not whatever is on `PATH`.
-- **Validation honesty** — Do not claim a build, test, or lint check passed unless
-  it was actually run in this session. Name the checks run in your final summary
-  and flag any relevant ones that could not be run.
-- **Generated and vendored files** — Never edit `src/client/gui/lib/generated/`,
-  anything under `build/`, or the git submodules under `3rd-party/`
-  (`flutter`, `jsoncpp`, `protobuf.dart`, `vcpkg`). Regenerate instead.
-- **Git operations** — Do not commit, create branches, rebase, or modify submodules
-  unless the user explicitly asks. Commit messages must satisfy
-  `git-hooks/commit-msg.py` (see AGENTS.md for the format).
