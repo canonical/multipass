@@ -77,7 +77,6 @@
 #include <QDir>
 #include <QEventLoop>
 #include <QFutureSynchronizer>
-#include <QFutureWatcher>
 #include <QStorageInfo>
 #include <QString>
 #include <QSysInfo>
@@ -3560,89 +3559,6 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     preparing_instances.insert(name);
 
-    auto prepare_future_watcher = new QFutureWatcher<mp::VirtualMachineDescription>();
-
-    QObject::connect(
-        prepare_future_watcher,
-        &QFutureWatcher<mp::VirtualMachineDescription>::finished,
-        [this, server, context, name, timeout, start, prepare_future_watcher] {
-            // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
-
-            try
-            {
-                auto vm_desc = prepare_future_watcher->future().result();
-
-                vm_instance_specs[name] = {
-                    vm_desc.num_cores,
-                    vm_desc.mem_size,
-                    vm_desc.disk_space,
-                    vm_desc.default_mac_address,
-                    vm_desc.extra_interfaces,
-                    config->ssh_username,
-                    VirtualMachine::State::stopped,
-                    {},
-                    false,
-                    {},
-                    0,
-                    vm_desc.zone,
-                };
-                operative_instances[name] = config->factory->create_virtual_machine(
-                    vm_desc,
-                    *config->ssh_key_provider,
-                    *this);
-                preparing_instances.erase(name);
-
-                persist_instances();
-
-                if (start)
-                {
-                    LaunchReply reply;
-                    reply.set_create_message("Starting " + name);
-                    server->Write(reply);
-
-                    operative_instances[name]->start();
-
-                    register_async_operation(
-                        async_wait_multiple_vms_ready<LaunchReply, LaunchRequest>(
-                            server,
-                            std::vector<std::string>{name},
-                            timeout)
-                            .then(this,
-                                  [this, server, name, zone = vm_desc.zone](
-                                      const std::vector<ReadinessResult>& results) {
-                                      LaunchReply reply;
-                                      reply.set_vm_instance_name(name);
-                                      config->update_prompt->populate_if_time_to_show(
-                                          reply.mutable_update_info());
-
-                                      if (config->factory->supports_availability_zones())
-                                          reply.set_zone(zone);
-                                      server->Write(reply);
-                                      return results;
-                                  })
-                            .then(this, make_finish_readiness_operation_cb<LaunchReply>(context)));
-                }
-                else
-                {
-                    context->set_value(grpc::Status::OK);
-                }
-            }
-            catch (const std::exception& e)
-            {
-                mp::top_catch_all(category, [this, name]() {
-                    preparing_instances.erase(name);
-                    release_resources(name);
-                    operative_instances.erase(name);
-                    persist_instances();
-                });
-
-                context->set_value(
-                    grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
-            }
-
-            prepare_future_watcher->deleteLater();
-        });
-
     auto make_vm_description = [this, server, request, name, zone_name, checked_args]() mutable
         -> mp::VirtualMachineDescription {
         try
@@ -3762,7 +3678,81 @@ void mp::Daemon::create_vm(const CreateRequest* request,
         }
     };
 
-    prepare_future_watcher->setFuture(QtConcurrent::run(make_vm_description));
+    auto finish_create = [this, server, context, name, timeout, start](
+                             QFuture<mp::VirtualMachineDescription> future) {
+        try
+        {
+            auto vm_desc = future.result();
+
+            vm_instance_specs[name] = {
+                vm_desc.num_cores,
+                vm_desc.mem_size,
+                vm_desc.disk_space,
+                vm_desc.default_mac_address,
+                vm_desc.extra_interfaces,
+                config->ssh_username,
+                VirtualMachine::State::stopped,
+                {},
+                false,
+                {},
+                0,
+                vm_desc.zone,
+            };
+            operative_instances[name] = config->factory->create_virtual_machine(
+                vm_desc,
+                *config->ssh_key_provider,
+                *this);
+            preparing_instances.erase(name);
+
+            persist_instances();
+
+            if (start)
+            {
+                LaunchReply reply;
+                reply.set_create_message("Starting " + name);
+                server->Write(reply);
+
+                operative_instances[name]->start();
+
+                register_async_operation(
+                    async_wait_multiple_vms_ready<LaunchReply, LaunchRequest>(
+                        server,
+                        std::vector<std::string>{name},
+                        timeout)
+                        .then(this,
+                              [this, server, name, zone = vm_desc.zone](
+                                  const std::vector<ReadinessResult>& results) {
+                                  LaunchReply reply;
+                                  reply.set_vm_instance_name(name);
+                                  config->update_prompt->populate_if_time_to_show(
+                                      reply.mutable_update_info());
+
+                                  if (config->factory->supports_availability_zones())
+                                      reply.set_zone(zone);
+                                  server->Write(reply);
+                                  return results;
+                              })
+                        .then(this, make_finish_readiness_operation_cb<LaunchReply>(context)));
+            }
+            else
+            {
+                context->set_value(grpc::Status::OK);
+            }
+        }
+        catch (const std::exception& e)
+        {
+            mp::top_catch_all(category, [this, name]() {
+                preparing_instances.erase(name);
+                release_resources(name);
+                operative_instances.erase(name);
+                persist_instances();
+            });
+
+            context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+        }
+    };
+
+    register_async_operation(QtConcurrent::run(make_vm_description).then(this, finish_create));
 }
 
 void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, DeleteReply& response)
@@ -4208,7 +4198,6 @@ void mp::Daemon::finish_readiness_operation(DaemonRpcContext* context,
     {
         status = grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
         mpl::error(category, "Error occurred while waiting for VM to be ready: {}", e.what());
-        persist_instances();
     }
 
     if (context)
