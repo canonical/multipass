@@ -579,10 +579,10 @@ bool mpt::DaemonTestFixture::is_ready(std::future<R> const& f) const
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds{5};
     do
     {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, process_interval);
+
         if (f.wait_for(poll_interval) == std::future_status::ready)
             return true;
-
-        QCoreApplication::processEvents(QEventLoop::AllEvents, process_interval);
     } while (std::chrono::steady_clock::now() < deadline);
 
     return f.wait_for(std::chrono::seconds{0}) == std::future_status::ready;
@@ -609,7 +609,18 @@ grpc::Status mpt::DaemonTestFixture::call_daemon_slot(Daemon& daemon,
         Qt::QueuedConnection);
 
     // is_ready keeps processing the event loop until the promise is set
-    EXPECT_TRUE(is_ready(status_future));
+    const bool ready = is_ready(status_future);
+    EXPECT_TRUE(ready) << "Timed-out waiting for the daemon to finish processing a slot";
+
+    if (!ready)
+    {
+        // We have to wait for the daemon to finish processing now or later at its destruction.
+        // So let's do it now.
+        while (!is_ready(status_future))
+        {
+        }
+    }
+
     return status_future.get();
 }
 
