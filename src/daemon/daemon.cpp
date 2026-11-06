@@ -19,6 +19,7 @@
 
 #include "daemon_config.h"
 #include "daemon_init_settings.h"
+#include "db_migration.h"
 #include "hyperv_driver_transition.h"
 #include "instance_settings_handler.h"
 #include "mount_motd_cloud_init.h"
@@ -254,7 +255,8 @@ auto name_from(const std::string& requested_name,
 
 std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
                                                      const mp::Path& cache_path,
-                                                     const mp::AvailabilityZoneManager& az_manager)
+                                                     const mp::AvailabilityZoneManager& az_manager,
+                                                     const mp::VirtualMachineFactory& factory)
 {
     QDir data_dir{data_path};
     QDir cache_dir{cache_path};
@@ -277,6 +279,7 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
         return {};
     }
 
+    const mp::DbMigrator legacy_migrator{data_path};
     std::unordered_map<std::string, mp::VMSpecs> reconstructed_records;
     for (const auto& [key, record] : records.as_object())
     {
@@ -285,7 +288,10 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
 
         try
         {
-            reconstructed_records.emplace(key, value_to<mp::VMSpecs>(record, az_manager));
+            const std::string name{key};
+            auto spec = value_to<mp::VMSpecs>(record, az_manager);
+            legacy_migrator.migrate(name, spec, factory.get_instance_directory(name));
+            reconstructed_records.emplace(key, std::move(spec));
         }
         catch (mp::GhostInstanceException&)
         {
@@ -322,6 +328,27 @@ std::filesystem::path cloud_init_iso_path(const mp::VirtualMachineFactory& facto
 {
     return MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)) /
            mp::cloud_init_file_name;
+}
+
+mp::VirtualMachineDescription load_vm_description(const std::string& name, const QDir& instance_dir)
+{
+    const auto path = instance_dir.filePath(mp::vm_description_file_name);
+    try
+    {
+        if (const auto data = MP_FILEOPS.try_read_file(
+                std::filesystem::path{path.toStdU16String()}))
+            return value_to<mp::VirtualMachineDescription>(boost::json::parse(*data));
+    }
+    catch (const std::exception& e)
+    {
+        mpl::warn(category,
+                  "Could not load the description of {} from {}: {}",
+                  name,
+                  path,
+                  e.what());
+    }
+
+    return {};
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -1460,7 +1487,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                                     config->factory->get_backend_directory_name()),
                   mp::utils::backend_directory_path(config->cache_directory,
                                                     config->factory->get_backend_directory_name()),
-                  *config->az_manager)},
+                  *config->az_manager,
+                  *config->factory)},
       daemon_rpc{config->server_address,
                  *config->cert_provider,
                  config->client_cert_store.get(),
@@ -1526,6 +1554,10 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
+        // TODO use this instead of building the description from the spec
+        const auto instance_dir = config->factory->get_instance_directory(name);
+        std::ignore = load_vm_description(name, instance_dir);
+
         const auto cloud_init_iso = MP_PLATFORM.path_to_qstr(
             cloud_init_iso_path(*config->factory, name));
         mp::VirtualMachineDescription vm_desc{spec_copy.num_cores,
@@ -1537,7 +1569,12 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               spec_copy.extra_interfaces,
                                               spec_copy.ssh_username,
                                               vm_image,
-                                              cloud_init_iso};
+                                              cloud_init_iso,
+                                              spec_copy.metadata,
+                                              spec_copy.state,
+                                              spec_copy.clone_count,
+                                              spec_copy.deleted,
+                                              spec_copy.mounts};
 
         auto& instance_records_table = spec_copy.deleted ? deleted_instances : operative_instances;
 
@@ -3653,7 +3690,12 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 {},
                 config->ssh_username,
                 VMImage{},
-                ""};
+                "",
+                {},
+                VirtualMachine::State::stopped,
+                0,
+                false,
+                {}};
 
             CloudInitConfig cloud_init{};
             cloud_init.vendor_data = make_cloud_init_vendor_config(

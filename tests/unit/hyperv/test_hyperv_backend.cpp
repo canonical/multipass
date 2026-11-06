@@ -138,7 +138,12 @@ struct HyperVBackend : public Test
                                                       {},
                                                       "",
                                                       {dummy_image.path(), "", "", "", "", {}},
-                                                      dummy_cloud_init_iso.name()};
+                                                      dummy_cloud_init_iso.name(),
+                                                      {},
+                                                      {},
+                                                      0,
+                                                      false,
+                                                      {}};
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     mpt::PowerShellTestHelper ps_helper;
     mpt::StubAvailabilityZone zone{};
