@@ -255,13 +255,15 @@ private:
     void finish_readiness_operation(DaemonRpcContext* context,
                                     const std::string& errors,
                                     QFuture<std::vector<ReadinessResult>> future);
+    template <typename T>
+    void register_async_operation(QFuture<T> future);
+
     template <typename Reply>
     auto make_finish_readiness_operation_cb(DaemonRpcContext* context,
                                             const std::string& errors = {});
 
-    // Keeps the daemon alive until the preceding work finishes. Use with .then(keep_alive()).
-    // The chain must not be cancelled, since cancellation skips this continuation.
-    auto keep_alive();
+    template <typename Reply, typename Request>
+    auto make_write_update_info_cb(grpc::ServerReaderWriterInterface<Reply, Request>* server);
 
     void update_manifests_all(const bool force_update = false);
     void wait_update_manifests_all_and_optionally_applied_force(
