@@ -88,7 +88,7 @@ private:
     hcs::HcsSystemHandle hcs_system{nullptr};
 
     [[nodiscard]] hcs::ComputeSystemState fetch_state_from_api() const;
-    [[nodiscard]] std::optional<State> get_backend_state() override;
+    [[nodiscard]] std::optional<State> fetch_backend_state() override;
 
     /**
      * Open the compute system if it's present.

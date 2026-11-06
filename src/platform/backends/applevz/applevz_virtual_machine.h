@@ -45,8 +45,6 @@ public:
 
     std::optional<IPAddress> management_ipv4() override;
 
-    void handle_state_update() override;
-
     std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& /*specs*/,
                                                   const std::string& /*snapshot_name*/,
                                                   const std::string& /*comment*/) override
@@ -55,8 +53,9 @@ public:
     }
 
 protected:
+    void handle_state_update() override;
     void resize_disk_impl(const MemorySize& new_size) override;
-    std::optional<State> get_backend_state() override;
+    std::optional<State> fetch_backend_state() override;
 
 private:
     void initialize_vm_handle();

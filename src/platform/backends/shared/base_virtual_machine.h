@@ -27,6 +27,7 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -161,11 +162,11 @@ protected:
     void check_state_for_shutdown(ShutdownPolicy shutdown_policy) const;
 
     // Backend state fetching and conversion to VM::State
-    [[nodiscard]] virtual std::optional<State> get_backend_state() = 0;
+    [[nodiscard]] virtual std::optional<State> fetch_backend_state() = 0;
     // Direct fetch to avoid infinite recursion in fetch_state()
     State cached_state() const;
     void set_state(State state);
-    void handle_state_update() override;
+    virtual void handle_state_update();
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
@@ -228,6 +229,8 @@ protected:
     const QDir instance_dir;
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting = false;
+    std::condition_variable state_wait;
+    std::mutex state_mutex;
 
 private:
     VirtualMachine::State state;

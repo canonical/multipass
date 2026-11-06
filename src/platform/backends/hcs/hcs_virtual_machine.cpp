@@ -375,7 +375,7 @@ bool HCSVirtualMachine::maybe_create_compute_system()
     return true;
 }
 
-std::optional<mp::VirtualMachine::State> HCSVirtualMachine::get_backend_state()
+std::optional<mp::VirtualMachine::State> HCSVirtualMachine::fetch_backend_state()
 {
 
     hcs::ComputeSystemState compute_system_state;
@@ -394,7 +394,7 @@ std::optional<mp::VirtualMachine::State> HCSVirtualMachine::get_backend_state()
         compute_system_state = hcs::ComputeSystemState::unknown;
     }
 
-    mpl::debug(get_name(), "get_backend_state() -> HCS state `{}`", compute_system_state);
+    mpl::debug(get_name(), "fetch_backend_state() -> HCS state `{}`", compute_system_state);
 
     switch (compute_system_state)
     {

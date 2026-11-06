@@ -79,7 +79,7 @@ protected:
     bool unplugged() override;
     void refresh_start() override;
 
-    std::optional<State> get_backend_state() override;
+    std::optional<State> fetch_backend_state() override;
 
 private:
     void on_started();

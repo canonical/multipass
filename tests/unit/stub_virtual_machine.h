@@ -128,10 +128,6 @@ struct StubVirtualMachine final : public VirtualMachine
     {
     }
 
-    void handle_state_update() override
-    {
-    }
-
     void update_cpus(int /*num_cores*/) override
     {
     }
