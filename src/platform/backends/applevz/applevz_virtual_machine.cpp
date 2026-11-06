@@ -269,7 +269,7 @@ void AppleVZVirtualMachine::resize_disk_impl(const MemorySize& new_size)
     MP_APPLEVZ_UTILS.resize_image(new_size, desc.image.image_path);
 }
 
-std::optional<mp::VirtualMachine::State> AppleVZVirtualMachine::get_backend_state()
+std::optional<mp::VirtualMachine::State> AppleVZVirtualMachine::fetch_backend_state()
 {
     const auto new_state = MP_APPLEVZ.get_state(vm_handle);
     switch (new_state)

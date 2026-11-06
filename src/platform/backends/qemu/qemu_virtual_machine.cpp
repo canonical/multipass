@@ -774,7 +774,7 @@ void mp::QemuVirtualMachine::refresh_start()
     }
 }
 
-std::optional<mp::VirtualMachine::State> mp::QemuVirtualMachine::get_backend_state()
+std::optional<mp::VirtualMachine::State> mp::QemuVirtualMachine::fetch_backend_state()
 {
     // QEMU has callbacks that update the state directly
     return std::nullopt;

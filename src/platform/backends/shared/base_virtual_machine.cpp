@@ -258,6 +258,7 @@ bool mp::BaseVirtualMachine::set_available(bool available)
 
     if (available)
     {
+        std::lock_guard lock{state_mutex};
         assert(cached_state() == St::unavailable);
         mpl::info(vm_name, "State changed from {} to {}", state, St::stopped);
         state = St::stopped;
@@ -267,7 +268,10 @@ bool mp::BaseVirtualMachine::set_available(bool available)
 
     was_running = cached_state() == St::running || cached_state() == St::starting ||
                   cached_state() == St::restarting;
+    // Backends lock the state mutex in shutdown(), so it can only be taken afterwards
     shutdown(ShutdownPolicy::Poweroff);
+
+    std::lock_guard lock{state_mutex};
     set_state(St::unavailable);
     return false;
 }
@@ -1045,7 +1049,7 @@ St mp::BaseVirtualMachine::fetch_state()
     // the other states
 
     // Update the state
-    const auto backend_state = get_backend_state();
+    const auto backend_state = fetch_backend_state();
     if (!backend_state.has_value() ||
         backend_to_multipass_equivalence.at(backend_state.value()).contains(cached_state()))
         return state;
@@ -1055,11 +1059,13 @@ St mp::BaseVirtualMachine::fetch_state()
 
 void mp::BaseVirtualMachine::set_running()
 {
+    std::lock_guard lock{state_mutex};
     set_state(St::running);
 }
 
 void mp::BaseVirtualMachine::set_delayed_shutdown()
 {
+    std::lock_guard lock{state_mutex};
     set_state(St::delayed_shutdown);
 }
 

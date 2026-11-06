@@ -26,10 +26,8 @@
 
 #include <cassert>
 #include <chrono>
-#include <condition_variable>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -97,7 +95,6 @@ public:
 
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;
-    virtual void handle_state_update() = 0;
     virtual void update_cpus(int num_cores) = 0;
     virtual void resize_memory(const MemorySize& new_size) = 0;
     virtual void resize_disk(const MemorySize& new_size, UserMessages& messages) = 0;
@@ -136,9 +133,6 @@ public:
     virtual QDir instance_directory() const noexcept = 0;
     virtual const std::string& get_name() const noexcept = 0;
     virtual const AvailabilityZone& get_zone() const noexcept = 0;
-
-    std::condition_variable state_wait;
-    std::mutex state_mutex;
 
 protected:
     VirtualMachine() = default;

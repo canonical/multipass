@@ -440,7 +440,7 @@ bool mp::HyperVVirtualMachine::set_available(bool /*available*/)
     return false;
 }
 
-std::optional<mp::VirtualMachine::State> mp::HyperVVirtualMachine::get_backend_state()
+std::optional<mp::VirtualMachine::State> mp::HyperVVirtualMachine::fetch_backend_state()
 {
     return instance_state_for(power_shell.get(), name);
 }

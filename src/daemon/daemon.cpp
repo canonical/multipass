@@ -3542,9 +3542,7 @@ try // clang-format on
 
         for (auto&& vm_it : instances)
         {
-            auto& vm = *vm_it->second;
-            std::unique_lock vm_lock{vm.state_mutex};
-            vm.set_available(true);
+            vm_it->second->set_available(true);
         }
 
         for (auto&& z : zones)
@@ -3580,11 +3578,7 @@ void mp::Daemon::on_restart(const std::string& name)
     auto future_watcher = create_future_watcher([this, name]() {
         try
         {
-            auto virtual_machine = operative_instances.at(name);
-
-            std::lock_guard<decltype(virtual_machine->state_mutex)> lock{
-                virtual_machine->state_mutex};
-            virtual_machine->set_running();
+            operative_instances.at(name)->set_running();
         }
         catch (const std::out_of_range&)
         {
