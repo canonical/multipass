@@ -19,12 +19,19 @@ void main() {
         buildWidget(const DisplayField(label: 'Copyright')),
       );
 
-      final fieldTexts = find.descendant(
-        of: find.byType(DisplayField),
-        matching: find.byType(Text),
-      );
       expect(find.text('Copyright'), findsOneWidget);
-      expect(fieldTexts, findsOneWidget);
+      expect(find.byType(Text), findsOneWidget);
+    });
+
+    testWidgets('shows the label and the value when text is set',
+        (tester) async {
+      await tester.pumpWidget(
+        buildWidget(const DisplayField(label: 'Version', text: '1.16.0')),
+      );
+
+      expect(find.text('Version'), findsOneWidget);
+      expect(find.text('1.16.0'), findsOneWidget);
+      expect(find.byType(Text), findsNWidgets(2));
     });
 
     testWidgets('value is plain text by default', (tester) async {
