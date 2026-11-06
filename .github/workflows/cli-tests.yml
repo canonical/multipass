@@ -67,8 +67,10 @@ jobs:
 
             if (SNAP_CHANNEL !== '<undefined>') {
               for (const runner of [
-                'ubuntu-latest'
-                // 'self-hosted-linux-arm64-noble-edge'
+                'ubuntu-latest',
+                'self-hosted-linux-arm64-resolute-large',
+                'self-hosted-linux-s390x-resolute-medium',
+                'self-hosted-linux-ppc64el-resolute-medium'
                 ]) {
                 matrix.include.push({
                   os: runner,
@@ -120,6 +122,7 @@ jobs:
 
             core.setOutput('matrix', JSON.stringify(matrix));
             core.setOutput('has_targets', String(matrix.include.length > 0));
+
   run-cli-tests:
     concurrency:
       group: cli-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ matrix.concurrency-key }}
@@ -142,8 +145,19 @@ jobs:
 
       # Install specific python
       - uses: actions/setup-python@v7
+        if: ${{ !contains(matrix.os, 's390x') && !contains(matrix.os, 'ppc64el') }}
         with:
           python-version: '3.15'
+
+      # actions/setup-python has no s390x/ppc64el builds, use uv-managed Python there
+      - uses: astral-sh/setup-uv@v10.3.3
+        if: ${{ contains(matrix.os, 's390x') || contains(matrix.os, 'ppc64el') }}
+
+      - name: Install Python (uv)
+        if: ${{ contains(matrix.os, 's390x') || contains(matrix.os, 'ppc64el') }}
+        run: |
+          uv python install 3.15
+          dirname "$(uv python find --managed-python 3.15)" >> "$GITHUB_PATH"
 
       - name: Download package with cURL
         if: ${{ matrix['pkg-url'] != '' }}
@@ -216,14 +230,14 @@ jobs:
 
           # Add installation path to the GITHUB_PATH so subsequent steps can use the binaries
           "$env:ProgramFiles\Multipass\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       ##################################################################
       # Platform-agnostic
       ##################################################################
       - name: Create virtual environment
-        run: python3 -m venv .venv
-
-      - name: Activate virtual environment
-        run: echo "PATH=${GITHUB_WORKSPACE}/.venv/bin:$PATH" >> $GITHUB_ENV
+        run: |
+          python3 -m venv .venv
+          echo "${GITHUB_WORKSPACE}/.venv/bin" >> $GITHUB_PATH
 
       - name: Install cli-tests dependencies
         id: install-cli-test-deps
