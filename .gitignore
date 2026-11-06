@@ -32,9 +32,13 @@ CMakeUserPresets.json
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
 
 # QT network download cache
 network-cache/
 
 # clangd code index cache
 .cache
+
+# multiflow run state (tools/multiflow)
+.multiflow/runs/
