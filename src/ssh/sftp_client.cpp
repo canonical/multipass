@@ -27,14 +27,62 @@
 #include <multipass/ssh/throw_on_error.h>
 #include <multipass/utils.h>
 
+#include <algorithm>
 #include <array>
 #include <fcntl.h>
 #include <fmt/std.h>
 #include <functional>
+#include <iterator>
+#include <string_view>
+
+#include <QRegularExpression>
 
 constexpr int file_mode = 0664;
 const std::string stream_file_name{"stream_output.dat"};
 const char* log_category = "sftp";
+
+namespace
+{
+bool has_wildcards(const std::string_view value)
+{
+    return value.find_first_of("*?[") != std::string_view::npos;
+}
+
+std::vector<std::string> split_remote_path(const std::string_view path)
+{
+    std::vector<std::string> components;
+    for (std::size_t begin = 0; begin < path.size();)
+    {
+        begin = path.find_first_not_of('/', begin);
+        if (begin == std::string_view::npos)
+            break;
+
+        const auto end = path.find('/', begin);
+        components.emplace_back(path.substr(begin, end - begin));
+        begin = end == std::string_view::npos ? path.size() : end + 1;
+    }
+    return components;
+}
+
+std::string append_remote_component(const std::string_view path, const std::string_view component)
+{
+    if (path.empty())
+        return std::string{component};
+    if (path == "/")
+        return fmt::format("/{}", component);
+    return fmt::format("{}/{}", path, component);
+}
+
+bool wildcard_matches(const std::string_view pattern,
+                      const std::string_view name,
+                      const QRegularExpression& expression)
+{
+    if (name.starts_with('.') && !pattern.starts_with('.'))
+        return false;
+
+    return expression.match(QString::fromStdString(std::string{name})).hasMatch();
+}
+} // namespace
 
 namespace multipass
 {
@@ -72,8 +120,87 @@ SFTPClient::SFTPClient(SSHSessionUPtr ssh_session)
 
 bool SFTPClient::is_remote_dir(const fs::path& path)
 {
-    auto attr = mp_sftp_stat(sftp.get(), path.string().c_str());
+    const auto remote_path = path.generic_string();
+    auto attr = mp_sftp_stat(sftp.get(), remote_path.c_str());
     return attr && attr->type == SSH_FILEXFER_TYPE_DIRECTORY;
+}
+
+std::vector<fs::path> SFTPClient::expand_remote_path(const fs::path& path)
+{
+    const auto remote_path = path.generic_string();
+    if (!has_wildcards(remote_path))
+        return {path};
+
+    auto candidates = std::vector<std::string>{remote_path.starts_with('/') ? "/" : ""};
+    auto expanded_pattern = false;
+
+    for (const auto& component : split_remote_path(remote_path))
+    {
+        if (!has_wildcards(component))
+        {
+            std::transform(candidates.begin(),
+                           candidates.end(),
+                           candidates.begin(),
+                           [&component](const auto& candidate) {
+                               return append_remote_component(candidate, component);
+                           });
+
+            if (expanded_pattern)
+            {
+                std::erase_if(candidates, [this](const auto& candidate) {
+                    return !mp_sftp_stat(sftp.get(), candidate.c_str());
+                });
+                if (candidates.empty())
+                    throw SFTPError{"no matches found: {}", path};
+            }
+            continue;
+        }
+
+        std::vector<std::string> matches;
+        const QRegularExpression expression{
+            QRegularExpression::wildcardToRegularExpression(QString::fromStdString(component))};
+        for (const auto& candidate : candidates)
+        {
+            const auto directory_path = candidate.empty() ? "." : candidate;
+            auto directory = mp_sftp_opendir(sftp.get(), directory_path.c_str());
+            if (!directory)
+            {
+                if (expanded_pattern)
+                    continue;
+                throw SFTPError{"cannot open remote directory '{}': {}",
+                                directory_path,
+                                MP_LIBSSH.ssh_get_error(sftp->session)};
+            }
+
+            while (auto entry = mp_sftp_readdir(sftp.get(), directory.get()))
+            {
+                const std::string_view name{entry->name};
+                if (name != "." && name != ".." && wildcard_matches(component, name, expression))
+                    matches.emplace_back(append_remote_component(candidate, name));
+            }
+
+            if (!MP_LIBSSH.sftp_dir_eof(directory.get()))
+                throw SFTPError{"cannot read remote directory '{}': {}",
+                                directory_path,
+                                MP_LIBSSH.ssh_get_error(sftp->session)};
+        }
+
+        if (matches.empty())
+            throw SFTPError{"no matches found: {}", path};
+
+        std::sort(matches.begin(), matches.end());
+        matches.erase(std::unique(matches.begin(), matches.end()), matches.end());
+        candidates = std::move(matches);
+        expanded_pattern = true;
+    }
+
+    std::vector<fs::path> paths;
+    paths.reserve(candidates.size());
+    std::transform(candidates.begin(),
+                   candidates.end(),
+                   std::back_inserter(paths),
+                   [](auto& candidate) { return fs::path{std::move(candidate)}; });
+    return paths;
 }
 
 bool SFTPClient::push(const fs::path& source_path, const fs::path& target_path, const Flags flags)
@@ -117,7 +244,7 @@ catch (const SFTPError& e)
 bool SFTPClient::pull(const fs::path& source_path, const fs::path& target_path, const Flags flags)
 try
 {
-    auto source = source_path.string();
+    auto source = source_path.generic_string();
     utils::trim_end(source,
                     [](char ch) { return ch == '/' || ch == fs::path::preferred_separator; });
 
@@ -177,7 +304,8 @@ void SFTPClient::pull_file(const fs::path& source_path, const fs::path& target_p
 
     do_pull_file(source_path, *local_file);
 
-    auto source_perms = mp_sftp_stat(sftp.get(), source_path.string().c_str())->permissions;
+    const auto remote_source = source_path.generic_string();
+    auto source_perms = mp_sftp_stat(sftp.get(), remote_source.c_str())->permissions;
     if (!MP_PLATFORM.set_permissions(target_path, static_cast<fs::perms>(source_perms)))
         throw SFTPError{"cannot set permissions for local file {}", target_path};
 
@@ -286,19 +414,19 @@ bool SFTPClient::pull_dir(const fs::path& source_path, const fs::path& target_pa
 {
     auto success = true;
     std::error_code err;
+    const auto remote_source = source_path.generic_string();
 
     auto remote_iter = MP_SFTPUTILS.make_SFTPDirIterator(sftp.get(), source_path);
 
     std::vector<std::pair<fs::path, mode_t>> subdirectory_perms{
-        {target_path, mp_sftp_stat(sftp.get(), source_path.string().c_str())->permissions}};
+        {target_path, mp_sftp_stat(sftp.get(), remote_source.c_str())->permissions}};
 
     while (remote_iter->hasNext())
     {
         try
         {
             const auto entry = remote_iter->next();
-            const auto local_file_path =
-                target_path / (entry->name + source_path.string().size() + 1);
+            const auto local_file_path = target_path / (entry->name + remote_source.size() + 1);
 
             switch (entry->type)
             {
@@ -397,7 +525,8 @@ void SFTPClient::do_push_file(std::istream& source, const fs::path& target_path)
 
 void SFTPClient::do_pull_file(const fs::path& source_path, std::ostream& target)
 {
-    auto remote_file = mp_sftp_open(sftp.get(), source_path.string().c_str(), O_RDONLY, 0);
+    const auto remote_path = source_path.generic_string();
+    auto remote_file = mp_sftp_open(sftp.get(), remote_path.c_str(), O_RDONLY, 0);
     if (!remote_file)
         throw SFTPError{"cannot open remote file {}: {}",
                         source_path,
