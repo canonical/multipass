@@ -68,9 +68,9 @@ jobs:
             if (SNAP_CHANNEL !== '<undefined>') {
               for (const runner of [
                 'ubuntu-latest',
-                'self-hosted-linux-arm64-noble-edge',
-                'self-hosted-linux-s390x-noble-edge',
-                'self-hosted-linux-ppc64el-noble-edge'
+                'self-hosted-linux-arm64-resolute-large',
+                'self-hosted-linux-s390x-resolute-medium',
+                'self-hosted-linux-ppc64el-resolute-medium'
                 ]) {
                 matrix.include.push({
                   os: runner,

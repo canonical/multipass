@@ -37,8 +37,8 @@ jobs:
           let runners = [
             "ubuntu-latest",
             "ubuntu-24.04-arm",
-            "self-hosted-linux-ppc64el-noble-edge",
-            "self-hosted-linux-s390x-noble-edge"
+            "self-hosted-linux-ppc64el-resolute-medium",
+            "self-hosted-linux-s390x-resolute-medium"
           ];
 
           for (const runner of runners) {
@@ -119,7 +119,7 @@ jobs:
       uses: ./.github/actions/read-snapcraft-yml-params
 
     - name: Exclude GUI from unsupported arches
-      if: ${{ matrix.runs-on == 'self-hosted-linux-ppc64el-noble-edge' || matrix.runs-on == 'self-hosted-linux-s390x-noble-edge' }}
+      if: ${{ matrix.runs-on == 'self-hosted-linux-ppc64el-resolute-medium' || matrix.runs-on == 'self-hosted-linux-s390x-resolute-medium' }}
       run: |
         cp packaging/gui-less/snap/snapcraft.yaml snap/snapcraft.yaml
         yq -i '.parts.multipass.source = "." | .parts.glue.source = "snap-wrappers" | del(.parts.glue."source-type", .parts.glue."source-subdir")' snap/snapcraft.yaml
