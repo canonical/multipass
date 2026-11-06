@@ -1,0 +1,22 @@
+name: quick_patch
+description: Small, well-understood change. Implement, then independent review; loop until approved.
+max_iterations: 3
+
+artifacts:
+  notes:  {path: implementation_notes.md, description: what changed and how it was validated}
+  review: {path: review.md, description: reviewer findings for the latest iteration}
+
+nodes:
+  implement:
+    role: implementer
+    inputs: ["review?"]
+    outputs: [notes]
+  review:
+    role: reviewer
+    inputs: [notes]
+    outputs: [review]
+
+entry: implement
+transitions:
+  implement: {done: review}
+  review:    {approved: __complete__, changes_requested: implement}

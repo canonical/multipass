@@ -1,0 +1,28 @@
+name: bugfix
+description: Diagnose the root cause, fix it, verify with tests; failed tests loop back to the implementer.
+max_iterations: 3
+
+artifacts:
+  plan:         {path: plan.md, description: diagnosis and fix plan (read-only after planning)}
+  notes:        {path: implementation_notes.md, description: what changed and how it was validated}
+  test_report:  {path: test_report.md, description: tests run and their results}
+
+nodes:
+  diagnose:
+    role: planner
+    outputs: [plan]
+    instructions: Focus on finding and explaining the root cause. Include a failing test or reproduction in the plan.
+  fix:
+    role: implementer
+    inputs: [plan, "test_report?"]
+    outputs: [notes]
+  verify:
+    role: tester
+    inputs: [plan, notes]
+    outputs: [test_report]
+
+entry: diagnose
+transitions:
+  diagnose: {done: fix}
+  fix:      {done: verify}
+  verify:   {passed: __complete__, failed: fix}

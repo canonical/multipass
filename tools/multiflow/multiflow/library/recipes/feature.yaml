@@ -1,0 +1,27 @@
+name: feature
+description: Plan, implement, then independent review against the plan; review findings loop back to the implementer.
+max_iterations: 3
+
+artifacts:
+  plan:   {path: plan.md, description: implementation plan (read-only after planning)}
+  notes:  {path: implementation_notes.md, description: what changed and how it was validated}
+  review: {path: review.md, description: reviewer findings for the latest iteration}
+
+nodes:
+  plan:
+    role: planner
+    outputs: [plan]
+  implement:
+    role: implementer
+    inputs: [plan, "review?"]
+    outputs: [notes]
+  review:
+    role: reviewer
+    inputs: [plan, notes]
+    outputs: [review]
+
+entry: plan
+transitions:
+  plan:      {done: implement}
+  implement: {done: review}
+  review:    {approved: __complete__, changes_requested: implement}
