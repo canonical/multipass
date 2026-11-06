@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "multiflow": {
+      "type": "stdio",
+      "command": "multiflow",
+      "args": ["--workspace", "${workspaceFolder}", "mcp"]
+    }
+  }
+}
