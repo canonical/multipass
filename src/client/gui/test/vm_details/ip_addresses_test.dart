@@ -69,7 +69,8 @@ void main() {
       });
     }
 
-    testWidgets('lists only the other addresses under a disabled title',
+    testWidgets(
+        'secondary addresses are enabled and located under a disabled title',
         (tester) async {
       await tester.pumpWidget(_buildApp(['10.0.0.1', '10.0.0.2', '10.0.0.3']));
 
