@@ -28,7 +28,7 @@ class Dropdown<T> extends StatelessWidget {
       isExpanded: true,
       focusColor: Colors.white,
       underline: const SizedBox.shrink(),
-      value: value,
+      value: items.containsKey(value) ? value : null,
       onChanged: enabled ? onChanged : null,
       items: items.entries
           .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
