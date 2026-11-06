@@ -60,9 +60,8 @@ public:
     void shutdown(ShutdownPolicy shutdown_policy) override;
     void suspend() override;
     bool set_available(bool available) override;
-    State current_state() override;
+    std::optional<State> fetch_backend_state() override;
     std::optional<IPAddress> management_ipv4() override;
-    void handle_state_update() override;
     void add_network_interface(int index,
                                const std::string& default_mac_addr,
                                const NetworkInterface& extra_interface) override;
@@ -70,6 +69,7 @@ public:
                                                             const VMMount& mount) override;
 
 protected:
+    void handle_state_update() override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,

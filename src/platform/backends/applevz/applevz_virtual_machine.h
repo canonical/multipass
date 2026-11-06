@@ -43,11 +43,7 @@ public:
     void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
     void suspend() override;
 
-    State current_state() override;
-
     std::optional<IPAddress> management_ipv4() override;
-
-    void handle_state_update() override;
 
     std::shared_ptr<const Snapshot> take_snapshot(const VMSpecs& /*specs*/,
                                                   const std::string& /*snapshot_name*/,
@@ -57,11 +53,12 @@ public:
     }
 
 protected:
+    void handle_state_update() override;
     void resize_disk_impl(const MemorySize& new_size) override;
+    std::optional<State> fetch_backend_state() override;
 
 private:
     void initialize_vm_handle();
-    void set_state(applevz::AppleVMState vm_state);
 
 private:
     VMHandle vm_handle{nullptr};

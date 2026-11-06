@@ -26,10 +26,8 @@
 
 #include <cassert>
 #include <chrono>
-#include <condition_variable>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -79,7 +77,9 @@ public:
     virtual void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) = 0;
     virtual void suspend() = 0;
     virtual bool set_available(bool available) = 0;
-    virtual State current_state() = 0;
+    virtual State fetch_state() = 0;
+    virtual void set_running() = 0;
+    virtual void set_delayed_shutdown() = 0;
     [[nodiscard]] virtual int ssh_port() = 0;
     [[nodiscard]] virtual std::string ssh_hostname() = 0;
     [[nodiscard]] virtual std::string ssh_username() const = 0;
@@ -95,7 +95,6 @@ public:
 
     virtual void wait_until_ssh_up(std::chrono::milliseconds timeout) = 0;
     virtual void wait_for_cloud_init(std::chrono::milliseconds timeout) = 0;
-    virtual void handle_state_update() = 0;
     virtual void update_cpus(int num_cores) = 0;
     virtual void resize_memory(const MemorySize& new_size) = 0;
     virtual void resize_disk(const MemorySize& new_size, UserMessages& messages) = 0;
@@ -135,14 +134,8 @@ public:
     virtual const std::string& get_name() const noexcept = 0;
     virtual const AvailabilityZone& get_zone() const noexcept = 0;
 
-    VirtualMachine::State state;
-    std::condition_variable state_wait;
-    std::mutex state_mutex;
-
 protected:
-    explicit VirtualMachine(State state = State::stopped) : state{state}
-    {
-    }
+    VirtualMachine() = default;
 };
 } // namespace multipass
 

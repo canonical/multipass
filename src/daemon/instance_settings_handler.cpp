@@ -102,7 +102,7 @@ pick_instance(InstanceMap& instances,
 
 void check_state_for_update(mp::VirtualMachine& instance)
 {
-    auto st = instance.current_state();
+    auto st = instance.fetch_state();
     if (st != mp::VirtualMachine::State::stopped)
         throw mp::InstanceStateSettingsException{operation_msg(Operation::Modify),
                                                  instance.get_name(),

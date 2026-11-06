@@ -611,7 +611,7 @@ TEST_P(TestInstanceModOnNonStoppedInstance, setRefusesToModifyNonStoppedInstance
     const auto original_specs = specs[target_instance_name];
 
     auto& target_instance = mock_vm<StrictMock>(target_instance_name);
-    EXPECT_CALL(target_instance, current_state).WillOnce(Return(state));
+    EXPECT_CALL(target_instance, fetch_state).WillOnce(Return(state));
 
     mp::UserMessages messages{};
     MP_EXPECT_THROW_THAT(
@@ -646,7 +646,7 @@ TEST_P(TestInstanceModOnStoppedInstance, setWorksOnStoppedState)
     const auto property = GetParam();
     const auto& target_specs = specs[target_instance_name];
 
-    EXPECT_CALL(mock_vm(target_instance_name), current_state).WillOnce(Return(VMSt::stopped));
+    EXPECT_CALL(mock_vm(target_instance_name), fetch_state).WillOnce(Return(VMSt::stopped));
 
     mp::UserMessages messages{};
     EXPECT_NO_THROW(make_handler().set(make_key(target_instance_name, property), val, messages));

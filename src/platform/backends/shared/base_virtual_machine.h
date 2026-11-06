@@ -27,6 +27,7 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -109,6 +110,10 @@ public:
     const std::string& get_name() const noexcept override;
     const AvailabilityZone& get_zone() const noexcept override;
 
+    [[nodiscard]] State fetch_state() override;
+    void set_running() override;
+    void set_delayed_shutdown() override;
+
 protected:
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename);
     virtual std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
@@ -155,6 +160,13 @@ protected:
     virtual std::string get_instance_id_from_the_cloud_init() const;
 
     void check_state_for_shutdown(ShutdownPolicy shutdown_policy) const;
+
+    // Backend state fetching and conversion to VM::State
+    [[nodiscard]] virtual std::optional<State> fetch_backend_state() = 0;
+    // Direct fetch to avoid infinite recursion in fetch_state()
+    State cached_state() const;
+    void set_state(State state);
+    virtual void handle_state_update();
 
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
@@ -217,8 +229,11 @@ protected:
     const QDir instance_dir;
     std::optional<IPAddress> management_ip;
     bool shutdown_while_starting = false;
+    std::condition_variable state_wait;
+    std::mutex state_mutex;
 
 private:
+    VirtualMachine::State state;
     std::string saved_error_msg = "";
     std::unique_ptr<SSHSession> ssh_session = nullptr;
     SnapshotMap snapshots;
@@ -295,4 +310,9 @@ inline std::string multipass::BaseVirtualMachine::core_image_disk_resize_message
                        "/dev/<disk_device><partition_number>\n\n"
                        "Check the resize status with the command below:\n\n"
                        "        multipass info <instance>\n");
+}
+
+inline multipass::VirtualMachine::State multipass::BaseVirtualMachine::cached_state() const
+{
+    return state;
 }
