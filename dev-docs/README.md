@@ -20,3 +20,8 @@ This documentation section only refers to Multipass development related topics.
 ## Flutter
 
 - [Managing Flutter](managing-flutter.md)
+
+## AI tooling
+
+- [multiflow usage guide: all commands, options and chat integrations](multiflow-guide.md)
+- [multiflow: multi-role agent workflows (Copilot CLI, Claude Code, VS Code)](../tools/multiflow/README.md)
