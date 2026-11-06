@@ -52,9 +52,12 @@ class ImageCard extends ConsumerWidget {
   }
 
   String _getVersionLabel(ImageInfo version) {
-    return version.release.toLowerCase() == version.codename.toLowerCase()
-        ? version.release
-        : '${version.release} (${version.codename})';
+    final codename = version.codename;
+    if (codename.isEmpty ||
+        version.release.toLowerCase() == codename.toLowerCase()) {
+      return version.release;
+    }
+    return '${version.release} ($codename)';
   }
 
   @override
@@ -172,8 +175,7 @@ class ImageCard extends ConsumerWidget {
               const SizedBox(width: 8),
               OutlinedButton(
                 onPressed: () {
-                  ref.read(launchingImageProvider.notifier).state =
-                      selectedImage;
+                  ref.read(launchingImageProvider.notifier).set(selectedImage);
                   Scaffold.of(context).openEndDrawer();
                 },
                 child: Text(l10n.commonConfigure),
