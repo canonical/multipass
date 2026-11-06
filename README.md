@@ -1,9 +1,9 @@
 # What is Multipass?
 
-Multipass is a lightweight VM manager for Linux, Windows and macOS. It's designed for developers who want to spin up a
-fresh Ubuntu environment with a single command. It uses KVM on Linux, Hyper-V on Windows and QEMU on macOS to run
-virtual machines with minimal overhead. It can also use VirtualBox on Windows and macOS. Multipass will fetch Ubuntu
-images for you and keep them up to date.
+Multipass is a lightweight VM manager for Linux, Windows and macOS. It's designed for developers who
+want to spin up a fresh Linux environment with a single command. It uses QEMU on Linux, HCS (Host
+Compute System) on Windows and QEMU or the Apple Virtualization Framework on macOS to run virtual
+machines with minimal overhead. Multipass will fetch images for you and keep them up to date.
 
 Since it supports metadata for cloud-init, you can simulate a small cloud deployment on your laptop or workstation.
 
@@ -53,14 +53,14 @@ Here are some pointers to get started with Multipass.
 
 | Task | Command |
 |----|----|
-| Find available images | `multipass find` |
+| List available images | `multipass images` |
 | Launch an instance with the current Ubuntu LTS | `multipass launch lts` |
 | List existing instances | `multipass list` |
 | Get info about an instance | `multipass info <instance-name>` |
 | Connect to a running instance | `multipass shell <instance-name>` |
 | Run a command inside an instance | `multipass exec <instance-name> -- <command>` |
 | Stop an instance | `multipass stop <instance-name>` |
-| Delete an instance | `multipass delete <instance-name>` <br/> `multipass purge` |
+| Delete an instance | `multipass delete <instance-name>` |
 | Get help | `multipass help` <br/> `multipass help <command>` |
 
 For a more comprehensive learning experience, please check out the

@@ -28,6 +28,19 @@ choco install rust-ms
 
 Controlling the Multipass service and running the Multipass daemon needs superuser privileges. Hence, `sudo` (or `gsudo` in Windows) needs to be available in the environment. The test harness will prompt for an initial `sudo` escalation and will keep the `sudo` ticket alive for the duration of the tests. The tests themselves will run as non-privileged but some parts, like spawning the daemon process, or removing a `root` owned directory will escalate privileges as needed.
 
+## Unit tests for the harness
+
+The harness unit tests are in the sibling `cli-test-ut` directory under `tests`. They use mocked daemon controllers and do not require an installed Multipass daemon or elevated privileges.
+
+After installing the dependencies above, run the following from the repository root:
+
+```shell
+cd tests
+python -m pytest cli-test-ut
+```
+
+Use `python -m pytest` so the `tests` directory is on Python's import path. Keeping these tests outside the `cli` directory prevents them from inheriting the CLI integration tests' autouse fixtures.
+
 ## To run
 
 The tests support running on installed versions of Multipass on Linux (snap), macOS (package), Windows (MSI package). Additionally, the tests also support running on a source-built version of Multipass, which is referred to as `standalone` mode.
@@ -153,7 +166,7 @@ pytest tests/cli/ --log-level=DEBUG # INFO, TRACE, WARN..
 # DEBUG    root:privutils.py:93 module.__file__ = /workspace/multipass/tests/cli/multipass/certutils.py
 # DEBUG    root:privutils.py:94 inferred PYTHONPATH = /workspace/multipass/tools
 # DEBUG    root:multipassd_governor.py:64 multipassd-governor :: read_stream start
-# DEBUG    root:multipassd_governor.py:301 b'find failed: cannot connect to the multipass socket\n'
+# DEBUG    root:multipassd_governor.py:301 b'images failed: cannot connect to the multipass socket\n'
 # DEBUG    root:multipassd_governor.py:124 multipassd-governor :: monitor task exited (cancelled: False)
 # DEBUG    root:multipassd_governor.py:219 multipassd-governor :: stop called
 # [DEBUG] environment_setup :: teardown
@@ -170,7 +183,7 @@ pytest tests/cli/ --daemon-controller=snapd --driver=lxd # Test the `lxd` backen
 ```
 
 ```bash
-pytest tests/cli/ --daemon-controller=winsvc --driver=virtualbox # Test the `virtualbox` backend on Windows
+pytest tests/cli/ --daemon-controller=winsvc --driver=hyperv # Test the `hyperv` backend on Windows
 ```
 
 ```bash
@@ -187,13 +200,20 @@ Some backends do not support all Multipass features. The test suite automaticall
 
 #### `--remove-all-instances` flag
 
-Additionally, there's a convenience flag called `--remove-all-instances`. The test executor would remove the instance storage directories (including backend-specific ones), like `vault/instances`, `qemu/vault/instances`, `virtualbox/vault/instances` while keeping the image cache and other things intact. This would allow reuse of a `MULTIPASS_STORAGE_DIR` without having adverse effects on future test runs due to persisted instances.
+Additionally, there's a convenience flag called `--remove-all-instances`. The test executor would remove the instance storage directories (including backend-specific ones), like `vault/instances`, `qemu/vault/instances` while keeping the image cache and other things intact. This would allow reuse of a `MULTIPASS_STORAGE_DIR` without having adverse effects on future test runs due to persisted instances.
 
 **Caution:** This flag will remove all the instances you have in the `MULTIPASS_STORAGE_DIR` for the daemon controller.
 
 ```bash
 pytest tests/cli/cli_tests.py --bin-dir build/bin/ --storage-dir=/tmp/multipass-test --remove-all-instances # would remove all instances in the `/tmp/multipass-test` before the test session.
 ```
+
+#### Daemon health check
+
+Before each CLI command, the test harness runs a lightweight daemon liveness probe (`multipass version` with a short timeout). If the daemon is believed to be up but does not respond, the session aborts immediately instead of hanging on the offending command's own timeout. The check is skipped when the daemon was intentionally stopped by the test.
+
+- `--health-check-timeout` (default `5`): seconds to wait for the probe before treating the daemon as unresponsive.
+- `--no-daemon-health-check`: disable the per-step health check.
 
 ### Setting default resources and parameters for the test VM
 
@@ -223,7 +243,7 @@ The defaults are listed below:
 | delete               | 90s                   |
 | exec                 | 90s                   |
 | start                | 90s                   |
-| umount               | 45s                   |
+| unmount / umount     | 45s                   |
 | <all other commands> | 30s                   |
 
 `--cmd-timeouts` parameter can be used to change the defaults as follows:

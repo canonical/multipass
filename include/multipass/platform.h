@@ -29,8 +29,6 @@
 #include <multipass/sshfs_server_config.h>
 #include <multipass/subnet.h>
 #include <multipass/update_prompt.h>
-#include <multipass/virtual_machine_factory.h>
-#include <multipass/vm_image_vault.h>
 
 #include <QDir>
 #include <QString>
@@ -46,6 +44,7 @@ struct sftp_attributes_struct;
 namespace multipass
 {
 struct Socket;
+class VirtualMachineFactory;
 
 namespace platform
 {
@@ -100,7 +99,8 @@ void sync_winterm_profiles();
 
 std::string default_server_address();
 
-VirtualMachineFactory::UPtr vm_backend(const Path& data_dir, AvailabilityZoneManager& az_manager);
+std::unique_ptr<VirtualMachineFactory> vm_backend(const Path& data_dir,
+                                                  AvailabilityZoneManager& az_manager);
 // TODO@backends: remove once deprecated backends are removed
 bool backend_supports_availability_zones();
 logging::Logger::UPtr make_logger(logging::Level level);

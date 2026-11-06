@@ -35,6 +35,7 @@ enum ReturnCode
     CommandFail = 2,
     DaemonFail = 3,
     Retry = 4,
+    TimeoutFailure = 75,
     ShellExecFail = 255,
 };
 

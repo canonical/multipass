@@ -80,38 +80,37 @@ std::string mp::NewPassphrasePrompter::prompt(const std::string& text) const
     return passphrase;
 }
 
+bool mp::YesNoPrompter::prompt(const std::string& text, bool default_answer) const
+{
+    const auto hint = default_answer ? "[Y/n]" : "[y/N]";
+    const PlainPrompter prompter{term};
+    auto answer = prompter.prompt(fmt::format("{} {}", text, hint));
+    while (!answer.empty() && !std::regex_match(answer, mp::client::yes_answer) &&
+           !std::regex_match(answer, mp::client::no_answer))
+        answer = prompter.prompt(fmt::format("Please answer {}", hint));
+
+    return answer.empty() ? default_answer : std::regex_match(answer, mp::client::yes_answer);
+}
+
 bool mp::BridgePrompter::bridge_prompt(const std::vector<std::string>& nets_need_bridging) const
 {
     assert(nets_need_bridging.size()); // precondition
 
     static constexpr auto plural =
         "Multipass needs to create {} to connect to {}.\nThis will temporarily disrupt "
-        "connectivity on those interfaces.\n\nDo you want to continue (yes/no)? ";
+        "connectivity on those interfaces.\n\nDo you want to continue?";
     static constexpr auto singular =
         "Multipass needs to create a {} to connect to {}.\nThis will temporarily disrupt "
-        "connectivity on that interface.\n\nDo you want to continue (yes/no)? ";
+        "connectivity on that interface.\n\nDo you want to continue?";
     static constexpr auto nodes = on_windows() ? "switches" : "bridges";
     static constexpr auto node = on_windows() ? "switch" : "bridge";
 
-    if (term->is_live())
-    {
-        if (nets_need_bridging.size() != 1)
-            fmt::print(term->cout(), plural, nodes, fmt::join(nets_need_bridging, ", "));
-        else
-            fmt::print(term->cout(), singular, node, nets_need_bridging[0]);
+    if (!term->is_live())
+        return false;
 
-        while (true)
-        {
-            std::string answer;
-            std::getline(term->cin(), answer);
-            if (std::regex_match(answer, mp::client::yes_answer))
-                return true;
-            else if (std::regex_match(answer, mp::client::no_answer))
-                return false;
-            else
-                term->cout() << "Please answer yes/no: ";
-        }
-    }
+    const auto text = nets_need_bridging.size() != 1
+                        ? fmt::format(plural, nodes, fmt::join(nets_need_bridging, ", "))
+                        : fmt::format(singular, node, nets_need_bridging[0]);
 
-    return false;
+    return YesNoPrompter{term}.prompt(text, false);
 }

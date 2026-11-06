@@ -203,7 +203,15 @@ templates_path = [".sphinx/_templates"]
 # NOTE: If undefined, set to None, or empty,
 #       the sphinx_reredirects extension will be disabled.
 
-redirects = {}
+redirects = {
+    "explanation/about-security": "../security/",
+    "reference/command-line-interface/find": "../images/",
+    "reference/command-line-interface/umount": "../unmount/",
+    # These are URLs inherited from the Discourse-hosted documentation at https://discourse.ubuntu.com/t/multipass-documentation/8294.
+    "mount": "../explanation/mount/",
+    "platform": "../explanation/platform/",
+    "explanation/host": "../platform/",
+}
 
 
 ###########################
@@ -234,6 +242,8 @@ linkcheck_retries = 3
 
 linkcheck_anchors_ignore_for_url = [r"https://github\.com/", r"https://matrix\.to/"]
 
+# Excluded documents; past release notes are not maintained, but the index is
+linkcheck_exclude_documents = [r"reference/release-notes/(?!index$)"]
 
 ########################
 # Configuration extras #
@@ -271,12 +281,14 @@ extensions = [
     "sphinxcontrib.cairosvgconverter",
     "sphinx_last_updated_by_git",
     "sphinx_sitemap",
+    "sphinx_structured_toc",
 ]
 
 # Excludes files or directories from processing
 
 exclude_patterns = [
     "doc-cheat-sheet*",
+    "reference/release-notes/RELEASE_NOTES_TEMPLATE.md",
 ]
 
 # Adds custom CSS files, located under 'html_static_path'

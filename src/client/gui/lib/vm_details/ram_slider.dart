@@ -22,10 +22,10 @@ class RamSlider extends ConsumerWidget {
     final daemonInfo = ref.watch(daemonInfoProvider);
     final ram = daemonInfo.when(
       data: (data) => data.memory.toInt(),
-      loading: () => min,
-      error: (_, __) => min,
+      loading: () => min + 1,
+      error: (_, __) => min + 1,
     );
-    final max = math.max(initialValue ?? min, ram);
+    final max = math.max(initialValue ?? min, math.max(min + 1, ram));
 
     return MemorySlider(
       label: l10n.ramSliderLabel,

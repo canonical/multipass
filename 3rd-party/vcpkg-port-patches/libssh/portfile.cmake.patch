@@ -1,0 +1,14 @@
+diff --git a/portfile.cmake b/portfile.cmake
+index 258c83e..067eff1 100644
+--- a/portfile.cmake
++++ b/portfile.cmake
+@@ -10,6 +10,9 @@ vcpkg_extract_source_archive(SOURCE_PATH
+         0003-no-source-write.patch
+         0004-file-permissions-constants.patch
+         android-glob-tilde.diff
++        multipass-patches/0001-connector-stderr.patch
++        multipass-patches/0002-sftpserver-increase-handle-count.patch
++        multipass-patches/0003-fix-handle-realloc-failure.patch
+ )
+ 
+ vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS

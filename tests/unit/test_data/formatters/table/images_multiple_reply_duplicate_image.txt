@@ -1,0 +1,4 @@
+Remote              Image             Aliases                     Version          Description
+core                core18                                        20190520         Ubuntu Core 18
+snapcraft           core18                                        20190520         Snapcraft builder for core18
+

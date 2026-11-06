@@ -193,7 +193,7 @@ elsewhere).<br>
 
 #### C++ (CPP)
 
-**CPP1.** Stick to standard C++20, with the exception of `#pragma once`.<br>
+**CPP1.** Stick to standard C++23, with the exception of `#pragma once`.<br>
 **CPP2.** Prefer `#pragma once` to header guards<br>
 **CPP3.** Prefer enforcing correct usage (prevent misuse) at compilation time.<br>
 **CPP4.** If a type isn't meant to be copied or moved, inherit from `DisabledCopyMove` (either
@@ -335,14 +335,7 @@ Descriptive rules of how releases are obtained from Git.
 
 **REL1.** The trunk of Multipass development happens in the `main` branch, which releases branch out
 of.<br>
-**REL2.** Preferably, release branches contain only commits that are directly reachable from `main`
-or cherry-picked from it.<br>
-**REL3.** Cherry-picked commits in release branches may differ from the original ones only where
-necessary to avoid or fix conflicts.<br>
-**REL4.** In exceptional cases, release branches may contain dedicated commits for bug, build, or
-conflict fixes.<br>
-**REL5.** After a release is published, the corresponding release branch is merged back into
-`main`.<br>
+**REL2.** Bugs are fixed into the next stable-release branch first (`release/XX.XX`). Once a fix is merged into a release branch, its author should open a PR merging that branch into `main`.<br>
 
 # Further Information
 

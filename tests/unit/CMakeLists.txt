@@ -82,11 +82,16 @@ add_executable(multipass_cpp_tests
   test_daemon.cpp
   test_daemon_authenticate.cpp
   test_daemon_clone.cpp
-  test_daemon_find.cpp
+  test_daemon_delete.cpp
+  test_daemon_images.cpp
+  test_daemon_migration_guard.cpp # TODO hyperv migration, remove
   test_daemon_mount.cpp
+  test_daemon_remotes.cpp
   test_daemon_restart.cpp
   test_daemon_snapshot_restore.cpp
+  test_daemon_snapshots.cpp
   test_daemon_start.cpp
+  test_daemon_stop.cpp
   test_daemon_suspend.cpp
   test_daemon_umount.cpp
   test_daemon_wait_ready.cpp
@@ -97,6 +102,7 @@ add_executable(multipass_cpp_tests
   test_file_ops.cpp
   test_format_utils.cpp
   test_global_settings_handlers.cpp
+  test_guest_mount_record.cpp
   test_id_mappings.cpp
   test_image_vault.cpp
   test_image_vault_utils.cpp
@@ -119,6 +125,7 @@ add_executable(multipass_cpp_tests
   test_recursive_dir_iter.cpp
   test_remote_settings_handler.cpp
   test_rust_integration.cpp
+  test_semver_compare.cpp
   test_setting_specs.cpp
   test_settings.cpp
   test_sftp_client.cpp
@@ -149,6 +156,11 @@ add_executable(multipass_cpp_tests
   test_xz_image_decoder.cpp
   test_yaml_node_utils.cpp
 )
+
+# TODO hyperv migration, remove
+if(HCS_ENABLED)
+  target_sources(multipass_cpp_tests PRIVATE test_hyperv_migration_records.cpp)
+endif()
 
 target_include_directories(multipass_cpp_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
@@ -297,6 +309,11 @@ add_subdirectory(${MULTIPASS_PLATFORM})
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})
 endforeach()
+
+# TODO hyperv migration, remove
+if(HCS_ENABLED)
+  add_subdirectory(hyperv_migration)
+endif()
 
 if (UNIX)
   add_subdirectory(unix)

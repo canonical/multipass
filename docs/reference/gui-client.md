@@ -23,7 +23,7 @@ as well as a {ref}`gui-client-tray-icon` menu.
 (gui-client-catalogue-tab)=
 ## Catalogue tab
 
-Here you can browse the available Ubuntu images. The output is equivalent to the one given by `multipass find --only-images`.
+Here you can browse the available Ubuntu, Debian and Fedora images.
 
 ```{figure} /images/gui-client/multipass-gui-catalogue-tab.png
    :width: 720px
@@ -34,16 +34,17 @@ Here you can browse the available Ubuntu images. The output is equivalent to the
 ![Catalogue page](https://assets.ubuntu.com/v1/1edb2dfb-multipass-gui-catalogue-tab.png)
 -->
 
-You can configure an instance's launch options, specifying parameters such as its name, allocated resources and mounts.
+You can configure an instance's launch options, specifying parameters such as its name, allocated resources, mounts and cloud-init user data. You can enter the user data directly in the Cloud-init editor, load it from a file or reset it to the default template.
 
-```{figure} /images/gui-client/multipass-gui-configure-instance.png
+```{figure} /images/gui-client/multipass-gui-configure-instance-1.png
    :width: 720px
-   :alt: GUI client - Configure instance
+   :alt: GUI client - Configure instance name, resources, network and mounts
 ```
 
-<!-- Original image on the Asset Manager
-![Configure instance page](https://assets.ubuntu.com/v1/6a239e67-multipass-gui-configure-instance.png)
--->
+```{figure} /images/gui-client/multipass-gui-configure-instance-2.png
+   :width: 720px
+   :alt: GUI client - Configure instance cloud-init user data
+```
 
 When you launch a VM, you can see details on all the steps taken and be notified of errors.
 
@@ -80,10 +81,6 @@ You can perform actions on an individual instance, such as starting, stopping, s
 <!-- Original image on the Asset Manager
 ![Instance shell page](https://assets.ubuntu.com/v1/740d7ab4-multipass-gui-instance.png)
 -->
-
-```{caution}
-Please note that when you delete an instance using the GUI client, Multipass removes it permanently and they cannot be recovered. This behaviour is equivalent to running the [`multipass delete --purge`](/reference/command-line-interface/delete) command.
-```
 
 You can also edit an instance; in particular, you can change its allocated resources, connect it to a bridged network or edit its mounts. Some of these settings require the instance to be stopped before they can be applied.
 

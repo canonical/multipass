@@ -2,7 +2,7 @@
 # Share data with an instance
 
 ``` {seealso}
-[Instance](explanation-instance), [Mount](explanation-mount), [ID mapping](explanation-id-mapping), [`launch`](reference-command-line-interface-launch), [`mount`](reference-command-line-interface-mount), [`umount`](reference-command-line-interface-umount), [`transfer`](reference-command-line-interface-transfer)
+[Instance](explanation-instance), [Mount](explanation-mount), [ID mapping](explanation-id-mapping), [`launch`](reference-command-line-interface-launch), [`mount`](reference-command-line-interface-mount), [`unmount`](reference-command-line-interface-unmount), [`transfer`](reference-command-line-interface-transfer)
 ```
 
 This guide explains how to share data between your host and an instance. There are two ways to accomplish this:
@@ -34,6 +34,8 @@ Mounts:         /home/michal => /home/michal
 
 From this point the local home directory `/home/michal` will be available inside the instance.
 
+The instance also lists its mounts when you [`shell`](reference-command-line-interface-shell) into it (see {ref}`explanation-mount-in-instance`).
+
 If you want to mount a local directory to a different path in your instance, you can specify the target path as follows:
 
 ```{code-block} text
@@ -54,18 +56,18 @@ multipass launch --mount /local/path:/instance/path
 
 ### Unmounting shared directories
 
-To unmount previously mounted paths, use the [`umount`](reference-command-line-interface-umount) command.
+To unmount previously mounted paths, use the [`unmount`](reference-command-line-interface-unmount) command.
 
 You can specify the folder path to unmount:
 
 ```{code-block} text
-multipass umount keen-yak:/home/michal
+multipass unmount keen-yak:/home/michal
 ```
 
 or, if you don't specify any paths, unmount all shared folders at once:
 
 ```{code-block} text
-multipass umount keen-yak
+multipass unmount keen-yak
 ```
 
 ## Using `transfer`

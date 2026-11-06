@@ -11,7 +11,8 @@
             "zone": {
                 "name": "zone1",
                 "available": true
-            }
+            },
+            "mounts": 2
         }
     ]
 }

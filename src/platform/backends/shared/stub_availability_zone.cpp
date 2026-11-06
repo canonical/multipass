@@ -44,12 +44,4 @@ void StubAvailabilityZone::set_available(bool /*new_available*/)
 {
 }
 
-void StubAvailabilityZone::add_vm(VirtualMachine& /*vm*/)
-{
-}
-
-void StubAvailabilityZone::remove_vm(VirtualMachine& /*vm*/)
-{
-}
-
 } // namespace multipass

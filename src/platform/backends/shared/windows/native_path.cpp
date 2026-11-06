@@ -53,7 +53,7 @@ auto fmt::formatter<NativePath, Char>::format(const NativePath& path, FormatCont
         // FIXME: std::wstring_convert is deprecated
         // FIXME: Create a public utility function for converting UTF-8 `std::string`s
         // to UTF-16 `std::wstring`s. There is multipass::hyperv::to_wstring but it lives under
-        // backends/hyperv_api
+        // backends/hcs
         const auto wide_path = std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>{}.from_bytes(
             escaped_path.data(),
             escaped_path.data() + escaped_path.size());

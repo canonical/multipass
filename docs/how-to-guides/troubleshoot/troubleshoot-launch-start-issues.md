@@ -68,13 +68,6 @@ To find out if something is failing during boot, you'd need to attach to the VM'
     ```
     This will open a QEMU window where you can see the boot output. You may need to select the correct display output (Serial or VGA) from the QEMU menu.
 
-- *(macOS/Windows, VirtualBox driver)* Observe the output in the VirtualBox GUI:
-    1. Run the VirtualBox GUI as admin/root:
-        - \[macOS] `sudo VirtualBox`
-        - \[Windows] Run with `psexec.exe` as explained in {ref}`launch-start-issues-windows-run-virtualbox`.
-    2. Start or launch the instance with `multipass start|launch`.
-    3. Select and attach to the VM in the VirtualBox GUI and observe the boot output. If it eventually arrives at a login screen, it means that the instance should've started correctly.
-
 - *(Windows, Hyper-V driver)*
     1. Open the Hyper-V Manager GUI (look for it in your Start menu).
     2. Start or launch the instance with `multipass start|launch`.
@@ -223,29 +216,19 @@ chpasswd: { expire: false }
 
 - At this point, the initialisation continues in the background, even if you interrupt the launch command or if it times out.
 
-- So if you wait for a little while longer, your instance may eventually finish setting up. When it does, it will have this file: `/var/lib/cloud/instance/boot-finished`.
+- Run `multipass list` or `multipass info <vm-name>` to find the instance and check its state. You can check cloud-init's status with `multipass exec <vm-name> -- cloud-init status`.
+
+- If you wait for a little while longer, your instance may eventually finish setting up. When it does, it will have this file: `/var/lib/cloud/instance/boot-finished`.
     * Consider passing a longer timeout to the `launch` command. For example, `multipass launch --timeout 1000` sets the launch timeout to 1000 seconds.
 
 * You can use `multipass shell` to get a shell in the instance when Multipass is waiting for cloud-init to finish. To diagnose problems, inspect cloud-init's logs in `/var/log/cloud-init*log`.
-
-(launch-start-issues-windows-run-virtualbox)=
-### [Windows, VirtualBox driver] Running VirtualBox with the system account
-
-To run the VirtualBox GUI with the system account, you will need a Windows tool called PsExec:
-
-1. Install [PsExec](https://docs.microsoft.com/en-us/sysinternals/downloads/psexec).
-1. Add it to your `PATH`.
-1. Run PowerShell as Administrator.
-1. Execute `psexec.exe -s -i "C:\Program Files\Oracle\VirtualBox\VirtualBox.exe"` (adapt the path to the VirtualBox executable as needed).
-
-When successful, you should see Multipass's instances in VirtualBox
 
 (launch-start-issues-stale-network-cache)=
 ### Stale network cache
 
 This can be caused by a known Qt bug (see issue [#1714](https://github.com/canonical/multipass/issues/1714) on our GitHub).
 
-A workaround to resolve this issue is to run the command `multipass find --force-update`, which forces downloading the image information from the network. As a result, if the download is successful, the `network-cache` will be overwritten.
+A workaround to resolve this issue is to run the command `multipass images --force-update`, which forces downloading the image information from the network. As a result, if the download is successful, the `network-cache` will be overwritten.
 
 Alternatively, try deleting the `network-cache` folder and restart the Multipass service:
 

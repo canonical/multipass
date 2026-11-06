@@ -34,10 +34,11 @@ public:
                    std::shared_ptr<Snapshot> parent,
                    const std::string& vm_name,
                    HyperVVirtualMachine& vm,
+                   VirtualMachineDescription& desc,
                    PowerShell& power_shell);
     HyperVSnapshot(const std::filesystem::path& filename,
                    HyperVVirtualMachine& vm,
-                   const VirtualMachineDescription& desc,
+                   VirtualMachineDescription& desc,
                    PowerShell& power_shell);
 
 protected:

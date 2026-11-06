@@ -9,9 +9,9 @@
             }
         }
     },
-    "vmStatusLabel": "{status, select, running{Running} stopped{Stopped} suspended{Suspended} restarting{Restarting} starting{Starting} suspending{Suspending} deleted{Deleted} delayed_shutdown{Delayed shutdown} launching{Launching} unavailable{Unavailable} other{}}",
+    "vmStatusLabel": "{status, select, running{Running} stopped{Stopped} suspended{Suspended} restarting{Restarting} starting{Starting} suspending{Suspending} deleted{Deleted} delayed_shutdown{Delayed shutdown} launching{Launching} unavailable{Unavailable} other{Unknown}}",
     "@vmStatusLabel": {
-        "description": "Display label for a VM status. The 'status' parameter is the lowercase protobuf enum name (running, stopped, suspended, restarting, starting, suspending, deleted, delayed_shutdown) or 'launching'.",
+        "description": "Display label for a VM status. The 'status' parameter is the lowercase protobuf enum name (running, stopped, suspended, restarting, starting, suspending, deleted, delayed_shutdown, unavailable) or 'launching'. Any other value, including 'unknown', falls back to 'other'.",
         "placeholders": {
             "status": {
                 "type": "String"
@@ -157,7 +157,7 @@
             }
         }
     },
-    "deleteInstanceBody": "{count, plural, =1{You can't recover this instance.} other{You can't recover these instances.}}",
+    "deleteInstanceBody": "{count, plural, =1{Are you sure you want to delete this instance?} other{Are you sure you want to delete these instances?}}",
     "@deleteInstanceBody": {
         "description": "Body text of the delete instance confirmation dialog",
         "placeholders": {
@@ -343,6 +343,34 @@
                 "type": "String"
             }
         }
+    },
+    "migrationInProgress": "Migrating instances to Host Compute System (HCS)\n",
+    "@migrationInProgress": {
+        "description": "Bold heading in the notification shown while instances migrate to the hcs driver"
+    },
+    "migrationDone": "Switched to Host Compute System (HCS)\n",
+    "@migrationDone": {
+        "description": "Bold heading in the notification shown when switching to the hcs driver finished"
+    },
+    "migrationDoneWithProblems": "Switched to Host Compute System (HCS), but not every instance was migrated\n",
+    "@migrationDoneWithProblems": {
+        "description": "Bold heading in the notification shown when the hcs driver is in effect but some instances failed to migrate"
+    },
+    "migrationQuitTitle": "Quit during migration?",
+    "@migrationQuitTitle": {
+        "description": "Title of the dialog shown when quitting the app while instances migrate to the hcs driver"
+    },
+    "migrationQuitMessage": "Instances are being migrated to Host Compute System (HCS). Quitting now stops the migration after the current instance: the driver is still switched, but the remaining instances are not migrated.",
+    "@migrationQuitMessage": {
+        "description": "Body of the dialog shown when quitting the app while instances migrate to the hcs driver"
+    },
+    "migrationQuitAction": "Quit anyway",
+    "@migrationQuitAction": {
+        "description": "Button that quits the app, stopping the ongoing migration"
+    },
+    "migrationQuitKeepAction": "Keep migrating",
+    "@migrationQuitKeepAction": {
+        "description": "Button that closes the dialog and lets the migration continue"
     },
     "virtualizationBridgedNetworkNone": "None",
     "@virtualizationBridgedNetworkNone": {
@@ -575,6 +603,10 @@
     "@vmDetailsStopToConfigure": {
         "description": "Tooltip shown on the Configure button when the instance is running"
     },
+    "vmDetailsUnavailableToMount": "Instance is unavailable",
+    "@vmDetailsUnavailableToMount": {
+        "description": "Tooltip shown on the mounts Add mount/Configure buttons when the instance is unavailable"
+    },
     "resourcesTitle": "Resources",
     "@resourcesTitle": {
         "description": "Section heading on the Resources details tab"
@@ -787,6 +819,40 @@
             }
         }
     },
+    "vmTableZonesMakeUnavailablePopupTitle": "Make {zone} unavailable",
+    "@vmTableZonesMakeUnavailablePopupTitle": {
+        "description": "Title of the popup opened when trying to disable a zone containing unstopped instances",
+        "placeholders": {
+            "zone": {
+                "type": "String",
+                "description": "Identifier of the zone"
+            }
+        }
+    },
+    "vmTableZonesMakeUnavailablePopupContent": "{unstopped, plural, =1{There is an instance in this zone that is not stopped} other{There are {unstopped} instances in this zone that are not stopped}}. When {zone} becomes unavailable, {unstopped, plural, =1{it} other{they}} will be forced-stopped and you may lose data.",
+    "@vmTableZonesMakeUnavailablePopupContent": {
+        "description": "Content of the popup opened when trying to disable a zone containing unstopped instances",
+        "placeholders": {
+            "unstopped": {
+                "type": "int",
+                "description": "Number of unstopped VM instances"
+            },
+            "zone": {
+                "type": "String",
+                "description": "Identifier of the zone"
+            }
+        }
+    },
+    "vmTableZonesMakeUnavailablePopupAction": "Force-stop {unstopped, plural, =1{instance} other{instances}}",
+    "@vmTableZonesMakeUnavailablePopupAction": {
+        "description": "Label of the action button of the popup opened when trying to disable a zone containing unstopped instances",
+        "placeholders": {
+            "unstopped": {
+                "type": "int",
+                "description": "Number of unstopped VM instances"
+            }
+        }
+    },
     "commonLaunch": "Launch",
     "@commonLaunch": {
         "description": "Button label that opens the catalogue to launch a new instance"
@@ -983,6 +1049,35 @@
     "launchFormSelectedZoneUnavailableTooltip": "Enable selected zone to launch",
     "@launchFormSelectedZoneUnavailableTooltip": {
         "description": "Launch button tooltip when selected zone is unavailable"
+    },
+    "launchFormCloudInitTitle": "Cloud-init",
+    "@launchFormCloudInitTitle": {
+        "description": "Title of the cloud-init section in the launch form"
+    },
+    "launchFormCloudInitDescription": "Customize this instance at first boot by writing a cloud-init user data file.",
+    "@launchFormCloudInitDescription": {
+        "description": "Description of the cloud-init input in the launch form"
+    },
+    "launchFormCloudInitUserDataLabel": "User data",
+    "@launchFormCloudInitUserDataLabel": {
+        "description": "Label for the cloud-init user data editor"
+    },
+    "launchFormCloudInitLoadFile": "Load file",
+    "@launchFormCloudInitLoadFile": {
+        "description": "Button label for loading a cloud-init file"
+    },
+    "launchFormCloudInitReset": "Reset",
+    "@launchFormCloudInitReset": {
+        "description": "Button label for resetting cloud-init content"
+    },
+    "launchFormCloudInitFileError": "Could not read cloud-init file: {error}",
+    "@launchFormCloudInitFileError": {
+        "description": "Error shown when a selected cloud-init file cannot be read",
+        "placeholders": {
+            "error": {
+                "type": "String"
+            }
+        }
     },
     "trayToggleWindow": "Toggle window",
     "@trayToggleWindow": {

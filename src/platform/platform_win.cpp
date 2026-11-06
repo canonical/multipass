@@ -28,10 +28,8 @@
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
+#include "backends/hcs/hcs_virtual_machine_factory.h"
 #include "backends/hyperv/hyperv_virtual_machine_factory.h"
-#include "backends/hyperv_api/hcs_virtual_machine_factory.h"
-#include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
-#include "hyperv_api/hyperv_api_string_conversion.h"
 #include "logger/win_event_logger.h"
 #include "shared/sshfs_server_process_spec.h"
 #include "shared/windows/powershell.h"
@@ -77,6 +75,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 
 #include <libssh/sftp.h>
 
@@ -268,10 +267,10 @@ Json::Value update_profiles(const QString& path,
     Json::Value ret = json_root;
     auto& profiles = edit_profiles(path, ret);
 
-    auto primary_profile_it =
-        std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
-            return profile["guid"] == mp::winterm_profile_guid;
-        });
+    auto primary_profile_it = std::find_if(
+        std::begin(profiles),
+        std::end(profiles),
+        [](const auto& profile) { return profile["guid"] == mp::winterm_profile_guid; });
 
     Json::Value* primary_profile_ptr = nullptr;
     if (primary_profile_it != std::end(profiles))
@@ -378,15 +377,16 @@ QString systemprofile_app_data_path()
 
 [[nodiscard]] mp::fs::path get_wellknown_path(REFKNOWNFOLDERID rfid)
 {
-    PWSTR out = nullptr;
-    auto guard = sg::make_scope_guard([&out]() noexcept { ::CoTaskMemFree(out); });
+    // The buffer must be freed even when the call fails.
+    std::unique_ptr<wchar_t, decltype(&::CoTaskMemFree)> out{nullptr, ::CoTaskMemFree};
 
-    if (auto err = SHGetKnownFolderPath(rfid, KF_FLAG_DEFAULT, NULL, &out); err != S_OK)
+    if (auto err = SHGetKnownFolderPath(rfid, KF_FLAG_DEFAULT, NULL, std::out_ptr(out));
+        err != S_OK)
     {
         throw std::system_error(err, std::system_category(), "Failed to get well known path");
     }
 
-    return out;
+    return out.get();
 }
 
 DWORD set_privilege(HANDLE handle, LPCTSTR privilege, bool enable)
@@ -413,13 +413,9 @@ DWORD set_privilege(HANDLE handle, LPCTSTR privilege, bool enable)
 DWORD set_file_owner(LPSTR path, PSID new_owner)
 {
     std::unique_ptr<void, decltype(&CloseHandle)> token(nullptr, CloseHandle);
-    if (HANDLE t; !OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &t))
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, std::out_ptr(token)))
     {
         return GetLastError();
-    }
-    else
-    {
-        token.reset(t);
     }
 
     if (auto err = set_privilege(token.get(), SE_TAKE_OWNERSHIP_NAME, true); err != ERROR_SUCCESS)
@@ -440,8 +436,10 @@ DWORD set_file_owner(LPSTR path, PSID new_owner)
 
 DWORD set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask, bool inherit)
 {
-    PACL pOldDACL = NULL, pDACL = NULL;
-    PSECURITY_DESCRIPTOR pSD = NULL;
+    // pOldDACL points into pSD, so it is borrowed rather than owned.
+    PACL pOldDACL = NULL;
+    std::unique_ptr<SECURITY_DESCRIPTOR, decltype(&LocalFree)> pSD{nullptr, LocalFree};
+    std::unique_ptr<ACL, decltype(&LocalFree)> pDACL{nullptr, LocalFree};
     EXPLICIT_ACCESS ea;
 
     GetNamedSecurityInfo(path,
@@ -451,7 +449,7 @@ DWORD set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask, bool inherit)
                          NULL,
                          &pOldDACL,
                          NULL,
-                         &pSD);
+                         std::out_ptr(pSD));
 
     ZeroMemory(&ea, sizeof(EXPLICIT_ACCESS));
 
@@ -462,21 +460,16 @@ DWORD set_specific_perms(LPSTR path, PSID pSid, DWORD access_mask, bool inherit)
     ea.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
     ea.Trustee.ptstrName = (LPTSTR)pSid;
 
-    SetEntriesInAcl(1, &ea, pOldDACL, &pDACL);
-    auto error_code = SetNamedSecurityInfo(path,
-                                           SE_FILE_OBJECT,
-                                           DACL_SECURITY_INFORMATION |
-                                               ((inherit) ? UNPROTECTED_DACL_SECURITY_INFORMATION
-                                                          : PROTECTED_DACL_SECURITY_INFORMATION),
-                                           NULL,
-                                           NULL,
-                                           pDACL,
-                                           NULL);
-
-    LocalFree((HLOCAL)pSD);
-    LocalFree((HLOCAL)pDACL);
-
-    return error_code;
+    SetEntriesInAcl(1, &ea, pOldDACL, std::out_ptr(pDACL));
+    return SetNamedSecurityInfo(path,
+                                SE_FILE_OBJECT,
+                                DACL_SECURITY_INFORMATION |
+                                    ((inherit) ? UNPROTECTED_DACL_SECURITY_INFORMATION
+                                               : PROTECTED_DACL_SECURITY_INFORMATION),
+                                NULL,
+                                NULL,
+                                pDACL.get(),
+                                NULL);
 }
 
 // returns a PSID unique_ptr for a well known pid
@@ -674,14 +667,14 @@ std::vector<std::string> unicast_addrs_to_net_addrs(
         switch (sa.sa_family)
         {
         case AF_INET:
-            network_addr =
-                ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN*>(&sa)->sin_addr,
-                                      unicast_addr->OnLinkPrefixLength);
+            network_addr = ip_utils().to_network(
+                reinterpret_cast<const SOCKADDR_IN*>(&sa)->sin_addr,
+                unicast_addr->OnLinkPrefixLength);
             break;
         case AF_INET6:
-            network_addr =
-                ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN6*>(&sa)->sin6_addr,
-                                      unicast_addr->OnLinkPrefixLength);
+            network_addr = ip_utils().to_network(
+                reinterpret_cast<const SOCKADDR_IN6*>(&sa)->sin6_addr,
+                unicast_addr->OnLinkPrefixLength);
             break;
         }
 
@@ -783,14 +776,12 @@ mp::platform::Platform::get_network_interfaces_info() const
     {
         if (netinfo.links.empty())
         {
-            constexpr static auto name_fmtstr = hyperv::string_literal<wchar_t>("vEthernet ({})");
-            const std::wstring search = name_fmtstr.format(netinfo.id);
+            const auto search = fmt::format("vEthernet ({})", netinfo.id);
             for (auto pitr = adapters.get(); pitr; pitr = pitr->Next)
             {
                 const auto& adapter = *pitr;
-                std::wstring name{adapter.FriendlyName};
 
-                if (name == search)
+                if (wchar_to_utf8(adapter.FriendlyName) == search)
                 {
                     netinfo.links = unicast_addrs_to_net_addrs(adapter.FirstUnicastAddress);
                     break;
@@ -805,7 +796,6 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
     constexpr std::string_view supported_backends[] = {
         "hyperv",
-        "virtualbox",
         "hcs",
     };
     return std::ranges::any_of(supported_backends,
@@ -862,7 +852,7 @@ void mp::platform::sync_winterm_profiles()
 
 std::string mp::platform::default_server_address()
 {
-    return {"localhost:50051"};
+    return default_grpc_server_tcp_listen_address;
 }
 
 QString mp::platform::Platform::default_driver() const
@@ -920,23 +910,13 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
     }
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir,
-                                                         AvailabilityZoneManager& az_manager)
+std::unique_ptr<mp::VirtualMachineFactory>
+mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_manager)
 {
     const auto driver = MP_SETTINGS.get(mp::driver_key);
 
     if (driver == QStringLiteral("hyperv"))
         return std::make_unique<HyperVVirtualMachineFactory>(data_dir, az_manager);
-    else if (driver == QStringLiteral("virtualbox"))
-    {
-        qputenv("Path", qgetenv("Path") + ";C:\\Program Files\\Oracle\\VirtualBox"); /*
-          This is where the Virtualbox installer puts things, and relying on PATH
-          allows the user to do something about it, if the binaries are not found
-          there.
-        */
-
-        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
-    }
     else if (driver == "hcs")
     {
         return std::make_unique<hyperv::HCSVirtualMachineFactory>(data_dir, az_manager);
@@ -948,7 +928,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 bool mp::platform::backend_supports_availability_zones()
 {
     const auto driver = MP_SETTINGS.get(mp::driver_key);
-    return driver != QStringLiteral("hyperv") && driver != QStringLiteral("virtualbox");
+    return driver != QStringLiteral("hyperv");
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(
@@ -990,9 +970,8 @@ auto new_ACL(LPSTR path)
     auto deleter = [](ACL* acl) noexcept { return LocalFree(HLOCAL(acl)); };
     auto newACL = std::unique_ptr<ACL, decltype(deleter)>{NULL, deleter};
 
-    PSECURITY_DESCRIPTOR pSD{nullptr};
-    auto pSD_guard = sg::make_scope_guard([&pSD]() noexcept { LocalFree((HLOCAL)(pSD)); });
-
+    // pOldDACL points into pSD, so it is borrowed rather than owned.
+    std::unique_ptr<SECURITY_DESCRIPTOR, decltype(&LocalFree)> pSD{nullptr, LocalFree};
     PACL pOldDACL = nullptr;
     if (GetNamedSecurityInfo(path,
                              SE_FILE_OBJECT,
@@ -1001,7 +980,7 @@ auto new_ACL(LPSTR path)
                              NULL,
                              &pOldDACL,
                              NULL,
-                             &pSD) != ERROR_SUCCESS)
+                             std::out_ptr(pSD)) != ERROR_SUCCESS)
     {
         return newACL;
     }
@@ -1024,17 +1003,14 @@ auto new_ACL(LPSTR path)
         PSID sid = (PSID)(&pACE->SidStart);
 
         // convert SID to string so we can examine it.
-        LPSTR sidStr = NULL;
-        if (ConvertSidToStringSid(sid, &sidStr))
+        std::unique_ptr<char, decltype(&LocalFree)> sidStr{nullptr, LocalFree};
+        if (ConvertSidToStringSid(sid, std::out_ptr(sidStr)))
         {
             // Magic string given to us by
             // https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers#well-known-sids
             // All Hyper-V SIDs begin with this magic string.
             static constexpr char VM_SID_ID[] = "S-1-5-83-";
-            auto cmp = strncmp(sidStr, VM_SID_ID, sizeof(VM_SID_ID) - 1);
-            LocalFree((HLOCAL)sidStr);
-
-            if (cmp == 0)
+            if (strncmp(sidStr.get(), VM_SID_ID, sizeof(VM_SID_ID) - 1) == 0)
             {
                 aces.emplace_back(pACE);
                 size += GetLengthSid(sid);
@@ -1261,8 +1237,8 @@ QString mp::platform::Platform::multipass_storage_location() const
     }
 
     auto program_data_path = program_data_multipass_path();
-    auto systemprofile_roaming_path =
-        QDir{systemprofile_app_data_path()}.absoluteFilePath("Roaming");
+    auto systemprofile_roaming_path = QDir{systemprofile_app_data_path()}.absoluteFilePath(
+        "Roaming");
 
     // If %PROGRAMDATA%\Multipass exists or if
     // %SYSTEMROOT%\system32\config\AppData\Roaming\multipassd doesn't exist, use

@@ -20,7 +20,7 @@ The original Hyperkit instances are retained until explicitly deleted. You can a
 
 ```{code-block} text
 multipass set local.driver=hyperkit
-multipass delete [-p] <instance> [...]
+multipass delete [--force] <instance> [...]
 multipass set local.driver=qemu
 ```
 

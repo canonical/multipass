@@ -52,12 +52,24 @@ std::map<std::string, YAML::Node> format_images(const ImageInfo& images_info)
         image_node["os"] = image.os();
         image_node["release"] = image.release();
         image_node["version"] = image.version();
+        image_node["hash"] = image.hash();
         image_node["remote"] = image.remote_name();
 
         images_node[mp::format::image_string_for(image.remote_name(), aliases[0])] = image_node;
     }
 
     return images_node;
+}
+
+YAML::Node format_zone(const mp::Zone& zone)
+{
+    if (zone.name().empty())
+        return YAML::Node(YAML::NodeType::Null);
+
+    YAML::Node zone_node;
+    zone_node["name"] = zone.name();
+    zone_node["available"] = zone.available();
+    return zone_node;
 }
 
 YAML::Node generate_snapshot_details(const mp::DetailedInfoItem& item)
@@ -102,16 +114,7 @@ YAML::Node generate_instance_details(const mp::DetailedInfoItem& item)
     YAML::Node instance_node;
 
     instance_node["state"] = mp::format::status_string_for(item.instance_status());
-    if (!item.zone().name().empty())
-    {
-        instance_node["zone"] = YAML::Node{};
-        instance_node["zone"]["name"] = item.zone().name();
-        instance_node["zone"]["available"] = item.zone().available();
-    }
-    else
-    {
-        instance_node["zone"] = YAML::Node(YAML::NodeType::Null);
-    }
+    instance_node["zone"] = format_zone(item.zone());
 
     if (instance_details.has_num_snapshots())
         instance_node["snapshot_count"] = instance_details.num_snapshots();
@@ -200,16 +203,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     {
         YAML::Node instance_node;
         instance_node["state"] = mp::format::status_string_for(instance.instance_status());
-        if (!instance.zone().name().empty())
-        {
-            instance_node["zone"] = YAML::Node{};
-            instance_node["zone"]["name"] = instance.zone().name();
-            instance_node["zone"]["available"] = instance.zone().available();
-        }
-        else
-        {
-            instance_node["zone"] = YAML::Node(YAML::NodeType::Null);
-        }
+        instance_node["zone"] = format_zone(instance.zone());
 
         instance_node["ipv4"] = YAML::Node(YAML::NodeType::Sequence);
         for (const auto& ip : instance.ipv4())
@@ -220,6 +214,7 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                                      : mp::utils::trim(fmt::format("{} {}",
                                                                    instance.os(),
                                                                    instance.current_release()));
+        instance_node["mounts"] = instance.mount_count();
 
         list[instance.name()].push_back(instance_node);
     }
@@ -296,6 +291,11 @@ std::string mp::YamlFormatter::format(const ListReply& reply) const
     return output;
 }
 
+std::string mp::YamlFormatter::format(const SnapshotsReply& reply) const
+{
+    return generate_snapshots_list(reply.snapshot_list());
+}
+
 std::string mp::YamlFormatter::format(const NetworksReply& reply) const
 {
     YAML::Node list;
@@ -312,13 +312,28 @@ std::string mp::YamlFormatter::format(const NetworksReply& reply) const
     return mpu::emit_yaml(list);
 }
 
-std::string mp::YamlFormatter::format(const FindReply& reply) const
+std::string mp::YamlFormatter::format(const RemotesReply& reply) const
 {
-    YAML::Node find;
-    find["errors"] = std::vector<YAML::Node>{};
-    find["images"] = format_images(reply.images_info());
+    YAML::Node result;
+    result["remotes"] = std::vector<YAML::Node>{};
 
-    return mpu::emit_yaml(find);
+    auto sorted_remotes = reply.remotes();
+    std::ranges::sort(sorted_remotes);
+    for (const auto& remote : sorted_remotes)
+    {
+        result["remotes"].push_back(remote);
+    }
+
+    return mpu::emit_yaml(result);
+}
+
+std::string mp::YamlFormatter::format(const ImagesReply& reply) const
+{
+    YAML::Node result;
+    result["errors"] = std::vector<YAML::Node>{};
+    result["images"] = format_images(reply.images_info());
+
+    return mpu::emit_yaml(result);
 }
 
 std::string mp::YamlFormatter::format(const VersionReply& reply,

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 
 #
 # Copyright (C) Canonical, Ltd.
@@ -17,22 +16,10 @@
 #
 #
 
+import json
 import shutil
 import contextlib
-import sys
-import subprocess
 from pathlib import Path
-
-
-def _nuke_vbox_frontends():
-    """
-    Kill VBoxHeadless processes on Windows.
-    """
-
-    if sys.platform != "win32":
-        return
-    # We cannot remove the instances folder while the instances are in use.
-    subprocess.run(["taskkill", "/IM", "VBoxHeadless.exe", "/F"], check=False)
 
 
 def nuke_all_instances(data_dir, driver):
@@ -41,10 +28,7 @@ def nuke_all_instances(data_dir, driver):
 
     data_dir = Path(data_dir)
 
-    backend_dirs = [data_dir / "qemu", data_dir / "virtualbox"]
-
-    if driver == "virtualbox":
-        _nuke_vbox_frontends()
+    backend_dirs = [data_dir / "qemu"]
 
     for instance_root in [data_dir, *backend_dirs]:
         vault_dir = instance_root / "vault"
@@ -59,3 +43,15 @@ def nuke_all_instances(data_dir, driver):
         with contextlib.suppress(FileNotFoundError):
             with open(instance_records_file, "r+", encoding="utf-8") as f:
                 f.truncate(0)
+
+
+def flag_instance_deleted(instance_db, name):
+    """Mark an instance as deleted in the daemon's instance database, the way `multipass delete`
+    did before it became permanent. The daemon must be stopped."""
+
+    with open(instance_db, "r+", encoding="utf-8") as f:  # r+ preserves permissions
+        records = json.load(f)
+        records[name]["deleted"] = True
+        f.seek(0)
+        json.dump(records, f, indent=4)
+        f.truncate()

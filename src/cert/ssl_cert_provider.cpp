@@ -165,10 +165,10 @@ private:
                       "EVP_PKEY_CTX_set_params() failed");
 
         // Generate the key
-        EVP_PKEY* raw_key = nullptr;
-        openssl_check(EVP_PKEY_generate(ctx.get(), &raw_key), "Failed to generate EC key");
+        EVPKeyPtr key{nullptr, EVP_PKEY_free};
+        openssl_check(EVP_PKEY_generate(ctx.get(), std::out_ptr(key)), "Failed to generate EC key");
 
-        return EVPKeyPtr(raw_key, EVP_PKEY_free);
+        return key;
     }
 
     EVPKeyPtr key;

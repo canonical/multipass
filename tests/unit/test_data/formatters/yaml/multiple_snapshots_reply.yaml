@@ -1,0 +1,17 @@
+hale-roller:
+  - pristine:
+      - parent: ~
+        comment: A first snapshot
+  - rocking:
+      - parent: pristine
+        comment: A very long comment that should be truncated by the table formatter
+  - rolling:
+      - parent: pristine
+        comment: Loaded with stuff
+prosperous-spadefish:
+  - snapshot2:
+      - parent: ~
+        comment: "Before restoring snap1\nContains a newline that\r\nshould be truncated"
+  - snapshot10:
+      - parent: snapshot2
+        comment: ~

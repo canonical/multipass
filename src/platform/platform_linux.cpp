@@ -32,10 +32,6 @@
 
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 
-#ifdef VIRTUALBOX_ENABLED
-#include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
-#endif
-
 #ifdef MULTIPASS_JOURNALD_ENABLED
 #include "logger/journald_logger.h"
 #else
@@ -85,8 +81,9 @@ int get_net_type(const QDir& net_dir) // types defined in if_arp.h
         return ok ? got : default_ret;
     }
 
-    auto snap_hint =
-        mpu::in_multipass_snap() ? " Is the 'network-observe' snap interface connected?" : "";
+    auto snap_hint = mpu::in_multipass_snap()
+                       ? " Is the 'network-observe' snap interface connected?"
+                       : "";
     mpl::warn(category, "Could not read {}.{}", type_file.fileName(), snap_hint);
 
     return default_ret;
@@ -98,8 +95,8 @@ QString get_net_devtype(const QDir& net_dir)
 {
     static constexpr auto max_read = 5000;
     static const auto uevent_filename = QStringLiteral("uevent");
-    static const auto devtype_regex =
-        QRegularExpression{QStringLiteral("^DEVTYPE=(.*)$"), QRegularExpression::MultilineOption};
+    static const auto devtype_regex = QRegularExpression{QStringLiteral("^DEVTYPE=(.*)$"),
+                                                         QRegularExpression::MultilineOption};
 
     QFile uevent_file{net_dir.filePath(uevent_filename)};
     if (uevent_file.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -135,8 +132,8 @@ std::optional<mp::NetworkInterfaceInfo> get_network(const QDir& net_dir)
     if (net_dir.exists(br_nomenclature))
     {
         std::vector<std::string> links;
-        QStringList bridge_members =
-            QDir{net_dir.filePath(bridge_fname)}.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+        QStringList bridge_members = QDir{net_dir.filePath(bridge_fname)}.entryList(
+            QDir::NoDotAndDotDot | QDir::Dirs);
 
         links.reserve(bridge_members.size());
         std::transform(bridge_members.cbegin(),
@@ -162,17 +159,14 @@ void update_bridges(std::map<std::string, mp::NetworkInterfaceInfo>& networks)
         if (auto& net = item.second; net.type == br_nomenclature)
         { // bridge descriptions and links depend on what other networks we recognized
             auto& links = net.links;
-            auto is_unknown = [&networks](const std::string& id) {
-                auto same_as = [&id](const auto& other) { return other.first == id; };
-                return std::find_if(networks.cbegin(), networks.cend(), same_as) == networks.cend();
-            };
-            links.erase(std::remove_if(links.begin(), links.end(), is_unknown),
-                        links.end()); // filter links to networks we don't recognize
+            // filter links to networks we don't recognize
+            std::erase_if(links,
+                          [&networks](const std::string& id) { return !networks.contains(id); });
 
             net.description = links.empty()
-                                  ? "Network bridge"
-                                  : fmt::format("Network bridge with {}",
-                                                fmt::join(links.cbegin(), links.cend(), ", "));
+                                ? "Network bridge"
+                                : fmt::format("Network bridge with {}",
+                                              fmt::join(links.cbegin(), links.cend(), ", "));
         }
     }
 }
@@ -259,11 +253,7 @@ mp::platform::Platform::get_network_interfaces_info() const
 
 bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 {
-    return
-#ifdef VIRTUALBOX_ENABLED
-        backend == "virtualbox" ||
-#endif
-        backend == "qemu";
+    return backend == "qemu";
 }
 
 bool mp::platform::Platform::link(const char* target, const char* link) const
@@ -281,8 +271,8 @@ QDir mp::platform::Platform::get_alias_scripts_folder() const
     }
     else
     {
-        QString location =
-            MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) + "/bin";
+        QString location = MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) +
+                           "/bin";
         aliases_folder = QDir{location};
     }
 
@@ -294,10 +284,11 @@ void mp::platform::Platform::create_alias_script(const std::string& alias,
 {
     std::string file_path = get_alias_script_path(alias);
 
-    std::string multipass_exec =
-        mpu::in_multipass_snap()
-            ? "exec /usr/bin/snap run multipass"
-            : fmt::format("{:?}", QCoreApplication::applicationFilePath().toStdString());
+    std::string multipass_exec = mpu::in_multipass_snap()
+                                   ? "exec /usr/bin/snap run multipass"
+                                   : fmt::format(
+                                         "{:?}",
+                                         QCoreApplication::applicationFilePath().toStdString());
 
     std::string script = "#!/bin/sh\n\n" + multipass_exec + " " + alias + " -- \"${@}\"\n";
 
@@ -360,8 +351,8 @@ const QRegularExpression subnet_regex(
 
 bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const
 {
-    const auto output =
-        QString::fromStdString(MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}));
+    const auto output = QString::fromStdString(
+        MP_UTILS.run_cmd_for_output("ip", {"-4", "route", "show"}));
 
     QRegularExpressionMatchIterator i = subnet_regex.globalMatch(output);
 
@@ -449,25 +440,19 @@ std::string mp::platform::default_server_address()
     return "unix:" + base_dir + "/multipass_socket";
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir,
-                                                         AvailabilityZoneManager& az_manager)
+std::unique_ptr<mp::VirtualMachineFactory>
+mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_manager)
 {
     const auto& driver = MP_SETTINGS.get(mp::driver_key);
     if (driver == QStringLiteral("qemu"))
         return std::make_unique<QemuVirtualMachineFactory>(data_dir, az_manager);
-
-#if VIRTUALBOX_ENABLED
-    if (driver == QStringLiteral("virtualbox"))
-        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
-#endif
 
     throw std::runtime_error(fmt::format("Unsupported virtualization driver: {}", driver));
 }
 
 bool mp::platform::backend_supports_availability_zones()
 {
-    const auto& driver = MP_SETTINGS.get(mp::driver_key);
-    return driver != QStringLiteral("virtualbox");
+    return true;
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(
@@ -504,16 +489,16 @@ std::string mp::platform::reinterpret_interface_id(const std::string& ux_id)
 std::string multipass::platform::host_version()
 {
     return mpu::in_multipass_snap()
-               ? multipass::platform::detail::read_os_release()
-               : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
+             ? multipass::platform::detail::read_os_release()
+             : fmt::format("{}-{}", QSysInfo::productType(), QSysInfo::productVersion());
 }
 
 std::filesystem::path mp::platform::Platform::get_root_cert_dir() const
 {
     using Path = std::filesystem::path;
     const auto base_dir = utils::in_multipass_snap()
-                              ? Path{utils::snap_common_dir().toStdString()} / "data"
-                              : Path{"/usr/local/etc"};
+                            ? Path{utils::snap_common_dir().toStdString()} / "data"
+                            : Path{"/usr/local/etc"};
 
     return base_dir / daemon_name;
 }

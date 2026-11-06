@@ -21,6 +21,7 @@
 #include <multipass/cli/table_formatter.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
+#include <multipass/user_messages/images_messages.h>
 #include <multipass/utils.h>
 #include <multipass/utils/sorted_map_view.h>
 
@@ -34,21 +35,30 @@ const std::regex newline("(\r\n|\n)");
 
 template <typename Dest>
 void format_images(Dest&& dest,
-                   const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info)
+                   const google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>& images_info,
+                   bool show_remotes)
 {
+    if (show_remotes)
+    {
+        fmt::format_to(dest, "{:<20}", "Remote");
+    }
+
     fmt::format_to(dest, "{:<18}{:<28}{:<17}{:<}\n", "Image", "Aliases", "Version", "Description");
 
     auto sorted_images = images_info;
     std::sort(sorted_images.begin(),
               sorted_images.end(),
-              [](const mp::FindReply_ImageInfo& a, const mp::FindReply_ImageInfo& b) {
-                  if (a.remote_name() == b.remote_name())
-                  {
-                      return (!a.aliases().empty() && !b.aliases().empty()) &&
-                             a.aliases()[0] < b.aliases()[0];
-                  }
-
-                  return a.remote_name() > b.remote_name();
+              [](const mp::ImagesReply_ImageInfo& a, const mp::ImagesReply_ImageInfo& b) {
+                  return std::forward_as_tuple(!a.is_default_remote(),
+                                               a.remote_name().empty(),
+                                               a.remote_name(),
+                                               !a.aliases().empty(),
+                                               a.aliases().empty() ? "" : a.aliases()[0]) <
+                         std::forward_as_tuple(!b.is_default_remote(),
+                                               b.remote_name().empty(),
+                                               b.remote_name(),
+                                               !b.aliases().empty(),
+                                               b.aliases().empty() ? "" : b.aliases()[0]);
               });
 
     for (const auto& image : sorted_images)
@@ -56,14 +66,22 @@ void format_images(Dest&& dest,
         auto aliases = image.aliases();
         mp::format::filter_aliases(aliases);
 
+        if (show_remotes)
+        {
+            fmt::format_to(dest,
+                           "{:<20}",
+                           image.is_default_remote() ? "(default)" : image.remote_name());
+        }
+
         fmt::format_to(
             dest,
             "{:<18}{:<28}{:<17}{:<}\n",
-            mp::format::image_string_for(image.remote_name(), aliases[0]),
+            aliases[0],
             fmt::format("{}", fmt::join(aliases.cbegin() + 1, aliases.cend(), ",")),
             image.version(),
             fmt::format("{}{}", image.os().empty() ? "" : image.os() + " ", image.release()));
     }
+
     fmt::format_to(dest, "\n");
 }
 
@@ -74,6 +92,13 @@ std::string to_usage(const std::string& usage, const std::string& total)
     return fmt::format("{} out of {}",
                        mp::MemorySize{usage}.human_readable(),
                        mp::MemorySize{total}.human_readable());
+}
+
+std::string format_zone(const mp::Zone& zone)
+{
+    if (zone.name().empty())
+        return "n/a";
+    return fmt::format("{}{}", zone.name(), zone.available() ? "" : "(n/a)");
 }
 
 template <typename Dest>
@@ -122,9 +147,9 @@ void generate_snapshot_details(Dest&& dest, const mp::DetailedInfoItem& item)
         fmt::format_to(dest, "{}\n", *child);
     }
 
-    /* TODO split and align string if it extends onto several lines; but actually better implement
-       generic word-wrapping for all output, taking both terminal width and current indentation
-       level into account */
+    /* TODO split and align string if it extends onto several lines; but actually better
+       implement generic word-wrapping for all output, taking both terminal width and current
+       indentation level into account */
     fmt::format_to(
         dest,
         "{:<16}{}\n",
@@ -144,13 +169,7 @@ void generate_instance_details(Dest&& dest, const mp::DetailedInfoItem& item)
                    "{:<16}{}\n",
                    "State:",
                    mp::format::status_string_for(item.instance_status()));
-    fmt::format_to(
-        dest,
-        "{:<16}{}\n",
-        "Zone:",
-        !item.zone().name().empty()
-            ? fmt::format("{}{}", item.zone().name(), item.zone().available() ? "" : "(n/a)")
-            : std::string{"n/a"});
+    fmt::format_to(dest, "{:<16}{}\n", "Zone:", format_zone(item.zone()));
 
     if (instance_details.has_num_snapshots())
         fmt::format_to(dest, "{:<16}{}\n", "Snapshots:", instance_details.num_snapshots());
@@ -263,11 +282,12 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
         [](const auto& instance) -> int { return instance.name().length(); },
         name_col_header.length(),
         24);
-    const std::string::size_type state_column_width = 18;
-    const std::string::size_type ip_column_width = 17;
-    [[maybe_unused]] const std::string::size_type image_column_width = 20;
+    constexpr std::string::size_type state_column_width = 18;
+    constexpr std::string::size_type ip_column_width = 17;
+    constexpr std::string::size_type image_column_width = 20;
+    constexpr std::string::size_type mounts_column_width = 8;
 
-    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
+    constexpr auto row_format = "{:<{}}{:<{}}{:<{}}{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),
                    row_format,
                    name_col_header,
@@ -278,6 +298,8 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                    ip_column_width,
                    "Image",
                    image_column_width,
+                   "Mounts",
+                   mounts_column_width,
                    "Zone");
 
     for (const auto& instance : mp::format::sorted(instance_list.instances()))
@@ -297,11 +319,9 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                 ? "Not Available"
                 : mp::utils::trim(fmt::format("{} {}", instance.os(), instance.current_release())),
             image_column_width,
-            !instance.zone().name().empty()
-                ? fmt::format("{}{}",
-                              instance.zone().name(),
-                              instance.zone().available() ? "" : "(n/a)")
-                : std::string{"n/a"});
+            instance.mount_count(),
+            mounts_column_width,
+            format_zone(instance.zone()));
 
         for (int i = 1; i < ipv4_size; ++i)
         {
@@ -313,6 +333,8 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
                            state_column_width,
                            instance.ipv4(i),
                            instance.ipv4(i).size(),
+                           "",
+                           0,
                            "",
                            0,
                            "");
@@ -441,6 +463,11 @@ std::string mp::TableFormatter::format(const ListReply& reply) const
     return output;
 }
 
+std::string mp::TableFormatter::format(const SnapshotsReply& reply) const
+{
+    return generate_snapshots_list(reply.snapshot_list());
+}
+
 std::string mp::TableFormatter::format(const NetworksReply& reply) const
 {
     fmt::memory_buffer buf;
@@ -486,16 +513,49 @@ std::string mp::TableFormatter::format(const NetworksReply& reply) const
     return fmt::to_string(buf);
 }
 
-std::string mp::TableFormatter::format(const FindReply& reply) const
+std::string mp::TableFormatter::format(const RemotesReply& reply) const
+{
+    fmt::memory_buffer buf;
+
+    if (reply.remotes().empty())
+    {
+        fmt::format_to(std::back_inserter(buf), "No remotes available.\n");
+    }
+    else
+    {
+        fmt::format_to(std::back_inserter(buf), "Remote\n");
+
+        auto sorted_remotes = reply.remotes();
+        std::ranges::sort(sorted_remotes);
+        for (const auto& remote : sorted_remotes)
+        {
+            fmt::format_to(std::back_inserter(buf), "{}\n", remote);
+        }
+    }
+    return fmt::to_string(buf);
+}
+
+std::string mp::TableFormatter::format(const ImagesReply& reply) const
 {
     fmt::memory_buffer buf;
     if (reply.images_info().empty())
     {
-        fmt::format_to(std::back_inserter(buf), "No images found.\n");
+        fmt::format_to(std::back_inserter(buf), "No images found.");
+
+        if (!reply.retry_with_remote().empty())
+        {
+            fmt::format_to(std::back_inserter(buf),
+                           " {}",
+                           ImagesUserMessages::search_remote_hint(reply.retry_with_remote()));
+        }
+        else
+        {
+            fmt::format_to(std::back_inserter(buf), "\n");
+        }
     }
     else
     {
-        format_images(std::back_inserter(buf), reply.images_info());
+        format_images(std::back_inserter(buf), reply.images_info(), reply.all_remotes());
     }
     return fmt::to_string(buf);
 }
@@ -621,7 +681,7 @@ std::string mp::TableFormatter::format(const ZonesReply& reply) const
         [](const auto& zone) -> int { return zone.name().length(); },
         name_col_header.length());
 
-    const std::string::size_type state_column_width = 14;
+    constexpr std::string::size_type state_column_width = 14;
 
     constexpr auto row_format = "{:<{}}{:<{}}{:<}\n";
     fmt::format_to(std::back_inserter(buf),

@@ -46,7 +46,6 @@ protected:
     void apply_impl() override;
 
 private:
-    VirtualMachineDescription& desc;
     const std::filesystem::path& image_path;
 };
 

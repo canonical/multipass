@@ -12,9 +12,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# Where the daemon records mounts in guests, for the MOTD script to list them
+set(MULTIPASS_GUEST_MOUNT_RECORDS_DIR /run/multipass/mounts)
+
 configure_file(
-  version.h.in
-  ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/version.h
+  build_constants.h.in
+  ${MULTIPASS_GENERATED_SOURCE_DIR}/multipass/build_constants.h
   @ONLY
 )
 
@@ -32,5 +35,6 @@ add_subdirectory(settings)
 add_subdirectory(simplestreams)
 add_subdirectory(ssh)
 add_subdirectory(sshfs_mount)
+add_subdirectory(user_messages)
 add_subdirectory(utils)
 add_subdirectory(xz_decoder)

@@ -16,7 +16,7 @@ You can then shell into an instance by its name:
 multipass shell relishing-lionfish
 ```
 
-The only, optional, positional argument is the image to launch an instance from. See [`find`](/reference/command-line-interface/find) for how to find information on the available images.
+The only, optional, positional argument is the image to launch an instance from. See [`images`](/reference/command-line-interface/images) for how to find information on the available images.
 
 It's also possible to provide a full URL to the image (use `file://` for an image available on the host running `multipassd`).
 
@@ -36,82 +36,79 @@ You can also mount folders in the instance after it is launched using the  `--mo
 
 Use the `--timeout` option to change how long Multipass waits for the machine to boot and initialise.
 
+If the timeout expires, the command exits with status `75`. The instance may continue starting in the background. Run `multipass list` to find the instance and check its state. If Multipass timed out while waiting for the instance to initialise, check cloud-init with:
+
+```{code-block} text
+multipass exec <vm-name> -- cloud-init status
+```
+
+Mounts requested with `--mount` are applied only after the instance starts and initialises. If the timeout message reports that mounts were not performed, apply them manually with `multipass mount`.
+
 ---
 
 The full `multipass help launch` output explains the available options:
 
 ```{code-block} text
-Usage: multipass launch [options] [[<remote:>]<image> | <url>]
+Usage: multipass launch [options] [[<remote>:]<image> | <url>]
 Create and start a new instance.
 
 Options:
-  -h, --help                            Displays help on commandline options
-  -v, --verbose                         Increase logging verbosity. Repeat the
-                                        'v' in the short option for more detail.
-                                        Maximum verbosity is obtained with 4 (or
-                                        more) v's, i.e. -vvvv.
-  -c, --cpus <cpus>                     Number of CPUs to allocate.
-                                        Minimum: 1, default: 1.
-  -d, --disk <disk>                     Disk space to allocate. Positive
-                                        integers, in bytes, or decimals, with K,
-                                        M, G suffix.
-                                        Minimum: 1G, default: 5G.
-  -m, --memory <memory>                 Amount of memory to allocate. Positive
-                                        integers, in bytes, or decimals, with K,
-                                        M, G suffix.
-                                        Minimum: 512M, default: 1G.
-  -n, --name <name>                     Name for the instance. If it is
-                                        'primary' (the configured primary
-                                        instance name), the user's home
-                                        directory is mounted inside the newly
-                                        launched instance, in 'Home'.
-                                        Valid names must consist of letters,
-                                        numbers, or hyphens, must start with a
-                                        letter, and must end with an
-                                        alphanumeric character.
-  --cloud-init <file> | <url>           Path or URL to a user-data cloud-init
-                                        configuration, or '-' for stdin
-  --network <spec>                      Add a network interface to the
-                                        instance, where <spec> is in the
-                                        "key=value,key=value" format, with the
-                                        following keys available:
-                                         name: the network to connect to
-                                        (required), use the networks command for
-                                        a list of possible values, or use
-                                        'bridged' to use the interface
-                                        configured via `multipass set
-                                        local.bridged-network`.
-                                         mode: auto|manual (default: auto)
-                                         mac: hardware address (default:
-                                        random).
-                                        You can also use a shortcut of "<name>"
-                                        to mean "name=<name>".
-  --bridged                             Adds one `--network bridged` network.
-  --zone <zone>                         The zone in which to launch the
-                                        instance.
-  --mount <local-path>:<instance-path>  Mount a local directory inside the
-                                        instance. If <target> is omitted,
-                                        the mount point will be under
-                                        /home/ubuntu/<source-dir>, where
-                                        <source-dir> is the name of the
-                                        <source> directory.
-  --timeout <timeout>                   Maximum time, in seconds, to wait for
-                                        the command to complete. Note that some
-                                        background operations may continue
-                                        beyond that. By default, instance
-                                        startup and initialisation is limited to
-                                        5 minutes each.
+  -h, --help                   Displays help on commandline options
+  -v, --verbose                Increase logging verbosity. Repeat the 'v' in
+                               the short option for more detail. Maximum
+                               verbosity is obtained with 4 (or more) v's, i.e.
+                               -vvvv.
+  -c, --cpus <cpus>            Number of CPUs to allocate.
+                               Minimum: 1, default: 1.
+  -d, --disk <disk>            Disk space to allocate. Positive integers, in
+                               bytes, or decimals, with K, M, G suffix.
+                               Minimum: 1G, default: 5G.
+  -m, --memory <memory>        Amount of memory to allocate. Positive integers,
+                               in bytes, or decimals, with K, M, G suffix.
+                               Minimum: 512M, default: 1G.
+  -n, --name <name>            Name for the instance. If it is 'primary' (the
+                               configured primary instance name), the user's
+                               home directory is mounted inside the newly
+                               launched instance, in 'Home'.
+                               Valid names must consist of letters, numbers, or
+                               hyphens, must start with a letter, and must end
+                               with an alphanumeric character.
+  --cloud-init <file> | <url>  Path or URL to a user-data cloud-init
+                               configuration, or '-' for stdin.
+  --network <spec>             Add a network interface to the instance, where
+                               <spec> is in the "key=value,key=value" format,
+                               with the following keys available:
+                                name: the network to connect to (required), use
+                               the networks command for a list of possible
+                               values, or use 'bridged' to use the interface
+                               configured via `multipass set
+                               local.bridged-network`.
+                                mode: auto|manual (default: auto)
+                                mac: hardware address (default: random).
+                               You can also use a shortcut of "<name>" to mean
+                               "name=<name>".
+  --bridged                    Adds one `--network bridged` network.
+  --zone <zone>                The zone in which to launch the instance.
+  --mount <source>:<target>    Mount a local directory inside the instance. If
+                               <target> is omitted, the mount point will be
+                               under /home/ubuntu/<source-dir>, where
+                               <source-dir> is the name of the <source>
+                               directory.
+  --timeout <timeout>          Maximum time, in seconds, to wait for the
+                               command to complete. Note that some background
+                               operations may continue beyond that. By default,
+                               instance startup and initialization is limited to
+                               5 minutes each.
 
 Arguments:
-  image                                 Optional image to launch. If omitted,
-                                        then the latest Ubuntu LTS will be
-                                        used.
-                                        <remote> can be either ‘release’ or
-                                        ‘daily‘. If <remote> is omitted,
-                                        ‘release’ will be used.
-                                        <image> can be a partial image hash or
-                                        an Ubuntu release version, codename or
-                                        alias.
-                                        <url> is a custom image URL that is in
-                                        https://, https://, or file:// format.
+  image                        Optional image to launch. If omitted, then the
+                               latest Ubuntu LTS will be used.
+                               <remote> can be any of the available remotes
+                               returned by ‘multipass images --remotes’. If
+                               <remote> is omitted, image will be searched for
+                               in one of the default remotes.
+                               <image> can be a codename, an alias, a major
+                               version, or an alias prefix.
+                               <url> is a custom image URL that is in http://,
+                               https://, or file:// format.
 ```

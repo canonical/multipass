@@ -414,7 +414,7 @@ Let's now delete the instances, free their resources on our host machine, and re
 :sync: Linux/macOS
 
 ```bash
-multipass delete --purge web-a web-b web-c load-balancer
+multipass delete web-a web-b web-c load-balancer
 rm haproxy.cfg
 ```
 
@@ -424,7 +424,7 @@ rm haproxy.cfg
 :sync: Windows PowerShell
 
 ```powershell
-multipass delete --purge web-a web-b web-c load-balancer
+multipass delete web-a web-b web-c load-balancer
 Remove-Item haproxy.cfg
 ```
 

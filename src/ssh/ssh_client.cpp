@@ -30,6 +30,7 @@
 #endif
 
 #include <functional>
+#include <memory>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -187,7 +188,8 @@ int mp::SSHClient::get_ssh_exit_code()
 {
 
     uint32_t exit_status = static_cast<uint32_t>(-1);
-    char* exit_signal_status = nullptr;
+    auto free_signal = [](char* s) { MP_LIBSSH.ssh_string_free_char(s); };
+    std::unique_ptr<char, decltype(free_signal)> exit_signal_status{nullptr, free_signal};
     int core_dumped = 0;
 
     SSH::throw_on_error(channel,
@@ -195,17 +197,15 @@ int mp::SSHClient::get_ssh_exit_code()
                         "[ssh client] could not obtain exit state",
                         std::bind_front(&Libssh::ssh_channel_get_exit_state, &Libssh::instance()),
                         &exit_status,
-                        &exit_signal_status,
+                        std::out_ptr(exit_signal_status),
                         &core_dumped);
 
-    if (exit_signal_status != nullptr)
+    if (exit_signal_status)
     {
         mpl::error("ssh client",
                    "Process terminated by signal: {}{}",
-                   exit_signal_status,
+                   exit_signal_status.get(),
                    core_dumped ? " (core dumped)" : "");
-
-        MP_LIBSSH.ssh_string_free_char(exit_signal_status);
     }
     return static_cast<int>(exit_status);
 }

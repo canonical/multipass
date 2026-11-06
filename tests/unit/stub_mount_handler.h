@@ -19,10 +19,20 @@
 
 #include <multipass/mount_handler.h>
 
+#include <filesystem>
+
 namespace multipass::test
 {
 struct StubMountHandler : public MountHandler
 {
+    StubMountHandler()
+        : MountHandler{nullptr,
+                       nullptr,
+                       {std::filesystem::temp_directory_path().string(), {}, {}, {}},
+                       {}}
+    {
+    }
+
     void activate_impl(ServerVariant, std::chrono::milliseconds) override
     {
     }

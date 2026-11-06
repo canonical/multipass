@@ -28,7 +28,7 @@ namespace mp = multipass;
 namespace
 {
 boost::json::value format_images(
-    const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info)
+    const google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>& images_info)
 {
     boost::json::object result;
     for (const auto& image : images_info)
@@ -45,9 +45,18 @@ boost::json::value format_images(
                                            {"release", image.release()},
                                            {"version", image.version()},
                                            {"aliases", std::move(aliases_json)},
+                                           {"hash", image.hash()},
                                            {"remote", image.remote_name()}});
     }
     return result;
+}
+
+boost::json::value format_zone(const mp::Zone& zone)
+{
+    if (zone.name().empty())
+        return nullptr;
+
+    return boost::json::object{{"name", zone.name()}, {"available", zone.available()}};
 }
 
 boost::json::object generate_snapshot_details(const mp::DetailedInfoItem& item)
@@ -76,11 +85,7 @@ boost::json::object generate_instance_details(const mp::DetailedInfoItem& item)
     const auto& instance_details = item.instance_info();
 
     boost::json::object instance_info = {
-        {"zone",
-         !item.zone().name().empty()
-             ? boost::json::value(boost::json::object{{"name", item.zone().name()},
-                                                      {"available", item.zone().available()}})
-             : boost::json::value(nullptr)},
+        {"zone", format_zone(item.zone())},
         {"state", mp::format::status_string_for(item.instance_status())},
         {"image_hash", instance_details.id()},
         {"image_release", instance_details.image_release()},
@@ -172,11 +177,8 @@ boost::json::value generate_instances_list(const mp::InstancesList& instance_lis
             {"state", mp::format::status_string_for(instance.instance_status())},
             {"ipv4", boost::json::value_from(instance.ipv4())},
             {"release", std::move(release)},
-            {"zone",
-             !instance.zone().name().empty() ? boost::json::value(boost::json::object{
-                                                   {"name", instance.zone().name()},
-                                                   {"available", instance.zone().available()}})
-                                             : boost::json::value(nullptr)},
+            {"zone", format_zone(instance.zone())},
+            {"mounts", instance.mount_count()},
         });
     }
 
@@ -274,6 +276,11 @@ std::string mp::JsonFormatter::format(const ListReply& reply) const
     return pretty_print(output);
 }
 
+std::string mp::JsonFormatter::format(const SnapshotsReply& reply) const
+{
+    return pretty_print(generate_snapshots_list(reply.snapshot_list()));
+}
+
 std::string mp::JsonFormatter::format(const NetworksReply& reply) const
 {
     boost::json::array interfaces;
@@ -287,7 +294,21 @@ std::string mp::JsonFormatter::format(const NetworksReply& reply) const
     return pretty_print({{"list", std::move(interfaces)}});
 }
 
-std::string mp::JsonFormatter::format(const FindReply& reply) const
+std::string mp::JsonFormatter::format(const RemotesReply& reply) const
+{
+    boost::json::array remotes;
+
+    auto sorted_remotes = reply.remotes();
+    std::ranges::sort(sorted_remotes);
+    for (const auto& remote : sorted_remotes)
+    {
+        remotes.push_back(boost::json::value_from(remote));
+    }
+
+    return pretty_print({{"remotes", std::move(remotes)}});
+}
+
+std::string mp::JsonFormatter::format(const ImagesReply& reply) const
 {
     return pretty_print(
         {{"errors", boost::json::array{}}, {"images", format_images(reply.images_info())}});

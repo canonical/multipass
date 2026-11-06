@@ -14,7 +14,7 @@ export 'generated/multipass.pbgrpc.dart';
 
 typedef Status = InstanceStatus_Status;
 typedef VmInfo = DetailedInfoItem;
-typedef ImageInfo = FindReply_ImageInfo;
+typedef ImageInfo = ImagesReply_ImageInfo;
 typedef MountPaths = MountInfo_MountPaths;
 typedef RpcMessage = GeneratedMessage;
 
@@ -144,6 +144,7 @@ class GrpcClient {
         instanceSnapshotPairs: names.map(
           (name) => InstanceSnapshotPair(instanceName: name),
         ),
+        force: true,
       ),
     );
   }
@@ -152,18 +153,6 @@ class GrpcClient {
     return doRpc(
       _client.recover,
       RecoverRequest(instanceNames: InstanceNames(instanceName: names)),
-    );
-  }
-
-  Future<DeleteReply?> purge(Iterable<String> names) {
-    return doRpc(
-      _client.delet,
-      DeleteRequest(
-        purge: true,
-        instanceSnapshotPairs: names.map(
-          (name) => InstanceSnapshotPair(instanceName: name),
-        ),
-      ),
     );
   }
 
@@ -193,10 +182,12 @@ class GrpcClient {
     );
   }
 
-  Future<FindReply> find() {
+  Future<ImagesReply> images() {
     return doRpc(
-      _client.find,
-      FindRequest(),
+      _client.images,
+      ImagesRequest(
+        allRemotes: true,
+      ),
     ).then((r) => r!);
   }
 
@@ -222,6 +213,15 @@ class GrpcClient {
 
   Future<void> set(String key, String value) {
     return doRpc(_client.set, SetRequest(key: key, val: value));
+  }
+
+  // TODO hyperv migration, remove
+  // Like set, but exposes every reply, e.g. to report the progress of a driver
+  // migration.
+  Stream<SetReply> setStreaming(String key, String value) {
+    final request = SetRequest(key: key, val: value);
+    logger.i('Sent ${request.repr}');
+    return _client.set(Stream.value(request)).doOnEach(logGrpc(request));
   }
 
   Future<SSHInfo?> sshInfo(String name) {

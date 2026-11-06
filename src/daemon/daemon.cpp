@@ -16,15 +16,20 @@
  */
 
 #include "daemon.h"
-#include "base_cloud_init_config.h"
+
+#include "daemon_config.h"
+#include "daemon_init_settings.h"
+#include "hyperv_driver_transition.h"
 #include "instance_settings_handler.h"
+#include "mount_motd_cloud_init.h"
 #include "runtime_instance_info_helper.h"
 #include "snapshot_settings_handler.h"
 
 #include <multipass/alias_definition.h>
+#include <multipass/build_constants.h>
+#include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/constants.h>
-
 #include <multipass/daemon_rpc_context.h>
 #include <multipass/exceptions/availability_zone_exceptions.h>
 #include <multipass/exceptions/create_image_exception.h>
@@ -33,9 +38,11 @@
 #include <multipass/exceptions/image_vault_exceptions.h>
 #include <multipass/exceptions/invalid_memory_size_exception.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
+#include <multipass/exceptions/remote_not_found_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/exceptions/start_exception.h>
+#include <multipass/exceptions/timeout_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/ip_address.h>
@@ -52,8 +59,8 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
+#include <multipass/user_messages/driver_deprecation_warning.h>
 #include <multipass/utils/grpc_utils.h>
-#include <multipass/version.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
@@ -63,6 +70,7 @@
 
 #include <scope_guard.hpp>
 
+#include <fmt/ranges.h>
 #include <yaml-cpp/yaml.h>
 
 #include <QDir>
@@ -79,6 +87,7 @@
 #include <functional>
 #include <future>
 #include <optional>
+#include <ranges>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -94,8 +103,6 @@ namespace
 
 using namespace std::chrono_literals;
 
-using error_string = std::string;
-
 constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
 constexpr auto reboot_cmd = "sudo reboot";
@@ -108,11 +115,11 @@ constexpr auto invalid_network_template =
     "{}=<name>` to correct. See `multipass networks` for valid names.";
 
 // Images which cannot be bridged with --network.
-const std::unordered_set<std::string> no_bridging_release =
-    { // images to check from release and daily remotes
-        "10.04",  "lucid", "11.10", "oneiric", "12.04",  "precise", "12.10",  "quantal", "13.04",
-        "raring", "13.10", "saucy", "14.04",   "trusty", "14.10",   "utopic", "15.04",   "vivid",
-        "15.10",  "wily",  "16.04", "xenial",  "16.10",  "yakkety", "17.04",  "zesty"};
+const std::unordered_set<std::string> no_bridging_release = {
+    // images to check from release and daily remotes
+    "10.04",  "lucid", "11.10", "oneiric", "12.04",  "precise", "12.10",  "quantal", "13.04",
+    "raring", "13.10", "saucy", "14.04",   "trusty", "14.10",   "utopic", "15.04",   "vivid",
+    "15.10",  "wily",  "16.04", "xenial",  "16.10",  "yakkety", "17.04",  "zesty"};
 const std::unordered_set<std::string> no_bridging_core = {"core16"};
 
 mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
@@ -132,6 +139,14 @@ mp::Query query_from(const mp::LaunchRequest* request, const std::string& name)
 
     return {name, image, false, request->remote_name(), query_type, true};
 }
+
+constexpr auto base_vendor_data = "growpart:\n"
+                                  "    mode: auto\n"
+                                  "    devices: [\"/\"]\n"
+                                  "    ignore_growroot_disabled: false\n"
+                                  "users:\n"
+                                  "    - default\n"
+                                  "manage_etc_hosts: true\n";
 
 auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
                                    const std::string& username,
@@ -157,7 +172,7 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
     }
 
     auto remote_name = request->remote_name();
-    auto config = YAML::Load(mp::base_cloud_init_config);
+    auto config = YAML::Load(base_vendor_data);
     config["ssh_authorized_keys"].push_back(ssh_key_line);
     config["timezone"] = request->time_zone();
     config["system_info"]["default_user"]["name"] = username;
@@ -166,6 +181,11 @@ auto make_cloud_init_vendor_config(const mp::SSHKeyProvider& key_provider,
     // Ubuntu/Debian systems
     if (request->image() != "fedora")
     {
+        // Fedora's pam_motd does not run update-motd.d scripts.
+        // Also, this goes first because cloud-init gives up at the first file it fails to write
+        // (like the pollinate stuff ahead, on Ubuntu Core... we need to get rid of that).
+        config["write_files"].push_back(mp::mount_motd_cloud_init());
+
         config["packages"].push_back("pollinate");
 
         auto pollinate_user_agent_string = fmt::format(
@@ -224,7 +244,7 @@ auto name_from(const std::string& requested_name,
         constexpr int num_retries = 100;
         for (int i = 0; i < num_retries; i++)
         {
-            if (currently_used_names.find(name) != currently_used_names.end())
+            if (currently_used_names.contains(name))
                 continue;
             return name;
         }
@@ -294,7 +314,14 @@ auto fetch_image_for(const std::string& name,
                              stub_prepare,
                              stub_progress,
                              std::nullopt,
-                             factory.get_instance_directory(name));
+                             MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)));
+}
+
+std::filesystem::path cloud_init_iso_path(const mp::VirtualMachineFactory& factory,
+                                          const std::string& name)
+{
+    return MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)) /
+           mp::cloud_init_file_name;
 }
 
 auto try_mem_size(const std::string& val) -> std::optional<mp::MemorySize>
@@ -358,16 +385,16 @@ std::vector<mp::NetworkInterface> validate_extra_interfaces(
     {
         specified_image = image;
 
-        dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
+        dont_allow_auto = no_bridging_release.contains(image);
     }
     else
     {
         specified_image = remote + ":" + image;
 
         if (remote == mp::release_remote || remote == mp::daily_remote)
-            dont_allow_auto = no_bridging_release.find(image) != no_bridging_release.end();
+            dont_allow_auto = no_bridging_release.contains(image);
         else if (remote == mp::core_remote)
-            dont_allow_auto = no_bridging_core.find(image) != no_bridging_core.end();
+            dont_allow_auto = no_bridging_core.contains(image);
     }
 
     for (const auto& net : request->network_options())
@@ -428,8 +455,11 @@ void validate_image(const mp::LaunchRequest* request, const mp::VMImageVault& va
     // to avoid calls
     //       later that accomplish the same thing.
     auto image_query = query_from(request, "");
-    if (image_query.query_type == mp::Query::Type::Alias && vault.all_info_for(image_query).empty())
+    if (image_query.query_type == mp::Query::Type::Alias &&
+        !vault.any_info_for(image_query).has_value())
+    {
         throw mp::ImageNotFoundException(request->image(), request->remote_name());
+    }
 }
 
 auto validate_create_arguments(const mp::LaunchRequest* request, const mp::DaemonConfig* config)
@@ -505,38 +535,6 @@ auto validate_create_arguments(const mp::LaunchRequest* request, const mp::Daemo
         std::move(option_errors),
     };
     return ret;
-}
-
-auto connect_rpc(mp::DaemonRpc& rpc, mp::Daemon& daemon)
-{
-    QObject::connect(&rpc, &mp::DaemonRpc::on_create, &daemon, &mp::Daemon::create);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_launch, &daemon, &mp::Daemon::launch);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_purge, &daemon, &mp::Daemon::purge);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_find, &daemon, &mp::Daemon::find);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_info, &daemon, &mp::Daemon::info);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_list, &daemon, &mp::Daemon::list);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_clone, &daemon, &mp::Daemon::clone);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_networks, &daemon, &mp::Daemon::networks);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_mount, &daemon, &mp::Daemon::mount);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_recover, &daemon, &mp::Daemon::recover);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_ssh_info, &daemon, &mp::Daemon::ssh_info);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_start, &daemon, &mp::Daemon::start);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_stop, &daemon, &mp::Daemon::stop);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_suspend, &daemon, &mp::Daemon::suspend);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_restart, &daemon, &mp::Daemon::restart);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_delete, &daemon, &mp::Daemon::delet);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_umount, &daemon, &mp::Daemon::umount);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_version, &daemon, &mp::Daemon::version);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_get, &daemon, &mp::Daemon::get);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_set, &daemon, &mp::Daemon::set);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_keys, &daemon, &mp::Daemon::keys);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_authenticate, &daemon, &mp::Daemon::authenticate);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_snapshot, &daemon, &mp::Daemon::snapshot);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_restore, &daemon, &mp::Daemon::restore);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_daemon_info, &daemon, &mp::Daemon::daemon_info);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_wait_ready, &daemon, &mp::Daemon::wait_ready);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_zones, &daemon, &mp::Daemon::zones);
-    QObject::connect(&rpc, &mp::DaemonRpc::on_zones_state, &daemon, &mp::Daemon::zones_state);
 }
 
 enum class InstanceGroup
@@ -644,6 +642,38 @@ InstanceSelectionReport select_instances(InstanceTable& operative_instances,
     return ret;
 }
 
+template <typename Zones>
+LinearInstanceSelection select_instances_by_zones(InstanceTable& instances, const Zones& zones)
+{
+    LinearInstanceSelection selection;
+    for (auto it = instances.begin(); it != instances.end(); ++it)
+    {
+        // TODO(C++23): Use `std::ranges::contains` instead of `std::ranges::find`.
+        const auto& name = it->second->get_zone().get_name();
+        if (std::ranges::find(zones, name, [](const auto& i) { return i.get().get_name(); }) !=
+            zones.end())
+        {
+            selection.push_back(it);
+        }
+    }
+    return selection;
+}
+
+template <std::same_as<mp::VirtualMachine::State>... Args>
+LinearInstanceSelection filter_instances_by_state(const LinearInstanceSelection& instances,
+                                                  mp::VirtualMachine::State first_state,
+                                                  Args... args)
+{
+    LinearInstanceSelection selection;
+    for (auto instance : instances)
+    {
+        auto vm_state = instance->second->current_state();
+        if (vm_state == first_state || ((vm_state == args) || ...))
+            selection.push_back(instance);
+    }
+    return selection;
+}
+
 struct SelectionReaction
 {
     struct ReactionComponent
@@ -734,7 +764,7 @@ auto grpc_status_for_mount_error(const std::string& instance_name)
                         fmt::format(sshfs_error_template, instance_name));
 }
 
-auto grpc_status_for(fmt::memory_buffer& errors,
+auto grpc_status_for(const fmt::memory_buffer& errors,
                      grpc::StatusCode status_code = grpc::StatusCode::OK)
 {
     if (errors.size() && !status_code)
@@ -852,33 +882,67 @@ std::string make_start_error_details(const InstanceSelectionReport& instance_sel
     return start_error.SerializeAsString();
 }
 
+grpc::Status grpc_concatenate_status(const grpc::Status& s1, const grpc::Status& s2)
+{
+    if (s1.ok())
+        return s2;
+    if (s2.ok())
+        return s1;
+
+    auto code = s1.error_code();
+    auto msg = fmt::format("{}\n{}", s1.error_message(), s2.error_message());
+
+    return grpc::Status{code, msg};
+}
+
 using VMCommand = std::function<grpc::Status(mp::VirtualMachine&)>;
-grpc::Status cmd_vms(const LinearInstanceSelection& tgts, const VMCommand& cmd)
+grpc::Status cmd_vms(const LinearInstanceSelection& tgts,
+                     const VMCommand& cmd,
+                     bool fail_early = true)
 {
     // std::function involves some overhead, but it should be negligible here and
     // it gives clear error messages on type mismatch (!= templated callable).
+    auto global_st{grpc::Status::OK};
     for (const auto& tgt : tgts)
     {
         auto vm_ptr = tgt->second;
         assert(vm_ptr && "no nulls please");
-
-        if (auto st = cmd(*vm_ptr); !st.ok())
-            return st; // Fail early
+        auto st = cmd(*vm_ptr);
+        if (!st.ok())
+        {
+            if (fail_early)
+                return st; // Fail early
+            global_st = grpc_concatenate_status(global_st, st);
+        }
     }
 
-    return grpc::Status::OK;
+    return global_st;
 }
 
-std::vector<std::string> names_from(const LinearInstanceSelection& instances)
+// Runs in a worker thread, so it only touches the given VMs and never the instance tables
+grpc::Status wait_for_ssh_up(const std::vector<mp::VirtualMachine::ShPtr>& vms,
+                             std::chrono::seconds timeout)
 {
-    std::vector<std::string> ret;
-    ret.reserve(instances.size());
-    std::transform(std::cbegin(instances),
-                   std::cend(instances),
-                   std::back_inserter(ret),
-                   [](const auto& item) { return item->first; });
+    auto global_st{grpc::Status::OK};
+    std::mutex status_mutex;
+    mpu::parallel_for_each(
+        vms,
+        [timeout, &global_st, &status_mutex](const mp::VirtualMachine::ShPtr& vm) {
+            auto status = grpc::Status::OK;
+            try
+            {
+                // We only need the instance to achieve an SSH session for restart
+                vm->wait_until_ssh_up(timeout);
+            }
+            catch (const std::exception& e)
+            {
+                status = grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
+            }
+            std::lock_guard guard{status_mutex};
+            global_st = grpc_concatenate_status(global_st, status);
+        });
 
-    return ret;
+    return global_st;
 }
 
 template <typename Instances>
@@ -940,7 +1004,6 @@ mp::InstanceStatus::Status grpc_instance_status_for(const mp::VirtualMachine::St
 {
     switch (state)
     {
-    case mp::VirtualMachine::State::off:
     case mp::VirtualMachine::State::stopped:
         return mp::InstanceStatus::STOPPED;
     case mp::VirtualMachine::State::starting:
@@ -1084,11 +1147,9 @@ InstanceSnapshotsMap map_snapshots_to_instances(const InstanceSnapshotPairs& ins
     return instance_snapshots_map;
 }
 
-bool verify_snapshot_picks(const InstanceSelectionReport& report,
-                           const std::unordered_map<std::string, SnapshotPick>& snapshot_picks,
-                           bool purge)
+void verify_snapshot_picks(const InstanceSelectionReport& report,
+                           const std::unordered_map<std::string, SnapshotPick>& snapshot_picks)
 {
-    auto any_snapshot = false;
     std::vector<std::string> snapshots_of_deleted_instances{};
     for (const auto* selection : {&report.deleted_selection, &report.operative_selection})
     {
@@ -1098,13 +1159,11 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
             {
                 for (const auto& snapshot_name : pick_it->second.pick)
                 {
-                    if (selection == &report.deleted_selection &&
-                        !(pick_it->second.all_or_none && purge))
+                    if (selection == &report.deleted_selection && !pick_it->second.all_or_none)
                         snapshots_of_deleted_instances.push_back(
                             fmt::format("{}.{}", vm_it->first, snapshot_name));
 
-                    vm_it->second->get_snapshot(snapshot_name); // throws if missing
-                    any_snapshot = true;
+                    std::ignore = vm_it->second->get_snapshot(snapshot_name); // throws if missing
                 }
             }
         }
@@ -1115,13 +1174,12 @@ bool verify_snapshot_picks(const InstanceSelectionReport& report,
                                                            snapshots_of_deleted_instances.end(),
                                                            ", "))};
     }
-
-    return any_snapshot;
 }
 
-void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* container,
+void add_aliases(google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>* container,
                  const std::string& remote_name,
-                 const mp::VMImageInfo& info)
+                 const mp::VMImageInfo& info,
+                 bool is_default_remote)
 {
     if (!info.aliases.empty())
     {
@@ -1136,6 +1194,8 @@ void add_aliases(google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>* co
         entry->set_version(info.version);
         entry->set_codename(info.release_codename);
         entry->set_remote_name(remote_name);
+        entry->set_hash(info.id);
+        entry->set_is_default_remote(is_default_remote);
     }
 }
 
@@ -1196,12 +1256,6 @@ bool prune_obsolete_mounts(const std::unordered_map<std::string, mp::VMMount>& m
         if (auto specs_it = mount_specs.find(target);
             specs_it == mount_specs.end() || handler->get_mount_spec() != specs_it->second)
         {
-            if (handler->is_mount_managed_by_backend())
-            {
-                assert(handler->is_active());
-                handler->deactivate();
-            }
-
             removed = true;
             return true;
         }
@@ -1288,19 +1342,7 @@ void populate_snapshot_info(mp::VirtualMachine& vm,
 template <typename W, typename R>
 void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
 {
-    static constexpr auto* deprecation_warning_template =
-        "*** Warning! The {} driver is deprecated and will be removed in an upcoming "
-        "release. ***";
-    static constexpr auto* migrationless_template =
-        "We recommend switching to the new {0} driver as soon as possible "
-        "(multipass set local.driver={1}). Your instances will not be destroyed but they will be "
-        "unreachable from the new driver. You can switch back to the old driver for now, but you "
-        "will need to manually recreate any instances you want to keep in the next release.";
-    static constexpr auto* migrationful_template =
-        "When you are ready to have your instances migrated, please stop them "
-        "(multipass stop --all) and switch to the new {0} driver "
-        "(multipass set local.driver={1}).";
-    static constexpr auto recommended_driver = std::pair{
+    static constexpr auto recommended = std::pair{
 #ifdef MULTIPASS_PLATFORM_APPLE
         "Apple Virtualization framework",
         "applevz"
@@ -1312,34 +1354,104 @@ void warn_driver_deprecation(grpc::ServerReaderWriterInterface<W, R>& server)
 
     // We know the driver doesn't change throughout a daemon run, so cache it and avoid the whole
     // settings call tree (which would run on every GUI poll)
-    static const auto current_driver = MP_SETTINGS.get(mp::driver_key);
-    auto compose_warning = [](const auto& current,
-                              const auto& recommended_name,
-                              const auto& recommended_setting,
-                              bool migrationful) {
-        const auto deprecation_header = fmt::format(deprecation_warning_template, current);
-        const auto* advice_template = migrationful ? migrationful_template : migrationless_template;
-        const auto deprecation_advice = fmt::format(fmt::runtime(advice_template),
-                                                    recommended_name,
-                                                    recommended_setting);
+    static const auto current_driver = MP_SETTINGS.get(mp::driver_key).toStdString();
 
-        return fmt::format("{}\n\n{}\n\n", deprecation_header, deprecation_advice);
-    };
-
-    if (current_driver == "virtualbox" || current_driver == "hyperv")
+    if (current_driver == "hyperv")
     {
-        const auto current_name = current_driver == "hyperv" ? "Hyper-V" : "VirtualBox";
-        const auto deprecation_warning = compose_warning(current_name,
-                                                         recommended_driver.first,
-                                                         recommended_driver.second,
-                                                         current_driver == "hyperv");
+        const auto current_name = "Hyper-V";
+
+        auto deprecation_warning = mp::make_driver_deprecation_warning(current_name,
+                                                                       recommended.first,
+                                                                       recommended.second);
+
         W reply{};
         reply.set_log_line(std::move(deprecation_warning));
         server.Write(reply);
     }
 }
 
+// TODO hyperv migration, remove
+template <typename T, typename... Types>
+constexpr bool is_one_of_v = (std::is_same_v<T, Types> || ...);
+
+// TODO hyperv migration, remove
+// Request types not listed here are blocked during migration.
+template <typename Request>
+constexpr bool allowed_during_migration = is_one_of_v<Request,
+                                                      mp::RemotesRequest,
+                                                      mp::ImagesRequest,
+                                                      mp::InfoRequest,
+                                                      mp::ListRequest,
+                                                      mp::SnapshotsRequest,
+                                                      mp::NetworksRequest,
+                                                      mp::SSHInfoRequest,
+                                                      mp::VersionRequest,
+                                                      mp::GetRequest,
+                                                      mp::KeysRequest,
+                                                      mp::AuthenticateRequest,
+                                                      mp::DaemonInfoRequest,
+                                                      mp::WaitReadyRequest,
+                                                      mp::ZonesRequest>;
+
 } // namespace
+
+// TODO hyperv migration, revert: back to the free function connect_rpc(rpc, daemon) with plain
+// QObject::connect(&rpc, &mp::DaemonRpc::on_x, &daemon, &mp::Daemon::x) calls
+void mp::Daemon::connect_rpc(DaemonRpc& rpc)
+{
+    const auto connect =
+        [this, &rpc]<typename Reply, typename Request>(
+            void (DaemonRpc::*signal)(const Request*,
+                                      grpc::ServerReaderWriter<Reply, Request>*,
+                                      DaemonRpcContext*),
+            void (Daemon::*slot)(const Request*,
+                                 grpc::ServerReaderWriterInterface<Reply, Request>*,
+                                 DaemonRpcContext*)) {
+            QObject::connect(&rpc,
+                             signal,
+                             this,
+                             [this, slot](const Request* request,
+                                          grpc::ServerReaderWriter<Reply, Request>* server,
+                                          DaemonRpcContext* context) {
+                                 if (!allowed_during_migration<Request> &&
+                                     reject_if_migrating("perform this operation", context))
+                                     return;
+
+                                 (this->*slot)(request, server, context);
+                             });
+        };
+
+    connect(&DaemonRpc::on_create, &Daemon::create);
+    connect(&DaemonRpc::on_launch, &Daemon::launch);
+    connect(&DaemonRpc::on_purge, &Daemon::purge);
+    connect(&DaemonRpc::on_remotes, &Daemon::remotes);
+    connect(&DaemonRpc::on_images, &Daemon::images);
+    connect(&DaemonRpc::on_info, &Daemon::info);
+    connect(&DaemonRpc::on_list, &Daemon::list);
+    connect(&DaemonRpc::on_snapshots, &Daemon::snapshots);
+    connect(&DaemonRpc::on_clone, &Daemon::clone);
+    connect(&DaemonRpc::on_networks, &Daemon::networks);
+    connect(&DaemonRpc::on_mount, &Daemon::mount);
+    connect(&DaemonRpc::on_recover, &Daemon::recover);
+    connect(&DaemonRpc::on_ssh_info, &Daemon::ssh_info);
+    connect(&DaemonRpc::on_start, &Daemon::start);
+    connect(&DaemonRpc::on_stop, &Daemon::stop);
+    connect(&DaemonRpc::on_suspend, &Daemon::suspend);
+    connect(&DaemonRpc::on_restart, &Daemon::restart);
+    connect(&DaemonRpc::on_delete, &Daemon::delet);
+    connect(&DaemonRpc::on_umount, &Daemon::umount);
+    connect(&DaemonRpc::on_version, &Daemon::version);
+    connect(&DaemonRpc::on_get, &Daemon::get);
+    connect(&DaemonRpc::on_set, &Daemon::set);
+    connect(&DaemonRpc::on_keys, &Daemon::keys);
+    connect(&DaemonRpc::on_authenticate, &Daemon::authenticate);
+    connect(&DaemonRpc::on_snapshot, &Daemon::snapshot);
+    connect(&DaemonRpc::on_restore, &Daemon::restore);
+    connect(&DaemonRpc::on_daemon_info, &Daemon::daemon_info);
+    connect(&DaemonRpc::on_wait_ready, &Daemon::wait_ready);
+    connect(&DaemonRpc::on_zones, &Daemon::zones);
+    connect(&DaemonRpc::on_zones_state, &Daemon::zones_state);
+}
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
@@ -1366,7 +1478,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 {
     using e_state = VirtualMachine::State;
 
-    connect_rpc(daemon_rpc, *this);
+    connect_rpc(daemon_rpc);
     std::vector<std::string> invalid_specs;
 
     try
@@ -1414,9 +1526,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        const auto instance_dir = mp::utils::base_dir(
-            MP_PLATFORM.path_to_qstr(vm_image.image_path));
-        const auto cloud_init_iso = instance_dir.filePath(cloud_init_file_name);
+        const auto cloud_init_iso = MP_PLATFORM.path_to_qstr(
+            cloud_init_iso_path(*config->factory, name));
         mp::VirtualMachineDescription vm_desc{spec_copy.num_cores,
                                               spec_copy.mem_size,
                                               spec_copy.disk_space,
@@ -1426,11 +1537,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                               spec_copy.extra_interfaces,
                                               spec_copy.ssh_username,
                                               vm_image,
-                                              cloud_init_iso,
-                                              {},
-                                              {},
-                                              {},
-                                              {}};
+                                              cloud_init_iso};
 
         auto& instance_records_table = spec_copy.deleted ? deleted_instances : operative_instances;
 
@@ -1446,7 +1553,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         // FIXME: somehow we're writing contradictory state to disk.
         if (spec_copy.deleted)
         {
-            if (spec_copy.state != e_state::stopped && spec_copy.state != e_state::off)
+            if (spec_copy.state != e_state::stopped)
             {
                 mpl::warn(
                     category,
@@ -1612,6 +1719,17 @@ void mp::Daemon::shutdown_grpc_server()
     shutdown.get(); // rethrows if there were exceptions
 }
 
+// TODO hyperv migration, remove
+bool mp::Daemon::reject_if_migrating(std::string_view rpc_name, DaemonRpcContext* context) const
+{
+    if (!migration_in_progress.load())
+        return false;
+
+    mpl::info(category, "Rejecting '{}' while a migration is in progress", rpc_name);
+    context->set_value(mp::hyperv::migration_conflict_status(rpc_name));
+    return true;
+}
+
 void mp::Daemon::create(const CreateRequest* request,
                         grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                         DaemonRpcContext* context)
@@ -1630,7 +1748,6 @@ void mp::Daemon::launch(const LaunchRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     return create_vm(request, server, context, /*start=*/true);
 }
 catch (const mp::StartException& e)
@@ -1674,97 +1791,109 @@ catch (const std::exception& e)
     context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
 }
 
-void mp::Daemon::find(const FindRequest* request,
-                      grpc::ServerReaderWriterInterface<FindReply, FindRequest>* server,
-                      DaemonRpcContext* context)
+void mp::Daemon::remotes(const RemotesRequest*,
+                         grpc::ServerReaderWriterInterface<RemotesReply, RemotesRequest>* server,
+                         DaemonRpcContext* context)
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
 
-    FindReply response;
+    auto response = RemotesReply{};
 
-    if (!request->search_string().empty())
+    for (auto remote : config->vault->get_remotes())
     {
-        if (!request->remote_name().empty())
+        if (remote != unspecified_remote)
         {
-            // This is a compromised solution for now, it throws if remote_name is invalid.
-            // In principle, it should catch the returned VMImageHost in the valid remote_name case
-            // and get the found VMImageHost reused in the follow-up code. However, because of the
-            // current framework, That would involve more changes because the query carries the
-            // remote name and there is another dispatch in the all_info_for function.
-            const auto& remote_name = request->remote_name();
-            config->vault->image_host_for(remote_name);
+            response.add_remotes(std::move(remote));
         }
+    }
 
-        wait_update_manifests_all_and_optionally_applied_force(
-            request->force_manifest_network_download());
-        std::vector<std::pair<std::string, VMImageInfo>> vm_images_info;
+    server->Write(response);
+    context->set_value(grpc::Status::OK);
+}
+catch (const std::exception& e)
+{
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
 
-        try
-        {
-            vm_images_info = config->vault->all_info_for({"",
-                                                          request->search_string(),
-                                                          false,
-                                                          request->remote_name(),
-                                                          Query::Type::Alias,
-                                                          request->allow_unsupported()});
-        }
-        catch (const std::exception& e)
-        {
-            mpl::warn(category,
-                      "An unexpected error occurred while fetching images matching \"{}\": {}",
-                      request->search_string(),
-                      e.what());
-        }
+void mp::Daemon::images(const ImagesRequest* request,
+                        grpc::ServerReaderWriterInterface<ImagesReply, ImagesRequest>* server,
+                        DaemonRpcContext* context)
+try
+{
+    warn_driver_deprecation(*server); // TODO@deprecations remove
 
-        for (auto& [remote, info] : vm_images_info)
-        {
-            // TODO(C++23): Use `std::ranges::contains` instead of `std::ranges::find`.
-            if (std::ranges::find(info.aliases, request->search_string()) != info.aliases.end())
-                info.aliases = {request->search_string()};
-            else
-                info.aliases = {info.id.substr(0, 12)};
+    ImagesReply response;
+    response.set_all_remotes(false);
 
-            auto remote_name = (!request->remote_name().empty() ||
-                                (request->remote_name().empty() && vm_images_info.size() > 1 &&
-                                 remote != mp::release_remote))
-                                 ? remote
-                                 : "";
+    auto remotes = std::vector<std::string>{};
 
-            add_aliases(response.mutable_images_info(), remote_name, info);
-        }
+    if (request->all_remotes())
+    {
+        remotes = config->vault->get_remotes();
+        response.set_all_remotes(true);
     }
     else if (request->remote_name().empty())
     {
-        wait_update_manifests_all_and_optionally_applied_force(
-            request->force_manifest_network_download());
-        for (const auto& image_host : config->image_hosts)
-        {
-            std::unordered_set<std::string> images_found;
-            auto action = [&images_found, request, &response](const std::string& remote,
-                                                              const mp::VMImageInfo& info) {
-                if (remote != mp::snapcraft_remote &&
-                    (info.supported || request->allow_unsupported()) && !info.aliases.empty() &&
-                    images_found.find(info.release_title) == images_found.end())
-                {
-                    add_aliases(response.mutable_images_info(), remote, info);
-                    images_found.insert(info.release_title);
-                }
-            };
-
-            image_host->for_each_entry_do(action);
-        }
+        remotes.insert(remotes.end(), default_remotes.begin(), default_remotes.end());
     }
     else
     {
-        wait_update_manifests_all_and_optionally_applied_force(
-            request->force_manifest_network_download());
-        const auto& remote = request->remote_name();
-        auto image_host = config->vault->image_host_for(remote);
-        auto vm_images_info = image_host->all_images_for(remote, request->allow_unsupported());
+        remotes.emplace_back(request->remote_name());
+    }
 
-        for (const auto& info : vm_images_info)
-            add_aliases(response.mutable_images_info(), remote, info);
+    const auto& filter = request->search_string();
+    const auto force_manifest_update = request->force_manifest_network_download();
+
+    if (!remotes.empty() || force_manifest_update)
+    {
+        wait_update_manifests_all_and_optionally_applied_force(force_manifest_update);
+
+        std::vector<VMImageInfo> vm_images_info;
+        for (const auto& remote : remotes)
+        {
+            vm_images_info.clear();
+
+            try
+            {
+                const auto query = SearchQuery{
+                    .filter = filter,
+                    .remote_name = remote,
+                    .allow_unsupported = request->allow_unsupported(),
+                };
+
+                vm_images_info = config->vault->all_info_for(query);
+            }
+            catch (const RemoteNotFoundException& e)
+            {
+                if (!request->remote_name().empty())
+                {
+                    throw;
+                }
+            }
+            catch (const std::exception& e)
+            {
+                mpl::warn(category,
+                          "An unexpected error occurred while fetching images matching \"{}\": {}",
+                          filter,
+                          e.what());
+            }
+
+            for (auto& info : vm_images_info)
+            {
+                const auto is_default_remote = std::ranges::find(default_remotes, remote) !=
+                                               default_remotes.end();
+                add_aliases(response.mutable_images_info(), remote, info, is_default_remote);
+            }
+        }
+    }
+
+    if (response.images_info().empty() && !filter.empty() && request->remote_name().empty())
+    {
+        if (config->vault->image_host_for(filter) != nullptr)
+        {
+            response.set_retry_with_remote(filter);
+        }
     }
 
     server->Write(response);
@@ -1781,7 +1910,6 @@ void mp::Daemon::info(const InfoRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     InfoReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
     InstanceSnapshotsMap instance_snapshots_map;
@@ -1876,7 +2004,6 @@ void mp::Daemon::list(const ListRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     ListReply response;
     config->update_prompt->populate_if_time_to_show(response.mutable_update_info());
 
@@ -1924,6 +2051,7 @@ try
 
         entry->set_current_release(current_release);
         entry->set_os(os);
+        entry->set_mount_count(static_cast<int>(vm_instance_specs[name].mounts.size()));
 
         auto management_ip = vm.management_ipv4();
         // FIXME: Remove the mgmt IP gate when VSOCK lands
@@ -1941,6 +2069,7 @@ try
         return grpc::Status::OK;
     };
 
+    // TODO:Remove this lambda when `list --snapshots` is removed.
     auto fetch_snapshot = [&response](VirtualMachine& vm) {
         fmt::memory_buffer errors;
         const auto& name = vm.get_name();
@@ -1965,6 +2094,7 @@ try
     };
 
     auto cmd = request->snapshots() ? std::function(fetch_snapshot) : std::function(fetch_instance);
+    // TODO:End `list --snapshots` removal
 
     auto status = cmd_vms(select_all(operative_instances), cmd);
     if (status.ok())
@@ -1972,6 +2102,50 @@ try
         deleted = true;
         status = cmd_vms(select_all(deleted_instances), cmd);
     }
+
+    server->Write(response);
+    context->set_value(status);
+}
+catch (const std::exception& e)
+{
+    context->set_value(grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+}
+
+void mp::Daemon::snapshots(
+    const SnapshotsRequest*,
+    grpc::ServerReaderWriterInterface<SnapshotsReply, SnapshotsRequest>* server,
+    DaemonRpcContext* context)
+try
+{
+    SnapshotsReply response;
+    response.mutable_snapshot_list();
+
+    auto selection = select_all(operative_instances);
+    const auto deleted_selection = select_all(deleted_instances);
+    selection.insert(selection.end(), deleted_selection.begin(), deleted_selection.end());
+
+    auto status = cmd_vms(selection, [&response](VirtualMachine& vm) {
+        fmt::memory_buffer errors;
+        const auto& name = vm.get_name();
+
+        try
+        {
+            for (const auto& snapshot : vm.view_snapshots())
+            {
+                auto entry = response.mutable_snapshot_list()->add_snapshots();
+                auto fundamentals = entry->mutable_fundamentals();
+
+                entry->set_name(name);
+                populate_snapshot_fundamentals(snapshot, fundamentals);
+            }
+        }
+        catch (const NoSuchSnapshotException& e)
+        {
+            add_fmt_to(errors, "{}", e.what());
+        }
+
+        return grpc_status_for(errors);
+    });
 
     server->Write(response);
     context->set_value(status);
@@ -2066,7 +2240,7 @@ try
         }
 
         auto& vm_mounts = mounts[name];
-        if (vm_mounts.find(target_path) != vm_mounts.end())
+        if (vm_mounts.contains(target_path))
         {
             add_fmt_to(errors, "\"{}\" is already mounted in '{}'", target_path, name);
             continue;
@@ -2078,8 +2252,7 @@ try
 
         VMMount vm_mount{request->source_path(), gid_mappings, uid_mappings, mount_type};
         vm_mounts[target_path] = make_mount(vm.get(), target_path, vm_mount);
-        if (vm->current_state() == mp::VirtualMachine::State::running ||
-            vm_mounts[target_path]->is_mount_managed_by_backend())
+        if (vm->current_state() == mp::VirtualMachine::State::running)
         {
             try
             {
@@ -2115,7 +2288,6 @@ void mp::Daemon::recover(const RecoverRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     auto recover_reaction = require_existing_instances_reaction;
     recover_reaction.operative_reaction.message_template =
         "instance \"{}\" does not need to be recovered";
@@ -2187,7 +2359,6 @@ void mp::Daemon::start(const StartRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
@@ -2214,7 +2385,7 @@ try
     std::vector<std::string> starting_vms{};
     starting_vms.reserve(instance_selection.operative_selection.size());
 
-    fmt::memory_buffer start_errors, start_warnings;
+    fmt::memory_buffer start_errors;
     for (auto& vm_it : instance_selection.operative_selection)
     {
         std::lock_guard lock{start_mutex};
@@ -2264,14 +2435,13 @@ try
 
     auto future_watcher = create_future_watcher();
     future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
+        QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<StartReply, StartRequest>,
                           this,
                           server,
                           starting_vms,
                           timeout,
                           context,
-                          fmt::to_string(start_errors),
-                          fmt::to_string(start_warnings)));
+                          fmt::to_string(start_errors)));
 }
 catch (const std::exception& e)
 {
@@ -2324,7 +2494,6 @@ void mp::Daemon::suspend(const SuspendRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     auto [instance_selection,
           status] = select_instances_and_react(operative_instances,
                                                deleted_instances,
@@ -2371,34 +2540,113 @@ try
                                                request->instance_names().instance_name(),
                                                InstanceGroup::Operative,
                                                require_operative_instances_reaction);
-
     if (!status.ok())
-    {
         return context->set_value(status);
-    }
 
-    const auto& instance_targets = instance_selection.operative_selection;
-    status = cmd_vms(instance_targets, [this](auto& vm) {
-        stop_mounts(vm.get_name());
+    std::vector<std::string> instance_names;
+    instance_names.reserve(instance_selection.operative_selection.size());
+    for (const auto& it : instance_selection.operative_selection)
+        instance_names.push_back(it->first);
 
-        return reboot_vm(vm);
-    }); // 1st pass to reboot all targets
+    if (instance_names.empty())
+        return context->set_value(request->instance_names().instance_name().empty()
+                                      ? grpc::Status::OK
+                                      : grpc::Status{grpc::FAILED_PRECONDITION,
+                                                     "No instances could be selected for restart ",
+                                                     ""});
 
-    if (!status.ok())
-    {
-        return context->set_value(status);
-    }
+    const auto running_only = request->running_only();
 
-    auto future_watcher = create_future_watcher();
-    future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_for_ready_all<RestartReply, RestartRequest>,
-                          this,
-                          server,
-                          names_from(instance_targets),
-                          timeout,
-                          context,
-                          std::string(),
-                          std::string()));
+    // Non-running instances get started, so check the hypervisor's health as start() does
+    if (!running_only && !instances_running(operative_instances))
+        config->factory->hypervisor_health_check();
+
+    // Suspended instances do not need to be resumed if only running instances are restarted
+    std::vector<VirtualMachine::ShPtr> resumed_vms;
+    auto resume_status = grpc::Status::OK;
+    if (!running_only)
+        resume_status = restart_start_suspended_instances(instance_selection.operative_selection,
+                                                          resumed_vms);
+
+    // Only the wait for SSH runs in the background
+    auto resume_future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
+    auto future_key = utils::make_uuid();
+    QObject::connect(
+        resume_future_watcher.get(),
+        &QFutureWatcher<AsyncOperationStatus>::finished,
+        [this,
+         resume_future_watcher = resume_future_watcher.get(),
+         resume_status,
+         instance_names = std::move(instance_names),
+         future_key,
+         timeout,
+         context,
+         server,
+         running_only] {
+            try
+            {
+                auto sg = sg::make_scope_guard([this, future_key]() noexcept -> void {
+                    mp::top_catch_all(category, [this, future_key]() {
+                        async_future_watchers.erase(future_key);
+                    });
+                });
+                auto [instance_selection,
+                      status] = select_instances_and_react(operative_instances,
+                                                           deleted_instances,
+                                                           instance_names,
+                                                           InstanceGroup::Operative,
+                                                           require_operative_instances_reaction);
+                if (!status.ok())
+                    return context->set_value(status);
+
+                const auto& instance_targets = instance_selection.operative_selection;
+                std::vector<std::string> starting_vms;
+
+                status = grpc_concatenate_status(resume_status,
+                                                 resume_future_watcher->future().result().status);
+                status = grpc_concatenate_status(
+                    status,
+                    cmd_vms(
+                        instance_targets,
+                        [this, &starting_vms, running_only](VirtualMachine& vm) {
+                            try
+                            {
+                                auto status = this->reboot_vm(vm, running_only);
+                                if (status.ok())
+                                    starting_vms.push_back(vm.get_name());
+                                return status;
+                            }
+                            catch (const std::exception& e)
+                            {
+                                return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
+                            }
+                        },
+                        /*fail_early=*/false)); // 1st pass to reboot all targets
+
+                if (starting_vms.empty())
+                    return context->set_value(status);
+
+                auto future_watcher = create_future_watcher();
+                future_watcher->setFuture(QtConcurrent::run(
+                    &Daemon::async_wait_multiple_vms_ready<RestartReply, RestartRequest>,
+                    this,
+                    server,
+                    starting_vms,
+                    timeout,
+                    context,
+                    status.error_message()));
+            }
+            catch (const std::exception& e)
+            {
+                return context->set_value({grpc::FAILED_PRECONDITION, e.what(), ""});
+            }
+        });
+
+    resume_future_watcher->setFuture(QtConcurrent::run(
+        [resumed_vms = std::move(resumed_vms), timeout]() -> AsyncOperationStatus {
+            return {wait_for_ssh_up(resumed_vms, timeout), nullptr};
+        }));
+    async_future_watchers.insert({future_key, std::move(resume_future_watcher)});
 }
 catch (const std::exception& e)
 {
@@ -2411,6 +2659,7 @@ void mp::Daemon::delet(const DeleteRequest* request,
 try
 {
     DeleteReply response;
+    auto instances_dirty = false;
 
     auto [instance_selection,
           status] = select_instances_and_react(operative_instances,
@@ -2419,68 +2668,76 @@ try
                                                InstanceGroup::All,
                                                require_existing_instances_reaction);
 
-    if (status.ok())
     {
-        const bool purge = request->purge();
-        bool purge_snapshots = request->purge_snapshots();
-        auto instances_dirty = false;
+        // report and persist whatever was deleted, even if a later deletion throws
+        auto report_guard = sg::make_scope_guard(
+            [this, server, &response, &instances_dirty]() noexcept {
+                top_catch_all(category, [this, server, &response, &instances_dirty] {
+                    if (instances_dirty)
+                        persist_instances();
+                    server->Write(response);
+                });
+            });
 
-        auto instance_snapshots_map = map_snapshots_to_instances(
-            request->instance_snapshot_pairs());
-
-        // avoid deleting if any snapshot is missing or if we don't get confirmation
-        auto any_snapshot_args = verify_snapshot_picks(instance_selection,
-                                                       instance_snapshots_map,
-                                                       purge);
-        if (any_snapshot_args && !purge && !purge_snapshots)
+        if (status.ok())
         {
-            DeleteReply confirm_action{};
-            confirm_action.set_confirm_snapshot_purging(true);
+            auto instance_snapshots_map = map_snapshots_to_instances(
+                request->instance_snapshot_pairs());
 
-            // TODO refactor with bridging and restore prompts
-            if (!server->Write(confirm_action))
-                throw std::runtime_error("Cannot request confirmation from client. Aborting...");
-            DeleteRequest client_response;
-            if (!server->Read(&client_response))
-                throw std::runtime_error("Cannot get confirmation from client. Aborting...");
+            // avoid deleting if any snapshot is missing
+            verify_snapshot_picks(instance_selection, instance_snapshots_map);
 
-            if (!(purge_snapshots = client_response.purge_snapshots()))
-                return context->set_value(grpc::Status{grpc::CANCELLED, "Cancelled."});
-        }
-
-        // start with deleted instances, to avoid iterator invalidation when moving instances there
-        for (const auto* selection :
-             {&instance_selection.deleted_selection, &instance_selection.operative_selection})
-        {
-            for (const auto& vm_it : *selection)
+            auto confirmed = request->force() || (instance_selection.operative_selection.empty() &&
+                                                  instance_selection.deleted_selection.empty());
+            if (!confirmed)
             {
-                const auto& instance_name = vm_it->first;
+                DeleteReply confirm_action{};
+                confirm_action.set_confirm_deletion(true);
+                if (!server->Write(confirm_action))
+                    throw std::runtime_error(
+                        "Cannot request confirmation from client. Aborting...");
 
-                auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
-                const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end()
-                                            ? SnapshotPick{{}, true}
-                                            : snapshot_pick_it->second;
+                DeleteRequest client_response;
+                if (server->Read(&client_response))
+                    confirmed = client_response.force();
+                else
+                    status = grpc::Status{grpc::StatusCode::CANCELLED,
+                                          "Cannot get confirmation from client. Aborting..."};
+            }
 
-                if (!all || !purge) // if we're not purging the instance, we need to delete
-                                    // specified snapshots
-                    for (const auto& snapshot_name : pick)
-                        vm_it->second->delete_snapshot(snapshot_name);
+            if (confirmed)
+            {
+                for (const auto* selection : {&instance_selection.deleted_selection,
+                                              &instance_selection.operative_selection})
+                {
+                    for (const auto& vm_it : *selection)
+                    {
+                        const auto& instance_name = vm_it->first;
 
-                if (all) // we're asked to delete the VM
-                    instances_dirty |= delete_vm(vm_it, purge, response);
+                        auto snapshot_pick_it = instance_snapshots_map.find(instance_name);
+                        const auto& [pick, all] = snapshot_pick_it == instance_snapshots_map.end()
+                                                    ? SnapshotPick{{}, true}
+                                                    : snapshot_pick_it->second;
+
+                        if (!all) // snapshots of instances being deleted go away with them
+                            for (const auto& snapshot_name : pick)
+                                vm_it->second->delete_snapshot(snapshot_name);
+                        else
+                        {
+                            delete_vm(vm_it, response);
+                            instances_dirty = true;
+                        }
+                    }
+                }
             }
         }
-
-        if (instances_dirty)
-            persist_instances();
     }
 
-    server->Write(response);
     context->set_value(status);
 }
-catch (const mp::VMStateInvalidException& e)
+catch (const mp::NoSuchSnapshotException& e)
 {
-    context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, e.what()});
+    context->set_value(grpc::Status{grpc::StatusCode::NOT_FOUND, e.what(), ""});
 }
 catch (const std::exception& e)
 {
@@ -2496,7 +2753,6 @@ try
     for (const auto& path_entry : request->target_paths())
     {
         const auto& name = path_entry.instance_name();
-        const auto target_path = mpu::normalize_path(path_entry.target_path());
 
         auto vm = operative_instances.find(name);
         if (vm == operative_instances.end())
@@ -2514,13 +2770,13 @@ try
         auto& vm_spec_mounts = vm_instance_specs[name].mounts;
         auto& vm_mounts = mounts[name];
 
-        auto do_unmount = [&](auto expiring_it) {
-            const auto& [target, mount] = *expiring_it;
+        auto do_unmount = [&](const auto& entry) {
+            const auto& [target, mount] = entry;
             try
             {
                 mount->deactivate();
                 vm_spec_mounts.erase(target);
-                vm_mounts.erase(expiring_it);
+                return true;
             }
             catch (const std::runtime_error& e)
             {
@@ -2530,21 +2786,25 @@ try
                            name,
                            e.what());
             }
+
+            return false;
         };
 
         // Empty target path indicates removing all mounts for the VM instance
-        if (target_path.empty())
-            for (auto expiring_it = vm_mounts.begin(); expiring_it != vm_mounts.end();)
-            {
-                // iterator must be advanced before used in order to prevent iterator invalidation
-                // caused by deleting from the iterated map expiring_it will be invalidated by
-                // do_unmount, so it must not be used after this point
-                do_unmount(expiring_it++);
-            }
-        else if (auto it = vm_mounts.find(target_path); it != vm_mounts.end())
-            do_unmount(it);
+        if (path_entry.target_path().empty())
+        {
+            std::erase_if(vm_mounts, do_unmount);
+        }
         else
-            add_fmt_to(errors, "path \"{}\" is not mounted in '{}'", target_path, name);
+        {
+            const auto q_target_path = QString::fromStdString(path_entry.target_path());
+            const auto target_path = MP_UTILS.normalize_mount_target(q_target_path).toStdString();
+
+            if (auto it = vm_mounts.find(target_path); it == vm_mounts.end())
+                add_fmt_to(errors, "path \"{}\" is not mounted in '{}'", target_path, name);
+            else if (do_unmount(*it))
+                vm_mounts.erase(it);
+        }
     }
 
     persist_instances();
@@ -2598,7 +2858,25 @@ try
 {
     auto key = request->key();
     auto val = request->val();
+    // TODO hyperv migration, remove
+    if (key == mp::driver_key)
+        val = mp::daemon::interpret_driver(QString::fromStdString(val)).toStdString();
     std::string bridge_name;
+
+// TODO hyperv migration, remove
+#if defined(HCS_ENABLED)
+    mp::hyperv::DriverTransition transition{{*config,
+                                             vm_instance_specs,
+                                             operative_instances,
+                                             deleted_instances,
+                                             migration_in_progress,
+                                             preparing_instances}};
+    if (auto status = transition.prepare(key, val); !status.ok())
+    {
+        context->set_value(std::move(status));
+        return;
+    }
+#endif
 
     if (request->authorized() &&
         !(bridge_name = MP_SETTINGS.get(mp::bridged_interface_key).toStdString()).empty())
@@ -2613,13 +2891,27 @@ try
         });
     });
 
+// TODO hyperv migration, remove
+#if defined(HCS_ENABLED)
+    // Runs the Hyper-V to HCS migration only if prepare() started one; otherwise returns OK.
+    // The driver is only switched once it's done, so a daemon that stops mid-migration comes
+    // back on hyperv, where switching again cleans up and resumes it.
+    auto migration_status = transition.complete(server);
+#endif
+
     mpl::trace(category, "Trying to set {}={}", key, val);
     UserMessages messages{};
     MP_SETTINGS.set(QString::fromStdString(key), QString::fromStdString(val), messages);
     mpu::send_messages(server, messages);
     mpl::debug(category, "Succeeded setting {}={}", key, val);
 
+// TODO hyperv migration, revert: context->set_value(grpc::Status::OK);
+#if defined(HCS_ENABLED)
+    transition.hold_until_restart();
+    context->set_value(std::move(migration_status));
+#else
     context->set_value(grpc::Status::OK);
+#endif
 }
 catch (const mp::NonAuthorizedBridgeSettingsException& e)
 {
@@ -2711,7 +3003,8 @@ try
             "Incorrect passphrase. No passphrase is set.\n\n"
             "To authenticate, first ask an authenticated user to set a passphrase and share it "
             "with you, provided they trust you. To set a passphrase, use the command "
-            "'multipass set local.passphrase'. Note that only the user who installs Multipass is "
+            "'multipass set local.passphrase'. Note that only the user who installs Multipass "
+            "is "
             "automatically authenticated."));
     }
 
@@ -2747,8 +3040,7 @@ try
         auto* vm_ptr = std::get<0>(instance_trail)->second.get();
         assert(vm_ptr);
 
-        using St = VirtualMachine::State;
-        if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
+        if (auto state = vm_ptr->current_state(); state != VirtualMachine::State::stopped)
             return context->set_value(
                 grpc::Status{grpc::FAILED_PRECONDITION,
                              "Multipass can only take snapshots of stopped instances."});
@@ -2798,12 +3090,11 @@ try
         auto* vm_ptr = std::get<0>(instance_trail)->second.get();
         assert(vm_ptr);
 
-        // Only need to check if snapshots are supported and if the snapshot exists, so the result
-        // is discarded
-        vm_ptr->get_snapshot(request->snapshot());
+        // Only need to check if snapshots are supported and if the snapshot exists, so the
+        // result is discarded
+        std::ignore = vm_ptr->get_snapshot(request->snapshot());
 
-        using St = VirtualMachine::State;
-        if (auto state = vm_ptr->current_state(); state != St::off && state != St::stopped)
+        if (auto state = vm_ptr->current_state(); state != VirtualMachine::State::stopped)
             return context->set_value(
                 grpc::Status{grpc::FAILED_PRECONDITION,
                              "Multipass can only restore snapshots of stopped instances."});
@@ -2872,7 +3163,6 @@ void mp::Daemon::clone(const CloneRequest* request,
 try
 {
     warn_driver_deprecation(*server); // TODO@deprecations remove
-
     const auto& source_name = request->source_name();
     const auto [src_instance_trail,
                 src_vm_status] = find_instance_and_react(operative_instances,
@@ -2885,8 +3175,7 @@ try
         const auto source_vm_ptr = std::get<0>(src_instance_trail)->second;
         assert(source_vm_ptr);
         const VirtualMachine::State source_vm_state = source_vm_ptr->current_state();
-        if (source_vm_state != VirtualMachine::State::stopped &&
-            source_vm_state != VirtualMachine::State::off)
+        if (source_vm_state != VirtualMachine::State::stopped)
         {
             return context->set_value(grpc::Status{grpc::FAILED_PRECONDITION,
                                                    "Multipass can only clone stopped instances."});
@@ -2975,8 +3264,8 @@ try
 
     mpl::debug("daemon", "Checking connection to image servers...");
 
-    // We use wait_update_manifests_all_and_optionally_applied_force to check connectivity to image
-    // servers.
+    // We use wait_update_manifests_all_and_optionally_applied_force to check connectivity to
+    // image servers.
     try
     {
         wait_update_manifests_all_and_optionally_applied_force(
@@ -3035,22 +3324,74 @@ try // clang-format on
         return context->set_value(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
                                                "Feature is not supported in this backend"});
 
+    AvailabilityZoneManager::Zones zones;
     if (request->zones().empty())
+        zones = az_manager.get_zones();
+    else
     {
-        for (auto&& zone : az_manager.get_zones())
-        {
-            az_manager.get_zone(zone.get().get_name()).set_available(request->available());
-        }
+        for (const auto& i : request->zones())
+            zones.push_back(az_manager.get_zone(i));
+    }
+
+    auto instances = select_instances_by_zones(operative_instances, zones);
+    std::vector<std::string> starting_vms;
+    starting_vms.reserve(instances.size());
+
+    std::function<grpc::Status(VirtualMachine&)> operation;
+    if (request->available())
+        operation = [this, &starting_vms](VirtualMachine& vm) {
+            std::unique_lock lock{start_mutex};
+            try
+            {
+                if (vm.set_available(true))
+                {
+                    vm.start();
+                    starting_vms.push_back(vm.get_name());
+                }
+                return grpc::Status::OK;
+            }
+            catch (const std::exception& e)
+            {
+                return grpc::Status{grpc::StatusCode::ABORTED, e.what(), ""};
+            }
+        };
+    else
+        operation = [this](VirtualMachine& vm) { return make_vm_unavailable(vm); };
+
+    auto status = cmd_vms(instances, operation);
+    if (status.ok())
+    {
+        auto future_watcher = create_future_watcher();
+        future_watcher->setFuture(
+            QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<StartReply, StartRequest>,
+                              this,
+                              nullptr,
+                              starting_vms,
+                              mp::default_timeout,
+                              nullptr,
+                              std::string()));
+
+        for (auto&& z : zones)
+            z.get().set_available(request->available());
     }
     else
     {
-        for (const auto& zone_name : request->zones())
+        // If we failed to start/stop any instance, we need to make sure the zones are in a
+        // consistent state. Since some may be started and some stopped, set the zones to
+        // "available" and clear the "unavailable" state from all instances.
+
+        for (auto&& vm_it : instances)
         {
-            az_manager.get_zone(zone_name).set_available(request->available());
+            auto& vm = *vm_it->second;
+            std::unique_lock vm_lock{vm.state_mutex};
+            vm.set_available(true);
         }
+
+        for (auto&& z : zones)
+            z.get().set_available(true);
     }
 
-    context->set_value(grpc::Status{});
+    context->set_value(status);
 }
 catch (const AvailabilityZoneNotFound& e)
 {
@@ -3092,13 +3433,12 @@ void mp::Daemon::on_restart(const std::string& name)
         }
     });
     future_watcher->setFuture(
-        QtConcurrent::run(&Daemon::async_wait_for_ready_all<StartReply, StartRequest>,
+        QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<StartReply, StartRequest>,
                           this,
                           nullptr,
                           std::vector<std::string>{name},
                           mp::default_timeout,
                           nullptr,
-                          std::string(),
                           std::string()));
 }
 
@@ -3197,7 +3537,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     if (!status.ok())
         return context->set_value(status);
 
-    if (preparing_instances.find(name) != preparing_instances.end())
+    if (preparing_instances.contains(name))
         return context->set_value({grpc::StatusCode::INVALID_ARGUMENT,
                                    fmt::format("instance \"{}\" is being prepared", name),
                                    ""});
@@ -3211,86 +3551,86 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
     auto prepare_future_watcher = new QFutureWatcher<mp::VirtualMachineDescription>();
 
-    QObject::connect(prepare_future_watcher,
-                     &QFutureWatcher<mp::VirtualMachineDescription>::finished,
-                     [this, server, context, name, timeout, start, prepare_future_watcher] {
-                         // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
+    QObject::connect(
+        prepare_future_watcher,
+        &QFutureWatcher<mp::VirtualMachineDescription>::finished,
+        [this, server, context, name, timeout, start, prepare_future_watcher] {
+            // Per-RPC ClientLogger lifecycle is managed by DaemonRpcContextImpl.
 
-                         try
-                         {
-                             auto vm_desc = prepare_future_watcher->future().result();
+            try
+            {
+                auto vm_desc = prepare_future_watcher->future().result();
 
-                             vm_instance_specs[name] = {
-                                 vm_desc.num_cores,
-                                 vm_desc.mem_size,
-                                 vm_desc.disk_space,
-                                 vm_desc.default_mac_address,
-                                 vm_desc.extra_interfaces,
-                                 config->ssh_username,
-                                 VirtualMachine::State::off,
-                                 {},
-                                 false,
-                                 {},
-                                 0,
-                                 vm_desc.zone,
-                             };
-                             operative_instances[name] = config->factory->create_virtual_machine(
-                                 vm_desc,
-                                 *config->ssh_key_provider,
-                                 *this);
-                             preparing_instances.erase(name);
+                vm_instance_specs[name] = {
+                    vm_desc.num_cores,
+                    vm_desc.mem_size,
+                    vm_desc.disk_space,
+                    vm_desc.default_mac_address,
+                    vm_desc.extra_interfaces,
+                    config->ssh_username,
+                    VirtualMachine::State::stopped,
+                    {},
+                    false,
+                    {},
+                    0,
+                    vm_desc.zone,
+                };
+                operative_instances[name] = config->factory->create_virtual_machine(
+                    vm_desc,
+                    *config->ssh_key_provider,
+                    *this);
+                preparing_instances.erase(name);
 
-                             persist_instances();
+                persist_instances();
 
-                             if (start)
-                             {
-                                 LaunchReply reply;
-                                 reply.set_create_message("Starting " + name);
-                                 server->Write(reply);
+                if (start)
+                {
+                    LaunchReply reply;
+                    reply.set_create_message("Starting " + name);
+                    server->Write(reply);
 
-                                 operative_instances[name]->start();
+                    operative_instances[name]->start();
 
-                                 auto future_watcher = create_future_watcher(
-                                     [this, server, name, zone = vm_desc.zone] {
-                                         LaunchReply reply;
-                                         reply.set_vm_instance_name(name);
-                                         config->update_prompt->populate_if_time_to_show(
-                                             reply.mutable_update_info());
+                    auto future_watcher = create_future_watcher(
+                        [this, server, name, zone = vm_desc.zone] {
+                            LaunchReply reply;
+                            reply.set_vm_instance_name(name);
+                            config->update_prompt->populate_if_time_to_show(
+                                reply.mutable_update_info());
 
-                                         if (config->factory->supports_availability_zones())
-                                             reply.set_zone(zone);
-                                         server->Write(reply);
-                                     });
-                                 future_watcher->setFuture(QtConcurrent::run(
-                                     &Daemon::async_wait_for_ready_all<LaunchReply, LaunchRequest>,
-                                     this,
-                                     server,
-                                     std::vector<std::string>{name},
-                                     timeout,
-                                     context,
-                                     std::string(),
-                                     std::string()));
-                             }
-                             else
-                             {
-                                 context->set_value(grpc::Status::OK);
-                             }
-                         }
-                         catch (const std::exception& e)
-                         {
-                             mp::top_catch_all(category, [this, name]() {
-                                 preparing_instances.erase(name);
-                                 release_resources(name);
-                                 operative_instances.erase(name);
-                                 persist_instances();
-                             });
+                            if (config->factory->supports_availability_zones())
+                                reply.set_zone(zone);
+                            server->Write(reply);
+                        });
+                    future_watcher->setFuture(QtConcurrent::run(
+                        &Daemon::async_wait_multiple_vms_ready<LaunchReply, LaunchRequest>,
+                        this,
+                        server,
+                        std::vector<std::string>{name},
+                        timeout,
+                        context,
+                        std::string()));
+                }
+                else
+                {
+                    context->set_value(grpc::Status::OK);
+                }
+            }
+            catch (const std::exception& e)
+            {
+                mp::top_catch_all(category, [this, name]() {
+                    preparing_instances.erase(name);
+                    release_resources(name);
+                    operative_instances.erase(name);
+                    persist_instances();
+                });
 
-                             context->set_value(
-                                 grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
-                         }
+                context->set_value(
+                    grpc::Status(grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""));
+            }
 
-                         prepare_future_watcher->deleteLater();
-                     });
+            prepare_future_watcher->deleteLater();
+        });
 
     auto make_vm_description = [this, server, request, name, zone_name, checked_args]() mutable
         -> mp::VirtualMachineDescription {
@@ -3313,15 +3653,14 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 {},
                 config->ssh_username,
                 VMImage{},
-                "",
-                YAML::Node{},
-                YAML::Node{},
-                make_cloud_init_vendor_config(
-                    *config->ssh_key_provider,
-                    config->ssh_username,
-                    config->factory->get_backend_version_string().toStdString(),
-                    request),
-                YAML::Node{}};
+                ""};
+
+            CloudInitConfig cloud_init{};
+            cloud_init.vendor_data = make_cloud_init_vendor_config(
+                *config->ssh_key_provider,
+                config->ssh_username,
+                config->factory->get_backend_version_string().toStdString(),
+                request);
 
             query = query_from(request, name);
             vm_desc.mem_size = checked_args.mem_size;
@@ -3352,7 +3691,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 prepare_action,
                 progress_monitor,
                 checksum,
-                config->factory->get_instance_directory(name));
+                MP_PLATFORM.qstr_to_path(config->factory->get_instance_directory(name)));
 
             const auto image_size = config->factory->virtual_size_for(vm_image.image_path);
             vm_desc.disk_space = compute_final_image_size(
@@ -3365,8 +3704,8 @@ void mp::Daemon::create_vm(const CreateRequest* request,
 
             config->factory->prepare_networking(checked_args.extra_interfaces);
 
-            // This set stores the MAC's which need to be in the allocated_mac_addrs if everything
-            // goes well.
+            // This set stores the MAC's which need to be in the allocated_mac_addrs if
+            // everything goes well.
             auto new_macs = allocated_mac_addrs;
 
             // check for repetition of requested macs
@@ -3384,19 +3723,21 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.default_mac_address = generate_unused_mac_address(new_macs);
             vm_desc.extra_interfaces = checked_args.extra_interfaces;
 
-            vm_desc.meta_data_config = mpu::make_cloud_init_meta_config(name);
-            vm_desc.user_data_config = YAML::Load(request->cloud_init_user_data());
-            prepare_user_data(vm_desc.user_data_config, vm_desc.vendor_data_config);
+            cloud_init.meta_data = mpu::make_cloud_init_meta_config(name);
+            cloud_init.user_data = YAML::Load(request->cloud_init_user_data());
+            prepare_user_data(cloud_init.user_data, cloud_init.vendor_data);
 
             if (vm_desc.num_cores < std::stoi(mp::min_cpu_cores))
                 vm_desc.num_cores = std::stoi(mp::default_cpu_cores);
 
-            vm_desc.network_data_config = mpu::make_cloud_init_network_config(
+            cloud_init.network_data = mpu::make_cloud_init_network_config(
                 vm_desc.default_mac_address,
                 checked_args.extra_interfaces);
 
             vm_desc.image = vm_image;
-            config->factory->configure(vm_desc);
+            const auto cloud_init_iso = cloud_init_iso_path(*config->factory, name);
+            CloudInitIso{cloud_init}.write_to(cloud_init_iso);
+            vm_desc.cloud_init_iso = MP_PLATFORM.path_to_qstr(cloud_init_iso);
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
             // Everything went well, add the MAC addresses used in this instance.
@@ -3413,69 +3754,86 @@ void mp::Daemon::create_vm(const CreateRequest* request,
     prepare_future_watcher->setFuture(QtConcurrent::run(make_vm_description));
 }
 
-bool mp::Daemon::delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response)
+void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, DeleteReply& response)
 {
-    auto& [name, instance] = *vm_it;
-    auto* erase_from = purge ? &deleted_instances : nullptr; // to begin with
-    auto instances_dirty = false;
+    const auto name = vm_it->first;
+    const auto& instance = vm_it->second;
+    auto& erase_from = vm_instance_specs[name].deleted ? deleted_instances : operative_instances;
 
-    if (!vm_instance_specs[name].deleted)
+    if (&erase_from == &operative_instances)
     {
-        mpl::debug(category, "Deleting instance: {}", name);
-        erase_from = &operative_instances;
         if (instance->current_state() == VirtualMachine::State::delayed_shutdown)
             delayed_shutdown_instances.erase(name);
 
         mounts[name].clear();
-
-        instance->shutdown(purge == true ? VirtualMachine::ShutdownPolicy::Poweroff
-                                         : VirtualMachine::ShutdownPolicy::Halt);
-        if (!purge)
-        {
-            vm_instance_specs[name].deleted = true;
-            deleted_instances[name] = std::move(instance);
-
-            instances_dirty = true;
-            mpl::debug(category, "Instance deleted: {}", name);
-        }
+        instance->shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
     }
     else
-        mpl::debug(category, "Instance is already deleted: {}", name);
+        mpl::debug(category, "Instance `{}` is already deleted", name);
 
-    if (purge)
-    {
-        response.add_purged_instances(name);
-        release_resources(name);
-
-        instances_dirty = true;
-        mpl::debug(category, "Instance purged: {}", name);
-    }
-
-    if (erase_from)
-        erase_from->erase(vm_it);
-
-    return instances_dirty;
+    release_resources(name);
+    erase_from.erase(vm_it);
+    response.add_deleted_instances(name);
+    mpl::debug(category, "Instance deleted: {}", name);
 }
 
-grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm)
+grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, bool running_only)
 {
-    if (vm.state == VirtualMachine::State::delayed_shutdown)
-        delayed_shutdown_instances.erase(vm.get_name());
-
-    if (auto st = vm.current_state(); !MP_UTILS.is_running(st))
+    const auto st = vm.current_state();
+    if (running_only && !MP_UTILS.is_running(st))
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            fmt::format("Instance '{}' is not running", vm.get_name()),
+                            ""};
+    switch (st)
     {
-        std::string msg;
-        if (st == VirtualMachine::State::unknown)
-            msg = fmt::format("Instance '{0}' is already running, but in an unknown state.\n"
-                              "Try to stop and start it instead.",
-                              vm.get_name());
-        else
-            msg = fmt::format("Instance '{0}' is not running", vm.get_name());
-        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, std::move(msg), ""};
-    }
+    case VirtualMachine::State::delayed_shutdown:
+        delayed_shutdown_instances.erase(vm.get_name());
+        [[fallthrough]];
+    case VirtualMachine::State::running:
+        mpl::debug(category, "Rebooting {}", vm.get_name());
+        stop_mounts(vm.get_name());
+        return ssh_reboot(vm);
 
-    mpl::debug(category, "Rebooting {}", vm.get_name());
-    return ssh_reboot(vm);
+    case VirtualMachine::State::stopped:
+        mpl::debug(category, "Rebooting {}", vm.get_name());
+        try
+        {
+            std::lock_guard guard{start_mutex};
+            // Avoid concurrent calls to vm.start()
+            vm.start();
+        }
+        catch (const std::exception& e)
+        {
+            return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, e.what(), ""};
+        }
+        stop_mounts(vm.get_name());
+        return grpc::Status::OK;
+
+    case VirtualMachine::State::unavailable:
+        return grpc::Status{grpc::StatusCode::FAILED_PRECONDITION,
+                            fmt::format("Instance '{}' is unavailable.", vm.get_name()),
+                            ""};
+
+    case VirtualMachine::State::suspended:
+        // A suspended instance should have been resumed and set to running before this function
+        // is called. If the state is detected here, we cannot recover
+        return grpc::Status{
+            grpc::StatusCode::FAILED_PRECONDITION,
+            fmt::format("Suspended instance '{}' failed to resume and restart.", vm.get_name()),
+            ""};
+    case VirtualMachine::State::suspending:
+    case VirtualMachine::State::starting:
+    case VirtualMachine::State::restarting:
+    case VirtualMachine::State::unknown:
+    default:
+        return grpc::Status{
+            grpc::StatusCode::FAILED_PRECONDITION,
+            fmt::format("The state of instance '{0}' is '{1}' and cannot be restarted.\nUse "
+                        "'multipass stop --force {0}' to force-stop it, then retry.",
+                        vm.get_name(),
+                        st),
+            ""};
+    }
 }
 
 grpc::Status mp::Daemon::shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay)
@@ -3502,8 +3860,26 @@ grpc::Status mp::Daemon::switch_off_vm(VirtualMachine& vm)
     delayed_shutdown_instances.erase(name);
 
     vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
+    stop_mounts(name);
 
     return grpc::Status::OK;
+}
+
+grpc::Status mp::Daemon::make_vm_unavailable(VirtualMachine& vm)
+{
+    const auto& name = vm.get_name();
+    delayed_shutdown_instances.erase(name);
+
+    try
+    {
+        vm.set_available(false);
+        stop_mounts(name);
+        return grpc::Status::OK;
+    }
+    catch (const std::exception& e)
+    {
+        return grpc::Status{grpc::StatusCode::ABORTED, e.what(), ""};
+    }
 }
 
 grpc::Status mp::Daemon::cancel_vm_shutdown(const VirtualMachine& vm)
@@ -3559,12 +3935,7 @@ void mp::Daemon::init_mounts(const std::string& name)
 void mp::Daemon::stop_mounts(const std::string& name)
 {
     for (auto& [_, mount] : mounts[name])
-    {
-        if (!mount->is_mount_managed_by_backend())
-        {
-            mount->deactivate(/*force=*/true);
-        }
-    }
+        mount->deactivate(/*force=*/true);
 }
 
 bool mp::Daemon::update_mounts(mp::VMSpecs& vm_specs,
@@ -3586,7 +3957,7 @@ bool mp::Daemon::create_missing_mounts(
     auto initial_mount_count = mount_specs.size();
     std::erase_if(mount_specs, [&](auto&& i) {
         const auto& [target, mount_spec] = i;
-        if (vm_mounts.find(target) == vm_mounts.end())
+        if (!vm_mounts.contains(target))
         {
             try
             {
@@ -3642,26 +4013,26 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
 }
 
 template <typename Reply, typename Request>
-error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
-    const std::string& name,
-    const std::chrono::seconds& timeout,
-    grpc::ServerReaderWriterInterface<Reply, Request>* server)
+mp::ReadinessResult
+mp::Daemon::async_wait_vm_ready(const std::string& name,
+                                const std::chrono::seconds& timeout,
+                                grpc::ServerReaderWriterInterface<Reply, Request>* server)
 {
-    fmt::memory_buffer errors;
     try
     {
         const auto& it = operative_instances.find(name);
         if (operative_instances.end() == it)
         {
-            fmt::format_to(std::back_inserter(errors),
-                           "Error starting mounts for VM `{}`, the VM is not in a operative state!",
-                           name);
-            return fmt::to_string(errors);
+            return {name,
+                    ReadinessError::NOT_OPERATIVE,
+                    fmt::format("Error starting mounts for VM `{}`, the VM is not in an operative "
+                                "state!",
+                                name)};
         }
         const auto vm = it->second;
         vm->wait_until_ssh_up(timeout);
 
-        if (std::is_same<Reply, LaunchReply>::value)
+        if constexpr (std::is_same_v<Reply, LaunchReply>)
         {
             if (server)
             {
@@ -3676,19 +4047,19 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
         if (MP_SETTINGS.get_as<bool>(mp::mounts_key))
         {
             std::vector<std::string> invalid_mounts;
+            std::optional<ReadinessResult> mount_error;
             fmt::memory_buffer warnings;
             auto& vm_mounts = mounts[name];
             for (auto& [target, mount] : vm_mounts)
                 try
                 {
-                    if (!mount->is_mount_managed_by_backend())
-                    {
-                        mount->activate(server);
-                    }
+                    mount->activate(server);
                 }
                 catch (const mp::SSHFSMissingError&)
                 {
-                    add_fmt_to(errors, sshfs_error_template, name);
+                    mount_error = {name,
+                                   ReadinessError::SSHFS_MISSING,
+                                   fmt::format(sshfs_error_template, name)};
                     break;
                 }
                 catch (const std::exception& e)
@@ -3717,42 +4088,58 @@ error_string mp::Daemon::async_wait_for_ssh_and_start_mounts_for(
             }
 
             persist_instances();
+
+            if (mount_error.has_value())
+                return mount_error.value();
         }
+    }
+    catch (const StartException& e)
+    {
+        if (!std::is_same_v<Reply, LaunchReply> || !e.was_intentional())
+        {
+            return {name, ReadinessError::UNPLUGGED, e.what()};
+        }
+    }
+    catch (const SSHTimeoutException& e)
+    {
+        return {name, ReadinessError::SSH_TIMEOUT, e.what()};
+    }
+    catch (const CloudInitTimeoutException& e)
+    {
+        return {name, ReadinessError::CLOUD_INIT_TIMEOUT, e.what()};
     }
     catch (const std::exception& e)
     {
-        fmt::format_to(std::back_inserter(errors), "{}", e.what());
+        return {name, ReadinessError::OTHER, e.what()};
     }
 
-    return fmt::to_string(errors);
+    return {name, ReadinessError::OK, {}};
 }
 
 template <typename Reply, typename Request>
 mp::Daemon::AsyncOperationStatus
-mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                                     const std::vector<std::string>& vms,
-                                     const std::chrono::seconds& timeout,
-                                     DaemonRpcContext* context,
-                                     const std::string& start_errors,
-                                     const std::string& start_warnings)
+mp::Daemon::async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                                          const std::vector<std::string>& vms,
+                                          const std::chrono::seconds& timeout,
+                                          DaemonRpcContext* context,
+                                          const std::string& start_errors)
 {
-    QFutureSynchronizer<std::string> start_synchronizer;
+    QFutureSynchronizer<ReadinessResult> start_synchronizer;
     {
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
         for (const auto& name : vms)
         {
-            if (async_running_futures.find(name) != async_running_futures.end())
+            if (async_running_futures.contains(name))
             {
                 start_synchronizer.addFuture(async_running_futures[name]);
             }
             else
             {
-                auto future = QtConcurrent::run(
-                    &Daemon::async_wait_for_ssh_and_start_mounts_for<Reply, Request>,
-                    this,
-                    name,
-                    timeout,
-                    server);
+                auto future = QtConcurrent::run(&Daemon::async_wait_vm_ready<Reply, Request>,
+                                                this,
+                                                name,
+                                                timeout,
+                                                server);
                 async_running_futures[name] = future;
                 start_synchronizer.addFuture(future);
             }
@@ -3760,10 +4147,6 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
     }
 
     start_synchronizer.waitForFinished();
-
-    fmt::memory_buffer warnings;
-
-    warnings.append(start_warnings);
 
     {
         std::lock_guard<decltype(start_mutex)> lock{start_mutex};
@@ -3773,36 +4156,28 @@ mp::Daemon::async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Re
         }
     }
 
-    fmt::memory_buffer errors;
-    errors.append(start_errors);
+    std::vector<ReadinessResult> results;
+    results.reserve(vms.size());
 
     for (const auto& future : start_synchronizer.futures())
-        if (auto error = future.result(); !error.empty())
-            add_fmt_to(errors, "{}", error);
+        results.push_back(future.result());
 
     if constexpr (std::is_same_v<Reply, StartReply> || std::is_same_v<Reply, RestartReply>)
     {
         if (server)
         {
             Reply reply;
-
             config->update_prompt->populate_if_time_to_show(reply.mutable_update_info());
-
-            if (warnings.size() > 0)
-            {
-                reply.set_log_line(fmt::to_string(warnings));
-            }
-
             server->Write(reply);
         }
     }
 
-    return {grpc_status_for(errors), context};
+    return {mp::grpc_status_for_readiness<Reply>(results, start_errors), context};
 }
 
 void mp::Daemon::finish_async_operation(const std::string& async_future_key)
 {
-    if (async_future_watchers.find(async_future_key) == async_future_watchers.end())
+    if (!async_future_watchers.contains(async_future_key))
         return;
 
     auto async_op_result = async_future_watchers.at(async_future_key)->result();
@@ -3952,7 +4327,7 @@ grpc::Status mp::Daemon::validate_dest_name(const std::string& name)
     {
         return dest_vm_status;
     }
-    if (preparing_instances.find(name) != preparing_instances.end())
+    if (preparing_instances.contains(name))
     {
         return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
                             fmt::format("instance \"{}\" is being prepared", name),
@@ -4021,7 +4396,7 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
         throw std::runtime_error(
             fmt::format(invalid_network_template, preferred_net, mp::bridged_interface_key));
     }
-    else if (info->needs_authorization && !user_authorized_bridges.count(preferred_net))
+    else if (info->needs_authorization && !user_authorized_bridges.contains(preferred_net))
     {
         throw mp::NonAuthorizedBridgeSettingsException("Cannot update instance settings",
                                                        instance_name,
@@ -4065,4 +4440,30 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
                                          instance_name,
                                          preferred_net);
     }
+}
+
+grpc::Status mp::Daemon::restart_start_suspended_instances(
+    const LinearInstanceSelection& instance_targets,
+    std::vector<VirtualMachine::ShPtr>& started_vms)
+{
+    const auto& suspended_instances = filter_instances_by_state(
+        instance_targets,
+        mp::VirtualMachine::State::suspended);
+
+    return cmd_vms(
+        suspended_instances,
+        [this, &started_vms](VirtualMachine& vm) {
+            try
+            {
+                std::lock_guard start_guard{start_mutex};
+                vm.start();
+                started_vms.push_back(operative_instances.at(vm.get_name()));
+                return grpc::Status::OK;
+            }
+            catch (const std::runtime_error& e)
+            {
+                return grpc::Status{grpc::FAILED_PRECONDITION, e.what(), ""};
+            }
+        },
+        /*fail_early=*/false);
 }

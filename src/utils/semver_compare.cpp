@@ -23,7 +23,7 @@
 namespace multipass
 {
 
-std::strong_ordering operator<=>(const opaque_semver& lhs, const opaque_semver& rhs)
+std::weak_ordering operator<=>(const opaque_semver& lhs, const opaque_semver& rhs)
 {
     auto parse_version = [](const opaque_semver& svv) {
         semver::version v;

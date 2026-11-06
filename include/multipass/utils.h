@@ -122,6 +122,8 @@ bool process_log_on_error(const QString& program,
                           multipass::logging::Level level = multipass::logging::Level::debug,
                           const int timeout = 30000);
 
+bool expects_shutdown_from_cloud_init(const YAML::Node& user_data_config);
+
 // networking helpers
 void validate_server_address(const std::string& value);
 bool valid_hostname(const std::string& name_string);
@@ -243,7 +245,7 @@ public:
     virtual qint64 filesystem_bytes_available(const QString& data_directory) const;
     virtual void exit(int code) const;
     virtual std::string contents_of(const multipass::Path& file_path) const;
-    virtual void make_file_with_content(const std::string& file_name,
+    virtual void make_file_with_content(const std::filesystem::path& file_name,
                                         const std::string& content,
                                         const bool& overwrite = false);
     virtual Path make_dir(const QDir& a_dir,

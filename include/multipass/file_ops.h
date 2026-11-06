@@ -130,15 +130,18 @@ public:
     virtual bool is_symlink(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual bool exists(const fs::path& path, std::error_code& err) const noexcept;
+    virtual bool is_directory(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual bool is_directory(const fs::path& path, std::error_code& err) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual bool create_directory(const fs::path& path, std::error_code& err) const;
+    virtual bool create_directories(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual bool create_directories(const fs::path& path, std::error_code& err) const;
     virtual bool remove(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual bool remove(const fs::path& path, std::error_code& err) const noexcept;
+    virtual bool remove_all(const fs::path& path) const;
     // [[deprecated("Use non-std::error_code overload instead!")]]
     virtual void create_symlink(const fs::path& to,
                                 const fs::path& path,
@@ -159,6 +162,9 @@ public:
     virtual fs::path relative(const fs::path& path,
                               const fs::path& base,
                               std::error_code& ec) const;
+    // TODO hyperv migration, remove (file_size and space)
+    virtual std::uintmax_t file_size(const fs::path& path, std::error_code& err) const;
+    virtual fs::space_info space(const fs::path& path, std::error_code& err) const;
 
     virtual fs::perms get_permissions(const fs::path& file) const;
 

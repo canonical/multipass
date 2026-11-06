@@ -55,14 +55,9 @@ public:
     void shutdown(ShutdownPolicy shutdown_policy = ShutdownPolicy::Powerdown) override;
     void suspend() override;
     State current_state() override;
-    int ssh_port() override;
-    std::string ssh_hostname() override;
-    std::string ssh_username() override;
     std::optional<IPAddress> management_ipv4() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void handle_state_update() override;
-    void update_cpus(int num_cores) override;
-    void resize_memory(const MemorySize& new_size) override;
     virtual void add_network_interface(int index,
                                        const std::string& default_mac_addr,
                                        const NetworkInterface& extra_interface) override;
@@ -75,15 +70,6 @@ signals:
     void on_synchronize_clock();
 
 protected:
-    // TODO remove this, the onus of composing a VM of stubs should be on the stub VMs
-    QemuVirtualMachine(const std::string& name,
-                       const SSHKeyProvider& key_provider,
-                       AvailabilityZone& zone,
-                       const Path& instance_dir)
-        : BaseVirtualMachine{name, {}, key_provider, zone, instance_dir}
-    {
-    }
-
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,
                                                      const std::string& comment,
@@ -109,7 +95,6 @@ private:
 
     std::unique_ptr<Process> vm_process{nullptr};
     QemuPlatform* qemu_platform;
-    VMStatusMonitor* monitor;
     MountArgs mount_args;
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};

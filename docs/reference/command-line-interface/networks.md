@@ -17,24 +17,8 @@ PrivSwitch      switch  Private virtual switch
 
 Like [`list`](/reference/command-line-interface/list), `networks` supports the `--format` option.
 
-Another example, running the command `multipass networks --format yaml` on macOS with VirtualBox returns:
-
-```{code-block} text
-bridge0:
-  - type: bridge
-    description: Network bridge with en1, en2
-bridge2:
-  - type: bridge
-    description: Empty network bridge
-en0:
-  - type: wifi
-    description: Wi-Fi (Wireless)
-en1:
-  - type: thunderbolt
-    description: Thunderbolt 1
-en2:
-  - type: thunderbolt
-    description: Thunderbolt 2
+```{note}
+The `json`, `csv` and `yaml` formats cover regular output only. Errors and log messages are printed to the standard error stream as plain text, with failures signaled by a non-zero exit status.
 ```
 
 See [`launch`](/reference/command-line-interface/launch) and {ref}`create-an-instance-with-multiple-network-interfaces` for instructions on how to use these.
@@ -55,5 +39,9 @@ Options:
                      option for more detail. Maximum verbosity is obtained with
                      4 (or more) v's, i.e. -vvvv.
   --format <format>  Output list in the requested format.
-                     Valid formats are: table (default), json, csv and yaml
+                     Valid formats are: table (default), json, csv and yaml. The
+                     json, csv and yaml formats cover regular output only.
+                     Errors and log messages are printed to the standard error
+                     stream as plain text, with failures signaled by a non-zero
+                     exit status.
 ```

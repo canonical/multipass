@@ -22,6 +22,7 @@
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/mount_handler.h>
+#include <multipass/platform.h>
 #include <multipass/utils.h>
 #include <multipass/virtual_machine_factory.h>
 
@@ -60,11 +61,11 @@ public:
 
     MemorySize virtual_size_for(const std::filesystem::path& image_path) const override;
 
-    VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> image_hosts,
-                                          URLDownloader* downloader,
-                                          const Path& cache_dir_path,
-                                          const Path& data_dir_path,
-                                          const days& days_to_expire) override
+    std::unique_ptr<VMImageVault> create_image_vault(std::vector<VMImageHost*> image_hosts,
+                                                     URLDownloader* downloader,
+                                                     const std::filesystem::path& cache_dir_path,
+                                                     const std::filesystem::path& data_dir_path,
+                                                     const days& days_to_expire) override
     {
         return std::make_unique<DefaultVMImageVault>(image_hosts,
                                                      downloader,
@@ -72,8 +73,6 @@ public:
                                                      data_dir_path,
                                                      days_to_expire);
     };
-
-    void configure(VirtualMachineDescription& vm_desc) override;
 
     std::vector<NetworkInterfaceInfo> networks() const override
     {

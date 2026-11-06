@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright (C) Canonical, Ltd.
 #
@@ -51,11 +50,18 @@ from .helpers import (
     get_mac_addr_of,
     get_cloudinit_instance_id,
     get_multipass_version,
+    parse_multipass_versions,
     vm_exists,
     get_boot_id
 )
 from .multipass_cmd import multipass
-from .snapshot import build_snapshot_tree, collapse_to_snapshot_tree, take_snapshot
+from .snapshot import (
+    assert_list_snapshots_matches_snapshots,
+    build_snapshot_tree,
+    collapse_to_snapshot_tree,
+    delete_snapshot,
+    take_snapshot,
+)
 from .validate import (
     validate_info_output,
     validate_list_output,
@@ -64,6 +70,6 @@ from .validate import (
 from .cmd_output import Output
 from .imageutils import image_name_to_version
 from .launch import launch
-from .fileutils import nuke_all_instances
+from .fileutils import flag_instance_deleted, nuke_all_instances
 from .nameutils import random_vm_name
 from .feature_versions import multipass_version_has_feature, skip_if_feature_not_supported, requires_multipass

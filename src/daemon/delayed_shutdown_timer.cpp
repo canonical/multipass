@@ -87,8 +87,7 @@ mp::DelayedShutdownTimer::~DelayedShutdownTimer()
 
 void mp::DelayedShutdownTimer::start(const std::chrono::milliseconds delay)
 {
-    if (virtual_machine->state == VirtualMachine::State::stopped ||
-        virtual_machine->state == VirtualMachine::State::off)
+    if (virtual_machine->state == VirtualMachine::State::stopped)
         return;
 
     if (delay > decltype(delay)(0))

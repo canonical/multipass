@@ -21,15 +21,19 @@
 #include <multipass/utils.h>
 #include <multipass/utils/sorted_map_view.h>
 
+#include <string_view>
+
 namespace mp = multipass;
 
 namespace
 {
 template <typename Dest>
 void format_images(Dest&& dest,
-                   const google::protobuf::RepeatedPtrField<mp::FindReply_ImageInfo>& images_info,
-                   std::string type)
+                   const google::protobuf::RepeatedPtrField<mp::ImagesReply_ImageInfo>& images_info,
+                   std::string_view type)
 {
+    fmt::format_to(dest, "Image,Remote,Aliases,OS,Release,Version,Hash,Type\n");
+
     for (const auto& image : images_info)
     {
         auto aliases = image.aliases();
@@ -38,13 +42,14 @@ void format_images(Dest&& dest,
         auto image_id = mp::format::image_string_for(image.remote_name(), aliases[0]);
 
         fmt::format_to(dest,
-                       "{},{},{},{},{},{},{}\n",
+                       "{},{},{},{},{},{},{},{}\n",
                        image_id,
                        image.remote_name(),
                        fmt::join(aliases.cbegin() + 1, aliases.cend(), ";"),
                        image.os(),
                        image.release(),
                        image.version(),
+                       image.hash(),
                        type);
     }
 }
@@ -127,13 +132,13 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
     fmt::memory_buffer buf;
 
     fmt::format_to(std::back_inserter(buf),
-                   "Name,State,IPv4,Release,AllIPv4,Zone,Zone available\n");
+                   "Name,State,IPv4,Release,AllIPv4,Zone,Zone available,Mounts\n");
 
     for (const auto& instance : mp::format::sorted(instance_list.instances()))
     {
         fmt::format_to(
             std::back_inserter(buf),
-            "{},{},{},{},\"{}\",{},{}\n",
+            "{},{},{},{},\"{}\",{},{},{}\n",
             instance.name(),
             mp::format::status_string_for(instance.instance_status()),
             instance.ipv4_size() ? instance.ipv4(0) : "",
@@ -143,7 +148,8 @@ std::string generate_instances_list(const mp::InstancesList& instance_list)
             fmt::join(instance.ipv4(), ","),
             !instance.zone().name().empty() ? instance.zone().name() : std::string{"n/a"},
             !instance.zone().name().empty() ? fmt::to_string(instance.zone().available())
-                                            : std::string{});
+                                            : std::string{},
+            instance.mount_count());
     }
 
     return fmt::to_string(buf);
@@ -203,6 +209,11 @@ std::string mp::CSVFormatter::format(const ListReply& reply) const
     return output;
 }
 
+std::string mp::CSVFormatter::format(const SnapshotsReply& reply) const
+{
+    return generate_snapshots_list(reply.snapshot_list());
+}
+
 std::string mp::CSVFormatter::format(const NetworksReply& reply) const
 {
     fmt::memory_buffer buf;
@@ -222,13 +233,26 @@ std::string mp::CSVFormatter::format(const NetworksReply& reply) const
     return fmt::to_string(buf);
 }
 
-std::string mp::CSVFormatter::format(const FindReply& reply) const
+std::string mp::CSVFormatter::format(const RemotesReply& reply) const
 {
     fmt::memory_buffer buf;
 
-    fmt::format_to(std::back_inserter(buf), "Image,Remote,Aliases,OS,Release,Version,Type\n");
-    format_images(std::back_inserter(buf), reply.images_info(), "Cloud Image");
+    fmt::format_to(std::back_inserter(buf), "Remote\n");
 
+    auto sorted_remotes = reply.remotes();
+    std::ranges::sort(sorted_remotes);
+    for (const auto& remote : sorted_remotes)
+    {
+        fmt::format_to(std::back_inserter(buf), "{}\n", remote);
+    }
+
+    return fmt::to_string(buf);
+}
+
+std::string mp::CSVFormatter::format(const ImagesReply& reply) const
+{
+    fmt::memory_buffer buf;
+    format_images(std::back_inserter(buf), reply.images_info(), "Cloud Image");
     return fmt::to_string(buf);
 }
 

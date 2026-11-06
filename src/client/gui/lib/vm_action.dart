@@ -11,7 +11,6 @@ enum VmAction {
   restart,
   delete,
   recover,
-  purge,
   edit;
 
   String label(AppLocalizations l10n) => l10n.vmActionLabel(name);
@@ -24,9 +23,14 @@ enum VmAction {
         stop => const {Status.RUNNING},
         suspend => const {Status.RUNNING},
         restart => const {Status.RUNNING},
-        delete => const {Status.STOPPED, Status.SUSPENDED, Status.RUNNING},
+        delete => const {
+            Status.STOPPED,
+            Status.SUSPENDED,
+            Status.RUNNING,
+            Status.UNAVAILABLE,
+            Status.DELETED,
+          },
         recover => const {Status.DELETED},
-        purge => const {Status.DELETED},
         edit => const {Status.STOPPED},
       };
 }

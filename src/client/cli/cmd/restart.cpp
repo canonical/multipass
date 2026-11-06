@@ -90,9 +90,11 @@ QString cmd::Restart::short_help() const
 
 QString cmd::Restart::description() const
 {
-    return QStringLiteral("Restart the named instances. Exits with return\n"
-                          "code 0 when the instances restart, or with an\n"
-                          "error code if any fail to restart.");
+    return QStringLiteral(
+        "Restart the named instances. If the instance is running, it will be rebooted.\n"
+        "If the instance is suspended, it will be started and then rebooted. If the\n"
+        "instance is stopped, it will be started. Exits with return code 0 when the \n"
+        "instances restart, or with an error code if any fail to restart.");
 }
 
 mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
@@ -111,7 +113,9 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
     parser->addPositionalArgument("name", description, syntax);
 
     QCommandLineOption all_option(all_option_name, "Restart all instances");
-    parser->addOption(all_option);
+    QCommandLineOption running_only_option("running-only",
+                                           "Avoid restarting non-running instances.");
+    parser->addOptions({all_option, running_only_option});
 
     mp::cmd::add_instance_timeout(parser);
 
@@ -141,6 +145,8 @@ mp::ParseCode cmd::Restart::parse_args(mp::ArgParser* parser)
 
         return parse_code;
     }
+
+    request.set_running_only(parser->isSet(running_only_option));
 
     request.mutable_instance_names()->CopyFrom(
         add_instance_names(parser, /*default_name=*/petenv_name.toStdString()));

@@ -12,7 +12,9 @@ permissions:
 
 jobs:
   run-scraper:
-    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'canonical/multipass' }}
+
+    runs-on: ubuntu-slim
 
     steps:
       - name: Generate GitHub App token
@@ -30,7 +32,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.15'
 
       - name: Create virtual environment
         run: |

@@ -17,8 +17,8 @@
 
 #pragma once
 
-#include "daemon_config.h"
 #include "daemon_rpc.h"
+#include "readiness_result.h"
 
 #include <multipass/async_periodic_download_task.h>
 #include <multipass/delayed_shutdown_timer.h>
@@ -28,10 +28,13 @@
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
 
+#include <atomic>
 #include <chrono>
 #include <future>
 #include <memory>
 #include <mutex>
+#include <optional>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -57,6 +60,9 @@ public:
 protected:
     using InstanceTable = std::unordered_map<std::string, VirtualMachine::ShPtr>;
 
+    // TODO hyperv migration, revert: back to a free function in daemon.cpp
+    void connect_rpc(DaemonRpc& rpc);
+
     void on_resume() override;
     void on_shutdown() override;
     void on_suspend() override;
@@ -78,9 +84,13 @@ public slots:
                        grpc::ServerReaderWriterInterface<PurgeReply, PurgeRequest>* server,
                        DaemonRpcContext* context);
 
-    virtual void find(const FindRequest* request,
-                      grpc::ServerReaderWriterInterface<FindReply, FindRequest>* server,
-                      DaemonRpcContext* context);
+    virtual void remotes(const RemotesRequest* request,
+                         grpc::ServerReaderWriterInterface<RemotesReply, RemotesRequest>* server,
+                         DaemonRpcContext* context);
+
+    virtual void images(const ImagesRequest* request,
+                        grpc::ServerReaderWriterInterface<ImagesReply, ImagesRequest>* server,
+                        DaemonRpcContext* context);
 
     virtual void info(const InfoRequest* request,
                       grpc::ServerReaderWriterInterface<InfoReply, InfoRequest>* server,
@@ -89,6 +99,11 @@ public slots:
     virtual void list(const ListRequest* request,
                       grpc::ServerReaderWriterInterface<ListReply, ListRequest>* server,
                       DaemonRpcContext* context);
+
+    virtual void snapshots(
+        const SnapshotsRequest* request,
+        grpc::ServerReaderWriterInterface<SnapshotsReply, SnapshotsRequest>* server,
+        DaemonRpcContext* context);
 
     virtual void networks(const NetworksRequest* request,
                           grpc::ServerReaderWriterInterface<NetworksReply, NetworksRequest>* server,
@@ -182,17 +197,28 @@ public slots:
         DaemonRpcContext* context);
 
 private:
+    // TODO hyperv migration, remove
+    // Used at RPC dispatch.
+    [[nodiscard]] bool reject_if_migrating(std::string_view rpc_name,
+                                           DaemonRpcContext* context) const;
+
     void release_resources(const std::string& instance);
     void create_vm(const CreateRequest* request,
                    grpc::ServerReaderWriterInterface<CreateReply, CreateRequest>* server,
                    DaemonRpcContext* context,
                    bool start);
-    bool delete_vm(InstanceTable::iterator vm_it, bool purge, DeleteReply& response);
-    grpc::Status reboot_vm(VirtualMachine& vm);
+    void delete_vm(InstanceTable::iterator vm_it, DeleteReply& response);
+    grpc::Status reboot_vm(VirtualMachine& vm, bool running_only);
     grpc::Status shutdown_vm(VirtualMachine& vm, const std::chrono::milliseconds delay);
     grpc::Status switch_off_vm(VirtualMachine& vm);
+    grpc::Status make_vm_unavailable(VirtualMachine& vm);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
+
+    // Starts the suspended targets (main thread only); returns the VMs that were started
+    grpc::Status restart_start_suspended_instances(
+        const std::vector<InstanceTable::iterator>& instance_targets,
+        std::vector<VirtualMachine::ShPtr>& started_vms);
 
     void init_mounts(const std::string& name);
     void stop_mounts(const std::string& name);
@@ -220,18 +246,16 @@ private:
     // These async_* methods need to operate on instance names and look up the VMs again, lest they
     // be gone or moved.
     template <typename Reply, typename Request>
-    std::string async_wait_for_ssh_and_start_mounts_for(
-        const std::string& name,
-        const std::chrono::seconds& timeout,
-        grpc::ServerReaderWriterInterface<Reply, Request>* server);
+    ReadinessResult async_wait_vm_ready(const std::string& name,
+                                        const std::chrono::seconds& timeout,
+                                        grpc::ServerReaderWriterInterface<Reply, Request>* server);
     template <typename Reply, typename Request>
     AsyncOperationStatus
-    async_wait_for_ready_all(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                             const std::vector<std::string>& vms,
-                             const std::chrono::seconds& timeout,
-                             DaemonRpcContext* context,
-                             const std::string& errors,
-                             const std::string& start_warnings);
+    async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                                  const std::vector<std::string>& vms,
+                                  const std::chrono::seconds& timeout,
+                                  DaemonRpcContext* context,
+                                  const std::string& errors);
     void finish_async_operation(const std::string& async_future_key);
     QFutureWatcher<AsyncOperationStatus>* create_future_watcher(
         std::function<void()> const& finished_op = []() {});
@@ -262,6 +286,13 @@ protected:
     std::unordered_map<std::string, VMSpecs> vm_instance_specs;
     InstanceTable operative_instances;
 
+    // TODO hyperv migration, remove
+    // Set only while a bulk Hyper-V -> HCS migration runs inside Daemon::set. It guards
+    // conflicting mutating RPCs without taking a lock, so it cannot deadlock against the
+    // long-running migration. Atomic because RPC slots and the migration run on different
+    // threads.
+    std::atomic<bool> migration_in_progress{false};
+
     bool is_bridged(const std::string& instance_name) const;
     void add_bridged_interface(const std::string& instance_name);
 
@@ -281,7 +312,7 @@ private:
         false};
     std::unordered_map<std::string, std::unique_ptr<QFutureWatcher<AsyncOperationStatus>>>
         async_future_watchers;
-    std::unordered_map<std::string, QFuture<std::string>> async_running_futures;
+    std::unordered_map<std::string, QFuture<ReadinessResult>> async_running_futures;
     std::mutex start_mutex;
     std::unordered_set<std::string> preparing_instances;
     QFuture<void> image_update_future;

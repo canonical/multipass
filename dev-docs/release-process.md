@@ -29,22 +29,23 @@ main $ git push --tags
 
 ## Hotfixes
 
-After creating the RC, if there are hotfixes that need to make their way into a new RC, those hotfixes must first be merged into `main` and then the merge commits must be cherry-picked on top of the release branch. For example:
+When a bug is discovered and is present in the stable release, then its fix needs to be merged into the associated release branch first: `release/XX.XX`.
+
+Once merged into that branch, the release branch is then merged into `main`.
 
 ```shell
-main $ git switch --create hotfix
+release/1.17 $ git switch --create hotfix
 # Do hotfix work.
 hotfix $ git commit --message 'implemented hotfix'
 hotfix $ git push --set-upstream origin HEAD
-# Create a PR and merge into main when done.
-main $ git pull
-# Identify the merge commit(s) of the PRs that should be added to the release
-# For each commit:
-main $ git log # copy the hash of the hotfix merge commit
-release/1.15 $ git cherry-pick --mainline 1 <hotfix-merge-commit-hash>
-release/1.15 $ git push
+# Create a PR for hotfix -> release/1.17 and merge when approved.
+hotfix $ git fetch
+hotfix $ git switch --create 1.17-into-main origin/main
+1.17-into-main $ git merge origin/release/1.17
+# Resolve conflicts if any (in particular, accept HEAD if issue already addressed on main)
+1.17-into-main $ git push --set-upstream origin HEAD
+# Create a PR for 1.17-into-main -> main and merge when approved.
 ```
-Repeat this process until we are happy with the hotfixes and we want to release a new RC.
 
 ## Patch releases
 
@@ -53,7 +54,7 @@ Patch releases typically contain only [hotfixes](#hotfixes), obtained as explain
 When starting a new patch release, the `stable-docs` branch doesn't need to be independently merged into main. The new patch release will include it and merge into main eventually.
 
 * We use an existing feature branch (e.g. `release/1.15` to prepare 1.15.x), rather than creating a new one.
-* We cherry-pick commits from `main` on top of that branch.
+* Whenever we fix an issue on that branch, we merge the whole branch back into `main`.
 * When we want to release an RC for a patch version, we must tag it as `v1.15.1-rc1`, `v1.15.1-rc2` etc. until we make the actual release of the patch version with the signed tag `v1.15.1`.
 
 ## New release candidates (feature or patch)
@@ -93,11 +94,12 @@ release/1.15 $ git push --tags
     1. Place the package in a public place, accessible with a no-redirect URL. For example https://people.canonical.com/~ricab/multipass-1.15.0+win-win64.msi.
     2. Go to https://partner.microsoft.com/en-us/dashboard/apps-and-games/overview, navigate to "Multipass > Packages" and upload the package.
     3. Run validation on the new package. This might take a few working days.
-8. Prepare release notes and release announcements for Discourse, Matrix, and Mattermost
-9. Submit a PR to `main` with
-    1. The new release notes for this version in `docs/reference/release-notes`.
-    2. Update the `index.md` file as well, adding a link to the release notes and changing/adding details about the release's contents.
-    3. Follow the [template](https://github.com/canonical/multipass/blob/main/docs/reference/release-notes/release-notes-templates.md) and use these release notes in the GH draft release as well.
+8. Submit a release notes PR using the [release notes workflow](release-notes-workflow.md)
+    1. The release notes workflow creates both the release notes from a template in `docs/reference/release-notes` and updates the `index.md` accordingly.
+    2. Review the generated release notes and improve their content with a focus on user value and readability.
+    3. For feature releases ensure that the latest release's highlights are updated in `index.md`.
+    4. Use these release notes in the GH draft release as well.
+9. Prepare release announcements for Discourse, Matrix, and Mattermost.
 
 ### Publicly release
 

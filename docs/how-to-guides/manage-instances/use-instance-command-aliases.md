@@ -216,7 +216,7 @@ multipass unalias --all
 ```
 
 ```{note}
-Aliases are also removed when the instance for which they were defined is deleted and purged. This means that `multipass delete crazy-cat --purge` will also remove the aliases `lscc` and `pwdcc`.
+Aliases are also removed when the instance for which they were defined is deleted. This means that `multipass delete crazy-cat` will also remove the aliases `lscc` and `pwdcc`.
 ```
 
 <!-- Discourse contributors

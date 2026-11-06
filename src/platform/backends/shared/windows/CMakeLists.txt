@@ -37,5 +37,4 @@ target_link_libraries(shared_win
   logger
   OpenSSL::Crypto
   sftp_client
-  utils
-  ztd::out_ptr)
+  utils)

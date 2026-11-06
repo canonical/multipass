@@ -22,9 +22,11 @@ service Rpc {
     rpc create (stream LaunchRequest) returns (stream LaunchReply);
     rpc launch (stream LaunchRequest) returns (stream LaunchReply);
     rpc purge (stream PurgeRequest) returns (stream PurgeReply);
-    rpc find (stream FindRequest) returns (stream FindReply);
+    rpc remotes (stream RemotesRequest) returns (stream RemotesReply);
+    rpc images (stream ImagesRequest) returns (stream ImagesReply);
     rpc info (stream InfoRequest) returns (stream InfoReply);
     rpc list (stream ListRequest) returns (stream ListReply);
+    rpc snapshots (stream SnapshotsRequest) returns (stream SnapshotsReply);
     rpc networks (stream NetworksRequest) returns (stream NetworksReply);
     rpc mount (stream MountRequest) returns (stream MountReply);
     rpc ping (PingRequest) returns (PingReply);
@@ -79,6 +81,18 @@ message LaunchRequest {
     string zone = 16;
 }
 
+message ReadinessError {
+    enum ErrorCode {
+        OK = 0;
+        NOT_OPERATIVE = 1;
+        UNPLUGGED = 2;
+        SSH_TIMEOUT = 3;
+        CLOUD_INIT_TIMEOUT = 4;
+        SSHFS_MISSING = 5;
+        OTHER = 6;
+    }
+}
+
 message LaunchError {
     enum ErrorCodes {
         OK = 0;
@@ -89,6 +103,7 @@ message LaunchError {
         ZONE_UNAVAILABLE = 5;
     }
     repeated ErrorCodes error_codes = 1;
+    ReadinessError.ErrorCode readiness_error = 2;
 }
 
 message LaunchProgress {
@@ -140,15 +155,16 @@ message PurgeReply {
     repeated string purged_instances = 2;
 }
 
-message FindRequest {
+message ImagesRequest {
     string search_string = 1;
     string remote_name = 2;
     int32 verbosity_level = 3;
     bool allow_unsupported = 4;
     bool force_manifest_network_download = 5;
+    bool all_remotes = 6;
 }
 
-message FindReply {
+message ImagesReply {
     message ImageInfo {
         string os = 1;
         string release = 2;
@@ -156,8 +172,21 @@ message FindReply {
         repeated string aliases = 4;
         string codename = 5;
         string remote_name = 6;
+        string hash = 7;
+        bool is_default_remote = 8;
     }
     repeated ImageInfo images_info = 1;
+    string log_line = 2;
+    bool all_remotes = 3;
+    string retry_with_remote = 4;
+}
+
+message RemotesRequest {
+    int32 verbosity_level = 1;
+}
+
+message RemotesReply {
+    repeated string remotes = 1;
     string log_line = 2;
 }
 
@@ -275,6 +304,7 @@ message ListVMInstance {
     string current_release = 5;
     string os = 6;
     Zone zone = 7;
+    int32 mount_count = 8;
 }
 
 message ListVMSnapshot {
@@ -299,6 +329,15 @@ message ListReply {
 
     string log_line = 3;
     UpdateInfo update_info = 4;
+}
+
+message SnapshotsRequest {
+    int32 verbosity_level = 1;
+}
+
+message SnapshotsReply {
+    string log_line = 1;
+    SnapshotsList snapshot_list = 2;
 }
 
 message NetworksRequest {
@@ -385,6 +424,7 @@ message StartError {
         OTHER = 3;
     }
     map<string, ErrorCode> instance_errors = 1;
+    map<string, ReadinessError.ErrorCode> readiness_errors = 2;
 }
 
 message StartRequest {
@@ -427,6 +467,7 @@ message RestartRequest {
     int32 verbosity_level = 2;
     int32 timeout = 3;
     string password = 4;
+    bool running_only = 5;
 }
 
 message RestartReply {
@@ -438,15 +479,14 @@ message RestartReply {
 
 message DeleteRequest {
     repeated InstanceSnapshotPair instance_snapshot_pairs = 1;
-    bool purge = 2;
     int32 verbosity_level = 3;
-    bool purge_snapshots = 4;
+    bool force = 5;
 }
 
 message DeleteReply {
     string log_line = 1;
-    repeated string purged_instances = 2;
-    bool confirm_snapshot_purging = 3;
+    repeated string deleted_instances = 4;
+    bool confirm_deletion = 5;
 }
 
 message UmountRequest {
@@ -485,10 +525,18 @@ message SetRequest {
     bool authorized = 4;
 }
 
+// TODO hyperv migration, remove
+message HCSMigrationReport {
+    string phase = 1;
+    string summary = 2;
+}
+
 message SetReply {
     string log_line = 1;
     string reply_message = 2;
     bool needs_authorization = 3;
+    // TODO hyperv migration, remove (and add `reserved 4;`)
+    HCSMigrationReport hcs_migration_report = 4;
 }
 
 message KeysRequest {

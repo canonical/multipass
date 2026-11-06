@@ -79,21 +79,29 @@ const AvailabilityZone& BaseAvailabilityZoneManager::get_zone(const std::string&
     throw AvailabilityZoneNotFound{name};
 }
 
+BaseAvailabilityZoneManager::Zones BaseAvailabilityZoneManager::get_zones()
+{
+    Zones zone_list;
+    zone_list.reserve(zones().size());
+    for (auto& zone : zones())
+        zone_list.emplace_back(*zone);
+    return zone_list;
+}
+
+BaseAvailabilityZoneManager::ConstZones BaseAvailabilityZoneManager::get_zones() const
+{
+    ConstZones zone_list;
+    zone_list.reserve(zones().size());
+    for (auto& zone : zones())
+        zone_list.emplace_back(*zone);
+    return zone_list;
+}
+
 std::string BaseAvailabilityZoneManager::get_automatic_zone_name()
 {
     const auto zone_name = zone_collection.next_available();
     save_file();
     return zone_name;
-}
-
-std::vector<std::reference_wrapper<const AvailabilityZone>>
-BaseAvailabilityZoneManager::get_zones() const
-{
-    std::vector<std::reference_wrapper<const AvailabilityZone>> zone_list;
-    zone_list.reserve(zones().size());
-    for (auto& zone : zones())
-        zone_list.emplace_back(*zone);
-    return zone_list;
 }
 
 std::string BaseAvailabilityZoneManager::get_default_zone_name() const

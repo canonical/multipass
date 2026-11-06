@@ -39,12 +39,7 @@ auto mp::Settings::register_handler(std::unique_ptr<SettingsHandler> handler) ->
 
 void mp::Settings::unregister_handler(SettingsHandler* handler)
 {
-    auto it = std::find_if(handlers.begin(), handlers.end(), [handler](const auto& uptr) {
-        return uptr.get() == handler;
-    });
-
-    if (it != handlers.end())
-        handlers.erase(it);
+    std::erase_if(handlers, [handler](const auto& uptr) { return uptr.get() == handler; });
 }
 
 std::set<QString> multipass::Settings::keys() const

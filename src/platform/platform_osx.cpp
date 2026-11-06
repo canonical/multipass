@@ -31,10 +31,6 @@
 #include "backends/qemu/qemu_virtual_machine_factory.h"
 #endif
 
-#ifdef VIRTUALBOX_ENABLED
-#include "backends/virtualbox/virtualbox_virtual_machine_factory.h"
-#endif
-
 #ifdef APPLEVZ_ENABLED
 #include "backends/applevz/applevz_virtual_machine_factory.h"
 #endif
@@ -109,9 +105,9 @@ QStringList get_bridged_interfaces(const QString& if_name, const QString& ifconf
     // Search the substring of the full ifconfig output containing only the interface if_name.
     int start = ifconfig_output.indexOf(QRegularExpression{QStringLiteral("^%1:").arg(if_name),
                                                            QRegularExpression::MultilineOption});
-    int end =
-        ifconfig_output.indexOf(QRegularExpression("^\\w+:", QRegularExpression::MultilineOption),
-                                start + 1);
+    int end = ifconfig_output.indexOf(
+        QRegularExpression("^\\w+:", QRegularExpression::MultilineOption),
+        start + 1);
     auto ifconfig_entry = ifconfig_output.mid(start, end - start);
 
     // Search for the bridged interfaces in the resulting string ref.
@@ -200,8 +196,8 @@ mp::platform::Platform::get_network_interfaces_info() const
     mpl::trace(category, "Got the following output from networksetup:\n{}", nsetup_output);
 
     // split the output of networksetup in multiple entries (one per interface)
-    auto empty_line_regex =
-        QRegularExpression(QStringLiteral("^$"), QRegularExpression::MultilineOption);
+    auto empty_line_regex = QRegularExpression(QStringLiteral("^$"),
+                                               QRegularExpression::MultilineOption);
     auto nsetup_entries = nsetup_output.split(empty_line_regex, Qt::SkipEmptyParts);
 
     // Parse the output we got to obtain each interface's properties
@@ -223,9 +219,6 @@ bool mp::platform::Platform::is_backend_supported(const QString& backend) const
 #ifdef QEMU_ENABLED
         (backend == "qemu" &&
          QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSBigSur) ||
-#endif
-#ifdef VIRTUALBOX_ENABLED
-        backend == "virtualbox" ||
 #endif
 #ifdef APPLEVZ_ENABLED
         backend == "applevz" ||
@@ -311,24 +304,12 @@ QString mp::platform::Platform::daemon_config_home() const // temporary
     return ret;
 }
 
-mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_dir,
-                                                         AvailabilityZoneManager& az_manager)
+std::unique_ptr<mp::VirtualMachineFactory>
+mp::platform::vm_backend(const mp::Path& data_dir, AvailabilityZoneManager& az_manager)
 {
     auto driver = MP_SETTINGS.get(mp::driver_key);
 
-    if (driver == QStringLiteral("virtualbox"))
-    {
-#if VIRTUALBOX_ENABLED
-        qputenv("PATH", qgetenv("PATH") + ":/usr/local/bin"); /*
-          This is where the Virtualbox installer puts things, and relying on PATH
-          allows the user to do something about it, if the binaries are not found
-          there.
-        */
-
-        return std::make_unique<VirtualBoxVirtualMachineFactory>(data_dir, az_manager);
-#endif
-    }
-    else if (driver == QStringLiteral("qemu"))
+    if (driver == QStringLiteral("qemu"))
     {
 #if QEMU_ENABLED
         return std::make_unique<QemuVirtualMachineFactory>(data_dir, az_manager);
@@ -346,8 +327,7 @@ mp::VirtualMachineFactory::UPtr mp::platform::vm_backend(const mp::Path& data_di
 
 bool mp::platform::backend_supports_availability_zones()
 {
-    const auto driver = MP_SETTINGS.get(mp::driver_key);
-    return driver != QStringLiteral("virtualbox");
+    return true;
 }
 
 std::unique_ptr<mp::Process> mp::platform::make_sshfs_server_process(
@@ -388,8 +368,8 @@ QDir mp::platform::Platform::get_alias_scripts_folder() const
 {
     QDir aliases_folder;
 
-    QString location =
-        MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) + "/bin";
+    QString location = MP_STDPATHS.writableLocation(mp::StandardPaths::AppLocalDataLocation) +
+                       "/bin";
     aliases_folder = QDir{location};
 
     return aliases_folder;

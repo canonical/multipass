@@ -33,6 +33,7 @@
 #include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
 #include <multipass/url_downloader.h>
+#include <multipass/user_messages/launch_messages.h>
 #include <multipass/utils.h>
 
 #include <yaml-cpp/yaml.h>
@@ -107,6 +108,19 @@ auto net_digest(const QString& options)
 
     return net;
 }
+
+mp::LaunchUserMessages::MountRoutes user_message_mount_routes(
+    const std::vector<std::pair<QString, QString>>& mount_routes)
+{
+    mp::LaunchUserMessages::MountRoutes result;
+    result.reserve(mount_routes.size());
+
+    for (const auto& [source, target] : mount_routes)
+        result.emplace_back(source.toStdString(), target.toStdString());
+
+    return result;
+}
+
 } // namespace
 
 mp::ReturnCodeVariant cmd::Launch::run(mp::ArgParser* parser)
@@ -117,51 +131,15 @@ mp::ReturnCodeVariant cmd::Launch::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto ret = request_launch(parser);
+    // We prepare the mount routes first so that if an error happens, LaunchUserMessages gets the
+    // correct mount routes.
+    prepare_mount_routes();
 
+    auto ret = request_launch(parser);
     if (ret != ReturnCode::Ok)
         return ret;
 
-    auto got_petenv = instance_name == petenv_name;
-    if (!got_petenv && mount_routes.empty())
-        return ret;
-
-    if (MP_SETTINGS.get_as<bool>(mounts_key))
-    {
-        auto has_home_mount =
-            std::count_if(mount_routes.begin(), mount_routes.end(), [](const auto& route) {
-                return route.second == home_automount_dir;
-            });
-
-        if (got_petenv && !has_home_mount)
-        {
-            try
-            {
-                mount_routes.emplace_back(QString::fromLocal8Bit(mpu::snap_real_home_dir()),
-                                          home_automount_dir);
-            }
-            catch (const SnapEnvironmentException&)
-            {
-                mount_routes.emplace_back(QDir::toNativeSeparators(QDir::homePath()),
-                                          home_automount_dir);
-            }
-        }
-
-        for (const auto& [source, target] : mount_routes)
-        {
-            auto mount_ret = mount(parser, source, target);
-            if (ret == ReturnCode::Ok)
-            {
-                ret = mount_ret;
-            }
-        }
-    }
-    else
-    {
-        cout << "Skipping mount due to disabled mounts feature\n";
-    }
-
-    return ret;
+    return mount_requested_routes(parser);
 }
 
 std::string cmd::Launch::name() const
@@ -183,15 +161,12 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument(
         "image",
-        "Optional image to launch. If omitted, then the latest Ubuntu LTS "
-        "will be used.\n"
-        "<remote> can be either ‘release’ or ‘daily‘. If <remote> is omitted, "
-        "‘release’ will be used.\n"
-        "<image> can be a partial image hash or an Ubuntu release version, "
-        "codename or alias.\n"
-        "<url> is a custom image URL that is in http://, https://, or file:// "
-        "format.\n",
-        "[[<remote:>]<image> | <url>]");
+        "Optional image to launch. If omitted, then the latest Ubuntu LTS will be used.\n"
+        "<remote> can be any of the available remotes returned by ‘multipass images --remotes’. If "
+        "<remote> is omitted, image will be searched for in one of the default remotes.\n"
+        "<image> can be a codename, an alias, a major version, or an alias prefix.\n"
+        "<url> is a custom image URL that is in http://, https://, or file:// format.\n",
+        "[[<remote>:]<image> | <url>]");
     QCommandLineOption cpusOption({"c", "cpus"},
                                   QString::fromStdString(fmt::format("Number of CPUs to allocate.\n"
                                                                      "Minimum: {}, default: {}.",
@@ -219,9 +194,9 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "memory",
         QString::fromUtf8(default_memory_size)); // In MB's
 
-    const auto valid_name_desc =
-        QString{"Valid names must consist of letters, numbers, or hyphens, must start with a "
-                "letter, and must end with an alphanumeric character."};
+    const auto valid_name_desc = QString{
+        "Valid names must consist of letters, numbers, or hyphens, must start with a "
+        "letter, and must end with an alphanumeric character."};
     const auto name_option_desc =
         petenv_name.isEmpty()
             ? QString{"Name for the instance.\n%1"}.arg(valid_name_desc)
@@ -431,8 +406,9 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         }
         catch (const YAML::BadFile& e)
         {
-            auto err_detail =
-                fmt::format("{}\n{}", e.what(), "Please ensure that Multipass can read it.");
+            auto err_detail = fmt::format("{}\n{}",
+                                          e.what(),
+                                          "Please ensure that Multipass can read it.");
             fmt::println(cerr, err_msg_template, err_detail);
             return ParseCode::CommandLineError;
         }
@@ -491,14 +467,16 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         request.set_zone(zone);
     }
 
+    const auto& vm_name = request.instance_name();
     if (timer)
         timer->resume();
     else if (parser->isSet("timeout"))
     {
-        timer = cmd::make_timer(parser->value("timeout").toInt(),
-                                spinner.get(),
-                                cerr,
-                                "Timed out waiting for instance launch.");
+        timer = cmd::make_timer(
+            parser->value("timeout").toInt(),
+            spinner.get(),
+            cerr,
+            LaunchUserMessages::client_timeout(vm_name, user_message_mount_routes(mount_routes)));
         timer->start();
     }
 
@@ -533,10 +511,10 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         for (const auto& workspace_to_be_created : reply.workspaces_to_be_created())
         {
             auto home_dir = mpu::in_multipass_snap()
-                                ? QString::fromLocal8Bit(mpu::snap_real_home_dir())
-                                : MP_STDPATHS.writableLocation(StandardPaths::HomeLocation);
-            auto full_path_str =
-                home_dir + "/multipass/" + QString::fromStdString(workspace_to_be_created);
+                              ? QString::fromLocal8Bit(mpu::snap_real_home_dir())
+                              : MP_STDPATHS.writableLocation(StandardPaths::HomeLocation);
+            auto full_path_str = home_dir + "/multipass/" +
+                                 QString::fromStdString(workspace_to_be_created);
 
             QDir full_path(full_path_str);
             if (full_path.exists())
@@ -574,8 +552,8 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         return ReturnCode::Ok;
     };
 
-    auto on_failure = [this, &parser](grpc::Status& status,
-                                      mp::LaunchReply& reply) -> ReturnCodeVariant {
+    auto on_failure = [this, &parser, vm_name](grpc::Status& status,
+                                               LaunchReply& reply) -> ReturnCodeVariant {
         spinner->stop();
         if (timer)
             timer->pause();
@@ -588,18 +566,18 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
         {
             if (error == LaunchError::INVALID_DISK_SIZE)
             {
-                error_details =
-                    fmt::format("Invalid disk size value supplied: {}.", request.disk_space());
+                error_details = fmt::format("Invalid disk size value supplied: {}.",
+                                            request.disk_space());
             }
             else if (error == LaunchError::INVALID_MEM_SIZE)
             {
-                error_details =
-                    fmt::format("Invalid memory size value supplied: {}.", request.mem_size());
+                error_details = fmt::format("Invalid memory size value supplied: {}.",
+                                            request.mem_size());
             }
             else if (error == LaunchError::INVALID_HOSTNAME)
             {
-                error_details =
-                    fmt::format("Invalid instance name supplied: {}", request.instance_name());
+                error_details = fmt::format("Invalid instance name supplied: {}",
+                                            request.instance_name());
             }
             else if (error == LaunchError::INVALID_NETWORK)
             {
@@ -620,6 +598,30 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             {
                 error_details = fmt::format("Unavailable zone name supplied: {}", request.zone());
             }
+        }
+
+        const auto readiness_error = launch_error.readiness_error();
+        const auto readiness_timed_out = readiness_error == ReadinessError::SSH_TIMEOUT ||
+                                         readiness_error == ReadinessError::CLOUD_INIT_TIMEOUT;
+
+        if (readiness_timed_out)
+        {
+            assert(launch_error.error_codes().empty());
+
+            const auto& server_vm_name = reply.vm_instance_name().empty()
+                                           ? vm_name
+                                           : reply.vm_instance_name();
+            error_details = LaunchUserMessages::server_timeout(
+                readiness_error,
+                server_vm_name,
+                user_message_mount_routes(mount_routes));
+
+            // In case of timeout, clear status.error_message since we show a clearer
+            // error in error_details than the one in the timeout exception.
+            return standard_failure_handler_for(name(),
+                                                cerr,
+                                                {status.error_code(), {}},
+                                                error_details);
         }
 
         return standard_failure_handler_for(name(), cerr, status, error_details);
@@ -691,4 +693,52 @@ bool cmd::Launch::ask_bridge_permission(multipass::LaunchReply& reply)
 
     mp::BridgePrompter prompter(term);
     return prompter.bridge_prompt(nets);
+}
+
+void cmd::Launch::prepare_mount_routes()
+{
+    const auto got_petenv = !petenv_name.isEmpty() &&
+                            request.instance_name() == petenv_name.toStdString();
+
+    const auto has_home_mount = std::ranges::any_of(mount_routes, [](const auto& route) {
+        return route.second == home_automount_dir;
+    });
+
+    if (got_petenv && !has_home_mount)
+    {
+        try
+        {
+            mount_routes.emplace_back(QString::fromLocal8Bit(mpu::snap_real_home_dir()),
+                                      home_automount_dir);
+        }
+        catch (const SnapEnvironmentException&)
+        {
+            mount_routes.emplace_back(QDir::toNativeSeparators(QDir::homePath()),
+                                      home_automount_dir);
+        }
+    }
+}
+
+mp::ReturnCodeVariant cmd::Launch::mount_requested_routes(const ArgParser* parser)
+{
+    if (mount_routes.empty())
+        return ReturnCode::Ok;
+
+    if (!MP_SETTINGS.get_as<bool>(mounts_key))
+    {
+        cout << "Skipping mount due to disabled mounts feature\n";
+        return ReturnCode::Ok;
+    }
+
+    mp::ReturnCodeVariant ret = ReturnCode::Ok;
+    for (const auto& [source, target] : mount_routes)
+    {
+        auto mount_ret = mount(parser, source, target);
+        if (ret == ReturnCode::Ok)
+        {
+            ret = mount_ret;
+        }
+    }
+
+    return ret;
 }

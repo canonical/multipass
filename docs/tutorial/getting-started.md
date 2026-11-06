@@ -316,7 +316,7 @@ This instance is great for when you just need a quick Ubuntu VM, but let's say y
 ```{dropdown} Optional Exercises
 
 Exercise 1:
-When you select Open Shell, what happens in the background is the equivalent of the CLI commands `multipass launch –name primary`  followed by  `multipass shell`. Open a terminal and try `multipass shell` (if you didn't follow the steps above, you will have to run the `launch` command first).
+When you select Open Shell, what happens in the background is the equivalent of the CLI commands `multipass launch --name primary`  followed by  `multipass shell`. Open a terminal and try `multipass shell` (if you didn't follow the steps above, you will have to run the `launch` command first).
 
 Exercise 2:
 In Multipass, an instance with the name "primary" is privileged. That is, it serves as the default argument of `multipass shell` among other capabilities. In different terminal instances, check `multipass shell primary` and `multipass shell`. Both commands should give the same result.
@@ -324,23 +324,16 @@ In Multipass, an instance with the name "primary" is privileged. That is, it ser
 
 ## Create a customised instance
 
-Multipass has a great feature to help you get started with creating customised instances. Open a terminal and run the `multipass find` command. The result shows a list of all images you can currently launch through Multipass.
+Multipass has a great feature to help you get started with creating customised instances. Open a terminal and run the `multipass images` command. The result shows a list of images you can currently launch through Multipass.
 
 ```{code-block} text
-$ multipass find
-Image                       Aliases              Version          Description
-22.04                       jammy                20260515         Ubuntu 22.04 LTS
-24.04                       noble                20260518         Ubuntu 24.04 LTS
-25.10                       questing             20260520         Ubuntu 25.10
-26.04                       resolute,lts,ubuntu  20260520         Ubuntu 26.04 LTS
-core:core16                                      current          Ubuntu Core 16
-core:core18                                      current          Ubuntu Core 18
-core:core20                                      current          Ubuntu Core 20
-core:core22                                      current          Ubuntu Core 22
-core:core24                                      current          Ubuntu Core 24
-core:core26                                      current          Ubuntu Core 26
-debian                      trixie               20260601         Debian Trixie
-fedora                                           20260422         Fedora 44
+$ multipass images
+Image             Aliases                     Version          Description
+22.04             jammy                       20261004         Ubuntu 22.04 LTS
+24.04             noble                       20260926         Ubuntu 24.04 LTS
+26.04             resolute,lts,ubuntu         20260927         Ubuntu 26.04 LTS
+debian            trixie                      20261001         Debian 13
+fedora                                        20260422         Fedora 44
 ```
 
 `````{tab-set}
@@ -352,15 +345,15 @@ Launch an instance running Ubuntu 26.04 ("Resolute Raccoon") by typing the `mult
 
 ```{code-block} text
 $ multipass launch resolute
-Launched: coherent-trumpetfish
+Launched: coherent-croaker
 ```
 
-Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-trumpetfish".
+Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-croaker".
 
 You can check some basic info about your new instance by running the following command:
 
 ```{code-block} text
-$ multipass exec coherent-trumpetfish -- lsb_release -a
+$ multipass exec coherent-croaker -- lsb_release -a
 No LSB modules are available.
 Distributor ID:   Ubuntu
 Description:      Ubuntu 26.04 LTS
@@ -368,7 +361,7 @@ Release:          26.04
 Codename:         resolute
 ```
 
-This tells Multipass to run the command `lsb_release -a` on the "coherent-trumpetfish" instance.
+This tells Multipass to run the command `lsb_release -a` on the "coherent-croaker" instance.
 
 Now, launch another instance, setting its name and specific memory, disk, and CPUs by running this command:
 
@@ -399,15 +392,15 @@ Launch an instance running Ubuntu 26.04 ("Resolute Raccoon") by typing the `mult
 
 ```{code-block} text
 $ multipass launch resolute
-Launched: coherent-trumpetfish
+Launched: coherent-croaker
 ```
 
-Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-trumpetfish".
+Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-croaker".
 
 You can check some basic info about your new instance by running the following command:
 
 ```{code-block} text
-$ multipass exec coherent-trumpetfish -- lsb_release -a
+$ multipass exec coherent-croaker -- lsb_release -a
 No LSB modules are available.
 Distributor ID:   Ubuntu
 Description:      Ubuntu 26.04 LTS
@@ -415,7 +408,7 @@ Release:          26.04
 Codename:         resolute
 ```
 
-This tells Multipass to run the command `lsb_release -a` on the "coherent-trumpetfish" instance.
+This tells Multipass to run the command `lsb_release -a` on the "coherent-croaker" instance.
 
 Now, launch another instance, setting its name and specific memory, disk, and CPUs by running this command:
 
@@ -446,15 +439,15 @@ Launch an instance running Ubuntu 26.04 ("Resolute Raccoon") by typing the `mult
 
 ```{code-block} text
 C:\WINDOWS\system32> multipass launch resolute
-Launched: coherent-trumpetfish
+Launched: coherent-croaker
 ```
 
-Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-trumpetfish".
+Now, you have an instance running and it has been named randomly by Multipass. In this case, it has been named "coherent-croaker".
 
 You can check some basic info about your new instance by running the following command:
 
 ```{code-block} text
-C:\WINDOWS\system32> multipass exec coherent-trumpetfish -- lsb_release -a
+C:\WINDOWS\system32> multipass exec coherent-croaker -- lsb_release -a
 No LSB modules are available.
 Distributor ID:   Ubuntu
 Description:      Ubuntu 26.04 LTS
@@ -462,7 +455,7 @@ Release:          26.04
 Codename:         resolute
 ```
 
-This tells Multipass to run the command `lsb_release -a` on the "coherent-trumpetfish" instance.
+This tells Multipass to run the command `lsb_release -a` on the "coherent-croaker" instance.
 
 Now, launch another instance, setting its name and specific memory, disk, and CPUs by running this command:
 
@@ -490,9 +483,9 @@ Mounts:         --
 
 ## Manage instances
 
-Perhaps after using the "coherent-trumpetfish" instance for a while, you decide to delete it by running the following command:
+Perhaps after using the "coherent-croaker" instance for a while, you decide to delete it by running the following command:
 
-`multipass delete coherent-trumpetfish`
+`multipass delete coherent-croaker`
 
 
 `````{tab-set}
@@ -504,20 +497,12 @@ You have created and deleted quite a few instances. It is time to run `multipass
 
 ```{code-block} text
 $ multipass list
-Name                    State             IPv4             Image
-primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
-coherent-trumpetfish    Deleted           --               Not Available
-ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
+Name               State     IPv4            Image              Mounts  Zone
+primary            Running   10.110.66.242   Ubuntu 26.04 LTS   1       zone1
+ltsInstance        Running   10.110.66.139   Ubuntu 26.04 LTS   0       zone1
 ```
 
-The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "coherent-trumpetfish" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover coherent-trumpetfish`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
-
-```{code-block} text
-$ multipass list
-Name                    State             IPv4             Image
-primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
-ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
-```
+The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs.
 
 ````
 
@@ -528,20 +513,12 @@ You have created and deleted quite a few instances. It is time to run `multipass
 
 ```{code-block} text
 $ multipass list
-Name                    State             IPv4             Image
-primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
-coherent-trumpetfish    Deleted           --               Not Available
-ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
+Name               State     IPv4            Image              Mounts  Zone
+primary            Running   10.110.66.242   Ubuntu 26.04 LTS   1       zone1
+ltsInstance        Running   10.110.66.139   Ubuntu 26.04 LTS   0       zone1
 ```
 
-The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "coherent-trumpetfish" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover coherent-trumpetfish`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
-
-```{code-block} text
-$ multipass list
-Name                    State             IPv4             Image
-primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
-ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
-```
+The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs.
 
 ````
 
@@ -552,20 +529,12 @@ You have created and deleted quite a few instances. It is time to run `multipass
 
 ```{code-block} text
 C:\WINDOWS\system32> multipass list
-Name                    State             IPv4             Image
-primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
-coherent-trumpetfish    Deleted           --               Not Available
-ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
+Name               State     IPv4            Image              Mounts  Zone
+primary            Running   10.110.66.242   Ubuntu 26.04 LTS   0       zone1
+ltsInstance        Running   10.110.66.139   Ubuntu 26.04 LTS   0       zone1
 ```
 
-The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs. The "coherent-trumpetfish" instance is still listed, but its state is "Deleted". You can recover this instance by running `multipass recover coherent-trumpetfish`. But for now, delete the instance permanently by running `multipass purge`. Then run `multipass list` again to confirm that the instance has been permanently deleted.
-
-```{code-block} text
-C:\WINDOWS\system32> multipass list
-Name                    State             IPv4             Image
-primary                 Running           10.110.66.242    Ubuntu 26.04 LTS
-ltsInstance             Running           10.110.66.139    Ubuntu 26.04 LTS
-```
+The result shows that you have two instances running, the "primary" instance and the LTS machine with customised specs.
 
 ````
 

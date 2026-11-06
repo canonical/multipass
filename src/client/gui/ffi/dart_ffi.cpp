@@ -1,4 +1,5 @@
 #include "multipass/dart_ffi.h"
+#include "multipass/build_constants.h"
 #include "multipass/cli/client_common.h"
 #include "multipass/logging/log.h"
 #include "multipass/memory_size.h"
@@ -7,7 +8,6 @@
 #include "multipass/settings/settings.h"
 #include "multipass/standard_paths.h"
 #include "multipass/utils.h"
-#include "multipass/version.h"
 
 #include <QStorageInfo>
 

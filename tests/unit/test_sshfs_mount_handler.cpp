@@ -23,6 +23,7 @@
 #include "mock_server_reader_writer.h"
 #include "mock_ssh_session.h"
 #include "mock_virtual_machine.h"
+#include "mount_record_commands.h"
 #include "stub_ssh_key_provider.h"
 
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
@@ -180,6 +181,29 @@ TEST_F(SSHFSMountHandlerTest, stopTerminatesSshfsProcess)
         EXPECT_CALL(*process, terminate);
         EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
     }));
+
+    mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
+    sshfs_mount_handler.activate(&server);
+    sshfs_mount_handler.deactivate();
+}
+
+TEST_F(SSHFSMountHandlerTest, recordsMountInGuest)
+{
+    factory->register_callback(sshfs_server_callback([this](mpt::MockProcess* process) {
+        sshfs_prints_connected(process);
+        EXPECT_CALL(*process, wait_for_finished).WillOnce(Return(true));
+    }));
+
+    const auto deploy_cmd = mpt::mount_record_cmd(source_path,
+                                                  target_path,
+                                                  &mp::GuestMountRecord::deploy);
+    const auto undeploy_cmd = mpt::mount_record_cmd(source_path,
+                                                    target_path,
+                                                    &mp::GuestMountRecord::undeploy);
+
+    // not InSequence: we don't want to include expectations set by the callback during activation
+    const Expectation deploy = EXPECT_CALL(vm, ssh_exec(deploy_cmd, _));
+    EXPECT_CALL(vm, ssh_exec(undeploy_cmd, _)).After(deploy);
 
     mp::SSHFSMountHandler sshfs_mount_handler{&vm, &key_provider, target_path, mount};
     sshfs_mount_handler.activate(&server);

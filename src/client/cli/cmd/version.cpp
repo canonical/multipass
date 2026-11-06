@@ -17,9 +17,9 @@
 
 #include "version.h"
 #include "common_cli.h"
+#include <multipass/build_constants.h>
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/formatter.h>
-#include <multipass/version.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
@@ -69,8 +69,8 @@ QString cmd::Version::description() const
 mp::ParseCode cmd::Version::parse_args(mp::ArgParser* parser)
 {
     QCommandLineOption formatOption("format",
-                                    "Output version information in the requested format.\n"
-                                    "Valid formats are: table (default), json, csv and yaml",
+                                    "Output version information in the requested format.\n" +
+                                        format_option_details,
                                     "format",
                                     "table");
 

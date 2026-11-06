@@ -26,9 +26,6 @@ layout:
     bind: $SNAP/usr/share/icons
 
 environment:
-  # GDK pixbuf
-  GDK_PIXBUF_MODULEDIR: $SNAP/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/gdk-pixbuf-2.0/2.10.0/loaders
-  GDK_PIXBUF_MODULE_FILE: $SNAP_COMMON/loaders.cache
   ARCH_TRIPLET: ${CRAFT_ARCH_TRIPLET_BUILD_FOR}
 
 plugs:
@@ -87,6 +84,8 @@ apps:
       PATH: *path
       XDG_DATA_HOME: $SNAP_USER_DATA
       XDG_DATA_DIRS: $SNAP/usr/share
+      GDK_PIXBUF_MODULEDIR: $SNAP/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/gdk-pixbuf-2.0/2.10.0/loaders
+      GDK_PIXBUF_MODULE_FILE: $SNAP_USER_COMMON/loaders.cache
     command: bin/bundle/multipass_gui
     command-chain: [bin/set-xdg-vars]
     plugs:
@@ -125,6 +124,7 @@ parts:
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
+    - g++-14  # newer libstdc++ for C++23 (picked up by clang too) and the GCC coverage build
     - ccache
     - lcov
     - clang-19  # \
@@ -156,6 +156,7 @@ parts:
 
     stage-packages:
     - apparmor
+    - librsvg2-common
     - libxml2
     - dnsmasq-base
     - dnsmasq-utils
@@ -249,7 +250,7 @@ parts:
       mkdir -p ${CRAFT_PART_INSTALL}/etc/bash_completion.d/
       echo 'export PATH="${PATH}:/snap/bin:/var/lib/snapd/snap/bin"' > ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
       cat ../src/completions/bash/multipass >> ${CRAFT_PART_INSTALL}/etc/bash_completion.d/snap.multipass
-      VERSION=$( awk -F\" '/version_string/ { print $2 }' gen/multipass/version.h )
+      VERSION=$( awk -F\" '/version_string/ { print $2 }' gen/multipass/build_constants.h )
       craftctl set version=${VERSION}
       craftctl set grade=$( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+\($\|-rc\)' && echo stable || echo devel )
       [ -f ${CRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop ] && \

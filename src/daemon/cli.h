@@ -17,14 +17,16 @@
 
 #pragma once
 
-#include "daemon_config.h"
-
 #include <QCoreApplication>
 
 namespace multipass
 {
-namespace cli
-{
-DaemonConfigBuilder parse(const QCoreApplication& app);
+struct DaemonConfigBuilder;
 }
-} // namespace multipass
+
+namespace multipass::cli
+{
+
+DaemonConfigBuilder parse(const QCoreApplication& app);
+
+} // namespace multipass::cli

@@ -22,11 +22,38 @@ add_library(daemon STATIC
   daemon_rpc.cpp
   default_vm_image_vault.cpp
   instance_settings_handler.cpp
+  mount_motd_cloud_init.cpp
   runtime_instance_info_helper.cpp
   snapshot_settings_handler.cpp)
 
+# TODO hyperv migration, remove
+if(HCS_ENABLED)
+  target_compile_definitions(daemon PRIVATE HCS_ENABLED)
+  target_sources(daemon PRIVATE
+    hyperv_driver_transition.cpp
+    hyperv_migration.cpp)
+  target_link_libraries(daemon hyperv_migration hcs_backend)
+endif()
+
 include_directories(daemon
   ${CMAKE_SOURCE_DIR}/src/platform/backends)
+
+# Bake the mount MOTD script in, as a raw string literal
+set(MOUNT_MOTD_SCRIPT_FILE ${CMAKE_SOURCE_DIR}/data/guest/mount_motd.sh)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${MOUNT_MOTD_SCRIPT_FILE})
+file(READ ${MOUNT_MOTD_SCRIPT_FILE} MOUNT_MOTD_SCRIPT)
+if(NOT MULTIPASS_GUEST_MOUNT_RECORDS_DIR)
+  message(FATAL_ERROR "MULTIPASS_GUEST_MOUNT_RECORDS_DIR is not set")
+endif()
+string(CONFIGURE "${MOUNT_MOTD_SCRIPT}" MOUNT_MOTD_SCRIPT @ONLY)
+if(MOUNT_MOTD_SCRIPT MATCHES "\\)sh\"")
+  message(FATAL_ERROR "${MOUNT_MOTD_SCRIPT_FILE} contains the raw string delimiter `)sh\"`")
+endif()
+file(CONFIGURE
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mount_motd.sh.inc
+  CONTENT "R\"sh(@MOUNT_MOTD_SCRIPT@)sh\"\n"
+  @ONLY)
+target_include_directories(daemon PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(daemon
   cert
@@ -40,6 +67,7 @@ target_link_libraries(daemon
   settings
   ssh
   sshfs_mount
+  user_messages
   utils
   Qt6::Core
   Qt6::Network

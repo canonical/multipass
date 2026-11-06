@@ -20,6 +20,7 @@
 #include <multipass/platform.h>
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 
 #include <QCoreApplication>
@@ -265,6 +266,6 @@ void SSHFSMountHandler::deactivate_impl(bool force)
 
 SSHFSMountHandler::~SSHFSMountHandler()
 {
-    deactivate(/*force=*/true);
+    top_catch_all(category, [this] { deactivate(/*force=*/true); });
 }
 } // namespace multipass

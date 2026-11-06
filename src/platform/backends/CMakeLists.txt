@@ -17,3 +17,8 @@ add_subdirectory(shared)
 foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
   add_subdirectory(${BACKEND})
 endforeach()
+
+# TODO hyperv migration, remove
+if(HCS_ENABLED)
+  add_subdirectory(hyperv_migration)
+endif()

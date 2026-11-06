@@ -23,6 +23,7 @@
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
+#include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
 
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
@@ -68,8 +69,8 @@ TEST_F(TestDaemonSuspend, suspendStopsMounts)
     std::unordered_map<std::string, mp::VMMount> mounts{
         {fake_target_path, {"foo", {}, {}, mp::VMMount::MountType::Native}}};
 
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces, mounts));
+    const auto [temp_dir, filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces, mounts));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_mount_handler = std::make_unique<mpt::MockMountHandler>();

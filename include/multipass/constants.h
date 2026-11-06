@@ -31,6 +31,9 @@ constexpr auto release_remote = "release";
 constexpr auto daily_remote = "daily";
 constexpr auto snapcraft_remote = "snapcraft";
 constexpr auto core_remote = "core";
+constexpr auto unspecified_remote = "";
+
+constexpr auto default_remotes = {release_remote, unspecified_remote};
 
 constexpr auto min_memory_size = "512M";
 constexpr auto min_disk_size = "1G";
@@ -40,8 +43,8 @@ constexpr auto default_memory_size = "1G";
 constexpr auto default_disk_size = "5G";
 constexpr auto default_cpu_cores = min_cpu_cores;
 constexpr auto default_timeout = std::chrono::seconds(300);
-constexpr auto image_resize_timeout =
-    std::chrono::duration_cast<std::chrono::milliseconds>(5min).count();
+constexpr auto image_resize_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(5min)
+                                          .count();
 
 constexpr auto home_automount_dir = "Home";
 
@@ -72,7 +75,6 @@ constexpr auto cloud_init_file_name = "cloud-init-config.iso";
 [[maybe_unused]] // hands off clang-format
 constexpr auto key_examples = {petenv_key, driver_key, mounts_key};
 constexpr auto petenv_default = "primary";
-constexpr auto timeout_exit_code = 5;
 constexpr auto authenticated_certs_dir = "authenticated-certs";
 constexpr auto home_in_instance = "/home/ubuntu";
 
@@ -80,4 +82,5 @@ constexpr std::chrono::milliseconds vm_shutdown_timeout =
     300000ms; // unit: ms, 5 minute timeout for shutdown/suspend
 constexpr auto default_ssh_port = 22;
 constexpr auto default_zone_names = {"zone1", "zone2", "zone3"};
+constexpr auto default_grpc_server_tcp_listen_address = "localhost:25051";
 } // namespace multipass

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright (C) Canonical, Ltd.
 #
@@ -22,6 +21,7 @@ import asyncio
 import logging
 import re
 import sys
+import threading
 import time
 from contextlib import suppress
 from typing import Optional
@@ -35,11 +35,11 @@ from cli.multipass import (
     get_client_cert_path,
     get_multipass_env,
     get_multipass_path,
+    parse_multipass_versions,
     TestSessionFailure,
     TestCaseFailure
 )
 from cli.utilities import (
-    BooleanLatch,
     SilentAsyncSubprocess,
     StdoutAsyncSubprocess,
     run_in_new_interpreter,
@@ -59,7 +59,8 @@ class MultipassdGovernor:
         self.asyncio_loop = asyncio_loop
         self.print_daemon_output = print_daemon_output
         self.controller = controller
-        self.daemon_ready_event = BooleanLatch()
+        self.daemon_ready_event = threading.Event()
+        self.daemon_stopped_event = threading.Event()
         self.monitor_task = None
         self._reset_state()
 
@@ -67,6 +68,7 @@ class MultipassdGovernor:
         self.monitor_task = None
         self.graceful_exit_initiated = False
         self.daemon_ready_event.clear()
+        self.daemon_stopped_event.set()
 
     def _get_error_patterns(self):
         return {
@@ -87,9 +89,6 @@ class MultipassdGovernor:
                     if re.search(pattern, line):
                         return reason
 
-        except asyncio.CancelledError:
-            # Handle it gracefully.
-            pass
         except Exception as e:
             if self.print_daemon_output:
                 print(f"Error in log reader: {e}", file=sys.stderr)
@@ -110,7 +109,16 @@ class MultipassdGovernor:
             if not stdout_task.done():
                 stdout_task.cancel()
 
-            error_reason = await stdout_task
+            try:
+                error_reason = await stdout_task
+            except asyncio.CancelledError:
+                # A cancellation of this task that lands while awaiting
+                # stdout_task is forwarded to it, so it surfaces here as the
+                # child's CancelledError. Honour it.
+                if asyncio.current_task().cancelling():
+                    raise
+                error_reason = None
+
             if error_reason:
                 error_reasons.append(
                     f"\nReason: {error_reason}")
@@ -219,8 +227,7 @@ class MultipassdGovernor:
             await _drain(ready_task)
             try:
                 await monitor_task
-                asyncio.current_task().cancel()
-                await asyncio.sleep(0)
+                raise TestCaseFailure("daemon exited during startup")
             except TestSessionFailure as ex:
                 Session.shouldfail = str(ex)
                 raise
@@ -229,20 +236,29 @@ class MultipassdGovernor:
         if not await ready_task:
             logging.warning(
                 "⚠️ multipassd not ready, attempting graceful shutdown...")
-            await self.controller.stop()
+            self.monitor_task = monitor_task
+            await self.stop_async()
             pytest.exit(
                 "Tests cannot proceed, multipassd not responding in time.",
                 returncode=12,
             )
 
         self.monitor_task = monitor_task
+        self.daemon_stopped_event.clear()
         self.daemon_ready_event.set()
 
     async def stop_async(self):
         """Stop the multipassd daemon"""
         logging.debug("multipassd-governor :: stop called")
         self.graceful_exit_initiated = True
-        await self.controller.stop()
+        try:
+            await asyncio.wait_for(self.controller.stop(), timeout=30)
+        except asyncio.TimeoutError:
+            logging.warning(
+                "⚠️ multipassd stop timed out after 30s; the daemon may still be running."
+            )
+        except asyncio.CancelledError:
+            raise
 
         if self.monitor_task:
             try:
@@ -274,10 +290,26 @@ class MultipassdGovernor:
         self.asyncio_loop.run(self.stop_async()).result(timeout=timeout)
 
     def wait_for_shutdown(self, timeout=60):
-        self.daemon_ready_event.wait_until(False, timeout=timeout)
+        self.daemon_stopped_event.wait(timeout=timeout)
 
     def wait_for_start(self, timeout=60):
-        self.daemon_ready_event.wait_until(True, timeout=timeout)
+        self.daemon_ready_event.wait(timeout=timeout)
+
+    def check_health(self, timeout=5):
+        """Verify the daemon is responsive before a test step.
+
+        No-op when the daemon is believed to be intentionally down (the ready
+        latch is clear). Otherwise probes the daemon and aborts the session on
+        an unresponsive daemon.
+        """
+        if not self.daemon_ready_event.is_set():
+            return
+
+        healthy = self.asyncio_loop.run(self._probe_healthy(timeout)).result()
+        if not healthy:
+            raise TestSessionFailure(
+                "multipassd is unresponsive; aborting the test session."
+            )
 
     def wait_for_restart(self, timeout=60):
         # Restart events are opaque to us when the controller supports
@@ -294,6 +326,38 @@ class MultipassdGovernor:
         self.wait_for_start(timeout=timeout)
 
     @staticmethod
+    async def _run_version_probe():
+        """Run `multipass version` directly; returns (exitcode, stdout)."""
+        async with StdoutAsyncSubprocess(
+            get_multipass_path(),
+            "version",
+            env=get_multipass_env(),
+        ) as version_proc:
+            stdout, _ = await version_proc.communicate()
+            return version_proc.returncode, stdout
+
+    @staticmethod
+    async def _probe_healthy(timeout):
+        """Return True if the daemon answers a cheap `version` probe within `timeout`."""
+        try:
+            exitcode, stdout = await asyncio.wait_for(
+                MultipassdGovernor._run_version_probe(), timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            return False
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            return False
+
+        if exitcode != 0:
+            return False
+        return any(
+            line.lstrip().startswith("multipassd")
+            for line in stdout.decode("utf-8", "replace").splitlines()
+        )
+
+    @staticmethod
     async def wait_for_multipassd_ready(timeout=60):
         """
         Wait until Multipass daemon starts responding to CLI commands.
@@ -306,7 +370,7 @@ class MultipassdGovernor:
                 find_exitcode = 0
                 async with StdoutAsyncSubprocess(
                     get_multipass_path(),
-                    "find",
+                    "images",
                     "noble",
                     env=get_multipass_env(),
                 ) as find_proc:
@@ -324,33 +388,27 @@ class MultipassdGovernor:
                     logging.debug(find_stdout)
 
                 # Otherwise, verify the version
-                async with StdoutAsyncSubprocess(
-                    get_multipass_path(),
-                    "version",
-                    env=get_multipass_env(),
-                ) as version_proc:
-                    stdout, _ = await version_proc.communicate()
-                    version_lines = stdout.decode().strip().splitlines()
+                _, stdout = await MultipassdGovernor._run_version_probe()
+                cli_ver, daemon_ver = parse_multipass_versions(stdout.decode())
 
-                    if len(version_lines) >= 2:
-                        cli_ver = version_lines[0].split()[-1]
-                        daemon_ver = version_lines[1].split()[-1]
+                if daemon_ver is not None:
+                    if cli_ver == daemon_ver:
+                        return True
 
-                        if cli_ver == daemon_ver:
-                            return True
-
-                        sys.stderr.write(
-                            f"Version mismatch detected!\n"
-                            f"👉 CLI version: {cli_ver}\n"
-                            f"👉 Daemon version: {daemon_ver}\n"
-                        )
-                        sys.stderr.flush()
-                        return False
+                    sys.stderr.write(
+                        f"Version mismatch detected!\n"
+                        f"👉 CLI version: {cli_ver}\n"
+                        f"👉 Daemon version: {daemon_ver}\n"
+                    )
+                    sys.stderr.flush()
+                    return False
 
             except asyncio.TimeoutError:
                 # Try again.
                 continue
             except asyncio.CancelledError:
+                raise
+            except AssertionError:
                 raise
             except Exception as exc:
                 logging.error(exc)

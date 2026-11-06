@@ -15,17 +15,18 @@
 if(UNIX)
     list(APPEND MULTIPASS_BACKENDS qemu)
 
-    if (FORCE_ENABLE_VIRTUALBOX OR (APPLE AND CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64"))
-        list(APPEND MULTIPASS_BACKENDS virtualbox)
-    endif()
-
     if(APPLE)
         list(APPEND MULTIPASS_BACKENDS applevz)
     endif()
 elseif(WIN32)
-    set(MULTIPASS_BACKENDS hyperv virtualbox hyperv_api)
+    set(MULTIPASS_BACKENDS hyperv hcs)
 else()
     message(WARNING "No suitable backend exists for the platform!")
 endif()
+
+foreach(BACKEND IN LISTS MULTIPASS_BACKENDS)
+    string(TOUPPER "${BACKEND}_ENABLED" BACKEND_ENABLED)
+    set(${BACKEND_ENABLED} ON)
+endforeach()
 
 message(STATUS "Enabled backends: ${MULTIPASS_BACKENDS}")

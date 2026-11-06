@@ -28,6 +28,8 @@
 #include <multipass/utils.h>
 #include <multipass/vm_image_vault.h>
 
+#include <yaml-cpp/yaml.h>
+
 #include <QRegularExpression>
 
 #include <gtest/gtest-death-test.h>
@@ -899,8 +901,10 @@ TEST_P(NormalizeMountTargetTest, mountTargetsNormalizeCorrectly)
 
 std::vector<StringPairParam> normalize_mount_target_values = {
     {"Documents", "/home/ubuntu/Documents"},
+    {"~/Documents", "/home/ubuntu/Documents"},
     {"", "/home/ubuntu"},
     {".", "/home/ubuntu"},
+    {"~", "/home/ubuntu"},
     {"..", "/home"},
     {"./", "/home/ubuntu"},
     {"folder/", "/home/ubuntu/folder"},
@@ -918,6 +922,8 @@ std::vector<StringPairParam> normalize_mount_target_values = {
     {"folder/./subfolder", "/home/ubuntu/folder/subfolder"},
     {"folder/../other-folder", "/home/ubuntu/other-folder"},
     {"//", "/"},
+    {"~//Documents", "/home/ubuntu/Documents"},
+    {"~/../Documents", "/home/Documents"},
 };
 
 INSTANTIATE_TEST_SUITE_P(Utils, NormalizeMountTargetTest, ValuesIn(normalize_mount_target_values));
@@ -951,4 +957,76 @@ TEST_F(TestReapSSHProcess, reapThrowsSSHExecFailureOnNonZeroExitCode)
         EXPECT_EQ(e.exit_code(), 42);
         EXPECT_THAT(e.what(), HasSubstr("boom"));
     }
+}
+
+struct TestExpectsShutdownFromCloudInit : public TestWithParam<std::tuple<std::string, bool>>
+{
+};
+
+TEST_P(TestExpectsShutdownFromCloudInit, returnsExpectedResultForMode)
+{
+    const auto& [mode, expected_result] = GetParam();
+
+    YAML::Node user_data_config;
+    user_data_config["power_state"]["mode"] = mode;
+
+    EXPECT_EQ(mpu::expects_shutdown_from_cloud_init(user_data_config), expected_result);
+}
+
+INSTANTIATE_TEST_SUITE_P(Utils,
+                         TestExpectsShutdownFromCloudInit,
+                         Values(std::make_tuple("poweroff", true),
+                                std::make_tuple("halt", true),
+                                std::make_tuple("reboot", false),
+                                std::make_tuple("some_other_mode", false)));
+
+TEST(ExpectsShutdownFromCloudInit, returnsFalseWhenPowerStateMissing)
+{
+    YAML::Node user_data_config;
+    user_data_config["some_other_key"] = "some_value";
+
+    EXPECT_FALSE(mpu::expects_shutdown_from_cloud_init(user_data_config));
+}
+
+TEST(ExpectsShutdownFromCloudInit, returnsFalseWhenModeMissing)
+{
+    YAML::Node user_data_config;
+    user_data_config["power_state"]["message"] = "Bye Bye";
+
+    EXPECT_FALSE(mpu::expects_shutdown_from_cloud_init(user_data_config));
+}
+
+TEST(ExpectsShutdownFromCloudInit, returnsFalseWhenConfigEmpty)
+{
+    YAML::Node user_data_config;
+
+    EXPECT_FALSE(mpu::expects_shutdown_from_cloud_init(user_data_config));
+}
+
+TEST(ExpectsShutdownFromCloudInit, returnsTrueWhenConditionAbsent)
+{
+    YAML::Node user_data_config;
+    user_data_config["power_state"]["mode"] = "poweroff";
+
+    EXPECT_TRUE(mpu::expects_shutdown_from_cloud_init(user_data_config));
+}
+
+TEST(ExpectsShutdownFromCloudInit, returnsFalseWhenConditionIsCommandString)
+{
+    YAML::Node user_data_config;
+    user_data_config["power_state"]["mode"] = "poweroff";
+    user_data_config["power_state"]["condition"] = "test -f /some/file";
+
+    EXPECT_FALSE(mpu::expects_shutdown_from_cloud_init(user_data_config));
+}
+
+TEST(ExpectsShutdownFromCloudInit, returnsFalseWhenConditionIsCommandList)
+{
+    YAML::Node user_data_config;
+    user_data_config["power_state"]["mode"] = "poweroff";
+    user_data_config["power_state"]["condition"].push_back("test");
+    user_data_config["power_state"]["condition"].push_back("-f");
+    user_data_config["power_state"]["condition"].push_back("/some/file");
+
+    EXPECT_FALSE(mpu::expects_shutdown_from_cloud_init(user_data_config));
 }

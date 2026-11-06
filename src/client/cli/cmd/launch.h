@@ -55,6 +55,8 @@ private:
                             const QString& mount_source,
                             const QString& mount_target);
     bool ask_bridge_permission(multipass::LaunchReply& reply);
+    void prepare_mount_routes();
+    ReturnCodeVariant mount_requested_routes(const ArgParser* parser);
 
     LaunchRequest request;
     QString petenv_name;

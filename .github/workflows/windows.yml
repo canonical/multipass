@@ -20,7 +20,7 @@ env:
 
 jobs:
   GetMatrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     if: ${{ !cancelled() }}
 
     outputs:
@@ -192,7 +192,7 @@ jobs:
             -Arguments "/quiet /norestart"
 
     - name: Install cmake
-      uses: lukka/get-cmake@v4.4.2
+      uses: lukka/get-cmake@v4.4.4
 
     - name: Set up MSVC
       uses: ilammy/msvc-dev-cmd@v1
@@ -404,7 +404,7 @@ jobs:
     needs: [BuildAndTest, PublishWindowsPackage]
     if: ${{ !cancelled() && !success() && github.event_name == 'schedule' }}
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
     - name: Report workflow failure

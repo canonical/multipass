@@ -19,11 +19,14 @@
 #include "mock_file_ops.h"
 #include "temp_dir.h"
 
+#include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/network_interface.h>
+#include <multipass/yaml_node_utils.h>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
+namespace mpu = multipass::utils;
 using namespace testing;
 
 namespace
@@ -88,23 +91,8 @@ TEST_F(CloudInitIso, checkContainsFalse)
 TEST_F(CloudInitIso, checkContainsTrue)
 {
     mp::CloudInitIso iso;
-    iso.add_file("test", "test data");
+    iso["test"] = "test data";
     EXPECT_TRUE(iso.contains("test"));
-}
-
-TEST_F(CloudInitIso, checkEraseFalse)
-{
-    mp::CloudInitIso iso;
-    EXPECT_FALSE(iso.erase("non_exist_file"));
-}
-
-TEST_F(CloudInitIso, checkEraseTrue)
-{
-    mp::CloudInitIso iso;
-    iso.add_file("test", "test data");
-    EXPECT_TRUE(iso.contains("test"));
-    EXPECT_TRUE(iso.erase("test"));
-    EXPECT_FALSE(iso.contains("test"));
 }
 
 TEST_F(CloudInitIso, checkAtOperatorThrow)
@@ -120,7 +108,7 @@ TEST_F(CloudInitIso, checkAtOperatorThrow)
 TEST_F(CloudInitIso, checkAtOperatorFoundKey)
 {
     mp::CloudInitIso iso;
-    iso.add_file("test", "test data");
+    iso["test"] = "test data";
     EXPECT_EQ(iso.at("test"), "test data");
 }
 
@@ -133,14 +121,40 @@ TEST_F(CloudInitIso, checkIndexOperatorNotExistDefaultReturn)
 TEST_F(CloudInitIso, checkIndexOperatorFoundKey)
 {
     mp::CloudInitIso iso;
-    iso.add_file("test", "test data");
+    iso["test"] = "test data";
     EXPECT_EQ(iso["test"], "test data");
+}
+
+TEST_F(CloudInitIso, constructsFilesFromConfig)
+{
+    mp::CloudInitConfig config{};
+    config.meta_data["instance-id"] = "vm1";
+    config.vendor_data["timezone"] = "UTC";
+    config.user_data["packages"].push_back("vim");
+    config.network_data["version"] = "2";
+
+    const mp::CloudInitIso iso{config};
+
+    EXPECT_EQ(iso.at("meta-data"), mpu::emit_cloud_config(config.meta_data));
+    EXPECT_EQ(iso.at("vendor-data"), mpu::emit_cloud_config(config.vendor_data));
+    EXPECT_EQ(iso.at("user-data"), mpu::emit_cloud_config(config.user_data));
+    EXPECT_EQ(iso.at("network-config"), mpu::emit_cloud_config(config.network_data));
+}
+
+TEST_F(CloudInitIso, constructsWithoutNetworkConfigWhenAbsent)
+{
+    const mp::CloudInitIso iso{mp::CloudInitConfig{}};
+
+    EXPECT_TRUE(iso.contains("meta-data"));
+    EXPECT_TRUE(iso.contains("vendor-data"));
+    EXPECT_TRUE(iso.contains("user-data"));
+    EXPECT_FALSE(iso.contains("network-config"));
 }
 
 TEST_F(CloudInitIso, createsIsoFile)
 {
     mp::CloudInitIso iso;
-    iso.add_file("test", "test data");
+    iso["test"] = "test data";
     iso.write_to(iso_path);
 
     std::ofstream file{iso_path, std::ios::binary};
@@ -294,7 +308,7 @@ TEST_F(CloudInitIso, readsIsoFileFailedToReadVec)
 {
     mp::CloudInitIso original_iso;
     // At least one actual file entry is need to reach the read_bytes_to_vec call
-    original_iso.add_file("test1", "test data1");
+    original_iso["test1"] = "test data1";
     original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
@@ -319,7 +333,7 @@ TEST_F(CloudInitIso, readsIsoFileEncodedFileNameIsNotEvenLength)
 {
     mp::CloudInitIso original_iso;
     // At least one actual file entry is need to reach the convert_u16_name_back call
-    original_iso.add_file("test1", "test data1");
+    original_iso["test1"] = "test data1";
     original_iso.write_to(iso_path);
 
     const auto [mock_file_ops, _] = mpt::MockFileOps::inject();
@@ -355,12 +369,11 @@ TEST_F(CloudInitIso, readsIsoFileWithRandomStringData)
 {
     mp::CloudInitIso original_iso;
 
-    original_iso.add_file("test1", "test data1");
-    original_iso.add_file("test test 2", "test some data2");
-    original_iso.add_file("test_random_name_3", "more \r test \n \n data3");
-    original_iso.add_file("test-title_4",
-                          "random_test_data: \n - path: /etc/pollinate/add-user-agent");
-    original_iso.add_file("t5", "");
+    original_iso["test1"] = "test data1";
+    original_iso["test test 2"] = "test some data2";
+    original_iso["test_random_name_3"] = "more \r test \n \n data3";
+    original_iso["test-title_4"] = "random_test_data: \n - path: /etc/pollinate/add-user-agent";
+    original_iso["t5"] = "";
     original_iso.write_to(iso_path);
 
     mp::CloudInitIso new_iso;
@@ -392,10 +405,10 @@ write_files:
 )";
     mp::CloudInitIso original_iso;
 
-    original_iso.add_file("meta-data", default_meta_data_content);
-    original_iso.add_file("vendor_data_content", vendor_data_content);
-    original_iso.add_file("user-data", user_data_content);
-    original_iso.add_file("network-config", "some random network-data");
+    original_iso["meta-data"] = default_meta_data_content;
+    original_iso["vendor_data_content"] = vendor_data_content;
+    original_iso["user-data"] = user_data_content;
+    original_iso["network-config"] = "some random network-data";
     original_iso.write_to(iso_path);
 
     mp::CloudInitIso new_iso;
@@ -407,8 +420,8 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
 {
     mp::CloudInitIso original_iso;
 
-    original_iso.add_file("meta-data", default_meta_data_content);
-    original_iso.add_file("network-config", "dummy_data");
+    original_iso["meta-data"] = default_meta_data_content;
+    original_iso["network-config"] = "dummy_data";
     original_iso.write_to(iso_path);
 
     const std::string default_mac_addr = "52:54:00:56:78:90";
@@ -433,8 +446,8 @@ TEST_F(CloudInitIso, updateCloudInitWithNewNonEmptyExtraInterfaces)
 TEST_F(CloudInitIso, updateCloudInitWithNewEmptyExtraInterfaces)
 {
     mp::CloudInitIso original_iso;
-    original_iso.add_file("meta-data", default_meta_data_content);
-    original_iso.add_file("network-config", "dummy_data");
+    original_iso["meta-data"] = default_meta_data_content;
+    original_iso["network-config"] = "dummy_data";
     original_iso.write_to(iso_path);
 
     const std::string& default_mac_addr = "52:54:00:56:78:90";
@@ -457,8 +470,8 @@ TEST_F(CloudInitIso, updateCloneCloudInitSrcFileWithExtraInterfaces)
         fmt::format(network_config_data_content_template, "00:00:00:00:00:00", "00:00:00:00:00:01");
 
     mp::CloudInitIso original_iso;
-    original_iso.add_file("meta-data", src_meta_data_content);
-    original_iso.add_file("network-config", src_network_config_data_content);
+    original_iso["meta-data"] = src_meta_data_content;
+    original_iso["network-config"] = src_network_config_data_content;
     original_iso.write_to(iso_path);
 
     const std::string default_mac_addr = "52:54:00:56:78:90";
@@ -482,7 +495,7 @@ TEST_F(CloudInitIso, updateCloneCloudInitSrcFileWithExtraInterfaces)
 TEST_F(CloudInitIso, addExtraInterfaceToCloudInit)
 {
     mp::CloudInitIso original_iso;
-    original_iso.add_file("meta-data", default_meta_data_content);
+    original_iso["meta-data"] = default_meta_data_content;
     original_iso.write_to(iso_path);
 
     const mp::NetworkInterface dummy_extra_interface{};
@@ -494,7 +507,7 @@ TEST_F(CloudInitIso, addExtraInterfaceToCloudInit)
 TEST_F(CloudInitIso, getInstanceIdFromCloudInit)
 {
     mp::CloudInitIso original_iso;
-    original_iso.add_file("meta-data", default_meta_data_content);
+    original_iso["meta-data"] = default_meta_data_content;
     original_iso.write_to(iso_path);
 
     EXPECT_EQ(MP_CLOUD_INIT_FILE_OPS.get_instance_id_from_cloud_init(iso_path), "vm1");

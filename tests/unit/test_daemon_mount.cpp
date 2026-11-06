@@ -25,6 +25,7 @@
 #include "mock_server_reader_writer.h"
 #include "mock_settings.h"
 #include "mock_virtual_machine.h"
+#include "mock_virtual_machine_factory.h"
 #include "mock_vm_image_vault.h"
 #include "stub_availability_zone.h"
 #include "stub_availability_zone_manager.h"
@@ -190,10 +191,44 @@ TEST_F(TestDaemonMount, mountIgnoresTrailingSlash)
                                       mock_instance_name)));
 }
 
+TEST_F(TestDaemonMount, mountExpandsTildes)
+{
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    config_builder.data_directory = temp_dir->path();
+
+    EXPECT_CALL(*mock_mount_handler, activate_impl).Times(0);
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
+    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, make_native_mount_handler(Eq(fake_target_path), _))
+        .WillOnce(Return(std::move(mock_mount_handler)));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::MountRequest request;
+    request.set_source_path(mount_dir.path().toStdString());
+    request.set_mount_type(mp::MountRequest::NATIVE);
+    auto entry1 = request.add_target_paths();
+    entry1->set_instance_name(mock_instance_name);
+    entry1->set_target_path("~/foo");
+
+    auto status = call_daemon_slot(
+        daemon,
+        &mp::Daemon::mount,
+        request,
+        StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
+
+    EXPECT_TRUE(status.ok());
+}
+
 TEST_F(TestDaemonMount, skipStartMountIfInstanceIsNotRunning)
 {
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     EXPECT_CALL(*mock_mount_handler, activate_impl).Times(0);
@@ -226,8 +261,8 @@ TEST_F(TestDaemonMount, skipStartMountIfInstanceIsNotRunning)
 
 TEST_F(TestDaemonMount, startsMountIfInstanceRunning)
 {
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     EXPECT_CALL(*mock_mount_handler, activate_impl).Times(1);
@@ -260,8 +295,8 @@ TEST_F(TestDaemonMount, startsMountIfInstanceRunning)
 
 TEST_F(TestDaemonMount, mountFailsErrorMounting)
 {
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     auto error = "permission denied";
@@ -297,8 +332,8 @@ TEST_F(TestDaemonMount, mountFailsErrorMounting)
 
 TEST_F(TestDaemonMount, performanceMountsNotImplementedHasErrorFails)
 {
-    const auto [temp_dir, filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
@@ -330,8 +365,8 @@ TEST_F(TestDaemonMount, performanceMountsNotImplementedHasErrorFails)
 TEST_F(TestDaemonMount, mountUsesResolvedSource)
 {
     // can't use _ since _ is needed for gmock matching later.
-    const auto [temp_dir, ignored_filename] =
-        plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    const auto [temp_dir, ignored_filename] = plant_instance_json(
+        fake_json_contents(mac_addr, extra_interfaces));
     config_builder.data_directory = temp_dir->path();
 
     const auto target_path = config_builder.data_directory.toStdString();

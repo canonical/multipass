@@ -21,7 +21,6 @@ include(CMakeDependentOption)
 
 option(MULTIPASS_VCPKG_BUILD_DEFAULT "Enable or disable building the dependencies in the default configuration, which includes both debug and release variants." OFF)
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
-cmake_dependent_option(FORCE_ENABLE_VIRTUALBOX "Enable VirtualBox" ON UNIX OFF)
 
 is_running_in_ci(IS_RUNNING_IN_CI)
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
@@ -83,25 +82,27 @@ endif()
 
 if(NOT MULTIPASS_VCPKG_BUILD_DEFAULT)
   message(STATUS "Will build `vcpkg` dependencies in `release-only` mode.")
-
-  # Propagate macOS deployment target to vcpkg triplet
-  if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
-    set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-triplets")
-    configure_file(
-      "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx-release.cmake.in"
-      "${VCPKG_TRIPLETS_DIR}/${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake"
-      @ONLY
-    )
-    set(VCPKG_OVERLAY_TRIPLETS "${VCPKG_TRIPLETS_DIR}" CACHE STRING "Custom vcpkg triplets directory")
-    message(STATUS "Generated vcpkg triplet: ${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release.cmake with deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
-  endif()
-
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}-release")
+  set(VCPKG_BUILD_TYPE_SETTING "set(VCPKG_BUILD_TYPE release)")
 else()
   set(VCPKG_HOST_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
   set(VCPKG_TARGET_TRIPLET "${VCPKG_HOST_ARCH}-${VCPKG_HOST_OS}")
+  set(VCPKG_BUILD_TYPE_SETTING "") # build both debug and release
   message(NOTICE "Will build `vcpkg` deps in both `debug` and `release` configurations. Be aware that it will take around twice the time to build the `vcpkg` deps.")
+endif()
+
+# Propagate macOS deployment target and compiler flags to the vcpkg triplet. Generate it for both
+# build modes; in the default mode it overlays vcpkg's stock triplet of the same name.
+if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+  set(VCPKG_TRIPLETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/vcpkg-triplets")
+  configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/3rd-party/vcpkg-triplets/osx.cmake.in"
+    "${VCPKG_TRIPLETS_DIR}/${VCPKG_TARGET_TRIPLET}.cmake"
+    @ONLY
+  )
+  set(VCPKG_OVERLAY_TRIPLETS "${VCPKG_TRIPLETS_DIR}" CACHE STRING "Custom vcpkg triplets directory")
+  message(STATUS "Generated vcpkg triplet: ${VCPKG_TARGET_TRIPLET}.cmake with deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif()
 
 message(STATUS "Bootstrapping vcpkg...")
@@ -141,6 +142,11 @@ endif()
 
 # All the current backends depend on QEMU one way or the other.
 list(APPEND VCPKG_MANIFEST_FEATURES "qemu")
+
+include(src/cmake/vcpkg-overlay-ports.cmake)
+set(MULTIPASS_VCPKG_PORTS_DIR "${CMAKE_CURRENT_BINARY_DIR}/patched-upstream-vcpkg-ports")
+generate_patched_vcpkg_ports("${MULTIPASS_VCPKG_PORTS_DIR}")
+register_vcpkg_overlay_ports("${MULTIPASS_VCPKG_PORTS_DIR}")
 
 set(CMAKE_TOOLCHAIN_FILE "${MULTIPASS_VCPKG_LOCATION}/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
@@ -270,9 +276,6 @@ find_package(Qt6 COMPONENTS Core Concurrent Network REQUIRED)
 # xz-embedded config
 find_package(xz-embedded CONFIG)
 
-# out_ptr config
-find_package(out_ptr CONFIG REQUIRED)
-
 include(src/cmake/versioning.cmake)
 determine_version(MULTIPASS_VERSION)
 set(MULTIPASS_VERSION ${MULTIPASS_VERSION})
@@ -291,7 +294,7 @@ set(MULTIPASS_VERSION_PATCH ${CMAKE_MATCH_3})
 
 message(STATUS "Version components: ${MULTIPASS_VERSION_MAJOR}.${MULTIPASS_VERSION_MINOR}.${MULTIPASS_VERSION_PATCH} (build: ${MULTIPASS_BUILD_NUMBER})")
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -309,6 +312,9 @@ else()
   add_compile_options(-Werror -Wall -pedantic -fPIC)
 
   if(APPLE)
+    # Calling an API newer than the deployment target without an availability check binds it as a
+    # weak import that resolves to NULL on older macOS, crashing at the call site
+    add_compile_options(-Werror=unguarded-availability-new)
     add_definitions(-DMULTIPASS_PLATFORM_APPLE)
     set(MULTIPASS_PLATFORM macos)
     add_definitions(-DMULTIPASS_COMPILER_APPLE_CLANG)
@@ -338,7 +344,9 @@ endif()
 include(src/cmake/qemu-img-install-and-copy.cmake)
 
 if(CMAKE_BUILD_TYPE_LOWER  MATCHES "coverage")
-  find_program(GCOV gcov)
+  # gcov must match the compiler that produced the .gcno files (e.g. gcov-14 for g++-14)
+  string(REGEX MATCH "^[0-9]+" CXX_COMPILER_VERSION_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
+  find_program(GCOV NAMES gcov-${CXX_COMPILER_VERSION_MAJOR} gcov)
   find_program(LCOV lcov)
   find_program(GENHTML genhtml)
 
@@ -362,17 +370,25 @@ if(CMAKE_BUILD_TYPE_LOWER  MATCHES "coverage")
       set(FLUTTER_COVERAGE_COMMANDS
         COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}/src/client/gui
                 ${FLUTTER_EXECUTABLE} test --coverage
+        # Flutter emits package-relative paths (SF:lib/...), so the exclude
+        # patterns must not require a leading path segment before 'lib/'.
         COMMAND ${LCOV}
           --remove ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
           --ignore-errors unused
-          '*/lib/generated/*'
-          '*/lib/l10n/*'
+          '*lib/generated/*'
+          '*lib/l10n/*'
           --output-file ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
         COMMAND ${LCOV}
           --add-tracefile coverage.cleaned
           --add-tracefile lcov.info
           --add-tracefile ${CMAKE_SOURCE_DIR}/src/client/gui/coverage/lcov.info
           --output-file total_coverage.info
+        # Flutter emits package-relative paths (SF:lib/...). Rewrite the merged
+        # report so the Dart entries line up with the repo source tree.
+        COMMAND ${CMAKE_COMMAND}
+          -DLCOV_FILE=total_coverage.info
+          -DSOURCE_PREFIX=${CMAKE_SOURCE_DIR}/src/client/gui
+          -P ${CMAKE_SOURCE_DIR}/src/cmake/rewrite-flutter-coverage-paths.cmake
       )
       set(GENHTML_SOURCE_ARGS --source-directory ${CMAKE_SOURCE_DIR}/src/client/gui)
     else()
@@ -391,7 +407,7 @@ if(CMAKE_BUILD_TYPE_LOWER  MATCHES "coverage")
       WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
       COMMAND ${LCOV} --directory . --zerocounters
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test
-      COMMAND ${LCOV} --directory . --capture --output-file coverage.info ${LCOV_IGNORE_ERRORS}
+      COMMAND ${LCOV} --directory . --capture --gcov-tool ${GCOV} --output-file coverage.info ${LCOV_IGNORE_ERRORS}
       COMMAND ${LCOV}
         --remove coverage.info
         --ignore-errors unused

@@ -1,0 +1,15 @@
+{
+    "C_Cpp.files.exclude": {
+        "${workspaceFolder}/build": true,
+        "${workspaceFolder}/.git": true
+    },
+
+    // Configuration and build can be slow, so disabling these
+    // by default.
+    "cmake.configureOnOpen": false,
+    "cmake.buildBeforeRun": false,
+    "cmake.skipConfigureIfCachePresent": true,
+
+    // Required on Windows to find the compiler.
+    "cmake.useVsDeveloperEnvironment": "always"
+}

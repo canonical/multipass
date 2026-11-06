@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright (C) Canonical, Ltd.
 #
@@ -19,6 +18,12 @@
 from collections import defaultdict
 
 from cli.multipass import multipass
+
+
+def delete_snapshot(vm_name, snapshot_name):
+    """Delete a snapshot of a Multipass VM."""
+    with multipass("delete", "--force", f"{vm_name}.{snapshot_name}") as output:
+        assert output, f"Failed to delete snapshot `{vm_name}.{snapshot_name}`: {str(output)}"
 
 
 def take_snapshot(vm_name, snapshot_name, expected_parent="", expected_comment=""):
@@ -46,13 +51,41 @@ def take_snapshot(vm_name, snapshot_name, expected_parent="", expected_comment="
         assert output.exitstatus == 0
         assert "Snapshot taken" in output
 
-    with multipass("list", "--format=json", "--snapshots").json() as output:
+    with multipass("snapshots", "--format=json").json() as output:
         assert output.exitstatus == 0
         assert vm_name in output["info"]
         assert snapshot_name in output["info"][vm_name]
         snapshot = output["info"][vm_name][snapshot_name]
         assert expected_parent == snapshot["parent"]
         assert expected_comment == snapshot["comment"]
+
+    assert_list_snapshots_matches_snapshots()
+
+
+# TODO@deprecations remove along with `list --snapshots`
+def assert_list_snapshots_matches_snapshots():
+    """Assert that the deprecated `list --snapshots` still behaves like `snapshots`."""
+
+    warning = "`multipass list --snapshots` is deprecated"
+    advice = "Use `multipass snapshots` instead."
+
+    for fmt in ("table", "csv", "yaml"):
+        snapshots = multipass("snapshots", f"--format={fmt}")
+        list_snapshots = multipass("list", "--snapshots", f"--format={fmt}")
+        assert snapshots.exitstatus == list_snapshots.exitstatus
+        header, _, body = str(list_snapshots).partition(advice)
+        assert warning in header
+        assert body.strip() == str(snapshots)
+
+    # The JSON formatter does not sort, so compare parsed content
+    snapshots = multipass("snapshots", "--format=json").json()
+    list_snapshots, header = multipass(
+        "list", "--snapshots", "--format=json"
+    ).json_with_header()
+
+    assert warning in header
+    assert snapshots.exitstatus == list_snapshots.exitstatus
+    assert snapshots == list_snapshots
 
 
 def build_snapshot_tree(vm_name, tree, parent=""):

@@ -18,6 +18,7 @@
 #include <multipass/logging/multiplexing_logger.h>
 
 #include <algorithm>
+#include <mutex>
 
 namespace mpl = multipass::logging;
 
@@ -45,5 +46,5 @@ void mpl::MultiplexingLogger::add_logger(const Logger* logger)
 void mpl::MultiplexingLogger::remove_logger(const Logger* logger)
 {
     std::lock_guard<decltype(mutex)> lock{mutex};
-    loggers.erase(std::remove(loggers.begin(), loggers.end(), logger), loggers.end());
+    std::erase(loggers, logger);
 }

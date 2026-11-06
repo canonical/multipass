@@ -240,6 +240,9 @@ else()
             ${ACCEL_FLAG}
             "--enable-virtfs"
             "--extra-cflags=-I${CURRENT_INSTALLED_DIR}/include -UNDEBUG"
+            # QEMU only forwards CFLAGS to C sources, so pass the triplet's flags to the
+            # Objective-C sources (vmnet, cocoa, ...) explicitly
+            "--extra-objcflags=${VCPKG_C_FLAGS}"
             "--extra-ldflags=-L${CURRENT_INSTALLED_DIR}/lib"
             ${QEMU_COMMON_OPTIONS}
     )

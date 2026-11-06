@@ -123,14 +123,14 @@ struct TestBaseSnapshot : public Test
 TEST_F(TestBaseSnapshot, adoptsGivenValidName)
 {
     constexpr auto name = "a-name";
-    auto snapshot = MockBaseSnapshot{name, "", "", nullptr, specs, vm};
+    auto snapshot = MockBaseSnapshot{name, "", "", nullptr, specs, vm, desc};
     EXPECT_EQ(snapshot.get_name(), name);
 }
 
 TEST_F(TestBaseSnapshot, rejectsEmptyName)
 {
     const std::string empty{};
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{empty, "asdf", "", nullptr, specs, vm}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{empty, "asdf", "", nullptr, specs, vm, desc}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("empty")));
 }
@@ -138,34 +138,40 @@ TEST_F(TestBaseSnapshot, rejectsEmptyName)
 TEST_F(TestBaseSnapshot, adoptsGivenComment)
 {
     constexpr auto comment = "some comment";
-    auto snapshot = MockBaseSnapshot{"whatever", comment, "", nullptr, specs, vm};
+    auto snapshot = MockBaseSnapshot{"whatever", comment, "", nullptr, specs, vm, desc};
     EXPECT_EQ(snapshot.get_comment(), comment);
 }
 
 TEST_F(TestBaseSnapshot, adoptsGivenInstanceId)
 {
     constexpr std::string_view instance_id{"vm2"};
-    const auto snapshot =
-        MockBaseSnapshot{"whatever", "some comment", std::string{instance_id}, nullptr, specs, vm};
+    const auto snapshot = MockBaseSnapshot{"whatever",
+                                           "some comment",
+                                           std::string{instance_id},
+                                           nullptr,
+                                           specs,
+                                           vm,
+                                           desc};
     EXPECT_EQ(snapshot.get_cloud_init_instance_id(), instance_id);
 }
 
 TEST_F(TestBaseSnapshot, adoptsGivenParent)
 {
-    const auto parent = std::make_shared<MockBaseSnapshot>("root", "asdf", "", nullptr, specs, vm);
-    auto snapshot = MockBaseSnapshot{"descendant", "descends", "", parent, specs, vm};
+    const auto parent =
+        std::make_shared<MockBaseSnapshot>("root", "asdf", "", nullptr, specs, vm, desc);
+    auto snapshot = MockBaseSnapshot{"descendant", "descends", "", parent, specs, vm, desc};
     EXPECT_EQ(snapshot.get_parent(), parent);
 }
 
 TEST_F(TestBaseSnapshot, adoptsNullParent)
 {
-    auto snapshot = MockBaseSnapshot{"descendant", "descends", "", nullptr, specs, vm};
+    auto snapshot = MockBaseSnapshot{"descendant", "descends", "", nullptr, specs, vm, desc};
     EXPECT_EQ(snapshot.get_parent(), nullptr);
 }
 
 TEST_F(TestBaseSnapshot, adoptsGivenSpecs)
 {
-    auto snapshot = MockBaseSnapshot{"snapshot", "", "", nullptr, specs, vm};
+    auto snapshot = MockBaseSnapshot{"snapshot", "", "", nullptr, specs, vm, desc};
     EXPECT_EQ(snapshot.get_num_cores(), specs.num_cores);
     EXPECT_EQ(snapshot.get_mem_size(), specs.mem_size);
     EXPECT_EQ(snapshot.get_disk_space(), specs.disk_space);
@@ -186,7 +192,7 @@ TEST_F(TestBaseSnapshot, adoptsCustomMounts)
                                        {{81, 18}, {9, 10}},
                                        multipass::VMMount::MountType::Native};
 
-    auto snapshot = MockBaseSnapshot{"snapshot", "", "", nullptr, specs, vm};
+    auto snapshot = MockBaseSnapshot{"snapshot", "", "", nullptr, specs, vm, desc};
     EXPECT_EQ(snapshot.get_mounts(), specs.mounts);
 }
 
@@ -194,7 +200,7 @@ TEST_F(TestBaseSnapshot, adoptsCustomMetadata)
 {
     specs.metadata = {{"meta", {{"an-int", 7}, {"a-str", "str"}}}};
 
-    auto snapshot = MockBaseSnapshot{"snapshot", "", "", nullptr, specs, vm};
+    auto snapshot = MockBaseSnapshot{"snapshot", "", "", nullptr, specs, vm, desc};
     EXPECT_EQ(snapshot.get_metadata(), specs.metadata);
 }
 
@@ -203,7 +209,7 @@ TEST_F(TestBaseSnapshot, adoptsNextIndex)
     const int count = 123;
     EXPECT_CALL(vm, get_snapshot_count).WillOnce(Return(count));
 
-    auto snapshot = MockBaseSnapshot{"tau", "ceti", "", nullptr, specs, vm};
+    auto snapshot = MockBaseSnapshot{"tau", "ceti", "", nullptr, specs, vm, desc};
     EXPECT_EQ(snapshot.get_index(), count + 1);
 }
 
@@ -214,9 +220,9 @@ TEST_F(TestBaseSnapshot, retrievesParentsProperties)
 
     EXPECT_CALL(vm, get_snapshot_count).WillOnce(Return(parent_index - 1)).WillOnce(Return(31));
 
-    auto parent = std::make_shared<MockBaseSnapshot>(parent_name, "", "", nullptr, specs, vm);
+    auto parent = std::make_shared<MockBaseSnapshot>(parent_name, "", "", nullptr, specs, vm, desc);
 
-    auto child = MockBaseSnapshot{"child", "", "", parent, specs, vm};
+    auto child = MockBaseSnapshot{"child", "", "", parent, specs, vm, desc};
     EXPECT_EQ(child.get_parents_index(), parent_index);
     EXPECT_EQ(child.get_parents_name(), parent_name);
 }
@@ -224,7 +230,7 @@ TEST_F(TestBaseSnapshot, retrievesParentsProperties)
 TEST_F(TestBaseSnapshot, adoptsCurrentTimestamp)
 {
     auto before = QDateTime::currentDateTimeUtc();
-    auto snapshot = MockBaseSnapshot{"foo", "", "", nullptr, specs, vm};
+    auto snapshot = MockBaseSnapshot{"foo", "", "", nullptr, specs, vm, desc};
     auto after = QDateTime::currentDateTimeUtc();
 
     EXPECT_GE(snapshot.get_creation_timestamp(), before);
@@ -239,7 +245,7 @@ class TestSnapshotRejectedStates : public TestBaseSnapshot,
 TEST_P(TestSnapshotRejectedStates, rejectsActiveState)
 {
     specs.state = GetParam();
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", "", nullptr, specs, vm}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", "", nullptr, specs, vm, desc}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Unsupported VM state")));
 }
@@ -261,7 +267,7 @@ class TestSnapshotInvalidCores : public TestBaseSnapshot, public WithParamInterf
 TEST_P(TestSnapshotInvalidCores, rejectsInvalidNumberOfCores)
 {
     specs.num_cores = GetParam();
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", "", nullptr, specs, vm}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", "", nullptr, specs, vm, desc}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Invalid number of cores")));
 }
@@ -271,7 +277,7 @@ INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot, TestSnapshotInvalidCores, Values(0, -
 TEST_F(TestBaseSnapshot, rejectsNullMemorySize)
 {
     specs.mem_size = mp::MemorySize{"0B"};
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", "", nullptr, specs, vm}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", "", nullptr, specs, vm, desc}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Invalid memory size")));
 }
@@ -279,7 +285,7 @@ TEST_F(TestBaseSnapshot, rejectsNullMemorySize)
 TEST_F(TestBaseSnapshot, rejectsNullDiskSize)
 {
     specs.disk_space = mp::MemorySize{"0B"};
-    MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", "", nullptr, specs, vm}),
+    MP_EXPECT_THROW_THAT((MockBaseSnapshot{"snapshot", "comment", "", nullptr, specs, vm, desc}),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Invalid disk size")));
 }
@@ -322,7 +328,8 @@ TEST_F(TestBaseSnapshot, linksToParentFromJson)
                                                             "",
                                                             nullptr,
                                                             specs,
-                                                            vm)));
+                                                            vm,
+                                                            desc)));
 
     auto snapshot = MockBaseSnapshot{plant_snapshot_json(json), vm, desc};
     EXPECT_EQ(snapshot.get_parents_name(), parent_name);
@@ -537,7 +544,7 @@ TEST_F(TestBaseSnapshot, setsComment)
 TEST_F(TestBaseSnapshot, setsParent)
 {
     auto child = MockBaseSnapshot{test_json_file_path, vm, desc};
-    auto parent = std::make_shared<MockBaseSnapshot>("parent", "", "", nullptr, specs, vm);
+    auto parent = std::make_shared<MockBaseSnapshot>("parent", "", "", nullptr, specs, vm, desc);
 
     child.set_parent(parent);
     EXPECT_EQ(child.get_parent(), parent);
@@ -583,7 +590,7 @@ INSTANTIATE_TEST_SUITE_P(TestBaseSnapshot,
 
 TEST_F(TestBaseSnapshot, capturePersists)
 {
-    NiceMock<MockBaseSnapshot> snapshot{"Big Whoop", "treasure", "", nullptr, specs, vm};
+    NiceMock<MockBaseSnapshot> snapshot{"Big Whoop", "treasure", "", nullptr, specs, vm, desc};
     const auto expected_file = derive_persisted_snapshot_file_path(snapshot.get_index());
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
@@ -594,7 +601,7 @@ TEST_F(TestBaseSnapshot, capturePersists)
 
 TEST_F(TestBaseSnapshot, captureCallsImpl)
 {
-    MockBaseSnapshot snapshot{"LeChuck", "'s Revenge", "", nullptr, specs, vm};
+    MockBaseSnapshot snapshot{"LeChuck", "'s Revenge", "", nullptr, specs, vm, desc};
     EXPECT_CALL(snapshot, capture_impl).Times(1);
 
     snapshot.capture();
@@ -602,15 +609,48 @@ TEST_F(TestBaseSnapshot, captureCallsImpl)
 
 TEST_F(TestBaseSnapshot, applyCallsImpl)
 {
-    MockBaseSnapshot snapshot{"Guybrush", "fears porcelain", "", nullptr, specs, vm};
+    MockBaseSnapshot snapshot{"Guybrush", "fears porcelain", "", nullptr, specs, vm, desc};
     EXPECT_CALL(snapshot, apply_impl).Times(1);
 
     snapshot.apply();
 }
 
+TEST_F(TestBaseSnapshot, applyUpdatesVmDescription)
+{
+    NiceMock<MockBaseSnapshot> snapshot{"Elaine", "governor", "", nullptr, specs, vm, desc};
+
+    desc.num_cores = specs.num_cores + 1;
+    desc.mem_size = mp::MemorySize{"3G"};
+    desc.disk_space = mp::MemorySize{"20G"};
+    desc.extra_interfaces.clear();
+
+    snapshot.apply();
+
+    EXPECT_EQ(desc.num_cores, specs.num_cores);
+    EXPECT_EQ(desc.mem_size, specs.mem_size);
+    EXPECT_EQ(desc.disk_space, specs.disk_space);
+    EXPECT_EQ(desc.extra_interfaces, specs.extra_interfaces);
+}
+
+TEST_F(TestBaseSnapshot, applyLeavesVmDescriptionOnFailure)
+{
+    MockBaseSnapshot snapshot{"Stan", "salesman", "", nullptr, specs, vm, desc};
+    EXPECT_CALL(snapshot, apply_impl).WillOnce([] { throw std::runtime_error{"test"}; });
+
+    desc.disk_space = mp::MemorySize{"20G"};
+    const auto orig_desc = desc;
+
+    MP_EXPECT_THROW_THAT(snapshot.apply(), std::runtime_error, mpt::match_what(StrEq("test")));
+
+    EXPECT_EQ(desc.num_cores, orig_desc.num_cores);
+    EXPECT_EQ(desc.mem_size, orig_desc.mem_size);
+    EXPECT_EQ(desc.disk_space, orig_desc.disk_space);
+    EXPECT_EQ(desc.extra_interfaces, orig_desc.extra_interfaces);
+}
+
 TEST_F(TestBaseSnapshot, eraseCallsImpl)
 {
-    NiceMock<MockBaseSnapshot> snapshot{"House of Mojo", "voodoo", "", nullptr, specs, vm};
+    NiceMock<MockBaseSnapshot> snapshot{"House of Mojo", "voodoo", "", nullptr, specs, vm, desc};
     snapshot.capture();
 
     EXPECT_CALL(snapshot, erase_impl).Times(1);
@@ -619,7 +659,7 @@ TEST_F(TestBaseSnapshot, eraseCallsImpl)
 
 TEST_F(TestBaseSnapshot, eraseRemovesFile)
 {
-    NiceMock<MockBaseSnapshot> snapshot{"House of Mojo", "voodoo", "", nullptr, specs, vm};
+    NiceMock<MockBaseSnapshot> snapshot{"House of Mojo", "voodoo", "", nullptr, specs, vm, desc};
     const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
@@ -636,12 +676,8 @@ TEST_F(TestBaseSnapshot, eraseRemovesFile)
 
 TEST_F(TestBaseSnapshot, eraseThrowsIfUnableToRenameFile)
 {
-    NiceMock<MockBaseSnapshot> snapshot{"voodoo-sword",
-                                        "Cursed Cutlass of Kaflu",
-                                        "",
-                                        nullptr,
-                                        specs,
-                                        vm};
+    NiceMock<MockBaseSnapshot>
+        snapshot{"voodoo-sword", "Cursed Cutlass of Kaflu", "", nullptr, specs, vm, desc};
     snapshot.capture();
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();
@@ -666,7 +702,8 @@ TEST_F(TestBaseSnapshot, restoresFileOnFailureToErase)
         "",
         nullptr,
         specs,
-        vm};
+        vm,
+        desc};
     const auto expected_file_path = derive_persisted_snapshot_file_path(snapshot.get_index());
 
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject<StrictMock>();

@@ -91,6 +91,7 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
       onPressed: () {
         formKey.currentState?.save();
         setState(() => editing = false);
+        ref.read(activeEditPageProvider(widget.name).notifier).set(null);
       },
       child: Text(l10n.commonSave),
     );

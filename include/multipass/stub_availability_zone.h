@@ -22,9 +22,9 @@
 
 namespace multipass
 {
-// A minimal, always-available AvailabilityZone used by backends that do not support the concept
-// of availability zones (e.g. legacy VirtualBox and Hyper-V). It is not tied to any particular VM
-// and performs no persistence of its own; add_vm/remove_vm/set_available are no-ops.
+// A minimal, always-available AvailabilityZone used by backends that do not support the concept of
+// availability zones (e.g. legacy Hyper-V). It is not tied to any particular VM and performs no
+// persistence of its own; add_vm/remove_vm/set_available are no-ops.
 class StubAvailabilityZone final : public AvailabilityZone
 {
 public:
@@ -34,8 +34,6 @@ public:
     const Subnet& get_subnet() const override;
     bool is_available() const override;
     void set_available(bool new_available) override;
-    void add_vm(VirtualMachine& vm) override;
-    void remove_vm(VirtualMachine& vm) override;
 
 private:
     std::string name;

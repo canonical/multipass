@@ -24,6 +24,7 @@
 #include "tests/unit/path.h"
 #include "tests/unit/stub_availability_zone.h"
 #include "tests/unit/stub_ssh_key_provider.h"
+#include "tests/unit/stub_status_monitor.h"
 
 #include <multipass/platform.h>
 #include <multipass/process/process.h>
@@ -96,13 +97,21 @@ struct TestQemuSnapshot : public Test
 
     mp::VirtualMachineDescription desc = [] {
         mp::VirtualMachineDescription ret{};
+        ret.vm_name = "qemu-vm";
         ret.image.image_path = "raniunotuiroleh";
         return ret;
     }();
 
     mpt::StubSSHKeyProvider key_provider{};
     mpt::StubAvailabilityZone zone{};
-    NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{"qemu-vm", key_provider, zone};
+    mpt::StubVMStatusMonitor stub_monitor{};
+    std::unique_ptr<mpt::MockProcessFactory::Scope> vm_process_factory_scope{
+        mpt::MockProcessFactory::Inject()};
+    NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>> vm{desc,
+                                                                  nullptr,
+                                                                  stub_monitor,
+                                                                  key_provider,
+                                                                  zone};
     ArgsMatcher list_args_matcher =
         ElementsAre("snapshot", "-l", QString::fromStdString(desc.image.image_path));
     const mpt::MockCloudInitFileOps::GuardedMock mock_cloud_init_file_ops_injection =
@@ -116,7 +125,7 @@ struct TestQemuSnapshot : public Test
         const auto disk_space = mp::MemorySize{"3.21M"};
         const std::vector<mp::NetworkInterface> extra_interfaces{
             {"eth15", "15:15:15:15:15:15", false}};
-        const auto state = mp::VirtualMachine::State::off;
+        const auto state = mp::VirtualMachine::State::stopped;
         const auto mounts = std::unordered_map<std::string, mp::VMMount>{
             {"asdf", {"fdsa", {}, {}, mp::VMMount::MountType::Classic}}};
         const boost::json::object metadata = {{"meta", "data"}};
@@ -148,8 +157,11 @@ TEST_F(TestQemuSnapshot, initializesBaseProperties)
     const auto parent = std::make_shared<mpt::MockSnapshot>();
 
     auto desc = mp::VirtualMachineDescription{};
-    auto vm =
-        NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>>{"qemu-vm", key_provider, zone};
+    auto vm = NiceMock<mpt::MockVirtualMachineT<mp::QemuVirtualMachine>>{desc,
+                                                                         nullptr,
+                                                                         stub_monitor,
+                                                                         key_provider,
+                                                                         zone};
 
     const auto snapshot = mp::QemuSnapshot{name, comment, instance_id, parent, specs, vm, desc};
     EXPECT_EQ(snapshot.get_name(), name);
@@ -180,14 +192,14 @@ TEST_F(TestQemuSnapshot, initializesBasePropertiesFromJson)
     EXPECT_EQ(snapshot.get_mem_size(), mp::MemorySize{"1G"});
     EXPECT_EQ(snapshot.get_disk_space(), mp::MemorySize{"5G"});
     EXPECT_EQ(snapshot.get_extra_interfaces(), std::vector<mp::NetworkInterface>{});
-    EXPECT_EQ(snapshot.get_state(), mp::VirtualMachine::State::off);
+    EXPECT_EQ(snapshot.get_state(), mp::VirtualMachine::State::stopped);
 
-    auto mount_matcher1 =
-        Pair(Eq("guybrush"),
-             Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Classic)));
-    auto mount_matcher2 =
-        Pair(Eq("murray"),
-             Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Native)));
+    auto mount_matcher1 = Pair(
+        Eq("guybrush"),
+        Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Classic)));
+    auto mount_matcher2 = Pair(
+        Eq("murray"),
+        Property(&mp::VMMount::get_mount_type, Eq(mp::VMMount::MountType::Native)));
     EXPECT_THAT(snapshot.get_mounts(), UnorderedElementsAre(mount_matcher1, mount_matcher2));
 
     EXPECT_THAT(

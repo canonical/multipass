@@ -19,7 +19,6 @@
 #include "qemu_base_process_spec.h"
 #include "qemu_virtual_machine.h"
 
-#include <multipass/cloud_init_iso.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>

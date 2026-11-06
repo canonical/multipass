@@ -74,8 +74,9 @@ mp::HyperVSnapshot::HyperVSnapshot(const std::string& name,
                                    std::shared_ptr<Snapshot> parent,
                                    const std::string& vm_name,
                                    HyperVVirtualMachine& vm,
+                                   VirtualMachineDescription& desc,
                                    PowerShell& power_shell)
-    : BaseSnapshot{name, comment, cloud_init_instance_id, std::move(parent), specs, vm},
+    : BaseSnapshot{name, comment, cloud_init_instance_id, std::move(parent), specs, vm, desc},
       quoted_id{quoted(get_id())},
       vm_name{vm_name},
       power_shell{power_shell}
@@ -84,7 +85,7 @@ mp::HyperVSnapshot::HyperVSnapshot(const std::string& name,
 
 mp::HyperVSnapshot::HyperVSnapshot(const std::filesystem::path& filename,
                                    HyperVVirtualMachine& vm,
-                                   const VirtualMachineDescription& desc,
+                                   VirtualMachineDescription& desc,
                                    PowerShell& power_shell)
     : BaseSnapshot{filename, vm, desc},
       quoted_id{quoted(get_id())},

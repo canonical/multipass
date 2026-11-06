@@ -1,0 +1,2 @@
+No images found. To search a specific remote, use ‘multipass images core:’
+Run ‘multipass images --remotes’ to see all available remotes.

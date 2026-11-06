@@ -22,10 +22,6 @@
 #include "progress_monitor.h"
 #include "vm_image_info.h"
 
-#include <QDir>
-#include <QFile>
-#include <QString>
-
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -49,22 +45,24 @@ public:
     {
         if (std::uncaught_exceptions() > initial_exc_count)
         {
-            file.remove();
+            // Be careful not to throw another exception here!
+            std::error_code ec;
+            remove(file, ec);
         }
     }
 
 private:
-    QFile file;
+    std::filesystem::path file;
     const int initial_exc_count = std::uncaught_exceptions();
 };
 } // namespace vault
 
 class Query;
+struct SearchQuery;
 class VMImage;
 class VMImageVault : private DisabledCopyMove
 {
 public:
-    using UPtr = std::unique_ptr<VMImageVault>;
     using PrepareAction = std::function<VMImage(const VMImage&)>;
 
     virtual ~VMImageVault() = default;
@@ -72,7 +70,7 @@ public:
                                 const PrepareAction& prepare,
                                 const ProgressMonitor& monitor,
                                 const std::optional<std::string>& checksum,
-                                const Path& save_dir) = 0;
+                                const std::filesystem::path& save_dir) = 0;
     virtual void remove(const std::string& name) = 0;
     virtual bool has_record_for(const std::string& name) = 0;
     virtual void prune_expired_images() = 0;
@@ -80,8 +78,9 @@ public:
     virtual void clone(const std::string& source_instance_name,
                        const std::string& destination_instance_name) = 0;
     virtual VMImageHost* image_host_for(const std::string& remote_name) const = 0;
-    virtual std::vector<std::pair<std::string, VMImageInfo>> all_info_for(
-        const Query& query) const = 0;
+    virtual std::optional<VMImageInfo> any_info_for(const SearchQuery& query) const = 0;
+    virtual std::vector<VMImageInfo> all_info_for(const SearchQuery& query) const = 0;
+    virtual std::vector<std::string> get_remotes() const = 0;
 
 protected:
     VMImageVault() = default;

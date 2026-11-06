@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: How to create a virtual machine (VM) in Multipass, customize its resources and apply a cloud-init configuration.
+---
+
 (how-to-guides-manage-instances-create-an-instance)=
 # Create an instance
 
@@ -35,23 +41,16 @@ Mounts:         --
 
 ## Create an instance with a specific image
 
-> See also: [`find`](reference-command-line-interface-find), [`launch <image>`](reference-command-line-interface-launch), [`info`](reference-command-line-interface-info)
+> See also: [`images`](reference-command-line-interface-images), [`launch <image>`](reference-command-line-interface-launch), [`info`](reference-command-line-interface-info)
 
-To find out which images are available, run `multipass find`. Here's a sample output:
+To find out which images are available, run `multipass images`. Here's a sample output:
 
 ```{code-block} text
 Image             Aliases                     Version          Description
-22.04             jammy                       20260705         Ubuntu 22.04 LTS
-24.04             noble                       20260705         Ubuntu 24.04 LTS
-26.04             resolute,lts,ubuntu         20260720         Ubuntu 26.04 LTS
-daily:26.10       stonking,devel              20260627         Ubuntu 26.10
-core:core16                                   current          Ubuntu Core 16
-core:core18                                   current          Ubuntu Core 18
-core:core20                                   current          Ubuntu Core 20
-core:core22                                   current          Ubuntu Core 22
-core:core24                                   current          Ubuntu Core 24
-core:core26                                   current          Ubuntu Core 26
-debian            trixie                      20260706         Debian Trixie
+22.04             jammy                       20261004         Ubuntu 22.04 LTS
+24.04             noble                       20260926         Ubuntu 24.04 LTS
+26.04             resolute,lts,ubuntu         20260927         Ubuntu 26.04 LTS
+debian            trixie                      20261001         Debian 13
 fedora                                        20260422         Fedora 44
 ```
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright (C) Canonical, Ltd.
 #
@@ -22,6 +21,7 @@ import os
 from pathlib import Path
 from contextlib import contextmanager
 
+import pexpect
 import pytest
 
 from cli.utilities import TempDirectory, retry
@@ -38,6 +38,8 @@ from cli.multipass import (
     path_exists,
     read_file,
     move_path,
+    validate_list_output,
+    requires_multipass,
 )
 
 
@@ -54,6 +56,29 @@ def src_to_dst(src_path):
     yield PosixStrPath("/home") / "ubuntu" / src_path.name
 
 
+MOTD_HEADER = "Folders mounted from your host by Multipass:"
+
+
+def expected_motd_line(target, source):
+    """The line we expect the MOTD to include in order to list a mount."""
+    return f" * {target} (from {source})"
+
+
+def login_motd(name):
+    """
+    Return what an instance shell prints before its first prompt (e.g. the MOTD).
+    """
+    # not shell(), which does not log in on Windows, so it shows no MOTD there
+    with multipass("shell", name, interactive=True) as vm_shell:
+        vm_shell.expect(r"ubuntu@.*:.*\$", timeout=30)
+        motd = vm_shell.before
+        vm_shell.sendline("exit")
+        vm_shell.expect(pexpect.EOF)
+
+    # Unix spawns have no encoding, so they produce bytes
+    return motd.decode("utf-8", errors="replace") if isinstance(motd, bytes) else motd
+
+
 # todo: test custom uid/gid maps
 
 
@@ -63,7 +88,8 @@ def src_to_dst(src_path):
 class TestMount:
     """Virtual machine mount tests."""
 
-    def test_mount(self, instance, mount_type):
+    @pytest.mark.parametrize("unmount_cmd", ["unmount", "umount"])
+    def test_mount(self, instance, mount_type, unmount_cmd):
         with TempDirectory() as mount_src, src_to_dst(mount_src) as mount_dst:
             if mount_type == "native":
                 assert multipass("stop", instance)
@@ -85,8 +111,70 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass(unmount_cmd, instance)
             assert mounts(instance) == {}
+
+    @requires_multipass(">=1.18")
+    def test_mount_listed_in_motd(self, instance, mount_type):
+        with TempDirectory() as mount_src, src_to_dst(mount_src) as mount_dst:
+            if mount_type == "native":
+                assert multipass("stop", instance)
+
+            assert multipass("mount", "--type", mount_type, str(mount_src), instance)
+            assert multipass("start", instance)
+
+            motd = login_motd(instance)
+            assert MOTD_HEADER in motd
+            assert expected_motd_line(mount_dst, mount_src) in motd
+
+            assert multipass("unmount", instance)
+
+    @requires_multipass(">=1.18")
+    def test_unmounted_folder_leaves_motd(self, instance, mount_type):
+        with TempDirectory() as mount_src:
+            if mount_type == "native":
+                assert multipass("stop", instance)
+
+            assert multipass("mount", "--type", mount_type, str(mount_src), instance)
+            assert multipass("start", instance)
+            assert MOTD_HEADER in login_motd(instance)
+
+            assert multipass("unmount", instance)
+
+            fresh_motd = login_motd(instance)
+            assert MOTD_HEADER not in fresh_motd
+            assert str(mount_src) not in fresh_motd
+
+    @requires_multipass(">=1.18")
+    def test_motd_lists_mounts_in_order(self, instance, mount_type):
+        with TempDirectory() as mount_src_a, TempDirectory() as mount_src_b:
+            target_a = "/tmp/motd-a"
+            target_b = "/tmp/motd-b"
+            instance_target_a = f"{instance}:{target_a}"
+            instance_target_b = f"{instance}:{target_b}"
+
+            if mount_type == "native":
+                assert multipass("stop", instance)
+
+            # mount in reverse alphabetical order, to ensure that doesn't affect the MOTD
+            assert multipass("mount", "--type", mount_type, str(mount_src_b), instance_target_b)
+            assert multipass("mount", "--type", mount_type, str(mount_src_a), instance_target_a)
+            assert multipass("start", instance)
+
+            motd = login_motd(instance)
+            line_a = expected_motd_line(target_a, mount_src_a)
+            line_b = expected_motd_line(target_b, mount_src_b)
+
+            assert line_a in motd
+            assert line_b in motd
+            assert motd.index(line_a) < motd.index(line_b)
+
+            assert multipass("unmount", instance)
+
+            motd = login_motd(instance)
+            assert MOTD_HEADER not in motd
+            assert line_a not in motd
+            assert line_b not in motd
 
     def test_mount_to_specific_target(self, instance, mount_type):
         with TempDirectory() as mount_src:
@@ -118,7 +206,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
 
     def test_mount_same_src_again(self, instance, mount_type):
@@ -182,7 +270,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
 
     def test_mount_multiple(self, instance, mount_type):
@@ -211,6 +299,7 @@ class TestMount:
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 },
             }
+            validate_list_output(instance, {"mounts": 2})
 
             assert path_exists(instance, mount_dst1)
             assert path_exists(instance, mount_dst2)
@@ -220,7 +309,7 @@ class TestMount:
                 assert multipass("stop", instance)
 
             assert multipass(
-                "umount",
+                "unmount",
                 f"{instance}:{str(mount_dst1)}",
             )
 
@@ -231,13 +320,15 @@ class TestMount:
                     "uid_mappings": [f"{default_mount_uid()}:default"],
                 },
             }
+            validate_list_output(instance, {"mounts": 1})
 
             assert multipass(
-                "umount",
+                "unmount",
                 f"{instance}:{str(mount_dst2)}",
             )
 
             assert mounts(instance) == {}
+            validate_list_output(instance, {"mounts": 0})
 
             # FIXME: Right now the mount folder is not removed after umount.
             # assert not multipass(
@@ -313,7 +404,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
 
             assert mounts(instance) == {}
 
@@ -369,7 +460,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
             # NOTE: For some reason, this assert fails where it works fine
             # for other tests. The only difference I could tell is this test
@@ -431,7 +522,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
             # NOTE: For some reason, this assert fails where it works fine
             # for other tests. The only difference I could tell is this test
@@ -489,7 +580,7 @@ class TestMount:
             if cfg.driver == "lxd":
                 assert multipass("stop", instance)
 
-            assert multipass("umount", instance)
+            assert multipass("unmount", instance)
             assert mounts(instance) == {}
             # NOTE: For some reason, this assert fails where it works fine
             # for other tests. The only difference I could tell is this test

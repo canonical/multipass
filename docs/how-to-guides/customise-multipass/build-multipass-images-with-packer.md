@@ -39,7 +39,7 @@ multipass shell tolerant-hammerhead
 
 ## Customising the image
 
-Now the above works for you, delete the test instance with `multipass delete --purge tolerant-hammerhead` and edit the following section in the `template.json` file:
+Now the above works for you, delete the test instance with `multipass delete tolerant-hammerhead` and edit the following section in the `template.json` file:
 
 ```json
         {

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright (C) Canonical, Ltd.
 #
@@ -24,3 +23,5 @@ cfg = SimpleNamespace()
 cfg.vm = SimpleNamespace()
 cfg.retries = SimpleNamespace()
 cfg.timeouts = SimpleNamespace()
+cfg.daemon_health_check = True
+cfg.health_check_timeout = 5

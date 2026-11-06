@@ -100,11 +100,11 @@ bool mp::Utils::run_cmd_for_status(const QString& cmd,
     return proc.exitStatus() == QProcess::NormalExit && proc.exitCode() == 0;
 }
 
-void mp::Utils::make_file_with_content(const std::string& file_name,
+void mp::Utils::make_file_with_content(const std::filesystem::path& file_name,
                                        const std::string& content,
                                        const bool& overwrite)
 {
-    QFile file(QString::fromStdString(file_name));
+    QFile file(MP_PLATFORM.path_to_qstr(file_name));
     if (!overwrite && MP_FILEOPS.exists(file))
         throw std::runtime_error(fmt::format("file '{}' already exists", file_name));
 
@@ -582,11 +582,11 @@ std::pair<std::string, std::string> mp::utils::get_path_split(mp::SSHSession& se
 {
     std::string absolute{get_resolved_target(session, target)};
 
-    std::string existing =
-        MP_UTILS.run_in_ssh_session(session,
-                                    fmt::format("sudo /bin/bash -c 'P={:?}; while [ ! -d \"$P/\" "
-                                                "]; do P=\"${{P%/*}}\"; done; echo $P/'",
-                                                absolute));
+    std::string existing = MP_UTILS.run_in_ssh_session(
+        session,
+        fmt::format("sudo /bin/bash -c 'P={:?}; while [ ! -d \"$P/\" "
+                    "]; do P=\"${{P%/*}}\"; done; echo $P/'",
+                    absolute));
 
     return {existing,
             QDir(QString::fromStdString(existing))
@@ -667,6 +667,12 @@ mp::Path mp::Utils::default_mount_target(const Path& source) const
 
 QString mp::Utils::normalize_mount_target(QString target_mount_path) const
 {
+    // If the path explicitly references the home directory, strip it so that we have a relative
+    // path. Below, we'll add the in-instance home directory. TODO: It would be nice to support
+    // other users' home directories here, like "~user/dir".
+    const QRegularExpression tilde_regex("^~(/+|$)");
+    target_mount_path.replace(tilde_regex, "");
+
     std::filesystem::path target_mount = target_mount_path.toStdString();
     if (target_mount.is_relative())
         target_mount = home_in_instance / target_mount;
@@ -690,11 +696,43 @@ auto mp::utils::find_bridge_with(const std::vector<mp::NetworkInterfaceInfo>& ne
                                  const std::string& bridge_type)
     -> std::optional<mp::NetworkInterfaceInfo>
 {
-    const auto it =
-        std::find_if(std::cbegin(networks),
-                     std::cend(networks),
-                     [&target_network, &bridge_type](const NetworkInterfaceInfo& info) {
-                         return info.type == bridge_type && info.has_link(target_network);
-                     });
+    const auto it = std::find_if(std::cbegin(networks),
+                                 std::cend(networks),
+                                 [&target_network, &bridge_type](const NetworkInterfaceInfo& info) {
+                                     return info.type == bridge_type &&
+                                            info.has_link(target_network);
+                                 });
     return it == std::cend(networks) ? std::nullopt : std::make_optional(*it);
+}
+
+bool mp::utils::expects_shutdown_from_cloud_init(const YAML::Node& user_data_config)
+{
+    if (user_data_config["power_state"])
+    {
+        auto ps = user_data_config["power_state"];
+        if (ps["mode"])
+        {
+            std::string mode = ps["mode"].as<std::string>();
+            if (mode == "poweroff" || mode == "halt")
+            {
+                if (auto condition = ps["condition"])
+                {
+                    if (condition.IsScalar())
+                    {
+                        try
+                        {
+                            return condition.as<bool>();
+                        }
+                        catch (const YAML::BadConversion&)
+                        {
+                            return false; // condition is a command string; can't determine
+                        }
+                    }
+                    return false; // condition is a command with arguments; can't determine
+                }
+                return true;
+            }
+        }
+    }
+    return false;
 }

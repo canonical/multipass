@@ -13,11 +13,8 @@ class WindowsPlatform extends MpPlatform {
   AutostartNotifier autostartNotifier() => WindowsAutostartNotifier();
 
   @override
-  Map<String, String> get drivers => const {
-        'hyperv': 'Hyper-V',
-        'virtualbox': 'VirtualBox',
-        'hcs': 'Host Compute System (HCS)'
-      };
+  Map<String, String> get drivers =>
+      const {'hyperv': 'Hyper-V', 'hcs': 'Host Compute System (HCS)'};
 
   @override
   String get ffiLibraryName => 'dart_ffi.dll';

@@ -20,11 +20,8 @@
 
 #include <multipass/logging/log.h>
 #include <multipass/process/qemuimg_process_spec.h>
-#include <multipass/top_catch_all.h>
 #include <multipass/utils/qemu_img_utils.h>
 #include <multipass/virtual_machine_description.h>
-
-#include <scope_guard.hpp>
 
 #include <memory>
 
@@ -76,8 +73,7 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name,
                                const VMSpecs& specs,
                                QemuVirtualMachine& vm,
                                VirtualMachineDescription& desc)
-    : BaseSnapshot{name, comment, cloud_init_instance_id, std::move(parent), specs, vm},
-      desc{desc},
+    : BaseSnapshot{name, comment, cloud_init_instance_id, std::move(parent), specs, vm, desc},
       image_path{desc.image.image_path}
 {
 }
@@ -85,7 +81,7 @@ mp::QemuSnapshot::QemuSnapshot(const std::string& name,
 mp::QemuSnapshot::QemuSnapshot(const std::filesystem::path& filename,
                                QemuVirtualMachine& vm,
                                VirtualMachineDescription& desc)
-    : BaseSnapshot{filename, vm, desc}, desc{desc}, image_path{desc.image.image_path}
+    : BaseSnapshot{filename, vm, desc}, image_path{desc.image.image_path}
 {
 }
 
@@ -119,15 +115,5 @@ void mp::QemuSnapshot::erase_impl()
 
 void mp::QemuSnapshot::apply_impl()
 {
-    auto rollback = sg::make_scope_guard([this, old_desc = desc]() noexcept {
-        top_catch_all(get_name(), [this, &old_desc]() { desc = old_desc; });
-    });
-
-    desc.num_cores = get_num_cores();
-    desc.mem_size = get_mem_size();
-    desc.disk_space = get_disk_space();
-    desc.extra_interfaces = get_extra_interfaces();
-
     mp::backend::checked_exec_qemu_img(make_restore_spec(get_id(), image_path));
-    rollback.dismiss();
 }

@@ -57,6 +57,7 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
     auto disk_space = value_to<std::string>(json.at("disk_space"));
     auto mac_addr = value_to<std::string>(json.at("mac_addr"));
     auto ssh_username = value_to<std::string>(json.at("ssh_username"));
+    auto state = value_to<int>(json.at("state"));
     auto deleted = value_to<bool>(json.at("deleted"));
     auto metadata = json.at("metadata").as_object();
 
@@ -69,6 +70,11 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
     if (ssh_username.empty())
         ssh_username = "ubuntu";
 
+    // In Multipass 1.17 and older, we had separate states for "off" (0) and "stopped" (1). Now,
+    // they've been merged to "stopped" (0), so adjust the stored value to match.
+    if (state == 1)
+        state = static_cast<int>(mp::VirtualMachine::State::stopped);
+
     using mounts_t = std::unordered_map<std::string, VMMount>;
     return {
         num_cores,
@@ -77,7 +83,7 @@ mp::VMSpecs mp::tag_invoke(const boost::json::value_to_tag<mp::VMSpecs>&,
         mac_addr,
         lookup_or<std::vector<NetworkInterface>>(json, "extra_interfaces", {}),
         ssh_username,
-        static_cast<mp::VirtualMachine::State>(value_to<int>(json.at("state"))),
+        static_cast<mp::VirtualMachine::State>(state),
         value_to<mounts_t>(json.at("mounts"), MapAsJsonArray{"target_path"}),
         deleted,
         metadata,

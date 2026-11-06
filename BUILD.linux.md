@@ -118,15 +118,10 @@ Then run the Multipass daemon:
 pkexec <multipass>/build/bin/multipassd &
 ```
 
-Copy the desktop file that Multipass clients expect to find in your home:
-
-```
-mkdir -p ~/.local/share/multipass/
-cp <multipass>/src/client/gui/assets/multipass.gui.autostart.desktop ~/.local/share/multipass/
-```
+If you want the desktop integration to work for the locally built GUI, you can run `cmake` with `-DMULTIPASS_DESKTOP_INTEGRATION=ON`.
+This will make the build process generate an appropriate `.desktop` file and move it to `~/.local/share/applications`.
 
 Optionally, enable auto-complete in Bash:
-
 ```
 source <multipass>/completions/bash/multipass
 ```

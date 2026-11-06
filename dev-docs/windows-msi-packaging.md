@@ -12,7 +12,7 @@ Repairing is a unique feature available with msi packages that checks all compon
 
 Removing is the same as uninstalling except that there is no need for a separate uninstall script. The Windows Installer simply does the opposite of what it did during install for items that are defined in native WiX code. eg. Add file -> remove file, Install service -> delete service. Other actions that were implemented with custom actions must be undone with additional custom actions.
 
-Public properties (properties named in ALL CAPS) can also be set from the command line. For example, if you need to specify the driver, environment variable, or install directory during a silent install, you can do so by appending `DRIVER=<hyperv|virtualbox>` or `ENVIRONMENT=<user|system|none>` or `INSTALLFOLDER=<path>`. Properties must be public in order for the UI/client phase of the installation to access them.
+Public properties (properties named in ALL CAPS) can also be set from the command line. For example, if you need to specify the driver, environment variable, or install directory during a silent install, you can do so by appending `DRIVER=<hcs|hyperv>` or `ENVIRONMENT=<user|system|none>` or `INSTALLFOLDER=<path>`. Properties must be public in order for the UI/client phase of the installation to access them.
 
 ### Changes from the NSIS installer
 
@@ -36,7 +36,7 @@ Previously, if the installer failed to enable the Hyper-V feature, a message box
 
 This leaves us with two options then:
 
-1. Fail the installation if enabling Hyper-V fails (or if VirtualBox is not installed...)
+1. Fail the installation if enabling Hyper-V fails
 
 Going this route creates a problem with silent installations (such as from the Microsoft Store). Hyper-V is the default driver meaning that if enabling it failed (eg. on Windows Home), the user would be blocked from ever installing Multipass.
 
@@ -87,11 +87,10 @@ WiX is only one way to build msi files and they are independent technologies. Wi
     - [ ] Windows April 2018 Update required
   - [ ] Hypervisors
     - [ ] Installer enables HyperV
-    - [ ] Virtualbox is used if using Windows Home (hypervisor selection dialog is not shown)
   - [ ] Multipass icon present in Windows Terminal
   - [ ] Silent install (see Installation)
     - [ ] Specifying custom install directory works `INSTALLFOLDER=path\to\folder`
-    - [ ] Specifying driver works `DRIVER=hyperv|virtualbox`
+    - [ ] Specifying driver works `DRIVER=hcs|hyperv`
     - [ ] Specifying path works `ENVIRONMENT=user|system|none`
 
 - [ ] Upgrade:
@@ -111,7 +110,7 @@ WiX is only one way to build msi files and they are independent technologies. Wi
   - [ ] Multipass data
     - [ ] UI asks user about removing data
     - [ ] Multipass data directory is removed
-    - [ ] Instances are removed (eg. Hyper-V Manager, VirtualBox)
+    - [ ] Instances are removed (eg. HCS, Hyper-V Manager)
     - [ ] `multipass` and `multipass-client-certificates` are removed from `<User>\AppData\Local\`
   - [ ] Items added during installation are removed (eg. files, services, shortcuts, registry keys, fonts, etc)
     - [ ] Multipass service stopped

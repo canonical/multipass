@@ -24,6 +24,8 @@
 
 #include <fmt/format.h>
 
+#include <mutex>
+
 namespace multipass
 {
 namespace logging
@@ -55,6 +57,7 @@ public:
                                            as_string(level),
                                            category,
                                            message));
+            std::lock_guard lock{write_mutex};
             server->Write(reply);
         }
     }
@@ -63,6 +66,7 @@ private:
     Level logging_level;
     grpc::ServerReaderWriterInterface<T, U>* server;
     MultiplexingLogger& mpx_logger;
+    mutable std::mutex write_mutex;
 };
 } // namespace logging
 } // namespace multipass

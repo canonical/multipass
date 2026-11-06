@@ -1,5 +1,5 @@
 # Project-level configuration.
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 project(runner LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
@@ -53,6 +53,28 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 # System-level dependencies.
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
+pkg_check_modules(GLIB2 REQUIRED IMPORTED_TARGET glib-2.0 gio-2.0)
+find_program(GLIB_COMPILE_RESOURCES NAMES glib-compile-resources REQUIRED)
+
+# Generate required GTK resources.
+set(GENERATED_DIR ${CMAKE_BINARY_DIR}/gen)
+file(MAKE_DIRECTORY ${GENERATED_DIR})
+
+set(GRESOURCE_XML_OUT ${GENERATED_DIR}/resources.gresource.xml)
+set(GRESOURCE_XML_IN ${CMAKE_CURRENT_SOURCE_DIR}/resources.gresource.xml.in)
+set(MULTIPASS_ICON ${CMAKE_CURRENT_SOURCE_DIR}/../../../../data/multipass.gui.svg)
+configure_file(${GRESOURCE_XML_IN} ${GRESOURCE_XML_OUT} @ONLY)
+
+set(GRESOURCE_CC ${GENERATED_DIR}/multipass-resources.cc)
+add_custom_command(
+  OUTPUT ${GRESOURCE_CC}
+  COMMAND ${GLIB_COMPILE_RESOURCES}
+          --target=${GRESOURCE_CC}
+          --generate-source
+          --sourcedir=${CMAKE_CURRENT_SOURCE_DIR}
+          ${GRESOURCE_XML_OUT}
+  DEPENDS ${GRESOURCE_XML_IN} ${MULTIPASS_ICON}
+)
 
 add_definitions(-DAPPLICATION_ID="${APPLICATION_ID}")
 
@@ -64,6 +86,7 @@ add_executable(${BINARY_NAME}
   "main.cc"
   "my_application.cc"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
+  "${GRESOURCE_CC}"
 )
 
 # Apply the standard set of build settings. This can be removed for applications
@@ -71,8 +94,11 @@ add_executable(${BINARY_NAME}
 apply_standard_settings(${BINARY_NAME})
 
 # Add dependency libraries. Add any application-specific dependencies here.
-target_link_libraries(${BINARY_NAME} PRIVATE flutter)
-target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
+target_link_libraries(${BINARY_NAME} PRIVATE
+  flutter
+  PkgConfig::GTK
+  PkgConfig::GLIB2
+)
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)

@@ -1,0 +1,468 @@
+/*
+ * Copyright (C) Canonical, Ltd.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 3.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include "common.h"
+#include "daemon_test_fixture.h"
+#include "mock_cert_provider.h"
+#include "mock_image_host.h"
+#include "mock_permission_utils.h"
+#include "mock_platform.h"
+#include "mock_settings.h"
+#include "mock_utils.h"
+#include "mock_virtual_machine_factory.h"
+#include "mock_vm_image_vault.h"
+
+#include <src/daemon/daemon.h>
+#include <src/daemon/default_vm_image_vault.h>
+#include <tests/unit/matchers/images_matchers.h>
+
+#include <multipass/constants.h>
+#include <multipass/exceptions/download_exception.h>
+#include <multipass/format.h>
+#include <multipass/rpc/multipass.pb.h>
+
+#include <utility>
+
+namespace mp = multipass;
+namespace mpt = multipass::test;
+using namespace testing;
+
+struct DaemonImages : public mpt::DaemonTestFixture
+{
+    void SetUp() override
+    {
+        // Let the builder create the real vault implementation.
+        config_builder.vault = nullptr;
+        config_builder.image_hosts.clear();
+
+        auto* factory = use_a_mock_vm_factory();
+        EXPECT_CALL(*factory, create_image_vault).WillRepeatedly([]<typename... T>(T&&... t) {
+            return std::make_unique<mp::DefaultVMImageVault>(std::forward<T>(t)...);
+        });
+
+        EXPECT_CALL(mock_settings, register_handler).WillRepeatedly(Return(nullptr));
+        EXPECT_CALL(mock_settings, unregister_handler).Times(AnyNumber());
+        EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
+        EXPECT_CALL(mock_settings, get(Eq(mp::driver_key))).WillRepeatedly(Return("senna"));
+        ON_CALL(mock_utils, contents_of(_)).WillByDefault(Return(mpt::root_cert));
+    }
+
+    void TearDown() override
+    {
+        config_builder.image_hosts.clear();
+    }
+
+    template <typename ImageHost, typename... Args>
+    ImageHost& add_image_host(Args&&... args)
+    {
+        auto image_host_ptr = std::make_unique<ImageHost>(std::forward<Args>(args)...);
+        auto& image_host = *image_host_ptr;
+        config_builder.image_hosts.push_back(std::move(image_host_ptr));
+        return image_host;
+    }
+
+    std::map<std::string, std::vector<mp::VMImageInfo>> default_images()
+    {
+        auto mock = mpt::MockImageHost{};
+        return {{"release", {mock.mock_bionic_image_info, mock.mock_another_image_info}},
+                {"snapcraft", {mock.mock_snapcraft_image_info}},
+                {"custom", {mock.mock_custom_image_info}}};
+    }
+
+    mp::VMImageInfo make_dummy_info(std::string hash, std::vector<std::string> aliases)
+    {
+        return mp::VMImageInfo{
+            .aliases = std::move(aliases),
+            .os = "",
+            .release = "",
+            .release_title = "",
+            .release_codename = "",
+            .supported = true,
+            .image_location = "",
+            .id = std::move(hash),
+            .stream_location = "",
+            .version = "",
+            .size = 0,
+            .verify = false,
+        };
+    }
+
+    mpt::MockPlatform::GuardedMock attr{mpt::MockPlatform::inject<NiceMock>()};
+    mpt::MockPlatform* mock_platform = attr.first;
+
+    mpt::MockSettings::GuardedMock mock_settings_injection =
+        mpt::MockSettings::inject<StrictMock>();
+    mpt::MockSettings& mock_settings = *mock_settings_injection.first;
+
+    const mpt::MockPermissionUtils::GuardedMock mock_permission_utils_injection =
+        mpt::MockPermissionUtils::inject<NiceMock>();
+    mpt::MockPermissionUtils& mock_permission_utils = *mock_permission_utils_injection.first;
+
+    mpt::MockUtils::GuardedMock mock_utils_injection{mpt::MockUtils::inject<NiceMock>()};
+    mpt::MockUtils& mock_utils = *mock_utils_injection.first;
+};
+
+TEST_F(DaemonImages, blankQueryReturnsFromDefaultRemotes)
+{
+    add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+    mp::Daemon daemon{config_builder.build()};
+
+    EXPECT_THAT(process_request(daemon, mp::ImagesRequest{}, &mp::Daemon::images),
+                Success<mp::ImagesReply>(
+                    AllOf(mpt::Images(UnorderedElementsAre(
+                              AllOf(mpt::ImageAliases(ElementsAre(mpt::default_alias)),
+                                    mpt::ImageRelease(Eq(mpt::default_release_info))),
+                              AllOf(mpt::ImageAliases(ElementsAre(mpt::another_alias)),
+                                    mpt::ImageRelease(Eq(mpt::another_release_info))))),
+                          mpt::AllRemotesFlag(Eq(false)))));
+}
+
+TEST_F(DaemonImages, queryWithAllReturnsAllData)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+    EXPECT_CALL(image_host, collect_images_for_remote).Times(3);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    auto request = mp::ImagesRequest{};
+    request.set_all_remotes(true);
+
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success<mp::ImagesReply>(
+                    AllOf(mpt::Images(UnorderedElementsAre(
+                              AllOf(mpt::ImageAliases(ElementsAre(mpt::default_alias)),
+                                    mpt::ImageRelease(Eq(mpt::default_release_info))),
+                              AllOf(mpt::ImageAliases(ElementsAre(mpt::another_alias)),
+                                    mpt::ImageRelease(Eq(mpt::another_release_info))),
+                              AllOf(mpt::ImageAliases(ElementsAre(mpt::custom_alias)),
+                                    mpt::ImageRelease(Eq(mpt::custom_release_info))),
+                              AllOf(mpt::ImageAliases(ElementsAre(mpt::snapcraft_alias)),
+                                    mpt::ImageRelease(Eq(mpt::snapcraft_release_info))))),
+                          mpt::AllRemotesFlag(Eq(true)))));
+}
+
+TEST_F(DaemonImages, queryForDefaultReturnsExpectedData)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+    EXPECT_CALL(image_host, collect_images_for_remote).Times(1);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    send_command({"images", "default"}, stream);
+
+    EXPECT_THAT(stream.str(),
+                AllOf(HasSubstr(mpt::default_alias), HasSubstr(mpt::default_release_info)));
+
+    EXPECT_THAT(stream.str(), Not(HasSubstr("Remote")));
+    EXPECT_EQ(total_lines_of_output(stream), 3);
+}
+
+TEST_F(DaemonImages, unknownQueryReturnsEmpty)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+    EXPECT_CALL(image_host, collect_images_for_remote).Times(1);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    constexpr auto phony_name = "phony";
+    std::stringstream stream;
+    send_command({"images", phony_name}, stream);
+
+    EXPECT_THAT(stream.str(), HasSubstr("No images found."));
+}
+
+TEST_F(DaemonImages, queryWithRemoteReturnsExpectedData)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+    EXPECT_CALL(image_host, collect_images_for_remote).Times(2);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    {
+        std::stringstream stream;
+        send_command({"images", "release:"}, stream);
+
+        EXPECT_THAT(stream.str(),
+                    AllOf(HasSubstr(mpt::default_alias),
+                          HasSubstr(mpt::default_release_info),
+                          HasSubstr(mpt::another_alias),
+                          HasSubstr(mpt::another_release_info)));
+
+        EXPECT_THAT(stream.str(), Not(HasSubstr("Remote")));
+        EXPECT_EQ(total_lines_of_output(stream), 4);
+    }
+
+    {
+        std::stringstream stream;
+        send_command({"images", "snapcraft:"}, stream);
+
+        EXPECT_THAT(stream.str(),
+                    AllOf(HasSubstr(mpt::snapcraft_alias), HasSubstr(mpt::snapcraft_release_info)));
+
+        EXPECT_THAT(stream.str(), Not(HasSubstr("Remote")));
+        EXPECT_EQ(total_lines_of_output(stream), 3);
+    }
+}
+
+TEST_F(DaemonImages, invalidRemoteName)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+    EXPECT_CALL(image_host, collect_images_for_remote).Times(0);
+
+    constexpr std::string_view remote_name = "nonsense";
+    const std::string error_msg = fmt::format("Remote \'{}\' is not found. Please use ‘multipass "
+                                              "images --remotes’ for supported remotes.",
+                                              remote_name);
+
+    mp::Daemon daemon{config_builder.build()};
+
+    {
+        const std::string full_name = std::string(remote_name) + ":";
+        std::stringstream cerr_stream;
+        // std::cout is the place holder here.
+        send_command({"images", full_name}, std::cout, cerr_stream);
+
+        EXPECT_THAT(cerr_stream.str(), HasSubstr(error_msg));
+        EXPECT_EQ(total_lines_of_output(cerr_stream), 1);
+    }
+
+    {
+        constexpr std::string_view search_string = "default";
+        const std::string full_name = std::string(remote_name) + ":" + std::string(search_string);
+        std::stringstream cerr_stream;
+        // std::cout is the place holder here.
+        send_command({"images", full_name}, std::cout, cerr_stream);
+
+        EXPECT_THAT(cerr_stream.str(), HasSubstr(error_msg));
+        EXPECT_EQ(total_lines_of_output(cerr_stream), 1);
+    }
+}
+
+TEST_F(DaemonImages, returnUsageHintWhenRemoteUsedAsFilter)
+{
+    add_image_host<NiceMock<mpt::MockBaseImageHost>>(default_images());
+
+    mp::Daemon daemon{config_builder.build()};
+
+    std::stringstream stream;
+    send_command({"images", "custom"}, stream);
+
+    constexpr auto expected_result =
+        "No images found. To search a specific remote, use ‘multipass images custom:’\n"
+        "Run ‘multipass images --remotes’ to see all available remotes.\n";
+    EXPECT_THAT(stream.str(), Eq(expected_result));
+}
+
+TEST_F(DaemonImages, doFilterByAlias)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info("a", {"carot", "orange"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("b", {"banana"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("c", {"apple-pie"}));
+
+    auto daemon = mp::Daemon{config_builder.build()};
+    auto request = mp::ImagesRequest{};
+
+    request.set_search_string("carot");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(UnorderedElementsAre(
+                    mpt::ImageAliases(UnorderedElementsAre("carot", "orange"))))));
+
+    request.set_search_string("bAnAnA");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(
+                    UnorderedElementsAre(mpt::ImageAliases(UnorderedElementsAre("banana"))))));
+}
+
+TEST_F(DaemonImages, doFilterByAliasPrefix)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info("a", {"carot", "orange"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("b", {"camembert"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("c", {"camomilla", "flower"}));
+
+    auto daemon = mp::Daemon{config_builder.build()};
+    auto request = mp::ImagesRequest{};
+
+    request.set_search_string("ca");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(UnorderedElementsAre(
+                    mpt::ImageAliases(UnorderedElementsAre("carot", "orange")),
+                    mpt::ImageAliases(UnorderedElementsAre("camembert")),
+                    mpt::ImageAliases(UnorderedElementsAre("camomilla", "flower"))))));
+
+    request.set_search_string("CAM");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(UnorderedElementsAre(
+                    mpt::ImageAliases(UnorderedElementsAre("camembert")),
+                    mpt::ImageAliases(UnorderedElementsAre("camomilla", "flower"))))));
+
+    request.set_search_string("rot");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(IsEmpty())));
+}
+
+TEST_F(DaemonImages, doFilterByMajorVersion)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info("a", {"13.04"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("b", {"13.6"}));
+    image_host.add_image(mp::release_remote, make_dummy_info("c", {"24.04"}));
+
+    auto daemon = mp::Daemon{config_builder.build()};
+    auto request = mp::ImagesRequest{};
+
+    request.set_search_string("1");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(IsEmpty())));
+
+    request.set_search_string("2");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(IsEmpty())));
+
+    request.set_search_string("13");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(
+                    UnorderedElementsAre(mpt::ImageAliases(UnorderedElementsAre("13.04")),
+                                         mpt::ImageAliases(UnorderedElementsAre("13.6"))))));
+
+    request.set_search_string("24");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(
+                    UnorderedElementsAre(mpt::ImageAliases(UnorderedElementsAre("24.04"))))));
+
+    request.set_search_string("04");
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(IsEmpty())));
+}
+
+TEST_F(DaemonImages, doNotFilterByHash)
+{
+    const auto alias = "toto";
+    const auto full_hash = "1797c5c82016c1e65f4008fcf89deae3a044ef76087a9ec5b907c6d64a3609ac";
+    const auto short_hash = "1797c5c";
+
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info(full_hash, {alias}));
+
+    auto daemon = mp::Daemon{config_builder.build()};
+    auto request = mp::ImagesRequest{};
+
+    request.set_search_string(alias);
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(ElementsAre(mpt::ImageHash(full_hash)))));
+
+    request.set_search_string(full_hash);
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(IsEmpty())));
+
+    request.set_search_string(short_hash);
+    EXPECT_THAT(process_request(daemon, request, &mp::Daemon::images),
+                Success(mpt::Images(IsEmpty())));
+}
+
+TEST_F(DaemonImages, returnSameResultsWhenFilteredByDifferentAliases)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockBaseImageHost>>();
+    image_host.add_image(mp::release_remote, make_dummy_info("image", {"toto", "tata"}));
+
+    auto daemon = mp::Daemon{config_builder.build()};
+
+    std::stringstream s1;
+    send_command({"images", "toto"}, s1);
+
+    std::stringstream s2;
+    send_command({"images", "tata"}, s2);
+
+    EXPECT_THAT(s1.str(), AllOf(HasSubstr("toto"), HasSubstr("tata")));
+    EXPECT_THAT(s2.str(), AllOf(HasSubstr("toto"), HasSubstr("tata")));
+    EXPECT_EQ(s1.str(), s2.str());
+}
+
+TEST_F(DaemonImages, findWithoutForceUpdateCheckUpdateManifestsCall)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockImageHost>>();
+    EXPECT_CALL(image_host, update_manifests(false)).Times(1);
+
+    // only the daemon constructor invoke it once
+    const mp::Daemon daemon{config_builder.build()};
+    send_command({"images"});
+}
+
+TEST_F(DaemonImages,
+       updateManifestsThrowTriggersTheFailedCaseEventHandlerOfAsyncPeriodicDownloadTask)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockImageHost>>();
+
+    // daemon constructor which constructs update_manifests_all_task calls this.
+    EXPECT_CALL(image_host, update_manifests(false)).WillOnce([]() {
+        throw mp::DownloadException{"dummy_url", "dummy_cause"};
+    });
+
+    const mp::Daemon daemon{config_builder.build()};
+
+    // need it because mp::Daemon destructor which destructs qfuture and qfuturewatcher does not
+    // wait the async task to finish. As a consequence, the event handler is not guaranteed to be
+    // called without send_command({"images"});
+    send_command({"images"});
+}
+
+TEST_F(DaemonImages, findForceUpdateCheckUpdateManifestsCalls)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockImageHost>>();
+
+    // daemon constructor invoke it first and images --force-update invoke it with force flag true
+    // after
+    const testing::InSequence sequence; // Force the following expectations to occur in order
+    EXPECT_CALL(image_host, update_manifests(false)).Times(1);
+    EXPECT_CALL(image_host, update_manifests(true)).Times(1);
+
+    const mp::Daemon daemon{config_builder.build()};
+    send_command({"images", "--force-update"});
+}
+
+TEST_F(DaemonImages, findForceUpdateRemoteCheckUpdateManifestsCalls)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockImageHost>>();
+
+    const testing::InSequence sequence;
+    EXPECT_CALL(image_host, all_info_for).Times(0);
+    EXPECT_CALL(image_host, update_manifests(false)).Times(1);
+    EXPECT_CALL(image_host, update_manifests(true)).Times(1);
+    EXPECT_CALL(image_host, all_info_for(Field(&mp::SearchQuery::remote_name, "release"))).Times(1);
+
+    const mp::Daemon daemon{config_builder.build()};
+    send_command({"find", "release:", "--force-update"});
+}
+
+TEST_F(DaemonImages, findForceUpdateRemoteSearchNameCheckUpdateManifestsCalls)
+{
+    auto& image_host = add_image_host<NiceMock<mpt::MockImageHost>>();
+
+    const testing::InSequence sequence;
+    EXPECT_CALL(image_host, all_info_for).Times(0);
+    EXPECT_CALL(image_host, update_manifests(false)).Times(1);
+    EXPECT_CALL(image_host, update_manifests(true)).Times(1);
+    EXPECT_CALL(image_host,
+                all_info_for(AllOf(Field(&mp::SearchQuery::remote_name, "release"),
+                                   Field(&mp::SearchQuery::filter, "22.04"))))
+        .Times(1);
+
+    const mp::Daemon daemon{config_builder.build()};
+    send_command({"find", "release:22.04", "--force-update"});
+}

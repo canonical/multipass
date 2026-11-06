@@ -23,10 +23,9 @@
 
 #include <platform/backends/shared/base_virtual_machine_factory.h>
 
-namespace multipass
+namespace multipass::test
 {
-namespace test
-{
+
 struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
 {
     StubVirtualMachineFactory(AvailabilityZoneManager& az_manager)
@@ -80,16 +79,17 @@ struct StubVirtualMachineFactory : public multipass::BaseVirtualMachineFactory
         return "stub-5678";
     }
 
-    multipass::VMImageVault::UPtr create_image_vault(std::vector<VMImageHost*> /*image_hosts*/,
-                                                     URLDownloader* /*downloader*/,
-                                                     const Path& /*cache_dir_path*/,
-                                                     const Path& /*data_dir_path*/,
-                                                     const days& /*days_to_expire*/) override
+    std::unique_ptr<VMImageVault> create_image_vault(
+        std::vector<VMImageHost*> /*image_hosts*/,
+        URLDownloader* /*downloader*/,
+        const std::filesystem::path& /*cache_dir_path*/,
+        const std::filesystem::path& /*data_dir_path*/,
+        const days& /*days_to_expire*/) override
     {
         return std::make_unique<StubVMImageVault>();
     }
 
     std::unique_ptr<TempDir> tmp_dir;
 };
-} // namespace test
-} // namespace multipass
+
+} // namespace multipass::test

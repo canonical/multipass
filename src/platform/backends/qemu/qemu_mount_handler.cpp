@@ -19,6 +19,7 @@
 
 #include <multipass/logging/log_location.h>
 #include <multipass/ssh/ssh_process.h>
+#include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 
 #include <QUuid>
@@ -46,7 +47,7 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm,
       tag{make_tag(target)}
 {
     auto state = vm->current_state();
-    if (state == VirtualMachine::State::suspended && vm_mount_args.find(tag) != vm_mount_args.end())
+    if (state == VirtualMachine::State::suspended && vm_mount_args.contains(tag))
     {
         mpl::info(category,
                   "Found native mount {} => {} in '{}' while suspended",
@@ -56,7 +57,7 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm,
         return;
     }
 
-    if (state != VirtualMachine::State::off && state != VirtualMachine::State::stopped)
+    if (state != VirtualMachine::State::stopped)
     {
         throw mp::NativeMountNeedsStoppedVMException(vm->get_name());
     }
@@ -155,7 +156,7 @@ catch (const std::exception& e)
 
 QemuMountHandler::~QemuMountHandler()
 {
-    deactivate(/*force=*/true);
+    top_catch_all(category, [this] { deactivate(/*force=*/true); });
     vm_mount_args.erase(tag);
 }
 

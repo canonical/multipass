@@ -36,5 +36,5 @@ inline namespace literals
 }
 } // namespace literals
 
-[[nodiscard]] std::strong_ordering operator<=>(const opaque_semver& lhs, const opaque_semver& rhs);
+[[nodiscard]] std::weak_ordering operator<=>(const opaque_semver& lhs, const opaque_semver& rhs);
 } // namespace multipass

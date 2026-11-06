@@ -17,6 +17,7 @@
  *
  */
 
+#include <multipass/cloud_init_config.h>
 #include <multipass/cloud_init_iso.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
@@ -470,9 +471,13 @@ void pad_to_end(std::ofstream& f)
 }
 } // namespace
 
-void mp::CloudInitIso::add_file(const std::string& name, const std::string& data)
+mp::CloudInitIso::CloudInitIso(const CloudInitConfig& config)
+    : files{{"meta-data", mpu::emit_cloud_config(config.meta_data)},
+            {"vendor-data", mpu::emit_cloud_config(config.vendor_data)},
+            {"user-data", mpu::emit_cloud_config(config.user_data)}}
 {
-    files.push_back(FileEntry{name, data});
+    if (!config.network_data.IsNull())
+        files.push_back({"network-config", mpu::emit_cloud_config(config.network_data)});
 }
 
 bool mp::CloudInitIso::contains(const std::string& name) const
@@ -520,22 +525,7 @@ std::string& mp::CloudInitIso::operator[](const std::string& name)
     }
 }
 
-bool mp::CloudInitIso::erase(const std::string& name)
-{
-    if (auto iter = std::find_if(
-            files.cbegin(),
-            files.cend(),
-            [name](const FileEntry& file_entry) -> bool { return file_entry.name == name; });
-        iter != std::cend((files)))
-    {
-        files.erase(iter);
-        return true;
-    }
-
-    return false;
-}
-
-void mp::CloudInitIso::write_to(const std::filesystem::path& path)
+void mp::CloudInitIso::write_to(const std::filesystem::path& path) const
 {
     std::ofstream f{path, std::ios::binary | std::ios::out};
     if (!f.is_open())

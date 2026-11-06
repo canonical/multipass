@@ -17,10 +17,19 @@
 
 #pragma once
 
+#include <ws2tcpip.h>
+
+#include <iphlpapi.h>
+
 #include <optional>
 #include <string>
 
 namespace multipass
 {
-[[nodiscard]] std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_address);
+// Only entries on `interface_luid` are considered: the same MAC can have permanent entries on
+// other interfaces, e.g. leases offered by DHCP servers of other networks on the same vSwitch.
+[[nodiscard]] std::optional<std::string> permanent_ipv4_neighbor(const std::string& mac_address,
+                                                                 const NET_LUID& interface_luid);
+[[nodiscard]] bool remove_permanent_ipv4_neighbors(const std::string& mac_address,
+                                                   const NET_LUID& interface_luid);
 } // namespace multipass

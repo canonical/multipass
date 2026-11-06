@@ -9,7 +9,7 @@ Instances in Multipass can be in a number of different states:
 |--- | ---|
 | **Running** | The instance is currently running and is ready to be used. |
 | **Stopped** | The instance has been intentionally stopped and is not currently consuming resources. It can be started when needed. |
-| **Deleted** | The instance has been marked for deletion. The instance can either be recovered or purged. |
+| **Deleted** | The instance was marked for deletion by an earlier version of Multipass. It can be recovered with `multipass recover` or removed permanently with `multipass delete`. |
 | **Starting**| The instance is in the process of being started up and initialised. It will transition to the *Running* state once fully started. |
 | **Restarting** | The instance is undergoing a restart. This involves stopping the instance and then starting it again. |
 | **Delayed shutdown** | The instance has been sent a shutdown signal and will be stopped after a specified delay. This allows for any ongoing processes to be completed before shutdown. |
@@ -21,7 +21,7 @@ Instances in Multipass can be in a number of different states:
 <!--
 - `Running`: The instance is currently running and is ready to be used.
 - `Stopped`: The instance has been intentionally stopped and is not currently consuming resources. It can be started when needed.
-- `Deleted`: The instance has been marked for deletion. The instance can either be recovered or purged.
+- `Deleted`: The instance was marked for deletion by an earlier version of Multipass. It can be recovered with `multipass recover` or removed permanently with `multipass delete`.
 - `Starting`: The instance is in the process of being started up and initialised. It will transition to the `Running` state once fully started.
 - `Restarting`: The instance is undergoing a restart. This involves stopping the instance and then starting it again.
 - `Delayed Shutdown`: The instance has been sent a shutdown signal and will be stopped after a specified delay. This allows for any ongoing processes to be completed before shutdown.
