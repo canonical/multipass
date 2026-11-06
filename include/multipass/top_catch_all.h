@@ -106,11 +106,11 @@ inline auto multipass::top_catch_all(std::string_view log_category,
 
     if constexpr (std::is_invocable_v<T>)
     {
-        return std::invoke(std::forward<decltype(fallback_return)>(fallback_return));
+        return std::invoke(std::forward<T>(fallback_return));
     }
     else
     {
-        return std::forward<decltype(fallback_return)>(fallback_return);
+        return std::forward<T>(fallback_return);
     }
 }
 
