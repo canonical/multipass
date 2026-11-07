@@ -62,6 +62,7 @@ enum Permissions
     exec_other = 01
 };
 
+// TODO@sftp dump
 auto make_sftp_session(ssh_session session, ssh_channel channel)
 {
     mp::SftpServer::SftpSessionUptr sftp_server_session{
@@ -227,6 +228,7 @@ auto to_unix_permissions(QFile::Permissions perms)
     return out;
 }
 
+// TODO@sftp dump
 void check_sshfs_status(mp::SSHProcess& sshfs_process)
 {
     if (sshfs_process.exit_recognized(250ms))
@@ -238,13 +240,14 @@ void check_sshfs_status(mp::SSHProcess& sshfs_process)
     }
 }
 
+// TODO@sftp dump
 auto create_sshfs_process(mp::SSHSession& session,
                           const std::string& sshfs_exec_line,
                           const std::string& source,
                           const std::string& target)
 {
-    auto sshfs_process =
-        session.exec(fmt::format("sudo {} :{:?} {:?}", sshfs_exec_line, source, target));
+    auto sshfs_process = session.exec(
+        fmt::format("sudo {} :{:?} {:?}", sshfs_exec_line, source, target));
 
     check_sshfs_status(*sshfs_process);
 
@@ -269,10 +272,10 @@ int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int defau
     auto found = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) {
         return id == p.second;
     });
-    auto default_found =
-        std::find_if(id_maps.cbegin(), id_maps.cend(), [default_id](std::pair<int, int> p) {
-            return default_id == p.second;
-        });
+    auto default_found = std::find_if(
+        id_maps.cbegin(),
+        id_maps.cend(),
+        [default_id](std::pair<int, int> p) { return default_id == p.second; });
 
     return found == id_maps.cend()
              ? (default_found == id_maps.cend() ? default_id : default_found->first)
@@ -311,11 +314,11 @@ mp::SftpServer::SftpServer(std::unique_ptr<SSHSession>&& session,
                            int default_uid,
                            int default_gid,
                            const std::string& sshfs_exec_line)
-    : ssh_session{std::move(session)},
-      sshfs_process{create_sshfs_process(*ssh_session, sshfs_exec_line, source, target)},
-      sftp_server_session{make_sftp_session(*ssh_session,
-                                            static_cast<PlainSSHProcess*>(sshfs_process.get())
-                                                ->release_channel())}, // TODO@rewiressh no cast
+    : ssh_session_obj{std::move(session)}, // TODO@sftp dump field
+      sshfs_process{create_sshfs_process(*ssh_session_obj, sshfs_exec_line, source, target)},
+      raw_sftp_session{make_sftp_session(*ssh_session_obj,
+                                         static_cast<PlainSSHProcess*>(sshfs_process.get())
+                                             ->release_channel())}, // TODO@rewiressh no cast
       source_path{MP_FILEOPS.weakly_canonical(source)},
       target_path{fs::path(target).lexically_normal()},
       gid_mappings{gid_mappings},
@@ -452,8 +455,10 @@ bool mp::SftpServer::validate_path(const fs::path& current_path, bool follows_sy
         return false;
     }
 
-    auto [source_it, current_it] =
-        std::mismatch(source_path.begin(), source_path.end(), final_path.begin(), final_path.end());
+    auto [source_it, current_it] = std::mismatch(source_path.begin(),
+                                                 source_path.end(),
+                                                 final_path.begin(),
+                                                 final_path.end());
     return source_it == source_path.end();
 }
 
@@ -575,7 +580,7 @@ void mp::SftpServer::run()
     {
         // Wait for data before reading: sftp_get_client_message blocks, bounded by the session
         // timeout, which is far shorter than the idle periods of a quiet mount.
-        const int poll_result = MP_LIBSSH.ssh_channel_poll_timeout(sftp_server_session->channel,
+        const int poll_result = MP_LIBSSH.ssh_channel_poll_timeout(raw_sftp_session->channel,
                                                                    keepalive_interval_ms,
                                                                    /* is_stderr = */ 0);
         if (poll_result == 0) // idle: nothing arrived within the interval
@@ -588,16 +593,15 @@ void mp::SftpServer::run()
                        keepalive_interval.count());
             // Waits for the peer's reply, bounded by the session timeout. A dead peer surfaces as
             // an error on the next poll.
-            MP_LIBSSH.ssh_send_keepalive(*ssh_session);
+            MP_LIBSSH.ssh_send_keepalive(*ssh_session_obj);
             continue;
         }
 
         // poll_result > 0: bytes available; < 0 (SSH_ERROR/SSH_EOF): peer gone or session broken,
         // handled below exactly like a null message.
-        MsgUPtr client_msg{poll_result > 0
-                               ? MP_LIBSSH.sftp_get_client_message(sftp_server_session.get())
-                               : nullptr,
-                           [](sftp_client_message m) { MP_LIBSSH.sftp_client_message_free(m); }};
+        MsgUPtr client_msg{
+            poll_result > 0 ? MP_LIBSSH.sftp_get_client_message(raw_sftp_session.get()) : nullptr,
+            [](sftp_client_message m) { MP_LIBSSH.sftp_client_message_free(m); }};
         auto msg = client_msg.get();
         if (msg == nullptr)
         {
@@ -622,7 +626,7 @@ void mp::SftpServer::run()
                            "recover.");
 
                 std::string mount_path = [this] {
-                    auto proc = ssh_session->exec(
+                    auto proc = ssh_session_obj->exec(
                         fmt::format("findmnt --source :{}  -o TARGET -n", source_path));
                     return proc->read_std_output();
                 }();
@@ -630,17 +634,17 @@ void mp::SftpServer::run()
                 if (!mount_path.empty())
                 {
                     // TODO@sftp nodiscard
-                    (void)ssh_session->exec(fmt::format("sudo umount {}", mount_path));
+                    (void)ssh_session_obj->exec(fmt::format("sudo umount {}", mount_path));
                 }
 
-                sshfs_process = create_sshfs_process(*ssh_session,
+                sshfs_process = create_sshfs_process(*ssh_session_obj,
                                                      sshfs_exec_line,
                                                      source_path.string(),
                                                      target_path.generic_string());
-                sftp_server_session =
-                    make_sftp_session(*ssh_session,
-                                      static_cast<PlainSSHProcess*>(sshfs_process.get())
-                                          ->release_channel()); // TODO@rewiressh no cast
+                raw_sftp_session = make_sftp_session(
+                    *ssh_session_obj,
+                    static_cast<PlainSSHProcess*>(sshfs_process.get())
+                        ->release_channel()); // TODO@rewiressh no cast
 
                 continue;
             }
@@ -657,19 +661,19 @@ void mp::SftpServer::run()
 void mp::SftpServer::stop()
 {
     stop_invoked = true;
-    ssh_session->force_shutdown(); // TODO@sftp there should be a better way...
+    ssh_session_obj->force_shutdown(); // TODO@sftp there should be a better way...
 }
 
 int mp::SftpServer::handle_close(sftp_client_message msg)
 {
-    const auto id = MP_LIBSSH.sftp_handle(sftp_server_session.get(), msg->handle);
+    const auto id = MP_LIBSSH.sftp_handle(raw_sftp_session.get(), msg->handle);
     if (!open_file_handles.erase(id) && !open_dir_handles.erase(id))
     {
         mpl::trace(category, "{}: bad handle requested", __FUNCTION__);
         return reply_bad_handle(msg, "close");
     }
 
-    MP_LIBSSH.sftp_handle_remove(sftp_server_session.get(), id);
+    MP_LIBSSH.sftp_handle_remove(raw_sftp_session.get(), id);
     return reply_ok(msg);
 }
 
@@ -866,9 +870,8 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
         }
     }
 
-    SftpHandleUPtr sftp_handle{
-        MP_LIBSSH.sftp_handle_alloc(sftp_server_session.get(), named_fd.get()),
-        [](ssh_string s) { MP_LIBSSH.ssh_string_free(s); }};
+    SftpHandleUPtr sftp_handle{MP_LIBSSH.sftp_handle_alloc(raw_sftp_session.get(), named_fd.get()),
+                               [](ssh_string s) { MP_LIBSSH.ssh_string_free(s); }};
     if (!sftp_handle)
     {
         mpl::trace(category, "Cannot allocate handle for open()");
@@ -913,7 +916,7 @@ int mp::SftpServer::handle_opendir(sftp_client_message msg)
     }
 
     SftpHandleUPtr sftp_handle{
-        MP_LIBSSH.sftp_handle_alloc(sftp_server_session.get(), dir_iterator.get()),
+        MP_LIBSSH.sftp_handle_alloc(raw_sftp_session.get(), dir_iterator.get()),
         [](ssh_string s) { MP_LIBSSH.ssh_string_free(s); }};
     if (!sftp_handle)
     {
