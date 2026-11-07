@@ -279,6 +279,7 @@ linkcheck_exclude_documents = [r"reference/release-notes/(?!index$)"]
 extensions = [
     "canonical_sphinx",
     "sphinxcontrib.cairosvgconverter",
+    "sphinxcontrib.mermaid",
     "sphinx_last_updated_by_git",
     "sphinx_sitemap",
     "sphinx_structured_toc",
