@@ -401,6 +401,114 @@ TEST_F(QemuPlatformLinux, createTapDeviceReconfiguresExistingDevice)
     qemu_platform_linux.vm_platform_args(vm_desc);
 }
 
+TEST_F(QemuPlatformLinux, createTapDeviceThrowsWhenAddingDeviceFails)
+{
+    mp::VirtualMachineDescription vm_desc;
+
+    const auto& vswitch = switches.front();
+    vm_desc.vm_name = vswitch.name;
+    vm_desc.zone = "zone1";
+    vm_desc.default_mac_address = vswitch.hw_addr;
+
+    EXPECT_CALL(
+        *mock_utils,
+        run_cmd_for_status(
+            QString("ip"),
+            ElementsAre(QString("addr"), QString("show"), mpt::match_qstring(StartsWith("tap-"))),
+            _))
+        .WillOnce(Return(false));
+    EXPECT_CALL(*mock_utils,
+                run_cmd_for_status(QString("ip"),
+                                   ElementsAre(QString("tuntap"),
+                                               QString("add"),
+                                               mpt::match_qstring(StartsWith("tap-")),
+                                               QString("mode"),
+                                               QString("tap")),
+                                   _))
+        .WillOnce(Return(false));
+
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
+
+    MP_EXPECT_THROW_THAT(qemu_platform_linux.vm_platform_args(vm_desc),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("ip tuntap add tap-")));
+}
+
+TEST_F(QemuPlatformLinux, createTapDeviceThrowsWhenBringingDeviceUpFails)
+{
+    mp::VirtualMachineDescription vm_desc;
+
+    const auto& vswitch = switches.front();
+    vm_desc.vm_name = vswitch.name;
+    vm_desc.zone = "zone1";
+    vm_desc.default_mac_address = vswitch.hw_addr;
+
+    EXPECT_CALL(
+        *mock_utils,
+        run_cmd_for_status(
+            QString("ip"),
+            ElementsAre(QString("addr"), QString("show"), mpt::match_qstring(StartsWith("tap-"))),
+            _))
+        .WillOnce(Return(true));
+    EXPECT_CALL(*mock_utils,
+                run_cmd_for_status(QString("ip"),
+                                   ElementsAre(QString("link"),
+                                               QString("set"),
+                                               mpt::match_qstring(StartsWith("tap-")),
+                                               QString("up")),
+                                   _))
+        .WillOnce(Return(false));
+
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
+
+    MP_EXPECT_THROW_THAT(qemu_platform_linux.vm_platform_args(vm_desc),
+                         std::runtime_error,
+                         mpt::match_what(AllOf(HasSubstr("ip link set tap-"), EndsWith(" up`"))));
+}
+
+TEST_F(QemuPlatformLinux, removeTapDeviceFailureLogsWarning)
+{
+    mp::VirtualMachineDescription vm_desc;
+
+    const auto& vswitch = switches.front();
+    vm_desc.vm_name = vswitch.name;
+    vm_desc.zone = "zone1";
+    vm_desc.default_mac_address = vswitch.hw_addr;
+
+    QStringList saved_opts;
+
+    EXPECT_CALL(
+        *mock_utils,
+        run_cmd_for_status(
+            QString("ip"),
+            ElementsAre(QString("addr"), QString("show"), mpt::match_qstring(StartsWith("tap-"))),
+            _))
+        .WillOnce(DoAll(SaveArg<1>(&saved_opts), Return(false)));
+
+    mp::QemuPlatformLinux qemu_platform_linux{data_dir.path(), stub_az_manager};
+
+    qemu_platform_linux.vm_platform_args(vm_desc);
+
+    EXPECT_CALL(*mock_utils,
+                run_cmd_for_status(QString("ip"),
+                                   ElementsAre(QString("addr"), QString("show"), saved_opts.last()),
+                                   _))
+        .WillOnce(Return(true));
+    EXPECT_CALL(
+        *mock_utils,
+        run_cmd_for_status(QString("ip"),
+                           ElementsAre(QString("link"), QString("delete"), saved_opts.last()),
+                           _))
+        .WillOnce(Return(false));
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::warning,
+        fmt::format("Failed to remove tap device {}", saved_opts.last()));
+
+    qemu_platform_linux.remove_resources_for(vswitch.name);
+}
+
 TEST_F(QemuPlatformLinux, platformHealthCheckCallsExpectedMethods)
 {
     EXPECT_CALL(*mock_backend, check_for_kvm_support()).WillOnce(Return());

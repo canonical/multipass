@@ -27,6 +27,8 @@
 
 #include <QFile>
 
+#include <stdexcept>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
@@ -46,24 +48,31 @@ auto generate_tap_device_name(const std::string& vm_name)
     return QString::fromStdString(tap_name);
 }
 
+void run_ip_cmd(const QStringList& args)
+{
+    if (!MP_UTILS.run_cmd_for_status("ip", args))
+        throw std::runtime_error{fmt::format("Failed to run `ip {}`", args.join(' '))};
+}
+
 void create_tap_device(const QString& tap_name, const QString& bridge_name)
 {
     if (!MP_UTILS.run_cmd_for_status("ip", {"addr", "show", tap_name}))
     {
-        MP_UTILS.run_cmd_for_status("ip", {"tuntap", "add", tap_name, "mode", "tap"});
+        run_ip_cmd({"tuntap", "add", tap_name, "mode", "tap"});
     }
 
     // Ensure the device is linked to the bridge and up, regardless of its prior existence, since it
     // may have been left in a broken state (e.g., attached to a stale bridge).
-    MP_UTILS.run_cmd_for_status("ip", {"link", "set", tap_name, "master", bridge_name});
-    MP_UTILS.run_cmd_for_status("ip", {"link", "set", tap_name, "up"});
+    run_ip_cmd({"link", "set", tap_name, "master", bridge_name});
+    run_ip_cmd({"link", "set", tap_name, "up"});
 }
 
 void remove_tap_device(const QString& tap_device_name)
 {
-    if (MP_UTILS.run_cmd_for_status("ip", {"addr", "show", tap_device_name}))
+    if (MP_UTILS.run_cmd_for_status("ip", {"addr", "show", tap_device_name}) &&
+        !MP_UTILS.run_cmd_for_status("ip", {"link", "delete", tap_device_name}))
     {
-        MP_UTILS.run_cmd_for_status("ip", {"link", "delete", tap_device_name});
+        mpl::warn(category, "Failed to remove tap device {}", tap_device_name);
     }
 }
 
