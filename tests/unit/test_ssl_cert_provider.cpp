@@ -135,8 +135,8 @@ TEST_P(SSLCertProviderParameterTests, regeneratesCertificates)
         .WillRepeatedly(Return(std::filesystem::path{cert_dir.toStdU16String()}));
 
     const QDir dir{cert_dir};
-    const auto root_cert_path =
-        QString::fromStdU16String(MP_PLATFORM.get_root_cert_path().u16string());
+    const auto root_cert_path = QString::fromStdU16String(
+        MP_PLATFORM.get_root_cert_path().u16string());
     const auto cert_path = dir.filePath("localhost.pem");
     const auto key_path = dir.filePath("localhost_key.pem");
 
