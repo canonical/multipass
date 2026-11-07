@@ -26,6 +26,7 @@
 #include <array>
 #include <bit>
 #include <cctype>
+#include <iterator>
 #include <span>
 #include <stdexcept>
 
@@ -487,7 +488,7 @@ bool mp::CloudInitIso::contains(const std::string& name) const
            }) != std::cend(files);
 }
 
-const std::string& mp::CloudInitIso::at(const std::string& name) const
+std::size_t mp::CloudInitIso::index_of(const std::string& name) const
 {
     if (auto iter = std::find_if(
             files.cbegin(),
@@ -500,13 +501,8 @@ const std::string& mp::CloudInitIso::at(const std::string& name) const
     }
     else
     {
-        return iter->data;
+        return static_cast<std::size_t>(std::distance(files.cbegin(), iter));
     }
-}
-
-std::string& mp::CloudInitIso::at(const std::string& name)
-{
-    return const_cast<std::string&>(const_cast<const mp::CloudInitIso*>(this)->at(name));
 }
 
 std::string& mp::CloudInitIso::operator[](const std::string& name)
