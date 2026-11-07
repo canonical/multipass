@@ -214,6 +214,20 @@ private:
     grpc::Status make_vm_unavailable(VirtualMachine& vm);
     grpc::Status cancel_vm_shutdown(const VirtualMachine& vm);
     grpc::Status get_ssh_info_for_vm(VirtualMachine& vm, SSHInfoReply& response);
+    void snapshot_finish(const std::string& instance_name,
+                         const SnapshotRequest& request,
+                         bool restart,
+                         grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>* server,
+                         DaemonRpcContext* context);
+    grpc::Status snapshot_shutdown_vm(
+        VirtualMachine& vm,
+        grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>* server);
+    void snapshot_restart_vm(
+        VirtualMachine& vm,
+        SnapshotReply& final_reply,
+        DaemonRpcContext* context,
+        grpc::Status& final_status,
+        grpc::ServerReaderWriterInterface<SnapshotReply, SnapshotRequest>* server);
 
     // Starts the suspended targets (main thread only); returns the VMs that were started
     grpc::Status restart_start_suspended_instances(
