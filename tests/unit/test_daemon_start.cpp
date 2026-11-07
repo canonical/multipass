@@ -19,6 +19,7 @@
 #include "daemon_test_fixture.h"
 
 #include "common.h"
+#include "json_test_utils.h"
 #include "mock_mount_handler.h"
 #include "mock_permission_utils.h"
 #include "mock_platform.h"
@@ -199,6 +200,49 @@ TEST_F(TestDaemonStart, suspendingStateDoesNotStartHasError)
     EXPECT_THAT(status.error_message(),
                 HasSubstr(fmt::format("Cannot start the instance \'{}\' while suspending",
                                       mock_instance_name)));
+}
+
+TEST_F(TestDaemonStart, multipleStartErrorsAreSeparated)
+{
+    const std::string other_instance_name{"other-zebraphant"};
+
+    auto mock_factory = use_a_mock_vm_factory();
+    const auto json = make_instance_json(mac_addr, extra_interfaces, {other_instance_name});
+    const auto [temp_dir, filename] = plant_instance_json(json);
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .Times(2)
+        .WillRepeatedly(WithArg<0>([](const auto& desc) {
+            auto vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+            EXPECT_CALL(*vm, get_name).WillRepeatedly(ReturnRefOfCopy(desc.vm_name));
+            EXPECT_CALL(*vm, current_state)
+                .WillRepeatedly(Return(mp::VirtualMachine::State::unavailable));
+            EXPECT_CALL(*vm, start).Times(0);
+            return vm;
+        }));
+
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::StartRequest request;
+    request.mutable_instance_names()->add_instance_name(mock_instance_name);
+    request.mutable_instance_names()->add_instance_name(other_instance_name);
+
+    StrictMock<mpt::MockServerReaderWriter<mp::StartReply, mp::StartRequest>> mock_server;
+    EXPECT_CALL(mock_server, Write(_, _)).Times(1);
+
+    auto status = call_daemon_slot(daemon, &mp::Daemon::start, request, std::move(mock_server));
+
+    EXPECT_FALSE(status.ok());
+    EXPECT_THAT(status.error_message(),
+                AllOf(HasSubstr(fmt::format("Cannot start the instance '{}' while unavailable.",
+                                            mock_instance_name)),
+                      HasSubstr(fmt::format("Cannot start the instance '{}' while unavailable.",
+                                            other_instance_name)),
+                      HasSubstr("unavailable.\nCannot start"),
+                      Not(HasSubstr("unavailable.Cannot start"))));
 }
 
 TEST_F(TestDaemonStart, definedMountsInitializedDuringStart)
