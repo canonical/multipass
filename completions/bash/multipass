@@ -229,8 +229,8 @@ _multipass_complete()
     cmd="${COMP_WORDS[1]}"
     prev_opts=false
     multipass_cmds="authenticate transfer delete exec images help info launch list mount networks \
-                    recover restart restore shell snapshot snapshots start stop suspend unmount \
-                    version get set clone alias aliases unalias"
+                    restart restore shell snapshot snapshots start stop suspend unmount version \
+                    get set clone alias aliases unalias"
 
     if [[ "${multipass_cmds}" =~ " ${cmd} " || "${multipass_cmds}" =~ ^${cmd} || "${multipass_cmds}" =~ \ ${cmd}$ ]];
     then
@@ -261,7 +261,7 @@ _multipass_complete()
         "mount")
             opts="${opts} --gid-map --uid-map"
         ;;
-        "recover"|"start"|"suspend"|"restart")
+        "start"|"suspend"|"restart")
             _add_nonrepeating_args "--all"
         ;;
         "stop")
@@ -379,9 +379,6 @@ _multipass_complete()
             ;;
             "delete"|"info")
                 _multipass_instances_and_snapshots
-            ;;
-            "recover")
-                _multipass_instances "Deleted"
             ;;
             "snapshot")
                 _multipass_instances "Stopped"
