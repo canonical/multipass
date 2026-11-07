@@ -233,22 +233,20 @@ private:
                                    const std::string& target,
                                    const VMMount& mount);
 
-    // These async_* methods need to operate on instance names and look up the VMs again, lest they
-    // be gone or moved.
     template <typename Reply, typename Request>
     QFuture<ReadinessResult>
-    async_wait_vm_ready(const std::string& name,
-                        const std::chrono::seconds& timeout,
-                        grpc::ServerReaderWriterInterface<Reply, Request>* server);
+    async_wait_vm_ready(const VirtualMachine::ShPtr& vm,
+                        grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                        const std::chrono::seconds& timeout);
     template <typename Reply, typename Request>
     QFuture<ReadinessResult>
-    async_wait_vm_ready_impl(const std::string& name,
-                             const std::chrono::seconds& timeout,
-                             grpc::ServerReaderWriterInterface<Reply, Request>* server);
+    async_wait_vm_ready_impl(const VirtualMachine::ShPtr& vm,
+                             grpc::ServerReaderWriterInterface<Reply, Request>* server,
+                             const std::chrono::seconds& timeout);
     template <typename Reply, typename Request>
     QFuture<std::vector<ReadinessResult>>
-    async_wait_multiple_vms_ready(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                                  const std::vector<std::string>& vms,
+    async_wait_multiple_vms_ready(const std::vector<VirtualMachine::ShPtr>& vms,
+                                  grpc::ServerReaderWriterInterface<Reply, Request>* server,
                                   const std::chrono::seconds& timeout);
     template <typename Reply>
     void finish_readiness_operation(DaemonRpcContext* context,
