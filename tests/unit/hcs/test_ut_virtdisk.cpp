@@ -24,6 +24,9 @@
 
 #include <fmt/xchar.h>
 
+#include <windows.h>
+#include <winioctl.h>
+
 namespace mpt = multipass::test;
 namespace mpl = multipass::logging;
 
@@ -418,6 +421,154 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_resize_failed)
         ASSERT_FALSE(status_msg.empty());
         EXPECT_NE(status_msg.find(L"ResizeVirtualDisk failed"), std::wstring::npos);
         EXPECT_NE(status_msg.find(L"(0x80070057)"), std::wstring::npos);
+    }
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVVirtDisk_UnitTests, clear_sparse_flag_happy_path)
+{
+    { // Verify that the dependencies are called with right data.
+        EXPECT_CALL(mock_virtdisk_api, GetFileAttributesW(StrEq(L"test.vhdx")))
+            .WillOnce(Return(FILE_ATTRIBUTE_ARCHIVE | FILE_ATTRIBUTE_SPARSE_FILE));
+
+        EXPECT_CALL(mock_virtdisk_api, CreateFileW)
+            .WillOnce(DoAll(
+                [](LPCWSTR lpFileName,
+                   DWORD dwDesiredAccess,
+                   DWORD dwShareMode,
+                   LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+                   DWORD dwCreationDisposition,
+                   DWORD dwFlagsAndAttributes,
+                   HANDLE hTemplateFile) {
+                    ASSERT_NE(nullptr, lpFileName);
+                    ASSERT_STREQ(lpFileName, L"test.vhdx");
+                    ASSERT_EQ(dwDesiredAccess, GENERIC_WRITE);
+                    ASSERT_EQ(dwShareMode, FILE_SHARE_READ);
+                    ASSERT_EQ(nullptr, lpSecurityAttributes);
+                    ASSERT_EQ(dwCreationDisposition, OPEN_EXISTING);
+                    ASSERT_EQ(dwFlagsAndAttributes, 0);
+                    ASSERT_EQ(nullptr, hTemplateFile);
+                },
+                Return(mock_handle_object)));
+
+        EXPECT_CALL(mock_virtdisk_api, DeviceIoControl)
+            .WillOnce(DoAll(
+                [](HANDLE hDevice,
+                   DWORD dwIoControlCode,
+                   LPVOID lpInBuffer,
+                   DWORD nInBufferSize,
+                   LPVOID lpOutBuffer,
+                   DWORD nOutBufferSize,
+                   LPDWORD lpBytesReturned,
+                   LPOVERLAPPED lpOverlapped) {
+                    ASSERT_EQ(mock_handle_object, hDevice);
+                    ASSERT_EQ(dwIoControlCode, FSCTL_SET_SPARSE);
+                    ASSERT_NE(nullptr, lpInBuffer);
+                    ASSERT_EQ(nInBufferSize, sizeof(FILE_SET_SPARSE_BUFFER));
+                    ASSERT_FALSE(static_cast<PFILE_SET_SPARSE_BUFFER>(lpInBuffer)->SetSparse);
+                    ASSERT_EQ(nullptr, lpOutBuffer);
+                    ASSERT_EQ(nOutBufferSize, 0);
+                    ASSERT_NE(nullptr, lpBytesReturned);
+                    ASSERT_EQ(nullptr, lpOverlapped);
+                },
+                Return(TRUE)));
+
+        EXPECT_CALL(mock_virtdisk_api, CloseHandle(Eq(mock_handle_object))).WillOnce(Return(true));
+    }
+
+    {
+        const auto& [status, status_msg] = VirtDisk().clear_sparse_flag("test.vhdx");
+        EXPECT_TRUE(status.success());
+        EXPECT_TRUE(status_msg.empty());
+    }
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVVirtDisk_UnitTests, clear_sparse_flag_not_sparse)
+{
+    { // Verify that the file is not opened when it is not sparse.
+        EXPECT_CALL(mock_virtdisk_api, GetFileAttributesW(StrEq(L"test.vhdx")))
+            .WillOnce(Return(FILE_ATTRIBUTE_ARCHIVE));
+    }
+
+    {
+        const auto& [status, status_msg] = VirtDisk().clear_sparse_flag("test.vhdx");
+        EXPECT_TRUE(status.success());
+        EXPECT_TRUE(status_msg.empty());
+    }
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVVirtDisk_UnitTests, clear_sparse_flag_get_attributes_failed)
+{
+    { // Verify that the dependencies are called with right data.
+        EXPECT_CALL(mock_virtdisk_api, GetFileAttributesW(StrEq(L"test.vhdx")))
+            .WillOnce(Return(INVALID_FILE_ATTRIBUTES));
+        EXPECT_CALL(mock_virtdisk_api, GetLastError).WillOnce(Return(ERROR_FILE_NOT_FOUND));
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::error,
+            "clear_sparse_flag(...) > GetFileAttributesW failed with 2!");
+    }
+
+    {
+        const auto& [status, status_msg] = VirtDisk().clear_sparse_flag("test.vhdx");
+        EXPECT_FALSE(status.success());
+        ASSERT_FALSE(status_msg.empty());
+        EXPECT_NE(status_msg.find(L"GetFileAttributesW failed"), std::wstring::npos);
+        EXPECT_NE(status_msg.find(L"(0x80070002)"), std::wstring::npos);
+    }
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVVirtDisk_UnitTests, clear_sparse_flag_open_failed)
+{
+    { // Verify that the dependencies are called with right data.
+        EXPECT_CALL(mock_virtdisk_api, GetFileAttributesW(StrEq(L"test.vhdx")))
+            .WillOnce(Return(FILE_ATTRIBUTE_SPARSE_FILE));
+        EXPECT_CALL(mock_virtdisk_api, CreateFileW).WillOnce(Return(INVALID_HANDLE_VALUE));
+        EXPECT_CALL(mock_virtdisk_api, GetLastError).WillOnce(Return(ERROR_ACCESS_DENIED));
+        logger_scope.mock_logger->expect_log(mpl::Level::error,
+                                             "clear_sparse_flag(...) > CreateFileW failed with 5!");
+    }
+
+    {
+        const auto& [status, status_msg] = VirtDisk().clear_sparse_flag("test.vhdx");
+        EXPECT_FALSE(status.success());
+        ASSERT_FALSE(status_msg.empty());
+        EXPECT_NE(status_msg.find(L"CreateFileW failed"), std::wstring::npos);
+        EXPECT_NE(status_msg.find(L"(0x80070005)"), std::wstring::npos);
+    }
+}
+
+// ---------------------------------------------------------
+
+TEST_F(HyperVVirtDisk_UnitTests, clear_sparse_flag_ioctl_failed)
+{
+    { // Verify that the dependencies are called with right data.
+        EXPECT_CALL(mock_virtdisk_api, GetFileAttributesW(StrEq(L"test.vhdx")))
+            .WillOnce(Return(FILE_ATTRIBUTE_SPARSE_FILE));
+        EXPECT_CALL(mock_virtdisk_api, CreateFileW).WillOnce(Return(mock_handle_object));
+        logger_scope.mock_logger->expect_log(
+            mpl::Level::error,
+            "clear_sparse_flag(...) > DeviceIoControl(FSCTL_SET_SPARSE) failed with 1!");
+
+        // The error code must be read before the handle is closed.
+        InSequence sequence;
+        EXPECT_CALL(mock_virtdisk_api, DeviceIoControl).WillOnce(Return(FALSE));
+        EXPECT_CALL(mock_virtdisk_api, GetLastError).WillOnce(Return(ERROR_INVALID_FUNCTION));
+        EXPECT_CALL(mock_virtdisk_api, CloseHandle(Eq(mock_handle_object))).WillOnce(Return(true));
+    }
+
+    {
+        const auto& [status, status_msg] = VirtDisk().clear_sparse_flag("test.vhdx");
+        EXPECT_FALSE(status.success());
+        ASSERT_FALSE(status_msg.empty());
+        EXPECT_NE(status_msg.find(L"DeviceIoControl(FSCTL_SET_SPARSE) failed"), std::wstring::npos);
+        EXPECT_NE(status_msg.find(L"(0x80070001)"), std::wstring::npos);
     }
 }
 
