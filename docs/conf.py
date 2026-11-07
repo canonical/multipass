@@ -207,6 +207,7 @@ redirects = {
     "explanation/about-security": "../security/",
     "reference/command-line-interface/find": "../images/",
     "reference/command-line-interface/umount": "../unmount/",
+    "how-to-guides/manage-instances/run-a-docker-container-in-multipass": "../launch-customized-instances-with-multipass-and-cloud-init/#docker",
     # These are URLs inherited from the Discourse-hosted documentation at https://discourse.ubuntu.com/t/multipass-documentation/8294.
     "mount": "../explanation/mount/",
     "platform": "../explanation/platform/",
