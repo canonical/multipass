@@ -47,6 +47,7 @@ class MountHandler : private DisabledCopyMove
 {
 public:
     using UPtr = std::unique_ptr<MountHandler>;
+    using ShPtr = std::shared_ptr<MountHandler>;
 
     virtual ~MountHandler() = default;
 
