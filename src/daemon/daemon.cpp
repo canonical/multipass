@@ -88,6 +88,7 @@
 #include <chrono>
 #include <functional>
 #include <future>
+#include <mutex>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
@@ -1584,8 +1585,6 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         assert(!spec_copy.deleted);
         init_mounts(name);
 
-        std::unique_lock lock{start_mutex};
-
         // Was running before shutdown?
         if (spec_copy.state == e_state::running)
         {
@@ -1600,19 +1599,15 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                 mpl::info(category, "{} needs syncing. Syncing now...", name);
                 // We don't need to start the instance, but we need to ensure that
                 // the daemon side resources for the VM are initialized.
-                multipass::top_catch_all(name, [this, name, &lock] {
-                    lock.unlock();
-                    on_restart(name);
-                });
+                multipass::top_catch_all(name, [this, name] { on_restart(name); });
             }
             break;
             default:
             {
                 mpl::info(category, "{} needs starting. Starting now...", name);
 
-                multipass::top_catch_all(name, [this, name, &lock]() {
+                multipass::top_catch_all(name, [this, name]() {
                     operative_instances[name]->start();
-                    lock.unlock();
                     on_restart(name);
                 });
             }
@@ -2424,7 +2419,6 @@ try
     fmt::memory_buffer start_errors;
     for (auto& vm_it : instance_selection.operative_selection)
     {
-        std::lock_guard lock{start_mutex};
         const auto& name = vm_it->first;
         auto& vm = *vm_it->second;
         switch (vm.current_state())
@@ -3354,8 +3348,7 @@ try // clang-format on
 
     std::function<grpc::Status(VirtualMachine&)> operation;
     if (request->available())
-        operation = [this, &starting_vms](VirtualMachine& vm) {
-            std::unique_lock lock{start_mutex};
+        operation = [&starting_vms](VirtualMachine& vm) {
             try
             {
                 if (vm.set_available(true))
@@ -3799,8 +3792,6 @@ grpc::Status mp::Daemon::reboot_vm(VirtualMachine& vm, bool running_only)
         mpl::debug(category, "Rebooting {}", vm.get_name());
         try
         {
-            std::lock_guard guard{start_mutex};
-            // Avoid concurrent calls to vm.start()
             vm.start();
         }
         catch (const std::exception& e)
@@ -4469,7 +4460,6 @@ grpc::Status mp::Daemon::restart_start_suspended_instances(
         [this, &started_vms](VirtualMachine& vm) {
             try
             {
-                std::lock_guard start_guard{start_mutex};
                 vm.start();
                 started_vms.push_back(operative_instances.at(vm.get_name()));
                 return grpc::Status::OK;
