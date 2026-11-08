@@ -1322,7 +1322,7 @@ TEST_F(SftpServer, symlinkFailureFails)
 // hand it over to the owner of the containing directory. A host owner with no mapping reaches the
 // guest as an invalid uid/gid, and the guest kernel then refuses to unlink the file with EOVERFLOW
 // ("Value too large for defined data type"). See canonical/multipass#5526.
-TEST_F(SftpServer, symlinkChownsNewLinkToParentDirOwner)
+TEST_F(SftpServer, DISABLE_ON_WINDOWS(symlinkChownsNewLinkToParentDirOwner))
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -1341,12 +1341,14 @@ TEST_F(SftpServer, symlinkChownsNewLinkToParentDirOwner)
     REPLACE(sftp_client_message_get_data,
             [&link_char_array](auto...) { return link_char_array.data(); });
 
+    const QFileInfo parent_dir{temp_dir.path()};
+
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
     EXPECT_CALL(*mock_platform, symlink(_, _, _)).WillOnce(Return(true));
     EXPECT_CALL(*mock_platform,
                 chown(StrEq(link_name.toStdString()),
-                      static_cast<unsigned int>(default_uid),
-                      static_cast<unsigned int>(default_gid)))
+                      parent_dir.ownerId(),
+                      parent_dir.groupId()))
         .WillOnce(Return(0));
 
     int num_calls{0};
@@ -1357,6 +1359,46 @@ TEST_F(SftpServer, symlinkChownsNewLinkToParentDirOwner)
     sftp.run();
 
     EXPECT_EQ(num_calls, 1);
+}
+
+// A link must get the parent directory's *host* ids, whatever the maps say -- in particular it
+// must not be reverse-matched into them, which would pick the wrong owner when a parent happens
+// to be owned by a host id that also appears on the instance side of a mapping.
+TEST_F(SftpServer, DISABLE_ON_WINDOWS(symlinkChownIgnoresMapsInTheHost))
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    auto link_name = temp_dir.path() + "/test-link";
+    mpt::make_file_with_content(file_name);
+
+    const QFileInfo parent_dir{temp_dir.path()};
+    const int host_uid = parent_dir.ownerId();
+    const int host_gid = parent_dir.groupId();
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_SYMLINK);
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
+    sftp_attributes_struct attr{};
+    attr.permissions = 0777;
+    msg->attr = &attr;
+
+    auto link_char_array = name_as_char_array(link_name.toStdString());
+    REPLACE(sftp_client_message_get_data,
+            [&link_char_array](auto...) { return link_char_array.data(); });
+
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, symlink(_, _, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).Times(1);
+
+    REPLACE(sftp_reply_status, [](auto...) { return SSH_OK; });
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    // the parent's host id is also the instance id of a mapping, so a reverse lookup would hit it
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(),
+                                {{host_uid + 1, host_uid}},
+                                {{host_gid + 1, host_gid}});
+    sftp.run();
 }
 
 TEST_F(SftpServer, symlinkChownFailureFails)
@@ -1401,7 +1443,7 @@ TEST_F(SftpServer, symlinkChownFailureFails)
 
 // Host ids with no mapping must still be reported as valid ids, or the guest kernel refuses to
 // unlink, rename or chown the file with EOVERFLOW. See canonical/multipass#5526.
-TEST_F(SftpServer, statReportsValidIdsForUnmappedOwner)
+TEST_F(SftpServer, DISABLE_ON_WINDOWS(statReportsValidIdsForUnmappedOwner))
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";

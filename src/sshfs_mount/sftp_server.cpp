@@ -1366,21 +1366,19 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
     // The server runs as the daemon user (root), so a freshly created link is owned by it. Hand it
     // over to the owner of the containing directory, as handle_open() and handle_mkdir() do --
     // otherwise its host owner has no mapping and the guest sees an invalid uid/gid, which makes
-    // the link impossible to remove there.
+    // the link impossible to remove there. These are host ids already, so they need no mapping.
     const QFileInfo parent_dir{QString::fromStdString(link_path.parent_path().string())};
-    const int parent_uid = MP_FILEOPS.ownerId(parent_dir);
-    const int parent_gid = MP_FILEOPS.groupId(parent_dir);
-    const int rev_uid = reverse_uid_for(parent_uid, parent_uid);
-    const int rev_gid = reverse_gid_for(parent_gid, parent_gid);
+    const auto parent_uid = MP_FILEOPS.ownerId(parent_dir);
+    const auto parent_gid = MP_FILEOPS.groupId(parent_dir);
 
     // chown() is lchown() on unix, so this retargets the link itself, not what it points at
-    if (MP_PLATFORM.chown(link_path.string().c_str(), rev_uid, rev_gid) < 0)
+    if (MP_PLATFORM.chown(link_path.string().c_str(), parent_uid, parent_gid) < 0)
     {
         mpl::trace(category,
                    "failed to chown '{}' to owner:{} and group:{}",
                    link_path.string(),
-                   rev_uid,
-                   rev_gid);
+                   parent_uid,
+                   parent_gid);
         return reply_failure(msg);
     }
 
