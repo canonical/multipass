@@ -316,7 +316,7 @@ This instance is great for when you just need a quick Ubuntu VM, but let's say y
 ```{dropdown} Optional Exercises
 
 Exercise 1:
-When you select Open Shell, what happens in the background is the equivalent of the CLI commands `multipass launch --name primary`  followed by  `multipass shell`. Open a terminal and try `multipass shell` (if you didn't follow the steps above, you will have to run the `launch` command first).
+When you select Open Shell, what happens in the background is the equivalent of the CLI commands `multipass launch --name primary` followed by `multipass shell`. Open a terminal and try `multipass shell` (if you didn't follow the steps above, you will have to run the `launch` command first).
 
 Exercise 2:
 In Multipass, an instance with the name "primary" is privileged. That is, it serves as the default argument of `multipass shell` among other capabilities. In different terminal instances, check `multipass shell primary` and `multipass shell`. Both commands should give the same result.
