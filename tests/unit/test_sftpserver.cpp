@@ -1318,6 +1318,125 @@ TEST_F(SftpServer, symlinkFailureFails)
     EXPECT_EQ(failure_num_calls, 1);
 }
 
+// The sftp server runs as the daemon user (root), so a link it creates is owned by it unless we
+// hand it over to the owner of the containing directory. A host owner with no mapping reaches the
+// guest as an invalid uid/gid, and the guest kernel then refuses to unlink the file with EOVERFLOW
+// ("Value too large for defined data type"). See canonical/multipass#5526.
+TEST_F(SftpServer, symlinkChownsNewLinkToParentDirOwner)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    auto link_name = temp_dir.path() + "/test-link";
+    mpt::make_file_with_content(file_name);
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_SYMLINK);
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
+    sftp_attributes_struct attr{};
+    attr.permissions = 0777;
+    msg->attr = &attr;
+
+    auto link_char_array = name_as_char_array(link_name.toStdString());
+    REPLACE(sftp_client_message_get_data,
+            [&link_char_array](auto...) { return link_char_array.data(); });
+
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, symlink(_, _, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_platform,
+                chown(StrEq(link_name.toStdString()),
+                      static_cast<unsigned int>(default_uid),
+                      static_cast<unsigned int>(default_gid)))
+        .WillOnce(Return(0));
+
+    int num_calls{0};
+    REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_OK, num_calls));
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    sftp.run();
+
+    EXPECT_EQ(num_calls, 1);
+}
+
+TEST_F(SftpServer, symlinkChownFailureFails)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    auto link_name = temp_dir.path() + "/test-link";
+    mpt::make_file_with_content(file_name);
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_SYMLINK);
+    auto name = name_as_char_array(file_name.toStdString());
+    msg->filename = name.data();
+    sftp_attributes_struct attr{};
+    attr.permissions = 0777;
+    msg->attr = &attr;
+
+    auto link_char_array = name_as_char_array(link_name.toStdString());
+    REPLACE(sftp_client_message_get_data,
+            [&link_char_array](auto...) { return link_char_array.data(); });
+
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, symlink(_, _, _)).WillOnce(Return(true));
+    EXPECT_CALL(*mock_platform, chown(_, _, _)).WillOnce(Return(-1));
+
+    int failure_num_calls{0};
+    REPLACE(sftp_reply_status, make_reply_status(msg.get(), SSH_FX_FAILURE, failure_num_calls));
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+
+    screen_logs_trace();
+    EXPECT_CALL(*logger_scope.mock_logger,
+                log(Eq(mpl::Level::trace),
+                    StrEq("sftp server"),
+                    AllOf(HasSubstr("failed to chown"), HasSubstr(link_name.toStdString()))));
+
+    sftp.run();
+
+    EXPECT_EQ(failure_num_calls, 1);
+}
+
+// Host ids with no mapping must still be reported as valid ids, or the guest kernel refuses to
+// unlink, rename or chown the file with EOVERFLOW. See canonical/multipass#5526.
+TEST_F(SftpServer, statReportsValidIdsForUnmappedOwner)
+{
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    auto link_name = temp_dir.path() + "/test-link";
+    mpt::make_file_with_content(file_name);
+    ASSERT_TRUE(MP_PLATFORM.symlink(file_name.toStdString().c_str(),
+                                    link_name.toStdString().c_str(),
+                                    false));
+
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto lstat_msg = make_msg(SFTP_LSTAT);
+    auto link_char_array = name_as_char_array(link_name.toStdString());
+    lstat_msg->filename = link_char_array.data();
+    auto stat_msg = make_msg(SFTP_STAT);
+    auto file_char_array = name_as_char_array(file_name.toStdString());
+    stat_msg->filename = file_char_array.data();
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    int num_calls{0};
+    auto reply_attr = [&num_calls](sftp_client_message, sftp_attributes attr) {
+        // 65534 ("nobody"), not (uint32_t)-1, which the guest would see as INVALID_UID
+        EXPECT_THAT(attr->uid, Eq(65534u));
+        EXPECT_THAT(attr->gid, Eq(65534u));
+        ++num_calls;
+        return SSH_OK;
+    };
+    REPLACE(sftp_reply_attr, reply_attr);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), {}, {});
+    sftp.run();
+
+    EXPECT_THAT(num_calls, Eq(2));
+}
+
 TEST_F(SftpServer, symlinkFailsWhenMissingMappedIds)
 {
     mpt::TempDir temp_dir;
