@@ -251,6 +251,13 @@ auto create_sshfs_process(mp::SSHSession& session,
     return sshfs_process;
 }
 
+// Reported to the guest for host ids that the mount has no mapping for. This must be a *valid*
+// id: sftp_attributes_struct::uid/gid are unsigned, so a negative value would reach the guest as
+// (uid_t)-1, i.e. INVALID_UID. The guest kernel then refuses to unlink, rename or chown such a
+// file with EOVERFLOW ("Value too large for defined data type"), see may_delete() in fs/namei.c.
+// 65534 is the conventional "nobody"/overflow id, so it still reads as "not yours" in the guest.
+constexpr int unmapped_id = 65534;
+
 int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
 {
     if (id == mp::no_id_info_available)
@@ -260,8 +267,9 @@ int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int defaul
         return id == p.first;
     });
 
-    return found == id_maps.cend() ? -1
-                                   : (found->second == mp::default_id ? default_id : found->second);
+    return found == id_maps.cend()
+             ? unmapped_id
+             : (found->second == mp::default_id ? default_id : found->second);
 }
 
 int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
@@ -1352,6 +1360,27 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
                    __FUNCTION__,
                    symlink_target,
                    link_path);
+        return reply_failure(msg);
+    }
+
+    // The server runs as the daemon user (root), so a freshly created link is owned by it. Hand it
+    // over to the owner of the containing directory, as handle_open() and handle_mkdir() do --
+    // otherwise its host owner has no mapping and the guest sees an invalid uid/gid, which makes
+    // the link impossible to remove there.
+    const QFileInfo parent_dir{QString::fromStdString(link_path.parent_path().string())};
+    const int parent_uid = MP_FILEOPS.ownerId(parent_dir);
+    const int parent_gid = MP_FILEOPS.groupId(parent_dir);
+    const int rev_uid = reverse_uid_for(parent_uid, parent_uid);
+    const int rev_gid = reverse_gid_for(parent_gid, parent_gid);
+
+    // chown() is lchown() on unix, so this retargets the link itself, not what it points at
+    if (MP_PLATFORM.chown(link_path.string().c_str(), rev_uid, rev_gid) < 0)
+    {
+        mpl::trace(category,
+                   "failed to chown '{}' to owner:{} and group:{}",
+                   link_path.string(),
+                   rev_uid,
+                   rev_gid);
         return reply_failure(msg);
     }
 
