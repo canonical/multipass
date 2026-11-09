@@ -11,14 +11,8 @@ Only the most recent release of Multipass is actively supported. Users are encou
 
 | Release date   |  Release notes  |
 |----|----|
-| September XX, 2026 | [Multipass 1.17.0](./1.17.0) |
-| October XX, 2026 | [Multipass 1.16.5](./1.16.5) |
-| September 8, 2026 | [Multipass 1.16.4](./1.16.4) |
-| May 29, 2026 | [Multipass 1.16.3](./1.16.3) |
-| May 2, 2026 | [Multipass 1.16.2](./1.16.2) |
-| August 27, 2025 | [Multipass 1.16.1](./1.16.1) |
-| July 10, 2025 | [Multipass 1.16.0](./1.16.0) |
-
+| November 9, 2026 | [Multipass 1.17.1](./1.17.1) |
+| October 19, 2026 | [Multipass 1.17.0](./1.17.0) |
 
 ### What's new in 1.17.x?
 
@@ -29,6 +23,18 @@ Along with bug fixes and general improvements, Multipass 1.17.x includes:
 * New Host Compute System (HCS) driver on Windows
 * New Apple Virtualization framework driver on macOS as preview
 * ppc64el and s390x architecture support
+
+### Previous releases
+
+| Release date   |  Release notes  |
+|----|----|
+| November 9, 2026 | [Multipass 1.16.5](./1.16.5) |
+| September 8, 2026 | [Multipass 1.16.4](./1.16.4) |
+| May 29, 2026 | [Multipass 1.16.3](./1.16.3) |
+| May 2, 2026 | [Multipass 1.16.2](./1.16.2) |
+| August 27, 2025 | [Multipass 1.16.1](./1.16.1) |
+| July 10, 2025 | [Multipass 1.16.0](./1.16.0) |
+
 
 ## Release and support policy
 
