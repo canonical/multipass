@@ -1,11 +1,35 @@
 // CustomAction.cpp : Defines the entry point for the custom action.
 #include "pch.h"
 #include <dismapi.h>
+#include <fstream>
 #include <msi.h>
 #include <stdlib.h>
 #include <string>
 #include <tchar.h>
 #pragma comment(lib, "dismapi.lib")
+
+namespace
+{
+// Returns the `local.driver` value from the daemon settings file, or an empty string.
+// The installer writes it without a section header, so GetPrivateProfileString can't read it.
+std::wstring read_existing_driver(const std::wstring& mp_data_dir)
+{
+    // Mirrors Platform::daemon_config_home(): the legacy location wins if it exists
+    WCHAR system_dir[MAX_PATH] = {};
+    GetSystemDirectoryW(system_dir, _countof(system_dir));
+    std::wstring dir =
+        std::wstring{system_dir} + L"\\config\\systemprofile\\AppData\\Local\\multipassd";
+    if (GetFileAttributesW(dir.c_str()) == INVALID_FILE_ATTRIBUTES)
+        dir = mp_data_dir;
+
+    std::wifstream file{dir + L"\\multipassd.conf"};
+    const std::wstring key = L"local.driver=";
+    for (std::wstring line; std::getline(file, line);)
+        if (line.rfind(key, 0) == 0)
+            return line.substr(key.size(), line.find_last_not_of(L" \t\r") + 1 - key.size());
+    return {};
+}
+} // namespace
 
 UINT __stdcall AskRemoveData(__in MSIHANDLE hInstall)
 {
@@ -59,6 +83,7 @@ UINT __stdcall EnableHyperV(__in MSIHANDLE hInstall)
     UINT uiLevel;
     DWORD exitCode = 0;
     std::wstring customActionData;
+    std::wstring args;
     const wchar_t* feature = nullptr;
 
     hr = WcaInitialize(hInstall, __FUNCTION__);
@@ -68,12 +93,27 @@ UINT __stdcall EnableHyperV(__in MSIHANDLE hInstall)
     hr = MsiGetProperty(hInstall, TEXT("CustomActionData"), szBuf, &cchBuf);
     ExitOnFailure(hr, "Failed getting CustomActionData");
 
+    // Either "[UILevel]|[DRIVER]" or, on upgrade, "[UILevel]|upgrade|[MP_DATA_DIR]"
     customActionData = szBuf;
     uiLevel = _wtoi(customActionData.c_str());
+    args = customActionData.substr(customActionData.find(L'|') + 1);
+    // TODO hyperv migration, remove: the dialog is skipped on upgrade, so DRIVER isn't the user's
+    // choice. Only legacy hyperv users need VirtualMachinePlatform, to migrate to hcs.
+    if (args.rfind(L"upgrade|", 0) == 0)
+        feature = read_existing_driver(args.substr(8)) == L"hyperv" ? L"VirtualMachinePlatform"
+                                                                    : nullptr;
     // TODO hyperv migration, revert: always enable VirtualMachinePlatform
-    feature = customActionData.find(L"|hcs") == std::wstring::npos ? L"Microsoft-Hyper-V"
-                                                                   : L"VirtualMachinePlatform";
+    else if (args == L"hcs")
+        feature = L"VirtualMachinePlatform";
+    else if (args == L"hyperv")
+        feature = L"Microsoft-Hyper-V";
     WcaLog(LOGMSG_STANDARD, std::to_string(uiLevel).c_str());
+
+    if (!feature)
+    {
+        WcaLog(LOGMSG_STANDARD, "No Windows feature needs to be enabled.");
+        ExitFunction();
+    }
 
     hCancel_ = CreateEvent(nullptr, TRUE, FALSE, nullptr);
     ExitOnNullWithLastError(hCancel_, hr, "Failed creating event");
