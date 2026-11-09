@@ -17,6 +17,7 @@ NICs
 overallocate
 passwordless
 Portainer
+sftp
 Symantec
 teardown
 unmount
