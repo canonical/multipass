@@ -1,0 +1,18 @@
+name: Weekly documentation link check
+
+on:
+  schedule:
+    - cron: '40 8 * * 1' # Monday at 11:40 Africa/Nairobi (08:40 UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linkcheck:
+    name: Check documentation links
+    uses: canonical/documentation-workflows/.github/workflows/link-check.yaml@main
+    with:
+      working-directory: './docs'
+      fetch-depth: 0
+      python-version: '3.12'
