@@ -252,10 +252,17 @@ auto create_sshfs_process(mp::SSHSession& session,
 }
 
 // Reported to the guest for host ids that the mount has no mapping for. This must be a *valid*
-// id: sftp_attributes_struct::uid/gid are unsigned, so a negative value would reach the guest as
-// (uid_t)-1, i.e. INVALID_UID. The guest kernel then refuses to unlink, rename or chown such a
-// file with EOVERFLOW ("Value too large for defined data type"), see may_delete() in fs/namei.c.
-// 65534 is the conventional "nobody"/overflow id, so it still reads as "not yours" in the guest.
+// id: sftp_attributes_struct::uid/gid are unsigned, so a negative value reaches the guest as
+// (uid_t)-1, i.e. INVALID_UID, and the guest kernel then fails any unlink, rename or chown of the
+// file with EOVERFLOW ("Value too large for defined data type") before the request ever gets to
+// us -- see may_delete() in fs/namei.c. 65534 is the conventional "nobody"/overflow id.
+//
+// This corrects the error such an entry reports, not its accessibility. An entry whose own host
+// owner is unmapped stays off limits to the instance by policy: handle_remove(), handle_rename()
+// and handle_setstat() reject it through has_id_mappings_for(), as removeFailsWhenIdsAreNotMapped
+// and friends pin down. It now says so with SSH_FX_PERMISSION_DENIED rather than provoking a
+// misleading EOVERFLOW in the guest. A link whose target is mapped is unaffected either way,
+// since has_id_mappings_for() resolves it through QFileInfo.
 constexpr int unmapped_id = 65534;
 
 int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
