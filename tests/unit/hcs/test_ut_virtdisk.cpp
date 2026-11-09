@@ -432,47 +432,32 @@ TEST_F(HyperVVirtDisk_UnitTests, clear_sparse_flag_happy_path)
         EXPECT_CALL(mock_virtdisk_api, GetFileAttributesW(StrEq(L"test.vhdx")))
             .WillOnce(Return(FILE_ATTRIBUTE_ARCHIVE | FILE_ATTRIBUTE_SPARSE_FILE));
 
-        EXPECT_CALL(mock_virtdisk_api, CreateFileW)
-            .WillOnce(DoAll(
-                [](LPCWSTR lpFileName,
-                   DWORD dwDesiredAccess,
-                   DWORD dwShareMode,
-                   LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-                   DWORD dwCreationDisposition,
-                   DWORD dwFlagsAndAttributes,
-                   HANDLE hTemplateFile) {
-                    ASSERT_NE(nullptr, lpFileName);
-                    ASSERT_STREQ(lpFileName, L"test.vhdx");
-                    ASSERT_EQ(dwDesiredAccess, GENERIC_WRITE);
-                    ASSERT_EQ(dwShareMode, FILE_SHARE_READ);
-                    ASSERT_EQ(nullptr, lpSecurityAttributes);
-                    ASSERT_EQ(dwCreationDisposition, OPEN_EXISTING);
-                    ASSERT_EQ(dwFlagsAndAttributes, 0);
-                    ASSERT_EQ(nullptr, hTemplateFile);
-                },
-                Return(mock_handle_object)));
+        EXPECT_CALL(mock_virtdisk_api,
+                    CreateFileW(StrEq(L"test.vhdx"), // lpFileName
+                                GENERIC_WRITE,       // dwDesiredAccess
+                                FILE_SHARE_READ,     // dwShareMode
+                                IsNull(),            // lpSecurityAttributes
+                                OPEN_EXISTING,       // dwCreationDisposition
+                                0,                   // dwFlagsAndAttributes
+                                IsNull()             // hTemplateFile
+                                ))
+            .WillOnce(Return(mock_handle_object));
 
-        EXPECT_CALL(mock_virtdisk_api, DeviceIoControl)
-            .WillOnce(DoAll(
-                [](HANDLE hDevice,
-                   DWORD dwIoControlCode,
-                   LPVOID lpInBuffer,
-                   DWORD nInBufferSize,
-                   LPVOID lpOutBuffer,
-                   DWORD nOutBufferSize,
-                   LPDWORD lpBytesReturned,
-                   LPOVERLAPPED lpOverlapped) {
-                    ASSERT_EQ(mock_handle_object, hDevice);
-                    ASSERT_EQ(dwIoControlCode, FSCTL_SET_SPARSE);
-                    ASSERT_NE(nullptr, lpInBuffer);
-                    ASSERT_EQ(nInBufferSize, sizeof(FILE_SET_SPARSE_BUFFER));
-                    ASSERT_FALSE(static_cast<PFILE_SET_SPARSE_BUFFER>(lpInBuffer)->SetSparse);
-                    ASSERT_EQ(nullptr, lpOutBuffer);
-                    ASSERT_EQ(nOutBufferSize, 0);
-                    ASSERT_NE(nullptr, lpBytesReturned);
-                    ASSERT_EQ(nullptr, lpOverlapped);
-                },
-                Return(TRUE)));
+        EXPECT_CALL(
+            mock_virtdisk_api,
+            DeviceIoControl(
+                mock_handle_object, // hDevice
+                FSCTL_SET_SPARSE,   // dwIoControlCode
+                AllOf(NotNull(), Truly([](const void* buffer) {
+                          return !static_cast<const FILE_SET_SPARSE_BUFFER*>(buffer)->SetSparse;
+                      })),                      // lpInBuffer
+                sizeof(FILE_SET_SPARSE_BUFFER), // nInBufferSize
+                IsNull(),                       // lpOutBuffer
+                0,                              // nOutBufferSize
+                NotNull(),                      // lpBytesReturned
+                IsNull()                        // lpOverlapped
+                ))
+            .WillOnce(Return(TRUE));
 
         EXPECT_CALL(mock_virtdisk_api, CloseHandle(Eq(mock_handle_object))).WillOnce(Return(true));
     }
