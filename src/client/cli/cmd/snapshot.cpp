@@ -60,7 +60,7 @@ mp::ReturnCodeVariant cmd::Snapshot::run(mp::ArgParser* parser)
         spinner.stop();
         fmt::print(cout, "Snapshot '{}' of '{}' created.\n", reply.snapshot(), request.instance());
         if (auto warnings = reply.warnings(); !warnings.empty())
-            fmt::print(cout, "warning: {}\n", warnings);
+            fmt::print(cerr, "Warning: {}\n", warnings);
         return ReturnCode::Ok;
     };
 
@@ -140,21 +140,15 @@ bool cmd::Snapshot::confirm_restart(const std::string& instance_name, bool is_su
 {
     const auto running_prompt_text = fmt::format(
         "Instance '{}' is running. Would you like to stop it, take a snapshot, and restart the "
-        "instance? (yes/No)",
+        "instance?",
         instance_name);
     const auto suspended_prompt_text = fmt::format(
         "Instance '{}' is suspended. Would you like to resume and stop it, take a snapshot, and "
-        "then restart the instance? (yes/No)",
+        "then restart the instance?",
         instance_name);
-    static constexpr auto invalid_input = "Please answer yes/No";
-    mp::PlainPrompter prompter(term);
+    YesNoPrompter prompter(term);
 
-    auto answer = prompter.prompt(is_suspended ? suspended_prompt_text : running_prompt_text);
-    while (!answer.empty() && !std::regex_match(answer, mp::client::yes_answer) &&
-           !std::regex_match(answer, mp::client::no_answer))
-        answer = prompter.prompt(invalid_input);
-
-    return std::regex_match(answer, mp::client::yes_answer);
+    return prompter.prompt(is_suspended ? suspended_prompt_text : running_prompt_text, false);
 }
 void cmd::Snapshot::handle_snapshot_restart_prompt(
     const mp::SnapshotReply& reply,
