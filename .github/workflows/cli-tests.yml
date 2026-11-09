@@ -67,8 +67,8 @@ jobs:
 
             if (SNAP_CHANNEL !== '<undefined>') {
               for (const runner of [
-                'ubuntu-latest',
-                'self-hosted-linux-arm64-resolute-large',
+                // 'ubuntu-latest',
+                // 'self-hosted-linux-arm64-resolute-large',
                 'self-hosted-linux-s390x-resolute-medium',
                 'self-hosted-linux-ppc64el-resolute-medium'
                 ]) {

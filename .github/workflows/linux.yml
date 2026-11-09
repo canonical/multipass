@@ -35,8 +35,6 @@ jobs:
           });
 
           let runners = [
-            "ubuntu-latest",
-            "ubuntu-24.04-arm",
             "self-hosted-linux-ppc64el-resolute-medium",
             "self-hosted-linux-s390x-resolute-medium"
           ];

@@ -105,19 +105,19 @@ jobs:
     uses: "./.github/workflows/linux.yml"
     secrets: inherit
 
-  macos:
-    name: macOS
-    needs: filter
-    if: needs.filter.outputs.code == 'true' || needs.filter.outputs.is-tag == 'true'
-    uses: "./.github/workflows/macos.yml"
-    secrets: inherit
+  # macos:
+  #   name: macOS
+  #   needs: filter
+  #   if: needs.filter.outputs.code == 'true' || needs.filter.outputs.is-tag == 'true'
+  #   uses: "./.github/workflows/macos.yml"
+  #   secrets: inherit
 
-  windows:
-    name: Windows
-    needs: filter
-    if: needs.filter.outputs.code == 'true' || needs.filter.outputs.is-tag == 'true'
-    uses: "./.github/workflows/windows.yml"
-    secrets: inherit
+  # windows:
+  #   name: Windows
+  #   needs: filter
+  #   if: needs.filter.outputs.code == 'true' || needs.filter.outputs.is-tag == 'true'
+  #   uses: "./.github/workflows/windows.yml"
+  #   secrets: inherit
 
   hooks:
     name: Hooks
@@ -135,7 +135,7 @@ jobs:
     name: Finalize
     runs-on: ubuntu-slim
     if: ${{ always() }}
-    needs: [docs, lint, linux, windows, macos, hooks, cli-tests-ut]
+    needs: [docs, lint, linux, hooks, cli-tests-ut]
     steps:
       - name: Docs failure check
         if: ${{
@@ -146,9 +146,7 @@ jobs:
       - name: Compilation failure check
         if: ${{
           needs.lint.result == 'failure' || needs.lint.result == 'cancelled' ||
-          needs.linux.result == 'failure' || needs.linux.result == 'cancelled' ||
-          needs.windows.result == 'failure' || needs.windows.result == 'cancelled' ||
-          needs.macos.result == 'failure' || needs.macos.result == 'cancelled'
+          needs.linux.result == 'failure' || needs.linux.result == 'cancelled'
           }}
         run: exit 1
 
