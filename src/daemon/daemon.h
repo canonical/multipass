@@ -32,7 +32,6 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
-#include <mutex>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
@@ -317,7 +316,6 @@ private:
         this,
         false};
     std::unordered_map<std::string, QtSharedFuture<ReadinessResult>*> async_running_futures;
-    std::mutex start_mutex;
     std::unordered_set<std::string> preparing_instances;
     QFuture<void> image_update_future;
     SettingsHandler* instance_mod_handler;
