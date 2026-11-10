@@ -20,8 +20,6 @@
 #include <multipass/cli/alias_dict.h>
 #include <multipass/cli/return_codes.h>
 
-#include <optional>
-
 namespace multipass
 {
 namespace cmd
@@ -30,7 +28,6 @@ ReturnCodeVariant create_alias(AliasDict& aliases,
                                const std::string& alias_name,
                                const AliasDefinition& alias_definition,
                                std::ostream& cout,
-                               std::ostream& cerr,
-                               const std::optional<std::string>& context = std::nullopt);
+                               std::ostream& cerr);
 } // namespace cmd
 } // namespace multipass

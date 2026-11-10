@@ -363,6 +363,7 @@ std::string mp::YamlFormatter::format(const VersionReply& reply,
 std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
 {
     YAML::Node aliases_list, aliases_node;
+    YAML::Node context_status{YAML::NodeType::Map};
 
     for (const auto& [context_name, context_contents] : sorted_map_view(aliases))
     {
@@ -380,10 +381,14 @@ std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
         }
 
         aliases_node[context_name.get()] = context_node;
+        context_status[context_name.get()] = aliases.is_context_active(context_name.get())
+                                               ? "active"
+                                               : "inactive";
     }
 
-    aliases_list["active_context"] = aliases.active_context_name();
+    aliases_list["active_context"] = default_context_name;
     aliases_list["aliases"] = aliases_node;
+    aliases_list["context_status"] = context_status;
 
     return mpu::emit_yaml(aliases_list);
 }

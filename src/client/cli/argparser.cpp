@@ -181,6 +181,15 @@ mp::ParseCode mp::ArgParser::parse(const std::optional<mp::AliasDict>& aliases)
         execute_alias = aliases->get_alias(requested_command.toStdString());
         if (execute_alias)
             return prepare_alias_execution(requested_command);
+
+        if (aliases->is_inactive_alias(requested_command.toStdString()))
+        {
+            cerr << "Alias '" << qUtf8Printable(requested_command)
+                 << "' belongs to an inactive context. Use `multipass aliases` to view its "
+                    "definition, then recreate it in the default context with "
+                    "`multipass alias <instance>:<command> <new-name>`.\n";
+            return ParseCode::CommandLineError;
+        }
     }
 
     // Fall through

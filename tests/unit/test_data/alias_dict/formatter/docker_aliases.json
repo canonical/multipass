@@ -15,5 +15,9 @@
                 "working-directory": "map"
             }
         }
+    },
+    "context-status": {
+        "default": "active",
+        "docker": "inactive"
     }
 }

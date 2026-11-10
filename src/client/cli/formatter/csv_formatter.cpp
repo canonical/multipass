@@ -277,23 +277,25 @@ std::string mp::CSVFormatter::format(const VersionReply& reply,
 std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
 {
     fmt::memory_buffer buf;
-    fmt::format_to(std::back_inserter(buf), "Alias,Instance,Command,Working directory,Context\n");
+    fmt::format_to(std::back_inserter(buf),
+                   "Alias,Instance,Command,Working directory,Context,Context status\n");
 
     for (const auto& [context_name, context_contents] : sorted_map_view(aliases))
     {
-        std::string shown_context = context_name.get() == aliases.active_context_name()
+        std::string shown_context = aliases.is_context_active(context_name.get())
                                       ? context_name.get() + "*"
                                       : context_name.get();
 
         for (const auto& [name, def] : sorted_map_view(context_contents.get()))
         {
             fmt::format_to(std::back_inserter(buf),
-                           "{},{},{},{},{}\n",
+                           "{},{},{},{},{},{}\n",
                            name.get(),
                            def.get().instance,
                            def.get().command,
                            def.get().working_directory,
-                           shown_context);
+                           shown_context,
+                           aliases.is_context_active(context_name.get()) ? "active" : "inactive");
         }
     }
 
