@@ -262,13 +262,16 @@ scenarios. If no approved feature file exists, send the user to Mode 1.
      files, never touch any other file (and never the feature file itself).
 
 4. **Write one pytest method per Gherkin scenario.**
-   - Name the class/methods after the scenarios. Add a short comment above
-     each method linking back to the scenario title, AND noting whether the
-     scenario exercises the new/fixed behavior (**must FAIL** against the
-     current, unfixed code) or verifies an unaffected/control case (e.g.
-     "stays literal"/"unchanged" — expected to pass either way). Without this
-     tag, a reviewer can't tell an intentional control-case pass from a real
-     false positive.
+   - Name the class/methods after the scenarios.
+   - **The embedded `# Gherkin:` block is the ONLY comment in the test.** No
+     other comments anywhere: no `# Given/When/Then` step comments, no
+     scenario-title comment, no must-fail/control-case tag, no `Raw repro:`
+     lines, no explanatory comments inside bodies, no docstrings. Control-case
+     and must-fail notes live only in the `.feature` file.
+   - **Keep the test code compact.** Write each statement on one line where it
+     fits the project's formatter line length (no needless line-wrapped
+     calls/dicts, no blank-line-separated step sections, no single-use
+     intermediate variables); only wrap when the formatter requires it.
    - **Assert the exact, specific outcome — not a loose check.** Prefer exact
      equality (compare a whole dict/string to its complete expected value)
      over membership/substring checks whenever the Gherkin implies an exact
@@ -282,22 +285,21 @@ scenarios. If no approved feature file exists, send the user to Mode 1.
      - add a second, negative assertion that the exact buggy/unfixed value is
        absent only when the Gherkin or raw repro explicitly names that value
        (e.g. the literal unexpanded `~` component); never invent a buggy value
-       the approved feature does not specify;
-     - add a comment line starting with `Raw repro:` above the method with the
-       bare `multipass` command(s) a human can type to see the bug by hand
-       (e.g. `multipass mount <src> <vm>:~/target` then
-       `multipass info <vm> --format=json`), so a surprising PASS can be
-       cross-checked outside pytest.
+       the approved feature does not specify.
    - **Make sure failures can actually propagate.** Put assertions where an
      exception will reach pytest — check that any context manager you wrap
      them in (e.g. `TempDirectory`) does not swallow exceptions.
    - Directly above the test class you added (or, if appending to an existing
-     class, directly above that class), copy the FULL text of the approved
-     Gherkin verbatim into a single `# Gherkin: ...` comment block (one `#`
-     per line, no blank line inside the block). Keep it in sync with the
-     `.feature` file — this is not optional: it is the permanent, in-file
-     record of the spec the tests were generated from. For a brand-new file
-     it lands right after the license header.
+     class, directly above that class), embed a single `# Gherkin: ...`
+     comment block (one `#` per line, no blank line inside the block) holding
+     ONLY the essentials: the issue/PR number (e.g. `# Issue #4957`) on the
+     first line, then the Given/When/Then/And steps verbatim from the approved
+     `.feature` file. Leave out `Feature:` and `Scenario`/`Scenario Outline:`
+     lines, `Examples:` sections, the Feature's prose description,
+     background/history text and all other `#` comments (including
+     `# Control case:` notes). For several scenarios, separate their step
+     lists with a single `#` line. Keep the steps in sync with the `.feature`
+     file. For a brand-new file it lands right after the license header.
    - The result must be indistinguishable in location/structure from any other
      `tests/cli` test — nothing marks it as generated except the embedded
      Gherkin block and the companion `.feature` file.

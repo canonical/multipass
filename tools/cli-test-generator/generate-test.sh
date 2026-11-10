@@ -123,7 +123,9 @@ PROMPT="Mode 2 — Generate test from Gherkin, as defined in your agent instruct
 The approved feature file is ${FEATURE_PATH}; read it with the view tool.
 This is a headless run with no command execution: skip steps 6 and 7 (the
 calling script runs the compile/collection checks and prints the validation
-instructions) and do not run any command."
+instructions) and do not run any command.
+The embedded Gherkin block must be the only comment in the test file, and the
+test code must be compact (no needless line wrapping or blank-line sections)."
 
 if [[ -n "$TEST_PATH" ]]; then
   PROMPT="${PROMPT}
