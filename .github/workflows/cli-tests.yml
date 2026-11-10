@@ -144,8 +144,19 @@ jobs:
 
       # Install specific python
       - uses: actions/setup-python@v7
+        if: ${{ !contains(matrix.os, 's390x') && !contains(matrix.os, 'ppc64el') }}
         with:
           python-version: '3.15'
+
+      # actions/setup-python has no s390x/ppc64el builds, use uv-managed Python there
+      - uses: astral-sh/setup-uv@v10.3.3
+        if: ${{ contains(matrix.os, 's390x') || contains(matrix.os, 'ppc64el') }}
+
+      - name: Install Python (uv)
+        if: ${{ contains(matrix.os, 's390x') || contains(matrix.os, 'ppc64el') }}
+        run: |
+          uv python install 3.15
+          dirname "$(uv python find --managed-python 3.15)" >> "$GITHUB_PATH"
 
       - name: Download package with cURL
         if: ${{ matrix['pkg-url'] != '' }}
