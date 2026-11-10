@@ -106,10 +106,10 @@ index 928523afcc6c0..812163dda83ec 100644
 +    } else if (fs_ctx->export_flags & V9FS_SM_PASSTHROUGH ||
 +               fs_ctx->export_flags & V9FS_SM_NONE) {
 +        if (stbuf->st_uid == fs_ctx->uid_map.host_uid) {
-+            stbuf->st_uid = le32_to_cpu(fs_ctx->uid_map.guest_uid);
++            stbuf->st_uid = fs_ctx->uid_map.guest_uid;
 +        }
 +        if (stbuf->st_gid == fs_ctx->gid_map.host_gid) {
-+            stbuf->st_gid = le32_to_cpu(fs_ctx->gid_map.guest_gid);
++            stbuf->st_gid = fs_ctx->gid_map.guest_gid;
 +        }
      }
  
@@ -135,10 +135,10 @@ index 928523afcc6c0..812163dda83ec 100644
 +    } else if (fs_ctx->export_flags & V9FS_SM_PASSTHROUGH ||
 +               fs_ctx->export_flags & V9FS_SM_NONE) {
 +        if (stbuf->st_uid == fs_ctx->uid_map.host_uid) {
-+            stbuf->st_uid = le32_to_cpu(fs_ctx->uid_map.guest_uid);
++            stbuf->st_uid = fs_ctx->uid_map.guest_uid;
 +        }
 +        if (stbuf->st_gid == fs_ctx->gid_map.host_gid) {
-+            stbuf->st_gid = le32_to_cpu(fs_ctx->gid_map.guest_gid);
++            stbuf->st_gid = fs_ctx->gid_map.guest_gid;
 +        }
      }
      return err;
