@@ -4625,7 +4625,7 @@ grpc::Status mp::Daemon::snapshot_shutdown_vm(
     mp::VirtualMachine& vm,
     grpc::ServerReaderWriterInterface<mp::SnapshotReply, mp::SnapshotRequest>* server)
 {
-    const auto state = vm.current_state();
+    const auto state = vm.fetch_state();
     const auto vm_name = vm.get_name();
     // Do a normative restart (bool is true implicitly)
     if (state == St::delayed_shutdown || state == St::running)
