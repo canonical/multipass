@@ -9,17 +9,6 @@ For detailed release information, see the [Multipass releases page](https://gith
 
 Only the most recent release of Multipass is actively supported. Users are encouraged to [upgrade](how-to-guides-install-multipass-upgrade) to the latest version to receive new features, security updates and bug fixes.
 
-| Release date   |  Release notes  |
-|----|----|
-| September XX, 2026 | [Multipass 1.17.0](./1.17.0) |
-| October XX, 2026 | [Multipass 1.16.5](./1.16.5) |
-| September 8, 2026 | [Multipass 1.16.4](./1.16.4) |
-| May 29, 2026 | [Multipass 1.16.3](./1.16.3) |
-| May 2, 2026 | [Multipass 1.16.2](./1.16.2) |
-| August 27, 2025 | [Multipass 1.16.1](./1.16.1) |
-| July 10, 2025 | [Multipass 1.16.0](./1.16.0) |
-
-
 ### What's new in 1.17.x?
 
 Along with bug fixes and general improvements, Multipass 1.17.x includes:
@@ -30,23 +19,23 @@ Along with bug fixes and general improvements, Multipass 1.17.x includes:
 * New Apple Virtualization framework driver on macOS as preview
 * ppc64el and s390x architecture support
 
-## Release and support policy
+### Release Notes
 
-Multipass follows a defined release cycle with regular releases.
-
-Minor releases
-: A new minor release of Multipass is released approximately every 6 months. It includes new features and bug fixes.
-
-Patch releases
-: A patch release for Multipass is released as needed and includes critical bug fixes and security updates.
-
-To ensure that you receive the latest security updates and bug fixes, you should upgrade to a new release of Multipass shortly after it is released.
-
+| Release date   |  Release notes  |
+|----|----|
+| November 9, 2026 | [Multipass 1.17.1](./1.17.1) |
+| October 19, 2026 | [Multipass 1.17.0](./1.17.0) |
 
 <details><summary>Click to view earlier release notes</summary>
 
 |  Release date  |  Release notes  |
 |----|----|
+| November 9, 2026 | [Multipass 1.16.5](./1.16.5) |
+| September 8, 2026 | [Multipass 1.16.4](./1.16.4) |
+| May 29, 2026 | [Multipass 1.16.3](./1.16.3) |
+| May 2, 2026 | [Multipass 1.16.2](./1.16.2) |
+| August 27, 2025 | [Multipass 1.16.1](./1.16.1) |
+| July 10, 2025 | [Multipass 1.16.0](./1.16.0) |
 | February 26, 2025 | [Multipass 1.15.1](https://github.com/canonical/multipass/releases/tag/v1.15.1) |
 | December 11, 2024 | [Multipass 1.15.0](https://github.com/canonical/multipass/releases/tag/v1.15.0) |
 | October 17, 2024 | [Multipass 1.14.1](https://github.com/canonical/multipass/releases/tag/v1.14.1) |
@@ -80,3 +69,15 @@ To ensure that you receive the latest security updates and bug fixes, you should
 | January 17, 2020 | [Multipass 1.0.0](https://github.com/canonical/multipass/releases/tag/v1.0.0) |
 
 </details>
+
+## Release and support policy
+
+Multipass follows a defined release cycle with regular releases.
+
+Minor releases
+: A new minor release of Multipass is released approximately every 6 months. It includes new features and bug fixes.
+
+Patch releases
+: A patch release for Multipass is released as needed and includes critical bug fixes and security updates.
+
+To ensure that you receive the latest security updates and bug fixes, you should upgrade to a new release of Multipass shortly after it is released.

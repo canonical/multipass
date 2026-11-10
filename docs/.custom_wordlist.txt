@@ -22,6 +22,7 @@ passwordless
 Portainer
 Sonoma
 subnets
+sftp
 Symantec
 teardown
 Tunnelblick

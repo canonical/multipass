@@ -12,3 +12,7 @@ index 258c83e..067eff1 100644
  )
  
  vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
+@@ -21,0 +24,3 @@
++# Enlarge the connector buffer from the default 4096 bytes to avoid stalled `exec` output
++string(APPEND VCPKG_C_FLAGS " -DCHUNKSIZE=65536")
++string(APPEND VCPKG_CXX_FLAGS " -DCHUNKSIZE=65536")
