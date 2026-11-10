@@ -252,13 +252,13 @@ void mp::BaseVirtualMachine::check_state_for_shutdown(ShutdownPolicy shutdown_po
 
 bool mp::BaseVirtualMachine::set_available(bool available)
 {
+    std::unique_lock lock{state_mutex};
     // Ignore idempotent calls
     if (available == (cached_state() != St::unavailable))
         return false;
 
     if (available)
     {
-        std::lock_guard lock{state_mutex};
         assert(cached_state() == St::unavailable);
         mpl::info(vm_name, "State changed from {} to {}", state, St::stopped);
         state = St::stopped;
@@ -269,9 +269,10 @@ bool mp::BaseVirtualMachine::set_available(bool available)
     was_running = cached_state() == St::running || cached_state() == St::starting ||
                   cached_state() == St::restarting;
     // Backends lock the state mutex in shutdown(), so it can only be taken afterwards
+    lock.unlock();
     shutdown(ShutdownPolicy::Poweroff);
+    lock.lock();
 
-    std::lock_guard lock{state_mutex};
     set_state(St::unavailable);
     return false;
 }
