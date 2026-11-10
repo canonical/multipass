@@ -67,8 +67,9 @@ jobs:
 
             if (SNAP_CHANNEL !== '<undefined>') {
               for (const runner of [
-                'ubuntu-latest'
-                // 'self-hosted-linux-arm64-noble-edge'
+                'ubuntu-latest',
+                // 'self-hosted-linux-arm64-noble-edge',
+                'self-hosted-linux-s390x-resolute-medium'
                 ]) {
                 matrix.include.push({
                   os: runner,
@@ -120,6 +121,7 @@ jobs:
 
             core.setOutput('matrix', JSON.stringify(matrix));
             core.setOutput('has_targets', String(matrix.include.length > 0));
+
   run-cli-tests:
     concurrency:
       group: cli-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ matrix.concurrency-key }}
@@ -216,6 +218,7 @@ jobs:
 
           # Add installation path to the GITHUB_PATH so subsequent steps can use the binaries
           "$env:ProgramFiles\Multipass\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       ##################################################################
       # Platform-agnostic
       ##################################################################
