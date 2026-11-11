@@ -124,6 +124,17 @@ pytest tests/cli -k "shell_test"
 
 See [pytest](https://docs.pytest.org/en/6.2.x/usage.html)'s documentation about [Specifying tests / selecting tests](https://docs.pytest.org/en/6.2.x/usage.html#specifying-tests-selecting-tests) to learn more.
 
+### Feature-dependent tests
+
+Use `@requires_feature("debian_images")`, imported from `cli.multipass`, on tests
+or classes that require a feature. It checks the Multipass version and host
+architecture against `multipass/feature_versions.py` and skips unsupported tests
+before fixtures run, so no VM is launched for a skipped test.
+
+When only particular parameter values need a feature, use
+`pytest.param(value, marks=requires_feature("blueprints"))` instead of skipping
+inside the test body.
+
 ### Repeating the failed tests
 
 Append `--last-failed` to the test run command, like as follows:

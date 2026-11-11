@@ -23,20 +23,19 @@ from cli.multipass import (
     info,
     launch,
     multipass,
-    skip_if_feature_not_supported,
+    requires_feature,
     state,
 )
 
 
 @pytest.mark.az
 @pytest.mark.usefixtures("multipassd")
+@requires_feature("az")
 class TestAvailabilityZones:
     """CLI availability-zone tests."""
 
     def test_enable_disable_zone_states(self):
         """Check that enabling/disabling zones updates the instance states."""
-
-        skip_if_feature_not_supported("az")
 
         with (
             launch({"zone": "zone1"}) as instance1,
@@ -56,8 +55,6 @@ class TestAvailabilityZones:
 
     def test_instances_in_different_zones_can_communicate(self):
         """Check that instances can communicate across zone subnets."""
-
-        skip_if_feature_not_supported("az")
 
         with (
             launch({"zone": "zone1"}) as zone1_instance,

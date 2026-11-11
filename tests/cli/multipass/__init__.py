@@ -72,4 +72,8 @@ from .imageutils import image_name_to_version
 from .launch import launch
 from .fileutils import flag_instance_deleted, nuke_all_instances
 from .nameutils import random_vm_name
-from .feature_versions import multipass_version_has_feature, skip_if_feature_not_supported, requires_multipass
+from .feature_versions import (
+    multipass_version_has_feature,
+    requires_feature,
+    requires_multipass,
+)

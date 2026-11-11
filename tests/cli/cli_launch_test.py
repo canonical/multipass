@@ -30,7 +30,7 @@ from cli.multipass import (
     info,
     state,
     vm_exists,
-    skip_if_feature_not_supported
+    requires_feature,
 )
 
 
@@ -97,11 +97,10 @@ class TestLaunch:
         ],
         indirect=True,
     )
+    @requires_feature("debian_images")
     def test_launch_debian(self, instance, feat_snapshot):
         """Try to launch a Debian VM with default specs.
         Then, validate the basics."""
-
-        skip_if_feature_not_supported("debian_images")
 
         validate_list_output(
             instance,
@@ -148,11 +147,10 @@ class TestLaunch:
         ],
         indirect=True,
     )
+    @requires_feature("fedora_images")
     def test_launch_fedora(self, instance, feat_snapshot):
         """Try to launch a Fedora VM with default specs.
         Then, validate the basics."""
-
-        skip_if_feature_not_supported("fedora_images")
 
         validate_list_output(
             instance,

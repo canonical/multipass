@@ -24,7 +24,7 @@ import pytest
 from cli.multipass import (
     multipass,
     multipass_version_has_feature,
-    skip_if_feature_not_supported,
+    requires_feature,
 )
 
 supported_appliances = [
@@ -58,12 +58,13 @@ class TestImages:
 
     @pytest.mark.parametrize(
         "show",
-        ["", "--only-images", "--only-blueprints"],
+        [
+            "",
+            pytest.param("--only-images", marks=requires_feature("blueprints")),
+            pytest.param("--only-blueprints", marks=requires_feature("blueprints")),
+        ],
     )
     def test_find_all(self, cmd, show):
-        if show in ["--only-images", "--only-blueprints"]:
-            skip_if_feature_not_supported("blueprints")
-
         # Confirm that it shows at least 1 devel, 2 LTS releases
         (output, header) = multipass(
             cmd, "--all", "--format=json", show
@@ -152,9 +153,8 @@ class TestImages:
         # Pull the keys present in expected and do a comparison
         assert {key: image_data[key] for key in expected_image} == expected_image
 
+    @requires_feature("debian_images")
     def test_query_image_debian(self, cmd):
-        skip_if_feature_not_supported("debian_images")
-
         (output, header) = multipass(
             cmd, "debian", "--format=json"
         ).json_with_header()
@@ -172,9 +172,8 @@ class TestImages:
         assert {key: image[key] for key in expected_image} == expected_image
         assert image["release"]
 
+    @requires_feature("fedora_images")
     def test_query_image_fedora(self, cmd):
-        skip_if_feature_not_supported("fedora_images")
-
         (output, header) = multipass(
             cmd, "fedora", "--format=json"
         ).json_with_header()
