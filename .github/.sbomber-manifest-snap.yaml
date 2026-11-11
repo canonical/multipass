@@ -1,0 +1,19 @@
+# Template rendered once per architecture by .github/workflows/request-sboms.yml.
+clients:
+  sbom:
+    service_url: https://sbom-request.canonical.com
+    department: devex
+    email: __EMAIL__
+    team: multipass
+  secscan: {}
+
+artifacts:
+  - name: multipass-__ARCH__
+    snap: multipass
+    type: snap
+    channel: latest/__RISK__
+    ssdlc_params:
+      name: multipass
+      version: ""  # auto-detect (snap store revision)
+      channel: __RISK__
+      cycle: "__CYCLE__"
