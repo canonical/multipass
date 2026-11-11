@@ -46,6 +46,8 @@
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
+#include <multipass/process/basic_process.h>
+#include <multipass/process/simple_process_spec.h>
 #include <multipass/snapshot.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
@@ -1258,7 +1260,9 @@ TEST_F(QemuBackend, dropsSSHSessionWhenStopping)
                                  zone};
     machine.set_running();
 
-    EXPECT_CALL(machine, drop_ssh_session());
+    // Without a QEMU process, the graceful shutdown now completes through on_shutdown(), which
+    // drops the SSH session a second time.
+    EXPECT_CALL(machine, drop_ssh_session()).Times(2);
 
     MP_DELEGATE_MOCK_CALLS_ON_BASE(machine, shutdown, mp::QemuVirtualMachine);
     machine.shutdown(mp::VirtualMachine::ShutdownPolicy::Powerdown);
@@ -1572,4 +1576,150 @@ TEST(QemuPlatform, baseQemuPlatformReturnsExpectedValues)
 
     EXPECT_TRUE(qemu_platform.vmstate_platform_args().isEmpty());
     EXPECT_TRUE(qemu_platform.get_directory_name().isEmpty());
+}
+
+TEST_F(QemuBackend, qemuDyingAfterResumeDoesNotLeaveInstanceRunning)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    mpt::MockProcess* qemu_process{nullptr};
+    process_factory->register_callback([this, &qemu_process](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()) &&
+            !process->arguments().contains("-dump-vmstate"))
+        {
+            qemu_process = process;
+            EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                emit process->state_changed(QProcess::Running);
+                emit process->started();
+            });
+        }
+        else
+        {
+            // Have the fake `qemu-img` report the suspend snapshot, so that the VM starts out
+            // suspended
+            handle_external_process_calls(process);
+        }
+    });
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::suspended);
+
+    EXPECT_CALL(mock_monitor, on_resume());
+    machine->start();
+
+    ASSERT_NE(qemu_process, nullptr);
+    machine->state = mp::VirtualMachine::State::running; // the daemon marks the resumed VM running
+
+    // QEMU dies unexpectedly (before ever serving QMP), exiting with a non-zero code
+    mp::ProcessState exit_state;
+    exit_state.exit_code = 1;
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "process finished with exit code 1");
+    EXPECT_CALL(mock_monitor, on_shutdown());
+
+    emit qemu_process->finished(exit_state);
+
+    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+}
+
+TEST_F(QemuBackend, gracefulShutdownOnDeadQemuProcessTransitionsToStopped)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    mpt::MockProcess* qemu_process{nullptr};
+    process_factory->register_callback([this, &qemu_process](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()) &&
+            !process->arguments().contains("-dump-vmstate"))
+        {
+            qemu_process = process;
+            EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                emit process->state_changed(QProcess::Running);
+                emit process->started();
+            });
+        }
+        else
+        {
+            handle_external_process_calls(process);
+        }
+    });
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    EXPECT_CALL(mock_monitor, on_resume());
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+
+    ASSERT_NE(qemu_process, nullptr);
+    // The QEMU process is already gone, but the (stale) QProcess state still reports it running
+    EXPECT_CALL(*qemu_process, running()).WillRepeatedly(Return(false));
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::info);
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "QEMU process is not running");
+    EXPECT_CALL(mock_monitor, on_shutdown());
+
+    machine->shutdown(); // graceful, i.e. no --force
+
+    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+}
+
+TEST_F(QemuBackend, deadQemuProcessAbortsSshWaitDespiteStaleQProcessState)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    mpt::MockProcess* qemu_process{nullptr};
+    process_factory->register_callback([this, &qemu_process](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()) &&
+            !process->arguments().contains("-dump-vmstate"))
+        {
+            qemu_process = process;
+            EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                emit process->state_changed(QProcess::Running);
+                emit process->started();
+            });
+        }
+        else
+        {
+            // Have the fake `qemu-img` report the suspend snapshot, so that the VM starts out
+            // suspended
+            handle_external_process_calls(process);
+        }
+    });
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::suspended);
+
+    EXPECT_CALL(mock_monitor, on_resume());
+    machine->start();
+    ASSERT_NE(qemu_process, nullptr);
+
+    // A real, already-reaped child process: the OS agrees it is gone
+    mp::BasicProcess dead_process{mp::simple_process_spec("mock_process")};
+    dead_process.start();
+    ASSERT_TRUE(dead_process.wait_for_finished(10000));
+    const auto dead_pid = dead_process.process_id();
+    ASSERT_GT(dead_pid, 0);
+
+    // QProcess state is stale (still "running"), only the OS knows QEMU is dead
+    EXPECT_CALL(*qemu_process, running()).WillRepeatedly(Return(true));
+    EXPECT_CALL(*qemu_process, process_id()).WillRepeatedly(Return(dead_pid));
+
+    // Waiting for SSH must notice the dead process and abort the start instead of timing out
+    EXPECT_THROW(machine->wait_until_ssh_up(std::chrono::milliseconds(100)),
+                 mp::StartException);
 }
