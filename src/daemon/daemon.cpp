@@ -3578,7 +3578,29 @@ void mp::Daemon::on_restart(const std::string& name)
     auto future_watcher = create_future_watcher([this, name]() {
         try
         {
-            operative_instances.at(name)->set_running();
+            auto virtual_machine = operative_instances.at(name);
+
+            // The readiness wait may have failed (e.g. the QEMU process died during the
+            // restart), and the instance may have been shut down in the meantime: only mark
+            // the instance as running when it is still operative. A failed or already-shut-
+            // down instance must not be resurrected by a successful readiness result.
+            const auto state = virtual_machine->fetch_state();
+            const auto still_operative = state == VirtualMachine::State::running ||
+                                         state == VirtualMachine::State::starting ||
+                                         state == VirtualMachine::State::restarting ||
+                                         state == VirtualMachine::State::unknown;
+            if (!still_operative)
+            {
+                mpl::info(category,
+                          "Instance `{}` finished its readiness wait in state {}; leaving "
+                          "it as is",
+                          name,
+                          state);
+            }
+            else
+            {
+                virtual_machine->set_running();
+            }
         }
         catch (const std::out_of_range&)
         {
@@ -3745,7 +3767,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     operative_instances[name]->start();
 
                     auto future_watcher = create_future_watcher(
-                        [this, server, name, zone = vm_desc.zone] {
+                        [this, server, name, zone = vm_desc.zone](const AsyncOperationStatus&) {
                             LaunchReply reply;
                             reply.set_vm_instance_name(name);
                             config->update_prompt->populate_if_time_to_show(
@@ -4148,7 +4170,7 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
 }
 
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watcher(
-    std::function<void()> const& finished_op)
+    std::function<void(const AsyncOperationStatus&)> const& finished_op)
 {
     auto uuid = mp::utils::make_uuid();
     auto future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
@@ -4158,7 +4180,7 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
     QObject::connect(future_watcher_p,
                      &QFutureWatcher<AsyncOperationStatus>::finished,
                      [this, uuid, finished_op] {
-                         finished_op();
+                         finished_op(async_future_watchers.at(uuid)->result());
                          finish_async_operation(uuid);
                      });
 
