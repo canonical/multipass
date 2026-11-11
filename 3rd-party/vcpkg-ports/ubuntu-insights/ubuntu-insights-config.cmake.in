@@ -7,9 +7,11 @@ add_library(ubuntu-insights::insights SHARED IMPORTED)
 set_target_properties(ubuntu-insights::insights PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${_insights_prefix}/include"
 )
+
 if(WIN32)
     set_target_properties(ubuntu-insights::insights PROPERTIES
         IMPORTED_LOCATION "${_insights_prefix}/bin/@INSIGHTS_LIBRARY@"
+        IMPORTED_LOCATION_DEBUG "${_insights_prefix}/debug/bin/@INSIGHTS_LIBRARY@"
         IMPORTED_IMPLIB "${_insights_prefix}/lib/@INSIGHTS_IMPLIB@"
     )
 else()
@@ -24,5 +26,6 @@ foreach(_insights_tool IN ITEMS @INSIGHTS_TOOLS@)
         IMPORTED_LOCATION "${_insights_prefix}/tools/ubuntu-insights/${_insights_tool}@VCPKG_TARGET_EXECUTABLE_SUFFIX@"
     )
 endforeach()
+
 unset(_insights_prefix)
 unset(_insights_tool)

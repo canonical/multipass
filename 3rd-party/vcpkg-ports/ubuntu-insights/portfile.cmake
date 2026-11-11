@@ -1,4 +1,3 @@
-set(VCPKG_BUILD_TYPE release)
 set(VCPKG_POLICY_MISMATCHED_NUMBER_OF_BINARIES enabled)
 vcpkg_check_linkage(ONLY_DYNAMIC_LIBRARY)
 
@@ -23,6 +22,9 @@ vcpkg_from_github(
     PATCHES 0001-c-api-free.patch
 )
 
+# Ideally we should use `vcpkg_find_acquire_program` to automatically acquire go
+# if it doesn't exist. Unfortunately the version provided by vcpkg (1.25) is less
+# than the one required by ubuntu-insights (1.26).
 find_program(GO_EXECUTABLE NAMES go HINTS ENV GO_EXECUTABLE_DIR REQUIRED)
 
 set(tools_dir "${CURRENT_PACKAGES_DIR}/tools/${PORT}")
@@ -47,7 +49,7 @@ if(VCPKG_TARGET_IS_LINUX)
     add_insights_tool(ingest-service ./server/cmd/ingest-service)
 endif()
 
-set(GO_ENV CGO_ENABLED=1)
+set(GO_ENV CGO_ENABLED=1 --modify "PATH=path_list_prepend:${GO_EXECUTABLE_DIR}")
 
 if(VCPKG_TARGET_IS_WINDOWS)
     if(NOT VCPKG_TARGET_ARCHITECTURE STREQUAL "x64")
@@ -87,6 +89,12 @@ if(VCPKG_TARGET_IS_WINDOWS)
 
     file(INSTALL "${SOURCE_PATH}/insights/generated/${INSIGHTS_LIBRARY}"
         DESTINATION "${CURRENT_PACKAGES_DIR}/bin")
+
+    # libinsights is built in a single configuration, but vcpkg's applocal
+    # searches only debug/bin for DLLs when building Debug executables.
+    # Copy the DLL there as well so it can be deployed automatically.
+    file(INSTALL "${SOURCE_PATH}/insights/generated/${INSIGHTS_LIBRARY}"
+        DESTINATION "${CURRENT_PACKAGES_DIR}/debug/bin")
 else()
     file(INSTALL "${SOURCE_PATH}/insights/generated/${INSIGHTS_LIBRARY}"
         DESTINATION "${CURRENT_PACKAGES_DIR}/lib")
