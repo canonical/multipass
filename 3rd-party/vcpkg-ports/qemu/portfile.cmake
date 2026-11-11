@@ -87,8 +87,8 @@ if(VCPKG_TARGET_IS_WINDOWS)
     # Windows: build only qemu-img (the sole QEMU tool Multipass uses here; no
     # system emulator). The GCC/MinGW toolchain is acquired hermetically via
     # vcpkg_acquire_msys() from packages pinned by URL + SHA512 -- vcpkg's own
-    # pinned msys shell layer plus the MinGW closure in mingw64-toolchain.lock
-    # (regenerate with generate-mingw-lockfile.py).
+    # pinned msys shell layer plus the shared MinGW closure in
+    # vcpkg-port-utils/mingw/mingw64-toolchain.lock.
     ###########################################################################
 
     if(NOT VCPKG_TARGET_ARCHITECTURE STREQUAL "x64")
@@ -109,27 +109,10 @@ if(VCPKG_TARGET_IS_WINDOWS)
         set(${OUT_VAR} "${_p}" PARENT_SCOPE)
     endfunction()
 
-    # Pinned MinGW-w64 closure (regenerate with generate-mingw-lockfile.py).
-    # Each non-comment line is "<url> <sha512>". Keep an interleaved list for
-    # vcpkg_acquire_msys(DIRECT_PACKAGES ...) plus parallel url/sha lists.
-    set(MINGW_DIRECT_PACKAGES "")
-    set(MINGW_URLS "")
-    set(MINGW_SHA512S "")
-    file(STRINGS "${CMAKE_CURRENT_LIST_DIR}/mingw64-toolchain.lock" _lock_lines)
-    foreach(_line IN LISTS _lock_lines)
-        if(_line MATCHES "^#" OR _line STREQUAL "")
-            continue()
-        endif()
-        if(NOT _line MATCHES "^([^ \t]+)[ \t]+([0-9a-fA-F]+)$")
-            message(FATAL_ERROR "Malformed mingw64-toolchain.lock entry: ${_line}")
-        endif()
-        list(APPEND MINGW_DIRECT_PACKAGES "${CMAKE_MATCH_1}" "${CMAKE_MATCH_2}")
-        list(APPEND MINGW_URLS "${CMAKE_MATCH_1}")
-        list(APPEND MINGW_SHA512S "${CMAKE_MATCH_2}")
-    endforeach()
-
     # Assemble a private, content-addressed MSYS2 root: vcpkg's pinned msys shell
     # utilities (plus findutils/perl for configure) and our pinned MinGW closure.
+    include("${CMAKE_CURRENT_LIST_DIR}/../../vcpkg-port-utils/mingw/get-mingw-packages.cmake")
+    multipass_get_mingw_packages(MINGW_DIRECT_PACKAGES MINGW_URLS MINGW_SHA512S)
     vcpkg_acquire_msys(MSYS_ROOT
         PACKAGES findutils perl
         DIRECT_PACKAGES ${MINGW_DIRECT_PACKAGES}
