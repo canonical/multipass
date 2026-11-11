@@ -43,7 +43,7 @@
 #include <QTemporaryFile>
 
 #include <cerrno>
-#include <csignal>
+#include <sys/wait.h>
 
 #include <cassert>
 
@@ -78,9 +78,24 @@ bool qemu_process_is_alive(const mp::Process& process)
     if (pid <= 0) // nothing to check (e.g. the process has not started yet)
         return true;
 
-    // Zero signal only checks for the process's existence. A child that exited but has not been
-    // reaped yet still counts as existing, which is fine: the process monitor reaps it promptly.
-    return kill(pid, 0) == 0 || errno != ESRCH;
+    siginfo_t info{};
+    int ret = 0;
+    do
+        ret = waitid(P_PID, pid, &info, WEXITED | WNOHANG | WNOWAIT);
+    while (ret == -1 && errno == EINTR);
+
+    if (ret == -1)
+    {
+        // ECHILD: the pid is not (or no longer) an unwaited-for child of ours, i.e. it already
+        // exited and was reaped. Anything else is unexpected: assume alive and let the usual
+        // QProcess-based mechanisms decide.
+        return errno != ECHILD;
+    }
+
+    // WNOWAIT leaves the exit status consumable, so QProcess can still reap the child and emit
+    // its finished signal afterwards. With WNOHANG, an exited child is reported with its pid in
+    // si_pid, while a child that has not exited leaves si_pid zeroed.
+    return info.si_pid == 0;
 }
 
 QStringList get_arguments(const boost::json::value& metadata)
@@ -400,7 +415,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
         drop_ssh_session();
 
-        if (vm_process && vm_process->running())
+        if (vm_process && vm_process->running() && qemu_process_is_alive(*vm_process))
         {
             vm_process->write(
                 QByteArray::fromStdString(serialize(qmp_execute_json("system_powerdown"))));
@@ -418,9 +433,10 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         }
         else
         {
-            // The QEMU process is already gone (e.g. it died unexpectedly). There is nothing left
-            // to power down, but the shutdown still has to be completed, otherwise the instance
-            // would be left marked as running forever.
+            // The QEMU process is already gone (e.g. it died unexpectedly), or the OS reports it
+            // gone even though QProcess has not caught up yet. There is nothing left to power
+            // down, but the shutdown still has to be completed, otherwise the instance would be
+            // left marked as running forever.
             mpl::info(vm_name, "QEMU process is not running; completing shutdown");
             on_shutdown();
         }
