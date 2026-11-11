@@ -416,6 +416,14 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
                     vm_shutdown_timeout)};
             }
         }
+        else
+        {
+            // The QEMU process is already gone (e.g. it died unexpectedly). There is nothing left
+            // to power down, but the shutdown still has to be completed, otherwise the instance
+            // would be left marked as running forever.
+            mpl::info(vm_name, "QEMU process is not running; completing shutdown");
+            on_shutdown();
+        }
     }
 }
 
