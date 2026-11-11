@@ -21,6 +21,7 @@ jobs:
       COVERAGE_DIR: ${{ github.workspace }}/coverage
       NEEDRESTART_SUSPEND: yes
       DEBIAN_FRONTEND: noninteractive
+      GOTOOLCHAIN: local
 
     steps:
     - name: Checkout code
@@ -50,6 +51,12 @@ jobs:
 
     - name: Install Rust toolchain
       uses: dtolnay/rust-toolchain@stable
+
+    - name: Set up Go
+      uses: actions/setup-go@v7
+      with:
+        go-version: '1.26.x'
+        cache: false
 
     - name: Install cmake
       uses: lukka/get-cmake@v4.4.4
