@@ -1,0 +1,28 @@
+if(TARGET ubuntu-insights::insights)
+    return()
+endif()
+
+get_filename_component(_insights_prefix "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+add_library(ubuntu-insights::insights SHARED IMPORTED)
+set_target_properties(ubuntu-insights::insights PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${_insights_prefix}/include"
+)
+if(WIN32)
+    set_target_properties(ubuntu-insights::insights PROPERTIES
+        IMPORTED_LOCATION "${_insights_prefix}/bin/@INSIGHTS_LIBRARY@"
+        IMPORTED_IMPLIB "${_insights_prefix}/lib/@INSIGHTS_IMPLIB@"
+    )
+else()
+    set_target_properties(ubuntu-insights::insights PROPERTIES
+        IMPORTED_LOCATION "${_insights_prefix}/lib/@INSIGHTS_LIBRARY@"
+    )
+endif()
+
+foreach(_insights_tool IN ITEMS @INSIGHTS_TOOLS@)
+    add_executable(ubuntu-insights::${_insights_tool} IMPORTED)
+    set_target_properties(ubuntu-insights::${_insights_tool} PROPERTIES
+        IMPORTED_LOCATION "${_insights_prefix}/tools/ubuntu-insights/${_insights_tool}@VCPKG_TARGET_EXECUTABLE_SUFFIX@"
+    )
+endforeach()
+unset(_insights_prefix)
+unset(_insights_tool)

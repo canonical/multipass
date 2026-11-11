@@ -28,7 +28,8 @@
                 "server"
             ]
         },
-        "premock"
+        "premock",
+        "ubuntu-insights"
     ],
     "overrides": [
         {
