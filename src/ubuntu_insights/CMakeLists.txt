@@ -13,6 +13,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+if(NOT MULTIPASS_ENABLE_INSIGHTS)
+  return()
+endif()
+
 add_library(ubuntu_insights STATIC libinsights_wrapper.cpp)
 
 find_package(ubuntu-insights CONFIG REQUIRED)

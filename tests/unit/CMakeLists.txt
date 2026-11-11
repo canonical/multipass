@@ -26,20 +26,22 @@ add_executable(multipass_integration_tests
   common.cpp
   temp_dir.cpp
   test_libssh.cpp
-  test_libinsights.cpp
 )
 target_link_libraries(multipass_integration_tests
   PRIVATE
   GTest::gmock_main
   Qt6::Core fmt::fmt-header-only
   libssh_wrapper
-  ubuntu_insights
 )
 target_include_directories(multipass_integration_tests
   PRIVATE ${CMAKE_SOURCE_DIR}
   PRIVATE ${CMAKE_SOURCE_DIR}/src
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
 )
+if(MULTIPASS_ENABLE_INSIGHTS)
+  target_sources(multipass_integration_tests PRIVATE test_libinsights.cpp)
+  target_link_libraries(multipass_integration_tests PRIVATE ubuntu_insights)
+endif()
 add_test(NAME multipass_integration_tests COMMAND multipass_integration_tests)
 ##############################################################################
 

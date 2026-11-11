@@ -99,8 +99,28 @@ jobs:
     - name: Expose Go location to vcpkg
       shell: pwsh
       run: |
-        $goDir = Split-Path -Parent (Get-Command go -CommandType Application -ErrorAction Stop).Source
+        $goRoot = go env GOROOT
+        if ($LASTEXITCODE -ne 0) {
+          throw "Failed to determine Go installation root"
+        }
+        $goDir = Join-Path $goRoot 'bin'
         "GO_EXECUTABLE_DIR=$goDir" >> $env:GITHUB_ENV
+
+    - name: Set up GCC for cgo
+      shell: pwsh
+      run: |
+        & C:\msys64\usr\bin\bash.exe -lc 'pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-gcc'
+        if ($LASTEXITCODE -ne 0) {
+          throw "Failed to install MSYS2 UCRT64 GCC"
+        }
+
+        $gcc = 'C:\msys64\ucrt64\bin\gcc.exe'
+        & $gcc --version
+        if ($LASTEXITCODE -ne 0) {
+          throw "MSYS2 UCRT64 GCC is not usable"
+        }
+
+        "CGO_CC=$gcc" >> $env:GITHUB_ENV
 
     - name: Install other packages from Choco
       uses: crazy-max/ghaction-chocolatey@v4

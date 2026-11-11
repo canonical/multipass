@@ -21,6 +21,7 @@ include(CMakeDependentOption)
 
 option(MULTIPASS_VCPKG_BUILD_DEFAULT "Enable or disable building the dependencies in the default configuration, which includes both debug and release variants." OFF)
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
+option(MULTIPASS_ENABLE_INSIGHTS "Enabled Ubuntu Insights" ON)
 
 is_running_in_ci(IS_RUNNING_IN_CI)
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
@@ -138,6 +139,10 @@ endif()
 
 if(MULTIPASS_ENABLE_TESTS)
   list(APPEND VCPKG_MANIFEST_FEATURES "tests")
+endif()
+
+if(MULTIPASS_ENABLE_INSIGHTS)
+  list(APPEND VCPKG_MANIFEST_FEATURES "ubuntu-insights")
 endif()
 
 # All the current backends depend on QEMU one way or the other.
