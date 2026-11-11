@@ -1,0 +1,18 @@
+diff --git a/insights/C/libinsights.go b/insights/C/libinsights.go
+--- a/insights/C/libinsights.go
++++ b/insights/C/libinsights.go
+@@ -16,6 +16,14 @@ import (
+ 	"github.com/ubuntu/ubuntu-insights/insights"
+ )
+ 
++// insights_free releases strings returned by the C API using the library's
++// allocator, including when the caller uses a different Windows C runtime.
++//
++//export insights_free
++func insights_free(ptr unsafe.Pointer) {
++	C.free(ptr)
++}
++
+ /**
+  * insights_collect creates a report for the specified source.
+  * If config is NULL, defaults are used.

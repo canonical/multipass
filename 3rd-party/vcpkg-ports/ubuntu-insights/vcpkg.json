@@ -1,0 +1,13 @@
+{
+  "name": "ubuntu-insights",
+  "version": "1.0.1",
+  "description": "Ubuntu Insights client, server executables, and C shared library",
+  "homepage": "https://github.com/ubuntu/ubuntu-insights",
+  "license": "GPL-3.0-only",
+  "dependencies": [
+    {
+      "name": "wayland",
+      "platform": "linux"
+    }
+  ]
+}
