@@ -70,14 +70,15 @@ apps:
       - system-observe  # to read the host's os-release
 
         # Plugs required for ubuntu insights. The same as snapcraft.yaml from ubuntu-insights repo.
+        # TODO: Acquire approval for these plugs
+        # - dot-config-ubuntu-insights # Default config location
+        # - dot-cache-ubuntu-insights # Default cache location
+        # - ubuntu-pro-control # Used to read the Ubuntu Pro attach state over D-Bus.
+        # - block-devices # Required to see encrypted partitions. `dm-crypt` also works.
       - hardware-observe
       - wayland
       - x11
       - network # Needed for uploading
-      - ubuntu-pro-control # Used to read the Ubuntu Pro attach state over D-Bus.
-      - dot-config-ubuntu-insights # Default config location
-      - dot-cache-ubuntu-insights # Default cache location
-      - block-devices # Required to see encrypted partitions. `dm-crypt` also works.
   multipass:
     environment:
       LD_LIBRARY_PATH: *library-path
