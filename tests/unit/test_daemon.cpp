@@ -510,6 +510,48 @@ TEST_F(Daemon, startsPreviouslyRunningVmsBack)
     mp::Daemon daemon{config_builder.build()};
 }
 
+TEST_F(Daemon, shutsDownPreviouslyRunningVmThatFailsReadinessAfterRestart)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    multipass::test::fake_vm_properties vm_props{};
+    vm_props.default_mac = "52:54:00:73:76:28";
+    vm_props.state = multipass::VirtualMachine::State::running;
+    const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    // This VM was running before, but is gone now: it fails to become ready after the daemon
+    // restarts it.
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name)
+        .WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
+    EXPECT_CALL(*mock_vm, current_state)
+        .Times(1)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
+        .Times(1)
+        .WillOnce(Throw(mp::StartException{vm_props.name, "Instance shutdown during start"}));
+
+    // The daemon must not leave the instance half-started: it attempts a graceful shutdown, and
+    // since that is rejected here (the state machine does so while an instance is starting), it
+    // falls back to a forced stop.
+    EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Powerdown))
+        .Times(1)
+        .WillOnce(Throw(std::runtime_error{"Cannot shut down instance while starting."}));
+    mp::Signal forced_stop;
+    EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff))
+        .Times(1)
+        .WillOnce([&forced_stop] { forced_stop.signal(); });
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    {
+        mp::Daemon daemon{config_builder.build()};
+    }
+
+    EXPECT_TRUE(forced_stop.wait_for(std::chrono::seconds{10}));
+}
+
 TEST_F(Daemon, callsOnRestartForAlreadyRunningVmsOnConstruction)
 {
     auto mock_factory = use_a_mock_vm_factory();

@@ -79,6 +79,7 @@
 #include <QStorageInfo>
 #include <QString>
 #include <QSysInfo>
+#include <QThreadPool>
 #include <QtConcurrent/QtConcurrent>
 
 #include <algorithm>
@@ -3581,26 +3582,59 @@ void mp::Daemon::on_restart(const std::string& name)
             auto virtual_machine = operative_instances.at(name);
 
             // The readiness wait may have failed (e.g. the QEMU process died during the
-            // restart), and the instance may have been shut down in the meantime: only mark
-            // the instance as running when it is still operative. A failed or already-shut-
-            // down instance must not be resurrected by a successful readiness result.
+            // restart), and the instance may have been shut down in the meantime: revalidate
+            // before marking the instance as running - a failed or already-shut-down
+            // instance must not be resurrected by a successful readiness result.
             const auto state = virtual_machine->fetch_state();
             const auto still_operative = state == VirtualMachine::State::running ||
                                          state == VirtualMachine::State::starting ||
-                                         state == VirtualMachine::State::restarting ||
-                                         state == VirtualMachine::State::unknown;
-            if (!still_operative)
-            {
-                mpl::info(category,
-                          "Instance `{}` finished its readiness wait in state {}; leaving "
-                          "it as is",
-                          name,
-                          state);
-            }
-            else
+                                         state == VirtualMachine::State::restarting;
+            if (still_operative)
             {
                 virtual_machine->set_running();
+                return;
             }
+
+            if (state == VirtualMachine::State::unknown)
+            {
+                // The instance did not become ready (e.g. it could not be reached over SSH
+                // in time). Keep the backend's state instead of marking the instance as
+                // running when it is not, and do not leave it half-started either: shut it
+                // down for real - if the QEMU process is already gone this completes like an
+                // unexpected shutdown, otherwise the instance gets a graceful shutdown
+                // attempt, falling back to a forced stop (e.g. the state machine rejects a
+                // graceful stop while the instance is still starting). This runs in the
+                // background because a shutdown may wait for the QEMU process to finish, and
+                // this callback runs on the daemon's main thread.
+                mpl::warn(category, "Instance `{}` did not become ready after being started", name);
+
+                QThreadPool::globalInstance()->start(
+                    [virtual_machine = std::move(virtual_machine)] {
+                        const auto vm_name = virtual_machine->get_name();
+                        multipass::top_catch_all(vm_name, [&vm = *virtual_machine] {
+                            try
+                            {
+                                vm.shutdown(VirtualMachine::ShutdownPolicy::Powerdown);
+                            }
+                            catch (const VMStateIdempotentException&)
+                            {
+                                // the backend already completed the shutdown
+                            }
+                            catch (const std::exception&)
+                            {
+                                vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
+                            }
+                        });
+                    });
+                return;
+            }
+
+            // The shutdown has already been handled (e.g. the QEMU process died and completed
+            // through the Process::finished handler): leave the instance as it is.
+            mpl::info(category,
+                      "Instance `{}` finished its readiness wait in state {}; leaving it as is",
+                      name,
+                      state);
         }
         catch (const std::out_of_range&)
         {
