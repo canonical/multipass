@@ -49,13 +49,20 @@ endif()
 
 set(GO_ENV CGO_ENABLED=1)
 
-if(DEFINED ENV{CGO_CC})
-    list(APPEND GO_ENV "CC=$ENV{CGO_CC}")
+if(VCPKG_TARGET_IS_WINDOWS)
+    if(NOT VCPKG_TARGET_ARCHITECTURE STREQUAL "x64")
+        message(FATAL_ERROR "Windows ubuntu-insights build currently only supports x64")
+    endif()
 
-    # Usually gcc comes with other tools such as ar/as/ld. So we add the directory
-    # to the path to enable cgo to find these tools.
-    get_filename_component(CC_DIR "$ENV{CGO_CC}" DIRECTORY)
-    list(APPEND GO_ENV --modify "PATH=path_list_prepend:${CC_DIR}")
+    # Reuse the pinned MinGW closure acquired by QEMU.
+    include("${CMAKE_CURRENT_LIST_DIR}/../../vcpkg-port-utils/mingw/get-mingw-packages.cmake")
+    multipass_get_mingw_packages(MINGW_DIRECT_PACKAGES MINGW_URLS MINGW_SHA512S)
+    vcpkg_acquire_msys(MSYS_ROOT DIRECT_PACKAGES ${MINGW_DIRECT_PACKAGES})
+    file(TO_NATIVE_PATH "${MSYS_ROOT}/mingw64/bin" MINGW_BIN)
+    list(APPEND GO_ENV
+        "CC=${MINGW_BIN}/gcc.exe"
+        --modify "PATH=path_list_prepend:${MINGW_BIN}"
+    )
 endif()
 
 vcpkg_execute_required_process(
