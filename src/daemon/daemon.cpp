@@ -79,7 +79,6 @@
 #include <QStorageInfo>
 #include <QString>
 #include <QSysInfo>
-#include <QThreadPool>
 #include <QtConcurrent/QtConcurrent>
 
 #include <algorithm>
@@ -3576,7 +3575,28 @@ void mp::Daemon::on_suspend()
 void mp::Daemon::on_restart(const std::string& name)
 {
     stop_mounts(name);
-    auto future_watcher = create_future_watcher([this, name]() {
+    std::shared_ptr<VirtualMachine> virtual_machine;
+    try
+    {
+        virtual_machine = operative_instances.at(name);
+    }
+    catch (const std::out_of_range&)
+    {
+        return; // the instance is gone; nothing to restart
+    }
+
+    // Daemon::on_restart serves two flows: the daemon-startup recovery (an instance that was
+    // running before the daemon stopped is started or synced) and guest-initiated reboots (the
+    // QEMU backend calls monitor.on_restart() on QMP RESET events). Only the former may clean up
+    // a failed readiness wait: a rebooting guest legitimately does not answer SSH for a while,
+    // and a transient timeout there must not power a healthy VM off. The state is captured at
+    // dispatch time because it is not stable until the wait finishes (an SSH timeout rewrites it
+    // to unknown for both flows), while a guest reboot always dispatches from the restarting
+    // state.
+    const bool started_by_recovery =
+        virtual_machine->fetch_state() != VirtualMachine::State::restarting;
+
+    auto future_watcher = create_future_watcher([this, name, started_by_recovery]() {
         try
         {
             auto virtual_machine = operative_instances.at(name);
@@ -3599,33 +3619,39 @@ void mp::Daemon::on_restart(const std::string& name)
             {
                 // The instance did not become ready (e.g. it could not be reached over SSH
                 // in time). Keep the backend's state instead of marking the instance as
-                // running when it is not, and do not leave it half-started either: shut it
-                // down for real - if the QEMU process is already gone this completes like an
-                // unexpected shutdown, otherwise the instance gets a graceful shutdown
-                // attempt, falling back to a forced stop (e.g. the state machine rejects a
-                // graceful stop while the instance is still starting). This runs in the
-                // background because a shutdown may wait for the QEMU process to finish, and
-                // this callback runs on the daemon's main thread.
+                // running when it is not.
                 mpl::warn(category, "Instance `{}` did not become ready after being started", name);
 
-                QThreadPool::globalInstance()->start(
-                    [virtual_machine = std::move(virtual_machine)] {
-                        const auto vm_name = virtual_machine->get_name();
-                        multipass::top_catch_all(vm_name, [&vm = *virtual_machine] {
-                            try
-                            {
-                                vm.shutdown(VirtualMachine::ShutdownPolicy::Powerdown);
-                            }
-                            catch (const VMStateIdempotentException&)
-                            {
-                                // the backend already completed the shutdown
-                            }
-                            catch (const std::exception&)
-                            {
-                                vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
-                            }
+                // Do not leave a startup-recovery instance half-started either: it would remain
+                // marked as running or starting while nothing can reach it. Shut it down for
+                // real: if the QEMU process is already gone this completes like an unexpected
+                // shutdown, otherwise the instance gets a graceful shutdown attempt, falling
+                // back to a forced stop (e.g. the state machine rejects a graceful stop while
+                // the instance is still starting). This runs in the background because a
+                // shutdown may wait for the QEMU process to finish, and this callback runs on
+                // the daemon's main thread; a guest-initiated reboot is left alone - a
+                // rebooting guest legitimately does not answer SSH for a while.
+                if (started_by_recovery)
+                {
+                    QThreadPool::globalInstance()->start(
+                        [virtual_machine = std::move(virtual_machine)] {
+                            const auto vm_name = virtual_machine->get_name();
+                            multipass::top_catch_all(vm_name, [&vm = *virtual_machine] {
+                                try
+                                {
+                                    vm.shutdown(VirtualMachine::ShutdownPolicy::Powerdown);
+                                }
+                                catch (const VMStateIdempotentException&)
+                                {
+                                    // the backend already completed the shutdown
+                                }
+                                catch (const std::exception&)
+                                {
+                                    vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
+                                }
+                            });
                         });
-                    });
+                }
                 return;
             }
 

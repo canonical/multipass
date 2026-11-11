@@ -521,13 +521,15 @@ TEST_F(Daemon, shutsDownPreviouslyRunningVmThatFailsReadinessAfterRestart)
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     // This VM was running before, but is gone now: it fails to become ready after the daemon
-    // restarts it.
+    // restarts it. The first current_state() query is the daemon-startup recovery switch, the
+    // second one happens when the readiness failure is handled (the VM is starting by then).
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name)
         .WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
     EXPECT_CALL(*mock_vm, current_state)
-        .Times(1)
-        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+        .WillOnce(Return(mp::VirtualMachine::State::stopped))
+        .WillOnce(Return(mp::VirtualMachine::State::starting))
+        .WillRepeatedly(Return(mp::VirtualMachine::State::starting));
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up)
         .Times(1)
@@ -598,6 +600,53 @@ TEST_F(Daemon, callsOnRestartForAlreadyStartingVmsOnConstruction)
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
     mp::Daemon daemon{config_builder.build()};
+}
+
+TEST_F(Daemon, vmInitiatedRestartFailureDoesNotForceStop)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    multipass::test::fake_vm_properties vm_props{};
+    vm_props.default_mac = "52:54:00:73:76:28";
+    vm_props.state = multipass::VirtualMachine::State::stopped;
+    const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    // A guest-initiated reboot: the QEMU backend reports the VM as restarting and dispatches
+    // monitor.on_restart() when the guest resets.
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
+    EXPECT_CALL(*mock_vm, current_state)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
+    EXPECT_CALL(*mock_vm, start).Times(0);
+
+    // The rebooting guest does not answer SSH in time and the readiness wait times out. A
+    // healthy rebooting VM must not be powered off because of that transient failure.
+    mp::Signal wait_failed;
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
+        .Times(1)
+        .WillOnce([&wait_failed] {
+            wait_failed.signal();
+            throw mp::SSHTimeoutException{"timed out waiting for response"};
+        });
+    EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Powerdown)).Times(0);
+    EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff)).Times(0);
+
+    mp::VMStatusMonitor* monitor{nullptr};
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce([&monitor, vm = std::move(mock_vm)](
+                      const mp::VirtualMachineDescription&,
+                      const mp::SSHKeyProvider&,
+                      mp::VMStatusMonitor& vm_monitor) mutable -> mp::VirtualMachine::UPtr {
+            monitor = &vm_monitor;
+            return std::move(vm);
+        });
+
+    {
+        mp::Daemon daemon{config_builder.build()};
+        monitor->on_restart(vm_props.name);
+        ASSERT_TRUE(wait_failed.wait_for(std::chrono::seconds{10}));
+    }
 }
 
 TEST_F(Daemon, updatesTheDeletedButNonStoppedVmState)
