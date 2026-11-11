@@ -1974,3 +1974,61 @@ TEST_F(QemuBackend, gracefulShutdownWithStaleQProcessStateTransitionsToStopped)
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
 }
+
+TEST_F(QemuBackend, forceShutdownPersistsStoppedState)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    mpt::MockProcess* qemu_process{nullptr};
+    process_factory->register_callback([this, &qemu_process](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()) &&
+            !process->arguments().contains("-dump-vmstate"))
+        {
+            qemu_process = process;
+            EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                emit process->state_changed(QProcess::Running);
+                emit process->started();
+            });
+        }
+        else
+        {
+            handle_external_process_calls(process);
+        }
+    });
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    EXPECT_CALL(mock_monitor, on_resume());
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+
+    ASSERT_NE(qemu_process, nullptr);
+
+    // The QEMU process is already gone and reaped, while QProcess still reports it running: a
+    // forced shutdown cannot rely on Process::finished arriving afterwards.
+    mp::BasicProcess dead_process{mp::simple_process_spec("mock_process")};
+    dead_process.start();
+    ASSERT_TRUE(dead_process.wait_for_finished(10000));
+    const auto dead_pid = dead_process.process_id();
+    ASSERT_GT(dead_pid, 0);
+
+    EXPECT_CALL(*qemu_process, running()).WillRepeatedly(Return(true));
+    EXPECT_CALL(*qemu_process, process_id()).WillRepeatedly(Return(dead_pid));
+    // Killing an already-dead child is a no-op and must not produce a finished signal
+    EXPECT_CALL(*qemu_process, kill()).Times(1).WillOnce(Return());
+    EXPECT_CALL(*qemu_process, wait_for_finished(_)).WillOnce(Return(true));
+
+    // The stopped state must be persisted by the shutdown itself, not left to a signal that may
+    // never arrive
+    EXPECT_CALL(mock_monitor, on_shutdown()).Times(0);
+    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::stopped)).Times(1);
+
+    machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
+
+    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+}

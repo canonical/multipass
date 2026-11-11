@@ -407,6 +407,11 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
         }
 
+        // Reacquire the mutex before publishing the transition: the kill branch above unlocks
+        // while waiting for the process to finish (the no-process branch never unlocked).
+        if (!lock.owns_lock())
+            lock.lock();
+
         set_state(State::stopped);
     }
     else
