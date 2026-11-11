@@ -38,6 +38,24 @@ namespace mpu = multipass::utils;
 namespace
 {
 constexpr auto firmware_dir_suffix = "/Resources/qemu";
+const auto drive_file_prefix = QStringLiteral("file=");
+
+// Returns the resource root directory (the path prefix ending in the firmware directory suffix)
+// that the given recorded argument embeds, if any. Handles bare paths as well as the
+// "file=<path>,..." form used by drive arguments.
+std::optional<QString> embedded_resource_root(const QString& arg)
+{
+    const auto suffix_index = arg.lastIndexOf(QLatin1String(firmware_dir_suffix));
+    if (suffix_index == -1)
+        return std::nullopt;
+
+    const auto path_start = arg.startsWith(drive_file_prefix) ? drive_file_prefix.size()
+                                                              : qsizetype{0};
+    if (suffix_index < path_start)
+        return std::nullopt;
+
+    return arg.mid(path_start, suffix_index - path_start + qstrlen(firmware_dir_suffix));
+}
 
 // Alternate spellings under which the same recorded resource directory may appear in arguments:
 // the path as recorded, plus its uncleaned form including the binary directory segment (e.g.
@@ -62,6 +80,8 @@ QStringList resource_path_spellings(const QString& path)
 // of a previous installation, such as another snap revision, which snapd may garbage-collect at
 // any time. Rebase any such path onto the current installation's equivalent, so that resuming a
 // VM suspended by a previous build keeps using the resources shipped alongside the running QEMU.
+// Stale resource directories are discovered from the recorded -L options and, when none are
+// stale, from the resource paths embedded in the remaining arguments.
 void rebase_stale_resource_paths(const std::string& vm_name,
                                  const QString& current_firmware_path,
                                  QStringList& args)
@@ -82,6 +102,27 @@ void rebase_stale_resource_paths(const std::string& vm_name,
         if (!matches(current_firmware_path) &&
             std::none_of(stale_paths.cbegin(), stale_paths.cend(), matches))
             stale_paths.append(recorded_path);
+    }
+
+    if (stale_paths.empty())
+    {
+        // Older recorded command lines may omit the firmware path entirely (or record the current
+        // one) while still embedding absolute resource paths of a previous installation (e.g. a
+        // pflash drive). Discover the stale roots from those arguments.
+        for (const auto& arg : args)
+        {
+            const auto embedded_root = embedded_resource_root(arg);
+            if (!embedded_root)
+                continue;
+
+            const auto matches = [&embedded_root](const QString& other) {
+                return QDir::cleanPath(other) == QDir::cleanPath(*embedded_root);
+            };
+
+            if (!matches(current_firmware_path) &&
+                std::none_of(stale_paths.cbegin(), stale_paths.cend(), matches))
+                stale_paths.append(*embedded_root);
+        }
     }
 
     for (const auto& stale_path : stale_paths)

@@ -17,6 +17,7 @@
 
 #include "tests/unit/common.h"
 #include "tests/unit/mock_environment_helpers.h"
+#include "tests/unit/mock_logger.h"
 
 #include <multipass/snap_utils.h>
 #include <src/platform/backends/qemu/qemu_vm_process_spec.h>
@@ -28,6 +29,7 @@
 #include <QTemporaryDir>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 namespace mpu = multipass::utils;
 using namespace testing;
@@ -213,6 +215,36 @@ TEST_F(TestQemuVMProcessSpec, resumeRebasesAlternateSpellingsOfStaleResourcePath
     EXPECT_TRUE(args.contains(
         QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on,file.locking=off")
             .arg(spec.firmware_path())));
+    EXPECT_TRUE(args.contains("-loadvm"));
+    EXPECT_TRUE(args.contains("suspend_tag"));
+}
+
+TEST_F(TestQemuVMProcessSpec, resumeRebasesEmbeddedResourcePathsWithoutRecordedFirmwarePath)
+{
+    // recorded by an installation old enough to omit the firmware path from its arguments
+    const QString stale_pflash_arg =
+        QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on,file.locking=off")
+            .arg("/old/installation/Resources/qemu");
+
+    const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag",
+                                                        "machine_type",
+                                                        {"-drive", stale_pflash_arg}};
+
+    mpt::MockLogger::Scope logger_scope{mpt::MockLogger::inject()};
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::warning,
+        "/old/installation/Resources/qemu' (1 argument(s)) no longer exists");
+
+    mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data);
+
+    const auto args = spec.arguments();
+    EXPECT_FALSE(args.join(' ').contains("/old/installation/Resources/qemu"));
+    EXPECT_TRUE(args.contains(
+        QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on,file.locking=off")
+            .arg(spec.firmware_path())));
+    // the current firmware path is still prepended so QEMU can locate the BIOS
+    EXPECT_EQ(args.count(spec.firmware_path()), 1);
     EXPECT_TRUE(args.contains("-loadvm"));
     EXPECT_TRUE(args.contains("suspend_tag"));
 }
