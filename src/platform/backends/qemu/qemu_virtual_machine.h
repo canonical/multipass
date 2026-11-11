@@ -92,6 +92,7 @@ private:
     void initialize_vm_process();
     void check_resume_compatibility();
     void record_qemu_version(const boost::json::object& qmp_output);
+    void remove_stale_suspend_snapshot();
 
     void connect_vm_signals();
     void disconnect_vm_signals();
@@ -103,10 +104,10 @@ private:
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};
     bool force_shutdown{false};
-    // Set when a stale suspend snapshot could not be removed from the instance image; while set,
-    // the QMP-reported QEMU version must not be recorded, so that resume compatibility checks
-    // keep rejecting the stale snapshot.
-    bool stale_snapshot_removal_failed{false};
+    // Set when a stale suspend snapshot is still present in the instance image and its removal
+    // is pending or has failed; while set, the QMP-reported QEMU version must not be recorded,
+    // so that resume compatibility checks keep rejecting the stale snapshot.
+    bool stale_snapshot_removal_pending{false};
     std::mutex vm_signal_mutex;
     bool vm_signals_connected{false};
     std::chrono::steady_clock::time_point network_deadline;

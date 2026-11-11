@@ -1242,6 +1242,203 @@ TEST_F(QemuBackend, resumeWithFailedSnapshotDeletionKeepsRecordedQemuVersion)
         [](const boost::json::object& metadata) { return metadata.contains("qemu_version"); }));
 }
 
+TEST_F(QemuBackend, resumeRetriesPendingSnapshotCleanupOnNextStart)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    const QByteArray qmp_greeting{
+        R"({"QMP": {"version": {"qemu": {"micro": 3, "minor": 0, "major": 10}, "package": ""}, "capabilities": ["oob"]}})"};
+    bool fail_deletion{true};
+
+    mpt::MockProcessFactory::Callback callback = [&](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img"))
+        {
+            mp::ProcessState exit_state;
+            exit_state.exit_code =
+                fail_deletion && process->arguments().contains("-d")
+                    ? 1
+                    : 0; // the removal of the snapshot fails until the test allows it
+            ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
+            ON_CALL(*process, read_all_standard_output())
+                .WillByDefault(Return(fake_snapshot_list_with_suspend_tag));
+        }
+        else if (process->program().contains("qemu-system-") &&
+                 process->arguments().contains("--version"))
+        {
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
+            ON_CALL(*process, read_all_standard_output())
+                .WillByDefault(Return(fake_qemu_version_output));
+        }
+        else if (process->program().contains("qemu-system-") &&
+                 !process->arguments().contains("-dump-vmstate")) // the actual VM process
+        {
+            EXPECT_CALL(*process, wait_for_finished(_)).WillRepeatedly(Return(true));
+
+            // answer the first write (qmp_capabilities) with a QMP greeting
+            EXPECT_CALL(*process, write(_))
+                .WillOnce([process, &qmp_greeting](const QByteArray& data) {
+                    EXPECT_CALL(*process, read_all_standard_output())
+                        .WillRepeatedly(Return(qmp_greeting));
+                    emit process->ready_read_standard_output();
+                    return data.size();
+                })
+                .WillRepeatedly([](const QByteArray& data) { return data.size(); });
+        }
+    };
+    process_factory->register_callback(callback);
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "Could not delete the stale memory snapshot");
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "Not recording QEMU version 10.0.3");
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
+        .WillRepeatedly(
+            Return(boost::json::object{{"qemu_version", "8.2.0"}, {"arguments", {"-recorded"}}}));
+
+    std::vector<boost::json::object> metadata_updates;
+    EXPECT_CALL(mock_monitor, update_metadata_for(_, _))
+        .WillRepeatedly([&metadata_updates](auto&&, const boost::json::object& metadata) {
+            metadata_updates.push_back(metadata);
+        });
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    // first start: the stale snapshot removal fails, so the QEMU version stays unrecorded
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+    EXPECT_TRUE(std::none_of(
+        metadata_updates.cbegin(),
+        metadata_updates.cend(),
+        [](const boost::json::object& metadata) { return metadata.contains("qemu_version"); }));
+
+    // second start: the pending cleanup is retried even though the VM is no longer suspended,
+    // succeeds, and the QEMU version reported by the QMP greeting is recorded again
+    fail_deletion = false;
+    metadata_updates.clear();
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+
+    const auto processes = process_factory->process_list();
+    const auto deletion_attempts = std::count_if(
+        processes.cbegin(),
+        processes.cend(),
+        [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+            return process_info.command == expected_qemu_img_path() &&
+                   process_info.arguments.contains("-d");
+        });
+    EXPECT_EQ(deletion_attempts, 2); // one failure, one successful retry
+
+    EXPECT_TRUE(std::any_of(metadata_updates.cbegin(),
+                            metadata_updates.cend(),
+                            [](const boost::json::object& metadata) {
+                                return metadata.contains("qemu_version") &&
+                                       value_to<QString>(metadata.at("qemu_version")) ==
+                                           current_qemu_version;
+                            }));
+}
+
+TEST_F(QemuBackend, poweroffSnapshotDeletionClearsPendingCleanupFlag)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    const QByteArray qmp_greeting{
+        R"({"QMP": {"version": {"qemu": {"micro": 3, "minor": 0, "major": 10}, "package": ""}, "capabilities": ["oob"]}})"};
+    bool fail_deletion{true};
+
+    mpt::MockProcessFactory::Callback callback = [&](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img"))
+        {
+            mp::ProcessState exit_state;
+            exit_state.exit_code =
+                fail_deletion && process->arguments().contains("-d")
+                    ? 1
+                    : 0; // the removal of the snapshot fails until the test allows it
+            ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
+            ON_CALL(*process, read_all_standard_output())
+                .WillByDefault(Return(fake_snapshot_list_with_suspend_tag));
+        }
+        else if (process->program().contains("qemu-system-") &&
+                 process->arguments().contains("--version"))
+        {
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
+            ON_CALL(*process, read_all_standard_output())
+                .WillByDefault(Return(fake_qemu_version_output));
+        }
+        else if (process->program().contains("qemu-system-") &&
+                 !process->arguments().contains("-dump-vmstate")) // the actual VM process
+        {
+            EXPECT_CALL(*process, wait_for_finished(_)).WillRepeatedly(Return(true));
+
+            EXPECT_CALL(*process, write(_))
+                .WillOnce([process, &qmp_greeting](const QByteArray& data) {
+                    EXPECT_CALL(*process, read_all_standard_output())
+                        .WillRepeatedly(Return(qmp_greeting));
+                    emit process->ready_read_standard_output();
+                    return data.size();
+                })
+                .WillRepeatedly([](const QByteArray& data) { return data.size(); });
+        }
+    };
+    process_factory->register_callback(callback);
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "Could not delete the stale memory snapshot");
+    logger_scope.mock_logger->expect_log(mpl::Level::warning, "Not recording QEMU version 10.0.3");
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
+        .WillRepeatedly(
+            Return(boost::json::object{{"qemu_version", "8.2.0"}, {"arguments", {"-recorded"}}}));
+
+    std::vector<boost::json::object> metadata_updates;
+    EXPECT_CALL(mock_monitor, update_metadata_for(_, _))
+        .WillRepeatedly([&metadata_updates](auto&&, const boost::json::object& metadata) {
+            metadata_updates.push_back(metadata);
+        });
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    // first start: the stale snapshot removal fails, so the QEMU version stays unrecorded
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+    EXPECT_TRUE(std::none_of(
+        metadata_updates.cbegin(),
+        metadata_updates.cend(),
+        [](const boost::json::object& metadata) { return metadata.contains("qemu_version"); }));
+
+    // the poweroff cleanup deletes the suspend snapshot successfully, clearing the pending flag
+    fail_deletion = false;
+    machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
+
+    // second start: the QEMU version reported by the QMP greeting is recorded again
+    metadata_updates.clear();
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+
+    EXPECT_TRUE(std::any_of(metadata_updates.cbegin(),
+                            metadata_updates.cend(),
+                            [](const boost::json::object& metadata) {
+                                return metadata.contains("qemu_version") &&
+                                       value_to<QString>(metadata.at("qemu_version")) ==
+                                           current_qemu_version;
+                            }));
+}
+
 TEST_F(QemuBackend, resumeLogsActualOutputWhenCurrentQemuVersionIsUnparsable)
 {
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {

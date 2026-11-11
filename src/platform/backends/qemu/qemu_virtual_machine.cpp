@@ -284,7 +284,7 @@ void mp::QemuVirtualMachine::record_qemu_version(const boost::json::object& qmp_
     if (qemu_version.isEmpty())
         return;
 
-    if (stale_snapshot_removal_failed)
+    if (stale_snapshot_removal_pending)
     {
         // A stale suspend snapshot is still embedded in the instance image. Do not advance the
         // recorded QEMU version past the one that produced it: until the snapshot is actually
@@ -359,6 +359,13 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
 void mp::QemuVirtualMachine::start()
 {
     check_resume_compatibility();
+
+    // A stale suspend snapshot whose removal previously failed is retried on every start,
+    // independently of the VM state. The only exception is an imminent resume: the snapshot is
+    // about to be loaded (and the resume compatibility check above validated it), so it must not
+    // be deleted from underneath it.
+    if (stale_snapshot_removal_pending && state != State::suspended)
+        remove_stale_suspend_snapshot();
 
     initialize_vm_process();
 
@@ -446,19 +453,27 @@ void mp::QemuVirtualMachine::check_resume_compatibility()
                   snapshot_qemu_version,
                   current);
 
+    // The stale snapshot cannot be vouched for: boot fresh, keeping the disk (and dropping the
+    // in-memory state). Its removal is performed below and retried on every start until it
+    // succeeds; the version bookkeeping is kept behind it meanwhile.
+    stale_snapshot_removal_pending = true;
+    state = State::stopped;
+    handle_state_update();
+}
+
+void mp::QemuVirtualMachine::remove_stale_suspend_snapshot()
+{
     try
     {
         mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
-        stale_snapshot_removal_failed = false; // the stale snapshot is gone
+        stale_snapshot_removal_pending = false;
+        mpl::info(vm_name, "Deleted the stale memory snapshot");
     }
     catch (const std::exception& e)
     {
-        stale_snapshot_removal_failed = true;
+        stale_snapshot_removal_pending = true;
         mpl::warn(vm_name, "Could not delete the stale memory snapshot: {}", e.what());
     }
-
-    state = State::stopped;
-    handle_state_update();
 }
 
 void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
@@ -508,7 +523,16 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         if (has_suspend_snapshot)
         {
             mpl::info(vm_name, "Deleting suspend image");
-            mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
+            try
+            {
+                mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
+                stale_snapshot_removal_pending = false;
+            }
+            catch (const std::exception& e)
+            {
+                stale_snapshot_removal_pending = true;
+                mpl::warn(vm_name, "Could not delete the suspend snapshot: {}", e.what());
+            }
         }
 
         state = State::stopped;
