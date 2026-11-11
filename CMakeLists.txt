@@ -144,10 +144,22 @@ endif()
 if(MULTIPASS_ENABLE_INSIGHTS)
   list(APPEND VCPKG_MANIFEST_FEATURES "ubuntu-insights")
 
-  # vcpkg builds in an isolated environment, so explicitly pass it Go's location.
+  # vcpkg builds in an isolated environment, so keep Go's location in its build environment.
   find_program(GO_EXECUTABLE go REQUIRED)
   get_filename_component(GO_EXECUTABLE_DIR "${GO_EXECUTABLE}" DIRECTORY)
+
+  # Set GO_EXECUTABLE_DIR environment variable, and ask vcpkg to keep it.
+  # NOTE: The resulting ubuntu-insights ABI hash will not depend on the go toolchain
+  # used to build it. So if a new go compiler is installed, the port will not be rebuilt.
+  # This is fine for now.
   set(ENV{GO_EXECUTABLE_DIR} "${GO_EXECUTABLE_DIR}")
+
+  set(VCPKG_KEEP_ENV_VARS "$ENV{VCPKG_KEEP_ENV_VARS}")
+  list(APPEND VCPKG_KEEP_ENV_VARS GO_EXECUTABLE_DIR)
+  list(REMOVE_DUPLICATES VCPKG_KEEP_ENV_VARS)
+
+  set(ENV{VCPKG_KEEP_ENV_VARS} "${VCPKG_KEEP_ENV_VARS}")
+  unset(VCPKG_KEEP_ENV_VARS)
 endif()
 
 # All the current backends depend on QEMU one way or the other.
