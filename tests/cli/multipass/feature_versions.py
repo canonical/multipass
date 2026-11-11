@@ -69,13 +69,24 @@ def host_arch_has_feature(feature_name, arch=None):
     return (arch or platform.machine()) not in unsupported
 
 
-def skip_if_feature_not_supported(feature_name, version=None):
-    if not multipass_version_has_feature(feature_name, version=version):
-        pytest.skip(
-            f"The version does not support `{feature_name}`, skipping.")
-    if not host_arch_has_feature(feature_name):
-        pytest.skip(
-            f"The `{platform.machine()}` architecture does not support `{feature_name}`, skipping.")
+def requires_feature(feature_name):
+    """
+    Mark tests or parameters to skip before fixtures run when the Multipass
+    version or host architecture lacks the given feature.
+
+    Usage:
+        @requires_feature("debian_images")
+        def test_launch_debian(instance):
+            ...
+    """
+
+    if not multipass_version_has_feature(feature_name):
+        return pytest.mark.skip(
+            reason=f"The version does not support `{feature_name}`")
+    return pytest.mark.skipif(
+        not host_arch_has_feature(feature_name),
+        reason=f"The `{platform.machine()}` architecture does not support `{feature_name}`"
+    )
 
 
 def requires_multipass(spec: str):
