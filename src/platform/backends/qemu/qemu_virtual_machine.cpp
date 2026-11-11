@@ -42,6 +42,9 @@
 #include <QString>
 #include <QTemporaryFile>
 
+#include <cerrno>
+#include <csignal>
+
 #include <cassert>
 
 namespace mp = multipass;
@@ -63,6 +66,21 @@ constexpr int kill_process_timeout = 5000; // unit: ms, 5 seconds timeout for ki
 QString get_vm_machine(const boost::json::value& metadata)
 {
     return mp::lookup_or<QString>(metadata, machine_type_key, {});
+}
+
+// QProcess only learns about the child's death once the Qt event loop delivers it, which may be
+// arbitrarily delayed (e.g. while the daemon is starting up and the event loop has not begun
+// processing yet, or while it is busy). Ask the OS directly, so that a QEMU process that has
+// already exited is not mistaken for a live one.
+bool qemu_process_is_alive(const mp::Process& process)
+{
+    const auto pid = process.process_id();
+    if (pid <= 0) // nothing to check (e.g. the process has not started yet)
+        return true;
+
+    // Zero signal only checks for the process's existence. A child that exited but has not been
+    // reaped yet still counts as existing, which is fine: the process monitor reaps it promptly.
+    return kill(pid, 0) == 0 || errno != ESRCH;
 }
 
 QStringList get_arguments(const boost::json::value& metadata)
@@ -593,9 +611,13 @@ void mp::QemuVirtualMachine::initialize_vm_process()
     QObject::connect(vm_process.get(), &Process::finished, [this](ProcessState process_state) {
         if (process_state.exit_code)
         {
-            mpl::info(vm_name,
-                      "process finished with exit code {}",
-                      process_state.exit_code.value());
+            // A non-zero exit means QEMU gave up unexpectedly (e.g. it failed before it could
+            // serve QMP), which users need to see.
+            const auto exit_code = process_state.exit_code.value();
+            const auto log_level = exit_code == 0 ? mpl::Level::info : mpl::Level::error;
+            mpl::log_message(log_level,
+                             vm_name,
+                             fmt::format("process finished with exit code {}", exit_code));
         }
         const auto state = fetch_state();
         if (process_state.error)
@@ -746,7 +768,8 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_
 }
 bool multipass::QemuVirtualMachine::unplugged()
 {
-    return BaseVirtualMachine::unplugged() || !vm_process || !vm_process->running();
+    return BaseVirtualMachine::unplugged() || !vm_process || !vm_process->running() ||
+           !qemu_process_is_alive(*vm_process);
 }
 
 auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
