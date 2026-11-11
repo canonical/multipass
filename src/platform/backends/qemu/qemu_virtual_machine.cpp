@@ -217,24 +217,6 @@ QString qemu_version_from_greeting(const boost::json::object& qmp_output)
     return QString{"%1.%2.%3"}.arg(major).arg(minor).arg(micro);
 }
 
-void record_qemu_version(mp::VMStatusMonitor& monitor,
-                         const std::string& vm_name,
-                         const boost::json::object& qmp_output)
-{
-    const auto qemu_version = qemu_version_from_greeting(qmp_output);
-    if (qemu_version.isEmpty())
-        return;
-
-    auto metadata = monitor.retrieve_metadata_for(vm_name);
-    if (const auto recorded = metadata.if_contains(qemu_version_key);
-        recorded && recorded->is_string() && value_to<QString>(*recorded) == qemu_version)
-        return; // already up to date
-
-    metadata[qemu_version_key] = qemu_version.toStdString();
-    monitor.update_metadata_for(vm_name, metadata);
-    mpl::info(vm_name, "Recorded QEMU version {}", qemu_version);
-}
-
 // The version of the QEMU binary of the current installation, or empty if it cannot be determined.
 QString current_qemu_version(const std::string& vm_name)
 {
@@ -257,12 +239,11 @@ QString current_qemu_version(const std::string& vm_name)
     }
 
     static const QRegularExpression version_re{"^QEMU emulator version ([\\d.]+)"};
-    const auto match = version_re.match(process->read_all_standard_output());
+    const auto output = process->read_all_standard_output();
+    const auto match = version_re.match(output);
     if (!match.hasMatch())
     {
-        mpl::warn(vm_name,
-                  "Could not parse the current QEMU version from: '{}'",
-                  process->read_all_standard_output());
+        mpl::warn(vm_name, "Could not parse the current QEMU version from: '{}'", output);
         return {};
     }
 
@@ -296,6 +277,34 @@ QStringList extract_snapshot_tags(const QByteArray& snapshot_list_output_stream)
 }
 
 } // namespace
+
+void mp::QemuVirtualMachine::record_qemu_version(const boost::json::object& qmp_output)
+{
+    const auto qemu_version = qemu_version_from_greeting(qmp_output);
+    if (qemu_version.isEmpty())
+        return;
+
+    if (stale_snapshot_removal_failed)
+    {
+        // A stale suspend snapshot is still embedded in the instance image. Do not advance the
+        // recorded QEMU version past the one that produced it: until the snapshot is actually
+        // gone, the resume compatibility check must keep rejecting it.
+        mpl::warn(vm_name,
+                  "Not recording QEMU version {}: the stale memory snapshot could not be deleted "
+                  "from the instance image",
+                  qemu_version);
+        return;
+    }
+
+    auto metadata = monitor.retrieve_metadata_for(vm_name);
+    if (const auto recorded = metadata.if_contains(qemu_version_key);
+        recorded && recorded->is_string() && value_to<QString>(*recorded) == qemu_version)
+        return; // already up to date
+
+    metadata[qemu_version_key] = qemu_version.toStdString();
+    monitor.update_metadata_for(vm_name, metadata);
+    mpl::info(vm_name, "Recorded QEMU version {}", qemu_version);
+}
 
 mp::QemuVirtualMachine::QemuVirtualMachine(const VirtualMachineDescription& desc,
                                            QemuPlatform* qemu_platform,
@@ -440,9 +449,11 @@ void mp::QemuVirtualMachine::check_resume_compatibility()
     try
     {
         mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
+        stale_snapshot_removal_failed = false; // the stale snapshot is gone
     }
     catch (const std::exception& e)
     {
+        stale_snapshot_removal_failed = true;
         mpl::warn(vm_name, "Could not delete the stale memory snapshot: {}", e.what());
     }
 
@@ -659,7 +670,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
         auto qmp_object = boost::json::parse(json_line->toStdString()).as_object();
 
         if (qmp_object.contains("QMP")) // greeting
-            record_qemu_version(monitor, vm_name, qmp_object);
+            record_qemu_version(qmp_object);
         else if (auto event = qmp_object.if_contains("event"))
         {
             auto event_str = value_to<std::string>(*event);

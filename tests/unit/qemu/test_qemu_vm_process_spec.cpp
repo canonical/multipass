@@ -178,6 +178,45 @@ TEST_F(TestQemuVMProcessSpec, resumeRebasesStaleResourcePathsToCurrentInstallati
                               "mac=52:54:00:fa:fd:a5"));
 }
 
+TEST_F(TestQemuVMProcessSpec, resumeRebasesAlternateSpellingsOfStaleResourcePaths)
+{
+    constexpr auto firmware_dir_suffix = "/Resources/qemu"; // mirror of the production constant
+
+    // mirror of QemuPlatform::firmware_path()
+    const QString current_firmware_path =
+        QDir{QCoreApplication::applicationDirPath() + "/../Resources/qemu"}.absolutePath();
+
+    // a stale directory as recorded by a previous installation: the -L value is the cleaned form,
+    // while the pflash drive embeds the uncleaned macOS-style spelling of the same directory
+    const QString stale_firmware_path{"/old/installation/Resources/qemu"};
+    const QString stale_pflash_path =
+        QString("%1/%2/..%3/edk2-x86_64-code.fd")
+            .arg(stale_firmware_path.chopped(QString{firmware_dir_suffix}.size()),
+                 QDir{QCoreApplication::applicationDirPath()}.dirName(),
+                 firmware_dir_suffix);
+
+    const mp::QemuVMProcessSpec::ResumeData resume_data{
+        "suspend_tag",
+        "machine_type",
+        {"-L",
+         stale_firmware_path,
+         "-drive",
+         QString("file=%1,if=pflash,format=raw,readonly=on,file.locking=off")
+             .arg(stale_pflash_path)}};
+
+    mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data);
+
+    const auto args = spec.arguments();
+    EXPECT_FALSE(args.join(' ').contains(stale_firmware_path));
+    EXPECT_FALSE(args.join(' ').contains(stale_pflash_path));
+    EXPECT_TRUE(args.contains(spec.firmware_path()));
+    EXPECT_TRUE(args.contains(
+        QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on,file.locking=off")
+            .arg(spec.firmware_path())));
+    EXPECT_TRUE(args.contains("-loadvm"));
+    EXPECT_TRUE(args.contains("suspend_tag"));
+}
+
 TEST_F(TestQemuVMProcessSpec, resumeKeepsCurrentResourcePaths)
 {
     // mirror of QemuPlatform::firmware_path()

@@ -28,6 +28,8 @@
 #include <QObject>
 #include <QStringList>
 
+#include <boost/json.hpp>
+
 #include <chrono>
 #include <unordered_map>
 
@@ -89,6 +91,7 @@ private:
     void on_restart();
     void initialize_vm_process();
     void check_resume_compatibility();
+    void record_qemu_version(const boost::json::object& qmp_output);
 
     void connect_vm_signals();
     void disconnect_vm_signals();
@@ -100,6 +103,10 @@ private:
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};
     bool force_shutdown{false};
+    // Set when a stale suspend snapshot could not be removed from the instance image; while set,
+    // the QMP-reported QEMU version must not be recorded, so that resume compatibility checks
+    // keep rejecting the stale snapshot.
+    bool stale_snapshot_removal_failed{false};
     std::mutex vm_signal_mutex;
     bool vm_signals_connected{false};
     std::chrono::steady_clock::time_point network_deadline;

@@ -25,8 +25,11 @@
 #include <shared/linux/backend_utils.h>
 
 #include <QCoreApplication>
+#include <QDir>
 #include <QFile>
 #include <QRegularExpression>
+
+#include <algorithm>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -34,6 +37,27 @@ namespace mpu = multipass::utils;
 
 namespace
 {
+constexpr auto firmware_dir_suffix = "/Resources/qemu";
+
+// Alternate spellings under which the same recorded resource directory may appear in arguments:
+// the path as recorded, plus its uncleaned form including the binary directory segment (e.g.
+// "<install>/bin/../Resources/qemu" or "<app>/Contents/MacOS/../Resources/qemu"), which is how
+// some QEMU arguments (e.g. the macOS pflash drive) historically embedded it.
+QStringList resource_path_spellings(const QString& path)
+{
+    QStringList spellings{path};
+
+    if (path.endsWith(firmware_dir_suffix))
+    {
+        const auto binary_dir = QDir{QCoreApplication::applicationDirPath()}.dirName();
+        spellings.append(
+            QString("%1/%2/..%3")
+                .arg(path.chopped(qstrlen(firmware_dir_suffix)), binary_dir, firmware_dir_suffix));
+    }
+
+    return spellings;
+}
+
 // Recorded resume arguments may reference resources (e.g. firmware search path and pflash files)
 // of a previous installation, such as another snap revision, which snapd may garbage-collect at
 // any time. Rebase any such path onto the current installation's equivalent, so that resuming a
@@ -45,28 +69,49 @@ void rebase_stale_resource_paths(const std::string& vm_name,
     QStringList stale_paths;
     for (auto i = 0; i + 1 < args.size(); ++i)
     {
-        if (args[i] == "-L" && args[i + 1] != current_firmware_path &&
-            !stale_paths.contains(args[i + 1]))
-            stale_paths.append(args[i + 1]);
+        if (args[i] != "-L")
+            continue;
+
+        const auto& recorded_path = args[i + 1];
+        const auto matches = [&recorded_path](const QString& other) {
+            return QDir::cleanPath(other) == QDir::cleanPath(recorded_path);
+        };
+
+        // Compare lexically-normalized forms: the same directory may be recorded under a
+        // different spelling (e.g. with an uncleaned "<bindir>/.." segment).
+        if (!matches(current_firmware_path) &&
+            std::none_of(stale_paths.cbegin(), stale_paths.cend(), matches))
+            stale_paths.append(recorded_path);
     }
 
     for (const auto& stale_path : stale_paths)
     {
-        // Reported arguments include the `-L <dir>` option itself as well as any other argument
-        // embedding the same directory (e.g. `-drive file=<dir>/edk2-x86_64-code.fd,...`).
-        args.replaceInStrings(stale_path, current_firmware_path);
+        for (const auto& spelling : resource_path_spellings(stale_path))
+        {
+            const auto occurrences = std::count_if(
+                args.cbegin(),
+                args.cend(),
+                [&spelling](const QString& arg) { return arg.contains(spelling); });
+            if (occurrences == 0)
+                continue;
 
-        if (QFile::exists(stale_path))
-            mpl::info(vm_name,
-                      "Recorded QEMU resource path '{}' belongs to another installation; "
-                      "rebasing it to '{}'",
-                      stale_path,
-                      current_firmware_path);
-        else
-            mpl::warn(vm_name,
-                      "Recorded QEMU resource path '{}' no longer exists; rebasing it to '{}'",
-                      stale_path,
-                      current_firmware_path);
+            args.replaceInStrings(spelling, current_firmware_path);
+
+            if (QFile::exists(spelling))
+                mpl::info(vm_name,
+                          "Recorded QEMU resource path '{}' ({} argument(s)) belongs to another "
+                          "installation; rebasing it to '{}'",
+                          spelling,
+                          occurrences,
+                          current_firmware_path);
+            else
+                mpl::warn(vm_name,
+                          "Recorded QEMU resource path '{}' ({} argument(s)) no longer exists; "
+                          "rebasing it to '{}'",
+                          spelling,
+                          occurrences,
+                          current_firmware_path);
+        }
     }
 }
 } // namespace
@@ -120,8 +165,8 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     {
         // The UUID needs to be unique per VM and must be consistent across boots.
         const auto vm_uuid = QString::fromStdString(utils::make_uuid(desc.vm_name));
-        auto mem_size =
-            QString::number(desc.mem_size.in_megabytes()) + 'M'; /* flooring here; format documented
+        auto mem_size = QString::number(desc.mem_size.in_megabytes()) +
+                        'M'; /* flooring here; format documented
 in `man qemu-system`, under `-m` option; including suffix to avoid relying on default unit */
         // clang-format off
         // Tell QEMU where to look for the BIOS files
