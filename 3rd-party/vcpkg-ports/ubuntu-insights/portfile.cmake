@@ -23,7 +23,7 @@ vcpkg_from_github(
     PATCHES 0001-c-api-free.patch
 )
 
-find_program(GO_EXECUTABLE NAMES go REQUIRED)
+find_program(GO_EXECUTABLE NAMES go HINTS ENV GO_EXECUTABLE_DIR REQUIRED)
 
 set(tools_dir "${CURRENT_PACKAGES_DIR}/tools/${PORT}")
 file(MAKE_DIRECTORY "${tools_dir}")

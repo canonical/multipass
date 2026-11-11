@@ -96,6 +96,12 @@ jobs:
         go-version: '1.26.x'
         cache: false
 
+    - name: Expose Go location to vcpkg
+      shell: pwsh
+      run: |
+        $goDir = Split-Path -Parent (Get-Command go -CommandType Application -ErrorAction Stop).Source
+        "GO_EXECUTABLE_DIR=$goDir" >> $env:GITHUB_ENV
+
     - name: Install other packages from Choco
       uses: crazy-max/ghaction-chocolatey@v4
       with:
