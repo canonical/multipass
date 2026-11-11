@@ -96,16 +96,6 @@ jobs:
         go-version: '1.26.x'
         cache: false
 
-    - name: Expose Go location to vcpkg
-      shell: pwsh
-      run: |
-        $goRoot = go env GOROOT
-        if ($LASTEXITCODE -ne 0) {
-          throw "Failed to determine Go installation root"
-        }
-        $goDir = Join-Path $goRoot 'bin'
-        "GO_EXECUTABLE_DIR=$goDir" >> $env:GITHUB_ENV
-
     - name: Install other packages from Choco
       uses: crazy-max/ghaction-chocolatey@v4
       with:

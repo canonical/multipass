@@ -143,6 +143,11 @@ endif()
 
 if(MULTIPASS_ENABLE_INSIGHTS)
   list(APPEND VCPKG_MANIFEST_FEATURES "ubuntu-insights")
+
+  # vcpkg builds in an isolated environment, so explicitly pass it Go's location.
+  find_program(GO_EXECUTABLE go REQUIRED)
+  get_filename_component(GO_EXECUTABLE_DIR "${GO_EXECUTABLE}" DIRECTORY)
+  set(ENV{GO_EXECUTABLE_DIR} "${GO_EXECUTABLE_DIR}")
 endif()
 
 # All the current backends depend on QEMU one way or the other.
