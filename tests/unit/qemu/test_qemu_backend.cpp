@@ -44,6 +44,7 @@
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
+#include <multipass/json_utils.h>
 #include <multipass/memory_size.h>
 #include <multipass/platform.h>
 #include <multipass/snapshot.h>
@@ -67,6 +68,10 @@ namespace
 constexpr auto suspend_tag = "suspend";
 // we need a whitespace to terminate the tag column in the fake output of qemu-img
 const QByteArray fake_snapshot_list_with_suspend_tag = QByteArray{suspend_tag} + " ";
+// version reported by the mocked `qemu-system-<arch> --version` probe
+constexpr auto current_qemu_version = "10.0.3";
+const QByteArray fake_qemu_version_output = QByteArray{"QEMU emulator version "} +
+                                            current_qemu_version + "\n";
 } // namespace
 
 struct QemuBackend : public mpt::TestWithMockedBinPath
@@ -111,6 +116,15 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                 ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
                 ON_CALL(*process, read_all_standard_output())
                     .WillByDefault(Return(fake_snapshot_list_with_suspend_tag));
+            }
+            else if (process->program().contains("qemu-system-") &&
+                     process->arguments().contains("--version"))
+            {
+                mp::ProcessState exit_state;
+                exit_state.exit_code = 0;
+                ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
+                ON_CALL(*process, read_all_standard_output())
+                    .WillByDefault(Return(fake_qemu_version_output));
             }
             else if (process->program() == "iptables")
             {
@@ -184,6 +198,20 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
     auto expected_qemu_system_prefix()
     {
         return QDir(QCoreApplication::applicationDirPath()).filePath("qemu-system-");
+    }
+
+    // The process factory records every spawned process, including helper invocations; pick the
+    // actual VM process.
+    auto find_vm_qemu_process(const std::vector<mpt::MockProcessFactory::ProcessInfo>& processes)
+    {
+        return std::find_if(processes.cbegin(),
+                            processes.cend(),
+                            [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                return process_info.command.startsWith(
+                                           expected_qemu_system_prefix()) &&
+                                       !process_info.arguments.contains("--version") &&
+                                       !process_info.arguments.contains("-dump-vmstate");
+                            });
     }
 
     mpt::MockLogger::Scope logger_scope{mpt::MockLogger::inject()};
@@ -947,20 +975,19 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImage)
     });
 
     process_factory->register_callback(handle_external_process_calls);
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
+        .WillRepeatedly(Return(boost::json::object{{"qemu_version", current_qemu_version}}));
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
     machine->start();
     machine->state = mp::VirtualMachine::State::running;
 
     auto processes = process_factory->process_list();
-    auto qemu = std::find_if(processes.cbegin(),
-                             processes.cend(),
-                             [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith(
-                                     expected_qemu_system_prefix());
-                             });
+    auto qemu = find_vm_qemu_process(processes);
 
     ASSERT_TRUE(qemu != processes.cend());
     EXPECT_TRUE(qemu->arguments.contains("-loadvm"));
@@ -979,7 +1006,8 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImageUsesMetadata)
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
-        .WillRepeatedly(Return(boost::json::object{{"machine_type", machine_type}}));
+        .WillRepeatedly(Return(boost::json::object{{"machine_type", machine_type},
+                                                   {"qemu_version", current_qemu_version}}));
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
@@ -988,12 +1016,7 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImageUsesMetadata)
     machine->state = mp::VirtualMachine::State::running;
 
     auto processes = process_factory->process_list();
-    auto qemu = std::find_if(processes.cbegin(),
-                             processes.cend(),
-                             [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith(
-                                     expected_qemu_system_prefix());
-                             });
+    auto qemu = find_vm_qemu_process(processes);
 
     ASSERT_TRUE(qemu != processes.cend());
     ASSERT_TRUE(qemu->command.startsWith(expected_qemu_system_prefix()));
@@ -1007,24 +1030,14 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
         return std::move(mock_qemu_platform);
     });
 
-    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
-        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
-        {
-            mp::ProcessState exit_state;
-            exit_state.exit_code = 0;
-            EXPECT_CALL(*process, execute(_)).WillOnce(Return(exit_state));
-            EXPECT_CALL(*process, read_all_standard_output())
-                .WillOnce(Return(fake_snapshot_list_with_suspend_tag));
-        }
-    };
-
-    process_factory->register_callback(callback);
+    process_factory->register_callback(handle_external_process_calls);
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
     EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
         .WillRepeatedly(Return(boost::json::object{
             {"arguments", {"-hi_there", "-hows_it_going"}},
-            {"mount_data", {{"mytag", {{"source", "src"}, {"arguments", {"-mount_arg"}}}}}}}));
+            {"mount_data", {{"mytag", {{"source", "src"}, {"arguments", {"-mount_arg"}}}}}},
+            {"qemu_version", current_qemu_version}}));
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
@@ -1033,17 +1046,193 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
     machine->state = mp::VirtualMachine::State::running;
 
     auto processes = process_factory->process_list();
-    auto qemu = std::find_if(processes.cbegin(),
-                             processes.cend(),
-                             [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
-                                 return process_info.command.startsWith(
-                                     expected_qemu_system_prefix());
-                             });
+    auto qemu = find_vm_qemu_process(processes);
 
     ASSERT_TRUE(qemu != processes.cend());
     EXPECT_TRUE(qemu->arguments.contains("-hi_there"));
     EXPECT_TRUE(qemu->arguments.contains("-hows_it_going"));
     EXPECT_TRUE(qemu->arguments.contains("-mount_arg"));
+}
+
+TEST_F(QemuBackend, resumeWithMismatchingQemuVersionBootsFreshAndDeletesStaleSnapshot)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    constexpr auto snapshot_qemu_version = "8.2.0";
+    mpt::MockProcessFactory::Callback callback = [](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-img") && process->arguments().contains("snapshot"))
+        {
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
+            ON_CALL(*process, read_all_standard_output())
+                .WillByDefault(Return(fake_snapshot_list_with_suspend_tag));
+        }
+        else if (process->program().contains("qemu-system-") &&
+                 process->arguments().contains("--version"))
+        {
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 0;
+            ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
+            ON_CALL(*process, read_all_standard_output())
+                .WillByDefault(Return(fake_qemu_version_output));
+        }
+    };
+    process_factory->register_callback(callback);
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         std::string{"was created by QEMU "} +
+                                             snapshot_qemu_version + ", but the current QEMU is " +
+                                             current_qemu_version);
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
+        .WillRepeatedly(Return(boost::json::object{{"qemu_version", snapshot_qemu_version},
+                                                   {"arguments", {"-recorded"}}}));
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+
+    const auto processes = process_factory->process_list();
+
+    // the stale suspend snapshot is deleted from the instance image
+    EXPECT_TRUE(std::any_of(processes.cbegin(),
+                            processes.cend(),
+                            [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                return process_info.command == expected_qemu_img_path() &&
+                                       process_info.arguments.contains("snapshot") &&
+                                       process_info.arguments.contains("-d") &&
+                                       process_info.arguments.contains(suspend_tag);
+                            }));
+
+    // booting fresh: no -loadvm, and none of the arguments recorded by the previous QEMU
+    auto qemu = find_vm_qemu_process(processes);
+    ASSERT_TRUE(qemu != processes.cend());
+    EXPECT_FALSE(qemu->arguments.contains("-loadvm"));
+    EXPECT_FALSE(qemu->arguments.contains("-recorded"));
+}
+
+TEST_F(QemuBackend, resumeWithUnknownRecordedQemuVersionBootsFresh)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    process_factory->register_callback(handle_external_process_calls);
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "was created by an unknown QEMU version");
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
+        .WillRepeatedly(Return(boost::json::object{{"arguments", {"-recorded"}}}));
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+
+    const auto processes = process_factory->process_list();
+    auto qemu = find_vm_qemu_process(processes);
+    ASSERT_TRUE(qemu != processes.cend());
+    EXPECT_FALSE(qemu->arguments.contains("-loadvm"));
+    EXPECT_FALSE(qemu->arguments.contains("-recorded"));
+}
+
+TEST_F(QemuBackend, resumeWithMatchingQemuVersionResumesAndKeepsSnapshot)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    process_factory->register_callback(handle_external_process_calls);
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "was created by QEMU",
+                                         Exactly(0)); // no compatibility warning
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
+        .WillRepeatedly(Return(boost::json::object{{"qemu_version", current_qemu_version},
+                                                   {"arguments", {"-recorded"}}}));
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+
+    const auto processes = process_factory->process_list();
+
+    // the suspend snapshot is not deleted from the instance image
+    EXPECT_FALSE(std::any_of(processes.cbegin(),
+                             processes.cend(),
+                             [this](const mpt::MockProcessFactory::ProcessInfo& process_info) {
+                                 return process_info.command == expected_qemu_img_path() &&
+                                        process_info.arguments.contains("-d");
+                             }));
+
+    auto qemu = find_vm_qemu_process(processes);
+    ASSERT_TRUE(qemu != processes.cend());
+    EXPECT_TRUE(qemu->arguments.contains("-loadvm"));
+    EXPECT_TRUE(qemu->arguments.contains(suspend_tag));
+    EXPECT_TRUE(qemu->arguments.contains("-recorded"));
+}
+
+TEST_F(QemuBackend, recordsQemuVersionFromQmpGreeting)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    const QByteArray qmp_greeting{
+        R"({"QMP": {"version": {"qemu": {"micro": 3, "minor": 0, "major": 10}, "package": ""}, "capabilities": ["oob"]}})"};
+
+    mpt::MockProcessFactory::Callback callback = [&qmp_greeting](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") &&
+            !process->arguments().contains("--version") &&
+            !process->arguments().contains("-dump-vmstate"))
+        {
+            EXPECT_CALL(*process, write(_))
+                .WillRepeatedly([process, &qmp_greeting](const QByteArray& data) {
+                    EXPECT_CALL(*process, read_all_standard_output())
+                        .WillRepeatedly(Return(qmp_greeting));
+                    emit process->ready_read_standard_output();
+                    return data.size();
+                });
+        }
+    };
+    process_factory->register_callback(callback);
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    std::vector<boost::json::object> metadata_updates;
+    EXPECT_CALL(mock_monitor, update_metadata_for(_, _))
+        .WillRepeatedly([&metadata_updates](auto&&, const boost::json::object& metadata) {
+            metadata_updates.push_back(metadata);
+        });
+
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+
+    EXPECT_TRUE(std::any_of(metadata_updates.cbegin(),
+                            metadata_updates.cend(),
+                            [](const boost::json::object& metadata) {
+                                return metadata.contains("qemu_version") &&
+                                       value_to<QString>(metadata.at("qemu_version")) ==
+                                           current_qemu_version;
+                            }));
 }
 
 TEST_F(QemuBackend, returnsVersionString)

@@ -21,6 +21,7 @@
 #include <multipass/snap_utils.h>
 #include <src/platform/backends/qemu/qemu_vm_process_spec.h>
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QString>
 #include <QStringList>
@@ -145,6 +146,57 @@ TEST_F(TestQemuVMProcessSpec, resumeFixesVmnetFormat)
                            "-machine",
                            "machine_type"})
                   << mount_args.begin()->second.second);
+}
+
+TEST_F(TestQemuVMProcessSpec, resumeRebasesStaleResourcePathsToCurrentInstallation)
+{
+    const QString stale_firmware_path{"/old/installation/Resources/qemu"};
+    const mp::QemuVMProcessSpec::ResumeData resume_data{
+        "suspend_tag",
+        "machine_type",
+        {"-L",
+         stale_firmware_path,
+         "-drive",
+         QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on,file.locking=off")
+             .arg(stale_firmware_path),
+         "-nic",
+         "tap,ifname=tap_device,script=no,downscript=no,model=virtio-net-pci,mac=52:54:00:fa:fd:"
+         "a5"}};
+
+    mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data);
+
+    const auto args = spec.arguments();
+    EXPECT_FALSE(args.contains(stale_firmware_path));
+    EXPECT_FALSE(args.join(' ').contains(stale_firmware_path));
+    EXPECT_TRUE(args.contains(spec.firmware_path()));
+    EXPECT_TRUE(args.contains(
+        QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on,file.locking=off")
+            .arg(spec.firmware_path())));
+    EXPECT_TRUE(args.contains("-loadvm"));
+    EXPECT_TRUE(args.contains("suspend_tag"));
+    EXPECT_TRUE(args.contains("tap,ifname=tap_device,script=no,downscript=no,model=virtio-net-pci,"
+                              "mac=52:54:00:fa:fd:a5"));
+}
+
+TEST_F(TestQemuVMProcessSpec, resumeKeepsCurrentResourcePaths)
+{
+    // mirror of QemuPlatform::firmware_path()
+    const QString current_firmware_path =
+        QDir{QCoreApplication::applicationDirPath() + "/../Resources/qemu"}.absolutePath();
+    const mp::QemuVMProcessSpec::ResumeData resume_data{
+        "suspend_tag",
+        "machine_type",
+        {"-L",
+         current_firmware_path,
+         "-drive",
+         QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on,file.locking=off")
+             .arg(current_firmware_path)}};
+
+    mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data);
+
+    const auto args = spec.arguments();
+    EXPECT_EQ(args.count(spec.firmware_path()), 1);
+    EXPECT_TRUE(args.contains("-loadvm"));
 }
 
 TEST_F(TestQemuVMProcessSpec, apparmorProfileIncludesFileMountPerms)

@@ -88,6 +88,7 @@ private:
     void on_suspend();
     void on_restart();
     void initialize_vm_process();
+    void check_resume_compatibility();
 
     void connect_vm_signals();
     void disconnect_vm_signals();

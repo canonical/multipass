@@ -57,6 +57,7 @@ constexpr auto arguments_key = "arguments";
 constexpr auto mount_data_key = "mount_data";
 constexpr auto mount_source_key = "source";
 constexpr auto mount_arguments_key = "arguments";
+constexpr auto qemu_version_key = "qemu_version";
 
 constexpr int kill_process_timeout = 5000; // unit: ms, 5 seconds timeout for killing the process
 
@@ -190,6 +191,84 @@ auto generate_metadata(const QStringList& platform_args,
                                {mount_data_key, mount_args_to_json(mount_args)}};
 }
 
+// The version of the QEMU that produced a memory snapshot determines whether that snapshot can be
+// restored by the QEMU we would use to resume it, so we record it per instance (it comes for free
+// in the QMP greeting).
+QString qemu_version_from_greeting(const boost::json::object& qmp_output)
+{
+    const auto greeting = qmp_output.if_contains("QMP");
+    if (!greeting || !greeting->is_object())
+        return {};
+
+    const auto version = greeting->as_object().if_contains("version");
+    if (!version || !version->is_object())
+        return {};
+
+    const auto qemu = version->as_object().if_contains("qemu");
+    if (!qemu)
+        return {};
+
+    const auto major = mp::lookup_or<int>(*qemu, "major", -1);
+    const auto minor = mp::lookup_or<int>(*qemu, "minor", -1);
+    const auto micro = mp::lookup_or<int>(*qemu, "micro", -1);
+    if (major < 0 || minor < 0 || micro < 0)
+        return {};
+
+    return QString{"%1.%2.%3"}.arg(major).arg(minor).arg(micro);
+}
+
+void record_qemu_version(mp::VMStatusMonitor& monitor,
+                         const std::string& vm_name,
+                         const boost::json::object& qmp_output)
+{
+    const auto qemu_version = qemu_version_from_greeting(qmp_output);
+    if (qemu_version.isEmpty())
+        return;
+
+    auto metadata = monitor.retrieve_metadata_for(vm_name);
+    if (const auto recorded = metadata.if_contains(qemu_version_key);
+        recorded && recorded->is_string() && value_to<QString>(*recorded) == qemu_version)
+        return; // already up to date
+
+    metadata[qemu_version_key] = qemu_version.toStdString();
+    monitor.update_metadata_for(vm_name, metadata);
+    mpl::info(vm_name, "Recorded QEMU version {}", qemu_version);
+}
+
+// The version of the QEMU binary of the current installation, or empty if it cannot be determined.
+QString current_qemu_version(const std::string& vm_name)
+{
+    struct QemuVersionProcSpec : mp::QemuBaseProcessSpec
+    {
+        QStringList arguments() const override
+        {
+            return QStringList{"--version"};
+        }
+    };
+
+    auto process = mp::platform::make_process(std::make_unique<QemuVersionProcSpec>());
+    const auto process_state = process->execute();
+    if (!process_state.completed_successfully())
+    {
+        mpl::warn(vm_name,
+                  "Could not determine the current QEMU version: {}",
+                  process_state.failure_message());
+        return {};
+    }
+
+    static const QRegularExpression version_re{"^QEMU emulator version ([\\d.]+)"};
+    const auto match = version_re.match(process->read_all_standard_output());
+    if (!match.hasMatch())
+    {
+        mpl::warn(vm_name,
+                  "Could not parse the current QEMU version from: '{}'",
+                  process->read_all_standard_output());
+        return {};
+    }
+
+    return match.captured(1);
+}
+
 QStringList extract_snapshot_tags(const QByteArray& snapshot_list_output_stream)
 {
     QStringList lines = QString{snapshot_list_output_stream}.split('\n');
@@ -270,6 +349,8 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
 
 void mp::QemuVirtualMachine::start()
 {
+    check_resume_compatibility();
+
     initialize_vm_process();
 
     if (state == State::suspended)
@@ -319,6 +400,54 @@ void mp::QemuVirtualMachine::start()
     }
 
     vm_process->write(QByteArray::fromStdString(serialize(qmp_execute_json("qmp_capabilities"))));
+}
+
+void mp::QemuVirtualMachine::check_resume_compatibility()
+{
+    if (state != State::suspended)
+        return;
+
+    const auto metadata = monitor.retrieve_metadata_for(vm_name);
+    auto snapshot_qemu_version = QString{};
+    if (const auto recorded = metadata.if_contains(qemu_version_key);
+        recorded && recorded->is_string())
+        snapshot_qemu_version = value_to<QString>(*recorded);
+
+    auto current = current_qemu_version(vm_name);
+    if (current.isEmpty())
+        current = QStringLiteral("unknown");
+
+    if (!snapshot_qemu_version.isEmpty() && snapshot_qemu_version == current)
+        return;
+
+    // A memory snapshot is only loadable by a compatible QEMU build (cf. canonical/multipass#4970).
+    // If we cannot verify that the recording QEMU matches the current one, err on the side of
+    // caution: boot fresh, keeping the disk (and dropping the in-memory state).
+    if (snapshot_qemu_version.isEmpty())
+        mpl::warn(vm_name,
+                  "The memory snapshot of this suspended instance was created by an unknown QEMU "
+                  "version (current QEMU: {}). Discarding the memory snapshot and booting fresh; "
+                  "disk contents are preserved",
+                  current);
+    else
+        mpl::warn(vm_name,
+                  "The memory snapshot of this suspended instance was created by QEMU {}, but the "
+                  "current QEMU is {}. Discarding the memory snapshot and booting fresh; disk "
+                  "contents are preserved",
+                  snapshot_qemu_version,
+                  current);
+
+    try
+    {
+        mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
+    }
+    catch (const std::exception& e)
+    {
+        mpl::warn(vm_name, "Could not delete the stale memory snapshot: {}", e.what());
+    }
+
+    state = State::stopped;
+    handle_state_update();
 }
 
 void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
@@ -529,7 +658,9 @@ void mp::QemuVirtualMachine::initialize_vm_process()
             return;
         auto qmp_object = boost::json::parse(json_line->toStdString()).as_object();
 
-        if (auto event = qmp_object.if_contains("event"))
+        if (qmp_object.contains("QMP")) // greeting
+            record_qemu_version(monitor, vm_name, qmp_object);
+        else if (auto event = qmp_object.if_contains("event"))
         {
             auto event_str = value_to<std::string>(*event);
             if (event_str == "RESET" && state != State::restarting)

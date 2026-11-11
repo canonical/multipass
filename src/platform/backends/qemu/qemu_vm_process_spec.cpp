@@ -25,11 +25,51 @@
 #include <shared/linux/backend_utils.h>
 
 #include <QCoreApplication>
+#include <QFile>
 #include <QRegularExpression>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
+
+namespace
+{
+// Recorded resume arguments may reference resources (e.g. firmware search path and pflash files)
+// of a previous installation, such as another snap revision, which snapd may garbage-collect at
+// any time. Rebase any such path onto the current installation's equivalent, so that resuming a
+// VM suspended by a previous build keeps using the resources shipped alongside the running QEMU.
+void rebase_stale_resource_paths(const std::string& vm_name,
+                                 const QString& current_firmware_path,
+                                 QStringList& args)
+{
+    QStringList stale_paths;
+    for (auto i = 0; i + 1 < args.size(); ++i)
+    {
+        if (args[i] == "-L" && args[i + 1] != current_firmware_path &&
+            !stale_paths.contains(args[i + 1]))
+            stale_paths.append(args[i + 1]);
+    }
+
+    for (const auto& stale_path : stale_paths)
+    {
+        // Reported arguments include the `-L <dir>` option itself as well as any other argument
+        // embedding the same directory (e.g. `-drive file=<dir>/edk2-x86_64-code.fd,...`).
+        args.replaceInStrings(stale_path, current_firmware_path);
+
+        if (QFile::exists(stale_path))
+            mpl::info(vm_name,
+                      "Recorded QEMU resource path '{}' belongs to another installation; "
+                      "rebasing it to '{}'",
+                      stale_path,
+                      current_firmware_path);
+        else
+            mpl::warn(vm_name,
+                      "Recorded QEMU resource path '{}' no longer exists; rebasing it to '{}'",
+                      stale_path,
+                      current_firmware_path);
+    }
+}
+} // namespace
 
 mp::QemuVMProcessSpec::QemuVMProcessSpec(const mp::VirtualMachineDescription& desc,
                                          const QStringList& platform_args,
@@ -45,6 +85,8 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     if (resume_data)
     {
         args = resume_data->arguments;
+
+        rebase_stale_resource_paths(desc.vm_name, firmware_path(), args);
 
         // A VM suspended in a previous version will not contain the firmware
         // path. Prepend it to the args so QEMU can locate the BIOS.
