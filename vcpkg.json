@@ -28,8 +28,7 @@
                 "server"
             ]
         },
-        "premock",
-        "ubuntu-insights"
+        "premock"
     ],
     "overrides": [
         {
@@ -59,6 +58,12 @@
                     ],
                     "platform": "osx | linux"
                 }
+            ]
+        },
+        "ubuntu-insights": {
+            "description": "Enable Ubuntu Insights integration",
+            "dependencies": [
+                "ubuntu-insights"
             ]
         }
     }

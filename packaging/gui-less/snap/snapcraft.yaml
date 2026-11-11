@@ -33,17 +33,18 @@ environment:
   ARCH_TRIPLET: ${CRAFT_ARCH_TRIPLET_BUILD_FOR}
 
 plugs:
+    # TODO: Acquire approval for these plugs
+    # dot-config-ubuntu-insights:
+    #   interface: personal-files
+    #   read:
+    #     - $HOME/.config/ubuntu-insights
+    # dot-cache-ubuntu-insights:
+    #   interface: personal-files
+    #   write:
+    #     - $HOME/.cache/ubuntu-insights
   all-home:
     interface: home
     read: all
-  dot-config-ubuntu-insights:
-    interface: personal-files
-    read:
-    - $HOME/.config/ubuntu-insights
-  dot-cache-ubuntu-insights:
-    interface: personal-files
-    write:
-    - $HOME/.cache/ubuntu-insights
 
 apps:
   multipassd:

@@ -47,8 +47,21 @@ if(VCPKG_TARGET_IS_LINUX)
     add_insights_tool(ingest-service ./server/cmd/ingest-service)
 endif()
 
+set(GO_ENV CGO_ENABLED=1)
+
+if(DEFINED ENV{CGO_CC})
+    list(APPEND GO_ENV "CC=$ENV{CGO_CC}")
+
+    # Usually gcc comes with other tools such as ar/as/ld. So we add the directory
+    # to the path to enable cgo to find these tools.
+    get_filename_component(CC_DIR "$ENV{CGO_CC}" DIRECTORY)
+    list(APPEND GO_ENV --modify "PATH=path_list_prepend:${CC_DIR}")
+endif()
+
 vcpkg_execute_required_process(
-    COMMAND "${GO_EXECUTABLE}" run -tags=tools ./generate/...
+    COMMAND
+        "${CMAKE_COMMAND}" -E env ${GO_ENV}
+        "${GO_EXECUTABLE}" run -tags=tools ./generate/...
     WORKING_DIRECTORY "${SOURCE_PATH}/insights/C"
     LOGNAME build-c-api
 )
