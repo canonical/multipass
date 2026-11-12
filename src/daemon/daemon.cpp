@@ -1554,7 +1554,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
             continue;
         }
 
-        // TODO use this instead of building the description from the spec
+        // TODO use this instead of building the description from the spec once the VM specific JSON
+        // becomes the source of truth
         const auto instance_dir = config->factory->get_instance_directory(name);
         std::ignore = load_vm_description(name, instance_dir);
 
