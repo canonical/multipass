@@ -33,7 +33,7 @@ QString mp::QemuBaseProcessSpec::working_directory() const
     return firmware_path();
 }
 
-QString mp::QemuBaseProcessSpec::apparmor_profile() const
+QString mp::QemuBaseProcessSpec::apparmor_profile(const QString&) const
 {
     return QString();
 }

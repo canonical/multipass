@@ -20,6 +20,7 @@ find_package(Qt6 REQUIRED COMPONENTS DBus)
 function(add_target TARGET_NAME)
   add_library(${TARGET_NAME} STATIC
     apparmor.cpp
+    apparmored_process.cpp
     backend_utils.cpp
     process_factory.cpp)
 
