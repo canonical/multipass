@@ -9,7 +9,7 @@ myst:
 
 ```{seealso}
 
-[GUI Client](reference-gui-client),[launch](reference-command-line-interface-launch), [list](reference-command-line-interface-list), [shell](reference-command-line-interface-shell),  [info](reference-command-line-interface-info), [exec](reference-command-line-interface-exec),
+[GUI Client](reference-gui-client), [launch](reference-command-line-interface-launch), [list](reference-command-line-interface-list), [shell](reference-command-line-interface-shell), [info](reference-command-line-interface-info), [exec](reference-command-line-interface-exec),
 ```
 
 <!-- This document combines

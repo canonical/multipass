@@ -38,7 +38,7 @@ you'll find the comment:
 Comment:        Before restoring snapshot1
 ```
 
-You can use the `--destructive` (or `-d`)  option to skip the question and discard the current state. If the command is run non-interactively (i.e. with either standard input or standard output being redirected), this flag is required, since there is no way to query the user for confirmation.
+You can use the `--destructive` (or `-d`) option to skip the question and discard the current state. If the command is run non-interactively (i.e. with either standard input or standard output being redirected), this flag is required, since there is no way to query the user for confirmation.
 
 ---
 

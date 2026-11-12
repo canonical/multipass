@@ -1,7 +1,7 @@
 (reference-gui-client)=
 # GUI client
 
-> See also: [Instance](/explanation/instance), [Service](/explanation/service),  [Settings](/reference/settings/index)
+> See also: [Instance](/explanation/instance), [Service](/explanation/service), [Settings](/reference/settings/index)
 
 ```{caution}
 The GUI was introduced in Multipass version 1.14. It is still in its MVP (Minimum Viable Product) stage, so it is likely to see some changes in design as it evolves.
