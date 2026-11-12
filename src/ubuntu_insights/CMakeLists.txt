@@ -23,3 +23,8 @@ find_package(ubuntu-insights CONFIG REQUIRED)
 
 target_link_libraries(ubuntu_insights PUBLIC ubuntu-insights::insights)
 target_include_directories(ubuntu_insights PUBLIC "${CMAKE_SOURCE_DIR}/include")
+
+install(IMPORTED_RUNTIME_ARTIFACTS ubuntu-insights::insights
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+)
