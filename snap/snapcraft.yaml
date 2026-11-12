@@ -174,7 +174,9 @@ parts:
     - bison # qtbase[dbus] -> glib2 -> gettext[tools] -> bison
     - gettext # provides msgfmt/msgmerge with matching libgettextsrc on the system loader path
     - rustup
+    # Required by ubuntu-insights
     - golang-1.26-go
+    - libwayland-dev
 
     stage-packages:
     - apparmor
@@ -188,7 +190,9 @@ parts:
     - libgtkmm-3.0-1t64
     - libglibmm-2.4-1t64
     - libpangomm-1.4-1v5
-    - libwayland-dev
+    # Required by ubuntu-insights
+    - libwayland-client0
+    - x11-xserver-utils # ubuntu-insights uses xrandr from x11 utils
 
     stage:
     - -**/glvnd
