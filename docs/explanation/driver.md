@@ -51,7 +51,7 @@ Nonetheless, instances are preserved across drivers. After switching back to a p
 There are two exceptions to the above:
 
   - On macOS, and only on Multipass version 1.12, stopped Hyperkit instances are automatically migrated to QEMU by Multipass's version 1.12 (see [How to migrate from Hyperkit to QEMU on macOS](/how-to-guides/customise-multipass/migrate-from-hyperkit-to-qemu-on-macos)).
-  - On Windows, and only on Multipass version 1.17,  stopped `hyperv` instances are automatically migrated to the `hcs` driver by Multipass's version 1.17 (see [Migrate from Hyper-V to the HCS driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows)).
+  - On Windows, and only on Multipass version 1.17, stopped `hyperv` instances are automatically migrated to the `hcs` driver by Multipass's version 1.17 (see [Migrate from Hyper-V to the HCS driver on Windows](/how-to-guides/customise-multipass/migrate-from-hyperv-to-hcs-on-windows)).
 
 (driver-feature-disparities)=
 ## Feature disparities

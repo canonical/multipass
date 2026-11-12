@@ -17,7 +17,7 @@ lsrm   rewarded-merlin  ls       default
 topfp  flying-pig       top      map
 ```
 
-The `Working directory` column tells us the directory of the host where the alias will be run. The value `default` means that the alias will be run  in the instance's default working directory (normally, `/home/ubuntu`). The value `map` means that, if the host directory from which the user calls the alias is mounted on the instance, the alias will be run on the mounted directory on the instance.
+The `Working directory` column tells us the directory of the host where the alias will be run. The value `default` means that the alias will be run in the instance's default working directory (normally, `/home/ubuntu`). The value `map` means that, if the host directory from which the user calls the alias is mounted on the instance, the alias will be run on the mounted directory on the instance.
 
 ```{note}
 The value will be `default` only if the alias was created with the `--no-map-working-directory` option.

@@ -9,7 +9,7 @@ The `clone` command is available since Multipass version 1.15.0.
 
 Currently, only instances that are in the `Stopped` state can be cloned.
 
-You can run the `clone` command  on a source instance without any additional options. For example, `multipass clone natty-nilgai` will produce the following output:
+You can run the `clone` command on a source instance without any additional options. For example, `multipass clone natty-nilgai` will produce the following output:
 
 ```{code-block} text
 ...

@@ -8,7 +8,7 @@ This document shows further ways to customise an instance outside of the [`launc
 (set-the-cpu-ram-or-disk-of-an-instance)=
 ## Set the CPUs , RAM or disk space of an instance
 
-> See also:  [`local.<instance-name>.cpus`](reference-settings-local-instance-name-cpus), [`local.<instance-name>.disk)`](reference-settings-local-instance-name-disk), [`local.<instance-name>.memory`](reference-settings-local-instance-name-memory)
+> See also: [`local.<instance-name>.cpus`](reference-settings-local-instance-name-cpus), [`local.<instance-name>.disk)`](reference-settings-local-instance-name-disk), [`local.<instance-name>.memory`](reference-settings-local-instance-name-memory)
 
 You can set instance properties at `launch` time, but you can also update some of them after the instance has been created. Specifically, an instance’s memory, disk space, and the number of its CPUs are exposed via daemon settings: `local.<instance-name>.(cpus|disk|memory)`.
 
@@ -63,7 +63,7 @@ Modifying instance settings is not supported when using the Hyperkit driver, whi
 
 ## Set the status of an instance to primary
 
-> See also:  [client.primary-name](reference-settings-client-primary-name)
+> See also: [client.primary-name](reference-settings-client-primary-name)
 
 This section demonstrates how to set the status of an instance to primary. This is convenient because it makes this instance the default argument for several commands, such as `shell` , `start` , `stop` , `restart` and `suspend`, and also automatically mounts your $HOME directory into the instance.
 

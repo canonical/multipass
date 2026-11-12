@@ -35,7 +35,7 @@ You can switch to using another context with `multipass prefer secondary`. Then,
 
 ## List the existing aliases
 
-> See also:  [`aliases`](reference-command-line-interface-aliases)
+> See also: [`aliases`](reference-command-line-interface-aliases)
 
 To see the list of aliases defined so far, use the `multipass aliases` command.
 
