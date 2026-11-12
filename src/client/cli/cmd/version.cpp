@@ -35,6 +35,10 @@ mp::ReturnCodeVariant cmd::Version::run(mp::ArgParser* parser)
     auto on_success = [this](mp::VersionReply& reply) -> ReturnCodeVariant {
         cout << chosen_formatter->format(reply, multipass::version_string);
 
+        // The other formats already include the update details in their output
+        if (table_format)
+            print_update_notice(term, reply.update_info());
+
         return ReturnCode::Ok;
     };
 
@@ -90,6 +94,7 @@ mp::ParseCode cmd::Version::parse_args(mp::ArgParser* parser)
     }
 
     status = handle_format_option(parser, &chosen_formatter, cerr);
+    table_format = parser->value(format_option_name) == "table";
 
     return status;
 }

@@ -29,6 +29,7 @@
 #include <multipass/settings/persistent_settings_handler.h>
 #include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
+#include <multipass/terminal.h>
 #include <multipass/user_messages/command_messages.h>
 #include <multipass/utils.h>
 
@@ -112,6 +113,12 @@ std::string mp::cmd::update_notice(const mp::UpdateInfo& update_info)
                                      update_info.title(),
                                      update_info.description(),
                                      update_info.url()));
+}
+
+void mp::cmd::print_update_notice(Terminal* term, const mp::UpdateInfo& update_info)
+{
+    if (term->is_live() && update_available(update_info))
+        term->cerr() << update_notice(update_info);
 }
 
 /*
