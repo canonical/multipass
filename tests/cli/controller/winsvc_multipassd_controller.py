@@ -27,6 +27,7 @@ Notes:
 """
 
 import asyncio
+import logging
 import re
 import sys
 import subprocess
@@ -35,6 +36,7 @@ from contextlib import suppress
 from typing import AsyncIterator, Optional
 
 from cli.utilities import (
+    retry,
     StdoutAsyncSubprocess,
     SilentAsyncSubprocess,
     sudo,
@@ -81,32 +83,96 @@ class WindowsServiceMultipassdController:
 
     async def start(self) -> None:
         """Start the service (idempotent)."""
-        async with SilentAsyncSubprocess(*sudo(
-            "sc.exe", "start", self.service_name
-        )) as start:
-            await start.communicate()
-
-        while not await self.is_active():
-            await asyncio.sleep(0.5)
+        # 1056 = ERROR_SERVICE_ALREADY_RUNNING: benign, the service is up.
+        await self._run_sc_command("start", benign=(1056,))
+        await self._wait_for_state(active=True)
 
         # Cache current PID for auto-restart detection
         self._daemon_pid = await self._get_pid()
 
     async def stop(self, graceful: bool = True) -> None:
-        """Stop the service. Uses a graceful stop; falls back to terminate."""
+        """Stop the service gracefully.
 
-        async with SilentAsyncSubprocess(*sudo(
-            "sc.exe", "stop", self.service_name
-        )) as stop:
-            await stop.communicate()
-            if stop.returncode != 0:
-                async with SilentAsyncSubprocess(*sudo(
-                    "taskkill", "/FI", f"SERVICES eq {self.service_name}", "/F"
-                )) as stop_force:
-                    await stop_force.communicate()
+        Only `sc stop` is used: force-killing a service that has restart-on-
+        failure recovery would make the SCM immediately resurrect it, so a
+        stopped-but-not-yet-idle daemon is instead failed fast by
+        `_wait_for_state` rather than force-killed.
 
-        while await self.is_active():
-            await asyncio.sleep(0.5)
+        1062 = ERROR_SERVICE_NOT_ACTIVE is benign: the service is already
+        stopped, which is the desired end state.
+        """
+        await self._run_sc_command("stop", benign=(1062,))
+        await self._wait_for_state(active=False)
+
+    async def _run_sc_command(
+        self,
+        command: str,
+        *,
+        retries: int = 360,
+        delay: float = 2.0,
+        benign: tuple[int, ...] = (),
+    ) -> None:
+        """Run `sc.exe <command> <service>`, retrying the transient
+        ERROR_SERVICE_CANNOT_ACCEPT_CTRL (1061) that the SCM returns while the
+        service is mid start/stop.
+
+        `benign` are exit codes that already mean the desired end state (1056
+        "already running" for start, 1062 "not active" for stop). Retry —
+        telling the user we are waiting — so the in-flight transition can
+        settle; raise loudly for any other failure or once the retries run out.
+        """
+        warned = False
+
+        @retry(retries=retries, delay=delay)
+        async def run_command() -> bool:
+            nonlocal warned
+            async with SilentAsyncSubprocess(
+                *sudo("sc.exe", command, self.service_name)
+            ) as proc:
+                await proc.communicate()
+                if proc.returncode in (0, *benign):
+                    return True
+                if proc.returncode != 1061:
+                    raise RuntimeError(
+                        f"Failed to {command} service `{self.service_name}`: "
+                        f"`sc.exe {command}` exited {proc.returncode}"
+                    )
+            if not warned:
+                logging.warning(
+                    "`sc.exe %s %s`: a service-control change is still in "
+                    "progress; waiting up to ~%.0fs for it to settle...",
+                    command, self.service_name, retries * delay,
+                )
+                warned = True
+            return False
+
+        if not await run_command():
+            raise RuntimeError(
+                f"`sc.exe {command} {self.service_name}` still had a service-control "
+                f"change in progress after {retries} retries"
+            )
+
+    async def _wait_for_state(
+        self, active: bool, retries: int = 120, delay: float = 0.5
+    ) -> None:
+        """Poll until the service is RUNNING (active) or not; fail once retries
+        run out.
+
+        Bounds the poll so a service that never reaches the desired state fails
+        fast with the real condition instead of spinning until the caller's
+        external timeout cancels us.
+        """
+
+        @retry(retries=retries, delay=delay)
+        async def reached_state() -> bool:
+            return await self.is_active() == active
+
+        if not await reached_state():
+            desired = "running" if active else "stopped"
+            raise RuntimeError(
+                f"Service `{self.service_name}` did not become {desired} "
+                f"after {retries} retries, {delay}s apart"
+            )
 
     async def restart(self) -> None:
         await self.stop(graceful=True)
@@ -196,7 +262,11 @@ class WindowsServiceMultipassdController:
             run_detached_thread("close-multipass-eventlog-subscription", close_eventlog_handles)
 
     async def is_active(self) -> bool:
-        return await self._get_state() == "RUNNING"
+        state = await self._get_state()
+        # START_PENDING/STOP_PENDING/etc. are transitional: the service is still
+        # present, so wait_exit()/_wait_for_state() must keep polling until it
+        # reaches "STOPPED" rather than bailing mid transition.
+        return state is not None and state != "STOPPED"
 
     async def wait_exit(self) -> Optional[int]:
         # Wait until service is not RUNNING
