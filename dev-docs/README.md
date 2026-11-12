@@ -10,6 +10,7 @@ This documentation section only refers to Multipass development related topics.
 ## Testing
 
 - [Accessing and installing artifacts built on a PR](pr-artifacts.md)
+- [Generate a CLI behavior test for a bug/feature](cli-test-generator-workflow.md)
 
 ## Release and packaging
 
