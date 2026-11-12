@@ -82,10 +82,10 @@ Other key directories:
 Run commands from the repository root. Prefer narrow targets while iterating:
 
 ```bash
-cmake --build build --parallel
-cmake --build build --parallel --target multipassd
-cmake --build build --parallel --target multipass
-cmake --build build --parallel --target multipass_cpp_tests
+cmake --build build
+cmake --build build --target multipassd
+cmake --build build --target multipass
+cmake --build build --target multipass_cpp_tests
 ```
 
 ## Testing
