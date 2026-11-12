@@ -27,6 +27,9 @@ CHUNK_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 CHUNK_MAX_RETRIES = 5
 POLLING_INTERVAL_SECONDS = 10
 POLLING_TIMEOUT_SECONDS = 3600  # 60 minutes
+# The service intermittently answers 404 for an artifact that is still processing, so
+# tolerate request errors unless they persist (~5 minutes at the polling interval).
+MAX_CONSECUTIVE_REQUEST_ERRORS = 30
 DEFAULT_REQUEST_TIMEOUT = 30
 
 # Map file extension -> (API type path, artifactFormat, variant value)
@@ -174,14 +177,31 @@ def finalize_upload(artifact_id: str) -> None:
     logging.info("Upload finalised; SBOM generation started.")
 
 
+def get_tolerating_errors(url: str, label: str, **kwargs: Any) -> requests.Response:
+    """GET url, retrying on request errors unless MAX_CONSECUTIVE_REQUEST_ERRORS in a row fail."""
+    for attempt in range(1, MAX_CONSECUTIVE_REQUEST_ERRORS + 1):
+        try:
+            resp = requests.get(url, **kwargs)
+            resp.raise_for_status()
+            return resp
+        except requests.RequestException as e:
+            if attempt == MAX_CONSECUTIVE_REQUEST_ERRORS:
+                raise
+            logging.warning(
+                f"  [{label}] request failed ({e}); "
+                f"retrying ({attempt}/{MAX_CONSECUTIVE_REQUEST_ERRORS})"
+            )
+            time.sleep(POLLING_INTERVAL_SECONDS)
+    raise AssertionError("unreachable")
+
+
 def poll_for_sbom_status(artifact_id: str, label: str) -> None:
     """Poll until SBOM generation completes or the timeout is reached."""
     status_url = f"{API_BASE_URL}/artifacts/status/{artifact_id}"
     start = time.monotonic()
 
     while time.monotonic() - start < POLLING_TIMEOUT_SECONDS:
-        resp = requests.get(status_url, timeout=DEFAULT_REQUEST_TIMEOUT)
-        resp.raise_for_status()
+        resp = get_tolerating_errors(status_url, label, timeout=DEFAULT_REQUEST_TIMEOUT)
         data = resp.json().get("data", {})
         status = str(data.get("status", "unknown"))
         elapsed = time.monotonic() - start
@@ -201,8 +221,9 @@ def poll_for_sbom_status(artifact_id: str, label: str) -> None:
 def download_sbom(artifact_id: str, output_path: Path) -> None:
     """Download the completed SBOM JSON to output_path."""
     url = f"{API_BASE_URL}/artifacts/sbom/{artifact_id}"
-    resp = requests.get(url, headers={"Accept": "application/json"}, timeout=60)
-    resp.raise_for_status()
+    resp = get_tolerating_errors(
+        url, output_path.name, headers={"Accept": "application/json"}, timeout=60
+    )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(resp.text)
