@@ -251,6 +251,20 @@ auto create_sshfs_process(mp::SSHSession& session,
     return sshfs_process;
 }
 
+// Reported to the guest for host ids that the mount has no mapping for. This must be a *valid*
+// id: sftp_attributes_struct::uid/gid are unsigned, so a negative value reaches the guest as
+// (uid_t)-1, i.e. INVALID_UID, and the guest kernel then fails any unlink, rename or chown of the
+// file with EOVERFLOW ("Value too large for defined data type") before the request ever gets to
+// us -- see may_delete() in fs/namei.c. 65534 is the conventional "nobody"/overflow id.
+//
+// This corrects the error such an entry reports, not its accessibility. An entry whose own host
+// owner is unmapped stays off limits to the instance by policy: handle_remove(), handle_rename()
+// and handle_setstat() reject it through has_id_mappings_for(), as removeFailsWhenIdsAreNotMapped
+// and friends pin down. It now says so with SSH_FX_PERMISSION_DENIED rather than provoking a
+// misleading EOVERFLOW in the guest. A link whose target is mapped is unaffected either way,
+// since has_id_mappings_for() resolves it through QFileInfo.
+constexpr int unmapped_id = 65534;
+
 int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
 {
     if (id == mp::no_id_info_available)
@@ -260,8 +274,9 @@ int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int defaul
         return id == p.first;
     });
 
-    return found == id_maps.cend() ? -1
-                                   : (found->second == mp::default_id ? default_id : found->second);
+    return found == id_maps.cend()
+             ? unmapped_id
+             : (found->second == mp::default_id ? default_id : found->second);
 }
 
 int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
@@ -1352,6 +1367,25 @@ int mp::SftpServer::handle_symlink(sftp_client_message msg)
                    __FUNCTION__,
                    symlink_target,
                    link_path);
+        return reply_failure(msg);
+    }
+
+    // The server runs as the daemon user (root), so a freshly created link is owned by it. Hand it
+    // over to the owner of the containing directory, as handle_open() and handle_mkdir() do --
+    // otherwise its host owner has no mapping and the guest sees an invalid uid/gid, which makes
+    // the link impossible to remove there. These are host ids already, so they need no mapping.
+    const QFileInfo parent_dir{QString::fromStdString(link_path.parent_path().string())};
+    const auto parent_uid = MP_FILEOPS.ownerId(parent_dir);
+    const auto parent_gid = MP_FILEOPS.groupId(parent_dir);
+
+    // chown() is lchown() on unix, so this retargets the link itself, not what it points at
+    if (MP_PLATFORM.chown(link_path.string().c_str(), parent_uid, parent_gid) < 0)
+    {
+        mpl::trace(category,
+                   "failed to chown '{}' to owner:{} and group:{}",
+                   link_path.string(),
+                   parent_uid,
+                   parent_gid);
         return reply_failure(msg);
     }
 
