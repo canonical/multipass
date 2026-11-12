@@ -21,7 +21,7 @@ include(CMakeDependentOption)
 
 option(MULTIPASS_VCPKG_BUILD_DEFAULT "Enable or disable building the dependencies in the default configuration, which includes both debug and release variants." OFF)
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
-option(MULTIPASS_ENABLE_INSIGHTS "Enabled Ubuntu Insights" ON)
+option(MULTIPASS_ENABLE_INSIGHTS "Enable Ubuntu Insights" ON)
 
 is_running_in_ci(IS_RUNNING_IN_CI)
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
