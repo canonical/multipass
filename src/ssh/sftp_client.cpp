@@ -59,7 +59,7 @@ std::vector<std::string> split_remote_path(const std::string_view path)
 
         const auto end = path.find('/', begin);
         components.emplace_back(path.substr(begin, end - begin));
-        begin = end == std::string_view::npos ? path.size() : end + 1;
+        begin = end;
     }
     return components;
 }
@@ -128,7 +128,10 @@ bool SFTPClient::is_remote_dir(const fs::path& path)
 std::vector<fs::path> SFTPClient::expand_remote_path(const fs::path& path)
 {
     const auto remote_path = path.generic_string();
-    if (!has_wildcards(remote_path))
+
+    // A literal path takes precedence, so names containing wildcard characters (such as
+    // "a_[0].txt") can still be transferred without escaping the brackets.
+    if (!has_wildcards(remote_path) || mp_sftp_stat(sftp.get(), remote_path.c_str()))
         return {path};
 
     auto candidates = std::vector<std::string>{remote_path.starts_with('/') ? "/" : ""};
@@ -163,6 +166,8 @@ std::vector<fs::path> SFTPClient::expand_remote_path(const fs::path& path)
         {
             const auto directory_path = candidate.empty() ? "." : candidate;
             auto directory = mp_sftp_opendir(sftp.get(), directory_path.c_str());
+            // TODO: distinguish a path that is not a directory from other failures when
+            // opening it.
             if (!directory)
             {
                 if (expanded_pattern)

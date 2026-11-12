@@ -53,7 +53,9 @@ multipass transfer 'ample-pigeon:logs/*.txt' .
 Wildcard patterns do not match hidden entries unless the pattern component starts with `.` (for
 example, `logs/.*.txt`). When copying to a host directory, multiple matches require a directory
 destination; writing to `-` requires exactly one match. Wildcards in local source paths are expanded
-by the host shell as usual.
+by the host shell as usual. A path that exists literally is transferred as-is, even if it contains
+wildcard characters; to match a literal `[` in a pattern, put it in a character class, as in
+`logs/a_[[]*].txt`.
 
 ---
 

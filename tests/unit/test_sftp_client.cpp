@@ -200,6 +200,7 @@ TEST_F(SFTPClient, expandsRemoteWildcard)
         get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "first.txt"),
         nullptr,
     };
+    REPLACE(sftp_stat, [](auto...) { return nullptr; });
     REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
     auto read_dir = [&, index = 0](auto...) mutable { return entries[index++]; };
     REPLACE(sftp_readdir, read_dir);
@@ -221,6 +222,7 @@ TEST_F(SFTPClient, expandsQuestionMarkWildcard)
         get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "file10.txt"),
         nullptr,
     };
+    REPLACE(sftp_stat, [](auto...) { return nullptr; });
     REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
     auto read_dir = [&, index = 0](auto...) mutable { return entries[index++]; };
     REPLACE(sftp_readdir, read_dir);
@@ -243,6 +245,7 @@ TEST_F(SFTPClient, expandsCharacterRangeWildcard)
         get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "b.txt"),
         nullptr,
     };
+    REPLACE(sftp_stat, [](auto...) { return nullptr; });
     REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
     auto read_dir = [&, index = 0](auto...) mutable { return entries[index++]; };
     REPLACE(sftp_readdir, read_dir);
@@ -252,6 +255,45 @@ TEST_F(SFTPClient, expandsCharacterRangeWildcard)
 
     EXPECT_THAT(sftp_client.expand_remote_path("dir/[a-c].txt"),
                 ElementsAre(fs::path{"dir/a.txt"}, fs::path{"dir/b.txt"}, fs::path{"dir/c.txt"}));
+}
+
+TEST_F(SFTPClient, keepsExistingLiteralPathContainingWildcardCharacters)
+{
+    REPLACE_SFTP_INIT();
+
+    REPLACE(sftp_stat, [](auto, auto path) {
+        return std::string_view{path} == "dir/a_[0].txt"
+                 ? get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, path)
+                 : nullptr;
+    });
+    REPLACE(sftp_opendir, [](auto...) { return nullptr; });
+
+    auto sftp_client = make_sftp_client();
+
+    EXPECT_THAT(sftp_client.expand_remote_path("dir/a_[0].txt"),
+                ElementsAre(fs::path{"dir/a_[0].txt"}));
+}
+
+TEST_F(SFTPClient, expandsEscapedLiteralBracketWildcard)
+{
+    REPLACE_SFTP_INIT();
+
+    std::vector<sftp_attributes> entries{
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "a_[0].txt"),
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "a_[*].txt"),
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "a_0.txt"),
+        nullptr,
+    };
+    REPLACE(sftp_stat, [](auto...) { return nullptr; });
+    REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
+    auto read_dir = [&, index = 0](auto...) mutable { return entries[index++]; };
+    REPLACE(sftp_readdir, read_dir);
+    REPLACE(sftp_dir_eof, [](auto...) { return true; });
+
+    auto sftp_client = make_sftp_client();
+
+    EXPECT_THAT(sftp_client.expand_remote_path("dir/a_[[]*].txt"),
+                ElementsAre(fs::path{"dir/a_[*].txt"}, fs::path{"dir/a_[0].txt"}));
 }
 
 TEST_F(SFTPClient, expandsExplicitDotPrefixedWildcard)
@@ -264,6 +306,7 @@ TEST_F(SFTPClient, expandsExplicitDotPrefixedWildcard)
         get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, ".hidden.log"),
         nullptr,
     };
+    REPLACE(sftp_stat, [](auto...) { return nullptr; });
     REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
     auto read_dir = [&, index = 0](auto...) mutable { return entries[index++]; };
     REPLACE(sftp_readdir, read_dir);
@@ -306,8 +349,11 @@ TEST_F(SFTPClient, expandsWildcardsAcrossRemotePathComponents)
 
         return second_release_entries[second_release_index++];
     });
-    REPLACE(sftp_stat,
-            [](auto, auto path) { return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, path); });
+    REPLACE(sftp_stat, [](auto, auto path) {
+        return std::string_view{path} == "release-*/logs/*.txt"
+                 ? nullptr
+                 : get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, path);
+    });
     REPLACE(sftp_dir_eof, [](auto...) { return true; });
 
     auto sftp_client = make_sftp_client();
@@ -320,6 +366,7 @@ TEST_F(SFTPClient, expandsWildcardsAcrossRemotePathComponents)
 TEST_F(SFTPClient, throwsWhenRemoteWildcardHasNoMatches)
 {
     REPLACE_SFTP_INIT();
+    REPLACE(sftp_stat, [](auto...) { return nullptr; });
     REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
     REPLACE(sftp_readdir, [](auto...) { return nullptr; });
     REPLACE(sftp_dir_eof, [](auto...) { return true; });
