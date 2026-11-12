@@ -598,8 +598,14 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             }
             else if (error == LaunchError::INVALID_HOSTNAME)
             {
-                error_details =
-                    fmt::format("Invalid instance name supplied: {}", request.instance_name());
+                error_details = fmt::format(
+                    "Invalid instance name supplied: {}\n"
+                    "Instance names must be valid, non-qualified host names: they may contain "
+                    "only alphanumeric characters and hyphens, must start with a letter, and "
+                    "must end with a letter or number. See "
+                    "https://canonical.com/multipass/docs/stable/reference/"
+                    "instance-name-format/",
+                    request.instance_name());
             }
             else if (error == LaunchError::INVALID_NETWORK)
             {
