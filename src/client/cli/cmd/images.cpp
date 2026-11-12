@@ -30,7 +30,7 @@ namespace multipass::cmd
 namespace
 {
 
-constexpr std::string deprecated_name = "find";
+constexpr std::string_view deprecated_name = "find";
 
 constexpr const auto query_help =
     "An optional value to search for in [<remote>:][<filter>] format, where <remote> is one of the "
@@ -229,7 +229,7 @@ QString Images::description() const
 
 std::vector<std::string> Images::aliases() const
 {
-    return {name(), deprecated_name};
+    return {name(), std::string{deprecated_name}};
 }
 
 } // namespace multipass::cmd
