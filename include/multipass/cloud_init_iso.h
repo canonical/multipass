@@ -20,7 +20,9 @@
 #pragma once
 
 #include <multipass/singleton.h>
+#include <multipass/utils/forward_like.h>
 
+#include <cstddef>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -38,8 +40,11 @@ public:
     explicit CloudInitIso(const CloudInitConfig& config);
 
     bool contains(const std::string& name) const;
-    const std::string& at(const std::string& name) const;
-    std::string& at(const std::string& name);
+    template <typename Self>
+    auto at(this Self& self, const std::string& name) -> forward_like_t<Self&, std::string>
+    {
+        return self.files[self.index_of(name)].data;
+    }
     std::string& operator[](const std::string& name);
 
     void write_to(const std::filesystem::path& path) const;
@@ -48,6 +53,9 @@ public:
     friend bool operator==(const CloudInitIso& lhs, const CloudInitIso& rhs) = default;
 
 private:
+    // Throws std::runtime_error if there is no file with the given name.
+    std::size_t index_of(const std::string& name) const;
+
     struct FileEntry
     {
         friend bool operator==(const FileEntry& lhs, const FileEntry& rhs) = default;
