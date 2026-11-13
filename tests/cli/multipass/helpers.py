@@ -19,9 +19,13 @@
 import sys
 import re
 import os
+import math
+import time
 from pathlib import Path
 from functools import lru_cache
 from packaging import version
+
+import pexpect
 
 from .multipass_cmd import multipass
 
@@ -248,6 +252,32 @@ def get_mac_addr_of(name, interface_name):
     ) as result:
         assert result, f"Failed: {result.content} ({result.exitstatus})"
         return str(result).strip()
+
+
+def wait_for_cli_ready(timeout, poll_interval=1.0):
+    """Block until the Multipass CLI can run commands.
+
+    Right after installation, every CLI command fails until the daemon has
+    generated its root certificate. Otherwise `multipass version` succeeds
+    even when the daemon is stopped, so only its exit code is inspected.
+
+    Raises TimeoutError if `timeout` seconds elapse first.
+    """
+    deadline = time.monotonic() + timeout
+    last_output = ""
+    while (remaining := math.ceil(deadline - time.monotonic())) > 0:
+        try:
+            with multipass("version", timeout=remaining, retry=0) as result:
+                if result:
+                    return
+                last_output = result.content
+        except pexpect.TIMEOUT:
+            last_output = f"`multipass version` did not finish within {remaining}s"
+        time.sleep(poll_interval)
+
+    raise TimeoutError(
+        f"The Multipass CLI was not usable after {timeout}s: {last_output.strip()}"
+    )
 
 
 @lru_cache(maxsize=None)

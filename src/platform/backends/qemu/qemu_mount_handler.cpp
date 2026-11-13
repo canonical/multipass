@@ -85,14 +85,22 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm,
     const auto gid_arg = QString{"gid_map=%1:%2,"}
                              .arg(gid_map.first)
                              .arg(gid_map.second == -1 ? 1000 : gid_map.second);
-    vm_mount_args[tag] = {source,
-                          {"-virtfs",
-                           QString::fromStdString(fmt::format(
-                               "local,security_model=passthrough,{}{}path={},mount_tag={}",
-                               uid_arg,
-                               gid_arg,
-                               source,
-                               tag))}};
+    const auto fs_opts = fmt::format("local,security_model=passthrough,{}{}path={}",
+                                     uid_arg,
+                                     gid_arg,
+                                     source);
+#if defined Q_PROCESSOR_S390
+    vm_mount_args[tag] = {
+        source,
+        {"-fsdev",
+         QString::fromStdString(fmt::format("{},id={}", fs_opts, tag)),
+         "-device",
+         QString::fromStdString(fmt::format("virtio-9p-ccw,fsdev={0},mount_tag={0}", tag))}};
+#else
+    vm_mount_args[tag] = {
+        source,
+        {"-virtfs", QString::fromStdString(fmt::format("{},mount_tag={}", fs_opts, tag))}};
+#endif
 }
 
 bool QemuMountHandler::is_active()

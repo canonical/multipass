@@ -54,6 +54,8 @@ The test suite has dedicated platform-specific code for interacting with the ins
 
 By default, the CLI tests would pick the appropriate daemon controller for the platform, i.e. `snap` for Linux, `winsvc` for Windows, `launchd` for macOS. It's possible to override this explicitly by using the `--daemon-controller` flag.
 
+With every controller except `standalone`, the session first waits until `multipass version` succeeds (e.g. while a freshly installed daemon generates its certificates), because version-gated tests query it at import time. Use `--cli-ready-timeout` to change the 300-second limit.
+
 Below are example test run invocations for each platform (hence for each daemon controller).
 
 ### Linux, snap
@@ -123,6 +125,17 @@ pytest tests/cli -k "shell_test"
 ```
 
 See [pytest](https://docs.pytest.org/en/6.2.x/usage.html)'s documentation about [Specifying tests / selecting tests](https://docs.pytest.org/en/6.2.x/usage.html#specifying-tests-selecting-tests) to learn more.
+
+### Feature-dependent tests
+
+Use `@requires_feature("debian_images")`, imported from `cli.multipass`, on tests
+or classes that require a feature. It checks the Multipass version and host
+architecture against `multipass/feature_versions.py` and skips unsupported tests
+before fixtures run, so no VM is launched for a skipped test.
+
+When only particular parameter values need a feature, use
+`pytest.param(value, marks=requires_feature("blueprints"))` instead of skipping
+inside the test body.
 
 ### Repeating the failed tests
 
