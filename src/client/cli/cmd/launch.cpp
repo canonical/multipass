@@ -157,6 +157,47 @@ QString cmd::Launch::description() const
     return QStringLiteral("Create and start a new instance.");
 }
 
+namespace
+{
+
+std::pair<QUrl, std::string> convert_to_absolute_path(const QString& original_input)
+{
+    const auto original_url = QUrl{original_input};
+
+    const auto input_path = original_input.mid(7);
+    const auto intended_url = QUrl::fromLocalFile(input_path);
+    const auto intended_file_info = QFileInfo(intended_url.toLocalFile());
+
+    if (original_url != intended_url &&
+        (!intended_file_info.isRelative() || !input_path.startsWith(".") ||
+         QUrl{"file:" + input_path} != intended_url))
+    {
+        if (!intended_url.toString().isEmpty())
+        {
+            if (!intended_url.host().isEmpty())
+            {
+                return {QUrl{}, "file:///" + input_path.toStdString()};
+            }
+            else if (intended_file_info.isRelative())
+            {
+                const auto prefix = intended_file_info.filePath().startsWith(".") ? "file://"
+                                                                                  : "file://./";
+                return {QUrl{}, prefix + intended_file_info.filePath().toStdString()};
+            }
+            else
+            {
+                return {QUrl{}, intended_url.toString().toStdString()};
+            }
+        }
+
+        return {QUrl{}, ""};
+    }
+
+    return {QUrl::fromLocalFile(intended_file_info.absoluteFilePath()), ""};
+}
+
+} // namespace
+
 mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument(
@@ -266,10 +307,20 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         {
             // Convert to absolute because the daemon doesn't know where the client is being
             // executed.
-            auto file_info = QFileInfo(remote_image_name.remove(0, 7));
-            auto absolute_file_path = file_info.absoluteFilePath();
+            const auto [absolute_url, best_guess] = convert_to_absolute_path(remote_image_name);
+            if (absolute_url.isEmpty())
+            {
+                cerr << "Invalid file URL `" << remote_image_name.toStdString() << "`\n";
 
-            request.set_image("file://" + absolute_file_path.toStdString());
+                if (!best_guess.empty())
+                {
+                    cerr << "Did you mean: `" << best_guess << "`?\n";
+                }
+
+                return ParseCode::CommandLineError;
+            }
+
+            request.set_image(absolute_url.toString().toStdString());
         }
         else if (remote_image_name.startsWith("http://") ||
                  remote_image_name.startsWith("https://"))

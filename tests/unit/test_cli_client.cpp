@@ -1713,6 +1713,78 @@ TEST_F(Client, launchCmdCloudinitUrl)
     EXPECT_EQ(send_command({"launch", "--cloud-init", fake_url.toStdString()}), mp::ReturnCode::Ok);
 }
 
+TEST_F(Client, launchCmdWithUnixAbsolutePath)
+{
+    EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
+    EXPECT_EQ(send_command({"launch", "file:///this/is/absolute"}), ReturnCode::Ok);
+    EXPECT_EQ(send_command({"launch", "file:///this/is/./also/absolute"}), ReturnCode::Ok);
+    EXPECT_EQ(send_command({"launch", "file:///this/is/../also/./absolute"}), ReturnCode::Ok);
+}
+
+TEST_F(Client, launchCmdWithRelativeAbsolutePath)
+{
+    EXPECT_CALL(mock_daemon, launch).WillRepeatedly(Return(ok));
+    EXPECT_EQ(send_command({"launch", "file://./this/is/relative"}), ReturnCode::Ok);
+    EXPECT_EQ(send_command({"launch", "file://../this/is/also/relative"}), ReturnCode::Ok);
+    EXPECT_EQ(send_command({"launch", "file://../this/./is/../also/relative"}), ReturnCode::Ok);
+}
+
+TEST_F(Client, launchCmdProvidesAccurateLocalPathHint)
+{
+    auto [mock_file_ops, mocked_file_ops_guard] = MockFileOps::inject();
+    ON_CALL(*mock_file_ops, exists(An<const QFileInfo&>())).WillByDefault(Return(true));
+
+    EXPECT_CALL(mock_daemon, launch).Times(0);
+
+    {
+        auto cerr_stream = std::stringstream();
+        EXPECT_EQ(send_command({"launch", "file://C:/missing/slash"}, trash_stream, cerr_stream),
+                  ReturnCode::CommandLineError);
+        EXPECT_THAT(cerr_stream.str(),
+                    testing::HasSubstr("Did you mean: `file:///C:/missing/slash`?"));
+    }
+
+    {
+        auto cerr_stream = std::stringstream();
+        EXPECT_EQ(send_command({"launch", "file:///C:\\backward/slash"}, trash_stream, cerr_stream),
+                  ReturnCode::CommandLineError);
+        EXPECT_THAT(cerr_stream.str(),
+                    testing::HasSubstr("Did you mean: `file:///C:/backward/slash`?"));
+    }
+
+    {
+        auto cerr_stream = std::stringstream();
+        EXPECT_EQ(send_command({"launch", "file:///C:\\backward/slash"}, trash_stream, cerr_stream),
+                  ReturnCode::CommandLineError);
+        EXPECT_THAT(cerr_stream.str(),
+                    testing::HasSubstr("Did you mean: `file:///C:/backward/slash`?"));
+    }
+
+    {
+        auto cerr_stream = std::stringstream();
+        EXPECT_EQ(send_command({"launch", "file://not/a/local/file"}, trash_stream, cerr_stream),
+                  ReturnCode::CommandLineError);
+        EXPECT_THAT(cerr_stream.str(),
+                    testing::HasSubstr("Did you mean: `file://./not/a/local/file`?"));
+    }
+
+    {
+        auto cerr_stream = std::stringstream();
+        EXPECT_EQ(send_command({"launch", "file://./relative\\with/backslash"}, trash_stream, cerr_stream),
+                  ReturnCode::CommandLineError);
+        EXPECT_THAT(cerr_stream.str(),
+                    testing::HasSubstr("Did you mean: `file://./relative\\with/backslash`?"));
+    }
+
+    {
+        auto cerr_stream = std::stringstream();
+        EXPECT_EQ(send_command({"launch", "file://../relative\\with/backslash"}, trash_stream, cerr_stream),
+                  ReturnCode::CommandLineError);
+        EXPECT_THAT(cerr_stream.str(),
+                    testing::HasSubstr("Did you mean: `file://../relative\\with/backslash`?"));
+    }
+}
+
 typedef typename std::tuple<mp::id_mappings, mp::id_mappings, mp::id_mappings, mp::id_mappings>
     id_test_tuples;
 struct MountIdMappingsTest : public Client, public WithParamInterface<id_test_tuples>
