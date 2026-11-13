@@ -18,7 +18,11 @@ multipass shell relishing-lionfish
 
 The only, optional, positional argument is the image to launch an instance from. See [`images`](/reference/command-line-interface/images) for how to find information on the available images.
 
-It's also possible to provide a full URL to the image (use `file://` for an image available on the host running `multipassd`).
+It's also possible to provide a full `http://` or `https://` URL to the image, or the path to an image file available on the host running `multipassd`. An argument is treated as a path if it contains a path separator or starts with a dot (for example, `./image.img`).
+
+```{caution}
+The `file://` prefix is deprecated. Provide the path directly instead, for example `multipass launch ./image.img`.
+```
 
 You can change the resources made available to the instance by passing the `--cpus`, `--disk` or `--memory` options, changing the allocated CPU cores, disk space or RAM, respectively.
 
@@ -49,7 +53,7 @@ Mounts requested with `--mount` are applied only after the instance starts and i
 The full `multipass help launch` output explains the available options:
 
 ```{code-block} text
-Usage: multipass launch [options] [[<remote>:]<image> | <url>]
+Usage: multipass launch [options] [[<remote:>]<image> | <path> | <url>]
 Create and start a new instance.
 
 Options:
@@ -109,6 +113,10 @@ Arguments:
                                in one of the default remotes.
                                <image> can be a codename, an alias, a major
                                version, or an alias prefix.
-                               <url> is a custom image URL that is in http://,
-                               https://, or file:// format.
+                               <path> is the path to a custom image
+                               file on the host running multipassd. It
+                               must contain a path separator or start
+                               with a dot (e.g. ./image.img).
+                               <url> is a custom image URL that is in
+                               http:// or https:// format.
 ```

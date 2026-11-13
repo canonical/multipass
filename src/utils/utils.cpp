@@ -214,6 +214,11 @@ std::string& mp::utils::trim_newline(std::string& s)
     return s;
 }
 
+bool mp::utils::looks_like_path(std::string_view value)
+{
+    return value.find_first_of("/\\") != std::string_view::npos || value.starts_with('.');
+}
+
 bool mp::utils::istarts_with(std::string_view str, std::string_view prefix)
 {
     if (prefix.size() > str.size())

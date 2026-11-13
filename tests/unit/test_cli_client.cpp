@@ -41,6 +41,7 @@
 #include <src/client/cli/client.h>
 #include <src/client/cli/cmd/remote_settings_handler.h>
 #include <src/daemon/daemon_rpc.h>
+#include <tests/unit/matchers/launch_matchers.h>
 
 #include <multipass/cli/client_platform.h>
 #include <multipass/constants.h>
@@ -48,9 +49,11 @@
 #include <multipass/exceptions/ssh_exception.h>
 #include <multipass/ui_wording/launch_messages.h>
 
+#include <QDir>
 #include <QStringList>
 #include <QTemporaryFile>
 #include <QTimer>
+#include <QUrl>
 #include <QtCore/QTemporaryDir>
 #include <QtGlobal>
 
@@ -435,7 +438,7 @@ struct Client : public Test
                                   const grpc::Status& status,
                                   const ReplyType& reply = ReplyType{})
     {
-        return [&matcher, &status, reply = std::move(reply)](
+        return [matcher, &status, reply = std::move(reply)](
                    grpc::ServerReaderWriter<ReplyType, RequestType>* server) {
             RequestType request;
             server->Read(&request);
@@ -1277,10 +1280,73 @@ TEST_F(Client, launchCmdCpuOptionFailsNoValue)
     EXPECT_THAT(send_command({"launch", "-c"}), Eq(mp::ReturnCode::CommandLineError));
 }
 
-TEST_F(Client, DISABLE_ON_MACOS(launchCmdCustomImageFileOk))
+struct LaunchImageArg
 {
-    EXPECT_CALL(mock_daemon, launch(_, _));
-    EXPECT_THAT(send_command({"launch", "file://foo"}), Eq(mp::ReturnCode::Ok));
+    std::string arg;
+    std::string expected_remote;
+    std::string expected_image;
+};
+
+struct LaunchImageArgTest : public Client, public WithParamInterface<LaunchImageArg>
+{
+    static std::string file_uri(const QString& path)
+    {
+        const auto canonical_path = QDir::cleanPath(QDir::current().absoluteFilePath(path));
+        return QUrl::fromLocalFile(canonical_path).toString().toStdString();
+    }
+};
+
+TEST_P(LaunchImageArgTest, buildsExpectedRequest)
+{
+    const auto& [arg, expected_remote, expected_image] = GetParam();
+
+    EXPECT_CALL(mock_daemon, launch)
+        .WillOnce(WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(
+            AllOf(mpt::LaunchRemoteName(expected_remote), mpt::LaunchImage(expected_image)),
+            ok)));
+
+    EXPECT_EQ(send_command({"launch", arg}, trash_stream, trash_stream), mp::ReturnCode::Ok);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Client,
+    LaunchImageArgTest,
+    Values(LaunchImageArg{"noble", "", "noble"},
+           LaunchImageArg{"22.04", "", "22.04"},
+           LaunchImageArg{"daily:noble", "daily", "noble"},
+           LaunchImageArg{"./custom.img", "", LaunchImageArgTest::file_uri("custom.img")},
+           LaunchImageArg{"../custom.img", "", LaunchImageArgTest::file_uri("../custom.img")},
+           LaunchImageArg{"dir/custom.img", "", LaunchImageArgTest::file_uri("dir/custom.img")},
+           LaunchImageArg{".hidden.img", "", LaunchImageArgTest::file_uri(".hidden.img")},
+           LaunchImageArg{"./spa ced.img","",LaunchImageArgTest::file_uri("spa ced.img")},
+           LaunchImageArg{"/abs/custom.img", "", LaunchImageArgTest::file_uri("/abs/custom.img")},
+           LaunchImageArg{"https://foo/bar.img", "", "https://foo/bar.img"},
+           LaunchImageArg{"http://foo/bar.img", "", "http://foo/bar.img"}));
+
+TEST_F(LaunchImageArgTest, fileUrlWarnsAboutDeprecationAndStillWorks)
+{
+    auto cerr_stream = std::stringstream{};
+
+    EXPECT_CALL(mock_daemon, launch)
+        .WillOnce(WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(
+            mpt::LaunchImage(file_uri("foo.img")),
+            ok)));
+
+    EXPECT_EQ(send_command({"launch", "file://foo.img"}, trash_stream, cerr_stream),
+              mp::ReturnCode::Ok);
+
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("deprecated"));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("./foo.img"));
+}
+
+TEST_F(LaunchImageArgTest, emptyFileUrlIsAnError)
+{
+    std::stringstream cerr_stream;
+    EXPECT_CALL(mock_daemon, launch).Times(0);
+    EXPECT_EQ(send_command({"launch", "file://"}, trash_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("Invalid file URL"));
+    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("deprecated")));
 }
 
 TEST_F(Client, DISABLE_ON_MACOS(launchCmdCustomImageHttpOk))

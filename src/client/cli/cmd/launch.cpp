@@ -165,8 +165,10 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         "<remote> can be any of the available remotes returned by ‘multipass images --remotes’. If "
         "<remote> is omitted, image will be searched for in one of the default remotes.\n"
         "<image> can be a codename, an alias, a major version, or an alias prefix.\n"
-        "<url> is a custom image URL that is in http://, https://, or file:// format.\n",
-        "[[<remote>:]<image> | <url>]");
+        "<path> is the path to a custom image file on the host running multipassd. "
+        "It must contain a path separator or start with a dot (e.g. ./image.img).\n"
+        "<url> is a custom image URL that is in http:// or https:// format.\n",
+        "[[<remote:>]<image> | <path> | <url>]");
     QCommandLineOption cpusOption({"c", "cpus"},
                                   QString::fromStdString(fmt::format("Number of CPUs to allocate.\n"
                                                                      "Minimum: {}, default: {}.",
@@ -266,15 +268,36 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
         {
             // Convert to absolute because the daemon doesn't know where the client is being
             // executed.
-            auto file_info = QFileInfo(remote_image_name.remove(0, 7));
-            auto absolute_file_path = file_info.absoluteFilePath();
+            const auto path = remote_image_name.mid(7);
+            const auto file_uri = "file://" + QFileInfo{path}.absoluteFilePath();
 
-            request.set_image("file://" + absolute_file_path.toStdString());
+            if (path.isEmpty() || !QUrl{file_uri}.isValid())
+            {
+                cerr << "Invalid file URL `" << remote_image_name.toStdString() << "`\n";
+                return ParseCode::CommandLineError;
+            }
+
+            const auto hint_path = mp::utils::looks_like_path(path.toStdString()) ? path
+                                                                                  : ("./" + path);
+            cerr << make_deprecation_warning(
+                "usage of ‘file://’ prefix",
+                fmt::format("Provide the path directly: ‘multipass {} {}’.",
+                            parser->commandName().toStdString(),
+                            hint_path.toStdString()));
+
+            request.set_image(file_uri.toStdString());
         }
         else if (remote_image_name.startsWith("http://") ||
                  remote_image_name.startsWith("https://"))
         {
             request.set_image(remote_image_name.toStdString());
+        }
+        else if (mp::utils::looks_like_path(remote_image_name.toStdString()))
+        {
+            // Convert to absolute because the daemon doesn't know where the client is being
+            // executed.
+            const auto absolute_path = QFileInfo{remote_image_name}.absoluteFilePath();
+            request.set_image(QUrl::fromLocalFile(absolute_path).toString().toStdString());
         }
         else
         {
