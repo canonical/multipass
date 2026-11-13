@@ -2040,3 +2040,53 @@ TEST_F(QemuBackend, forceShutdownPersistsStoppedState)
 
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
 }
+
+TEST_F(QemuBackend, gracefulShutdownInUnknownStatePersistsStopped)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    mpt::MockProcess* qemu_process{nullptr};
+    process_factory->register_callback([this, &qemu_process](mpt::MockProcess* process) {
+        if (process->program().startsWith(expected_qemu_system_prefix()) &&
+            !process->arguments().contains("-dump-vmstate"))
+        {
+            qemu_process = process;
+            EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                emit process->state_changed(QProcess::Running);
+                emit process->started();
+            });
+        }
+        else
+        {
+            handle_external_process_calls(process);
+        }
+    });
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    EXPECT_CALL(mock_monitor, on_resume());
+    machine->start();
+
+    // The readiness SSH wait timed out earlier: timeout_ssh() left the instance unknown while
+    // the QEMU process is still alive. The graceful shutdown powers it down; the mock's
+    // wait_for_finished returns without emitting Process::finished, so no finished-handler
+    // bookkeeping runs afterwards.
+    machine->state = mp::VirtualMachine::State::unknown;
+
+    ASSERT_NE(qemu_process, nullptr);
+    EXPECT_CALL(*qemu_process, running()).WillRepeatedly(Return(true));
+    EXPECT_CALL(*qemu_process, wait_for_finished(_)).WillOnce(Return(true));
+
+    // The stopped transition must be persisted by the shutdown itself
+    EXPECT_CALL(mock_monitor, on_shutdown()).Times(0);
+    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::stopped)).Times(1);
+
+    machine->shutdown(); // graceful, i.e. no --force
+
+    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+}
