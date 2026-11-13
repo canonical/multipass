@@ -215,12 +215,25 @@ TEST_F(QemuMountHandlerTest, mountHandlesMountArgs)
         const auto gid_arg = QString{"gid_map=%1:%2,"}
                                  .arg(gid_mappings.front().first)
                                  .arg(gid_mappings.front().second);
+        const auto tag = tag_from_target(default_target);
+#if defined Q_PROCESSOR_S390
+        EXPECT_EQ(mount_args.begin()->second.second.join(' ').toStdString(),
+                  fmt::format("-fsdev local,security_model=passthrough,{}{}path={},id={} "
+                              "-device virtio-9p-ccw,fsdev={},mount_tag={}",
+                              uid_arg,
+                              gid_arg,
+                              mount.get_source_path(),
+                              tag,
+                              tag,
+                              tag));
+#else
         EXPECT_EQ(mount_args.begin()->second.second.join(' ').toStdString(),
                   fmt::format("-virtfs local,security_model=passthrough,{}{}path={},mount_tag={}",
                               uid_arg,
                               gid_arg,
                               mount.get_source_path(),
-                              tag_from_target(default_target)));
+                              tag));
+#endif
     }
 
     EXPECT_EQ(mount_args.size(), 0);
