@@ -4233,12 +4233,22 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
     auto future_watcher_p = future_watcher.get();
     async_future_watchers.insert({uuid, std::move(future_watcher)});
 
-    QObject::connect(future_watcher_p,
-                     &QFutureWatcher<AsyncOperationStatus>::finished,
-                     [this, uuid, finished_op] {
-                         finished_op(async_future_watchers.at(uuid)->result());
-                         finish_async_operation(uuid);
-                     });
+    QObject::connect(
+        future_watcher_p,
+        &QFutureWatcher<AsyncOperationStatus>::finished,
+        [this, uuid, finished_op] {
+            try
+            {
+                finished_op(async_future_watchers.at(uuid)->result());
+            }
+            catch (const std::exception& e)
+            {
+                // Keep the async bookkeeping going even if a completion callback
+                // fails: a skipped finish_async_operation() would leak the watcher.
+                mpl::error(category, "async operation finalization failed: {}", e.what());
+            }
+            finish_async_operation(uuid);
+        });
 
     return future_watcher_p;
 }
