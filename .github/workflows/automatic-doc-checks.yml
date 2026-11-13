@@ -13,8 +13,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  documentation-checks:
-    uses: canonical/documentation-workflows/.github/workflows/documentation-checks.yaml@main
+  spelling-check:
+    uses: canonical/documentation-workflows/.github/workflows/spelling-check.yaml@main
+    with:
+      working-directory: "./docs"
+      fetch-depth: 0
+      python-version: '3.12'
+
+  inclusive-language-check:
+    uses: canonical/documentation-workflows/.github/workflows/inclusive-language-check.yaml@main
     with:
       working-directory: "./docs"
       fetch-depth: 0
