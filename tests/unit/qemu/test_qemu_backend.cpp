@@ -59,6 +59,7 @@
 #include <QProcess>
 #include <boost/json.hpp>
 
+#include <cerrno>
 #include <sys/wait.h>
 #include <unistd.h>
 
