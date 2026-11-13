@@ -43,6 +43,8 @@
 #include <QTemporaryFile>
 
 #include <cerrno>
+#include <csignal>
+#include <limits>
 #include <sys/wait.h>
 
 #include <cassert>
@@ -78,10 +80,21 @@ bool qemu_process_is_alive(const mp::Process& process)
     if (pid <= 0) // nothing to check (e.g. the process has not started yet)
         return true;
 
+    if (pid > static_cast<qint64>(std::numeric_limits<pid_t>::max()))
+    {
+        // Defensive: a pid like this cannot name a real child on this platform
+        mpl::warn(qUtf8Printable(process.program()),
+                  "cannot check process {}: pid out of range; assuming alive",
+                  pid);
+        return true;
+    }
+
+    const auto os_pid = static_cast<pid_t>(pid);
+#ifdef WNOWAIT
     siginfo_t info{};
     int ret = 0;
     do
-        ret = waitid(P_PID, pid, &info, WEXITED | WNOHANG | WNOWAIT);
+        ret = waitid(P_PID, os_pid, &info, WEXITED | WNOHANG | WNOWAIT);
     while (ret == -1 && errno == EINTR);
 
     if (ret == -1)
@@ -96,6 +109,13 @@ bool qemu_process_is_alive(const mp::Process& process)
     // its finished signal afterwards. With WNOHANG, an exited child is reported with its pid in
     // si_pid, while a child that has not exited leaves si_pid zeroed.
     return info.si_pid == 0;
+#else
+    // WNOWAIT, which is needed to inspect a child without consuming its exit status, is not
+    // available on this platform: fall back to a zero-signal kill existence check. Zombie
+    // detection is best-effort there (an exited-but-unreaped child still counts as existing);
+    // the usual QProcess-based mechanisms remain the authority.
+    return kill(os_pid, 0) == 0 || errno != ESRCH;
+#endif
 }
 
 QStringList get_arguments(const boost::json::value& metadata)
@@ -640,8 +660,9 @@ void mp::QemuVirtualMachine::initialize_vm_process()
     QObject::connect(vm_process.get(), &Process::finished, [this](ProcessState process_state) {
         if (process_state.exit_code)
         {
-            // A non-zero exit means QEMU gave up unexpectedly (e.g. it failed before it could
-            // serve QMP), which users need to see.
+            // QEMU exiting with a non-zero code means it gave up unexpectedly (e.g. it failed
+            // before it could serve QMP): log that at error level so users see it. A clean exit
+            // stays at info level.
             const auto exit_code = process_state.exit_code.value();
             const auto log_level = exit_code == 0 ? mpl::Level::info : mpl::Level::error;
             mpl::log_message(log_level,

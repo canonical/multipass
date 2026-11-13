@@ -1666,7 +1666,9 @@ TEST_F(QemuBackend, gracefulShutdownOnDeadQemuProcessTransitionsToStopped)
     machine->state = mp::VirtualMachine::State::running;
 
     ASSERT_NE(qemu_process, nullptr);
-    // The QEMU process is already gone, but the (stale) QProcess state still reports it running
+    // The QEMU process is already gone, and the QProcess state agrees (it reports not running;
+    // the stale-state variant of this scenario is covered by
+    // gracefulShutdownWithStaleQProcessStateTransitionsToStopped below)
     EXPECT_CALL(*qemu_process, running()).WillRepeatedly(Return(false));
 
     logger_scope.mock_logger->screen_logs(mpl::Level::info);
@@ -1905,9 +1907,10 @@ TEST_F(QemuBackend, liveQemuProcessDoesNotAbortSshWait)
     machine->start();
     ASSERT_NE(qemu_process, nullptr);
 
-    // A child that stays alive for the duration of the probe
+    // A child that stays alive for the duration of the probe: mock_process with more than one
+    // argument blocks reading its standard input, which is never fed
     QProcess live_process;
-    live_process.start("sleep", {"5"});
+    live_process.start("mock_process", {"0", "hold"});
     ASSERT_TRUE(live_process.waitForStarted(5000));
     ASSERT_GT(live_process.processId(), 0);
 
