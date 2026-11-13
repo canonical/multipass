@@ -459,9 +459,11 @@ TEST_F(Daemon, ensureThatOnRestartFutureCompletes)
 
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
-    auto* raw_vm = mock_vm.get();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{"yakety-yak"}));
-    EXPECT_CALL(*mock_vm, fetch_state).WillRepeatedly([raw_vm] { return raw_vm->state; });
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .WillOnce(Return(mp::VirtualMachine::State::stopped))
+        .WillOnce(Return(mp::VirtualMachine::State::starting))
+        .WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(1);
 
     mp::Signal sig;
@@ -473,11 +475,7 @@ TEST_F(Daemon, ensureThatOnRestartFutureCompletes)
         // Wait a bit to ensure that daemon's destructor has been run
         std::this_thread::sleep_for(std::chrono::milliseconds{50});
     });
-    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
-        .Times(1)
-        .WillOnce([raw_vm] {
-            raw_vm->state = mp::VirtualMachine::State::running; // SSH success crosses to running
-        });
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
     {
@@ -498,16 +496,14 @@ TEST_F(Daemon, startsPreviouslyRunningVmsBack)
 
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
-    auto* raw_vm = mock_vm.get();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
-    EXPECT_CALL(*mock_vm, fetch_state).WillRepeatedly([raw_vm] { return raw_vm->state; });
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .WillOnce(Return(mp::VirtualMachine::State::stopped))
+        .WillOnce(Return(mp::VirtualMachine::State::starting))
+        .WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, set_running).Times(1);
-    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
-        .Times(1)
-        .WillOnce([raw_vm] {
-            raw_vm->state = mp::VirtualMachine::State::running; // SSH success crosses to running
-        });
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine)
         .WillOnce([vm = std::move(mock_vm)](
                       const mp::VirtualMachineDescription& desc,
@@ -532,18 +528,18 @@ TEST_F(Daemon, shutsDownPreviouslyRunningVmThatFailsReadinessAfterRestart)
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
     // This VM was running before, but is gone now: it fails to become ready after the daemon
-    // restarts it. The first current_state() query is the daemon-startup recovery switch, the
-    // second one happens when the readiness failure is handled (the VM is starting by then).
+    // restarts it. The fetch_state() queries are the daemon-startup recovery switch and the
+    // restart-completion revalidation, which sees the state the failed wait left behind.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
-    EXPECT_CALL(*mock_vm, current_state)
-        .WillOnce(Return(mp::VirtualMachine::State::stopped))
-        .WillOnce(Return(mp::VirtualMachine::State::starting))
-        .WillRepeatedly(Return(mp::VirtualMachine::State::starting));
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .WillOnce(Return(mp::VirtualMachine::State::stopped))        // constructor switch
+        .WillOnce(Return(mp::VirtualMachine::State::starting))       // dispatch: VM starting
+        .WillRepeatedly(Return(mp::VirtualMachine::State::unknown)); // the wait failed
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up)
         .Times(1)
-        .WillOnce(Throw(mp::StartException{vm_props.name, "Instance shutdown during start"}));
+        .WillOnce(Throw(mp::SSHTimeoutException{"timed out waiting for response"}));
 
     // The daemon must not leave the instance half-started: it attempts a graceful shutdown, and
     // since that is rejected here (the state machine does so while an instance is starting), it
@@ -579,16 +575,12 @@ TEST_F(Daemon, callsOnRestartForAlreadyRunningVmsOnConstruction)
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(
         mp::VirtualMachine::State::running);
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
-    EXPECT_CALL(*mock_vm, fetch_state).WillRepeatedly([raw_vm = mock_vm.get()] {
-        return raw_vm->state;
-    });
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .Times(3)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(0);
     EXPECT_CALL(*mock_vm, set_running).Times(1);
-    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
-        .Times(1)
-        .WillOnce([raw_vm = mock_vm.get()] {
-            raw_vm->state = mp::VirtualMachine::State::running; // SSH success crosses to running
-        });
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
     mp::Daemon daemon{config_builder.build()};
@@ -609,16 +601,12 @@ TEST_F(Daemon, callsOnRestartForAlreadyStartingVmsOnConstruction)
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(
         mp::VirtualMachine::State::starting);
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
-    EXPECT_CALL(*mock_vm, fetch_state).WillRepeatedly([raw_vm = mock_vm.get()] {
-        return raw_vm->state;
-    });
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .Times(3)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::starting));
     EXPECT_CALL(*mock_vm, start).Times(0);
     EXPECT_CALL(*mock_vm, set_running).Times(1);
-    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
-        .Times(1)
-        .WillOnce([raw_vm = mock_vm.get()] {
-            raw_vm->state = mp::VirtualMachine::State::running; // SSH success crosses to running
-        });
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
     mp::Daemon daemon{config_builder.build()};
@@ -639,19 +627,21 @@ TEST_F(Daemon, shutsDownSyncedRunningVmThatFailsReadinessAfterRestart)
     // readiness without calling start().
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
-    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(*mock_vm, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(0);
 
-    // The QEMU process died while the daemon was down: the readiness wait fails, and the
-    // startup-recovery cleanup must shut the instance down and persist that (it must not stay
-    // recorded as running).
+    // The instance cannot be reached over SSH after the daemon restart (the readiness wait
+    // times out and leaves it unknown): the startup-recovery cleanup must shut the instance
+    // down and persist that (it must not stay recorded as running).
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .WillOnce(Return(mp::VirtualMachine::State::running))        // constructor switch: sync
+        .WillOnce(Return(mp::VirtualMachine::State::running))        // dispatch: VM kept running
+        .WillRepeatedly(Return(mp::VirtualMachine::State::unknown)); // the wait failed
     mp::Signal wait_failed;
-    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
-        .Times(1)
-        .WillOnce([&wait_failed, name = vm_props.name] {
-            wait_failed.signal();
-            throw mp::StartException{name, "Instance shutdown during start"};
-        });
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1).WillOnce([&wait_failed] {
+        wait_failed.signal();
+        throw mp::SSHTimeoutException{"timed out waiting for response"};
+    });
     mp::VMStatusMonitor* monitor{nullptr};
     mp::Signal shutdown_done;
     EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Powerdown))
@@ -710,7 +700,7 @@ TEST_F(Daemon, vmInitiatedRestartFailureDoesNotForceStop)
     // monitor.on_restart() when the guest resets.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
-    EXPECT_CALL(*mock_vm, current_state)
+    EXPECT_CALL(*mock_vm, fetch_state)
         .WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
     EXPECT_CALL(*mock_vm, start).Times(0);
 
@@ -755,21 +745,17 @@ TEST_F(Daemon, successfulReadinessDoesNotResurrectStoppedInstance)
     // QEMU process dies right after and its death is handled (the backend transitions the
     // instance to stopped) before the readiness result is delivered.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
-    auto* raw_vm = mock_vm.get();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
-    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly([raw_vm] { return raw_vm->state; });
-    EXPECT_CALL(*mock_vm, start).Times(1);
-    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
-        .Times(1)
-        .WillOnce([raw_vm] {
-            // The instance crossed to running on SSH success; then the QEMU process died and
-            // the death was handled
-            raw_vm->state = mp::VirtualMachine::State::running;
-            raw_vm->state = mp::VirtualMachine::State::stopped;
-        });
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .WillOnce(Return(mp::VirtualMachine::State::running)) // constructor switch: sync
+        .WillOnce(Return(mp::VirtualMachine::State::running)) // dispatch: VM kept running
+        .WillRepeatedly(
+            Return(mp::VirtualMachine::State::stopped)); // the process death was handled
+    EXPECT_CALL(*mock_vm, start).Times(0);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
 
     // A stopped instance must not be resurrected by the successful readiness result
-    EXPECT_CALL(*mock_vm, handle_state_update).Times(0);
+    EXPECT_CALL(*mock_vm, set_running).Times(0);
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
     auto cfg = config_builder.build();
@@ -2016,15 +2002,11 @@ TEST_F(Daemon, disableZonesStopsInstance)
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
     EXPECT_CALL(*mock_vm, get_zone).WillRepeatedly(ReturnRef(zone));
     EXPECT_CALL(*mock_vm, set_available(false)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_vm, fetch_state).WillRepeatedly([raw_vm = mock_vm.get()] {
-        return raw_vm->state;
-    });
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .Times(3)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, set_running).Times(1);
-    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
-        .Times(1)
-        .WillOnce([raw_vm = mock_vm.get()] {
-            raw_vm->state = mp::VirtualMachine::State::running; // SSH success crosses to running
-        });
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_vm, start).Times(0);
     EXPECT_CALL(*mock_vm, shutdown).Times(0);
 

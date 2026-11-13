@@ -765,7 +765,8 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
         return std::move(mock_qemu_platform);
     });
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::info);
+    logger_scope.mock_logger->screen_logs(
+        mpl::Level::warning); // set_state logs transitions at info
     logger_scope.mock_logger->expect_log(mpl::Level::info, "State changed", AnyNumber());
     logger_scope.mock_logger->expect_log(mpl::Level::info, "process program");
     logger_scope.mock_logger->expect_log(mpl::Level::info, "process arguments");
@@ -1586,13 +1587,7 @@ TEST(QemuPlatform, baseQemuPlatformReturnsExpectedValues)
 
 TEST_F(QemuBackend, qemuDyingAfterResumeDoesNotLeaveInstanceRunning)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
-        return std::move(mock_qemu_platform);
-    });
-
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
-
     mpt::MockProcess* qemu_process{nullptr};
     process_factory->register_callback([this, &qemu_process](mpt::MockProcess* process) {
         if (process->program().startsWith(expected_qemu_system_prefix()) &&
@@ -1612,14 +1607,15 @@ TEST_F(QemuBackend, qemuDyingAfterResumeDoesNotLeaveInstanceRunning)
         }
     });
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
-    ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::suspended);
+    auto machine = make_vm_with_settable_state(mock_monitor);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
 
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
 
     ASSERT_NE(qemu_process, nullptr);
-    machine->state = mp::VirtualMachine::State::running; // the daemon marks the resumed VM running
+    machine->set_state(
+        mp::VirtualMachine::State::running); // the daemon marks the resumed VM running
 
     // QEMU dies unexpectedly (before ever serving QMP), exiting with a non-zero code
     mp::ProcessState exit_state;
@@ -1631,18 +1627,12 @@ TEST_F(QemuBackend, qemuDyingAfterResumeDoesNotLeaveInstanceRunning)
 
     emit qemu_process->finished(exit_state);
 
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(QemuBackend, gracefulShutdownOnDeadQemuProcessTransitionsToStopped)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
-        return std::move(mock_qemu_platform);
-    });
-
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
-
     mpt::MockProcess* qemu_process{nullptr};
     process_factory->register_callback([this, &qemu_process](mpt::MockProcess* process) {
         if (process->program().startsWith(expected_qemu_system_prefix()) &&
@@ -1660,11 +1650,11 @@ TEST_F(QemuBackend, gracefulShutdownOnDeadQemuProcessTransitionsToStopped)
         }
     });
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    auto machine = make_vm_with_settable_state(mock_monitor);
 
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
-    machine->state = mp::VirtualMachine::State::running;
+    machine->set_state(mp::VirtualMachine::State::running);
 
     ASSERT_NE(qemu_process, nullptr);
     // The QEMU process is already gone, and the QProcess state agrees (it reports not running;
@@ -1672,13 +1662,14 @@ TEST_F(QemuBackend, gracefulShutdownOnDeadQemuProcessTransitionsToStopped)
     // gracefulShutdownWithStaleQProcessStateTransitionsToStopped below)
     EXPECT_CALL(*qemu_process, running()).WillRepeatedly(Return(false));
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::info);
+    logger_scope.mock_logger->screen_logs(
+        mpl::Level::warning); // set_state logs transitions at info
     logger_scope.mock_logger->expect_log(mpl::Level::info, "QEMU process is not running");
     EXPECT_CALL(mock_monitor, on_shutdown());
 
     machine->shutdown(); // graceful, i.e. no --force
 
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(QemuBackend, deadQemuProcessAbortsSshWaitDespiteStaleQProcessState)
@@ -1710,7 +1701,7 @@ TEST_F(QemuBackend, deadQemuProcessAbortsSshWaitDespiteStaleQProcessState)
     });
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
-    ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::suspended);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
 
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
@@ -1760,7 +1751,7 @@ TEST_F(QemuBackend, unreapedZombieQemuProcessIsDetectedAsDead)
     });
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
-    ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::suspended);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
 
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
@@ -1831,7 +1822,7 @@ TEST_F(QemuBackend, deadQemuProcessDetectedWhileQProcessDeathIsPending)
     });
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
-    ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::suspended);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
 
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
@@ -1902,7 +1893,7 @@ TEST_F(QemuBackend, liveQemuProcessDoesNotAbortSshWait)
     });
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
-    ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::suspended);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
 
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
@@ -1930,13 +1921,7 @@ TEST_F(QemuBackend, liveQemuProcessDoesNotAbortSshWait)
 
 TEST_F(QemuBackend, gracefulShutdownWithStaleQProcessStateTransitionsToStopped)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
-        return std::move(mock_qemu_platform);
-    });
-
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
-
     mpt::MockProcess* qemu_process{nullptr};
     process_factory->register_callback([this, &qemu_process](mpt::MockProcess* process) {
         if (process->program().startsWith(expected_qemu_system_prefix()) &&
@@ -1954,11 +1939,11 @@ TEST_F(QemuBackend, gracefulShutdownWithStaleQProcessStateTransitionsToStopped)
         }
     });
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    auto machine = make_vm_with_settable_state(mock_monitor);
 
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
-    machine->state = mp::VirtualMachine::State::running;
+    machine->set_state(mp::VirtualMachine::State::running);
 
     ASSERT_NE(qemu_process, nullptr);
 
@@ -1974,24 +1959,19 @@ TEST_F(QemuBackend, gracefulShutdownWithStaleQProcessStateTransitionsToStopped)
     EXPECT_CALL(*qemu_process, running()).WillRepeatedly(Return(true));
     EXPECT_CALL(*qemu_process, process_id()).WillRepeatedly(Return(dead_pid));
 
-    logger_scope.mock_logger->screen_logs(mpl::Level::info);
+    logger_scope.mock_logger->screen_logs(
+        mpl::Level::warning); // set_state logs transitions at info
     logger_scope.mock_logger->expect_log(mpl::Level::info, "QEMU process is not running");
     EXPECT_CALL(mock_monitor, on_shutdown());
 
     machine->shutdown(); // graceful, i.e. no --force
 
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(QemuBackend, forceShutdownPersistsStoppedState)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
-        return std::move(mock_qemu_platform);
-    });
-
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
-
     mpt::MockProcess* qemu_process{nullptr};
     process_factory->register_callback([this, &qemu_process](mpt::MockProcess* process) {
         if (process->program().startsWith(expected_qemu_system_prefix()) &&
@@ -2009,11 +1989,11 @@ TEST_F(QemuBackend, forceShutdownPersistsStoppedState)
         }
     });
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    auto machine = make_vm_with_settable_state(mock_monitor);
 
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
-    machine->state = mp::VirtualMachine::State::running;
+    machine->set_state(mp::VirtualMachine::State::running);
 
     ASSERT_NE(qemu_process, nullptr);
 
@@ -2038,18 +2018,12 @@ TEST_F(QemuBackend, forceShutdownPersistsStoppedState)
 
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::stopped);
 }
 
 TEST_F(QemuBackend, gracefulShutdownInUnknownStatePersistsStopped)
 {
-    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
-        return std::move(mock_qemu_platform);
-    });
-
     NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
-    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
-
     mpt::MockProcess* qemu_process{nullptr};
     process_factory->register_callback([this, &qemu_process](mpt::MockProcess* process) {
         if (process->program().startsWith(expected_qemu_system_prefix()) &&
@@ -2067,7 +2041,7 @@ TEST_F(QemuBackend, gracefulShutdownInUnknownStatePersistsStopped)
         }
     });
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    auto machine = make_vm_with_settable_state(mock_monitor);
 
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
@@ -2076,7 +2050,7 @@ TEST_F(QemuBackend, gracefulShutdownInUnknownStatePersistsStopped)
     // the QEMU process is still alive. The graceful shutdown powers it down; the mock's
     // wait_for_finished returns without emitting Process::finished, so no finished-handler
     // bookkeeping runs afterwards.
-    machine->state = mp::VirtualMachine::State::unknown;
+    machine->set_state(mp::VirtualMachine::State::unknown);
 
     ASSERT_NE(qemu_process, nullptr);
     EXPECT_CALL(*qemu_process, running()).WillRepeatedly(Return(true));
@@ -2088,5 +2062,5 @@ TEST_F(QemuBackend, gracefulShutdownInUnknownStatePersistsStopped)
 
     machine->shutdown(); // graceful, i.e. no --force
 
-    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::stopped);
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::stopped);
 }

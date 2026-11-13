@@ -3593,8 +3593,8 @@ void mp::Daemon::on_restart(const std::string& name)
     // dispatch time because it is not stable until the wait finishes (an SSH timeout rewrites it
     // to unknown for both flows), while a guest reboot always dispatches from the restarting
     // state.
-    const bool started_by_recovery =
-        virtual_machine->fetch_state() != VirtualMachine::State::restarting;
+    const bool started_by_recovery = virtual_machine->fetch_state() !=
+                                     VirtualMachine::State::restarting;
 
     auto future_watcher = create_future_watcher([this, name, started_by_recovery]() {
         try
@@ -3823,7 +3823,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                     operative_instances[name]->start();
 
                     auto future_watcher = create_future_watcher(
-                        [this, server, name, zone = vm_desc.zone](const AsyncOperationStatus&) {
+                        [this, server, name, zone = vm_desc.zone] {
                             LaunchReply reply;
                             reply.set_vm_instance_name(name);
                             config->update_prompt->populate_if_time_to_show(
@@ -4226,7 +4226,7 @@ mp::MountHandler::UPtr mp::Daemon::make_mount(VirtualMachine* vm,
 }
 
 QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watcher(
-    std::function<void(const AsyncOperationStatus&)> const& finished_op)
+    std::function<void()> const& finished_op)
 {
     auto uuid = mp::utils::make_uuid();
     auto future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
@@ -4239,7 +4239,7 @@ QFutureWatcher<mp::Daemon::AsyncOperationStatus>* mp::Daemon::create_future_watc
         [this, uuid, finished_op] {
             try
             {
-                finished_op(async_future_watchers.at(uuid)->result());
+                finished_op();
             }
             catch (const std::exception& e)
             {
