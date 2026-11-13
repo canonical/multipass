@@ -1,0 +1,13 @@
+ubuntu-insights provides a CMake package:
+
+    find_package(ubuntu-insights CONFIG REQUIRED)
+    target_link_libraries(my_app PRIVATE ubuntu-insights::insights)
+
+Include the generated C API with:
+
+    #include <insights/insights.h>
+
+Imported executable targets:
+    ubuntu-insights::ubuntu-insights
+    ubuntu-insights::web-service (Linux only)
+    ubuntu-insights::ingest-service (Linux only)

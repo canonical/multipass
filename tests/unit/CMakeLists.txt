@@ -38,6 +38,10 @@ target_include_directories(multipass_integration_tests
   PRIVATE ${CMAKE_SOURCE_DIR}/src
   PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/backends
 )
+if(MULTIPASS_ENABLE_INSIGHTS)
+  target_sources(multipass_integration_tests PRIVATE test_libinsights.cpp)
+  target_link_libraries(multipass_integration_tests PRIVATE ubuntu_insights)
+endif()
 add_test(NAME multipass_integration_tests COMMAND multipass_integration_tests)
 ##############################################################################
 

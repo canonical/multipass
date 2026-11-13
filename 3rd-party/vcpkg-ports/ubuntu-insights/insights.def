@@ -1,0 +1,12 @@
+LIBRARY libinsights.dll
+EXPORTS
+    insights_free
+    insights_collect
+    insights_compile
+    insights_write
+    insights_upload
+    insights_get_consent_state
+    insights_set_consent_state
+    insights_get_system_opt_out_state
+    insights_set_system_opt_out_state
+    insights_set_log_callback

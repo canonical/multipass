@@ -59,6 +59,12 @@
                     "platform": "osx | linux"
                 }
             ]
+        },
+        "ubuntu-insights": {
+            "description": "Enable Ubuntu Insights integration",
+            "dependencies": [
+                "ubuntu-insights"
+            ]
         }
     }
 }

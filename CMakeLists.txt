@@ -21,6 +21,7 @@ include(CMakeDependentOption)
 
 option(MULTIPASS_VCPKG_BUILD_DEFAULT "Enable or disable building the dependencies in the default configuration, which includes both debug and release variants." OFF)
 option(MULTIPASS_ENABLE_TESTS "Build tests" ON)
+option(MULTIPASS_ENABLE_INSIGHTS "Enable Ubuntu Insights" ON)
 
 is_running_in_ci(IS_RUNNING_IN_CI)
 message(STATUS "Running in CI environment? ${IS_RUNNING_IN_CI}")
@@ -138,6 +139,27 @@ endif()
 
 if(MULTIPASS_ENABLE_TESTS)
   list(APPEND VCPKG_MANIFEST_FEATURES "tests")
+endif()
+
+if(MULTIPASS_ENABLE_INSIGHTS)
+  list(APPEND VCPKG_MANIFEST_FEATURES "ubuntu-insights")
+
+  # vcpkg builds in an isolated environment, so keep Go's location in its build environment.
+  find_program(GO_EXECUTABLE go REQUIRED)
+  get_filename_component(GO_EXECUTABLE_DIR "${GO_EXECUTABLE}" DIRECTORY)
+
+  # Set GO_EXECUTABLE_DIR environment variable, and ask vcpkg to keep it.
+  # NOTE: The resulting ubuntu-insights ABI hash will not depend on the go toolchain
+  # used to build it. So if a new go compiler is installed, the port will not be rebuilt.
+  # This is fine for now.
+  set(ENV{GO_EXECUTABLE_DIR} "${GO_EXECUTABLE_DIR}")
+
+  set(VCPKG_KEEP_ENV_VARS "$ENV{VCPKG_KEEP_ENV_VARS}")
+  list(APPEND VCPKG_KEEP_ENV_VARS GO_EXECUTABLE_DIR)
+  list(REMOVE_DUPLICATES VCPKG_KEEP_ENV_VARS)
+
+  set(ENV{VCPKG_KEEP_ENV_VARS} "${VCPKG_KEEP_ENV_VARS}")
+  unset(VCPKG_KEEP_ENV_VARS)
 endif()
 
 # All the current backends depend on QEMU one way or the other.

@@ -29,6 +29,15 @@ environment:
   ARCH_TRIPLET: ${CRAFT_ARCH_TRIPLET_BUILD_FOR}
 
 plugs:
+    # TODO: Acquire approval for these plugs
+    # dot-config-ubuntu-insights:
+    #   interface: personal-files
+    #   read:
+    #     - $HOME/.config/ubuntu-insights
+    # dot-cache-ubuntu-insights:
+    #   interface: personal-files
+    #   write:
+    #     - $HOME/.cache/ubuntu-insights
   all-home:
     interface: home
     read: all
@@ -60,6 +69,17 @@ apps:
       - network-observe # for network listing (to read `/sys/devices/**/net/*`)
       - removable-media
       - system-observe  # to read the host's os-release
+
+        # Plugs required for ubuntu insights. The same as snapcraft.yaml from ubuntu-insights repo.
+        # TODO: Acquire approval for these plugs
+        # - dot-config-ubuntu-insights # Default config location
+        # - dot-cache-ubuntu-insights # Default cache location
+        # - ubuntu-pro-control # Used to read the Ubuntu Pro attach state over D-Bus.
+        # - block-devices # Required to see encrypted partitions. `dm-crypt` also works.
+      - hardware-observe
+      - wayland
+      - x11
+      - network # Needed for uploading
   multipass:
     environment:
       LD_LIBRARY_PATH: *library-path
@@ -113,7 +133,7 @@ parts:
     build-snaps:
     - cmake
     build-environment:
-    - PATH: /snap/bin:$PATH
+    - PATH: /usr/lib/go-1.26/bin:/snap/bin:$PATH
     - PYTHON: /usr/bin/python3
     - PYTHONPATH: ""
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
@@ -121,6 +141,7 @@ parts:
     - CLANG_VERSION: "19"
     - CXX: clang++-${CLANG_VERSION}
     - CC: clang-${CLANG_VERSION}
+    - GOTOOLCHAIN: local
     build-packages:
     - on arm64: [libgles2-mesa-dev]
     - build-essential
@@ -153,6 +174,9 @@ parts:
     - bison # qtbase[dbus] -> glib2 -> gettext[tools] -> bison
     - gettext # provides msgfmt/msgmerge with matching libgettextsrc on the system loader path
     - rustup
+    # Required by ubuntu-insights
+    - golang-1.26-go
+    - libwayland-dev
 
     stage-packages:
     - apparmor
@@ -166,6 +190,9 @@ parts:
     - libgtkmm-3.0-1t64
     - libglibmm-2.4-1t64
     - libpangomm-1.4-1v5
+    # Required by ubuntu-insights
+    - libwayland-client0
+    - x11-xserver-utils # ubuntu-insights uses xrandr from x11 utils
 
     stage:
     - -**/glvnd
