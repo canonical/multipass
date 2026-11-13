@@ -257,6 +257,14 @@ QStringList mp::QemuPlatformLinux::vm_platform_args(const VirtualMachineDescript
          << "host";
     // clang-format on
 
+    // Let the guest report free pages so the host can reclaim them
+    opts << "-device"
+#if defined Q_PROCESSOR_S390
+         << "virtio-balloon-ccw,id=balloon0,free-page-reporting=on";
+#else
+         << "virtio-balloon-pci,id=balloon0,free-page-reporting=on";
+#endif
+
     // Set up the network related args
     opts << "-nic"
          << QString::fromStdString(
