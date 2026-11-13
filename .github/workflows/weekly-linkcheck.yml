@@ -2,7 +2,7 @@ name: Weekly documentation link check
 
 on:
   schedule:
-    - cron: '0 12 * * 4' # Every Thursday at noon UTC
+    - cron: '14 3 * * 4' # Every Thursday at 03:14 UTC
   workflow_dispatch:
 
 permissions:
