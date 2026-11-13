@@ -46,7 +46,7 @@ QemuMountHandler::QemuMountHandler(QemuVirtualMachine* vm,
       // alphabetical.
       tag{make_tag(target)}
 {
-    auto state = vm->current_state();
+    auto state = vm->fetch_state();
     if (state == VirtualMachine::State::suspended && vm_mount_args.contains(tag))
     {
         mpl::info(category,

@@ -124,7 +124,7 @@ TEST_F(TestDaemonClone, successfulCloneGenerateDestNameOkStatus)
     // add this line to cover the update_unique_identifiers_of_metadata all branches
     extra_interfaces.emplace_back(mp::NetworkInterface{"eth1", "52:54:00:00:00:00", true});
     const auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, fetch_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
 
     mp::CloneRequest request{};
     request.set_source_name(mock_src_instance_name);
@@ -135,7 +135,7 @@ TEST_F(TestDaemonClone, successfulCloneGenerateDestNameOkStatus)
 TEST_F(TestDaemonClone, successfulCloneSpecifyDestNameOkStatus)
 {
     const auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, fetch_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
 
     mp::CloneRequest request{};
     request.set_source_name(mock_src_instance_name);
@@ -147,7 +147,7 @@ TEST_F(TestDaemonClone, successfulCloneSpecifyDestNameOkStatus)
 TEST_F(TestDaemonClone, failsOnCloneOnNonStoppedInstance)
 {
     const auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state).WillOnce(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(*instance, fetch_state).WillOnce(Return(mp::VirtualMachine::State::running));
 
     mp::CloneRequest request{};
     request.set_source_name(mock_src_instance_name);
@@ -160,7 +160,7 @@ TEST_F(TestDaemonClone, failsOnCloneOnNonStoppedInstance)
 TEST_F(TestDaemonClone, successfulCloneGenerateDestNameButThrowLater)
 {
     const auto [daemon, instance] = build_daemon_with_mock_instance();
-    EXPECT_CALL(*instance, current_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, fetch_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
     EXPECT_CALL(mock_factory, clone_bare_vm).WillOnce(Throw(std::runtime_error("intentional")));
 
     mp::CloneRequest request{};
