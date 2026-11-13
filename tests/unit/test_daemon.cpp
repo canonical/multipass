@@ -56,10 +56,15 @@
 #include <multipass/signal.h>
 #include <multipass/virtual_machine_factory.h>
 
+#include <boost/json.hpp>
+
 #include <yaml-cpp/yaml.h>
 
 #include <scope_guard.hpp>
 
+#include <cstdio>
+
+#include <QFile>
 #include <QNetworkProxyFactory>
 #include <QStorageInfo>
 #include <QString>
@@ -599,6 +604,78 @@ TEST_F(Daemon, callsOnRestartForAlreadyStartingVmsOnConstruction)
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
     mp::Daemon daemon{config_builder.build()};
+}
+
+TEST_F(Daemon, shutsDownSyncedRunningVmThatFailsReadinessAfterRestart)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    multipass::test::fake_vm_properties vm_props{};
+    vm_props.default_mac = "52:54:00:73:76:28";
+    vm_props.state = multipass::VirtualMachine::State::running;
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    // This VM was running before and the backend reports it as still running (it survives the
+    // daemon restart), so the constructor takes the "needs syncing" branch and waits for
+    // readiness without calling start().
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
+    EXPECT_CALL(*mock_vm, current_state).WillRepeatedly(Return(mp::VirtualMachine::State::running));
+    EXPECT_CALL(*mock_vm, start).Times(0);
+
+    // The QEMU process died while the daemon was down: the readiness wait fails, and the
+    // startup-recovery cleanup must shut the instance down and persist that (it must not stay
+    // recorded as running).
+    mp::Signal wait_failed;
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
+        .Times(1)
+        .WillOnce([&wait_failed, name = vm_props.name] {
+            wait_failed.signal();
+            throw mp::StartException{name, "Instance shutdown during start"};
+        });
+    mp::VMStatusMonitor* monitor{nullptr};
+    mp::Signal shutdown_done;
+    EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Powerdown))
+        .Times(1)
+        .WillOnce([&monitor, &shutdown_done, name = vm_props.name] {
+            // simulate the backend completing the shutdown
+            if (monitor)
+                monitor->persist_state_for(name, mp::VirtualMachine::State::stopped);
+            shutdown_done.signal();
+        });
+    EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff)).Times(0);
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce([&monitor, vm = std::move(mock_vm)](
+                      const mp::VirtualMachineDescription&,
+                      const mp::SSHKeyProvider&,
+                      mp::VMStatusMonitor& vm_monitor) mutable -> mp::VirtualMachine::UPtr {
+            monitor = &vm_monitor;
+            return std::move(vm);
+        });
+
+    {
+        mp::Daemon daemon{config_builder.build()};
+    }
+
+    // The readiness result is delivered through the daemon's event processing; pump the loop
+    // until the backend has completed the shutdown
+    auto shutdown_signaled = false;
+    for (int i = 0; i < 500 && !shutdown_signaled; ++i)
+    {
+        QCoreApplication::processEvents(QEventLoop::AllEvents);
+        shutdown_signaled = shutdown_done.wait_for(std::chrono::milliseconds{20});
+    }
+    ASSERT_TRUE(shutdown_signaled);
+
+    // The manifest must reflect the stopped state, not the stale running one
+    QFile manifest_file{filename};
+    ASSERT_TRUE(manifest_file.open(QIODevice::ReadOnly));
+    const auto manifest = boost::json::parse(manifest_file.readAll().toStdString()).as_object();
+    ASSERT_TRUE(manifest.if_contains(vm_props.name));
+    const auto& vm_spec = manifest.at(vm_props.name).as_object();
+    ASSERT_TRUE(vm_spec.if_contains("state"));
+    EXPECT_EQ(vm_spec.at("state").to_number<int64_t>(), 0); // VirtualMachine::State::stopped
 }
 
 TEST_F(Daemon, vmInitiatedRestartFailureDoesNotForceStop)

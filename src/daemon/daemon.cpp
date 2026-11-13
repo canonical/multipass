@@ -3633,24 +3633,20 @@ void mp::Daemon::on_restart(const std::string& name)
                 // rebooting guest legitimately does not answer SSH for a while.
                 if (started_by_recovery)
                 {
-                    QThreadPool::globalInstance()->start(
-                        [virtual_machine = std::move(virtual_machine)] {
-                            const auto vm_name = virtual_machine->get_name();
-                            multipass::top_catch_all(vm_name, [&vm = *virtual_machine] {
-                                try
-                                {
-                                    vm.shutdown(VirtualMachine::ShutdownPolicy::Powerdown);
-                                }
-                                catch (const VMStateIdempotentException&)
-                                {
-                                    // the backend already completed the shutdown
-                                }
-                                catch (const std::exception&)
-                                {
-                                    vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
-                                }
-                            });
-                        });
+                    multipass::top_catch_all(name, [&vm = *virtual_machine] {
+                        try
+                        {
+                            vm.shutdown(VirtualMachine::ShutdownPolicy::Powerdown);
+                        }
+                        catch (const VMStateIdempotentException&)
+                        {
+                            // the backend already completed the shutdown
+                        }
+                        catch (const std::exception&)
+                        {
+                            vm.shutdown(VirtualMachine::ShutdownPolicy::Poweroff);
+                        }
+                    });
                 }
                 return;
             }
