@@ -20,6 +20,9 @@
 
 #include <fmt/xchar.h>
 
+#include <windows.h>
+#include <winioctl.h>
+
 #include <filesystem>
 
 #include <src/platform/backends/hcs/api/virtdisk/virtdisk_disk_info.h>
@@ -137,6 +140,66 @@ TEST_F(HyperVVirtDisk_IntegrationTests, resize_grow)
     ASSERT_EQ(info.size->sector, 512);
 
     fmt::print("{}", info);
+}
+
+TEST_F(HyperVVirtDisk_IntegrationTests, clear_sparse_flag_allows_resize)
+{
+    auto temp_path = make_tempfile_path(".vhdx");
+    std::wprintf(L"Path: %s\n", static_cast<std::filesystem::path>(temp_path).c_str());
+
+    const CreateVirtualDiskParameters params{.size_in_bytes = test_vhdx_size,
+                                             .path = temp_path,
+                                             .predecessor = {}};
+
+    const auto c_result = VirtDisk().create_virtual_disk(params);
+    ASSERT_TRUE(c_result);
+    ASSERT_TRUE(c_result.status_msg.empty());
+
+    const auto path_w = static_cast<std::filesystem::path>(temp_path).wstring();
+
+    // Mark the file as sparse, like qemu-img does for the files it creates.
+    {
+        const auto handle = ::CreateFileW(path_w.c_str(),
+                                          GENERIC_READ | GENERIC_WRITE,
+                                          FILE_SHARE_READ,
+                                          nullptr,
+                                          OPEN_EXISTING,
+                                          FILE_ATTRIBUTE_NORMAL,
+                                          nullptr);
+        ASSERT_NE(handle, INVALID_HANDLE_VALUE);
+        FILE_SET_SPARSE_BUFFER sparse_buffer{};
+        sparse_buffer.SetSparse = TRUE;
+        DWORD bytes_returned{0};
+        const auto ioctl_result = ::DeviceIoControl(handle,
+                                                    FSCTL_SET_SPARSE,
+                                                    &sparse_buffer,
+                                                    sizeof(sparse_buffer),
+                                                    nullptr,
+                                                    0,
+                                                    &bytes_returned,
+                                                    nullptr);
+        ::CloseHandle(handle);
+        ASSERT_TRUE(ioctl_result);
+    }
+    ASSERT_TRUE(::GetFileAttributesW(path_w.c_str()) & FILE_ATTRIBUTE_SPARSE_FILE);
+
+    // The virtdisk API refuses to open sparse files.
+    ASSERT_FALSE(VirtDisk().resize_virtual_disk(temp_path, params.size_in_bytes * 2));
+
+    const auto u_result = VirtDisk().clear_sparse_flag(temp_path);
+    ASSERT_TRUE(u_result);
+    ASSERT_TRUE(u_result.status_msg.empty());
+    ASSERT_FALSE(::GetFileAttributesW(path_w.c_str()) & FILE_ATTRIBUTE_SPARSE_FILE);
+
+    // Clearing the flag again is a no-op.
+    ASSERT_TRUE(VirtDisk().clear_sparse_flag(temp_path));
+
+    ASSERT_TRUE(VirtDisk().resize_virtual_disk(temp_path, params.size_in_bytes * 2));
+
+    VirtualDiskInfo info{};
+    ASSERT_TRUE(VirtDisk().get_virtual_disk_info(temp_path, info));
+    ASSERT_TRUE(info.size.has_value());
+    ASSERT_EQ(info.size->virtual_, params.size_in_bytes * 2);
 }
 
 TEST_F(HyperVVirtDisk_IntegrationTests, create_child_disk)
