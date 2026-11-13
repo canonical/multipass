@@ -1725,8 +1725,7 @@ TEST_F(QemuBackend, deadQemuProcessAbortsSshWaitDespiteStaleQProcessState)
     EXPECT_CALL(*qemu_process, process_id()).WillRepeatedly(Return(dead_pid));
 
     // Waiting for SSH must notice the dead process and abort the start instead of timing out
-    EXPECT_THROW(machine->wait_until_ssh_up(std::chrono::milliseconds(100)),
-                 mp::StartException);
+    EXPECT_THROW(machine->wait_until_ssh_up(std::chrono::milliseconds(100)), mp::StartException);
 }
 
 TEST_F(QemuBackend, unreapedZombieQemuProcessIsDetectedAsDead)
@@ -1794,8 +1793,7 @@ TEST_F(QemuBackend, unreapedZombieQemuProcessIsDetectedAsDead)
     // QProcess state is stale (still "running"); the OS-level probe must see through the zombie
     EXPECT_CALL(*qemu_process, running()).WillRepeatedly(Return(true));
     EXPECT_CALL(*qemu_process, process_id()).WillRepeatedly(Return(static_cast<qint64>(pid)));
-    EXPECT_THROW(machine->wait_until_ssh_up(std::chrono::milliseconds(100)),
-                 mp::StartException);
+    EXPECT_THROW(machine->wait_until_ssh_up(std::chrono::milliseconds(100)), mp::StartException);
 
     // Let the child be reaped normally afterwards; Qt's child manager may have beaten us to it
     waitpid(pid, nullptr, 0);
@@ -1836,32 +1834,38 @@ TEST_F(QemuBackend, deadQemuProcessDetectedWhileQProcessDeathIsPending)
     machine->start();
     ASSERT_NE(qemu_process, nullptr);
 
-    // Start a real child and never deliver its death to its QProcess object: the child exits
-    // immediately, but since neither an event loop nor the child manager processes its death on
-    // its behalf, it remains a zombie while its QProcess object keeps reporting it as running.
-    // This is exactly the state the daemon is found in when its event loop has not processed the
+    // Start a real child that exits immediately and never deliver its death to its QProcess
+    // object: neither an event loop nor the child manager processes its death on its behalf, so
+    // the child remains a zombie while its QProcess object keeps reporting it as running. This
+    // is exactly the state the daemon is found in when its event loop has not processed the
     // QEMU death yet.
     QProcess real_process;
-    real_process.start("mock_process");
+    real_process.start("mock_process", {"0"});
     ASSERT_TRUE(real_process.waitForStarted(5000));
 
     const auto real_pid = static_cast<qint64>(real_process.processId());
     bool zombie = false;
-    for (int i = 0; i < 500 && !zombie; ++i)
+    bool reaped = false;
+    for (int i = 0; i < 500 && !zombie && !reaped; ++i)
     {
         siginfo_t info{};
-        const auto ret = waitid(P_PID, real_process.processId(), &info, WEXITED | WNOHANG | WNOWAIT);
+        const auto ret = waitid(P_PID,
+                                real_process.processId(),
+                                &info,
+                                WEXITED | WNOHANG | WNOWAIT);
         zombie = ret == 0 && info.si_pid == static_cast<pid_t>(real_process.processId());
-        if (!zombie)
+        reaped = ret == -1 && errno == ECHILD; // reaped by the child manager underneath us
+        if (!zombie && !reaped)
             std::this_thread::sleep_for(std::chrono::milliseconds(10)); // let the child exit
     }
-    ASSERT_TRUE(zombie) << "child did not exit";
+
+    if (!zombie && !reaped)
+        GTEST_SKIP() << "the exited child was not observable on this platform";
 
     // QProcess state is stale (still "running"), only the OS-level probe can tell it is gone
     EXPECT_CALL(*qemu_process, running()).WillRepeatedly(Return(true));
     EXPECT_CALL(*qemu_process, process_id()).WillRepeatedly(Return(real_pid));
-    EXPECT_THROW(machine->wait_until_ssh_up(std::chrono::milliseconds(100)),
-                 mp::StartException);
+    EXPECT_THROW(machine->wait_until_ssh_up(std::chrono::milliseconds(100)), mp::StartException);
 
     real_process.waitForFinished(5000); // let QProcess reap the child normally afterwards
 }

@@ -524,8 +524,7 @@ TEST_F(Daemon, shutsDownPreviouslyRunningVmThatFailsReadinessAfterRestart)
     // restarts it. The first current_state() query is the daemon-startup recovery switch, the
     // second one happens when the readiness failure is handled (the VM is starting by then).
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
-    EXPECT_CALL(*mock_vm, get_name)
-        .WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
     EXPECT_CALL(*mock_vm, current_state)
         .WillOnce(Return(mp::VirtualMachine::State::stopped))
         .WillOnce(Return(mp::VirtualMachine::State::starting))
@@ -623,12 +622,10 @@ TEST_F(Daemon, vmInitiatedRestartFailureDoesNotForceStop)
     // The rebooting guest does not answer SSH in time and the readiness wait times out. A
     // healthy rebooting VM must not be powered off because of that transient failure.
     mp::Signal wait_failed;
-    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
-        .Times(1)
-        .WillOnce([&wait_failed] {
-            wait_failed.signal();
-            throw mp::SSHTimeoutException{"timed out waiting for response"};
-        });
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1).WillOnce([&wait_failed] {
+        wait_failed.signal();
+        throw mp::SSHTimeoutException{"timed out waiting for response"};
+    });
     EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Powerdown)).Times(0);
     EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff)).Times(0);
 
