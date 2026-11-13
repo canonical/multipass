@@ -54,6 +54,8 @@ The test suite has dedicated platform-specific code for interacting with the ins
 
 By default, the CLI tests would pick the appropriate daemon controller for the platform, i.e. `snap` for Linux, `winsvc` for Windows, `launchd` for macOS. It's possible to override this explicitly by using the `--daemon-controller` flag.
 
+With every controller except `standalone`, the session first waits until `multipass version` succeeds (e.g. while a freshly installed daemon generates its certificates), because version-gated tests query it at import time. Use `--cli-ready-timeout` to change the 300-second limit.
+
 Below are example test run invocations for each platform (hence for each daemon controller).
 
 ### Linux, snap

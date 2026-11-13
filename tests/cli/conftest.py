@@ -55,6 +55,7 @@ from cli.multipass import (
     get_multipass_path,
     get_multipassd_path,
     get_multipass_version,
+    wait_for_cli_ready,
 )
 
 from cli.config import cfg
@@ -195,6 +196,14 @@ def pytest_addoption(parser):
         help="Timeout (seconds) for the per-step daemon health check.",
     )
 
+    parser.addoption(
+        "--cli-ready-timeout",
+        default=300,
+        type=int,
+        help="Timeout (seconds) to wait for the CLI to become usable before "
+        "collecting tests (e.g. right after installing Multipass).",
+    )
+
 
 def pytest_configure(config):
     """Validate command line args."""
@@ -242,6 +251,7 @@ def pytest_configure(config):
     cfg.daemon_health_check = not config.getoption(
         "--no-daemon-health-check")
     cfg.health_check_timeout = config.getoption("--health-check-timeout")
+    cfg.cli_ready_timeout = config.getoption("--cli-ready-timeout")
 
     # If user gave --storage-dir, use it
     if not cfg.storage_dir:
@@ -255,6 +265,18 @@ def pytest_configure(config):
     cfg.data_dir = determine_data_dir()
 
     logging.debug(f"pytest_configure :: final config {cfg}")
+
+
+def pytest_sessionstart(session):
+    """Wait until the CLI is usable before collection, since version gates
+    query `multipass version` while test modules are imported."""
+    if cfg.daemon_controller == "standalone":
+        return
+
+    try:
+        wait_for_cli_ready(cfg.cli_ready_timeout)
+    except TimeoutError as e:
+        pytest.exit(f"ERROR: {e}", returncode=1)
 
 
 def pytest_assertrepr_compare(op, left, right):

@@ -51,6 +51,7 @@ from .helpers import (
     get_cloudinit_instance_id,
     get_multipass_version,
     parse_multipass_versions,
+    wait_for_cli_ready,
     vm_exists,
     get_boot_id
 )
