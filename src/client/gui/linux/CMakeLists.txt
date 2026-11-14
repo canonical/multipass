@@ -120,12 +120,6 @@ foreach(plugin ${FLUTTER_PLUGIN_LIST})
   add_dependencies(${plugin}_plugin flutter_assemble)
 endforeach(plugin)
 
-# hotkey_manager_linux_plugin yields this warning (converted to error) with
-# clang-21.
-target_compile_options(hotkey_manager_linux_plugin PRIVATE
-  -Wno-error=sometimes-uninitialized
-)
-
 # === Installation ===
 # By default, "installing" just makes a relocatable bundle in the build
 # directory.
@@ -156,6 +150,12 @@ foreach(bundled_library ${PLUGIN_BUNDLED_LIBRARIES})
     DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
     COMPONENT Runtime)
 endforeach(bundled_library)
+
+# Copy the native assets provided by the build.dart from all packages.
+set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}/native_assets/linux/")
+install(DIRECTORY "${NATIVE_ASSETS_DIR}"
+  DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  COMPONENT Runtime)
 
 # Fully re-copy the assets directory on each build to avoid having stale files
 # from a previous install.
