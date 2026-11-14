@@ -56,10 +56,13 @@
 #include <multipass/signal.h>
 #include <multipass/virtual_machine_factory.h>
 
+#include <boost/json.hpp>
+
 #include <yaml-cpp/yaml.h>
 
 #include <scope_guard.hpp>
 
+#include <QFile>
 #include <QNetworkProxyFactory>
 #include <QStorageInfo>
 #include <QString>
@@ -457,7 +460,10 @@ TEST_F(Daemon, ensureThatOnRestartFutureCompletes)
     // This VM was running before, but not now.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{"yakety-yak"}));
-    EXPECT_CALL(*mock_vm, fetch_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .WillOnce(Return(mp::VirtualMachine::State::stopped))
+        .WillOnce(Return(mp::VirtualMachine::State::starting))
+        .WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(1);
 
     mp::Signal sig;
@@ -492,8 +498,9 @@ TEST_F(Daemon, startsPreviouslyRunningVmsBack)
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
     EXPECT_CALL(*mock_vm, fetch_state)
-        .Times(1)
-        .WillRepeatedly(Return(mp::VirtualMachine::State::stopped));
+        .WillOnce(Return(mp::VirtualMachine::State::stopped))
+        .WillOnce(Return(mp::VirtualMachine::State::starting))
+        .WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, set_running).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
@@ -510,6 +517,48 @@ TEST_F(Daemon, startsPreviouslyRunningVmsBack)
     mp::Daemon daemon{config_builder.build()};
 }
 
+TEST_F(Daemon, shutsDownPreviouslyRunningVmThatFailsReadinessAfterRestart)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    multipass::test::fake_vm_properties vm_props{};
+    vm_props.default_mac = "52:54:00:73:76:28";
+    vm_props.state = multipass::VirtualMachine::State::running;
+    const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    // This VM was running before, but is gone now: it fails to become ready after the daemon
+    // restarts it. The fetch_state() queries are the daemon-startup recovery switch and the
+    // on_restart dispatch capture; the wait failure is seen through the readiness result.
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .WillOnce(Return(mp::VirtualMachine::State::stopped))   // constructor switch
+        .WillOnce(Return(mp::VirtualMachine::State::starting)); // dispatch: VM starting
+    EXPECT_CALL(*mock_vm, start).Times(1);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up)
+        .Times(1)
+        .WillOnce(Throw(mp::SSHTimeoutException{"timed out waiting for response"}));
+
+    // The daemon must not leave the instance half-started: it attempts a graceful shutdown, and
+    // since that is rejected here (the state machine does so while an instance is starting), it
+    // falls back to a forced stop.
+    EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Powerdown))
+        .Times(1)
+        .WillOnce(Throw(std::runtime_error{"Cannot shut down instance while starting."}));
+    mp::Signal forced_stop;
+    EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff))
+        .Times(1)
+        .WillOnce([&forced_stop] { forced_stop.signal(); });
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    {
+        mp::Daemon daemon{config_builder.build()};
+    }
+
+    EXPECT_TRUE(forced_stop.wait_for(std::chrono::seconds{10}));
+}
+
 TEST_F(Daemon, callsOnRestartForAlreadyRunningVmsOnConstruction)
 {
     auto mock_factory = use_a_mock_vm_factory();
@@ -520,11 +569,13 @@ TEST_F(Daemon, callsOnRestartForAlreadyRunningVmsOnConstruction)
     config_builder.data_directory = temp_dir->path();
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    // This VM was running before, but not now.
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    // This VM was running before and the backend kept it alive across the daemon restart, so
+    // the constructor syncs it without calling start().
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(
+        mp::VirtualMachine::State::running);
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
     EXPECT_CALL(*mock_vm, fetch_state)
-        .Times(1)
+        .Times(3)
         .WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(0);
     EXPECT_CALL(*mock_vm, set_running).Times(1);
@@ -544,11 +595,13 @@ TEST_F(Daemon, callsOnRestartForAlreadyStartingVmsOnConstruction)
     config_builder.data_directory = temp_dir->path();
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    // This VM was running before, but not now.
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    // This VM was running before and the backend reports it as starting across the daemon
+    // restart, so the constructor syncs it without calling start().
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(
+        mp::VirtualMachine::State::starting);
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
     EXPECT_CALL(*mock_vm, fetch_state)
-        .Times(1)
+        .Times(3)
         .WillRepeatedly(Return(mp::VirtualMachine::State::starting));
     EXPECT_CALL(*mock_vm, start).Times(0);
     EXPECT_CALL(*mock_vm, set_running).Times(1);
@@ -556,6 +609,161 @@ TEST_F(Daemon, callsOnRestartForAlreadyStartingVmsOnConstruction)
     EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
 
     mp::Daemon daemon{config_builder.build()};
+}
+
+TEST_F(Daemon, shutsDownSyncedRunningVmThatFailsReadinessAfterRestart)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    multipass::test::fake_vm_properties vm_props{};
+    vm_props.default_mac = "52:54:00:73:76:28";
+    vm_props.state = multipass::VirtualMachine::State::running;
+    const auto [temp_dir, filename] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    // This VM was running before and the backend reports it as still running (it survives the
+    // daemon restart), so the constructor takes the "needs syncing" branch and waits for
+    // readiness without calling start().
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
+    EXPECT_CALL(*mock_vm, start).Times(0);
+
+    // The instance cannot be reached over SSH after the daemon restart (the readiness wait
+    // fails): the startup-recovery cleanup must shut the instance down and persist that (it
+    // must not stay recorded as running). The fetch_state() queries are the daemon-startup
+    // recovery switch and the on_restart dispatch capture.
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .WillOnce(Return(mp::VirtualMachine::State::running))  // constructor switch: sync
+        .WillOnce(Return(mp::VirtualMachine::State::running)); // dispatch: VM kept running
+    mp::Signal wait_failed;
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1).WillOnce([&wait_failed] {
+        wait_failed.signal();
+        throw mp::SSHTimeoutException{"timed out waiting for response"};
+    });
+    mp::VMStatusMonitor* monitor{nullptr};
+    mp::Signal shutdown_done;
+    EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Powerdown))
+        .Times(1)
+        .WillOnce([&monitor, &shutdown_done, name = vm_props.name] {
+            // simulate the backend completing the shutdown
+            if (monitor)
+                monitor->persist_state_for(name, mp::VirtualMachine::State::stopped);
+            shutdown_done.signal();
+        });
+    EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff)).Times(0);
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce([&monitor, vm = std::move(mock_vm)](
+                      const mp::VirtualMachineDescription&,
+                      const mp::SSHKeyProvider&,
+                      mp::VMStatusMonitor& vm_monitor) mutable -> mp::VirtualMachine::UPtr {
+            monitor = &vm_monitor;
+            return std::move(vm);
+        });
+
+    {
+        mp::Daemon daemon{config_builder.build()};
+    }
+
+    // The readiness result is delivered through the daemon's event processing; pump the loop
+    // until the backend has completed the shutdown
+    auto shutdown_signaled = false;
+    for (int i = 0; i < 500 && !shutdown_signaled; ++i)
+    {
+        QCoreApplication::processEvents(QEventLoop::AllEvents);
+        shutdown_signaled = shutdown_done.wait_for(std::chrono::milliseconds{20});
+    }
+    ASSERT_TRUE(shutdown_signaled);
+
+    // The manifest must reflect the stopped state, not the stale running one
+    QFile manifest_file{filename};
+    ASSERT_TRUE(manifest_file.open(QIODevice::ReadOnly));
+    const auto manifest = boost::json::parse(manifest_file.readAll().toStdString()).as_object();
+    ASSERT_TRUE(manifest.if_contains(vm_props.name));
+    const auto& vm_spec = manifest.at(vm_props.name).as_object();
+    ASSERT_TRUE(vm_spec.if_contains("state"));
+    EXPECT_EQ(vm_spec.at("state").to_number<int64_t>(),
+              static_cast<int64_t>(mp::VirtualMachine::State::stopped));
+}
+
+TEST_F(Daemon, vmInitiatedRestartFailureDoesNotForceStop)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    multipass::test::fake_vm_properties vm_props{};
+    vm_props.default_mac = "52:54:00:73:76:28";
+    vm_props.state = multipass::VirtualMachine::State::stopped;
+    const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    // A guest-initiated reboot: the QEMU backend reports the VM as restarting and dispatches
+    // monitor.on_restart() when the guest resets.
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::restarting));
+    EXPECT_CALL(*mock_vm, start).Times(0);
+
+    // The rebooting guest does not answer SSH in time and the readiness wait times out. A
+    // healthy rebooting VM must not be powered off because of that transient failure.
+    mp::Signal wait_failed;
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1).WillOnce([&wait_failed] {
+        wait_failed.signal();
+        throw mp::SSHTimeoutException{"timed out waiting for response"};
+    });
+    EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Powerdown)).Times(0);
+    EXPECT_CALL(*mock_vm, shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff)).Times(0);
+
+    mp::VMStatusMonitor* monitor{nullptr};
+    EXPECT_CALL(*mock_factory, create_virtual_machine)
+        .WillOnce([&monitor, vm = std::move(mock_vm)](
+                      const mp::VirtualMachineDescription&,
+                      const mp::SSHKeyProvider&,
+                      mp::VMStatusMonitor& vm_monitor) mutable -> mp::VirtualMachine::UPtr {
+            monitor = &vm_monitor;
+            return std::move(vm);
+        });
+
+    {
+        mp::Daemon daemon{config_builder.build()};
+        monitor->on_restart(vm_props.name);
+        ASSERT_TRUE(wait_failed.wait_for(std::chrono::seconds{10}));
+    }
+}
+
+TEST_F(Daemon, successfulReadinessDoesNotResurrectStoppedInstance)
+{
+    auto mock_factory = use_a_mock_vm_factory();
+    multipass::test::fake_vm_properties vm_props{};
+    vm_props.default_mac = "52:54:00:73:76:28";
+    vm_props.state = multipass::VirtualMachine::State::running;
+    const auto [temp_dir, _] = plant_instance_json(fake_json_contents(vm_props));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    // This VM was running before; the daemon restarts it. SSH readiness succeeds, but the
+    // QEMU process dies right after and its death is handled (the backend transitions the
+    // instance to stopped) before the readiness result is delivered.
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .WillOnce(Return(mp::VirtualMachine::State::running)) // constructor switch: sync
+        .WillOnce(Return(mp::VirtualMachine::State::running)) // dispatch: VM kept running
+        .WillRepeatedly(
+            Return(mp::VirtualMachine::State::stopped)); // the process death was handled
+    EXPECT_CALL(*mock_vm, start).Times(0);
+    EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
+
+    // A stopped instance must not be resurrected by the successful readiness result
+    EXPECT_CALL(*mock_vm, set_running).Times(0);
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    auto cfg = config_builder.build();
+    // inject() after the build, because build() overwrites the global logger
+    auto logger_scope = mpt::MockLogger::inject();
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "leaving it as is");
+
+    mp::Daemon daemon{std::move(cfg)};
 }
 
 TEST_F(Daemon, updatesTheDeletedButNonStoppedVmState)
@@ -1788,11 +1996,14 @@ TEST_F(Daemon, disableZonesStopsInstance)
     config_builder.data_directory = temp_dir->path();
     config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
 
-    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>(
+        mp::VirtualMachine::State::running);
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(vm_props.name));
     EXPECT_CALL(*mock_vm, get_zone).WillRepeatedly(ReturnRef(zone));
     EXPECT_CALL(*mock_vm, set_available(false)).WillOnce(Return(false));
-    EXPECT_CALL(*mock_vm, fetch_state).WillOnce(Return(vm_props.state));
+    EXPECT_CALL(*mock_vm, fetch_state)
+        .Times(3)
+        .WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, set_running).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1);
     EXPECT_CALL(*mock_vm, start).Times(0);

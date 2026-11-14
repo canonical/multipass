@@ -42,6 +42,11 @@
 #include <QString>
 #include <QTemporaryFile>
 
+#include <cerrno>
+#include <csignal>
+#include <limits>
+#include <sys/wait.h>
+
 #include <cassert>
 
 namespace mp = multipass;
@@ -63,6 +68,54 @@ constexpr int kill_process_timeout = 5000; // unit: ms, 5 seconds timeout for ki
 QString get_vm_machine(const boost::json::value& metadata)
 {
     return mp::lookup_or<QString>(metadata, machine_type_key, {});
+}
+
+// QProcess only learns about the child's death once the Qt event loop delivers it, which may be
+// arbitrarily delayed (e.g. while the daemon is starting up and the event loop has not begun
+// processing yet, or while it is busy). Ask the OS directly, so that a QEMU process that has
+// already exited is not mistaken for a live one.
+bool qemu_process_is_alive(const mp::Process& process)
+{
+    const auto pid = process.process_id();
+    if (pid <= 0) // nothing to check (e.g. the process has not started yet)
+        return true;
+
+    if (pid > static_cast<qint64>(std::numeric_limits<pid_t>::max()))
+    {
+        // Defensive: a pid like this cannot name a real child on this platform
+        mpl::warn(qUtf8Printable(process.program()),
+                  "cannot check process {}: pid out of range; assuming alive",
+                  pid);
+        return true;
+    }
+
+    const auto os_pid = static_cast<pid_t>(pid);
+#ifdef WNOWAIT
+    siginfo_t info{};
+    int ret = 0;
+    do
+        ret = waitid(P_PID, os_pid, &info, WEXITED | WNOHANG | WNOWAIT);
+    while (ret == -1 && errno == EINTR);
+
+    if (ret == -1)
+    {
+        // ECHILD: the pid is not (or no longer) an unwaited-for child of ours, i.e. it already
+        // exited and was reaped. Anything else is unexpected: assume alive and let the usual
+        // QProcess-based mechanisms decide.
+        return errno != ECHILD;
+    }
+
+    // WNOWAIT leaves the exit status consumable, so QProcess can still reap the child and emit
+    // its finished signal afterwards. With WNOHANG, an exited child is reported with its pid in
+    // si_pid, while a child that has not exited leaves si_pid zeroed.
+    return info.si_pid == 0;
+#else
+    // WNOWAIT, which is needed to inspect a child without consuming its exit status, is not
+    // available on this platform: fall back to a zero-signal kill existence check. Zombie
+    // detection is best-effort there (an exited-but-unreaped child still counts as existing);
+    // the usual QProcess-based mechanisms remain the authority.
+    return kill(os_pid, 0) == 0 || errno != ESRCH;
+#endif
 }
 
 QStringList get_arguments(const boost::json::value& metadata)
@@ -328,6 +381,15 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     std::unique_lock<std::mutex> lock{state_mutex};
     disconnect_vm_signals();
 
+    if (fetch_state() == State::starting)
+    {
+        // A shutdown was initiated while starting: on_shutdown()'s starting-state wait (for
+        // the finished handler of a killed process) must complete once the process death is
+        // handled.
+        shutdown_while_starting = true;
+        state_wait.notify_all();
+    }
+
     try
     {
         check_state_for_shutdown(shutdown_policy);
@@ -341,11 +403,11 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
         mpl::info(vm_name, "Forcing shutdown");
+        force_shutdown = vm_process != nullptr;
 
-        if (vm_process)
+        if (vm_process && vm_process->running() && qemu_process_is_alive(*vm_process))
         {
             mpl::info(vm_name, "Killing process");
-            force_shutdown = true;
             lock.unlock();
             vm_process->kill();
             if (vm_process != nullptr && !vm_process->wait_for_finished(kill_process_timeout))
@@ -357,6 +419,11 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         }
         else
         {
+            // The QEMU process is already gone (e.g. it died unexpectedly, or the OS reports
+            // it gone while QProcess has not caught up yet): there is nothing left to kill,
+            // and waiting for a finished signal that may never arrive would only time out.
+            // The stop is published below; because no finished signal is expected either, the
+            // shutdown bookkeeping is completed there as well.
             mpl::debug(vm_name, "No process to kill");
         }
 
@@ -374,7 +441,34 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
         }
 
+        // Reacquire the mutex before publishing the transition: the kill branch above unlocks
+        // while waiting for the process to finish (the no-process branch never unlocked).
+        if (!lock.owns_lock())
+            lock.lock();
+
         set_state(State::stopped);
+        if (vm_process)
+        {
+            // When the process was killed, the finished handler already completed the shutdown
+            // bookkeeping (resetting vm_process); complete it here as well when the process was
+            // probed dead and no finished signal is expected. QProcess never observed that
+            // death, so the exit code cannot be reported - only the fact of it.
+            mpl::info(vm_name,
+                      "QEMU process already exited (detected via the OS); completing shutdown");
+            management_ip = std::nullopt;
+            drop_ssh_session();
+            vm_process.reset(nullptr);
+            monitor.on_shutdown();
+
+            // The process may have died while resuming from a suspend snapshot: the instance
+            // is stopped now, so the snapshot must go or the next start would misread the
+            // instance as suspended.
+            if (mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag))
+            {
+                mpl::info(vm_name, "Deleting suspend image");
+                mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
+            }
+        }
     }
     else
     {
@@ -382,7 +476,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
 
         drop_ssh_session();
 
-        if (vm_process && vm_process->running())
+        if (vm_process && vm_process->running() && qemu_process_is_alive(*vm_process))
         {
             vm_process->write(
                 QByteArray::fromStdString(serialize(qmp_execute_json("system_powerdown"))));
@@ -397,6 +491,15 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
                     "The QEMU process did not finish within {} milliseconds after being shutdown",
                     vm_shutdown_timeout)};
             }
+        }
+        else
+        {
+            // The QEMU process is already gone (e.g. it died unexpectedly), or the OS reports it
+            // gone even though QProcess has not caught up yet. There is nothing left to power
+            // down, but the shutdown still has to be completed, otherwise the instance would be
+            // left marked as running forever.
+            mpl::info(vm_name, "QEMU process is not running; completing shutdown");
+            on_shutdown();
         }
     }
 }
@@ -497,6 +600,12 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 
 void mp::QemuVirtualMachine::initialize_vm_process()
 {
+    // A fresh process starts with none of the previous one's forced-stop/suspend bookkeeping;
+    // start() re-sets what applies to a resume from a suspended state.
+    force_shutdown = false;
+    update_shutdown_status = true;
+    is_starting_from_suspend = false;
+
     vm_process = make_qemu_process(desc,
                                    ((fetch_state() == State::suspended)
                                         ? std::make_optional(monitor.retrieve_metadata_for(vm_name))
@@ -593,9 +702,14 @@ void mp::QemuVirtualMachine::initialize_vm_process()
     QObject::connect(vm_process.get(), &Process::finished, [this](ProcessState process_state) {
         if (process_state.exit_code)
         {
-            mpl::info(vm_name,
-                      "process finished with exit code {}",
-                      process_state.exit_code.value());
+            // QEMU exiting with a non-zero code means it gave up unexpectedly (e.g. it failed
+            // before it could serve QMP): log that at error level so users see it. A clean exit
+            // stays at info level.
+            const auto exit_code = process_state.exit_code.value();
+            const auto log_level = exit_code == 0 ? mpl::Level::info : mpl::Level::error;
+            mpl::log_message(log_level,
+                             vm_name,
+                             fmt::format("process finished with exit code {}", exit_code));
         }
         const auto state = fetch_state();
         if (process_state.error)
@@ -746,7 +860,8 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_
 }
 bool multipass::QemuVirtualMachine::unplugged()
 {
-    return BaseVirtualMachine::unplugged() || !vm_process || !vm_process->running();
+    return BaseVirtualMachine::unplugged() || !vm_process || !vm_process->running() ||
+           !qemu_process_is_alive(*vm_process);
 }
 
 auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
