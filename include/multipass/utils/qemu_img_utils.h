@@ -32,6 +32,11 @@ class QemuImgProcessSpec;
 
 namespace backend
 {
+// Tag of the internal qcow2 snapshot that holds a guest's memory while the
+// instance is suspended. Defined here so that non-backend code (e.g. the
+// refresh preparation) agrees with the qemu backend on the name.
+inline constexpr auto suspend_snapshot_tag = "suspend";
+
 class QemuImgException : public std::runtime_error
 {
 public:

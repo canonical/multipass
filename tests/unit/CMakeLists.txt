@@ -93,6 +93,7 @@ add_executable(multipass_cpp_tests
   test_daemon_start.cpp
   test_daemon_stop.cpp
   test_daemon_suspend.cpp
+  test_daemon_refresh.cpp
   test_daemon_umount.cpp
   test_daemon_wait_ready.cpp
   test_daemon_zones.cpp

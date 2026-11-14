@@ -52,6 +52,43 @@ service Rpc {
     rpc zones_state (stream ZonesStateRequest) returns (stream ZonesStateReply);
 }
 
+// Internal service used by the pre-refresh snap hook to coordinate safe snap
+// upgrades. It is served on a separate, root-only socket and must never be
+// exposed on the main authenticated socket.
+service RefreshRpc {
+    // Reports suspended guest state, or (if none) gracefully stops running
+    // guests and records the restart intent for the post-refresh daemon.
+    rpc prepare_refresh (stream PrepareRefreshRequest) returns (stream PrepareRefreshReply);
+    // Releases the refresh preparation gate and best-effort restores guests
+    // recorded in the restart intent.
+    rpc abort_refresh (stream AbortRefreshRequest) returns (stream AbortRefreshReply);
+}
+
+message PrepareRefreshRequest {
+    int32 verbosity_level = 1;
+}
+
+message PrepareRefreshReply {
+    // Daemon log lines streamed while preparing (ignored by callers).
+    string log_line = 1;
+    // Instances holding suspended guest memory state; they block the refresh.
+    repeated string suspended_instances = 2;
+    // Instances this preparation cleanly shut down (they will be started again
+    // by the daemon that takes over after the refresh).
+    repeated string stopped_instances = 3;
+    // Human readable explanation when preparation could not complete.
+    string error_message = 4;
+}
+
+message AbortRefreshRequest {
+    int32 verbosity_level = 1;
+}
+
+message AbortRefreshReply {
+    // Daemon log lines streamed while aborting (ignored by callers).
+    string log_line = 1;
+}
+
 message LaunchRequest {
     string instance_name = 1;
     string image = 2;

@@ -1,3 +1,90 @@
 #!/bin/bash -e
 
-touch $SNAP_COMMON/snap_refresh
+# Prepare (or veto) a multipass snap refresh.
+#
+# snapd runs this hook, from the currently installed revision, with the
+# multipass services still running, before switching to the new revision. A
+# non-zero exit aborts the refresh, leaving the installed revision untouched.
+#
+# Policy: a snap refresh must never silently destroy suspended guest memory
+# (cross-build resume is not guaranteed to work), and running guests must be
+# cleanly shut down - never force-killed - before the QEMU runtime they run on
+# is replaced.
+#
+#  - If the daemon is reachable, ask it to prepare the refresh: it refuses if
+#    any instance holds suspended guest memory, otherwise it cleanly shuts
+#    down running instances and records them for restart by the next daemon.
+#  - If the daemon is not running, inspect the instance images directly; any
+#    suspend snapshot (including the ones left by a previous daemon shutdown)
+#    blocks the refresh.
+#  - If the hook dies while the daemon may be mid-preparation (guests possibly
+#    already shut down), hand the guests back and release the gate.
+#
+# Note: snap revert does not run this hook, and upgrades from revisions older
+# than the first one shipping this hook are not protected by it.
+
+# Keep the historical marker; some external tooling observes it.
+touch "$SNAP_COMMON/snap_refresh"
+
+HELPER="$SNAP/bin/multipass-refresh-helper"
+DATA_DIR="$SNAP_COMMON/data/multipassd"
+
+if [ ! -x "$HELPER" ]; then
+    echo "multipass-refresh-helper is missing; cannot prepare the snap refresh safely" >&2
+    exit 1
+fi
+
+# Hooks do not receive the per-app snap environment: set up what the bundled
+# helper needs to run (mirror the snapcraft app LD_LIBRARY_PATH/PATH entries).
+case "$(uname -m)" in
+    x86_64) TRIPLET=x86_64-linux-gnu ;;
+    aarch64) TRIPLET=aarch64-linux-gnu ;;
+    ppc64le) TRIPLET=powerpc64le-linux-gnu ;;
+    s390x) TRIPLET=s390x-linux-gnu ;;
+    *) TRIPLET="" ;;
+esac
+export LD_LIBRARY_PATH="$SNAP/bin/bundle/lib:$SNAP/lib:$SNAP/lib/$TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/$TRIPLET${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export PATH="$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH"
+
+# If the hook is interrupted while the daemon may be mid-preparation (guests
+# possibly already shut down for a refresh that will now not happen), hand the
+# guests back and release the gate.
+release_preparation() {
+    "$HELPER" abort >/dev/null 2>&1 || true
+}
+trap 'release_preparation; exit 143' TERM
+trap 'release_preparation; exit 130' INT
+
+# Ask the daemon to veto or prepare the refresh. Exit codes:
+#   0 prepared, 1 error, 2 blocked, 3 daemon not reachable.
+set +e
+"$HELPER" prepare --timeout 480
+prepare_rc=$?
+set -e
+
+if [ "$prepare_rc" -ne 0 ] && [ "$prepare_rc" -ne 3 ]; then
+    # Blocked or failed after reaching the daemon. The daemon may have already
+    # shut guests down for a preparation it could not finish (e.g. this hook
+    # process was slow and its deadline expired mid-preparation): hand them
+    # back and release the gate before failing the refresh.
+    release_preparation
+    exit 1
+fi
+
+if [ "$prepare_rc" -ne 0 ]; then
+    # Daemon not reachable: inspect the instance images directly, without
+    # starting anything. A suspend snapshot on disk must not be replaced by a
+    # new runtime.
+    set +e
+    "$HELPER" scan-offline --data-dir "$DATA_DIR"
+    scan_rc=$?
+    set -e
+
+    [ "$scan_rc" -eq 0 ] || exit 1
+fi
+
+# Safe to proceed:
+#  - prepared: the daemon keeps the preparation gate until snapd stops it;
+#  - offline and clean: nothing is running, nothing will be resumed across
+#    the refresh.
+exit 0

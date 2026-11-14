@@ -20,6 +20,7 @@
 #include <multipass/base_availability_zone_manager.h>
 #include <multipass/client_cert_store.h>
 #include <multipass/constants.h>
+#include <multipass/format.h>
 #include <multipass/image_host/custom_image_host.h>
 #include <multipass/image_host/image_mutators.h>
 #include <multipass/image_host/ubuntu_image_host.h>
@@ -39,6 +40,7 @@
 #include <QUrl>
 
 #include <chrono>
+#include <cstring>
 #include <memory>
 #include <optional>
 
@@ -55,6 +57,30 @@ std::string server_name_from(const std::string& server_address)
     if (server_name == "unix")
         return "localhost";
     return server_name;
+}
+
+// The internal refresh-preparation RPC is served on a sibling socket of the
+// main one. It is only enabled for the standard unix socket layout; custom
+// server addresses (e.g. tcp, or tests) get no refresh server.
+std::string refresh_server_address_from(const std::string& server_address)
+{
+    constexpr auto main_socket_name = "/multipass_socket";
+    constexpr auto refresh_socket_name = "/multipass_refresh_socket";
+
+    auto tokens = mp::utils::split(server_address, ":");
+    if (tokens.size() != 2u || tokens[0] != "unix")
+        return {};
+
+    const auto& path = tokens[1];
+    if (path.length() < std::strlen(main_socket_name) ||
+        path.compare(path.length() - std::strlen(main_socket_name),
+                     std::strlen(main_socket_name),
+                     main_socket_name) != 0)
+        return {};
+
+    return fmt::format("unix:{}{}",
+                       path.substr(0, path.length() - std::strlen(main_socket_name)),
+                       refresh_socket_name);
 }
 
 std::unique_ptr<QNetworkProxy> discover_http_proxy()
@@ -195,6 +221,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         name_generator = mp::petname::make_petname_provider();
     if (server_address.empty())
         server_address = platform::default_server_address();
+    if (refresh_server_address.empty())
+        refresh_server_address = refresh_server_address_from(server_address);
     if (ssh_key_provider == nullptr)
         ssh_key_provider = std::make_unique<OpenSSHKeyProvider>(data_directory);
     if (client_cert_store == nullptr)
@@ -245,6 +273,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                                                                 cache_directory,
                                                                 data_directory,
                                                                 server_address,
+                                                                refresh_server_address,
                                                                 ssh_username,
                                                                 image_refresh_timer});
 }

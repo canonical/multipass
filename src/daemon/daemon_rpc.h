@@ -50,11 +50,15 @@ enum class ServerSocketType
 #endif
 
 struct DaemonConfig;
-class DaemonRpc : public QObject, public multipass::Rpc::Service, private DisabledCopyMove
+class DaemonRpc : public QObject,
+                  public multipass::Rpc::Service,
+                  public multipass::RefreshRpc::Service,
+                  private DisabledCopyMove
 {
     Q_OBJECT
 public:
     DaemonRpc(const std::string& server_address,
+              const std::string& refresh_server_address,
               const CertProvider& cert_provider,
               CertStore* client_cert_store,
               std::shared_ptr<logging::MultiplexingLogger> logger);
@@ -152,6 +156,13 @@ signals:
     void on_zones_state(const ZonesStateRequest* request,
                         grpc::ServerReaderWriter<ZonesStateReply, ZonesStateRequest>* server,
                         DaemonRpcContext* context);
+    void on_prepare_refresh(
+        const PrepareRefreshRequest* request,
+        grpc::ServerReaderWriter<PrepareRefreshReply, PrepareRefreshRequest>* server,
+        DaemonRpcContext* context);
+    void on_abort_refresh(const AbortRefreshRequest* request,
+                          grpc::ServerReaderWriter<AbortRefreshReply, AbortRefreshRequest>* server,
+                          DaemonRpcContext* context);
 
 private:
     template <typename T, typename U, typename OperationSignal>
@@ -162,11 +173,18 @@ private:
 
     const std::string server_address;
     const std::unique_ptr<grpc::Server> server;
+    const std::unique_ptr<grpc::Server> refresh_server;
     const ServerSocketType server_socket_type;
     CertStore* client_cert_store;
     std::shared_ptr<logging::MultiplexingLogger> logger;
 
 protected:
+    grpc::Status prepare_refresh(
+        grpc::ServerContext* context,
+        grpc::ServerReaderWriter<PrepareRefreshReply, PrepareRefreshRequest>* server) override;
+    grpc::Status abort_refresh(
+        grpc::ServerContext* context,
+        grpc::ServerReaderWriter<AbortRefreshReply, AbortRefreshRequest>* server) override;
     grpc::Status create(grpc::ServerContext* context,
                         grpc::ServerReaderWriter<CreateReply, CreateRequest>* server) override;
     grpc::Status launch(grpc::ServerContext* context,

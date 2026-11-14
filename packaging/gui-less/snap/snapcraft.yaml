@@ -79,6 +79,13 @@ apps:
     plugs:
     - all-home
     - network
+hooks:
+  pre-refresh:
+    # The hook runs the bundled refresh helper, which talks to the daemon over
+    # its root-only refresh socket.
+    plugs:
+    - network
+
 parts:
   qt-ssl-plugin:
     plugin: nil
