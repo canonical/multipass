@@ -2007,9 +2007,10 @@ TEST_F(QemuBackend, forceShutdownPersistsStoppedState)
 
     EXPECT_CALL(*qemu_process, running()).WillRepeatedly(Return(true));
     EXPECT_CALL(*qemu_process, process_id()).WillRepeatedly(Return(dead_pid));
-    // Killing an already-dead child is a no-op and must not produce a finished signal
-    EXPECT_CALL(*qemu_process, kill()).Times(1).WillOnce(Return());
-    EXPECT_CALL(*qemu_process, wait_for_finished(_)).WillOnce(Return(true));
+    // The probe reports the child as already dead: there is nothing to kill, and waiting for
+    // a finished signal that may never arrive must not be attempted
+    EXPECT_CALL(*qemu_process, kill()).Times(0);
+    EXPECT_CALL(*qemu_process, wait_for_finished(_)).Times(0);
 
     // The stopped state must be persisted by the shutdown itself, not left to a signal that may
     // never arrive

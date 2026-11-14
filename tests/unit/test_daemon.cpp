@@ -529,13 +529,12 @@ TEST_F(Daemon, shutsDownPreviouslyRunningVmThatFailsReadinessAfterRestart)
 
     // This VM was running before, but is gone now: it fails to become ready after the daemon
     // restarts it. The fetch_state() queries are the daemon-startup recovery switch and the
-    // restart-completion revalidation, which sees the state the failed wait left behind.
+    // on_restart dispatch capture; the wait failure is seen through the readiness result.
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
     EXPECT_CALL(*mock_vm, fetch_state)
-        .WillOnce(Return(mp::VirtualMachine::State::stopped))        // constructor switch
-        .WillOnce(Return(mp::VirtualMachine::State::starting))       // dispatch: VM starting
-        .WillRepeatedly(Return(mp::VirtualMachine::State::unknown)); // the wait failed
+        .WillOnce(Return(mp::VirtualMachine::State::stopped))   // constructor switch
+        .WillOnce(Return(mp::VirtualMachine::State::starting)); // dispatch: VM starting
     EXPECT_CALL(*mock_vm, start).Times(1);
     EXPECT_CALL(*mock_vm, wait_until_ssh_up)
         .Times(1)
@@ -627,16 +626,15 @@ TEST_F(Daemon, shutsDownSyncedRunningVmThatFailsReadinessAfterRestart)
     // readiness without calling start().
     auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
     EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRefOfCopy(std::string{vm_props.name}));
-    EXPECT_CALL(*mock_vm, fetch_state).WillRepeatedly(Return(mp::VirtualMachine::State::running));
     EXPECT_CALL(*mock_vm, start).Times(0);
 
     // The instance cannot be reached over SSH after the daemon restart (the readiness wait
-    // times out and leaves it unknown): the startup-recovery cleanup must shut the instance
-    // down and persist that (it must not stay recorded as running).
+    // fails): the startup-recovery cleanup must shut the instance down and persist that (it
+    // must not stay recorded as running). The fetch_state() queries are the daemon-startup
+    // recovery switch and the on_restart dispatch capture.
     EXPECT_CALL(*mock_vm, fetch_state)
-        .WillOnce(Return(mp::VirtualMachine::State::running))        // constructor switch: sync
-        .WillOnce(Return(mp::VirtualMachine::State::running))        // dispatch: VM kept running
-        .WillRepeatedly(Return(mp::VirtualMachine::State::unknown)); // the wait failed
+        .WillOnce(Return(mp::VirtualMachine::State::running))  // constructor switch: sync
+        .WillOnce(Return(mp::VirtualMachine::State::running)); // dispatch: VM kept running
     mp::Signal wait_failed;
     EXPECT_CALL(*mock_vm, wait_until_ssh_up).Times(1).WillOnce([&wait_failed] {
         wait_failed.signal();
@@ -683,7 +681,8 @@ TEST_F(Daemon, shutsDownSyncedRunningVmThatFailsReadinessAfterRestart)
     ASSERT_TRUE(manifest.if_contains(vm_props.name));
     const auto& vm_spec = manifest.at(vm_props.name).as_object();
     ASSERT_TRUE(vm_spec.if_contains("state"));
-    EXPECT_EQ(vm_spec.at("state").to_number<int64_t>(), 0); // VirtualMachine::State::stopped
+    EXPECT_EQ(vm_spec.at("state").to_number<int64_t>(),
+              static_cast<int64_t>(mp::VirtualMachine::State::stopped));
 }
 
 TEST_F(Daemon, vmInitiatedRestartFailureDoesNotForceStop)

@@ -3586,51 +3586,72 @@ void mp::Daemon::on_restart(const std::string& name)
     }
 
     // Daemon::on_restart serves two flows: the daemon-startup recovery (an instance that was
-    // running before the daemon stopped is started or synced) and guest-initiated reboots (the
-    // QEMU backend calls monitor.on_restart() on QMP RESET events). Only the former may clean up
-    // a failed readiness wait: a rebooting guest legitimately does not answer SSH for a while,
-    // and a transient timeout there must not power a healthy VM off. The state is captured at
-    // dispatch time because it is not stable until the wait finishes (an SSH timeout rewrites it
-    // to unknown for both flows), while a guest reboot always dispatches from the restarting
-    // state.
+    // running before the daemon stopped is started, or just synced when the backend kept it
+    // alive across the restart) and guest-initiated reboots (the QEMU backend calls
+    // monitor.on_restart() on QMP RESET events). Only the former may clean up a failed readiness
+    // wait: a rebooting guest legitimately does not answer SSH for a while, and a transient
+    // timeout there must not power a healthy VM off. The state is captured at dispatch time
+    // because it is not stable until the wait finishes (an SSH timeout rewrites it to unknown
+    // for both flows), while a guest reboot always dispatches from the restarting state.
     const bool started_by_recovery = virtual_machine->fetch_state() !=
                                      VirtualMachine::State::restarting;
 
-    auto future_watcher = create_future_watcher([this, name, started_by_recovery]() {
-        try
-        {
-            auto virtual_machine = operative_instances.at(name);
+    // The watcher is created directly (rather than through create_future_watcher()) so that the
+    // completion callback can inspect the readiness result: a failed wait must not leave the
+    // instance marked as running.
+    auto restart_future_watcher = std::make_unique<QFutureWatcher<AsyncOperationStatus>>();
+    auto future_watcher_p = restart_future_watcher.get();
+    const auto future_key = mp::utils::make_uuid();
+    async_future_watchers.insert({future_key, std::move(restart_future_watcher)});
 
-            // The readiness wait may have failed (e.g. the QEMU process died during the
-            // restart), and the instance may have been shut down in the meantime: revalidate
-            // before marking the instance as running - a failed or already-shut-down
-            // instance must not be resurrected by a successful readiness result.
-            const auto state = virtual_machine->fetch_state();
-            const auto still_operative = state == VirtualMachine::State::running ||
-                                         state == VirtualMachine::State::starting ||
-                                         state == VirtualMachine::State::restarting;
-            if (still_operative)
+    QObject::connect(
+        future_watcher_p,
+        &QFutureWatcher<AsyncOperationStatus>::finished,
+        [this, name, started_by_recovery, future_watcher_p, future_key] {
+            const auto async_op_result = future_watcher_p->future().result();
+
+            // Finalize the watcher bookkeeping on every exit path (including the
+            // deleted-instance early return), but only after the recovery cleanup below has
+            // had its chance to persist the state it settles on.
+            auto sg = sg::make_scope_guard([this, future_key]() noexcept -> void {
+                mp::top_catch_all(category,
+                                  [this, future_key]() { finish_async_operation(future_key); });
+            });
+
+            // The instance may have been deleted while readiness was in flight: resolve it
+            // again and do nothing for instances that are no longer operative (persisting their
+            // state would even recreate them in the manifest).
+            std::shared_ptr<VirtualMachine> virtual_machine;
+            try
             {
-                virtual_machine->set_running();
+                virtual_machine = operative_instances.at(name);
+            }
+            catch (const std::out_of_range&)
+            {
                 return;
             }
 
-            if (state == VirtualMachine::State::unknown)
+            if (!async_op_result.status.ok())
             {
-                // The instance did not become ready (e.g. it could not be reached over SSH
-                // in time). Keep the backend's state instead of marking the instance as
-                // running when it is not.
-                mpl::warn(category, "Instance `{}` did not become ready after being started", name);
+                // The instance did not become ready (e.g. the QEMU process died during the
+                // startup or the daemon could not reach it over SSH). Keep whatever state the
+                // backend transitioned to and surface the error, instead of marking the
+                // instance as running when it is not.
+                mpl::warn(category,
+                          "Instance `{}` did not become ready after being started: {}",
+                          name,
+                          async_op_result.status.error_message());
 
                 // Do not leave a startup-recovery instance half-started either: it would remain
                 // marked as running or starting while nothing can reach it. Shut it down for
                 // real: if the QEMU process is already gone this completes like an unexpected
                 // shutdown, otherwise the instance gets a graceful shutdown attempt, falling
                 // back to a forced stop (e.g. the state machine rejects a graceful stop while
-                // the instance is still starting). This runs in the background because a
-                // shutdown may wait for the QEMU process to finish, and this callback runs on
-                // the daemon's main thread; a guest-initiated reboot is left alone - a
-                // rebooting guest legitimately does not answer SSH for a while.
+                // the instance is still starting). This runs synchronously on the daemon's main
+                // thread, so the VM is always driven from its own thread and the persisted state
+                // is updated before the async operation is finished; the waits involved are
+                // bounded (vm_shutdown_timeout for the graceful attempt, kill_process_timeout
+                // for the forced one).
                 if (started_by_recovery)
                 {
                     multipass::top_catch_all(name, [&vm = *virtual_machine] {
@@ -3648,22 +3669,33 @@ void mp::Daemon::on_restart(const std::string& name)
                         }
                     });
                 }
-                return;
             }
-
-            // The shutdown has already been handled (e.g. the QEMU process died and completed
-            // through the Process::finished handler): leave the instance as it is.
-            mpl::info(category,
-                      "Instance `{}` finished its readiness wait in state {}; leaving it as is",
-                      name,
-                      state);
-        }
-        catch (const std::out_of_range&)
-        {
-            // logging is dangerous since this thread is probably in a corrupt state
-        }
-    });
-    future_watcher->setFuture(
+            else
+            {
+                // Readiness succeeded, but the instance may have been shut down in the
+                // meantime: a QEMU process that dies after SSH came up completes through the
+                // Process::finished handler, which transitions the instance to stopped. Do not
+                // resurrect it; only still-operative instances may be marked as running.
+                const auto state = virtual_machine->fetch_state();
+                const auto still_operative = state == VirtualMachine::State::running ||
+                                             state == VirtualMachine::State::starting ||
+                                             state == VirtualMachine::State::restarting ||
+                                             state == VirtualMachine::State::unknown;
+                if (!still_operative)
+                {
+                    mpl::info(category,
+                              "Instance `{}` finished its readiness wait in state {}; leaving "
+                              "it as is",
+                              name,
+                              state);
+                }
+                else
+                {
+                    virtual_machine->set_running();
+                }
+            }
+        });
+    future_watcher_p->setFuture(
         QtConcurrent::run(&Daemon::async_wait_multiple_vms_ready<StartReply, StartRequest>,
                           this,
                           nullptr,

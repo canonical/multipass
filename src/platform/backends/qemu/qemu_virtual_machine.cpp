@@ -394,11 +394,11 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     if (shutdown_policy == ShutdownPolicy::Poweroff)
     {
         mpl::info(vm_name, "Forcing shutdown");
+        force_shutdown = vm_process != nullptr;
 
-        if (vm_process)
+        if (vm_process && vm_process->running() && qemu_process_is_alive(*vm_process))
         {
             mpl::info(vm_name, "Killing process");
-            force_shutdown = true;
             lock.unlock();
             vm_process->kill();
             if (vm_process != nullptr && !vm_process->wait_for_finished(kill_process_timeout))
@@ -410,6 +410,10 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         }
         else
         {
+            // The QEMU process is already gone (e.g. it died unexpectedly, or the OS reports
+            // it gone while QProcess has not caught up yet): there is nothing left to kill,
+            // and waiting for a finished signal that may never arrive would only time out.
+            // The stop is published below.
             mpl::debug(vm_name, "No process to kill");
         }
 
@@ -564,6 +568,10 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 
 void mp::QemuVirtualMachine::initialize_vm_process()
 {
+    // A fresh process has not been forced anywhere; stale flags from a previous forced stop
+    // (whose process may have been skipped over entirely) must not quiet its error reporting.
+    force_shutdown = false;
+
     vm_process = make_qemu_process(desc,
                                    ((fetch_state() == State::suspended)
                                         ? std::make_optional(monitor.retrieve_metadata_for(vm_name))
