@@ -1,0 +1,224 @@
+name: SBOM and secscan
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to scan (e.g. v1.17.0 or v1.17.0-rc1).'
+        required: true
+        type: string
+      release:
+        description: 'Canonical product cycle (e.g. 26.04).'
+        required: true
+        type: string
+      email:
+        description: 'Canonical email address to receive SBOM notifications. Defaults to the SBOM_EMAIL repository variable.'
+        required: false
+        type: string
+
+permissions: {}
+
+jobs:
+  params:
+    if: ${{ github.repository == 'canonical/multipass' }}
+
+    runs-on: ubuntu-slim
+
+    outputs:
+      version: ${{ steps.params.outputs.version }}
+      risk: ${{ steps.params.outputs.risk }}
+      cycle: ${{ steps.params.outputs.cycle }}
+      email: ${{ steps.params.outputs.email }}
+
+    steps:
+    - name: Validate inputs
+      id: params
+      env:
+        TAG: ${{ inputs.tag }}
+        CYCLE: ${{ inputs.release }}
+        EMAIL: ${{ inputs.email || vars.SBOM_EMAIL }}
+      run: |
+        if [[ ! "$TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?)$ ]]; then
+          echo "::error::Invalid tag '$TAG': expected vX.Y.Z or vX.Y.Z-rcN"
+          exit 1
+        fi
+        VERSION="${BASH_REMATCH[1]}"
+
+        # Release candidates are published to the beta channel.
+        if [[ "$VERSION" == *-rc* ]]; then RISK=beta; else RISK=stable; fi
+
+        if [[ ! "$CYCLE" =~ ^[0-9]{2}\.(04|10)$ ]]; then
+          echo "::error::Invalid release cycle '$CYCLE': expected YY.04 or YY.10"
+          exit 1
+        fi
+
+        if [[ ! "$EMAIL" =~ ^[A-Za-z0-9._%+-]+@canonical\.com$ ]]; then
+          echo "::error::Set the 'email' input or the SBOM_EMAIL repository variable to a Canonical email address"
+          exit 1
+        fi
+
+        {
+          echo "version=$VERSION"
+          echo "risk=$RISK"
+          echo "cycle=$CYCLE"
+          echo "email=$EMAIL"
+        } >> "$GITHUB_OUTPUT"
+
+  snap:
+    needs: params
+
+    name: snap (${{ matrix.arch }})
+
+    # Requires a runner with access to Canonical's internal SBOM and secscan services.
+    runs-on: [self-hosted-linux-amd64-noble-private-endpoint-medium]
+    timeout-minutes: 240
+
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64, s390x, ppc64el]
+
+    env:
+      # sbomber downloads snaps for the host architecture; this makes `snap download` fetch the
+      # snap for the requested one instead.
+      UBUNTU_STORE_ARCH: ${{ matrix.arch }}
+
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+        sparse-checkout: |
+          .github
+          tools/ssdlc
+
+    - name: Check published snap version
+      env:
+        VERSION: ${{ needs.params.outputs.version }}
+        RISK: ${{ needs.params.outputs.risk }}
+      run: |
+        STORE_VERSION=$(curl -fsSL -H 'Snap-Device-Series: 16' \
+          'https://api.snapcraft.io/v2/snaps/info/multipass?fields=version' | python3 -c '
+        import json, os, sys
+        for entry in json.load(sys.stdin)["channel-map"]:
+            ch = entry["channel"]
+            if (ch["track"], ch["risk"], ch["architecture"]) == ("latest", os.environ["RISK"], os.environ["UBUNTU_STORE_ARCH"]):
+                print(entry["version"])
+        ')
+
+        case "$STORE_VERSION" in
+          "$VERSION" | "$VERSION".* | "$VERSION"+*)
+            echo "latest/$RISK has $STORE_VERSION for $UBUNTU_STORE_ARCH"
+            ;;
+          *)
+            echo "::error::latest/$RISK has '$STORE_VERSION' for $UBUNTU_STORE_ARCH, expected $VERSION"
+            exit 1
+            ;;
+        esac
+
+    - name: Render manifest
+      env:
+        EMAIL: ${{ needs.params.outputs.email }}
+        RISK: ${{ needs.params.outputs.risk }}
+        CYCLE: ${{ needs.params.outputs.cycle }}
+      run: |
+        sed -e "s|__EMAIL__|$EMAIL|g" \
+            -e "s|__ARCH__|$UBUNTU_STORE_ARCH|g" \
+            -e "s|__RISK__|$RISK|g" \
+            -e "s|__CYCLE__|$CYCLE|g" \
+            .github/.sbomber-manifest-snap.yaml > "$RUNNER_TEMP/sbomber-manifest.yaml"
+        cat "$RUNNER_TEMP/sbomber-manifest.yaml"
+
+    - name: sbomber
+      uses: canonical/sbomber/.github/actions/run@main
+      with:
+        manifest: ${{ runner.temp }}/sbomber-manifest.yaml
+        artifact-name: secscan-report-upload-snap-${{ matrix.arch }}
+        poll-timeout: '180'
+
+    - name: Set up uv
+      if: ${{ !cancelled() }}
+      uses: astral-sh/setup-uv@v10.3.3
+
+    - name: Verify sbomber results
+      # sbomber can exit successfully even if the service rejected every request.
+      if: ${{ !cancelled() }}
+      run: uv run tools/ssdlc/check_sbomber_state.py .statefile.yaml
+
+  installers:
+    needs: params
+
+    # Requires a runner with access to Canonical's internal SBOM service.
+    runs-on: [self-hosted-linux-amd64-noble-private-endpoint-medium]
+    timeout-minutes: 120
+
+    permissions:
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+        sparse-checkout: tools/ssdlc
+
+    - name: Download release installers
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ inputs.tag }}
+      run: |
+        gh release download "$TAG" \
+          --repo "$GITHUB_REPOSITORY" \
+          --pattern "*.pkg" \
+          --pattern "*.msi" \
+          --dir "$RUNNER_TEMP/installers"
+        ls -lh "$RUNNER_TEMP/installers"
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v10.3.3
+
+    - name: Request installer SBOMs
+      # sbomber does not support macOS/Windows installers, so use the SBOM REST API directly.
+      # secscan is skipped for these.
+      env:
+        EMAIL: ${{ needs.params.outputs.email }}
+        VERSION: ${{ needs.params.outputs.version }}
+        CYCLE: ${{ needs.params.outputs.cycle }}
+      run: |
+        shopt -s nullglob
+        PIDS=()
+
+        for f in "$RUNNER_TEMP/installers"/*.pkg "$RUNNER_TEMP/installers"/*.msi; do
+          case "$f" in
+            *.pkg) ARCH="universal" ;;
+            *.msi) ARCH="amd64" ;;
+          esac
+
+          uv run tools/ssdlc/request_sboms.py \
+            --email "$EMAIL" \
+            --version "$VERSION" \
+            --arch "$ARCH" \
+            --release "$CYCLE" \
+            --output-dir "$RUNNER_TEMP/sboms-installers" \
+            "$f" &
+          PIDS+=($!)
+        done
+
+        if [ ${#PIDS[@]} -eq 0 ]; then
+          echo "::error::No .pkg or .msi installers found in the release"
+          exit 1
+        fi
+
+        rc=0
+        for pid in "${PIDS[@]}"; do wait "$pid" || rc=1; done
+        exit $rc
+
+    - name: Upload installer SBOMs
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: sboms-installers-${{ inputs.tag }}
+        path: ${{ runner.temp }}/sboms-installers
+        if-no-files-found: warn
+        retention-days: 90
