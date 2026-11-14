@@ -366,6 +366,12 @@ private:
     bool refresh_preparation_complete{false};
     std::chrono::steady_clock::time_point refresh_preparation_start{};
     std::vector<std::string> refresh_preparation_stopped;
+    // Ownership of the CURRENT preparation attempt: guests this attempt shut
+    // down, and whether that attempt has not yet been handed over (refresh
+    // proceeding) or restored (abort/timer). Pre-existing restart-intent
+    // entries from earlier attempts are deliberately not owned by this one.
+    std::vector<std::string> refresh_attempt_stopped;
+    bool refresh_restoration_pending{false};
     QTimer refresh_abort_timer;
 
     // Snap refresh preparation helpers
@@ -379,6 +385,10 @@ private:
     // An empty list means "all operative instances" (e.g. `multipass stop`).
     void remove_refresh_intent_for(
         const google::protobuf::RepeatedPtrField<std::string>& instance_names);
+    // Restores exactly the guests the current attempt stopped (if any), then
+    // releases the attempt. Used by abort_refresh, the abort timer and the
+    // preparation's own failure paths.
+    void restore_and_clear_refresh_attempt();
     // Releases the gate and best-effort restores the given guests (used by
     // abort_refresh and by the post-preparation abort timer).
     void restore_guests_after_refresh_abort(const std::unordered_set<std::string>& to_restart);

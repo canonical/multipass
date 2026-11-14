@@ -361,6 +361,31 @@ TEST_F(TestDaemonRefresh, startupWithoutIntentLeavesStoppedInstanceAlone)
     EXPECT_FALSE(QFile::exists(intent_file_path()));
 }
 
+TEST_F(TestDaemonRefresh, abortOnRefusedPreparationPreservesEarlierIntent)
+{
+    // A retry that is refused (suspended blocker, gate never engaged) must
+    // not restore intent entries left by an earlier attempt whose own
+    // restoration had failed: those guests belong to that earlier attempt.
+    auto* mock_vm = plant_instance(mp::VirtualMachine::State::suspended);
+    EXPECT_CALL(*mock_vm, start).Times(0);
+    write_intent_file({QString::fromStdString(mock_instance_name)},
+                      QString::fromStdString(std::string{mp::version_string}));
+    mp::Daemon daemon{config_builder.build()};
+
+    auto result = call_prepare_refresh(daemon);
+
+    ASSERT_TRUE(result.status.ok());
+    EXPECT_FALSE(result.reply.suspended_instances().empty());
+
+    const auto aborted = call_abort_refresh(daemon);
+    ASSERT_TRUE(aborted.status.ok());
+
+    // The intent is untouched: still owed to a later refresh, and the guest
+    // was not started behind the user's back.
+    EXPECT_TRUE(QFile::exists(intent_file_path()));
+    EXPECT_THAT(intent_names(), Contains(QString::fromStdString(mock_instance_name)));
+}
+
 TEST_F(TestDaemonRefresh, startupIgnoresIntentWrittenByThisRevision)
 {
     // An intent written by the same revision means the refresh never happened

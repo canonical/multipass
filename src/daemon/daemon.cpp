@@ -2143,6 +2143,8 @@ try
     refresh_preparation_active = true;
     refresh_preparation_complete = false;
     refresh_preparation_start = std::chrono::steady_clock::now();
+    refresh_attempt_stopped.clear();
+    refresh_restoration_pending = true;
 
     // Gracefully shut down the running guests, one at a time, on the daemon's
     // own thread: the QProcess interactions inside the backends are not
@@ -2182,6 +2184,7 @@ try
             // cleanup fails, this guest was cleanly shut down and must be
             // restored by the abort path.
             stopped.push_back(name);
+            refresh_attempt_stopped.push_back(name);
 
             // Guests resumed from suspension normally have their suspend
             // snapshot deleted once SSH is up; if that cleanup failed, a
@@ -2261,7 +2264,7 @@ try
         }
 
         lock.unlock();
-        restore_guests_after_refresh_abort({stopped.cbegin(), stopped.cend()});
+        restore_and_clear_refresh_attempt();
 
         server->Write(reply);
         return context->set_value(grpc::Status::OK);
@@ -2281,7 +2284,7 @@ try
                 fmt::format("instance \"{}\" became suspended during preparation", name));
 
             lock.unlock();
-            restore_guests_after_refresh_abort({stopped.cbegin(), stopped.cend()});
+            restore_and_clear_refresh_attempt();
 
             server->Write(reply);
             return context->set_value(grpc::Status::OK);
@@ -2299,7 +2302,7 @@ try
                     fmt::format("instance \"{}\" carries suspended guest memory state", name));
 
                 lock.unlock();
-                restore_guests_after_refresh_abort({stopped.cbegin(), stopped.cend()});
+                restore_and_clear_refresh_attempt();
 
                 server->Write(reply);
                 return context->set_value(grpc::Status::OK);
@@ -2315,7 +2318,7 @@ try
                         static_cast<int>(state)));
 
         lock.unlock();
-        restore_guests_after_refresh_abort({stopped.cbegin(), stopped.cend()});
+        restore_and_clear_refresh_attempt();
 
         server->Write(reply);
         return context->set_value(grpc::Status::OK);
@@ -2341,6 +2344,12 @@ catch (const std::exception& e)
 {
     std::scoped_lock lock{refresh_mutex};
     refresh_preparation_active = false;
+    refresh_preparation_complete = false;
+    // Keep refresh_restoration_pending: the guests this attempt shut down are
+    // in the persisted intent, and the hook's abort (or the timer below, if
+    // snapd kills the hook before it can abort) restores them.
+    refresh_abort_timer.start(
+        std::chrono::duration_cast<std::chrono::milliseconds>(refresh_preparation_expiry));
 
     context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
@@ -2392,63 +2401,58 @@ void mp::Daemon::restore_guests_after_refresh_abort(
         save_refresh_restart_intent(current.names);
 }
 
-void mp::Daemon::on_refresh_abort_timeout()
+void mp::Daemon::restore_and_clear_refresh_attempt()
 {
     std::unordered_set<std::string> to_restart;
     {
         std::scoped_lock lock{refresh_mutex};
-        if (!refresh_preparation_active || !refresh_preparation_complete)
-            return; // a retry re-armed the timer, or nothing is pending
+        if (!refresh_restoration_pending)
+            return; // nothing this attempt owes a restoration for
 
-        // The gate expiry has passed with this daemon still running: snapd
-        // never stopped it, so the refresh did not proceed. Restore guests
-        // stopped for it instead of leaving them stopped until a daemon
-        // restart.
+        refresh_restoration_pending = false;
         refresh_preparation_active = false;
         refresh_preparation_complete = false;
+        for (const auto& name : refresh_attempt_stopped)
+            to_restart.insert(name);
+        refresh_attempt_stopped.clear();
         refresh_preparation_stopped.clear();
-        to_restart = load_refresh_restart_intent().names;
-
-        mpl::warn(category,
-                  "Snap refresh did not proceed; restoring {} instance(s) stopped for it",
-                  to_restart.size());
     }
+
+    if (!to_restart.empty())
+        mpl::warn(category,
+                  "Snap refresh aborted; restoring {} instance(s) stopped for it",
+                  to_restart.size());
 
     restore_guests_after_refresh_abort(to_restart);
 }
 
+void mp::Daemon::on_refresh_abort_timeout()
+{
+    {
+        std::scoped_lock lock{refresh_mutex};
+        if (!refresh_restoration_pending)
+            return; // a retry re-armed, or nothing is pending
+    }
+
+    // The gate expiry has passed with this daemon still running: snapd never
+    // stopped it, so the refresh did not proceed. Restore guests stopped for
+    // it instead of leaving them stopped until a daemon restart.
+    restore_and_clear_refresh_attempt();
+}
+
 void mp::Daemon::abort_refresh(
     const AbortRefreshRequest*,
-    grpc::ServerReaderWriterInterface<AbortRefreshReply, AbortRefreshRequest>* server,
+    grpc::ServerReaderWriterInterface<AbortRefreshReply, AbortRefreshRequest>*,
     DaemonRpcContext* context)
 try
 {
     refresh_abort_timer.stop();
 
-    std::unordered_set<std::string> to_restart;
-    {
-        std::scoped_lock lock{refresh_mutex};
-        auto intent = load_refresh_restart_intent();
+    // Restore exactly the guests this preparation attempt stopped. Intent
+    // entries from earlier attempts are left for their own consumers (a later
+    // refresh, or the user).
+    restore_and_clear_refresh_attempt();
 
-        // Restore only when this daemon owes a restoration: either it engaged
-        // the gate (the preparation may have shut guests down before failing),
-        // or it persisted the intent itself (e.g. the final re-scan threw
-        // after guests were shut down). An intent left by another daemon is
-        // none of this abort's business.
-        const auto ours = refresh_preparation_active ||
-                          intent.daemon_revision == refresh_intent_daemon_identity();
-        if (!ours)
-            return context->set_value(grpc::Status::OK);
-
-        refresh_preparation_active = false;
-        refresh_preparation_complete = false;
-        refresh_preparation_stopped.clear();
-        to_restart = intent.names;
-    }
-
-    restore_guests_after_refresh_abort(to_restart);
-
-    server->Write(AbortRefreshReply{});
     return context->set_value(grpc::Status::OK);
 }
 catch (const std::exception& e)
