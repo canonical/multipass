@@ -381,6 +381,15 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
     std::unique_lock<std::mutex> lock{state_mutex};
     disconnect_vm_signals();
 
+    if (fetch_state() == State::starting)
+    {
+        // A shutdown was initiated while starting: on_shutdown()'s starting-state wait (for
+        // the finished handler of a killed process) must complete once the process death is
+        // handled.
+        shutdown_while_starting = true;
+        state_wait.notify_all();
+    }
+
     try
     {
         check_state_for_shutdown(shutdown_policy);
@@ -413,7 +422,8 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             // The QEMU process is already gone (e.g. it died unexpectedly, or the OS reports
             // it gone while QProcess has not caught up yet): there is nothing left to kill,
             // and waiting for a finished signal that may never arrive would only time out.
-            // The stop is published below.
+            // The stop is published below; because no finished signal is expected either, the
+            // shutdown bookkeeping is completed there as well.
             mpl::debug(vm_name, "No process to kill");
         }
 
@@ -437,6 +447,28 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             lock.lock();
 
         set_state(State::stopped);
+        if (vm_process)
+        {
+            // When the process was killed, the finished handler already completed the shutdown
+            // bookkeeping (resetting vm_process); complete it here as well when the process was
+            // probed dead and no finished signal is expected. QProcess never observed that
+            // death, so the exit code cannot be reported - only the fact of it.
+            mpl::info(vm_name,
+                      "QEMU process already exited (detected via the OS); completing shutdown");
+            management_ip = std::nullopt;
+            drop_ssh_session();
+            vm_process.reset(nullptr);
+            monitor.on_shutdown();
+
+            // The process may have died while resuming from a suspend snapshot: the instance
+            // is stopped now, so the snapshot must go or the next start would misread the
+            // instance as suspended.
+            if (mp::backend::instance_image_has_snapshot(desc.image.image_path, suspend_tag))
+            {
+                mpl::info(vm_name, "Deleting suspend image");
+                mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
+            }
+        }
     }
     else
     {
@@ -568,9 +600,11 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 
 void mp::QemuVirtualMachine::initialize_vm_process()
 {
-    // A fresh process has not been forced anywhere; stale flags from a previous forced stop
-    // (whose process may have been skipped over entirely) must not quiet its error reporting.
+    // A fresh process starts with none of the previous one's forced-stop/suspend bookkeeping;
+    // start() re-sets what applies to a resume from a suspended state.
     force_shutdown = false;
+    update_shutdown_status = true;
+    is_starting_from_suspend = false;
 
     vm_process = make_qemu_process(desc,
                                    ((fetch_state() == State::suspended)

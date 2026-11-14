@@ -2013,8 +2013,14 @@ TEST_F(QemuBackend, forceShutdownPersistsStoppedState)
     EXPECT_CALL(*qemu_process, wait_for_finished(_)).Times(0);
 
     // The stopped state must be persisted by the shutdown itself, not left to a signal that may
-    // never arrive
-    EXPECT_CALL(mock_monitor, on_shutdown()).Times(0);
+    // never arrive; the shutdown also completes the bookkeeping the finished handler would have
+    // done (no finished signal is expected for a probed-dead process)
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
+    logger_scope.mock_logger->expect_log(mpl::Level::info, "State changed", AnyNumber());
+    logger_scope.mock_logger->expect_log(mpl::Level::info,
+                                         "QEMU process already exited (detected via the OS)");
+    EXPECT_CALL(mock_monitor, on_shutdown()).Times(1);
     EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::stopped)).Times(1);
 
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
