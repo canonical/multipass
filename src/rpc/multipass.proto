@@ -65,6 +65,7 @@ service RefreshRpc {
 }
 
 message PrepareRefreshRequest {
+    int32 verbosity_level = 1;
 }
 
 message PrepareRefreshReply {
@@ -80,6 +81,7 @@ message PrepareRefreshReply {
 }
 
 message AbortRefreshRequest {
+    int32 verbosity_level = 1;
 }
 
 message AbortRefreshReply {

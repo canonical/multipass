@@ -413,6 +413,7 @@ TEST_F(TestDaemonMigrationGuard, requestAfterDriverChangeIsRejectedUntilRestart)
     const auto& rpc_config = *config;
     GuardTestDaemon daemon{std::move(config)};
     mp::DaemonRpc rpc{rpc_config.server_address,
+                      "", // no refresh server
                       *rpc_config.cert_provider,
                       rpc_config.client_cert_store.get(),
                       rpc_config.logger};

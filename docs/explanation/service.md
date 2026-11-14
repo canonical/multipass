@@ -17,7 +17,7 @@ On Linux, Multipass is delivered as a snap and bundles its own QEMU runtime. A s
 
 To prevent that, the snap ships a `pre-refresh` hook. snapd runs it (from the currently installed revision, with the services still up) before switching revisions, and a hook failure aborts the refresh. The hook asks the daemon to either *veto* or *prepare* the refresh:
 
-- **Instances with suspended guest memory** (explicitly suspended instances, as well as instances a previous daemon shutdown auto-suspended) block the refresh. Nothing is woken up or discarded automatically: resume the instance and shut it down cleanly (`multipass start <name>`, then `multipass stop <name>`), then retry the refresh. If an instance cannot be resumed, its stale suspended state can be discarded explicitly with `multipass stop --force <name>`.
+- **Instances with suspended guest memory** (explicitly suspended instances, as well as instances a previous daemon shutdown auto-suspended) block the refresh. Nothing is woken up or discarded automatically: resume the instance and shut it down cleanly (`multipass start <name>`, then `multipass stop <name>`), then retry the refresh. If an instance cannot be resumed, start it anyway and discard its stale suspended state explicitly (`multipass start <name>` followed by `multipass stop --force <name>`; a forced stop has no effect on an already stopped instance).
 
 - **Running instances** are shut down gracefully with the *old* QEMU runtime, and the daemon records which instances were running. If the refresh proceeds, the new daemon starts those instances again; instances that were stopped stay stopped. If any guest refuses to shut down, or anything unexpected is going on, the hook fails and the refresh is aborted rather than forced.
 
