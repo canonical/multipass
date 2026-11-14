@@ -2428,19 +2428,22 @@ try
     std::unordered_set<std::string> to_restart;
     {
         std::scoped_lock lock{refresh_mutex};
-        if (!refresh_preparation_active)
-        {
-            // This daemon never engaged the gate (e.g. the preparation was
-            // refused outright, or this daemon just handles a hook race):
-            // there is nothing of ours to restore, and any intent file left
-            // by an earlier same-revision preparation must be preserved.
+        auto intent = load_refresh_restart_intent();
+
+        // Restore only when this daemon owes a restoration: either it engaged
+        // the gate (the preparation may have shut guests down before failing),
+        // or it persisted the intent itself (e.g. the final re-scan threw
+        // after guests were shut down). An intent left by another daemon is
+        // none of this abort's business.
+        const auto ours = refresh_preparation_active ||
+                          intent.daemon_revision == refresh_intent_daemon_identity();
+        if (!ours)
             return context->set_value(grpc::Status::OK);
-        }
 
         refresh_preparation_active = false;
         refresh_preparation_complete = false;
         refresh_preparation_stopped.clear();
-        to_restart = load_refresh_restart_intent().names;
+        to_restart = intent.names;
     }
 
     restore_guests_after_refresh_abort(to_restart);
@@ -3789,6 +3792,12 @@ void mp::Daemon::snapshot(const mp::SnapshotRequest* request,
                           DaemonRpcContext* context)
 try
 {
+    // Taking a snapshot of a suspended instance resumes it, and a snapshot
+    // with the restart flag leaves the instance running: both would defeat
+    // the refresh preparation.
+    if (reject_if_refresh_preparing("take snapshots", context))
+        return;
+
     const auto& instance_name = request->instance();
     auto [instance_trail,
           find_instance_status] = find_instance_and_react(operative_instances,
