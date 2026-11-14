@@ -30,6 +30,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <filesystem>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -46,6 +47,18 @@ namespace multipass
 struct DaemonConfig;
 struct DaemonRpcContext;
 class SettingsHandler;
+
+// Guests recorded to be started again by the daemon that takes over after a
+// snap refresh (they were running and were cleanly stopped to allow it).
+struct RefreshRestartIntent
+{
+    std::unordered_set<std::string> names;
+    // Revision of the daemon that wrote the intent. At startup, an intent
+    // written by the same revision means the refresh did not happen (the
+    // preparation was aborted) and must not start any guest.
+    std::string daemon_revision;
+    std::int64_t written_at{}; // unix seconds, informational
+};
 
 class Daemon : public QObject, public multipass::VMStatusMonitor
 {
@@ -191,6 +204,16 @@ public slots:
         grpc::ServerReaderWriterInterface<ZonesStateReply, ZonesStateRequest>* server,
         DaemonRpcContext* context);
 
+    virtual void prepare_refresh(
+        const PrepareRefreshRequest* request,
+        grpc::ServerReaderWriterInterface<PrepareRefreshReply, PrepareRefreshRequest>* server,
+        DaemonRpcContext* context);
+
+    virtual void abort_refresh(
+        const AbortRefreshRequest* request,
+        grpc::ServerReaderWriterInterface<AbortRefreshReply, AbortRefreshRequest>* server,
+        DaemonRpcContext* context);
+
     virtual void wait_ready(
         const WaitReadyRequest* request,
         grpc::ServerReaderWriterInterface<WaitReadyReply, WaitReadyRequest>* server,
@@ -334,5 +357,36 @@ private:
     SettingsHandler* snapshot_mod_handler;
     std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
     std::unordered_set<std::string> user_authorized_bridges;
+
+    // Snap refresh preparation (see Daemon::prepare_refresh). The gate is
+    // in-memory on purpose: it must never survive a daemon crash or restart,
+    // so a failed or interrupted refresh can never leave a permanent lock.
+    mutable std::mutex refresh_mutex;
+    bool refresh_preparation_active{false};
+    bool refresh_preparation_complete{false};
+    std::chrono::steady_clock::time_point refresh_preparation_start{};
+    std::vector<std::string> refresh_preparation_stopped;
+    QTimer refresh_abort_timer;
+
+    // Snap refresh preparation helpers
+    [[nodiscard]] bool reject_if_refresh_preparing(std::string_view rpc_name,
+                                                   DaemonRpcContext* context) const;
+    QString refresh_intent_file_path() const;
+    RefreshRestartIntent load_refresh_restart_intent() const;
+    void save_refresh_restart_intent(const std::unordered_set<std::string>& names) const;
+    void clear_refresh_restart_intent() const;
+    void remove_from_refresh_intent(const std::string& name);
+    // An empty list means "all operative instances" (e.g. `multipass stop`).
+    void remove_refresh_intent_for(
+        const google::protobuf::RepeatedPtrField<std::string>& instance_names);
+    // Releases the gate and best-effort restores the given guests (used by
+    // abort_refresh and by the post-preparation abort timer).
+    void restore_guests_after_refresh_abort(const std::unordered_set<std::string>& to_restart);
+    // If a prepared refresh did not proceed (snapd failed after the hook), the
+    // gate expiry timer restores guests stopped for it.
+    void on_refresh_abort_timeout();
+    // Returns the instance's disk image if it carries a "suspend" memory
+    // snapshot, or an empty path otherwise.
+    std::filesystem::path instance_image_with_suspend_snapshot(const std::string& name) const;
 };
 } // namespace multipass

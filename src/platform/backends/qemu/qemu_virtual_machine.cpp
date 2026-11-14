@@ -51,7 +51,7 @@ using namespace std::chrono_literals;
 
 namespace
 {
-constexpr auto suspend_tag = "suspend";
+constexpr auto suspend_tag = mp::backend::suspend_snapshot_tag;
 constexpr auto machine_type_key = "machine_type";
 constexpr auto arguments_key = "arguments";
 constexpr auto mount_data_key = "mount_data";

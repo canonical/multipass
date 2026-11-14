@@ -465,6 +465,7 @@ struct Client : public Test
 
     StrictMock<MockDaemonRpc> mock_daemon{
         server_address,
+        "", // no refresh server
         *daemon_cert_provider,
         &cert_store,
         std::make_shared<multipass::logging::MultiplexingLogger>(

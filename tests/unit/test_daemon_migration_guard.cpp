@@ -116,6 +116,7 @@ struct TestDaemonRpcMigrationGuard : public TestDaemonMigrationGuard
         const auto& rpc_config = *config;
         daemon = std::make_unique<MockGuardTestDaemon>(std::move(config));
         rpc = std::make_unique<mp::DaemonRpc>(rpc_config.server_address,
+                                              "", // no refresh server
                                               *rpc_config.cert_provider,
                                               rpc_config.client_cert_store.get(),
                                               rpc_config.logger);

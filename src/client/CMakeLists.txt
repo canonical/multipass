@@ -14,6 +14,9 @@
 
 add_subdirectory(cli)
 add_subdirectory(common)
+if(LINUX)
+  add_subdirectory(refresh_helper)
+endif()
 
 if(MULTIPASS_ENABLE_FLUTTER_GUI)
   add_subdirectory(gui)

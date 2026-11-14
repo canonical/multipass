@@ -26,6 +26,14 @@
 #include <chrono>
 #include <stdexcept>
 
+#ifndef MULTIPASS_PLATFORM_WINDOWS
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <cerrno>
+#include <cstring>
+#endif
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
@@ -137,6 +145,93 @@ void handle_socket_restrictions(const std::string& server_address, const bool re
     }
 }
 
+// The refresh socket has no TLS; filesystem permissions are its access
+// control. Only the snap's pre-refresh hook (running as root) talks to it, so
+// it is restricted to the root user alone - stricter than the main socket,
+// since requests here skip client-certificate verification entirely.
+void restrict_refresh_socket(const std::string& server_address)
+{
+    auto tokens = mp::utils::split(server_address, ":");
+    if (tokens.size() != 2u || tokens[0] != "unix")
+        return; // no filesystem object to restrict (tcp is only used in tests)
+
+    const auto socket_path = tokens[1];
+#ifndef MULTIPASS_PLATFORM_WINDOWS
+    if (chown(socket_path.c_str(), 0, 0) == -1)
+        throw std::runtime_error(
+            fmt::format("Could not set ownership of the multipass refresh socket: {}",
+                        strerror(errno)));
+
+    if (chmod(socket_path.c_str(), S_IRUSR | S_IWUSR) == -1)
+        throw std::runtime_error(
+            fmt::format("Could not set permissions for the multipass refresh socket: {}",
+                        strerror(errno)));
+#endif
+}
+
+// Server for the internal refresh-preparation RPC. It uses no TLS: access is
+// controlled by filesystem permissions of the socket itself (root-only), since
+// only the snap's pre-refresh hook (running as root) is meant to talk to it.
+#ifndef MULTIPASS_PLATFORM_WINDOWS
+// Restores the umask when destroyed, so an exception from server creation
+// cannot leave the process with a tightened umask.
+struct UmaskGuard
+{
+    explicit UmaskGuard(mode_t mask) : previous{::umask(mask)}
+    {
+    }
+    ~UmaskGuard()
+    {
+        ::umask(previous);
+    }
+    mode_t previous;
+};
+#endif
+
+auto make_refresh_server(const std::string& server_address, mp::RefreshRpc::Service* service)
+    -> std::unique_ptr<grpc::Server>
+{
+    try
+    {
+        grpc::ServerBuilder builder;
+
+        builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+        builder.RegisterService(service);
+
+        // Tighten the umask while the socket is created so it is never
+        // connectable by unintended users between BuildAndStart and the
+        // explicit permissions below: mask group/other bits (0600 socket).
+        // (refresh sockets are unix-only; on Windows this function is never
+        // called.)
+#ifndef MULTIPASS_PLATFORM_WINDOWS
+        UmaskGuard umask_guard{S_IRWXG | S_IRWXO};
+#endif
+        std::unique_ptr<grpc::Server> server{builder.BuildAndStart()};
+        if (server == nullptr)
+        {
+            auto detail = check_is_server_running(server_address)
+                            ? " A multipass daemon is already running there."
+                            : "";
+            throw std::runtime_error(
+                fmt::format("Failed to start multipass refresh gRPC service at {}.{}",
+                            server_address,
+                            detail));
+        }
+
+        restrict_refresh_socket(server_address);
+        mpl::info(category, "Refresh gRPC listening on {}", server_address);
+        return server;
+    }
+    catch (const std::exception& e)
+    {
+        // The refresh preparation is an enhancement, not a requirement: if
+        // this socket cannot be served, the pre-refresh hook falls back to its
+        // offline scan. The daemon must still start.
+        mpl::warn(category, "Refresh gRPC unavailable: {}", e.what());
+        return nullptr;
+    }
+}
+
 void accept_cert(mp::CertStore* client_cert_store,
                  const std::string& client_cert,
                  const std::string& server_address)
@@ -148,11 +243,15 @@ void accept_cert(mp::CertStore* client_cert_store,
 } // namespace
 
 mp::DaemonRpc::DaemonRpc(const std::string& server_address,
+                         const std::string& refresh_server_address,
                          const CertProvider& cert_provider,
                          CertStore* client_cert_store,
                          std::shared_ptr<logging::MultiplexingLogger> logger)
     : server_address{server_address},
       server{make_server(server_address, cert_provider, this)},
+      refresh_server{refresh_server_address.empty()
+                         ? nullptr
+                         : make_refresh_server(refresh_server_address, this)},
       server_socket_type{server_socket_type_for(server_address)},
       client_cert_store{client_cert_store},
       logger(logger)
@@ -167,6 +266,11 @@ std::future<void> mp::DaemonRpc::shutdown()
     return std::async(std::launch::async, [this] {
         server->Shutdown();
         server->Wait();
+        if (refresh_server)
+        {
+            refresh_server->Shutdown();
+            refresh_server->Wait();
+        }
     });
 }
 
@@ -212,6 +316,35 @@ MP_DEFINE_RPC_HANDLER(zones, on_zones, Zones)
 MP_DEFINE_RPC_HANDLER(zones_state, on_zones_state, ZonesState)
 
 #undef MP_DEFINE_RPC_HANDLER
+
+// Refresh-preparation RPCs are served on the internal refresh socket, which
+// has no TLS: access control is provided by the root-only socket permissions.
+// They therefore deliberately bypass the client-cert verification above.
+grpc::Status mp::DaemonRpc::prepare_refresh(
+    grpc::ServerContext* /*context*/,
+    grpc::ServerReaderWriter<PrepareRefreshReply, PrepareRefreshRequest>* server)
+{
+    PrepareRefreshRequest request;
+    server->Read(&request);
+
+    return emit_signal_and_wait_for_result(std::bind_front(&DaemonRpc::on_prepare_refresh, this),
+                                           server,
+                                           &request,
+                                           *logger);
+}
+
+grpc::Status mp::DaemonRpc::abort_refresh(
+    grpc::ServerContext* /*context*/,
+    grpc::ServerReaderWriter<AbortRefreshReply, AbortRefreshRequest>* server)
+{
+    AbortRefreshRequest request;
+    server->Read(&request);
+
+    return emit_signal_and_wait_for_result(std::bind_front(&DaemonRpc::on_abort_refresh, this),
+                                           server,
+                                           &request,
+                                           *logger);
+}
 
 grpc::Status mp::DaemonRpc::ping(grpc::ServerContext* context,
                                  const PingRequest* /*request*/,

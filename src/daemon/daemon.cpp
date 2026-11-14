@@ -61,6 +61,7 @@
 #include <multipass/top_catch_all.h>
 #include <multipass/user_messages/driver_deprecation_warning.h>
 #include <multipass/utils/grpc_utils.h>
+#include <multipass/utils/qemu_img_utils.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 #include <multipass/virtual_machine_factory.h>
@@ -107,6 +108,24 @@ using St = mp::VirtualMachine::State;
 
 constexpr auto category = "daemon";
 constexpr auto instance_db_name = "multipassd-vm-instances.json";
+constexpr auto refresh_intent_file_name = "multipassd-refresh-restart-intent.json";
+// How long a completed refresh preparation stays valid. It must comfortably
+// outlast the snapd pre-refresh hook budget (10 minutes) so the hook can
+// finish and snapd can stop the daemon, but it must expire on its own so a
+// refresh that never happens cannot leave the daemon refusing operations
+// forever.
+constexpr auto refresh_preparation_expiry = std::chrono::minutes{15};
+
+// Identity of the running daemon for restart-intent purposes. SNAP_REVISION
+// changes with every refresh (even a rebuild with the same application
+// version); outside a snap, fall back to the application version.
+std::string refresh_intent_daemon_identity()
+{
+    const auto snap_revision = qgetenv("SNAP_REVISION");
+    return snap_revision.isEmpty()
+             ? std::string{mp::version_string}
+             : std::string{snap_revision.constData(), std::size_t(snap_revision.size())};
+}
 constexpr auto reboot_cmd = "sudo reboot";
 constexpr auto stop_ssh_cmd = "sudo systemctl stop ssh";
 constexpr auto sshfs_error_template =
@@ -1531,6 +1550,8 @@ void mp::Daemon::connect_rpc(DaemonRpc& rpc)
     connect(&DaemonRpc::on_wait_ready, &Daemon::wait_ready);
     connect(&DaemonRpc::on_zones, &Daemon::zones);
     connect(&DaemonRpc::on_zones_state, &Daemon::zones_state);
+    connect(&DaemonRpc::on_prepare_refresh, &Daemon::prepare_refresh);
+    connect(&DaemonRpc::on_abort_refresh, &Daemon::abort_refresh);
 }
 
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
@@ -1542,6 +1563,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
                                                     config->factory->get_backend_directory_name()),
                   *config->az_manager)},
       daemon_rpc{config->server_address,
+                 config->refresh_server_address,
                  *config->cert_provider,
                  config->client_cert_store.get(),
                  config->logger},
@@ -1560,6 +1582,24 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
     connect_rpc(daemon_rpc);
     std::vector<std::string> invalid_specs;
+
+    // Instances listed in the restart intent were running before a snap
+    // refresh and were cleanly stopped to allow it. Start them again now that
+    // the new daemon is in charge (they boot fresh from disk with the current
+    // installation's arguments), then retire the file. An intent written by
+    // this same revision means the refresh never happened (its preparation was
+    // aborted): leave the guests alone and keep the intent for a possible
+    // retry, so a reboot does not start guests the user stopped meanwhile.
+    const auto refresh_restart_intent = load_refresh_restart_intent();
+    const auto restart_intent_names = (refresh_restart_intent.names.empty() ||
+                                       refresh_restart_intent.daemon_revision ==
+                                           refresh_intent_daemon_identity())
+                                        ? std::unordered_set<std::string>{}
+                                        : refresh_restart_intent.names;
+    if (!refresh_restart_intent.names.empty() && restart_intent_names.empty())
+        mpl::info(category,
+                  "Refresh restart intent was written by this same revision; not starting "
+                  "any instance from it");
 
     try
     {
@@ -1654,8 +1694,11 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
 
         std::unique_lock lock{start_mutex};
 
-        // Was running before shutdown?
-        if (spec_copy.state == e_state::running)
+        // Was running before shutdown? Instances listed in the refresh
+        // restart intent were cleanly stopped for a snap refresh and must be
+        // started again by this daemon, even though their persisted state is
+        // "stopped".
+        if (spec_copy.state == e_state::running || restart_intent_names.count(name) > 0u)
         {
             assert(operative_instances.contains(name));
             // If the VM was in running state before, we need to do some additional
@@ -1699,7 +1742,19 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     if (!invalid_specs.empty())
         persist_instances();
 
+    // The restart intent is consumed regardless of individual start outcomes:
+    // instances that failed to start here surface their error through the
+    // normal start machinery, and silently retrying on every daemon restart
+    // is not desirable.
+    if (!restart_intent_names.empty())
+        clear_refresh_restart_intent();
+
     config->vault->prune_expired_images();
+
+    // Prune expired images and update to newly released images every six
+    // hours; see source_images_maintenance_task.start() below.
+    connect(&refresh_abort_timer, &QTimer::timeout, this, [this] { on_refresh_abort_timeout(); });
+    refresh_abort_timer.setSingleShot(true);
 
     // Fire timer every six hours to perform maintenance on source images such as
     // pruning expired images and updating to newly released images.
@@ -1787,6 +1842,30 @@ mp::Daemon::~Daemon()
 
 void mp::Daemon::shutdown_grpc_server()
 {
+    // A gate that is still active here means the daemon is being stopped right
+    // after a successful refresh preparation. Any guest not stopped by now
+    // would be auto-suspended and resumed by the next daemon - across a snap
+    // refresh, with a possibly different QEMU build. The preparation normally
+    // prevents this window; log loudly if it happens anyway.
+    {
+        std::scoped_lock lock{refresh_mutex};
+        if (refresh_preparation_active)
+        {
+            for (const auto& [name, instance] : operative_instances)
+            {
+                const auto state = instance->fetch_state();
+                if (state != VirtualMachine::State::stopped &&
+                    state != VirtualMachine::State::unavailable)
+                    mpl::warn(category,
+                              "\"{}\" is not stopped during a prepared snap refresh (state {}); "
+                              "it will be auto-suspended and resumed by the next daemon, which "
+                              "may run a different QEMU build",
+                              name,
+                              static_cast<int>(state));
+            }
+        }
+    }
+
     static constexpr auto poll_interval = std::chrono::milliseconds{50};
 
     auto shutdown = daemon_rpc.shutdown();
@@ -1808,6 +1887,498 @@ bool mp::Daemon::reject_if_migrating(std::string_view rpc_name, DaemonRpcContext
     mpl::info(category, "Rejecting '{}' while a migration is in progress", rpc_name);
     context->set_value(mp::hyperv::migration_conflict_status(rpc_name));
     return true;
+}
+
+bool mp::Daemon::reject_if_refresh_preparing(std::string_view rpc_name,
+                                             DaemonRpcContext* context) const
+{
+    std::scoped_lock lock{refresh_mutex};
+    if (!refresh_preparation_active ||
+        (refresh_preparation_complete &&
+         std::chrono::steady_clock::now() - refresh_preparation_start >=
+             refresh_preparation_expiry))
+        return false;
+
+    mpl::info(category, "Rejecting '{}' while snap refresh preparation is in progress", rpc_name);
+    context->set_value(grpc::Status(
+        grpc::StatusCode::FAILED_PRECONDITION,
+        "A snap refresh of multipass is being prepared. Starting, launching, suspending and "
+        "restarting instances is temporarily not possible. Try again shortly."));
+    return true;
+}
+
+QString mp::Daemon::refresh_intent_file_path() const
+{
+    QDir data_dir{mp::utils::backend_directory_path(config->data_directory,
+                                                    config->factory->get_backend_directory_name())};
+    return data_dir.filePath(refresh_intent_file_name);
+}
+
+mp::RefreshRestartIntent mp::Daemon::load_refresh_restart_intent() const
+{
+    QFile file{refresh_intent_file_path()};
+    if (!file.open(QIODevice::ReadOnly))
+        return {};
+
+    RefreshRestartIntent intent;
+    try
+    {
+        const auto bytes = file.readAll();
+        const auto json = boost::json::parse(
+            std::string_view{bytes.constData(), std::size_t(bytes.size())});
+
+        for (const auto& value : json.at("instances").as_array())
+            intent.names.insert(value.as_string().c_str());
+        intent.daemon_revision = lookup_or<std::string>(json, "daemon_revision", std::string{});
+        intent.written_at = lookup_or<std::int64_t>(json, "written_at", std::int64_t{0});
+    }
+    catch (const std::exception& e)
+    {
+        mpl::warn(category, "Ignoring unreadable refresh restart intent: {}", e.what());
+        return {};
+    }
+
+    return intent;
+}
+
+void mp::Daemon::save_refresh_restart_intent(const std::unordered_set<std::string>& names) const
+{
+    boost::json::array json_names;
+    for (const auto& name : names)
+        json_names.emplace_back(name);
+
+    boost::json::object json;
+    json["instances"] = std::move(json_names);
+    // Record which daemon prepared the refresh: the intent only starts guests
+    // once a different daemon identity (i.e. the refresh itself) took over.
+    json["daemon_revision"] = refresh_intent_daemon_identity();
+    json["written_at"] = static_cast<std::int64_t>(std::time(nullptr));
+
+    MP_FILEOPS.write_transactionally(refresh_intent_file_path(), pretty_print(json));
+}
+
+void mp::Daemon::clear_refresh_restart_intent() const
+{
+    QFile::remove(refresh_intent_file_path());
+}
+
+void mp::Daemon::remove_from_refresh_intent(const std::string& name)
+{
+    std::scoped_lock lock{refresh_mutex};
+    auto intent = load_refresh_restart_intent();
+    if (!intent.names.erase(name))
+        return;
+
+    if (intent.names.empty())
+        clear_refresh_restart_intent();
+    else
+        save_refresh_restart_intent(intent.names);
+}
+
+void mp::Daemon::remove_refresh_intent_for(
+    const google::protobuf::RepeatedPtrField<std::string>& instance_names)
+{
+    if (instance_names.empty())
+    {
+        // "All" semantics (e.g. `multipass stop`): every operative instance
+        // was acted on, and any remaining intent entries can only refer to
+        // instances that no longer exist.
+        std::scoped_lock lock{refresh_mutex};
+        if (!load_refresh_restart_intent().names.empty())
+            clear_refresh_restart_intent();
+        return;
+    }
+
+    for (const auto& name : instance_names)
+        remove_from_refresh_intent(name);
+}
+
+std::filesystem::path mp::Daemon::instance_image_with_suspend_snapshot(
+    const std::string& name) const
+{
+    if (MP_SETTINGS.get(mp::driver_key) != QStringLiteral("qemu"))
+        return {}; // only the qemu backend uses internal savevm snapshots
+
+    const QDir instance_dir{config->factory->get_instance_directory(name)};
+
+    for (const auto& entry : instance_dir.entryList(QDir::Files))
+    {
+        if (entry == mp::cloud_init_file_name)
+            continue; // the cloud-init ISO is not a disk image
+
+        // Any *other* file that cannot be inspected leaves the instance's
+        // suspended state unknown: fail the preparation (the caller converts
+        // this into a refused refresh) instead of assuming it is safe.
+        const auto file = instance_dir.filePath(entry);
+        try
+        {
+            if (mp::backend::instance_image_has_snapshot(MP_PLATFORM.qstr_to_path(file),
+                                                         mp::backend::suspend_snapshot_tag))
+                return MP_PLATFORM.qstr_to_path(file);
+        }
+        catch (const mp::backend::QemuImgException& e)
+        {
+            throw std::runtime_error(fmt::format("could not inspect the disk image {} of "
+                                                 "instance \"{}\": {}",
+                                                 file,
+                                                 name,
+                                                 e.what()));
+        }
+    }
+
+    return {};
+}
+
+void mp::Daemon::prepare_refresh(
+    const PrepareRefreshRequest*,
+    grpc::ServerReaderWriterInterface<PrepareRefreshReply, PrepareRefreshRequest>* server,
+    DaemonRpcContext* context)
+try
+{
+    using e_state = VirtualMachine::State;
+
+    std::unique_lock lock{refresh_mutex};
+
+    if (refresh_preparation_active && refresh_preparation_complete &&
+        std::chrono::steady_clock::now() - refresh_preparation_start < refresh_preparation_expiry)
+    {
+        // Preparation already succeeded (e.g. snapd retrying the same
+        // refresh): report the prepared state as-is and keep waiting for
+        // snapd to stop this daemon.
+        PrepareRefreshReply reply;
+        for (const auto& name : refresh_preparation_stopped)
+            reply.add_stopped_instances(name);
+
+        refresh_abort_timer.start(
+            std::chrono::duration_cast<std::chrono::milliseconds>(refresh_preparation_expiry));
+
+        server->Write(reply);
+        return context->set_value(grpc::Status::OK);
+    }
+
+    // A gate left over from a refresh that never happened is stale: start over.
+    refresh_preparation_active = false;
+    refresh_preparation_complete = false;
+    refresh_preparation_stopped.clear();
+
+    // Blocker scan: suspended guest memory state must reject the refresh
+    // before any running guest is touched. This includes guests a previous
+    // daemon shutdown auto-suspended (persisted as "running") and guests
+    // whose suspend snapshot was left behind by a failed resume.
+    std::vector<std::string> suspended;
+    std::vector<std::string> to_shut_down;
+    for (const auto& [name, instance] : operative_instances)
+    {
+        const auto state = instance->fetch_state();
+
+        if (state == e_state::suspended)
+        {
+            suspended.push_back(name);
+        }
+        else if (state == e_state::stopped || state == e_state::unavailable)
+        {
+            // Stopped (including zone-unavailable, where the constructor
+            // reports "unavailable" regardless of snapshot state): the next
+            // start would resume from a suspend snapshot, if one exists, which
+            // may not be compatible with a new QEMU build.
+            if (!instance_image_with_suspend_snapshot(name).empty())
+                suspended.push_back(name);
+        }
+        else if (state == e_state::unknown || state == e_state::suspending ||
+                 state == e_state::starting || state == e_state::restarting)
+        {
+            // Uncertain state: fail safe rather than prepare on top of it.
+            // (starting/restarting cannot be shut down cleanly from - shutdown
+            // rejects those states - so they must settle first.)
+            const auto state_name = state == e_state::unknown    ? "unknown"
+                                  : state == e_state::suspending ? "suspending"
+                                  : state == e_state::starting   ? "starting"
+                                                                 : "restarting";
+            PrepareRefreshReply reply;
+            reply.set_error_message(fmt::format(
+                "instance \"{}\" is in an uncertain state ({}); wait for it to settle and retry "
+                "the refresh ('multipass stop --force {}' only as a last resort if it is stuck)",
+                name,
+                state_name,
+                name));
+            server->Write(reply);
+            return context->set_value(grpc::Status::OK);
+        }
+        else if (state == e_state::running || state == e_state::delayed_shutdown)
+        {
+            to_shut_down.push_back(name);
+        }
+    }
+
+    if (!suspended.empty())
+    {
+        mpl::warn(category,
+                  "Snap refresh blocked by instances with suspended guest memory state: {}",
+                  fmt::join(suspended, ", "));
+
+        PrepareRefreshReply reply;
+        for (const auto& name : suspended)
+            reply.add_suspended_instances(name);
+
+        server->Write(reply);
+        return context->set_value(grpc::Status::OK);
+    }
+
+    // Gate before touching any guest: state-changing RPCs arriving from now
+    // on are rejected, so nothing can invalidate the preparation. The 15
+    // minute expiry only starts counting once the preparation completes, so
+    // the shutdown phase itself cannot exhaust it.
+    refresh_preparation_active = true;
+    refresh_preparation_complete = false;
+    refresh_preparation_start = std::chrono::steady_clock::now();
+
+    // Gracefully shut down the running guests, one at a time, on the daemon's
+    // own thread: the QProcess interactions inside the backends are not
+    // thread-affine, and the total wall time is bounded by the per-guest
+    // shutdown timeout anyway - a hung guest burns the hook budget, which
+    // fails the refresh (fail-safe), and the abort timer then restores any
+    // guests that were already stopped.
+    std::vector<std::string> stopped;
+    std::vector<std::string> failed;
+    for (const auto& name : to_shut_down)
+    {
+        auto it = operative_instances.find(name);
+        if (it == operative_instances.end()) // deleted meanwhile; nothing to do
+            continue;
+
+        auto& instance = it->second;
+        mpl::info(category, "Shutting down \"{}\" for the snap refresh", name);
+        try
+        {
+            instance->shutdown();
+
+            // Guests resumed from suspension normally have their suspend
+            // snapshot deleted once SSH is up; if that cleanup failed, a
+            // snapshot can remain. After this clean shutdown it is stale data
+            // - the disk state has moved past it - so remove it to guarantee
+            // that the next start boots fresh with the current install's
+            // arguments. Suspended (blocked) guests are never touched here.
+            const auto image = instance_image_with_suspend_snapshot(name);
+            if (!image.empty())
+            {
+                mpl::info(category,
+                          "Removing leftover suspend snapshot from \"{}\" after clean shutdown",
+                          name);
+                mp::backend::delete_snapshot_from_image(
+                    image,
+                    QString::fromStdString(std::string(mp::backend::suspend_snapshot_tag)));
+            }
+
+            stopped.push_back(name);
+        }
+        catch (const std::exception& e)
+        {
+            mpl::warn(category, "Could not prepare \"{}\" for the refresh: {}", name, e.what());
+            failed.push_back(name);
+        }
+    }
+
+    // Preserve the restart intent before reporting anything: guests that were
+    // cleanly stopped must be started again by the daemon that takes over,
+    // even if this preparation does not complete. Names already recorded by
+    // an earlier preparation stay recorded, and names that no longer exist are
+    // dropped.
+    auto intent = load_refresh_restart_intent();
+    intent.names.insert(std::make_move_iterator(stopped.begin()),
+                        std::make_move_iterator(stopped.end()));
+    for (auto it = intent.names.begin(); it != intent.names.end();)
+        it = operative_instances.count(*it) ? std::next(it) : intent.names.erase(it);
+
+    if (intent.names.empty())
+        clear_refresh_restart_intent();
+    else
+        save_refresh_restart_intent(intent.names);
+
+    refresh_preparation_stopped.assign(intent.names.cbegin(), intent.names.cend());
+
+    PrepareRefreshReply reply;
+    for (const auto& name : refresh_preparation_stopped)
+        reply.add_stopped_instances(name);
+
+    if (!failed.empty())
+    {
+        // Part of the guests could not be shut down cleanly: abort. Guests
+        // that did shut down keep their restart intent and stay stopped.
+        refresh_preparation_active = false;
+        reply.set_error_message(fmt::format(
+            "could not shut down instance(s) {} cleanly; resolve them and retry the refresh",
+            fmt::join(failed, ", ")));
+
+        server->Write(reply);
+        return context->set_value(grpc::Status::OK);
+    }
+
+    // Final re-scan under the gate: operations that slipped in before the
+    // gate must not leave guests running or suspended behind us.
+    for (const auto& [name, instance] : operative_instances)
+    {
+        const auto state = instance->fetch_state();
+
+        if (state == e_state::suspended)
+        {
+            refresh_preparation_active = false;
+            reply.add_suspended_instances(name);
+            reply.set_error_message(
+                fmt::format("instance \"{}\" became suspended during preparation", name));
+
+            server->Write(reply);
+            return context->set_value(grpc::Status::OK);
+        }
+
+        if (state == e_state::stopped || state == e_state::unavailable)
+        {
+            // E.g. an instance recovered mid-preparation may surface here with
+            // suspended memory; it must still block the refresh.
+            if (!instance_image_with_suspend_snapshot(name).empty())
+            {
+                refresh_preparation_active = false;
+                reply.add_suspended_instances(name);
+                reply.set_error_message(
+                    fmt::format("instance \"{}\" carries suspended guest memory state", name));
+
+                server->Write(reply);
+                return context->set_value(grpc::Status::OK);
+            }
+
+            continue;
+        }
+
+        refresh_preparation_active = false;
+        reply.set_error_message(
+            fmt::format("instance \"{}\" did not stay stopped (state {}); retry the refresh",
+                        name,
+                        static_cast<int>(state)));
+
+        server->Write(reply);
+        return context->set_value(grpc::Status::OK);
+    }
+
+    mpl::info(category,
+              "Snap refresh prepared; will restart {} on the next daemon",
+              refresh_preparation_stopped.size());
+
+    // The expiry clock of the gate starts only now: the preparation itself
+    // (shutdowns included) must never run into it. (refresh_mutex is held by
+    // this slot for the whole preparation.) If snapd fails the refresh after
+    // this point, the timer restores the guests stopped for it.
+    refresh_preparation_complete = true;
+    refresh_preparation_start = std::chrono::steady_clock::now();
+    refresh_abort_timer.start(
+        std::chrono::duration_cast<std::chrono::milliseconds>(refresh_preparation_expiry));
+
+    server->Write(reply);
+    return context->set_value(grpc::Status::OK);
+}
+catch (const std::exception& e)
+{
+    std::scoped_lock lock{refresh_mutex};
+    refresh_preparation_active = false;
+
+    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
+}
+
+void mp::Daemon::restore_guests_after_refresh_abort(
+    const std::unordered_set<std::string>& to_restart)
+{
+    // The refresh will not happen (the pre-refresh hook only aborts after a
+    // failure), so restore guests that the preparation had cleanly stopped.
+    // Guests that cannot be restarted keep their entry in the restart intent,
+    // so it survives for a later refresh; the revision gate keeps a
+    // same-revision daemon restart from starting them meanwhile.
+    std::unordered_set<std::string> restarted;
+    for (const auto& name : to_restart)
+    {
+        const auto it = operative_instances.find(name);
+        if (it == operative_instances.end())
+            continue;
+
+        try
+        {
+            auto& instance = it->second;
+            if (instance->fetch_state() != VirtualMachine::State::stopped)
+                continue;
+
+            mpl::info(category, "Restarting \"{}\" after aborted refresh preparation", name);
+            instance->start();
+            restarted.insert(name);
+        }
+        catch (const std::exception& e)
+        {
+            mpl::warn(category,
+                      "Could not restart \"{}\" after aborted refresh preparation: {}",
+                      name,
+                      e.what());
+        }
+    }
+
+    // Reconcile with the intent's current contents: user actions during
+    // restoration supersede the recorded intent.
+    std::scoped_lock lock{refresh_mutex};
+    auto current = load_refresh_restart_intent();
+    for (const auto& name : restarted)
+        current.names.erase(name);
+
+    if (current.names.empty())
+        clear_refresh_restart_intent();
+    else
+        save_refresh_restart_intent(current.names);
+}
+
+void mp::Daemon::on_refresh_abort_timeout()
+{
+    std::unordered_set<std::string> to_restart;
+    {
+        std::scoped_lock lock{refresh_mutex};
+        if (!refresh_preparation_active || !refresh_preparation_complete)
+            return; // a retry re-armed the timer, or nothing is pending
+
+        // The gate expiry has passed with this daemon still running: snapd
+        // never stopped it, so the refresh did not proceed. Restore guests
+        // stopped for it instead of leaving them stopped until a daemon
+        // restart.
+        refresh_preparation_active = false;
+        refresh_preparation_complete = false;
+        refresh_preparation_stopped.clear();
+        to_restart = load_refresh_restart_intent().names;
+
+        mpl::warn(category,
+                  "Snap refresh did not proceed; restoring {} instance(s) stopped for it",
+                  to_restart.size());
+    }
+
+    restore_guests_after_refresh_abort(to_restart);
+}
+
+void mp::Daemon::abort_refresh(
+    const AbortRefreshRequest*,
+    grpc::ServerReaderWriterInterface<AbortRefreshReply, AbortRefreshRequest>* server,
+    DaemonRpcContext* context)
+try
+{
+    refresh_abort_timer.stop();
+
+    std::unordered_set<std::string> to_restart;
+    {
+        std::scoped_lock lock{refresh_mutex};
+        refresh_preparation_active = false;
+        refresh_preparation_complete = false;
+        refresh_preparation_stopped.clear();
+        to_restart = load_refresh_restart_intent().names;
+    }
+
+    restore_guests_after_refresh_abort(to_restart);
+
+    server->Write(AbortRefreshReply{});
+    return context->set_value(grpc::Status::OK);
+}
+catch (const std::exception& e)
+{
+    context->set_value(grpc::Status(grpc::StatusCode::INTERNAL, e.what(), ""));
 }
 
 void mp::Daemon::create(const CreateRequest* request,
@@ -2438,6 +3009,12 @@ void mp::Daemon::start(const StartRequest* request,
                        DaemonRpcContext* context)
 try
 {
+    if (reject_if_refresh_preparing("start instances", context))
+        return;
+
+    // An explicit start supersedes any recorded refresh restart intent.
+    remove_refresh_intent_for(request->instance_names().instance_name());
+
     warn_driver_deprecation(*server); // TODO@deprecations remove
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
@@ -2533,6 +3110,10 @@ void mp::Daemon::stop(const StopRequest* request,
                       DaemonRpcContext* context)
 try
 {
+    // A guest the user stops is not starting again on its own after a
+    // refresh; its restart intent (if any) is obsolete.
+    remove_refresh_intent_for(request->instance_names().instance_name());
+
     auto [instance_selection,
           status] = select_instances_and_react(operative_instances,
                                                deleted_instances,
@@ -2573,6 +3154,13 @@ void mp::Daemon::suspend(const SuspendRequest* request,
                          DaemonRpcContext* context)
 try
 {
+    if (reject_if_refresh_preparing("suspend instances", context))
+        return;
+
+    // A guest the user suspends is not starting again on its own; its restart
+    // intent (if any) is obsolete.
+    remove_refresh_intent_for(request->instance_names().instance_name());
+
     warn_driver_deprecation(*server); // TODO@deprecations remove
     auto [instance_selection,
           status] = select_instances_and_react(operative_instances,
@@ -2611,6 +3199,12 @@ void mp::Daemon::restart(const RestartRequest* request,
                          DaemonRpcContext* context)
 try
 {
+    if (reject_if_refresh_preparing("restart instances", context))
+        return;
+
+    // A user-driven restart supersedes any recorded refresh restart intent.
+    remove_refresh_intent_for(request->instance_names().instance_name());
+
     auto timeout = request->timeout() > 0 ? std::chrono::seconds(request->timeout())
                                           : mp::default_timeout;
 
@@ -2738,6 +3332,21 @@ void mp::Daemon::delet(const DeleteRequest* request,
                        DaemonRpcContext* context)
 try
 {
+    if (reject_if_refresh_preparing("delete instances", context))
+        return;
+
+    // A deleted instance cannot be restarted by a later refresh; drop any
+    // recorded intent for it.
+    if (request->instance_snapshot_pairs().empty())
+    {
+        std::scoped_lock lock{refresh_mutex};
+        if (!load_refresh_restart_intent().names.empty())
+            clear_refresh_restart_intent();
+    }
+    else
+        for (const auto& pair : request->instance_snapshot_pairs())
+            remove_from_refresh_intent(pair.instance_name());
+
     DeleteReply response;
     auto instances_dirty = false;
 
@@ -3237,6 +3846,11 @@ void mp::Daemon::restore(const mp::RestoreRequest* request,
                          DaemonRpcContext* context)
 try
 {
+    // Restoring boots the instance: it must not invalidate a pending refresh
+    // preparation.
+    if (reject_if_refresh_preparing("restore a snapshot", context))
+        return;
+
     RestoreReply reply;
     const auto& instance_name = request->instance();
     auto [instance_trail, status] = find_instance_and_react(operative_instances,
@@ -3322,6 +3936,9 @@ void mp::Daemon::clone(const CloneRequest* request,
                        DaemonRpcContext* context)
 try
 {
+    if (reject_if_refresh_preparing("clone an instance", context))
+        return;
+
     warn_driver_deprecation(*server); // TODO@deprecations remove
     const auto& source_name = request->source_name();
     const auto [src_instance_trail,
@@ -3642,6 +4259,9 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                            DaemonRpcContext* context,
                            bool start)
 {
+    if (reject_if_refresh_preparing("launch instances", context))
+        return;
+
     auto checked_args = validate_create_arguments(request, config.get());
 
     if (!checked_args.zone_name.empty() && !config->factory->supports_availability_zones())
