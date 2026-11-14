@@ -1970,6 +1970,10 @@ void mp::Daemon::clear_refresh_restart_intent() const
 void mp::Daemon::remove_from_refresh_intent(const std::string& name)
 {
     std::scoped_lock lock{refresh_mutex};
+    // An explicit user action supersedes the current attempt's ownership too:
+    // the abort restoration must not undo it.
+    std::erase(refresh_attempt_stopped, name);
+
     auto intent = load_refresh_restart_intent();
     if (!intent.names.erase(name))
         return;
@@ -1989,6 +1993,7 @@ void mp::Daemon::remove_refresh_intent_for(
         // was acted on, and any remaining intent entries can only refer to
         // instances that no longer exist.
         std::scoped_lock lock{refresh_mutex};
+        refresh_attempt_stopped.clear();
         if (!load_refresh_restart_intent().names.empty())
             clear_refresh_restart_intent();
         return;
@@ -3419,6 +3424,7 @@ try
     if (request->instance_snapshot_pairs().empty())
     {
         std::scoped_lock lock{refresh_mutex};
+        refresh_attempt_stopped.clear();
         if (!load_refresh_restart_intent().names.empty())
             clear_refresh_restart_intent();
     }

@@ -361,6 +361,38 @@ TEST_F(TestDaemonRefresh, startupWithoutIntentLeavesStoppedInstanceAlone)
     EXPECT_FALSE(QFile::exists(intent_file_path()));
 }
 
+TEST_F(TestDaemonRefresh, stopDuringPreparationRemovesAttemptOwnership)
+{
+    // A user's explicit stop of a gate-stopped instance must not be undone by
+    // a later abort: stopping removes the instance from the attempt's
+    // restoration ownership as well as from the persisted intent.
+    auto* mock_vm = plant_instance(mp::VirtualMachine::State::running);
+    // Note: a user stop arms the (zero-delay) delayed-shutdown timer, so the
+    // mock's shutdown() is not invoked synchronously here; the regression
+    // under test is the abort's start(), not the shutdown count.
+    EXPECT_CALL(*mock_vm, start).Times(0);
+    mp::Daemon daemon{config_builder.build()};
+
+    const auto prepared = call_prepare_refresh(daemon);
+    ASSERT_TRUE(prepared.status.ok());
+    EXPECT_THAT(intent_names(), Contains(QString::fromStdString(mock_instance_name)));
+
+    mp::StopRequest stop_request;
+    stop_request.mutable_instance_names()->add_instance_name(mock_instance_name);
+    const auto stop_status = mpt::DaemonTestFixture::call_daemon_slot(
+        daemon,
+        &mp::Daemon::stop,
+        stop_request,
+        StrictMock<mpt::MockServerReaderWriter<mp::StopReply, mp::StopRequest>>{});
+    EXPECT_TRUE(stop_status.ok());
+    EXPECT_FALSE(QFile::exists(intent_file_path()));
+
+    // snapd aborts afterwards: nothing may be started behind the user's back.
+    const auto aborted = call_abort_refresh(daemon);
+    ASSERT_TRUE(aborted.status.ok());
+    EXPECT_FALSE(QFile::exists(intent_file_path()));
+}
+
 TEST_F(TestDaemonRefresh, abortOnRefusedPreparationPreservesEarlierIntent)
 {
     // A retry that is refused (suspended blocker, gate never engaged) must
