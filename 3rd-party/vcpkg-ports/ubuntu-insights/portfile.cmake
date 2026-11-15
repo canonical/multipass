@@ -17,8 +17,8 @@ endif()
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO ubuntu/ubuntu-insights
-    REF bd67ac2fafda18bfca97e3c4843e9e4d3ca71cf1
-    SHA512 2d9d170e6b831c18daf6fda60e736200a29d843cf5baf9206b2fabb3f500216b7ec31e70ae430f2b46f43054d8d9243cb50ddac3d8853c0ece76825f370e2451
+    REF insights/v1.0.1
+    SHA512 54420dd09b3fa4b96a989214fbef649e2e294149d8a9ed9638cec7eac55b8f49a572111376873eaee155cab0198ecfed846e8124f97a736062b22afd23917a6f
     PATCHES 0001-c-api-free.patch
 )
 
