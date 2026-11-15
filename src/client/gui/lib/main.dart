@@ -86,7 +86,7 @@ class _AppState extends ConsumerState<App> with WindowListener {
       // TODO@deprecations remove
       if (!driver.isLoading && ref.read(daemonAvailableProvider)) {
         const deprecationDocsPrefix =
-            'https://canonical.com/multipass/docs/how-to-guides/customise-multipass/';
+            'https://canonical.com/multipass/docs/stable/how-to-guides/customise-multipass/';
         final learnMoreUrl = switch (driver.value) {
           'hyperv' => Uri.parse(
               '${deprecationDocsPrefix}migrate-from-hyperv-to-hcs-on-windows',
