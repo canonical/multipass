@@ -27,6 +27,7 @@
 
 #include <src/platform/backends/hcs/api/virtdisk/virtdisk_disk_info.h>
 #include <src/platform/backends/hcs/api/virtdisk/virtdisk_wrapper.h>
+#include <src/platform/backends/shared/windows/file_utils.h>
 
 namespace multipass::test
 {
@@ -186,13 +187,11 @@ TEST_F(HyperVVirtDisk_IntegrationTests, clear_sparse_flag_allows_resize)
     // The virtdisk API refuses to open sparse files.
     ASSERT_FALSE(VirtDisk().resize_virtual_disk(temp_path, params.size_in_bytes * 2));
 
-    const auto u_result = VirtDisk().clear_sparse_flag(temp_path);
-    ASSERT_TRUE(u_result);
-    ASSERT_TRUE(u_result.status_msg.empty());
+    ASSERT_FALSE(clear_sparse_flag(temp_path));
     ASSERT_FALSE(::GetFileAttributesW(path_w.c_str()) & FILE_ATTRIBUTE_SPARSE_FILE);
 
     // Clearing the flag again is a no-op.
-    ASSERT_TRUE(VirtDisk().clear_sparse_flag(temp_path));
+    ASSERT_FALSE(clear_sparse_flag(temp_path));
 
     ASSERT_TRUE(VirtDisk().resize_virtual_disk(temp_path, params.size_in_bytes * 2));
 
