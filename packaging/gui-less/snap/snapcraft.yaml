@@ -33,15 +33,6 @@ environment:
   ARCH_TRIPLET: ${CRAFT_ARCH_TRIPLET_BUILD_FOR}
 
 plugs:
-    # TODO: Acquire approval for these plugs
-    # dot-config-ubuntu-insights:
-    #   interface: personal-files
-    #   read:
-    #     - $HOME/.config/ubuntu-insights
-    # dot-cache-ubuntu-insights:
-    #   interface: personal-files
-    #   write:
-    #     - $HOME/.cache/ubuntu-insights
   all-home:
     interface: home
     read: all
@@ -72,17 +63,6 @@ apps:
     - network-observe   # for network listing (to read `/sys/devices/**/net/*`)
     - removable-media
     - system-observe    # to read the host's os-release
-
-        # Plugs required for ubuntu insights. The same as snapcraft.yaml from ubuntu-insights repo.
-        # TODO: Acquire approval for these plugs
-        # - dot-config-ubuntu-insights # Default config location
-        # - dot-cache-ubuntu-insights # Default cache location
-        # - ubuntu-pro-control # Used to read the Ubuntu Pro attach state over D-Bus.
-        # - block-devices # Required to see encrypted partitions. `dm-crypt` also works.
-    - hardware-observe
-    - wayland
-    - x11
-    - network   # Needed for uploading
   multipass:
     environment:
       LD_LIBRARY_PATH: *library-path
