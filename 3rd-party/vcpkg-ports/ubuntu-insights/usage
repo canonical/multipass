@@ -7,7 +7,8 @@ Include the generated C API with:
 
     #include <insights/insights.h>
 
-Imported executable targets:
+Imported targets:
+
     ubuntu-insights::ubuntu-insights
     ubuntu-insights::web-service (Linux only)
     ubuntu-insights::ingest-service (Linux only)
