@@ -32,6 +32,7 @@
 #include <multipass/top_catch_all.h>
 #include <multipass/utils.h>
 #include <multipass/vm_specs.h>
+#include <shared/windows/file_utils.h>
 #include <shared/windows/net_io_api.h>
 #include <shared/windows/windows_feature_status.h>
 
@@ -171,12 +172,11 @@ void HCSVirtualMachineFactory::prepare_instance_image(const VMImage& instance_im
 {
     // qemu-img creates sparse files, which the virtdisk API refuses to open. Images copied from
     // the cache aren't sparse; for those, this is a no-op.
-    const auto unsparse_result = VirtDisk().clear_sparse_flag(instance_image.image_path);
-    if (!unsparse_result)
+    if (const auto ec = clear_sparse_flag(instance_image.image_path))
     {
-        throw ImageResizeException{"Failed to clear sparse flag of VHDX file `{}`, error code `{}`",
+        throw ImageResizeException{"Failed to clear sparse flag of VHDX file `{}`: {}",
                                    instance_image.image_path,
-                                   unsparse_result};
+                                   ec.message()};
     }
 
     // Resize the instance image to the desired size
