@@ -151,7 +151,17 @@ std::vector<fs::path> SFTPClient::expand_remote_path(const fs::path& path)
             if (expanded_pattern)
             {
                 std::erase_if(candidates, [this](const auto& candidate) {
-                    return !mp_sftp_stat(sftp.get(), candidate.c_str());
+                    if (mp_sftp_stat(sftp.get(), candidate.c_str()))
+                        return false;
+
+                    // A candidate that no longer exists simply stops matching. Other failures,
+                    // such as permission problems, must not silently truncate the transfer.
+                    if (MP_LIBSSH.sftp_get_error(sftp.get()) != SSH_FX_NO_SUCH_FILE)
+                        throw SFTPError{"cannot access remote path '{}': {}",
+                                        candidate,
+                                        MP_LIBSSH.ssh_get_error(sftp->session)};
+
+                    return true;
                 });
                 if (candidates.empty())
                     throw SFTPError{"no matches found: {}", path};

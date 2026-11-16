@@ -442,6 +442,40 @@ TEST_F(SFTPClient, skipsNonDirectoryCandidatesAfterWildcard)
                 ElementsAre(fs::path{"release-a/logs/first.txt"}));
 }
 
+TEST_F(SFTPClient, throwsWhenWildcardPathComponentCannotBeAccessed)
+{
+    REPLACE_SFTP_INIT();
+
+    auto root_index = 0;
+    std::vector<sftp_attributes> root_entries{
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, "release-b"),
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, "release-a"),
+        nullptr,
+    };
+    REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
+    REPLACE(sftp_readdir, [&](auto, auto directory) -> sftp_attributes {
+        return std::string_view{directory->name} == "." ? root_entries[root_index++] : nullptr;
+    });
+    REPLACE(sftp_dir_eof, [](auto...) { return true; });
+    REPLACE(sftp_stat, [](auto, auto path) -> sftp_attributes {
+        const std::string_view remote_path{path};
+        if (remote_path == "release-*/logs/*.txt" || remote_path == "release-b/logs")
+            return nullptr;
+
+        return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, path);
+    });
+    REPLACE(sftp_get_error, [](auto...) { return SSH_FX_PERMISSION_DENIED; });
+    auto err = "SFTP server: Permission denied";
+    REPLACE(ssh_get_error, [&](auto...) { return err; });
+
+    auto sftp_client = make_sftp_client();
+
+    MP_EXPECT_THROW_THAT(
+        sftp_client.expand_remote_path("release-*/logs/*.txt"),
+        mp::SFTPError,
+        mpt::match_what(StrEq(fmt::format("cannot access remote path 'release-b/logs': {}", err))));
+}
+
 TEST_F(SFTPClient, trailingSlashPatternOnlyMatchesDirectories)
 {
     REPLACE_SFTP_INIT();
