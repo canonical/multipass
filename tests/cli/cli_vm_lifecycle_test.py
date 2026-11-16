@@ -18,9 +18,18 @@
 
 """Multipass command line tests for the VM lifecycle."""
 
+import re
+
 import pytest
 
-from cli.multipass import multipass, state, launch, random_vm_name, get_boot_id
+from cli.multipass import (
+    multipass,
+    state,
+    launch,
+    random_vm_name,
+    get_boot_id,
+    get_instance_metadata,
+)
 from cli.config import cfg
 
 
@@ -65,6 +74,10 @@ class TestVmLifecycle:
         boot_id_before = get_boot_id(instance)
         assert multipass("suspend", f"{instance}")
         assert state(f"{instance}") == "Suspended"
+        if cfg.driver == "qemu":
+            # Pinning a snap revision would break resume after a refresh
+            resume_args = get_instance_metadata(instance)["arguments"]
+            assert not any(re.search(r"/snap/multipass/x?\d+/", arg) for arg in resume_args)
         assert multipass("start", f"{instance}")
         assert state(f"{instance}") == "Running"
         boot_id_after = get_boot_id(instance)

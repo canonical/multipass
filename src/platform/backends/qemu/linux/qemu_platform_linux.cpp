@@ -236,7 +236,7 @@ QStringList mp::QemuPlatformLinux::vm_platform_args(const VirtualMachineDescript
         opts << "-drive"
              << QString("file=%1/edk2-x86_64-code.fd,if=pflash,format=raw,readonly=on,"
                         "file.locking=off")
-                    .arg(firmware_path());
+                    .arg(stable_firmware_path());
 #elif defined Q_PROCESSOR_ARM
         opts << "-bios"
              << "QEMU_EFI.fd"

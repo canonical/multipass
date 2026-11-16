@@ -24,10 +24,12 @@
 #include <multipass/network_interface_info.h>
 #include <multipass/path.h>
 #include <multipass/singleton.h>
+#include <multipass/snap_utils.h>
 #include <multipass/virtual_machine_description.h>
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QFileInfo>
 #include <QString>
 #include <QStringList>
 
@@ -65,6 +67,24 @@ public:
     static QString firmware_path()
     {
         return QDir{QCoreApplication::applicationDirPath() + "/../Resources/qemu"}.absolutePath();
+    }
+
+    // Like firmware_path(), but through the snap's `current` symlink, so that persisted
+    // resume args survive snap refreshes. Falls back to firmware_path() if that does
+    // not resolve to the same directory.
+    static QString stable_firmware_path()
+    {
+        const auto path = firmware_path();
+        if (!utils::in_multipass_snap())
+            return path;
+
+        const QDir snap_dir{utils::snap_dir()};
+        const auto stable =
+            QDir::cleanPath(snap_dir.filePath("../current/" + snap_dir.relativeFilePath(path)));
+        const auto canonical = QFileInfo{path}.canonicalFilePath();
+
+        return !canonical.isEmpty() && QFileInfo{stable}.canonicalFilePath() == canonical ? stable
+                                                                                           : path;
     }
 
 protected:
