@@ -20,10 +20,9 @@
 upgrade. Covered for `core24` and `core26` (both stopped); the `core26` image
 only exists from 1.16.3, so its seed is gated.
 
-Images are named without a remote (`core24`, not `core:core24`): the seed runs on
-the *from* version, where core images still live in the default remote. A later
-version may move them under a `core:` remote, but that only affects fresh
-launches, not the already-instantiated VMs these scenarios upgrade.
+Core images live in the default remote before 1.17 and under the `core:` remote
+from 1.17 on, so the seed picks the image name (`core24` vs `core:core24`) based
+on the installed (*from*) version.
 
 Like the cloud images in `lifecycle_test`, each scenario writes a guest sentinel
 before the upgrade and asserts it byte-for-byte after, alongside the
@@ -35,7 +34,10 @@ import platform
 
 import pytest
 
-from cli.multipass.feature_versions import skip_if_feature_not_supported
+from cli.multipass.feature_versions import (
+    multipass_version_has_feature,
+    skip_if_feature_not_supported,
+)
 from .helpers import (
     seed_sentinel,
     assert_sentinel_record,
@@ -56,6 +58,8 @@ pytestmark = pytest.mark.skipif(
 
 
 def _seed_core(vm, image, record):
+    if multipass_version_has_feature("core_remote"):
+        image = f"core:{image}"
     with seeded_vm(vm, image=image):
         sentinel = seed_sentinel(vm, vm)
         fingerprint = info_fingerprint(vm)  # cpu/memory only reported while running

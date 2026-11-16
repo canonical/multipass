@@ -20,7 +20,7 @@
 
 Seeded VMs must outlive the test process and the package upgrade, so they are
 launched via ``seeded_vm`` -- a thin wrapper over the shared ``launch`` helper
-that pins the name and sets ``autopurge=False``. These utilities cover the bits
+that pins the name and sets ``autodelete=False``. These utilities cover the bits
 ``launch`` does not: making seeding idempotent, and providing a host mount
 source that both the daemon can read and the upgrade preserves.
 """
@@ -57,13 +57,13 @@ def seeded_vm(name: str, *, extra_args=None, **launch_overrides):
 
     Wraps the shared ``launch`` helper with the two conventions every seed test
     needs: make the name idempotent (``ensure_absent``) and keep the VM around
-    after the test process exits (``autopurge=False``) so it survives the
+    after the test process exits (``autodelete=False``) so it survives the
     upgrade. ``extra_args`` are forwarded verbatim to ``launch`` (e.g.
     ``--network`` or ``--cloud-init``). Other keyword arguments override the
     shared launch defaults (e.g. ``cpus``, ``memory``, or ``disk``).
     """
     ensure_absent(name)
-    override = {"name": name, "autopurge": False}
+    override = {"name": name, "autodelete": False}
     override.update(launch_overrides)
     if extra_args:
         override["extra_args"] = extra_args
