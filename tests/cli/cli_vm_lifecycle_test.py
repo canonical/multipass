@@ -75,7 +75,9 @@ class TestVmLifecycle:
         assert multipass("suspend", f"{instance}")
         assert state(f"{instance}") == "Suspended"
         if cfg.driver == "qemu":
-            # Pinning a snap revision would break resume after a refresh
+            # Make sure the snap revision (/snap/multipass/[revision]) is
+            # not used in any argument. This would break resume after a refresh
+            # (cf issue #5542).
             resume_args = get_instance_metadata(instance)["arguments"]
             assert not any(re.search(r"/snap/multipass/x?\d+/", arg) for arg in resume_args)
         assert multipass("start", f"{instance}")
