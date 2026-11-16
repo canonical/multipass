@@ -277,9 +277,9 @@ private:
     void wait_update_manifests_all_and_optionally_applied_force(
         const bool force_manifest_network_download);
 
-    template <typename Reply, typename Request>
+    template <typename Reply, typename Request, typename Message>
     void reply_msg(grpc::ServerReaderWriterInterface<Reply, Request>* server,
-                   std::string&& msg,
+                   Message&& msg,
                    bool sticky = false);
 
     void populate_instance_info(VirtualMachine& vm,

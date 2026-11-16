@@ -107,9 +107,9 @@ TEST_F(TestSettings, keysReturnsKeysFromMultipleHandlers)
     auto all_keys = std::reduce(std::begin(some_keychains),
                                 std::end(some_keychains),
                                 std::set<QString>{},
-                                [](auto&& a, auto&& b) {
-                                    a.merge(std::forward<decltype(b)>(b));
-                                    return std::forward<decltype(a)>(a);
+                                []<typename A, typename B>(A&& a, B&& b) {
+                                    a.merge(std::forward<B>(b));
+                                    return std::forward<A>(a);
                                 });
     EXPECT_THAT(MP_SETTINGS.keys(), UnorderedElementsAreArray(all_keys));
 }

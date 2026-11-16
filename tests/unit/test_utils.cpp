@@ -338,10 +338,10 @@ concept expected_trim_traits =
     !std::is_invocable_v<Func, const std::string&, ExtraArgs...>;
 
 // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0834r0.html
-#define LIFT(func) [](auto&&... a)                            \
-    noexcept(noexcept(func(std::forward<decltype(a)>(a)...))) \
-    -> decltype(func(std::forward<decltype(a)>(a)...))        \
-    { return func(std::forward<decltype(a)>(a)...); }
+#define LIFT(func) []<typename ...T>(T&&... a)      \
+    noexcept(noexcept(func(std::forward<T>(a)...))) \
+    -> decltype(func(std::forward<T>(a)...))        \
+    { return func(std::forward<T>(a)...); }
 // clang-format on
 
 static_assert(expected_trim_traits<decltype(LIFT(mp::utils::trim)), decltype(::isspace)&>);

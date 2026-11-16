@@ -75,8 +75,8 @@
 // This will redirect the version of `MockWidget::render` that takes one argument of type `Canvas`.
 #define MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(mock, method, BaseT, ...)                     \
     ON_CALL(mock, method __VA_ARGS__)                                                              \
-        .WillByDefault([m = &mock](auto&&... args) -> decltype(auto) {                             \
-            return m->BaseT::method(std::forward<decltype(args)>(args)...);                        \
+        .WillByDefault([m = &mock]<typename... T>(T&&... args) -> decltype(auto) {                 \
+            return m->BaseT::method(std::forward<T>(args)...);                                     \
         })
 
 // Teach GTest to print Qt stuff
@@ -110,9 +110,9 @@ namespace multipass::test
 template <typename F>
 auto with_arg_tuple(F f)
 {
-    return [f](auto&& arg_tuple) // may copy f, but avoiding forwarding-capture mess (see
-                                 // https://v.gd/2IbEdv)
-    { return std::apply(f, std::forward<decltype(arg_tuple)>(arg_tuple)); };
+    return [f]<typename T>(T&& arg_tuple) // may copy f, but avoiding forwarding-capture mess (see
+                                          // https://v.gd/2IbEdv)
+    { return std::apply(f, std::forward<T>(arg_tuple)); };
 }
 
 template <typename MsgMatcher>
