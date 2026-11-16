@@ -142,7 +142,7 @@ TEST_F(TestQemuVMProcessSpec, resumeRefreshesStaleFirmwarePaths)
          "-drive",
          "file=/snap/multipass/12345/Resources/qemu/edk2-x86_64-code.fd,if=pflash,readonly=on",
          "-drive",
-         "file=/path/to/image,if=none,format=qcow2"}};
+         "file=/path/to/instances/edk2-test/image.img,if=none,format=qcow2"}};
 
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data);
 
@@ -153,7 +153,7 @@ TEST_F(TestQemuVMProcessSpec, resumeRefreshesStaleFirmwarePaths)
                            QString("file=%1/edk2-x86_64-code.fd,if=pflash,readonly=on")
                                .arg(spec.firmware_path()),
                            "-drive",
-                           "file=/path/to/image,if=none,format=qcow2",
+                           "file=/path/to/instances/edk2-test/image.img,if=none,format=qcow2",
                            "-loadvm",
                            "suspend_tag",
                            "-machine",

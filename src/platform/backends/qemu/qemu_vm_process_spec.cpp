@@ -59,7 +59,7 @@ QStringList mp::QemuVMProcessSpec::arguments() const
             args.prepend("-L");
         }
         // `-drive file=` paths are not resolved via -L, so refresh them too.
-        args.replaceInStrings(QRegularExpression{"(?<=file=)[^,]*(?=/edk2-)"},
+        args.replaceInStrings(QRegularExpression{"(?<=^file=)[^,]*(?=/edk2-[^/,]+-code\\.fd,)"},
                               stable_firmware_path);
 
         // need to append extra arguments for resume
