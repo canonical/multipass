@@ -144,7 +144,7 @@ class AsyncSubprocess:
         )
         fut = asyncio.shield(inner)
         try:
-            self.proc = await asyncio.shield(spawn_task)
+            self.proc = await fut
             return self.proc
         except asyncio.CancelledError:
             # If cancellation hit mid-spawn, the process may already exist.
