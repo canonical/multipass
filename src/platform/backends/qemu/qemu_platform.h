@@ -79,12 +79,12 @@ public:
             return path;
 
         const QDir snap_dir{utils::snap_dir()};
-        const auto stable =
-            QDir::cleanPath(snap_dir.filePath("../current/" + snap_dir.relativeFilePath(path)));
+        const auto stable = QDir::cleanPath(
+            snap_dir.filePath("../current/" + snap_dir.relativeFilePath(path)));
         const auto canonical = QFileInfo{path}.canonicalFilePath();
 
         return !canonical.isEmpty() && QFileInfo{stable}.canonicalFilePath() == canonical ? stable
-                                                                                           : path;
+                                                                                          : path;
     }
 
 protected:

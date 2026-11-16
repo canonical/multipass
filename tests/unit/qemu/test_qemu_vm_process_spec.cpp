@@ -146,19 +146,20 @@ TEST_F(TestQemuVMProcessSpec, resumeRefreshesStaleFirmwarePaths)
 
     mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data);
 
-    EXPECT_EQ(spec.arguments(),
-              QStringList({"-L",
-                           spec.firmware_path(),
-                           "-drive",
-                           QString("file=%1/edk2-x86_64-code.fd,if=pflash,readonly=on")
-                               .arg(spec.firmware_path()),
-                           "-drive",
-                           "file=/path/to/instances/edk2-test/image.img,if=none,format=qcow2",
-                           "-loadvm",
-                           "suspend_tag",
-                           "-machine",
-                           "machine_type"})
-                  << mount_args.begin()->second.second);
+    EXPECT_EQ(
+        spec.arguments(),
+        QStringList(
+            {"-L",
+             spec.firmware_path(),
+             "-drive",
+             QString("file=%1/edk2-x86_64-code.fd,if=pflash,readonly=on").arg(spec.firmware_path()),
+             "-drive",
+             "file=/path/to/instances/edk2-test/image.img,if=none,format=qcow2",
+             "-loadvm",
+             "suspend_tag",
+             "-machine",
+             "machine_type"})
+            << mount_args.begin()->second.second);
 }
 
 TEST_F(TestQemuVMProcessSpec, resumeFixesVmnetFormat)
