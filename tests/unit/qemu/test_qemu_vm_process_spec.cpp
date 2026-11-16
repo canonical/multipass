@@ -132,6 +132,35 @@ TEST_F(TestQemuVMProcessSpec, resumeWithMissingMachineTypeGuessesCorrectly)
                   << mount_args.begin()->second.second);
 }
 
+TEST_F(TestQemuVMProcessSpec, resumeRefreshesStaleFirmwarePaths)
+{
+    const mp::QemuVMProcessSpec::ResumeData resume_data{
+        "suspend_tag",
+        "machine_type",
+        {"-L",
+         "/snap/multipass/12345/Resources/qemu",
+         "-drive",
+         "file=/snap/multipass/12345/Resources/qemu/edk2-x86_64-code.fd,if=pflash,readonly=on",
+         "-drive",
+         "file=/path/to/image,if=none,format=qcow2"}};
+
+    mp::QemuVMProcessSpec spec(desc, platform_args, mount_args, resume_data);
+
+    EXPECT_EQ(spec.arguments(),
+              QStringList({"-L",
+                           spec.firmware_path(),
+                           "-drive",
+                           QString("file=%1/edk2-x86_64-code.fd,if=pflash,readonly=on")
+                               .arg(spec.firmware_path()),
+                           "-drive",
+                           "file=/path/to/image,if=none,format=qcow2",
+                           "-loadvm",
+                           "suspend_tag",
+                           "-machine",
+                           "machine_type"})
+                  << mount_args.begin()->second.second);
+}
+
 TEST_F(TestQemuVMProcessSpec, resumeFixesVmnetFormat)
 {
     const mp::QemuVMProcessSpec::ResumeData resume_data{"suspend_tag",
