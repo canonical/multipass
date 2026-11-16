@@ -166,12 +166,18 @@ std::vector<fs::path> SFTPClient::expand_remote_path(const fs::path& path)
         {
             const auto directory_path = candidate.empty() ? "." : candidate;
             auto directory = mp_sftp_opendir(sftp.get(), directory_path.c_str());
-            // TODO: distinguish a path that is not a directory from other failures when
-            // opening it.
             if (!directory)
             {
-                if (expanded_pattern)
+                // Once a wildcard has been expanded, a candidate may be a regular file that
+                // matched it; descending into it then legitimately fails. OpenSSH reports
+                // ENOTDIR as SSH_FX_NO_SUCH_FILE, so only that error is treated as a
+                // non-matching branch. Permission or connection failures must fail the
+                // transfer instead of silently dropping matches.
+                // TODO: distinguish a vanished entry from a non-directory; SFTP v3 reports
+                // both as SSH_FX_NO_SUCH_FILE.
+                if (expanded_pattern && MP_LIBSSH.sftp_get_error(sftp.get()) == SSH_FX_NO_SUCH_FILE)
                     continue;
+
                 throw SFTPError{"cannot open remote directory '{}': {}",
                                 directory_path,
                                 MP_LIBSSH.ssh_get_error(sftp->session)};
@@ -197,6 +203,19 @@ std::vector<fs::path> SFTPClient::expand_remote_path(const fs::path& path)
         matches.erase(std::unique(matches.begin(), matches.end()), matches.end());
         candidates = std::move(matches);
         expanded_pattern = true;
+    }
+
+    // Splitting the pattern drops a trailing slash, so restore its meaning here: a source
+    // ending in '/' only matches directories.
+    if (remote_path.ends_with('/'))
+    {
+        std::erase_if(candidates, [this](const auto& candidate) {
+            const auto attr = mp_sftp_stat(sftp.get(), candidate.c_str());
+            return !attr || attr->type != SSH_FILEXFER_TYPE_DIRECTORY;
+        });
+
+        if (candidates.empty())
+            throw SFTPError{"no matches found: {}", path};
     }
 
     std::vector<fs::path> paths;

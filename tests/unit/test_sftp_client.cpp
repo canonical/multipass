@@ -363,6 +363,137 @@ TEST_F(SFTPClient, expandsWildcardsAcrossRemotePathComponents)
         ElementsAre(fs::path{"release-a/logs/first.txt"}, fs::path{"release-b/logs/second.txt"}));
 }
 
+TEST_F(SFTPClient, throwsWhenWildcardExpansionCannotOpenDirectory)
+{
+    REPLACE_SFTP_INIT();
+
+    auto root_index = 0;
+    std::vector<sftp_attributes> root_entries{
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, "release-b"),
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, "release-a"),
+        nullptr,
+    };
+    REPLACE(sftp_opendir, [](auto, auto path) -> sftp_dir {
+        if (std::string_view{path} == "release-b/logs")
+            return nullptr;
+
+        return get_dummy_sftp_dir(path);
+    });
+    REPLACE(sftp_readdir, [&](auto, auto directory) -> sftp_attributes {
+        return std::string_view{directory->name} == "." ? root_entries[root_index++] : nullptr;
+    });
+    REPLACE(sftp_dir_eof, [](auto...) { return true; });
+    REPLACE(sftp_stat, [](auto, auto path) {
+        return std::string_view{path} == "release-*/logs/*.txt"
+                 ? nullptr
+                 : get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, path);
+    });
+    REPLACE(sftp_get_error, [](auto...) { return SSH_FX_PERMISSION_DENIED; });
+    auto err = "SFTP server: Permission denied";
+    REPLACE(ssh_get_error, [&](auto...) { return err; });
+
+    auto sftp_client = make_sftp_client();
+
+    MP_EXPECT_THROW_THAT(
+        sftp_client.expand_remote_path("release-*/logs/*.txt"),
+        mp::SFTPError,
+        mpt::match_what(
+            StrEq(fmt::format("cannot open remote directory 'release-b/logs': {}", err))));
+}
+
+TEST_F(SFTPClient, skipsNonDirectoryCandidatesAfterWildcard)
+{
+    REPLACE_SFTP_INIT();
+
+    auto root_index = 0;
+    std::vector<sftp_attributes> root_entries{
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, "release-b"),
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, "release-a"),
+        nullptr,
+    };
+    auto first_entry_returned = false;
+    REPLACE(sftp_opendir, [](auto, auto path) -> sftp_dir {
+        // "release-b/logs" is a regular file, so descending into it is not a match.
+        return std::string_view{path} == "release-b/logs" ? nullptr : get_dummy_sftp_dir(path);
+    });
+    REPLACE(sftp_readdir, [&](auto, auto directory) -> sftp_attributes {
+        const std::string_view path{directory->name};
+        if (path == ".")
+            return root_entries[root_index++];
+        if (path == "release-a/logs" && !first_entry_returned)
+        {
+            first_entry_returned = true;
+            return get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "first.txt");
+        }
+
+        return nullptr;
+    });
+    REPLACE(sftp_dir_eof, [](auto...) { return true; });
+    REPLACE(sftp_stat, [](auto, auto path) {
+        return std::string_view{path} == "release-*/logs/*.txt"
+                 ? nullptr
+                 : get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, path);
+    });
+    REPLACE(sftp_get_error, [](auto...) { return SSH_FX_NO_SUCH_FILE; });
+
+    auto sftp_client = make_sftp_client();
+
+    EXPECT_THAT(sftp_client.expand_remote_path("release-*/logs/*.txt"),
+                ElementsAre(fs::path{"release-a/logs/first.txt"}));
+}
+
+TEST_F(SFTPClient, trailingSlashPatternOnlyMatchesDirectories)
+{
+    REPLACE_SFTP_INIT();
+
+    std::vector<sftp_attributes> entries{
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "ignored.txt"),
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, "subdir"),
+        nullptr,
+    };
+    REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
+    auto read_dir = [&, index = 0](auto...) mutable { return entries[index++]; };
+    REPLACE(sftp_readdir, read_dir);
+    REPLACE(sftp_dir_eof, [](auto...) { return true; });
+    REPLACE(sftp_stat, [](auto, auto path) {
+        const std::string_view remote_path{path};
+        return remote_path == "dir/*/"
+                 ? nullptr
+                 : get_dummy_sftp_attr(remote_path == "dir/subdir" ? SSH_FILEXFER_TYPE_DIRECTORY
+                                                                   : SSH_FILEXFER_TYPE_REGULAR,
+                                       path);
+    });
+
+    auto sftp_client = make_sftp_client();
+
+    EXPECT_THAT(sftp_client.expand_remote_path("dir/*/"), ElementsAre(fs::path{"dir/subdir"}));
+}
+
+TEST_F(SFTPClient, throwsWhenTrailingSlashPatternMatchesNoDirectories)
+{
+    REPLACE_SFTP_INIT();
+
+    std::vector<sftp_attributes> entries{
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, "ignored.txt"),
+        nullptr,
+    };
+    REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
+    auto read_dir = [&, index = 0](auto...) mutable { return entries[index++]; };
+    REPLACE(sftp_readdir, read_dir);
+    REPLACE(sftp_dir_eof, [](auto...) { return true; });
+    REPLACE(sftp_stat, [](auto, auto path) {
+        return std::string_view{path} == "dir/*/"
+                 ? nullptr
+                 : get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR, path);
+    });
+
+    auto sftp_client = make_sftp_client();
+
+    MP_EXPECT_THROW_THAT(sftp_client.expand_remote_path("dir/*/"),
+                         mp::SFTPError,
+                         mpt::match_what(StrEq("no matches found: dir/*/")));
+}
+
 TEST_F(SFTPClient, throwsWhenRemoteWildcardHasNoMatches)
 {
     REPLACE_SFTP_INIT();
