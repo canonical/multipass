@@ -32,6 +32,7 @@ target_link_libraries(multipass_integration_tests
   GTest::gmock_main
   Qt6::Core fmt::fmt-header-only
   libssh_wrapper
+  platform
 )
 target_include_directories(multipass_integration_tests
   PRIVATE ${CMAKE_SOURCE_DIR}

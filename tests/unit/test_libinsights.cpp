@@ -19,44 +19,50 @@
 
 #include <gtest/gtest.h>
 
-#include <QByteArray>
-#include <QFile>
-#include <QTemporaryDir>
+#include "temp_dir.h"
 
-namespace
+#include <filesystem>
+
+namespace multipass::test
 {
-class UbuntuInsightsAPI : public testing::Test
+class LibInsights : public testing::Test
 {
 protected:
-    void SetUp() override
+    const char* to_const_char_ptr(const char8_t* data)
     {
-        ASSERT_TRUE(directory.isValid());
-
-        consent_dir = directory.filePath("consent").toUtf8();
-        insights_dir = directory.filePath("insights").toUtf8();
-        system_config_dir = directory.filePath("system").toUtf8();
-
-        config = {consent_dir.constData(),
-                  insights_dir.constData(),
-                  system_config_dir.constData(),
-                  false};
+        return reinterpret_cast<const char*>(data);
     }
 
-    QTemporaryDir directory;
-    QByteArray consent_dir;
-    QByteArray insights_dir;
-    QByteArray system_config_dir;
+    void SetUp() override
+    {
+        std::filesystem::path tempdir_fs = tempdir;
+
+        consent_dir = (tempdir_fs / "consent").u8string();
+        insights_dir = (tempdir_fs / "insights").u8string();
+        system_config_dir = (tempdir_fs / "system").u8string();
+
+        config = {
+            .consent_dir = to_const_char_ptr(consent_dir.c_str()),
+            .insights_dir = to_const_char_ptr(insights_dir.c_str()),
+            .system_config_dir = to_const_char_ptr(system_config_dir.c_str()),
+            .verbose = false,
+        };
+    }
+
+    TempDir tempdir;
+    std::u8string consent_dir;
+    std::u8string insights_dir;
+    std::u8string system_config_dir;
     insights_config config{};
 };
-} // namespace
 
-TEST_F(UbuntuInsightsAPI, missingConsentIsUnknown)
+TEST_F(LibInsights, missingConsentIsUnknown)
 {
     EXPECT_EQ(MP_LIBINSIGHTS.insights_get_consent_state(&config, "multipass"),
               INSIGHTS_CONSENT_UNKNOWN);
 }
 
-TEST_F(UbuntuInsightsAPI, consentCanBeCreatedAndUpdated)
+TEST_F(LibInsights, consentCanBeCreatedAndUpdated)
 {
     for (const auto consent : {true, false})
     {
@@ -70,7 +76,7 @@ TEST_F(UbuntuInsightsAPI, consentCanBeCreatedAndUpdated)
     }
 }
 
-TEST_F(UbuntuInsightsAPI, consentIsSpecificToSource)
+TEST_F(LibInsights, consentIsSpecificToSource)
 {
     char* error = MP_LIBINSIGHTS.insights_set_consent_state(&config, "multipass", true);
 
@@ -82,3 +88,4 @@ TEST_F(UbuntuInsightsAPI, consentIsSpecificToSource)
 
     MP_LIBINSIGHTS.insights_free(error);
 }
+} // namespace multipass::test
