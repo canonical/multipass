@@ -86,6 +86,32 @@ bool wildcard_matches(const std::string_view pattern,
 
 namespace multipass
 {
+namespace
+{
+enum class RemoteEntryType
+{
+    missing,
+    non_directory,
+    directory,
+};
+
+RemoteEntryType remote_entry_type(sftp_session sftp, const std::string& path)
+{
+    if (auto attr = mp_sftp_stat(sftp, path.c_str()))
+        return attr->type == SSH_FILEXFER_TYPE_DIRECTORY ? RemoteEntryType::directory
+                                                         : RemoteEntryType::non_directory;
+
+    // A missing entry simply stops matching; other failures, such as permission problems,
+    // must not silently truncate the transfer.
+    if (MP_LIBSSH.sftp_get_error(sftp) != SSH_FX_NO_SUCH_FILE)
+        throw SFTPError{"cannot access remote path '{}': {}",
+                        path,
+                        MP_LIBSSH.ssh_get_error(sftp->session)};
+
+    return RemoteEntryType::missing;
+}
+} // namespace
+
 namespace mpl = logging;
 
 SFTPSessionUPtr make_sftp_session(ssh_session session)
@@ -151,17 +177,7 @@ std::vector<fs::path> SFTPClient::expand_remote_path(const fs::path& path)
             if (expanded_pattern)
             {
                 std::erase_if(candidates, [this](const auto& candidate) {
-                    if (mp_sftp_stat(sftp.get(), candidate.c_str()))
-                        return false;
-
-                    // A candidate that no longer exists simply stops matching. Other failures,
-                    // such as permission problems, must not silently truncate the transfer.
-                    if (MP_LIBSSH.sftp_get_error(sftp.get()) != SSH_FX_NO_SUCH_FILE)
-                        throw SFTPError{"cannot access remote path '{}': {}",
-                                        candidate,
-                                        MP_LIBSSH.ssh_get_error(sftp->session)};
-
-                    return true;
+                    return remote_entry_type(sftp.get(), candidate) == RemoteEntryType::missing;
                 });
                 if (candidates.empty())
                     throw SFTPError{"no matches found: {}", path};
@@ -220,8 +236,7 @@ std::vector<fs::path> SFTPClient::expand_remote_path(const fs::path& path)
     if (remote_path.ends_with('/'))
     {
         std::erase_if(candidates, [this](const auto& candidate) {
-            const auto attr = mp_sftp_stat(sftp.get(), candidate.c_str());
-            return !attr || attr->type != SSH_FILEXFER_TYPE_DIRECTORY;
+            return remote_entry_type(sftp.get(), candidate) != RemoteEntryType::directory;
         });
 
         if (candidates.empty())

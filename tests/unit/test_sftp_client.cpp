@@ -528,6 +528,31 @@ TEST_F(SFTPClient, throwsWhenTrailingSlashPatternMatchesNoDirectories)
                          mpt::match_what(StrEq("no matches found: dir/*/")));
 }
 
+TEST_F(SFTPClient, throwsWhenTrailingSlashPatternCannotAccessCandidate)
+{
+    REPLACE_SFTP_INIT();
+
+    std::vector<sftp_attributes> entries{
+        get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY, "subdir"),
+        nullptr,
+    };
+    REPLACE(sftp_opendir, [](auto, auto path) { return get_dummy_sftp_dir(path); });
+    auto read_dir = [&, index = 0](auto...) mutable { return entries[index++]; };
+    REPLACE(sftp_readdir, read_dir);
+    REPLACE(sftp_dir_eof, [](auto...) { return true; });
+    REPLACE(sftp_stat, [](auto...) { return nullptr; });
+    REPLACE(sftp_get_error, [](auto...) { return SSH_FX_PERMISSION_DENIED; });
+    auto err = "SFTP server: Permission denied";
+    REPLACE(ssh_get_error, [&](auto...) { return err; });
+
+    auto sftp_client = make_sftp_client();
+
+    MP_EXPECT_THROW_THAT(
+        sftp_client.expand_remote_path("dir/*/"),
+        mp::SFTPError,
+        mpt::match_what(StrEq(fmt::format("cannot access remote path 'dir/subdir': {}", err))));
+}
+
 TEST_F(SFTPClient, throwsWhenRemoteWildcardHasNoMatches)
 {
     REPLACE_SFTP_INIT();
