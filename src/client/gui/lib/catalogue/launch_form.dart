@@ -44,9 +44,11 @@ final randomNameProvider = Provider.autoDispose(
 
 String imageName(ImageInfo imageInfo) {
   final result = '${imageInfo.os} ${imageInfo.release}';
-  return imageInfo.aliases.any((a) => RegExp(r'\bcore\d{0,2}\b').hasMatch(a))
-      ? result
-      : '$result ${imageInfo.codename}';
+  final codename = imageInfo.codename;
+  final omitCodename = codename.isEmpty ||
+      codename.toLowerCase() == imageInfo.release.toLowerCase() ||
+      imageInfo.aliases.any((a) => RegExp(r'\bcore\d{0,2}\b').hasMatch(a));
+  return omitCodename ? result : '$result $codename';
 }
 
 final defaultCpus = 1;
