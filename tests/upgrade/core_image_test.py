@@ -57,14 +57,14 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def _seed_core(vm, image, record):
+def _seed_core(vm, image):
     if multipass_version_has_feature("core_remote"):
         image = f"core:{image}"
     with seeded_vm(vm, image=image):
         sentinel = seed_sentinel(vm, vm)
         fingerprint = info_fingerprint(vm)  # cpu/memory only reported while running
         park_seeded(vm, how="stop", expected="Stopped")
-    record.update({"sentinel": sentinel, "fingerprint": fingerprint})
+    return {"sentinel": sentinel, "fingerprint": fingerprint}
 
 
 def _verify_core(vm, record):
@@ -76,7 +76,7 @@ def _verify_core(vm, record):
 @pytest.mark.seed
 @pytest.mark.scenario("upg-core24")
 def test_core24_seed(scenario):
-    _seed_core("upg-core24", "core24", scenario.record)
+    scenario.record.update(_seed_core("upg-core24", "core24"))
 
 
 @pytest.mark.verify
@@ -93,7 +93,7 @@ def test_core26_seed(request):
     # `scenario` keeps the seed manifest clean.
     skip_if_feature_not_supported("core26_images")
     scenario = request.getfixturevalue("scenario")
-    _seed_core("upg-core26", "core26", scenario.record)
+    scenario.record.update(_seed_core("upg-core26", "core26"))
 
 
 @pytest.mark.verify

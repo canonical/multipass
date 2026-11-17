@@ -54,12 +54,12 @@ def host_network():
         yield name
 
 
-def _seed(vm, host_network, record, how="stop", expected="Stopped"):
+def _seed(vm, host_network, how="stop", expected="Stopped"):
     with seeded_vm(vm, extra_args=["--network", f"name={host_network},mode=manual"]):
         macs = guest_interface_macs(vm)
         assert len(macs) >= 2, f"expected an extra interface, found MACs: {macs}"
         park_seeded(vm, how=how, expected=expected)
-    record.update({"macs": macs, "network": host_network})
+    return {"macs": macs, "network": host_network}
 
 
 def _verify(vm, record, expected="Stopped"):
@@ -72,7 +72,7 @@ def _verify(vm, record, expected="Stopped"):
 @pytest.mark.seed
 @pytest.mark.scenario(STOP_VM)
 def test_network_seed(scenario, host_network):
-    _seed(STOP_VM, host_network, scenario.record)
+    scenario.record.update(_seed(STOP_VM, host_network))
 
 
 @pytest.mark.verify
@@ -85,7 +85,7 @@ def test_network_verify(scenario, host_network):
 @pytest.mark.scenario(SUSPEND_VM)
 @requires_suspend
 def test_network_suspend_seed(scenario, host_network):
-    _seed(SUSPEND_VM, host_network, scenario.record, how="suspend", expected="Suspended")
+    scenario.record.update(_seed(SUSPEND_VM, host_network, how="suspend", expected="Suspended"))
 
 
 @pytest.mark.verify

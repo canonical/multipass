@@ -56,6 +56,10 @@ pytest_plugins = ["cli.conftest"]
 
 SCHEMA = 1
 
+#: pytest cache key marking that a previous seed run wrote the manifest, so the
+#: next one merges into it. ``pytest --cache-clear`` drops it to start fresh.
+KEEP_MANIFEST_CACHE_KEY = "upgrade_tests/keep_manifest"
+
 # Establish the namespace at import time so it is always safe to read.
 cfg.upgrade = SimpleNamespace(manifest="upgrade-manifest.json")
 
@@ -82,25 +86,32 @@ def _env_meta() -> dict:
 
 
 @pytest.fixture(scope="session")
-def seed_manifest():
+def seed_manifest(request):
     """Dict the seed tests fill in; written to disk once at session end.
 
     Only instantiated when seed tests run (``-m seed``), so the verify run never
-    overwrites the manifest. Pre-existing scenarios are loaded first so a partial
-    re-seed (e.g. ``--lf``) updates the failed scenarios without dropping the
-    rest. Delete the manifest to start over.
+    overwrites the manifest. Scenarios from a previous seed run are merged in so
+    a partial re-seed (e.g. ``--lf``) updates the failed scenarios without
+    dropping the rest. Run with ``--cache-clear`` to start from an empty
+    manifest instead. Without the cache plugin (``-p no:cacheprovider``), an
+    existing manifest is always merged.
     """
     meta = _env_meta()
     document = {"schema": SCHEMA, "seed": meta, "scenarios": {}}
 
+    cache = getattr(request.config, "cache", None)
+    keep = cache is None or cache.get(KEEP_MANIFEST_CACHE_KEY, False)
+    if cache is not None:
+        cache.set(KEEP_MANIFEST_CACHE_KEY, True)
+
     path = Path(cfg.upgrade.manifest)
-    if path.exists():
-        prior = json.loads(path.read_text(encoding="utf-8"))
+    if keep and path.exists():
+        prior = json.loads(path.read_text())
         if prior.get("schema") == SCHEMA:
             scenarios = prior.get("scenarios", {})
             logging.info(
                 "upgrade :: merging into existing manifest %s (%d scenario(s); "
-                "delete it to start fresh)", path, len(scenarios)
+                "run with `--cache-clear` to start fresh)", path, len(scenarios)
             )
             document["scenarios"].update(scenarios)
 
@@ -108,7 +119,7 @@ def seed_manifest():
 
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(document, indent=2, sort_keys=True), encoding="utf-8")
+    tmp.write_text(json.dumps(document, indent=2, sort_keys=True))
     tmp.replace(path)
     logging.info(
         "upgrade :: wrote %d record(s) to %s", len(document["scenarios"]), path
@@ -124,7 +135,7 @@ def verify_manifest():
             f"Upgrade manifest not found at `{path}`. Run the seed phase "
             "(`pytest tests/upgrade -m seed`) first."
         )
-    document = json.loads(path.read_text(encoding="utf-8"))
+    document = json.loads(path.read_text())
     assert document.get("schema") == SCHEMA, (
         f"Unsupported upgrade manifest schema `{document.get('schema')}` "
         f"(this harness speaks `{SCHEMA}`)."

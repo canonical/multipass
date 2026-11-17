@@ -52,21 +52,18 @@ def ensure_absent(name: str) -> None:
 
 
 @contextmanager
-def seeded_vm(name: str, *, extra_args=None, **launch_overrides):
+def seeded_vm(name: str, **launch_overrides):
     """Launch a persistent VM to seed, yielding the cli ``launch`` handle.
 
     Wraps the shared ``launch`` helper with the two conventions every seed test
     needs: make the name idempotent (``ensure_absent``) and keep the VM around
     after the test process exits (``autodelete=False``) so it survives the
-    upgrade. ``extra_args`` are forwarded verbatim to ``launch`` (e.g.
-    ``--network`` or ``--cloud-init``). Other keyword arguments override the
-    shared launch defaults (e.g. ``cpus``, ``memory``, or ``disk``).
+    upgrade. Keyword arguments override the shared launch defaults (e.g.
+    ``cpus``, ``memory``, ``disk``, or ``extra_args`` such as ``--network`` or
+    ``--cloud-init``).
     """
     ensure_absent(name)
-    override = {"name": name, "autodelete": False}
-    override.update(launch_overrides)
-    if extra_args:
-        override["extra_args"] = extra_args
+    override = {"name": name, "autodelete": False, **launch_overrides}
     with launch(cfg_override=override) as vm:
         yield vm
 

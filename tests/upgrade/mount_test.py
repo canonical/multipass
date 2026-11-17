@@ -60,7 +60,7 @@ def _guest_target(source: Path) -> str:
     return (Path("/home/ubuntu") / source.name).as_posix()
 
 
-def _seed(vm, mount_type, label, record, park="stop", expected="Stopped"):
+def _seed(vm, mount_type, label, park="stop", expected="Stopped"):
     source = daemon_readable_dir(vm)
     target = _guest_target(source)
     host_content = make_sentinel(f"{label}-host")
@@ -84,13 +84,13 @@ def _seed(vm, mount_type, label, record, park="stop", expected="Stopped"):
         recorded_mounts = mounts(vm)
         park_seeded(vm, how=park, expected=expected)
 
-    record.update({
+    return {
         "target": target,
         "host_content": host_content,
         "guest_content": guest_content,
         "mounts": recorded_mounts,
         "expected": expected,
-    })
+    }
 
 
 def _verify(vm, record):
@@ -113,7 +113,7 @@ def _verify(vm, record):
 @pytest.mark.seed
 @pytest.mark.scenario(CLASSIC_VM)
 def test_mount_seed(scenario):
-    _seed(CLASSIC_VM, "classic", "mount", scenario.record)
+    scenario.record.update(_seed(CLASSIC_VM, "classic", "mount"))
 
 
 @pytest.mark.verify
@@ -126,7 +126,7 @@ def test_mount_verify(scenario):
 @pytest.mark.scenario(NATIVE_VM)
 @native_unsupported
 def test_native_mount_seed(scenario):
-    _seed(NATIVE_VM, "native", "native-mount", scenario.record)
+    scenario.record.update(_seed(NATIVE_VM, "native", "native-mount"))
 
 
 @pytest.mark.verify
@@ -140,7 +140,9 @@ def test_native_mount_verify(scenario):
 @pytest.mark.scenario(SUSPEND_VM)
 @unsupported
 def test_suspend_mount_seed(scenario):
-    _seed(SUSPEND_VM, "classic", "suspmount", scenario.record, park="suspend", expected="Suspended")
+    scenario.record.update(
+        _seed(SUSPEND_VM, "classic", "suspmount", park="suspend", expected="Suspended")
+    )
 
 
 @pytest.mark.verify
