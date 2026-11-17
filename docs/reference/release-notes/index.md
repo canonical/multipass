@@ -23,6 +23,7 @@ Along with bug fixes and general improvements, Multipass 1.17.x includes:
 
 | Release date   |  Release notes  |
 |----|----|
+| November 19, 2026 | [Multipass 1.17.2](./1.17.2) |
 | November 9, 2026 | [Multipass 1.17.1](./1.17.1) |
 | October 19, 2026 | [Multipass 1.17.0](./1.17.0) |
 
