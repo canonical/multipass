@@ -103,6 +103,9 @@ release/1.15 $ git push --tags
 
 ### Publicly release
 
+> [!NOTE]
+> Prior to releasing you should note down the snap revision numbers of each architecture in `latest/stable` in case a rollback is necessary.
+
 10. Promote the snap from beta to stable.
 11. Publish the release draft on GH.
 12. Submit the update on the Microsoft Store.
@@ -137,3 +140,20 @@ Steps to follow up on the following few days:
 ## Additional resources
 
 [2024 Discourse announcement on the release process](https://discourse.ubuntu.com/t/multipass-release-process/10363)
+
+## Rolling back a release
+
+### Windows Store
+
+Change the static link to the previous release's static link in the Windows Store.
+
+### Snap store
+To roll back a release, do for each architecture revision:
+```
+snapcraft release multipass <arch_rev_number> latest/stable
+```
+
+If you did not write down the revision number, you can try to identify previous release's revisions of each architecture via the API or from the output of:
+```
+snapcraft revisions multipass
+```
