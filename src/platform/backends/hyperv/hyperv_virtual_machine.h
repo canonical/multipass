@@ -66,9 +66,7 @@ public:
                                                             const VMMount& mount) override;
 
 protected:
-    void add_network_interface_impl(int index,
-                                    const std::string& default_mac_addr,
-                                    const NetworkInterface& extra_interface) override;
+    void add_network_interface_impl(const NetworkInterface& extra_interface) override;
     void handle_state_update() override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const QString& filename) override;
     std::shared_ptr<Snapshot> make_specific_snapshot(const std::string& snapshot_name,

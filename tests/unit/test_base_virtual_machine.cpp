@@ -110,10 +110,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
     MOCK_METHOD(void, update_cpus_impl, (int), (override));
     MOCK_METHOD(void, resize_memory_impl, (const mp::MemorySize&), (override));
     MOCK_METHOD(void, resize_disk_impl, (const mp::MemorySize&), (override));
-    MOCK_METHOD(void,
-                add_network_interface_impl,
-                (int, const std::string&, const mp::NetworkInterface&),
-                (override));
+    MOCK_METHOD(void, add_network_interface_impl, (const mp::NetworkInterface&), (override));
 
     MOCK_METHOD(std::unique_ptr<mp::SSHProcess>,
                 make_ssh_process,
@@ -1738,7 +1735,9 @@ TEST_F(BaseVM, addNetworkInterfaceCallsImplAndUpdatesDescription)
     vm.desc.default_mac_address = "52:54:00:00:00:00";
     vm.desc.extra_interfaces = {existing};
 
-    EXPECT_CALL(vm, add_network_interface_impl(1, "52:54:00:00:00:00", new_if));
+    EXPECT_CALL(vm, add_network_interface_impl(new_if));
+    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first,
+                add_extra_interface_to_cloud_init("52:54:00:00:00:00", new_if, _));
 
     vm.mp::BaseVirtualMachine::add_network_interface(new_if);
 
@@ -1748,6 +1747,8 @@ TEST_F(BaseVM, addNetworkInterfaceCallsImplAndUpdatesDescription)
 TEST_F(BaseVM, addNetworkInterfaceLeavesDescriptionWhenImplThrows)
 {
     EXPECT_CALL(vm, add_network_interface_impl).WillOnce(Throw(std::runtime_error{"intentional"}));
+    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first, add_extra_interface_to_cloud_init)
+        .Times(0);
 
     EXPECT_THROW(vm.mp::BaseVirtualMachine::add_network_interface({"eth1", "", true}),
                  std::runtime_error);

@@ -486,18 +486,14 @@ void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMes
 
 void mp::BaseVirtualMachine::add_network_interface(const NetworkInterface& extra_interface)
 {
-    const auto index = static_cast<int>(desc.extra_interfaces.size());
-    const auto& default_mac_addr = desc.default_mac_address;
     mpl::debug(vm_name,
-               "add_network_interface() -> index `{}`, default mac `{}`, id `{}`, mac `{}`, "
-               "auto mode `{}`",
-               index,
-               default_mac_addr,
+               "add_network_interface() -> id `{}`, mac `{}`, auto mode `{}`",
                extra_interface.id,
                extra_interface.mac_address,
                extra_interface.auto_mode);
 
-    add_network_interface_impl(index, default_mac_addr, extra_interface);
+    add_network_interface_impl(extra_interface);
+    add_extra_interface_to_instance_cloud_init(desc.default_mac_address, extra_interface);
     desc.extra_interfaces.push_back(extra_interface);
 }
 

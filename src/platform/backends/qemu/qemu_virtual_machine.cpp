@@ -698,13 +698,6 @@ void mp::QemuVirtualMachine::resize_disk_impl(const MemorySize& new_size)
     mp::backend::resize_instance_image(new_size, desc.image.image_path);
 }
 
-void mp::QemuVirtualMachine::add_network_interface_impl(int /* not used on this backend */,
-                                                        const std::string& default_mac_addr,
-                                                        const NetworkInterface& extra_interface)
-{
-    add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
-}
-
 mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const std::string& target,
                                                                          const VMMount& mount)
 {

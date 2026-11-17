@@ -72,9 +72,9 @@ protected:
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
     void resize_disk_impl(const MemorySize& new_size) override;
-    void add_network_interface_impl(int index,
-                                    const std::string& default_mac_addr,
-                                    const NetworkInterface& extra_interface) override;
+    void add_network_interface_impl(const NetworkInterface&) override
+    {
+    }
 
     bool unplugged() override;
     void refresh_start() override;

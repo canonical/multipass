@@ -269,12 +269,8 @@ void AppleVZVirtualMachine::resize_disk_impl(const MemorySize& new_size)
     MP_APPLEVZ_UTILS.resize_image(new_size, desc.image.image_path);
 }
 
-void AppleVZVirtualMachine::add_network_interface_impl(int /*index*/,
-                                                       const std::string& default_mac_addr,
-                                                       const NetworkInterface& extra_interface)
+void AppleVZVirtualMachine::add_network_interface_impl(const NetworkInterface& /*extra_interface*/)
 {
-    add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
-
     // network devices are fixed when the handle is created, so rebuild it on the next start
     const std::lock_guard lock{state_mutex};
     if (cached_state() == State::stopped)
