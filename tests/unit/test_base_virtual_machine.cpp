@@ -110,6 +110,10 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
     MOCK_METHOD(void, update_cpus_impl, (int), (override));
     MOCK_METHOD(void, resize_memory_impl, (const mp::MemorySize&), (override));
     MOCK_METHOD(void, resize_disk_impl, (const mp::MemorySize&), (override));
+    MOCK_METHOD(void,
+                add_network_interface_impl,
+                (int, const std::string&, const mp::NetworkInterface&),
+                (override));
 
     MOCK_METHOD(std::unique_ptr<mp::SSHProcess>,
                 make_ssh_process,
@@ -1725,6 +1729,30 @@ TEST_F(BaseVM, resizeMemoryLeavesDescriptionWhenImplThrows)
     EXPECT_THROW(vm.mp::BaseVirtualMachine::resize_memory(new_size), std::runtime_error);
 
     EXPECT_EQ(vm.desc.mem_size, orig_mem_size);
+}
+
+TEST_F(BaseVM, addNetworkInterfaceCallsImplAndUpdatesDescription)
+{
+    const mp::NetworkInterface existing{"eth0", "52:54:00:00:00:01", true};
+    const mp::NetworkInterface new_if{"eth1", "52:54:00:00:00:02", false};
+    vm.desc.default_mac_address = "52:54:00:00:00:00";
+    vm.desc.extra_interfaces = {existing};
+
+    EXPECT_CALL(vm, add_network_interface_impl(1, "52:54:00:00:00:00", new_if));
+
+    vm.mp::BaseVirtualMachine::add_network_interface(new_if);
+
+    EXPECT_THAT(vm.desc.extra_interfaces, ElementsAre(existing, new_if));
+}
+
+TEST_F(BaseVM, addNetworkInterfaceLeavesDescriptionWhenImplThrows)
+{
+    EXPECT_CALL(vm, add_network_interface_impl).WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    EXPECT_THROW(vm.mp::BaseVirtualMachine::add_network_interface({"eth1", "", true}),
+                 std::runtime_error);
+
+    EXPECT_THAT(vm.desc.extra_interfaces, IsEmpty());
 }
 
 } // namespace
