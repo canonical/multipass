@@ -22,7 +22,6 @@ import logging
 import re
 import sys
 import threading
-import time
 from contextlib import suppress
 from typing import Optional
 
@@ -390,9 +389,11 @@ class MultipassdGovernor:
         """
         Wait until Multipass daemon starts responding to CLI commands.
         """
-        deadline = time.monotonic() + timeout
+        # `asyncio.timeout_at` measures against the event loop's clock.
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
 
-        while time.monotonic() < deadline:
+        while loop.time() < deadline:
             try:
                 find_stdout = None
                 find_exitcode = 0
@@ -402,10 +403,8 @@ class MultipassdGovernor:
                     "noble",
                     env=get_multipass_env(),
                 ) as find_proc:
-                    find_stdout, _ = await asyncio.wait_for(
-                        find_proc.communicate(),
-                        timeout=max(0.0, deadline - time.monotonic()),
-                    )
+                    async with asyncio.timeout_at(deadline):
+                        find_stdout, _ = await find_proc.communicate()
                     find_exitcode = find_proc.returncode
 
                 if find_exitcode != 0:
@@ -419,10 +418,8 @@ class MultipassdGovernor:
                     logging.debug(find_stdout)
 
                 # Otherwise, verify the version
-                _, stdout = await asyncio.wait_for(
-                    MultipassdGovernor._run_version_probe(),
-                    timeout=max(0.0, deadline - time.monotonic()),
-                )
+                async with asyncio.timeout_at(deadline):
+                    _, stdout = await MultipassdGovernor._run_version_probe()
                 cli_ver, daemon_ver = parse_multipass_versions(stdout.decode())
 
                 if daemon_ver is not None:
