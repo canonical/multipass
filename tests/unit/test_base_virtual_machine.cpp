@@ -1367,6 +1367,39 @@ TEST_F(BaseVM, rollsbackFailedRestore)
     EXPECT_EQ(vm.take_snapshot(current_specs, "", "")->get_parent().get(), &last_snapshot);
 }
 
+TEST_F(BaseVM, rollsBackDescriptionOnFailedRestore)
+{
+    mock_snapshotting();
+
+    const mp::VMSpecs specs{};
+    const auto* snapshot_name = "snapshot1";
+    vm.take_snapshot(specs, snapshot_name, "");
+
+    ASSERT_EQ(snapshot_album.size(), 1);
+    auto& snapshot = *snapshot_album[0];
+
+    const std::vector<mp::NetworkInterface> snapshot_interfaces{{"id", "52:54:00:56:78:91", true}};
+    const auto orig_num_cores = vm.desc.num_cores;
+    const auto orig_interfaces = vm.desc.extra_interfaces;
+
+    EXPECT_CALL(snapshot, get_mounts).WillRepeatedly(ReturnRef(specs.mounts));
+    EXPECT_CALL(snapshot, get_metadata).WillRepeatedly(ReturnRef(specs.metadata));
+    EXPECT_CALL(snapshot, get_extra_interfaces).WillRepeatedly(Return(snapshot_interfaces));
+    EXPECT_CALL(snapshot, apply).WillOnce([this, orig_num_cores, &snapshot_interfaces] {
+        vm.desc.num_cores = orig_num_cores + 1;
+        vm.desc.extra_interfaces = snapshot_interfaces;
+    });
+    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first,
+                update_cloud_init_with_new_extra_interfaces_and_new_id)
+        .WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    auto current_specs = specs;
+    EXPECT_ANY_THROW(vm.restore_snapshot(snapshot_name, current_specs));
+
+    EXPECT_EQ(vm.desc.num_cores, orig_num_cores);
+    EXPECT_EQ(vm.desc.extra_interfaces, orig_interfaces);
+}
+
 TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
 {
     vm.simulate_cloud_init();
