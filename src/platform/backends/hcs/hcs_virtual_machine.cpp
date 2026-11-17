@@ -656,19 +656,10 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
     }
 }
 
-void HCSVirtualMachine::add_network_interface(int index,
-                                              const std::string& default_mac_addr,
-                                              const NetworkInterface& extra_interface)
+void HCSVirtualMachine::add_network_interface_impl(int /*index*/,
+                                                   const std::string& default_mac_addr,
+                                                   const NetworkInterface& extra_interface)
 {
-    mpl::debug(get_name(),
-               "add_network_interface() -> index: {}, default_mac: {}, "
-               "extra_interface: (mac: {}, "
-               "mac_address: {}, id: {})",
-               index,
-               default_mac_addr,
-               extra_interface.mac_address,
-               extra_interface.auto_mode,
-               extra_interface.id);
     add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
     if (cached_state() != VirtualMachine::State::stopped)
     {
@@ -678,6 +669,7 @@ void HCSVirtualMachine::add_network_interface(int index,
         return;
     }
 }
+
 std::unique_ptr<MountHandler>
 HCSVirtualMachine::make_native_mount_handler(const std::string& target, const VMMount& mount)
 {

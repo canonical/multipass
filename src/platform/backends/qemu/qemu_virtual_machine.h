@@ -56,9 +56,6 @@ public:
     void suspend() override;
     std::optional<IPAddress> management_ipv4() override;
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
-    virtual void add_network_interface(int index,
-                                       const std::string& default_mac_addr,
-                                       const NetworkInterface& extra_interface) override;
     virtual MountArgs& modifiable_mount_args();
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
                                                             const VMMount& mount) override;
@@ -75,6 +72,9 @@ protected:
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
     void resize_disk_impl(const MemorySize& new_size) override;
+    void add_network_interface_impl(int index,
+                                    const std::string& default_mac_addr,
+                                    const NetworkInterface& extra_interface) override;
 
     bool unplugged() override;
     void refresh_start() override;
