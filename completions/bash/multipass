@@ -64,6 +64,17 @@ _multipass_complete()
         opts=$( multipass networks --format=csv 2>/dev/null | \tail -n +2 | \cut -d',' -f 1 )
     }
 
+    # Set $opts to the list of available zones matching the requested availability.
+    _multipass_zones()
+    {
+        local available=$1 zones
+
+        zones=$( multipass zones --format=csv 2>/dev/null \
+                 | \awk -F',' -v available="$available" 'NR > 1 && $2 == available {print $1}' )
+        opts=""
+        _add_nonrepeating_args "$zones"
+    }
+
     _multipass_instances_with_colon()
     {
         local opts_bak="${opts}"
@@ -230,7 +241,7 @@ _multipass_complete()
     prev_opts=false
     multipass_cmds="authenticate transfer delete exec images help info launch list mount networks \
                     recover restart restore shell snapshot snapshots start stop suspend unmount \
-                    version get set clone alias aliases unalias"
+                    version get set clone alias aliases unalias zones enable-zones disable-zones"
 
     if [[ "${multipass_cmds}" =~ " ${cmd} " || "${multipass_cmds}" =~ ^${cmd} || "${multipass_cmds}" =~ \ ${cmd}$ ]];
     then
@@ -248,15 +259,18 @@ _multipass_complete()
         "list"|"ls")
             _add_nonrepeating_args "--format"
         ;;
-        "networks"|"aliases"|"snapshots")
+        "networks"|"aliases"|"snapshots"|"zones")
             _add_nonrepeating_args "--format"
         ;;
         "delete")
             _add_nonrepeating_args "--all"
         ;;
         "launch")
-            _add_nonrepeating_args "--cpus --disk --memory --name --cloud-init --bridged --mount"
+            _add_nonrepeating_args "--cpus --disk --memory --name --cloud-init --bridged --mount --zone"
             opts="${opts} --network --mount"
+        ;;
+        "enable-zones"|"disable-zones")
+            _add_nonrepeating_args "--all"
         ;;
         "mount")
             opts="${opts} --gid-map --uid-map"
@@ -304,6 +318,10 @@ _multipass_complete()
             "--mount")
                 _filedir
                 return
+            ;;
+            "--zone")
+                _multipass_zones true
+                prev_opts=true
             ;;
             "--network")
                 _multipass_networks
@@ -402,6 +420,16 @@ _multipass_complete()
                 if [[ ${#COMPREPLY[@]} -eq 1 && "${COMPREPLY[0]}" != "--help" && "${COMPREPLY[0]}" != "--verbose" ]]; then
                     opts="${COMPREPLY[0]}="
                     compopt -o nospace
+                fi
+            ;;
+            "enable-zones")
+                if [[ "${cur}" != -* ]]; then
+                    _multipass_zones false
+                fi
+            ;;
+            "disable-zones")
+                if [[ "${cur}" != -* ]]; then
+                    _multipass_zones true
                 fi
             ;;
             "mount")
