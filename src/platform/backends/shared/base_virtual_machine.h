@@ -133,10 +133,7 @@ protected:
     virtual void update_cpus_impl(int /*num_cores*/) {};
     virtual void resize_memory_impl(const MemorySize& /*new_size*/) {};
     virtual void resize_disk_impl(const MemorySize& new_size) = 0;
-    virtual void add_network_interface_impl(const NetworkInterface& /*extra_interface*/)
-    {
-        throw NotImplementedOnThisBackendException("networks");
-    }
+    virtual void add_network_interface_impl(const NetworkInterface& /*extra_interface*/) {};
 
     /**
      * Refresh the VM, if possible, when the startup appears stuck.

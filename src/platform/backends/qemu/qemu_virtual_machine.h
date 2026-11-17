@@ -72,9 +72,6 @@ protected:
                                                      const VMSpecs& specs,
                                                      std::shared_ptr<Snapshot> parent) override;
     void resize_disk_impl(const MemorySize& new_size) override;
-    void add_network_interface_impl(const NetworkInterface&) override
-    {
-    }
 
     bool unplugged() override;
     void refresh_start() override;

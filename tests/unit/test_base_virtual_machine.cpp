@@ -343,16 +343,6 @@ TEST_F(BaseVM, providesInstanceDirectory)
     EXPECT_EQ(vm.instance_directory().absolutePath(), vm_path);
 }
 
-TEST_F(BaseVM, addNetworkInterfaceThrows)
-{
-    StubBaseVirtualMachine base_vm(zone, St::stopped);
-
-    MP_EXPECT_THROW_THAT(base_vm.add_network_interface(
-                             {.id = "eth1", .mac_address = "52:54:00:00:00:00", .auto_mode = true}),
-                         mp::NotImplementedOnThisBackendException,
-                         mpt::match_what(HasSubstr("networks")));
-}
-
 struct IpTestParams
 {
     int exit_status;
