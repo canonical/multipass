@@ -69,7 +69,7 @@ def _guest_target(source: Path) -> str:
     return (Path("/home/ubuntu") / source.name).as_posix()
 
 
-def _seed(vm, mount_type, label, record):
+def _seed(vm, mount_type, label):
     source = daemon_readable_dir(vm)
     target = _guest_target(source)
     host_content = make_sentinel(f"{label}-host")
@@ -107,12 +107,12 @@ def _seed(vm, mount_type, label, record):
         assert recorded_mounts[target]["gid_mappings"] == [GID_MAP]
         park_seeded(vm)
 
-    record.update({
+    return {
         "target": target,
         "host_content": host_content,
         "guest_content": guest_content,
         "mounts": recorded_mounts,
-    })
+    }
 
 
 def _verify(vm, record):
@@ -142,7 +142,7 @@ def _verify(vm, record):
 @pytest.mark.seed
 @pytest.mark.scenario(CLASSIC_VM)
 def test_mount_mappings_seed(scenario):
-    _seed(CLASSIC_VM, "classic", "mapmount", scenario.record)
+    scenario.record.update(_seed(CLASSIC_VM, "classic", "mapmount"))
 
 
 @pytest.mark.verify
@@ -155,7 +155,7 @@ def test_mount_mappings_verify(scenario):
 @pytest.mark.scenario(NATIVE_VM)
 @qemu_native_only
 def test_native_mount_mappings_seed(scenario):
-    _seed(NATIVE_VM, "native", "mapmount-native", scenario.record)
+    scenario.record.update(_seed(NATIVE_VM, "native", "mapmount-native"))
 
 
 @pytest.mark.verify

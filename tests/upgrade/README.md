@@ -44,6 +44,7 @@ Both runs must use the same `--upgrade-manifest` path, `--driver`, and `--daemon
 
 - `-m seed` / `-m verify`: select the phase. Run one, upgrade the package, then run the other.
 - `--upgrade-manifest=PATH`: location of the JSON manifest carrying expectations between phases. Defaults to `upgrade-manifest.json` in the working directory.
+- `--cache-clear`: start the seed run from an empty manifest. Otherwise a seed run merges into the manifest left by a previous seed run, so a partial re-seed (e.g. `--lf`) only replaces the scenarios it re-runs.
 
 ## The manifest
 

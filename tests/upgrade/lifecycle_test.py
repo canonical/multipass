@@ -44,22 +44,20 @@ requires_suspend = pytest.mark.skipif(
 )
 
 
-def _seed(vm, image, how, expected, record):
+def _seed(vm, image, how, expected):
     with seeded_vm(vm, image=image) if image else seeded_vm(vm):
         sentinel = seed_sentinel(vm, vm)
         fingerprint = info_fingerprint(vm)  # cpu/memory/disk only reported while running
         identity = guest_identity(vm)  # guest-side identity, read while running
         ipv4 = instance_ipv4(vm)  # reported only while running
         park_seeded(vm, how=how, expected=expected)
-    record.update(
-        {
-            "sentinel": sentinel,
-            "fingerprint": fingerprint,
-            "identity": identity,
-            "expected": expected,
-            "ipv4": ipv4,
-        }
-    )
+    return {
+        "sentinel": sentinel,
+        "fingerprint": fingerprint,
+        "identity": identity,
+        "expected": expected,
+        "ipv4": ipv4,
+    }
 
 
 def _verify(vm, record):
@@ -79,7 +77,7 @@ def _verify(vm, record):
 @pytest.mark.seed
 @pytest.mark.scenario("upg-lifecycle")
 def test_lifecycle_seed(scenario):
-    _seed("upg-lifecycle", None, "stop", "Stopped", scenario.record)
+    scenario.record.update(_seed("upg-lifecycle", None, "stop", "Stopped"))
 
 
 @pytest.mark.verify
@@ -92,7 +90,7 @@ def test_lifecycle_verify(scenario):
 @pytest.mark.scenario("upg-focal")
 @requires_suspend
 def test_focal_seed(scenario):
-    _seed("upg-focal", "focal", "suspend", "Suspended", scenario.record)
+    scenario.record.update(_seed("upg-focal", "focal", "suspend", "Suspended"))
 
 
 @pytest.mark.verify
@@ -111,7 +109,7 @@ def test_debian_seed(request):
     # `scenario` also keeps the seed manifest clean (no empty entry for a skip).
     skip_if_feature_not_supported("debian_images")
     scenario = request.getfixturevalue("scenario")
-    _seed("upg-debian", "debian", "stop", "Stopped", scenario.record)
+    scenario.record.update(_seed("upg-debian", "debian", "stop", "Stopped"))
 
 
 @pytest.mark.verify
@@ -129,7 +127,7 @@ def test_debian_verify(scenario):
 def test_fedora_seed(request):
     skip_if_feature_not_supported("fedora_images")  # see test_debian_seed
     scenario = request.getfixturevalue("scenario")
-    _seed("upg-fedora", "fedora", "stop", "Stopped", scenario.record)
+    scenario.record.update(_seed("upg-fedora", "fedora", "stop", "Stopped"))
 
 
 @pytest.mark.verify

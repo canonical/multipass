@@ -26,6 +26,7 @@ import pytest
 
 from cli.config import cfg
 from cli.multipass import info, multipass, state, snapshot_count, path_exists
+from cli.utilities.mathutils import is_within_tolerance
 from .helpers import make_sentinel, write_sentinel
 from .seedutils import seeded_vm
 
@@ -135,8 +136,6 @@ def test_snapshot_verify(scenario):
     expected = recorded["base_resources"]
 
     # memory_total can wobble a few KB across kernels/versions
-    from cli.utilities.mathutils import is_within_tolerance
-
     assert current["cpu_count"] == expected["cpu_count"], "cpu count not restored to BASE"
     if cfg.driver != "hcs":
         assert current["disk_total"] == expected["disk_total"], "disk size not restored to BASE"
