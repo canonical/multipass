@@ -1533,6 +1533,20 @@ void mp::Daemon::connect_rpc(DaemonRpc& rpc)
     connect(&DaemonRpc::on_zones_state, &Daemon::zones_state);
 }
 
+namespace
+{
+void start_dns_provider(mp::DnsProvider& dns, const std::string& domain)
+try
+{
+    if (!domain.empty())
+        dns.start(domain);
+}
+catch (const std::exception& e)
+{
+    mpl::warn(category, "Instances will not resolve as <name>.{}: {}", domain, e.what());
+}
+} // namespace
+
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
       vm_instance_specs{
@@ -1569,6 +1583,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     {
         mpl::warn(category, "Hypervisor health check failed: {}", e.what());
     }
+
+    start_dns_provider(*config->dns_provider, config->dns_domain);
 
     for (const auto& entry : vm_instance_specs)
     {
