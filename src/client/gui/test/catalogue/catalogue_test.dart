@@ -8,77 +8,9 @@ import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/providers.dart';
 
-final _l10n = AppLocalizationsEn();
+import 'image_fixtures.dart';
 
-// Mirrors what the daemon reports for each remote.
-final _noble = ImageInfo(
-  os: 'Ubuntu',
-  release: '24.04 LTS',
-  codename: 'Noble Numbat',
-  aliases: ['24.04', 'noble', 'lts'],
-  remoteName: 'release',
-);
-final _jammy = ImageInfo(
-  os: 'Ubuntu',
-  release: '22.04 LTS',
-  codename: 'Jammy Jellyfish',
-  aliases: ['22.04', 'jammy'],
-  remoteName: 'release',
-);
-final _questing = ImageInfo(
-  os: 'Ubuntu',
-  release: '25.10',
-  codename: 'Questing Quokka',
-  aliases: ['25.10', 'questing'],
-  remoteName: 'release',
-);
-final _dailyNoble = ImageInfo(
-  os: 'Ubuntu',
-  release: '24.04 LTS',
-  codename: 'Noble Numbat',
-  aliases: ['24.04', 'noble', 'lts'],
-  remoteName: 'daily',
-);
-final _devel = ImageInfo(
-  os: 'Ubuntu',
-  release: '26.04',
-  codename: 'Resolute Raccoon',
-  aliases: ['26.04', 'resolute', 'devel'],
-  remoteName: 'daily',
-);
-final _core24 = ImageInfo(
-  os: 'Ubuntu',
-  release: 'Core 24',
-  codename: 'Core 24',
-  aliases: ['core24'],
-  remoteName: 'core',
-);
-final _core22 = ImageInfo(
-  os: 'Ubuntu',
-  release: 'Core 22',
-  codename: 'Core 22',
-  aliases: ['core22'],
-  remoteName: 'core',
-);
-final _snapcraft = ImageInfo(
-  os: 'Ubuntu',
-  release: 'Snapcraft builder for Core 24',
-  codename: 'Snapcraft builder for Core 24',
-  aliases: ['core24'],
-  remoteName: 'snapcraft',
-);
-final _debian = ImageInfo(
-  os: 'Debian',
-  release: '13',
-  codename: 'Trixie',
-  aliases: ['debian', 'trixie'],
-);
-final _fedora = ImageInfo(
-  os: 'Fedora',
-  release: '44',
-  codename: '44',
-  aliases: ['fedora'],
-);
+final _l10n = AppLocalizationsEn();
 
 Widget _buildApp(Future<List<ImageInfo>> Function() fetchImages) {
   return ProviderScope(
@@ -124,14 +56,14 @@ void main() {
     });
 
     test('set() replaces the selected image', () {
-      notifier('key').set(_jammy);
-      notifier('key').set(_noble);
-      expect(state('key'), same(_noble));
+      notifier('key').set(jammy);
+      notifier('key').set(noble);
+      expect(state('key'), same(noble));
     });
 
     test('each image key keeps its own selection', () {
-      notifier('ubuntu').set(_noble);
-      expect(state('ubuntu'), same(_noble));
+      notifier('ubuntu').set(noble);
+      expect(state('ubuntu'), same(noble));
       expect(state('core'), isNull);
     });
   });
@@ -139,61 +71,60 @@ void main() {
   group('CatalogueScreen', () {
     testWidgets('shows the Ubuntu card, then the Core card, then the others',
         (tester) async {
-      final cards =
-          await _pumpCards(tester, [_debian, _core24, _fedora, _noble]);
+      final cards = await _pumpCards(tester, [debian, core24, fedora, noble]);
 
       expect(
         cards.map((c) => c.parentImage),
-        orderedEquals([_noble, _core24, _fedora, _debian]),
+        orderedEquals([noble, core24, fedora, debian]),
       );
     });
 
     testWidgets('lists Ubuntu releases newest first with the LTS as parent',
         (tester) async {
-      final cards = await _pumpCards(tester, [_jammy, _noble, _questing]);
+      final cards = await _pumpCards(tester, [jammy, noble, questing]);
 
       expect(cards, hasLength(1));
-      expect(cards.single.parentImage, same(_noble));
-      expect(cards.single.versions, orderedEquals([_questing, _noble, _jammy]));
+      expect(cards.single.parentImage, same(noble));
+      expect(cards.single.versions, orderedEquals([questing, noble, jammy]));
     });
 
     testWidgets('uses the newest Ubuntu release as parent without an LTS',
         (tester) async {
-      final cards = await _pumpCards(tester, [_jammy, _questing]);
+      final cards = await _pumpCards(tester, [jammy, questing]);
 
-      expect(cards.single.parentImage, same(_questing));
+      expect(cards.single.parentImage, same(questing));
     });
 
     testWidgets('adds daily images only for releases not in the release remote',
         (tester) async {
-      final cards = await _pumpCards(tester, [_dailyNoble, _noble, _devel]);
+      final cards = await _pumpCards(tester, [dailyNoble, noble, devel]);
 
-      expect(cards.single.versions, orderedEquals([_devel, _noble]));
+      expect(cards.single.versions, orderedEquals([devel, noble]));
     });
 
     testWidgets('lists Core images newest first in their own card',
         (tester) async {
-      final cards = await _pumpCards(tester, [_core22, _core24]);
+      final cards = await _pumpCards(tester, [core22, core24]);
 
       expect(cards, hasLength(1));
-      expect(cards.single.parentImage, same(_core24));
-      expect(cards.single.versions, orderedEquals([_core24, _core22]));
+      expect(cards.single.parentImage, same(core24));
+      expect(cards.single.versions, orderedEquals([core24, core22]));
     });
 
     testWidgets('shows each image without a remote in a separate card',
         (tester) async {
-      final cards = await _pumpCards(tester, [_debian, _fedora]);
+      final cards = await _pumpCards(tester, [debian, fedora]);
 
       expect(cards.map((c) => c.versions), [
-        [_fedora],
-        [_debian],
+        [fedora],
+        [debian],
       ]);
     });
 
     testWidgets('leaves out snapcraft images', (tester) async {
-      final cards = await _pumpCards(tester, [_snapcraft, _noble]);
+      final cards = await _pumpCards(tester, [snapcraft, noble]);
 
-      expect(cards.single.versions, orderedEquals([_noble]));
+      expect(cards.single.versions, orderedEquals([noble]));
     });
 
     testWidgets('shows only the message of a GrpcError', (tester) async {
@@ -211,7 +142,7 @@ void main() {
       await tester.pumpWidget(_buildApp(() async {
         calls++;
         if (calls == 1) throw Exception('boom');
-        return [_noble];
+        return [noble];
       }));
       await tester.pumpAndSettle();
 

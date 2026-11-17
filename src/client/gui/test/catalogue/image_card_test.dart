@@ -8,45 +8,11 @@ import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/providers.dart';
 
+import 'image_fixtures.dart';
+
 const _vmName = 'test-vm';
 
 final _l10n = AppLocalizationsEn();
-
-// Fixtures mirror the image info the daemon reports for each remote.
-final _noble = ImageInfo(
-  os: 'Ubuntu',
-  release: '24.04 LTS',
-  codename: 'Noble Numbat',
-  aliases: ['24.04', 'noble', 'lts'],
-  remoteName: 'release',
-);
-final _jammy = ImageInfo(
-  os: 'Ubuntu',
-  release: '22.04 LTS',
-  codename: 'Jammy Jellyfish',
-  aliases: ['22.04', 'jammy'],
-  remoteName: 'release',
-);
-final _core24 = ImageInfo(
-  os: 'Ubuntu',
-  release: 'Core 24',
-  codename: 'Core 24',
-  aliases: ['core24'],
-  remoteName: 'core',
-);
-final _debian = ImageInfo(
-  os: 'Debian',
-  release: '13',
-  codename: 'Trixie',
-  aliases: ['debian', 'trixie'],
-);
-final _fedora = ImageInfo(
-  os: 'Fedora',
-  release: '44',
-  codename: '44',
-  aliases: ['fedora'],
-);
-final _alpine = ImageInfo(os: 'Alpine', release: '3.20', aliases: ['alpine']);
 
 class _FakeGrpcClient extends Fake implements GrpcClient {
   final launchRequests = <LaunchRequest>[];
@@ -117,13 +83,13 @@ void main() {
   group('ImageCard', () {
     for (final (image, title, description) in [
       (
-        _noble,
+        noble,
         _l10n.imageCardTitleUbuntuServer,
         _l10n.imageCardDescUbuntuServer,
       ),
-      (_core24, _l10n.imageCardTitleUbuntuCore, _l10n.imageCardDescUbuntuCore),
-      (_debian, _l10n.imageCardTitleDebian, _l10n.imageCardDescDebian),
-      (_fedora, _l10n.imageCardTitleFedora, _l10n.imageCardDescFedora),
+      (core24, _l10n.imageCardTitleUbuntuCore, _l10n.imageCardDescUbuntuCore),
+      (debian, _l10n.imageCardTitleDebian, _l10n.imageCardDescDebian),
+      (fedora, _l10n.imageCardTitleFedora, _l10n.imageCardDescFedora),
     ]) {
       testWidgets('shows the title and description for ${image.aliases.first}',
           (tester) async {
@@ -136,15 +102,15 @@ void main() {
 
     testWidgets('shows the OS name as the title for an unknown OS',
         (tester) async {
-      await _pumpCard(tester, parentImage: _alpine);
+      await _pumpCard(tester, parentImage: alpine);
 
       expect(find.text('Alpine'), findsOneWidget);
     });
 
     for (final (description, image, label) in [
-      ('release and codename', _noble, '24.04 LTS (Noble Numbat)'),
-      ('only the release when it matches the codename', _fedora, '44'),
-      ('only the release when the codename is empty', _alpine, '3.20'),
+      ('release and codename', noble, '24.04 LTS (Noble Numbat)'),
+      ('only the release when it matches the codename', fedora, '44'),
+      ('only the release when the codename is empty', alpine, '3.20'),
     ]) {
       testWidgets('labels the version with $description', (tester) async {
         await _pumpCard(tester, parentImage: image);
@@ -154,20 +120,20 @@ void main() {
     }
 
     for (final (versions, enabled) in [
-      ([_noble], false),
-      ([_noble, _jammy], true),
+      ([noble], false),
+      ([noble, jammy], true),
     ]) {
       testWidgets(
           'version dropdown is ${enabled ? 'enabled' : 'disabled'} with '
           '${versions.length} version(s)', (tester) async {
-        await _pumpCard(tester, parentImage: _noble, versions: versions);
+        await _pumpCard(tester, parentImage: noble, versions: versions);
 
         expect(_versionDropdown(tester).onChanged != null, enabled);
       });
     }
 
     testWidgets('selecting a version shows its label', (tester) async {
-      await _pumpCard(tester, parentImage: _noble, versions: [_noble, _jammy]);
+      await _pumpCard(tester, parentImage: noble, versions: [noble, jammy]);
 
       await _selectVersion(tester, '22.04 LTS (Jammy Jellyfish)');
 
@@ -180,8 +146,8 @@ void main() {
       final grpcClient = _FakeGrpcClient();
       await _pumpCard(
         tester,
-        parentImage: _noble,
-        versions: [_noble, _jammy],
+        parentImage: noble,
+        versions: [noble, jammy],
         grpcClient: grpcClient,
       );
 
@@ -203,7 +169,7 @@ void main() {
     testWidgets('Launch omits the remote for images without one',
         (tester) async {
       final grpcClient = _FakeGrpcClient();
-      await _pumpCard(tester, parentImage: _debian, grpcClient: grpcClient);
+      await _pumpCard(tester, parentImage: debian, grpcClient: grpcClient);
 
       await tester.tap(find.text(_l10n.commonLaunch));
 
@@ -214,15 +180,15 @@ void main() {
         (tester) async {
       final container = await _pumpCard(
         tester,
-        parentImage: _noble,
-        versions: [_noble, _jammy],
+        parentImage: noble,
+        versions: [noble, jammy],
       );
 
       await _selectVersion(tester, '22.04 LTS (Jammy Jellyfish)');
       await tester.tap(find.text(_l10n.commonConfigure));
       await tester.pumpAndSettle();
 
-      expect(container.read(launchingImageProvider), _jammy);
+      expect(container.read(launchingImageProvider), jammy);
       expect(tester.state<ScaffoldState>(find.byType(Scaffold)).isEndDrawerOpen,
           isTrue);
     });
