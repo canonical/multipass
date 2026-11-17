@@ -45,6 +45,18 @@ class MockSubprocess:
         pass
 
 
+class HangingSubprocess(MockSubprocess):
+    """A subprocess whose `communicate` never returns on its own."""
+
+    def __init__(self):
+        super().__init__()
+        self.communicate_calls = 0
+
+    async def communicate(self):
+        self.communicate_calls += 1
+        await asyncio.Event().wait()
+
+
 class TestGovernorStopAsync:
     """Test governor stop_async timeout and cancellation behavior."""
 
@@ -385,23 +397,17 @@ class TestWaitForMultipassdReady:
     @pytest.mark.asyncio
     async def test_returns_false_on_timeout(self, mock_env):
         """Returns False when daemon doesn't respond within timeout."""
-        timeout_proc = MockSubprocess()
-        timeout_proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError)
+        hanging_proc = HangingSubprocess()
 
-        with (
-            patch(
-                "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
-                return_value=timeout_proc,
-            ),
-            patch(
-                "cli.controller.multipassd_governor.time.time",
-                side_effect=[0, 0, 1],
-            ),
+        with patch(
+            "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
+            return_value=hanging_proc,
         ):
-            result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=0.5)
+            result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=0.2)
 
         assert result is False
-        timeout_proc.communicate.assert_awaited_once()
+        # The deadline cuts the single hanging attempt short; no retry follows.
+        assert hanging_proc.communicate_calls == 1
 
     @pytest.mark.asyncio
     async def test_retries_on_timeout_error(self, mock_env):
@@ -455,6 +461,9 @@ class TestWaitForMultipassdReady:
             commands.append(command)
             if command == "version":
                 return MockSubprocess(stdout=b"multipass  1.12.0\n")
+            # Hang on the third attempt so the deadline ends the loop.
+            if commands.count("images") == 3:
+                return HangingSubprocess()
             return MockSubprocess()
 
         with (
@@ -463,18 +472,14 @@ class TestWaitForMultipassdReady:
                 side_effect=subprocess,
             ),
             patch(
-                "cli.controller.multipassd_governor.time.time",
-                side_effect=[0, 0, 0, 1],
-            ),
-            patch(
                 "cli.controller.multipassd_governor.asyncio.sleep",
                 new_callable=AsyncMock,
             ),
         ):
-            result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
+            result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=0.5)
 
         assert result is False
-        assert commands == ["images", "version", "images", "version"]
+        assert commands == ["images", "version", "images", "version", "images"]
 
     @pytest.mark.asyncio
     async def test_missing_cli_version_raises(self, mock_env):
