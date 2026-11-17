@@ -1,3 +1,7 @@
+; This file has to be synced with libinsights API.
+; See: ubuntu-insights/insights/C/insights.go
+;
+; TODO: Use gendef tool to autogenerate this file
 LIBRARY libinsights.dll
 EXPORTS
     insights_free
