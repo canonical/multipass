@@ -42,7 +42,12 @@ struct TestQemuVMProcessSpec : public Test
                                              {},
                                              "ssh_username",
                                              {"/path/to/image", "", "", "", "", "", {}}, // VMImage
-                                             mp::Path{"/path/to/cloud_init.iso"}};
+                                             mp::Path{"/path/to/cloud_init.iso"},
+                                             {},
+                                             {},
+                                             0,
+                                             false,
+                                             {}};
     const QStringList platform_args{
         {"--enable-kvm", "-nic", "tap,ifname=tap_device,script=no,downscript=no"}};
     const std::unordered_map<std::string, std::pair<std::string, QStringList>> mount_args{
