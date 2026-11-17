@@ -30,12 +30,26 @@ vcpkg_from_github(
 # than the one required by ubuntu-insights (1.26).
 find_program(GO_EXECUTABLE NAMES go HINTS ENV GO_EXECUTABLE_DIR REQUIRED)
 
+set(GO_ENV
+    CGO_ENABLED=1
+    # An unset CGO_CFLAGS makes the upstream generator add -Werror and pedantic warnings
+    "CGO_CFLAGS=-O2 -g"
+    # Read by insights/C/generate to stamp the library version (defaults to "Dev")
+    "DEB_VERSION_UPSTREAM=${VERSION}"
+    --modify "PATH=path_list_prepend:${GO_EXECUTABLE_DIR}"
+)
+if(VCPKG_TARGET_IS_OSX AND VCPKG_OSX_DEPLOYMENT_TARGET)
+    list(APPEND GO_ENV "MACOSX_DEPLOYMENT_TARGET=${VCPKG_OSX_DEPLOYMENT_TARGET}")
+endif()
+
 set(tools_dir "${CURRENT_PACKAGES_DIR}/tools/${PORT}")
 file(MAKE_DIRECTORY "${tools_dir}")
 
 function(add_insights_tool tool package)
     vcpkg_execute_required_process(
-        COMMAND "${GO_EXECUTABLE}" build -trimpath
+        COMMAND
+            ${CMAKE_COMMAND} -E env {GO_ENV}
+            "${GO_EXECUTABLE}" build -trimpath
             -o "${tools_dir}/${tool}${VCPKG_TARGET_EXECUTABLE_SUFFIX}" "${package}"
         WORKING_DIRECTORY "${SOURCE_PATH}"
         LOGNAME "build-${tool}"
@@ -51,8 +65,6 @@ if(VCPKG_TARGET_IS_LINUX)
     add_insights_tool(web-service ./server/cmd/web-service)
     add_insights_tool(ingest-service ./server/cmd/ingest-service)
 endif()
-
-set(GO_ENV CGO_ENABLED=1 --modify "PATH=path_list_prepend:${GO_EXECUTABLE_DIR}")
 
 if(VCPKG_TARGET_IS_WINDOWS)
     # Reuse the pinned MinGW closure acquired by QEMU.
