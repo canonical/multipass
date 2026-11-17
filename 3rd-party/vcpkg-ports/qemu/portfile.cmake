@@ -216,8 +216,14 @@ else()
 
     find_program(NINJA ninja REQUIRED)
 
+    set(QEMU_OBJCFLAGS "${VCPKG_C_FLAGS}")
     if(VCPKG_TARGET_IS_OSX)
-        set(ACCEL_FLAG "--enable-hvf")
+        # Paravirtualized graphics (apple-gfx) is unused (instances are headless) and does not link
+        # against the macOS 27 SDK
+        set(ACCEL_FLAG "--enable-hvf" "--disable-pvg")
+        if(VCPKG_OSX_DEPLOYMENT_TARGET)
+            string(APPEND QEMU_OBJCFLAGS " -mmacosx-version-min=${VCPKG_OSX_DEPLOYMENT_TARGET}")
+        endif()
     else()
         set(ACCEL_FLAG "--enable-kvm")
     endif()
@@ -242,7 +248,7 @@ else()
             "--extra-cflags=-I${CURRENT_INSTALLED_DIR}/include -UNDEBUG"
             # QEMU only forwards CFLAGS to C sources, so pass the triplet's flags to the
             # Objective-C sources (vmnet, cocoa, ...) explicitly
-            "--extra-objcflags=${VCPKG_C_FLAGS}"
+            "--extra-objcflags=${QEMU_OBJCFLAGS}"
             "--extra-ldflags=-L${CURRENT_INSTALLED_DIR}/lib"
             ${QEMU_COMMON_OPTIONS}
     )
