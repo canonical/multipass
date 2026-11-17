@@ -8,5 +8,6 @@ if(PORT MATCHES "^(qemu|ubuntu-insights)$")
     list(APPEND VCPKG_HASH_ADDITIONAL_FILES
         "${CMAKE_CURRENT_LIST_DIR}/../vcpkg-port-utils/mingw/mingw64-toolchain.lock"
         "${CMAKE_CURRENT_LIST_DIR}/../vcpkg-port-utils/mingw/get-mingw-packages.cmake"
+        "${CMAKE_CURRENT_LIST_DIR}/../vcpkg-port-utils/mingw/acquire-mingw-msys.cmake"
     )
 endif()

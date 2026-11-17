@@ -36,7 +36,6 @@ set(GO_ENV
     "CGO_CFLAGS=-O2 -g"
     # Read by insights/C/generate to stamp the library version (defaults to "Dev")
     "DEB_VERSION_UPSTREAM=${VERSION}"
-    --modify "PATH=path_list_prepend:${GO_EXECUTABLE_DIR}"
 )
 if(VCPKG_TARGET_IS_OSX AND VCPKG_OSX_DEPLOYMENT_TARGET)
     list(APPEND GO_ENV "MACOSX_DEPLOYMENT_TARGET=${VCPKG_OSX_DEPLOYMENT_TARGET}")
@@ -58,10 +57,8 @@ endfunction()
 set(INSIGHTS_TOOLS "")
 
 if(VCPKG_TARGET_IS_WINDOWS)
-    # Reuse the pinned MinGW closure acquired by QEMU.
-    include("${CMAKE_CURRENT_LIST_DIR}/../../vcpkg-port-utils/mingw/get-mingw-packages.cmake")
-    multipass_get_mingw_packages(MINGW_DIRECT_PACKAGES MINGW_URLS MINGW_SHA512S)
-    vcpkg_acquire_msys(MSYS_ROOT DIRECT_PACKAGES ${MINGW_DIRECT_PACKAGES})
+    include("${CMAKE_CURRENT_LIST_DIR}/../../vcpkg-port-utils/mingw/acquire-mingw-msys.cmake")
+    multipass_acquire_mingw_msys(MSYS_ROOT)
     file(TO_NATIVE_PATH "${MSYS_ROOT}/mingw64/bin" MINGW_BIN)
     list(APPEND GO_ENV
         "CC=${MINGW_BIN}/gcc.exe"
