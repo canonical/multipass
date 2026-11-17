@@ -22,7 +22,8 @@ add_library(ip_address STATIC
             ip_address.cpp)
 
 add_library(dns STATIC
-            dns_message.cpp)
+            dns_message.cpp
+            dns_server.cpp)
 
 target_link_libraries(network
   fmt::fmt-header-only
@@ -36,4 +37,6 @@ target_link_libraries(ip_address
 
 target_link_libraries(dns
   Boost::asio
-  c-ares::cares)
+  c-ares::cares
+  fmt::fmt-header-only
+  logger)
