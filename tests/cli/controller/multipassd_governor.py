@@ -22,7 +22,7 @@ import logging
 import re
 import sys
 import threading
-from contextlib import suppress
+from contextlib import asynccontextmanager, suppress
 from typing import Optional
 
 import pytest
@@ -61,6 +61,7 @@ class MultipassdGovernor:
         self.daemon_ready_event = threading.Event()
         self.daemon_stopped_event = threading.Event()
         self._lifecycle_lock = asyncio.Lock()
+        self._start_in_progress = False
         self.monitor_task = None
         self._reset_state()
 
@@ -201,6 +202,17 @@ class MultipassdGovernor:
                 f"Client certificate authentication failed (exit {result.returncode})"
             )
 
+    @asynccontextmanager
+    async def _starting(self):
+        """Hold the lifecycle lock for a start, flagging it so a concurrent
+        `stop_async` can pre-empt it (see there)."""
+        async with self._lifecycle_lock:
+            self._start_in_progress = True
+            try:
+                yield
+            finally:
+                self._start_in_progress = False
+
     async def start_async(self):
         """Start the multipassd daemon"""
         logging.debug("multipassd-governor :: start called")
@@ -214,7 +226,7 @@ class MultipassdGovernor:
                 with suppress(asyncio.CancelledError):
                     await t
 
-        async with self._lifecycle_lock:
+        async with self._starting():
             # A prior stop_async leaves `graceful_exit_initiated` set; clear it
             # so a daemon exit *during startup* isn't misread as "graceful".
             self.graceful_exit_initiated = False
@@ -267,6 +279,17 @@ class MultipassdGovernor:
     async def stop_async(self):
         """Stop the multipassd daemon"""
         logging.debug("multipassd-governor :: stop called")
+        if self._start_in_progress:
+            # The pending start holds the lifecycle lock until the daemon is
+            # ready (or exits), so just waiting for the lock would hang on a
+            # daemon that never becomes ready. Stop the daemon first: the start
+            # then fails fast ("daemon exited during startup") and releases the
+            # lock. The locked stop below is idempotent and finishes the job.
+            logging.debug("multipassd-governor :: stop pre-empting a pending start")
+            self.graceful_exit_initiated = True
+            self.daemon_ready_event.clear()
+            with suppress(asyncio.TimeoutError):
+                await asyncio.wait_for(self.controller.stop(), timeout=30)
         async with self._lifecycle_lock:
             await self._stop_locked()
 
