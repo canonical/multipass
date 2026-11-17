@@ -67,8 +67,8 @@ struct HyperV_ComponentIntegrationTests : public ::testing::Test
         return {.name = "multipass-hyperv-cit",
                 .flags = flags,
                 .guid = "b4d77a0e-2507-45f0-99aa-c638f3e47486",
-                .ipams = {{hyperv::hcn::HcnIpamType::Static(),
-                           {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}}};
+                .ipams = {{.type = hyperv::hcn::HcnIpamType::Static(),
+                           .subnets = {hyperv::hcn::HcnSubnet{"10.99.99.0/24"}}}}};
     }
 
     static hyperv::hcn::CreateEndpointParameters make_endpoint_parameters(
@@ -246,8 +246,8 @@ TEST_F(HyperV_ComponentIntegrationTests, hcs_vm_gets_host_assigned_ipv4_from_hcn
     const hyperv::hcn::CreateNetworkParameters network_parameters{
         .name = "multipass-hyperv-hcn-ip-cit",
         .guid = "b4d77a0e-2507-45f0-99aa-c638f3e47487",
-        .ipams = {
-            {hyperv::hcn::HcnIpamType::Static(), {hyperv::hcn::HcnSubnet{"10.99.100.0/24"}}}}};
+        .ipams = {{.type = hyperv::hcn::HcnIpamType::Static(),
+                   .subnets = {hyperv::hcn::HcnSubnet{"10.99.100.0/24"}}}}};
 
     const std::string vm_name{"multipass-hyperv-hcn-ip-cit-vm"};
     const std::string mac_address{"00:15:5d:9d:cf:69"};

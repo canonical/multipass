@@ -49,7 +49,7 @@ struct HyperVHCNAPI_IntegrationTests : public ::testing::Test
     {
         return {.name = name,
                 .guid = use_braced_guid ? braced_network_guid : network_guid,
-                .ipams = {{HcnIpamType::Static(), {HcnSubnet{subnet}}}}};
+                .ipams = {{.type = HcnIpamType::Static(), .subnets = {HcnSubnet{subnet}}}}};
     }
 
     static CreateEndpointParameters make_endpoint_parameters(
