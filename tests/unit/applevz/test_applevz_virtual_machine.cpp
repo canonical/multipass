@@ -90,7 +90,8 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
     auto construct_vm(applevz::AppleVMState initial_state = applevz::AppleVMState::stopped)
     {
         EXPECT_CALL(mock_applevz, create_vm(_, _, _))
-            .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(applevz::CFError{})));
+            .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(applevz::CFError{})))
+            .RetiresOnSaturation();
 
         EXPECT_CALL(mock_applevz, get_state(_)).WillRepeatedly(Return(initial_state));
         EXPECT_CALL(mock_monitor, persist_state_for(desc.vm_name, _)).Times(AnyNumber());
@@ -115,7 +116,9 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromStoppedSuccess)
 
     EXPECT_CALL(mock_monitor, persist_state_for(desc.vm_name, VirtualMachine::State::starting));
 
-    EXPECT_CALL(mock_applevz, can_start(_)).WillOnce(Return(true));
+    EXPECT_CALL(mock_applevz, create_vm)
+        .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(applevz::CFError{})));
+    EXPECT_CALL(mock_applevz, can_start(_)).WillRepeatedly(Return(true));
     EXPECT_CALL(mock_applevz, start_vm(_));
 
     uut->start();
@@ -146,7 +149,7 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromRunningStateNoOp)
     EXPECT_CALL(mock_applevz, get_state(_)).WillRepeatedly(Return(applevz::AppleVMState::running));
 
     EXPECT_CALL(mock_applevz, can_resume(_)).WillOnce(Return(false));
-    EXPECT_CALL(mock_applevz, can_start(_)).WillOnce(Return(false));
+    EXPECT_CALL(mock_applevz, can_start(_)).WillRepeatedly(Return(false));
 
     uut->start();
 
@@ -161,7 +164,9 @@ TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromStoppedThrowsError)
         .WillOnce(Return(applevz::AppleVMState::error))
         .WillRepeatedly(Return(applevz::AppleVMState::stopped));
 
-    EXPECT_CALL(mock_applevz, can_start(_)).WillOnce(Return(true));
+    EXPECT_CALL(mock_applevz, create_vm)
+        .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(applevz::CFError{})));
+    EXPECT_CALL(mock_applevz, can_start(_)).WillRepeatedly(Return(true));
     EXPECT_CALL(mock_applevz, start_vm(_))
         .WillOnce(Return(applevz::CFError{
             CFErrorCreate(kCFAllocatorDefault, CFSTR("UnitTestDomain"), 42, nullptr)}));
@@ -347,7 +352,27 @@ TEST_F(AppleVZVirtualMachine_UnitTests, addNetworkInterfaceAppliesOnNextStart)
                           _,
                           _))
         .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(applevz::CFError{})));
-    EXPECT_CALL(mock_applevz, can_start(_)).WillOnce(Return(true));
+    EXPECT_CALL(mock_applevz, can_start(_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(mock_applevz, start_vm(_));
+
+    uut->start();
+}
+
+TEST_F(AppleVZVirtualMachine_UnitTests, coldStartAppliesResourceChanges)
+{
+    auto uut = construct_vm();
+
+    uut->update_cpus(desc.num_cores + 2);
+    uut->resize_memory(mp::MemorySize{"5M"});
+
+    EXPECT_CALL(
+        mock_applevz,
+        create_vm(AllOf(Field(&mp::VirtualMachineDescription::num_cores, desc.num_cores + 2),
+                        Field(&mp::VirtualMachineDescription::mem_size, mp::MemorySize{"5M"})),
+                  _,
+                  _))
+        .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(applevz::CFError{})));
+    EXPECT_CALL(mock_applevz, can_start(_)).WillRepeatedly(Return(true));
     EXPECT_CALL(mock_applevz, start_vm(_));
 
     uut->start();

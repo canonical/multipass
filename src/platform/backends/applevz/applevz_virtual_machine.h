@@ -55,7 +55,6 @@ public:
 protected:
     void handle_state_update() override;
     void resize_disk_impl(const MemorySize& new_size) override;
-    void add_network_interface_impl(const NetworkInterface& extra_interface) override;
     std::optional<State> fetch_backend_state() override;
 
 private:

@@ -77,7 +77,10 @@ void AppleVZVirtualMachine::start()
                vm_name,
                cached_state());
 
-    // TODO: Drop condition after suspend to disk implemented
+    // the handle's configuration is fixed at creation, so a cold start rebuilds it from desc
+    if (vm_handle && MP_APPLEVZ.can_start(vm_handle))
+        vm_handle.reset();
+
     if (!vm_handle)
         initialize_vm_handle();
 
@@ -267,14 +270,6 @@ void AppleVZVirtualMachine::handle_state_update()
 void AppleVZVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
     MP_APPLEVZ_UTILS.resize_image(new_size, desc.image.image_path);
-}
-
-void AppleVZVirtualMachine::add_network_interface_impl(const NetworkInterface& /*extra_interface*/)
-{
-    // network devices are fixed when the handle is created, so rebuild it on the next start
-    const std::lock_guard lock{state_mutex};
-    if (cached_state() == State::stopped)
-        vm_handle.reset();
 }
 
 std::optional<mp::VirtualMachine::State> AppleVZVirtualMachine::fetch_backend_state()
