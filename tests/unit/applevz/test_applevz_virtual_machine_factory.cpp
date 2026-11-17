@@ -187,8 +187,7 @@ TEST_F(AppleVZVirtualMachineFactory_UnitTests, createVirtualMachine)
 
     EXPECT_CALL(mock_applevz_utils, convert_to_supported_format(_)).WillRepeatedly(ReturnArg<0>());
 
-    EXPECT_CALL(mock_applevz, create_vm(_, _, _))
-        .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(mp::applevz::CFError{})));
+    EXPECT_CALL(mock_applevz, create_vm(_, _, _)).Times(0);
 
     EXPECT_CALL(mock_applevz, get_state(_))
         .WillRepeatedly(Return(mp::applevz::AppleVMState::stopped));
@@ -224,8 +223,7 @@ TEST_F(AppleVZVirtualMachineFactory_UnitTests, cloneCopiesRelevantFiles)
         std::ofstream(src_vm_dir / file);
     }
 
-    EXPECT_CALL(mock_applevz, create_vm(_, _, _))
-        .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(mp::applevz::CFError{})));
+    EXPECT_CALL(mock_applevz, create_vm(_, _, _)).Times(0);
     EXPECT_CALL(mock_applevz, get_state(_))
         .WillRepeatedly(Return(mp::applevz::AppleVMState::stopped));
     EXPECT_CALL(mock_applevz_utils, convert_to_supported_format(_)).WillRepeatedly(ReturnArg<0>());

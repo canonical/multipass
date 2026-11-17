@@ -43,7 +43,6 @@ AppleVZVirtualMachine::AppleVZVirtualMachine(const VirtualMachineDescription& de
                                              const Path& instance_dir)
     : BaseVirtualMachine{desc.vm_name, desc, monitor, key_provider, zone, instance_dir}
 {
-    initialize_vm_handle();
 }
 
 AppleVZVirtualMachine::~AppleVZVirtualMachine()
@@ -298,19 +297,8 @@ std::optional<mp::VirtualMachine::State> AppleVZVirtualMachine::fetch_backend_st
 
 void AppleVZVirtualMachine::initialize_vm_handle()
 {
-    // TODO: Assert after suspend to disk implemented
-    // This should only be the case if we are resuming from a paused state
-    if (vm_handle)
-    {
-        mpl::debug(log_category,
-                   "initialize_vm_handle() -> VM handle for '{}' already initialized",
-                   vm_name);
-        return;
-    }
-
     mpl::trace(log_category, "initialize_vm_handle() -> Creating VM handle for '{}'", vm_name);
 
-    vm_handle.reset();
     if (const auto& error = MP_APPLEVZ.create_vm(desc, zone, vm_handle); error)
     {
         throw std::runtime_error(

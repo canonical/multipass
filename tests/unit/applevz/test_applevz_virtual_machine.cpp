@@ -89,22 +89,34 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
 
     auto construct_vm(applevz::AppleVMState initial_state = applevz::AppleVMState::stopped)
     {
-        EXPECT_CALL(mock_applevz, create_vm(_, _, _))
-            .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(applevz::CFError{})))
-            .RetiresOnSaturation();
-
-        EXPECT_CALL(mock_applevz, get_state(_)).WillRepeatedly(Return(initial_state));
         EXPECT_CALL(mock_monitor, persist_state_for(desc.vm_name, _)).Times(AnyNumber());
 
         EXPECT_CALL(mock_image_utils, convert_to_supported_format(_))
             .WillRepeatedly(ReturnArg<0>());
         EXPECT_CALL(mock_image_utils, resize_image(_, _)).WillRepeatedly(Return());
 
-        return std::make_shared<mp::applevz::AppleVZVirtualMachine>(desc,
-                                                                    mock_monitor,
-                                                                    stub_key_provider,
-                                                                    az_manager.get_zone(desc.zone),
-                                                                    instance_dir.path());
+        auto uut = std::make_shared<mp::applevz::AppleVZVirtualMachine>(
+            desc,
+            mock_monitor,
+            stub_key_provider,
+            az_manager.get_zone(desc.zone),
+            instance_dir.path());
+
+        // a VM only has a handle once started, as in the daemon
+        if (initial_state != applevz::AppleVMState::stopped)
+        {
+            EXPECT_CALL(mock_applevz, create_vm(_, _, _))
+                .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(applevz::CFError{})));
+            EXPECT_CALL(mock_applevz, can_start(_)).WillOnce(Return(true));
+            EXPECT_CALL(mock_applevz, start_vm(_)).WillOnce(Return(applevz::CFError{}));
+            uut->start();
+            uut->set_running();
+            Mock::VerifyAndClearExpectations(&mock_applevz);
+        }
+
+        EXPECT_CALL(mock_applevz, get_state(_)).WillRepeatedly(Return(initial_state));
+
+        return uut;
     }
 };
 
@@ -360,7 +372,10 @@ TEST_F(AppleVZVirtualMachine_UnitTests, addNetworkInterfaceAppliesOnNextStart)
 
 TEST_F(AppleVZVirtualMachine_UnitTests, coldStartAppliesResourceChanges)
 {
-    auto uut = construct_vm();
+    auto uut = construct_vm(applevz::AppleVMState::running);
+
+    // the guest powered itself off, so the handle is still around
+    EXPECT_CALL(mock_applevz, get_state(_)).WillRepeatedly(Return(applevz::AppleVMState::stopped));
 
     uut->update_cpus(desc.num_cores + 2);
     uut->resize_memory(mp::MemorySize{"5M"});
