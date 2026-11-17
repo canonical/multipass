@@ -34,6 +34,22 @@ compiler and related tooling or fix a broken `visualstudio2022buildtools` instal
 6. Make sure that `vcpkg` is not installed in the same selection
 7. Complete the installation
 
+### Go compiler
+
+Building with Ubuntu Insights enabled (`MULTIPASS_ENABLE_INSIGHTS`) requires Go 1.26 or newer.
+Install Go from an administrator PowerShell terminal:
+
+```[pwsh]
+choco install golang -y
+```
+
+Open a new build terminal so it picks up the updated environment, and verify that it finds
+Go 1.26 or newer before running CMake:
+
+```[pwsh]
+go version
+```
+
 ### Git
 
 You need to enable symlinks in Windows Git, have a look at
