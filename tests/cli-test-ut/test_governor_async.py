@@ -95,6 +95,20 @@ class TestGovernorStopAsync:
         assert governor.controller.stop_called
         assert monitor_task.done()
 
+    @pytest.mark.asyncio
+    async def test_stop_async_clears_ready_so_health_check_is_skipped(self):
+        """A deliberately stopped daemon must not be health-probed (and so
+        abort the session) by the next command."""
+        governor = await run_governor(MockController(), ready_delay=0)
+        assert governor.daemon_ready_event.is_set()
+
+        await governor.stop_async()
+
+        assert not governor.daemon_ready_event.is_set()
+        with patch.object(MultipassdGovernor, "_probe_healthy") as probe:
+            governor.check_health()
+        probe.assert_not_called()
+
 
 class TestGovernorOnMonitorExit:
     """Test governor on_monitor_exit restart logic."""

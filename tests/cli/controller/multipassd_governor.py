@@ -272,6 +272,7 @@ class MultipassdGovernor:
 
     async def _stop_locked(self):
         self.graceful_exit_initiated = True
+        self.daemon_ready_event.clear()
         try:
             await asyncio.wait_for(self.controller.stop(), timeout=30)
         except asyncio.TimeoutError:
