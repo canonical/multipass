@@ -15,6 +15,9 @@
 #
 #
 
+from typing import Optional
+
+from cli.config import cfg
 from .multipassd_governor import MultipassdGovernor
 from .multipassd_controller import MultipassdController
 from .standalone_multipassd_controller import StandaloneMultipassdController
@@ -22,3 +25,18 @@ from .snap_multipassd_controller import SnapMultipassdController
 from .winsvc_multipassd_controller import WindowsServiceMultipassdController
 from .launchd_multipassd_controller import LaunchdMultipassdController
 from .controller_exceptions import ControllerPrerequisiteError
+
+#: `--daemon-controller` name -> controller class.
+CONTROLLERS = {
+    "standalone": StandaloneMultipassdController,
+    "snap": SnapMultipassdController,
+    "launchd": LaunchdMultipassdController,
+    "winsvc": WindowsServiceMultipassdController,
+}
+
+
+def get_temp_root() -> Optional[str]:
+    """`get_temp_root()` of the configured daemon controller, or None for the
+    system default (also when no controller is in use)."""
+    controller = CONTROLLERS.get(cfg.daemon_controller)
+    return controller.get_temp_root() if controller else None

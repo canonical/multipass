@@ -24,15 +24,26 @@ from typing import AsyncIterator, Optional
 
 from cli.utilities import (
     retry,
+    run_in_new_interpreter,
     sudo,
     StdoutAsyncSubprocess,
 )
+from cli.utilities.temputils import get_snap_temp_root, make_test_tmp_dir_for_snap
 from .controller_exceptions import ControllerPrerequisiteError
 
 
 class SnapMultipassdController:
     snap_name: str = "multipass"
     daemon_service_name: str = "multipass.multipassd"
+
+    @staticmethod
+    def get_temp_root() -> str:
+        # The strictly-confined snap has a private /tmp; it can only see its own
+        # $SNAP_COMMON, which `snap refresh` also preserves.
+        run_in_new_interpreter(
+            make_test_tmp_dir_for_snap, SnapMultipassdController.snap_name, privileged=True
+        )
+        return get_snap_temp_root(SnapMultipassdController.snap_name)
 
     def __init__(self):
         if sys.platform != "linux":
