@@ -310,6 +310,7 @@ OperationResult HCNWrapper::query_endpoint(const std::string& endpoint_guid,
     try
     {
         out_info = boost::json::value_to<HcnEndpointInfo>(boost::json::parse(properties_as_str));
+        out_info.guid = endpoint_guid;
     }
     catch (const std::exception& e)
     {
