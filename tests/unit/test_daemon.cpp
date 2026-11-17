@@ -25,6 +25,7 @@
 #include "mock_cert_provider.h"
 #include "mock_daemon.h"
 #include "mock_daemon_rpc_context.h"
+#include "mock_dns_provider.h"
 #include "mock_environment_helpers.h"
 #include "mock_file_ops.h"
 #include "mock_image_host.h"
@@ -174,6 +175,34 @@ TEST_F(Daemon, buildsConfig)
     auto config = config_builder.build();
     EXPECT_EQ(config->ssh_username, "ubuntu");
     EXPECT_THAT(config->image_hosts, Not(IsEmpty()));
+}
+
+TEST_F(Daemon, startsDnsProviderForTheConfiguredDomain)
+{
+    auto dns_provider = std::make_unique<StrictMock<mpt::MockDnsProvider>>();
+    EXPECT_CALL(*dns_provider, start(Eq("multipass.local")));
+    config_builder.dns_provider = std::move(dns_provider);
+    config_builder.dns_domain = "multipass.local";
+
+    mp::Daemon daemon{config_builder.build()};
+}
+
+TEST_F(Daemon, doesNotStartDnsProviderWithoutADomain)
+{
+    // StrictMock: any call fails the test.
+    config_builder.dns_provider = std::make_unique<StrictMock<mpt::MockDnsProvider>>();
+
+    mp::Daemon daemon{config_builder.build()};
+}
+
+TEST_F(Daemon, startsDespiteDnsProviderFailingToStart)
+{
+    auto dns_provider = std::make_unique<NiceMock<mpt::MockDnsProvider>>();
+    EXPECT_CALL(*dns_provider, start).WillOnce(Throw(std::runtime_error{"address in use"}));
+    config_builder.dns_provider = std::move(dns_provider);
+    config_builder.dns_domain = "multipass.local";
+
+    EXPECT_NO_THROW(mp::Daemon{config_builder.build()});
 }
 
 TEST_F(Daemon, receivesCommandsAndCallsCorrespondingSlot)
