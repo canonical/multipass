@@ -49,6 +49,10 @@ from .controller_exceptions import ControllerPrerequisiteError
 class WindowsServiceMultipassdController:
     """SCM-backed controller for multipassd on Windows."""
 
+    @staticmethod
+    def get_temp_root() -> Optional[str]:
+        return None
+
     def __init__(self, service_name: Optional[str] = "multipass"):
         if sys.platform != "win32":
             raise ControllerPrerequisiteError(

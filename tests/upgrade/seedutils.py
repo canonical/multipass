@@ -31,10 +31,8 @@ import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 
-from cli.config import cfg
+from cli.controller import get_temp_root
 from cli.multipass import launch, multipass, vm_exists
-from cli.utilities import run_in_new_interpreter
-from cli.utilities.temputils import get_snap_temp_root, make_test_tmp_dir_for_snap
 
 
 def ensure_absent(name: str) -> None:
@@ -74,19 +72,15 @@ def daemon_readable_dir(label: str) -> Path:
 
     A strictly-confined snap cannot see the host's ``/tmp`` -- it has a private
     one -- so anything Multipass must read (a mount source, a ``--cloud-init``
-    file) has to live somewhere inside the snap's world. For the snap this is
-    ``$SNAP_COMMON/tmp`` (the same place the suite's ``TempDirectory`` uses),
-    which ``snap refresh`` also preserves. For other controllers a deterministic
-    path under the system temp directory is used; it persists on the same host
-    between the two runs. The directory is reset on each call so re-seeding is
-    idempotent.
+    file) has to live under the daemon controller's ``get_temp_root()`` (the
+    same place the suite's ``TempDirectory`` uses): ``$SNAP_COMMON/tmp`` for the
+    snap, which ``snap refresh`` also preserves. For other controllers a
+    deterministic path under the system temp directory is used; it persists on
+    the same host between the two runs. The directory is reset on each call so
+    re-seeding is idempotent.
     """
     dir_name = f"upgrade-{label}"
-    if cfg.daemon_controller == "snap":
-        run_in_new_interpreter(make_test_tmp_dir_for_snap, "multipass", privileged=True)
-        root = Path(get_snap_temp_root("multipass"))
-    else:
-        root = Path(tempfile.gettempdir())
+    root = Path(get_temp_root() or tempfile.gettempdir())
     path = (root / dir_name).resolve()
     # Reset contents for idempotency across re-seeds.
     if path.exists():

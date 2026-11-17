@@ -183,6 +183,10 @@ class LaunchdMultipassdController:
     """launchd controller for `multipassd` on macOS."""
 
     @staticmethod
+    def get_temp_root() -> Optional[str]:
+        return None
+
+    @staticmethod
     def setup_environment():
         logging.debug(
             f"LaunchdMultipassdController :: setup_environment {plist_path}")

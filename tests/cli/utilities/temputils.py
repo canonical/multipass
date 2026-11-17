@@ -18,9 +18,6 @@ from contextlib import contextmanager, suppress
 from pathlib import Path
 import tempfile
 
-from cli.config import cfg
-from cli.utilities import run_in_new_interpreter
-
 
 def get_snap_temp_root(snap_name):
     return f"/var/snap/{snap_name}/common/tmp"
@@ -35,15 +32,13 @@ def make_test_tmp_dir_for_snap(snap_name):
 
 @contextmanager
 def TempDirectory(delete=True, ignore_cleanup_errors=True):
-    tmp_root = None
-    if cfg.daemon_controller == "snap":
-        run_in_new_interpreter(make_test_tmp_dir_for_snap,
-                               "multipass", privileged=True)
-        tmp_root = get_snap_temp_root("multipass")
+    # Deferred: `cli.controller` imports `cli.utilities`, which imports this module.
+    from cli.controller import get_temp_root
+
     # Cleanup is best effort, but exceptions raised by the caller's `with`
     # body must propagate (e.g. failed test assertions).
     tmp = tempfile.TemporaryDirectory(
-        dir=tmp_root, delete=False, ignore_cleanup_errors=ignore_cleanup_errors
+        dir=get_temp_root(), delete=False, ignore_cleanup_errors=ignore_cleanup_errors
     )
     try:
         yield Path(tmp.name).resolve()

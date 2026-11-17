@@ -60,11 +60,9 @@ from cli.multipass import (
 
 from cli.config import cfg
 from cli.controller import (
+    CONTROLLERS,
     MultipassdGovernor,
-    SnapMultipassdController,
     StandaloneMultipassdController,
-    LaunchdMultipassdController,
-    WindowsServiceMultipassdController,
     ControllerPrerequisiteError,
 )
 
@@ -567,10 +565,8 @@ def set_driver(controller):
 def make_daemon_controller(kind):
     # Return a partial so the controller can be instantiated on demand.
     controllers = {
+        **{name: partial(cls) for name, cls in CONTROLLERS.items()},
         "standalone": partial(StandaloneMultipassdController, cfg.storage_dir),
-        "snap": partial(SnapMultipassdController),
-        "launchd": partial(LaunchdMultipassdController),
-        "winsvc": partial(WindowsServiceMultipassdController),
         "none": lambda: None,
     }
 

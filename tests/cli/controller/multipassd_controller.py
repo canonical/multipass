@@ -29,6 +29,11 @@ class MultipassdController(Protocol):
     def teardown_environment() -> None:
         """Static environment teardown (per-session)."""
 
+    @staticmethod
+    def get_temp_root() -> Optional[str]:
+        """Directory under which to create temp dirs the daemon must read
+        (e.g. mount sources), or None for the system default."""
+
     async def start(self) -> None:
         """Start the daemon."""
 
