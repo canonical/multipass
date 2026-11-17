@@ -156,7 +156,8 @@ def verify_manifest():
 
 @dataclass
 class Scenario:
-    """An upgrade concern's binding: its VM name and its slice of the manifest.
+    """An upgrade scenario: its name (normally the seeded VM's) and its slice of
+    the manifest.
 
     Seed tests fill ``record`` in; verify tests read it back. Tests name their VM
     once with ``@pytest.mark.scenario("<vm-name>")`` and request the matching
