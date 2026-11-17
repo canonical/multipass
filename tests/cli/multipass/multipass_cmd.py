@@ -223,7 +223,7 @@ def multipass(*args, **kwargs):
 
         def __call__(self):
             child = self.pexpect_child
-            if child.exitstatus is None and child.signalstatus is not None:
+            if child.signalstatus:
                 logging.error(
                     f"{' '.join(cmd_args)} killed by signal {child.signalstatus}")
             return Output(

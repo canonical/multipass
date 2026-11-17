@@ -459,23 +459,21 @@ def _inhibit_system_sleep():
     keep-alive "only missed" what it thinks is a short interval. Holding a power
     assertion for the duration of the session keeps the machine awake so the
     keep-alive can always run.
-
-    Returns a handle to terminate on teardown, or None when not applicable.
     """
     if sys.platform != "darwin":
-        return None
+        return
 
     if not shutil.which("caffeinate"):
         logging.warning(
             "caffeinate not found; cannot inhibit system sleep. "
             "The sudo ticket may expire if the machine idle-sleeps."
         )
-        return None
+        return
 
     # -d display, -i idle system, -m disk, -s system (on AC), -u user active.
     # -w <pid>: caffeinate exits automatically when this process exits, so the
-    # power assertion can never outlive the test session.
-    return subprocess.Popen(
+    # power assertion can never outlive the test session and needs no teardown.
+    subprocess.Popen(
         ["caffeinate", "-dimsu", "-w", str(os.getpid())],
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
@@ -519,7 +517,7 @@ def ensure_sudo_auth():
 
         # Keep the machine awake so the keep-alive thread below is never frozen
         # by idle sleep (which would let the sudo ticket lapse on macOS).
-        sleep_inhibitor = _inhibit_system_sleep()
+        _inhibit_system_sleep()
 
         stop_keepalive = threading.Event()
 
@@ -556,11 +554,6 @@ def ensure_sudo_auth():
         yield
         stop_keepalive.set()
         sudo_keepalive_thread.join()
-
-        if sleep_inhibitor is not None:
-            sleep_inhibitor.terminate()
-            with suppress(Exception):
-                sleep_inhibitor.wait(timeout=5)
     except subprocess.TimeoutExpired:
         pytest.skip("Cannot authenticate sudo non-interactively")
 
