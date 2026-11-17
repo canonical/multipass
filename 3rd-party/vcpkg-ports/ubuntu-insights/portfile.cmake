@@ -42,13 +42,10 @@ if(VCPKG_TARGET_IS_OSX AND VCPKG_OSX_DEPLOYMENT_TARGET)
     list(APPEND GO_ENV "MACOSX_DEPLOYMENT_TARGET=${VCPKG_OSX_DEPLOYMENT_TARGET}")
 endif()
 
-set(tools_dir "${CURRENT_PACKAGES_DIR}/tools/${PORT}")
-file(MAKE_DIRECTORY "${tools_dir}")
-
 function(add_insights_tool tool package)
     vcpkg_execute_required_process(
         COMMAND
-            ${CMAKE_COMMAND} -E env {GO_ENV}
+            "${CMAKE_COMMAND}" -E env ${GO_ENV}
             "${GO_EXECUTABLE}" build -trimpath
             -o "${tools_dir}/${tool}${VCPKG_TARGET_EXECUTABLE_SUFFIX}" "${package}"
         WORKING_DIRECTORY "${SOURCE_PATH}"
@@ -60,12 +57,6 @@ endfunction()
 
 set(INSIGHTS_TOOLS "")
 
-add_insights_tool(ubuntu-insights ./insights/cmd/insights)
-if(VCPKG_TARGET_IS_LINUX)
-    add_insights_tool(web-service ./server/cmd/web-service)
-    add_insights_tool(ingest-service ./server/cmd/ingest-service)
-endif()
-
 if(VCPKG_TARGET_IS_WINDOWS)
     # Reuse the pinned MinGW closure acquired by QEMU.
     include("${CMAKE_CURRENT_LIST_DIR}/../../vcpkg-port-utils/mingw/get-mingw-packages.cmake")
@@ -76,6 +67,17 @@ if(VCPKG_TARGET_IS_WINDOWS)
         "CC=${MINGW_BIN}/gcc.exe"
         --modify "PATH=path_list_prepend:${MINGW_BIN}"
     )
+endif()
+
+if("tools" IN_LIST FEATURES)
+    set(tools_dir "${CURRENT_PACKAGES_DIR}/tools/${PORT}")
+    file(MAKE_DIRECTORY "${tools_dir}")
+
+    add_insights_tool(client ./insights/cmd/insights)
+    if(VCPKG_TARGET_IS_LINUX)
+        add_insights_tool(web-service ./server/cmd/web-service)
+        add_insights_tool(ingest-service ./server/cmd/ingest-service)
+    endif()
 endif()
 
 vcpkg_execute_required_process(
@@ -126,7 +128,9 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion
 )
 
-vcpkg_copy_tool_dependencies("${tools_dir}")
+if("tools" IN_LIST FEATURES)
+    vcpkg_copy_tool_dependencies("${tools_dir}")
+endif()
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")
 
 file(INSTALL "${CMAKE_CURRENT_LIST_DIR}/usage" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}")

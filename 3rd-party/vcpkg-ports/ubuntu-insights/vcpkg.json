@@ -4,5 +4,10 @@
   "description": "Ubuntu Insights client, server executables, and C shared library",
   "homepage": "https://github.com/ubuntu/ubuntu-insights",
   "supports": "linux | osx | (windows & x64)",
-  "license": "GPL-3.0-only"
+  "license": "GPL-3.0-only",
+  "features": {
+    "tools": {
+      "description": "Build the Ubuntu Insights client and server executables (servers are Linux-only)"
+    }
+  }
 }
