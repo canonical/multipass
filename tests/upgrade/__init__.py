@@ -24,8 +24,10 @@ A two-phase suite, selected by marker, glued together by the CI:
     # ... CI swaps Multipass X -> Y, instance storage preserved (no reboot) ...
     pytest tests/upgrade -m verify     # assert the seeded VMs survived
 
-Each concern is a pair of ordinary pytest tests (a ``seed`` test and a
-``verify`` test) living in ``<concern>_test.py``. The seed test stores what it
+Each concern (an area of state that should survive, e.g. mounts) lives in
+``<concern>_test.py`` and holds one or more scenarios. A scenario is a pair of
+ordinary pytest tests (a ``seed`` test and a ``verify`` test) sharing one
+manifest entry, usually for a single VM. The seed test stores what it
 expects to survive in the manifest (the ``seed_manifest`` fixture); the verify
 test reads it back (the ``verify_manifest`` fixture). This package only needs to
 be importable so that pytest puts ``tests/`` on ``sys.path``.

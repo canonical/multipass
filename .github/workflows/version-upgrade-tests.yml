@@ -83,7 +83,7 @@ jobs:
       # NB: --remove-all-instances is deliberately NOT passed -- it would
       #     wipe the very VMs the verify phase relies on.
       ##################################################################
-      - name: Install Multipass (from / version X = latest release)
+      - name: Install Multipass (from / version X)
         run: sudo snap install multipass --channel="${FROM_SNAP_CHANNEL}"
 
       - name: Record installed 'from' version
