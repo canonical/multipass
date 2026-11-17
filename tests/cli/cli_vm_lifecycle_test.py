@@ -28,6 +28,8 @@ from cli.multipass import (
     random_vm_name,
     get_boot_id,
     get_instance_metadata,
+    assert_resolves_by_name,
+    assert_does_not_resolve_by_name,
 )
 from cli.config import cfg
 
@@ -53,10 +55,13 @@ class TestVmLifecycle:
                 assert not output
                 assert "does not exist" in output
 
+        assert_does_not_resolve_by_name(name)
+
     def test_stop(self, instance):
         assert state(f"{instance}") == "Running"
         assert multipass("stop", f"{instance}")
         assert state(f"{instance}") == "Stopped"
+        assert_does_not_resolve_by_name(instance)
 
     def test_stop_start(self, instance):
         assert state(f"{instance}") == "Running"
@@ -66,6 +71,7 @@ class TestVmLifecycle:
         assert multipass("start", f"{instance}")
         assert state(f"{instance}") == "Running"
         assert boot_id_before != get_boot_id(instance)
+        assert_resolves_by_name(instance)
 
     @pytest.mark.suspend
     def test_suspend_resume(self, instance):
@@ -79,8 +85,10 @@ class TestVmLifecycle:
             # (cf issue #5542).
             resume_args = get_instance_metadata(instance)["arguments"]
             assert not any(re.search(r"/snap/multipass/x?\d+/", arg) for arg in resume_args)
+        assert_does_not_resolve_by_name(instance)
         assert multipass("start", f"{instance}")
         assert state(f"{instance}") == "Running"
+        assert_resolves_by_name(instance)
         boot_id_after = get_boot_id(instance)
         # Must have the same boot id as before
         assert boot_id_before == boot_id_after
@@ -93,12 +101,14 @@ class TestVmLifecycle:
         indirect=True,
     )
     def test_launch_delete(self, instance):
-        assert state(f"{instance}") == "Running"
-        with multipass("delete", "--force", f"{instance}") as output:
+        assert state(instance) == "Running"
+        assert_resolves_by_name(instance)
+        with multipass("delete", "--force", instance) as output:
             assert output
             assert f"{instance} is deleted." in output
+            assert_does_not_resolve_by_name(instance)
 
-        with multipass("info", f"{instance}") as output:
+        with multipass("info", instance) as output:
             assert not output
             assert "does not exist" in output
 
@@ -125,6 +135,8 @@ class TestVmLifecycle:
 
             assert multipass("restart", name1, name2)
             assert state(name1) == "Running" and state(name2) == "Running"
+            assert_resolves_by_name(name1)
+            assert_resolves_by_name(name2)
 
             vm1_boot_id_after_restart = get_boot_id(name1)
             vm2_boot_id_after_restart = get_boot_id(name2)
