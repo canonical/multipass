@@ -23,7 +23,7 @@ What must survive is the *instance's* NIC configuration -- the extra interface
 and its persisted MAC, stored in the instance record -- not the host network
 itself. The host network is provided per-platform by the ``host_network``
 fixture (see ``netutils``): a throwaway isolated bridge on Linux and a private
-Hyper-V vSwitch on Windows (when running on a Hyper-V backend). The test is
+Hyper-V vSwitch on Windows. The test is
 skipped on macOS where no isolated ephemeral network can be created. Seed
 attaches a VM and records the MACs; verify resumes the VM and checks the same
 MACs are still reported. ``mode=manual`` keeps the guest from DHCP-ing on it.
@@ -43,7 +43,7 @@ SUSPEND_VM = "upg-net-susp"
 BRIDGED_VM = "upg-bridged"
 
 requires_suspend = pytest.mark.skipif(
-    cfg.driver in ("lxd", "applevz"),
+    cfg.driver == "applevz",
     reason=f"suspend/resume is not supported on the `{cfg.driver}` driver",
 )
 

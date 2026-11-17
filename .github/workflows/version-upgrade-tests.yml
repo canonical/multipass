@@ -26,7 +26,7 @@ on:
         required: true
       backend-driver:
         type: string
-        description: "Backend driver to use (e.g. qemu, lxd)"
+        description: "Backend driver to use (e.g. qemu)"
         required: false
         default: "auto"
       pytest-extra-args:

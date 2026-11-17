@@ -39,7 +39,7 @@ from .helpers import (
 from .seedutils import seeded_vm
 
 requires_suspend = pytest.mark.skipif(
-    cfg.driver in ("lxd", "applevz"),
+    cfg.driver == "applevz",
     reason=f"suspend is not supported on the `{cfg.driver}` driver",
 )
 
