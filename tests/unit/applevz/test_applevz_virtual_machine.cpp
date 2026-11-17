@@ -18,6 +18,7 @@
 #include "mock_applevz_utils.h"
 #include "mock_applevz_wrapper.h"
 #include "tests/unit/common.h"
+#include "tests/unit/mock_cloud_init_file_ops.h"
 #include "tests/unit/mock_logger.h"
 #include "tests/unit/mock_status_monitor.h"
 #include "tests/unit/stub_availability_zone_manager.h"
@@ -327,5 +328,28 @@ TEST_F(AppleVZVirtualMachine_UnitTests, fetchStateReportsUnavailableWhenZoneUnav
     uut->set_available(false);
 
     EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::unavailable);
+}
+
+TEST_F(AppleVZVirtualMachine_UnitTests, addNetworkInterfaceAppliesOnNextStart)
+{
+    auto uut = construct_vm();
+
+    const mp::NetworkInterface extra_interface{"en0", "52:54:00:00:00:01", true};
+    const auto [mock_cloud_init_file_ops, guard] = mpt::MockCloudInitFileOps::inject();
+    EXPECT_CALL(*mock_cloud_init_file_ops,
+                add_extra_interface_to_cloud_init(desc.default_mac_address, extra_interface, _));
+
+    uut->add_network_interface(extra_interface);
+
+    EXPECT_CALL(mock_applevz,
+                create_vm(Field(&mp::VirtualMachineDescription::extra_interfaces,
+                                ElementsAre(extra_interface)),
+                          _,
+                          _))
+        .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(applevz::CFError{})));
+    EXPECT_CALL(mock_applevz, can_start(_)).WillOnce(Return(true));
+    EXPECT_CALL(mock_applevz, start_vm(_));
+
+    uut->start();
 }
 }; // namespace multipass::test
