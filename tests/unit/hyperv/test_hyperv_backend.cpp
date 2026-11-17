@@ -116,16 +116,15 @@ struct HyperVBackend : public Test
 
     inline static const std::vector<RunSpec> prefix_ctor_runs = {
         {.expect_cmdlet_substr = "Get-VM", .will_output = "", .will_return = false},
-        {.expect_cmdlet_substr = "Get-VMSwitch"},
-        {.expect_cmdlet_substr = "New-VM"},
-        {.expect_cmdlet_substr = "-EnableSecureBoot Off"},
-        {.expect_cmdlet_substr = "Set-VMProcessor"},
-        {.expect_cmdlet_substr = "Add-VMDvdDrive"},
-        {.expect_cmdlet_substr = "Set-VMMemory"},
-        {.expect_cmdlet_substr = "Set-VM"}};
+        {"Get-VMSwitch"},
+        {"New-VM"},
+        {"-EnableSecureBoot Off"},
+        {"Set-VMProcessor"},
+        {"Add-VMDvdDrive"},
+        {"Set-VMMemory"},
+        {"Set-VM"}};
     inline static const std::vector<RunSpec> postfix_ctor_runs = {};
-    inline static const RunSpec default_network_run = {
-        .expect_cmdlet_substr = "Set-VMNetworkAdapter"};
+    inline static const RunSpec default_network_run = {"Set-VMNetworkAdapter"};
     inline static const RunSpec min_dtor_run = {.expect_cmdlet_substr = "-ExpandProperty State",
                                                 .will_output = "Off"};
 
@@ -216,7 +215,7 @@ TEST_F(HyperVNeighbors, managementIpv4UsesDefaultSwitchEntry)
 {
     // The host vNIC is looked up once and reused by later queries.
     ps_helper.setup_mocked_run_sequence(
-        {{.expect_cmdlet_substr = "Get-VM"},
+        {{"Get-VM"},
          {.expect_cmdlet_substr = "-ExpandProperty State", .will_output = "Off"},
          default_switch_lookup_run,
          min_dtor_run});
@@ -238,7 +237,7 @@ TEST_F(HyperVNeighbors, managementIpv4ReturnsEmptyWithoutDefaultSwitchInterface)
     failed_lookup.will_output = "";
     failed_lookup.will_return = false;
     ps_helper.setup_mocked_run_sequence(
-        {{.expect_cmdlet_substr = "Get-VM"},
+        {{"Get-VM"},
          {.expect_cmdlet_substr = "-ExpandProperty State", .will_output = "Off"},
          failed_lookup,
          min_dtor_run});
@@ -262,13 +261,13 @@ TEST_P(HyperVStart, removesNeighborsOnlyForConfirmedColdStart)
 {
     const auto& [initial_state, state_query, remove_neighbors] = GetParam();
     std::vector<RunSpec> runs{
-        {.expect_cmdlet_substr = "Get-VM"},
+        {"Get-VM"},
         {.expect_cmdlet_substr = "-ExpandProperty State", .will_output = initial_state},
         state_query};
     if (remove_neighbors)
         runs.push_back(default_switch_lookup_run);
     runs.insert(runs.end(),
-                {{.expect_cmdlet_substr = "Start-VM"},
+                {{"Start-VM"},
                  {.expect_cmdlet_substr = "-ExpandProperty State",
                   .will_output = "Running"}, // fetch_state() after start
                  min_dtor_run});
@@ -327,10 +326,10 @@ INSTANTIATE_TEST_SUITE_P(HyperVBackend,
 
 TEST_F(HyperVBackend, setsMacAddressOnDefaultNetworkAdapter)
 {
-    auto network_run = RunSpec{.expect_cmdlet_substr = fmt::format(
-                                   "Set-VMNetworkAdapter -VMName {} -StaticMacAddress \"{}\"",
-                                   default_description.vm_name,
-                                   default_description.default_mac_address)};
+    auto network_run = RunSpec{
+        fmt::format("Set-VMNetworkAdapter -VMName {} -StaticMacAddress \"{}\"",
+                    default_description.vm_name,
+                    default_description.default_mac_address)};
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence({network_run}));
 
     backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor);
@@ -342,7 +341,7 @@ TEST_F(HyperVBackend, throwsOnFailureToSetupDefaultNetworkAdapter)
     default_tweaked_run.will_return = false;
 
     ps_helper.setup_mocked_run_sequence(
-        standard_ps_run_sequence({default_tweaked_run, {.expect_cmdlet_substr = "Get-VM"}}));
+        standard_ps_run_sequence({default_tweaked_run, {"Get-VM"}}));
 
     MP_EXPECT_THROW_THAT(
         backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor),
@@ -359,14 +358,12 @@ TEST_F(HyperVBackend, addsExtraNetworkAdapters)
     auto network_runs = std::vector<RunSpec>{default_network_run};
     for (const auto& iface : default_description.extra_interfaces)
     {
-        network_runs.push_back(
-            {.expect_cmdlet_substr = fmt::format("Get-VMSwitch -Name \"{}\"", iface.id)});
-        network_runs.push_back(
-            {.expect_cmdlet_substr = fmt::format(
-                 "Add-VMNetworkAdapter -VMName {} -SwitchName \"{}\" -StaticMacAddress \"{}\"",
-                 default_description.vm_name,
-                 iface.id,
-                 iface.mac_address)});
+        network_runs.push_back({fmt::format("Get-VMSwitch -Name \"{}\"", iface.id)});
+        network_runs.push_back({fmt::format(
+            "Add-VMNetworkAdapter -VMName {} -SwitchName \"{}\" -StaticMacAddress \"{}\"",
+            default_description.vm_name,
+            iface.id,
+            iface.mac_address)});
     };
 
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence(std::move(network_runs)));
@@ -384,7 +381,7 @@ TEST_F(HyperVBackend, throwsOnFailureToDetectSwitchFromExtraInterface)
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence(
         {default_network_run,
          {.expect_cmdlet_substr = failing_cmd, .will_output = "", .will_return = false},
-         {.expect_cmdlet_substr = "Get-VM"}}));
+         {"Get-VM"}}));
 
     MP_EXPECT_THROW_THAT(
         backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor),
@@ -407,9 +404,9 @@ TEST_F(HyperVBackend, throwsOnFailureToAddExtraInterface)
 
     ps_helper.setup_mocked_run_sequence(standard_ps_run_sequence(
         {default_network_run,
-         {.expect_cmdlet_substr = "Get-VMSwitch"},
+         {"Get-VMSwitch"},
          {.expect_cmdlet_substr = failing_cmd, .will_output = "", .will_return = false},
-         {.expect_cmdlet_substr = "Get-VM"}}));
+         {"Get-VM"}}));
 
     MP_EXPECT_THROW_THAT(
         backend.create_virtual_machine(default_description, stub_key_provider, stub_monitor),
@@ -517,7 +514,7 @@ INSTANTIATE_TEST_SUITE_P(
             {.expect_cmdlet_substr = "Microsoft-Hyper-V-Hypervisor", .will_output = "Enabled"},
             {.expect_cmdlet_substr = "vmms", .will_output = "Stopped"},
             {.expect_cmdlet_substr = "Get-Service", .will_output = "Automatic"},
-            {.expect_cmdlet_substr = "Start-Service"}},
+            {"Start-Service"}},
         // New ReleaseId format
         std::vector<mpt::PowerShellTestHelper::RunSpec>{
             {.expect_cmdlet_substr = "CurrentMajorVersionNumber", .will_output = "10"},
