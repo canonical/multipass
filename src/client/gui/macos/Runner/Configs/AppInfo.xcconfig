@@ -1,5 +1,3 @@
-#include "DeploymentTarget.xcconfig"
-
 // Application-level settings for the Runner target.
 //
 // This may be replaced with something auto-generated from metadata (e.g., pubspec.yaml) in the
