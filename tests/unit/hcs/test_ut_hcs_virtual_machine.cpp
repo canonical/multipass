@@ -1409,5 +1409,5 @@ TEST_F(HyperVHCSVirtualMachine_UnitTests, add_network_interface)
     std::string endpoint_guid{};
 
     EXPECT_CALL(*uut, add_extra_interface_to_instance_cloud_init(_, _)).Times(1);
-    uut->add_network_interface(0, "ff:ee:dd:cc:bb:aa", if_to_add);
+    uut->add_network_interface(if_to_add);
 }

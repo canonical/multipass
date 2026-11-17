@@ -484,10 +484,10 @@ void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMes
         messages.add_message(core_image_disk_resize_message());
 }
 
-void mp::BaseVirtualMachine::add_network_interface(int index,
-                                                   const std::string& default_mac_addr,
-                                                   const NetworkInterface& extra_interface)
+void mp::BaseVirtualMachine::add_network_interface(const NetworkInterface& extra_interface)
 {
+    const auto index = static_cast<int>(desc.extra_interfaces.size());
+    const auto& default_mac_addr = desc.default_mac_address;
     mpl::debug(vm_name,
                "add_network_interface() -> index `{}`, default mac `{}`, id `{}`, mac `{}`, "
                "auto mode `{}`",

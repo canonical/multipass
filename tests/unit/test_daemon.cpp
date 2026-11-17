@@ -2638,7 +2638,7 @@ TEST_F(Daemon, addBridgedInterfaceWorks)
                                                     .needs_authorization = false}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(1);
-    EXPECT_CALL(*instance_ptr, add_network_interface(0, _, _)).Times(1);
+    EXPECT_CALL(*instance_ptr, add_network_interface).Times(1);
     EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(instance_name));
 
     EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr));
@@ -2691,7 +2691,7 @@ TEST_F(Daemon, addBridgedInterfaceHonorsPreparedBridge)
     EXPECT_CALL(*mock_factory,
                 prepare_networking(Contains(Field(&mp::NetworkInterface::id, StrEq("eth8")))))
         .WillOnce(SetArgReferee<0>(std::vector{br_net}));
-    EXPECT_CALL(*instance_ptr, add_network_interface(0, _, Eq(br_net))).Times(1);
+    EXPECT_CALL(*instance_ptr, add_network_interface(Eq(br_net))).Times(1);
     EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(instance_name));
 
     EXPECT_NO_THROW(daemon.test_add_bridged_interface(instance_name, instance_ptr));
@@ -2717,7 +2717,7 @@ TEST_F(Daemon, addBridgedInterfaceThrowsIfBackendThrows)
                                                     .needs_authorization = false}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(1);
-    EXPECT_CALL(*instance_ptr, add_network_interface(0, _, _))
+    EXPECT_CALL(*instance_ptr, add_network_interface)
         .WillOnce(Throw(std::runtime_error("something bad")));
     EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(instance_name));
 
@@ -2743,7 +2743,7 @@ TEST_F(Daemon, addBridgedInterfaceThrowsOnBadBridgedNetworkSetting)
                                                     .needs_authorization = false}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(0);
-    EXPECT_CALL(*instance_ptr, add_network_interface(_, _, _)).Times(0);
+    EXPECT_CALL(*instance_ptr, add_network_interface).Times(0);
     EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(instance_name));
 
     std::string msg{"Invalid network 'eth8' set as bridged interface, use `multipass set "
@@ -2769,7 +2769,7 @@ TEST_F(Daemon, addBridgedInterfaceThrowsIfNeedsAuthorization)
                                                     .needs_authorization = true}};
     EXPECT_CALL(*mock_factory, networks).WillOnce(Return(net_info));
     EXPECT_CALL(*mock_factory, prepare_networking).Times(0);
-    EXPECT_CALL(*instance_ptr, add_network_interface(_, _, _)).Times(0);
+    EXPECT_CALL(*instance_ptr, add_network_interface).Times(0);
     EXPECT_CALL(*instance_ptr, get_name).WillRepeatedly(ReturnRef(instance_name));
 
     std::string msg{"Cannot update instance settings; instance: glass-elevator; reason: Need user "

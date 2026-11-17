@@ -347,8 +347,6 @@ TEST_F(BaseVM, addNetworkInterfaceThrows)
     StubBaseVirtualMachine base_vm(zone, St::stopped);
 
     MP_EXPECT_THROW_THAT(base_vm.add_network_interface(
-                             1,
-                             "",
                              {.id = "eth1", .mac_address = "52:54:00:00:00:00", .auto_mode = true}),
                          mp::NotImplementedOnThisBackendException,
                          mpt::match_what(HasSubstr("networks")));

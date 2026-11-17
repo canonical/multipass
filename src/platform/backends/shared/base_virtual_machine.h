@@ -73,9 +73,7 @@ public:
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size, UserMessages& messages) override;
     [[nodiscard]] std::vector<IPAddress> get_all_ipv4() override;
-    void add_network_interface(int index,
-                               const std::string& default_mac_addr,
-                               const NetworkInterface& extra_interface) override;
+    void add_network_interface(const NetworkInterface& extra_interface) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string&,
                                                             const VMMount&) override
     {
