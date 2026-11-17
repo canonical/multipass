@@ -815,6 +815,15 @@ TEST(PlatformWin, getTotalRamReturnsGreaterThanZero)
     EXPECT_GT(MP_PLATFORM.get_total_ram(), 0LL);
 }
 
+// Rejected before the host's configuration is touched, so it needs no privileges.
+TEST(PlatformWin, dnsProviderRejectsInvalidDomains)
+{
+    const auto provider = MP_PLATFORM.make_dns_provider();
+
+    EXPECT_THROW(provider->start(""), std::invalid_argument);
+    EXPECT_THROW(provider->start(".."), std::invalid_argument);
+}
+
 TEST(PlatformWin, test_qstr_path_conversion)
 {
     // ASCII
