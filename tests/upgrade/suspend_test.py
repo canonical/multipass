@@ -26,11 +26,9 @@ from .seedutils import seeded_vm
 
 SUSPEND_VM = "upg-suspend"
 
-#: suspend/resume is not preserved across an upgrade on these drivers. This is
-#: broader than the cli framework's ``@pytest.mark.suspend`` (which only gates
-#: applevz), so we keep a local skip rather than reuse that marker.
+#: suspend/resume is not supported on applevz.
 requires_suspend = pytest.mark.skipif(
-    cfg.driver in ("lxd", "applevz"),
+    cfg.driver == "applevz",
     reason=f"suspend/resume is not supported on the `{cfg.driver}` driver",
 )
 

@@ -73,9 +73,9 @@ def test_snapshot_seed(scenario):
         assert multipass("stop", VM)
         assert multipass("set", f"local.{VM}.cpus=3")
         assert multipass("set", f"local.{VM}.memory=2G")
-        # hyperv_api (HCS) rejects resizing the primary disk while snapshots exist,
+        # hcs rejects resizing the primary disk while snapshots exist,
         # so skip the disk bump there; the disk-rollback check is gated off to match.
-        if cfg.driver != "hyperv_api":
+        if cfg.driver != "hcs":
             assert multipass("set", f"local.{VM}.disk=10G")
         _snapshot(VM, CHILD, CHILD_COMMENT)
         assert state(VM) == "Stopped"
@@ -138,7 +138,7 @@ def test_snapshot_verify(scenario):
     from cli.utilities.mathutils import is_within_tolerance
 
     assert current["cpu_count"] == expected["cpu_count"], "cpu count not restored to BASE"
-    if cfg.driver != "hyperv_api":
+    if cfg.driver != "hcs":
         assert current["disk_total"] == expected["disk_total"], "disk size not restored to BASE"
     assert is_within_tolerance(current["memory_total"], expected["memory_total"]), (
         "memory not restored to BASE within tolerance"

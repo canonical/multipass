@@ -34,12 +34,10 @@ the cli tests do it (``sudo`` on Unix, ``gsudo`` on Windows).
   Private``). ``Get-VMSwitch`` lists it (so ``--network`` accepts it), it needs
   no authorization, and a private switch has no host/external uplink, so it
   never disrupts host connectivity. ``New-VMSwitch`` ships with the Hyper-V
-  PowerShell module, which is absent on Windows *Home* (and on the VirtualBox
-  backend Hyper-V is not in play at all); where it -- or a Hyper-V backend -- is
-  unavailable, the test is skipped, as there is then no isolated network to
-  attach. (HCN, the API Multipass's experimental ``hyperv_api`` backend uses, is
-  more broadly available but has no built-in cmdlet, so it is not a practical
-  substitute here.)
+  PowerShell module, which is absent on Windows *Home*; where it is unavailable,
+  the test is skipped, as there is then no isolated network to attach. (HCN,
+  the API Multipass's ``hcs`` backend uses, is more broadly available but has
+  no built-in cmdlet, so it is not a practical substitute here.)
 * **macOS** -- *skipped*. No ephemeral option exists: both backends only bridge
   onto physical NICs (qemu via ``vmnet-bridged``, applevz via
   ``VZBridgedNetworkInterface``), so a host-created bridge is never enumerable
@@ -57,7 +55,6 @@ from contextlib import contextmanager
 
 import pytest
 
-from cli.config import cfg
 from cli.utilities import sudo
 
 #: Name of the throwaway Linux bridge (runtime-only, isolated, no authorization).
@@ -65,12 +62,6 @@ LINUX_BRIDGE = "mpupgtbr0"
 
 #: Name of the throwaway Windows private Hyper-V vSwitch (isolated, no uplink).
 WINDOWS_SWITCH = "mpupgtsw0"
-
-#: Multipass backends whose ``--network`` accepts a Hyper-V vSwitch (so the
-#: ``New-VMSwitch`` path applies). Other Windows backends (e.g. ``virtualbox``,
-#: used on Windows Home) enumerate only physical NICs, so there is nothing
-#: isolated to attach and the test is skipped.
-_HYPERV_DRIVERS = ("hyperv", "hyperv_api")
 
 
 def _create_linux_bridge(name: str) -> None:
@@ -136,8 +127,8 @@ def upgrade_network():
     Linux/Windows create it (and tear it down) per phase, re-using the same
     fixed name so the instance's persisted NIC re-attaches by name on verify.
     The test is skipped where no isolated ephemeral network can be created (see
-    module docstring): macOS always, and Windows when a non-Hyper-V backend is
-    in use or ``New-VMSwitch`` is unavailable (e.g. Windows Home).
+    module docstring): macOS always, and Windows when ``New-VMSwitch`` is
+    unavailable (e.g. Windows Home).
     """
     if sys.platform == "linux":
         _create_linux_bridge(LINUX_BRIDGE)
@@ -146,11 +137,6 @@ def upgrade_network():
         finally:
             _delete_linux_bridge(LINUX_BRIDGE)
     elif sys.platform == "win32":
-        if cfg.driver not in _HYPERV_DRIVERS:
-            pytest.skip(
-                f"`{cfg.driver}` backend enumerates only physical NICs, so no "
-                "isolated ephemeral network can be attached on Windows"
-            )
         if not _new_vmswitch_available():
             pytest.skip(
                 "`New-VMSwitch` is unavailable (e.g. Windows Home, which lacks the "

@@ -42,14 +42,14 @@ NATIVE_VM = "upg-mount-native"
 SUSPEND_VM = "upg-suspmount"
 
 unsupported = pytest.mark.skipif(
-    cfg.driver in ("lxd", "applevz"),
+    cfg.driver == "applevz",
     reason=f"native mounts and suspend are not supported on the `{cfg.driver}` driver",
 )
 
 # Native (SMB) mounts on Windows need an interactive password the harness can't
 # supply, so they are skipped there too (cf. the cli suite).
 native_unsupported = pytest.mark.skipif(
-    cfg.driver in ("lxd", "applevz") or sys.platform == "win32",
+    cfg.driver == "applevz" or sys.platform == "win32",
     reason=f"native mounts are unavailable here "
     f"(driver `{cfg.driver}`, platform `{sys.platform}`)",
 )
