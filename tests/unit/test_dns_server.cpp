@@ -18,6 +18,7 @@
 #include "common.h"
 
 #include <src/network/dns_server.h>
+#include <src/network/local_dns_provider.h>
 
 // After Boost.Asio (via dns_server.h), which brings in the platform's socket headers first.
 #include <ares.h>
@@ -319,4 +320,140 @@ TEST(DnsServer, throwsWhenTheAddressIsTaken)
 
     EXPECT_THROW(mp::dns::Server({"multipass.local", 30}, first.endpoint(), {}),
                  std::runtime_error);
+}
+
+namespace
+{
+std::uint16_t free_udp_port()
+{
+    asio::io_context io;
+    const udp::socket socket{io, udp::endpoint{asio::ip::make_address("127.0.0.1"), 0}};
+    return socket.local_endpoint().port();
+}
+
+struct LocalDnsProviderTest : public Test
+{
+    // Records routing, instead of touching the host's resolver.
+    mp::LocalDnsProvider::RouteDomain fake_route = [this](const std::string& domain,
+                                                          const std::string& name_server) {
+        events.push_back(fmt::format("route {} to {}", domain, name_server));
+        return std::shared_ptr<void>{nullptr, [this, domain](void*) {
+                                         events.push_back("unroute " + domain);
+                                     }};
+    };
+
+    std::optional<Response> query(const std::string& name)
+    {
+        return exchange(endpoint, {.name = name});
+    }
+
+    bool answers()
+    {
+        return exchange(endpoint, {.name = "vm1.multipass.local"}, std::chrono::milliseconds{250})
+            .has_value();
+    }
+
+    std::vector<std::string> events; // outlives the provider, which unroutes on destruction
+    const udp::endpoint endpoint{asio::ip::make_address("127.0.0.1"), free_udp_port()};
+    mp::LocalDnsProvider provider{fake_route, endpoint};
+};
+} // namespace
+
+TEST_F(LocalDnsProviderTest, resolvesHostsThroughTheRoutedServer)
+{
+    provider.set_host("VM1", {mp::IPAddress{"10.0.0.1"}});
+    provider.start("Multipass.Local");
+
+    EXPECT_THAT(events, ElementsAre("route multipass.local to 127.0.0.1"));
+    const auto response = query("vm1.multipass.local");
+    ASSERT_TRUE(response);
+    EXPECT_THAT(response->answers, ElementsAre("A 10.0.0.1"));
+}
+
+TEST_F(LocalDnsProviderTest, keepsHostsAcrossRestarts)
+{
+    provider.set_host("vm1", {mp::IPAddress{"10.0.0.1"}});
+    provider.start("first.local");
+    provider.start("second.local");
+
+    EXPECT_THAT(events,
+                ElementsAre("route first.local to 127.0.0.1",
+                            "unroute first.local",
+                            "route second.local to 127.0.0.1"));
+    const auto response = query("vm1.second.local");
+    ASSERT_TRUE(response);
+    EXPECT_THAT(response->answers, ElementsAre("A 10.0.0.1"));
+}
+
+TEST_F(LocalDnsProviderTest, stopsResolvingRemovedHosts)
+{
+    provider.set_host("vm1", {mp::IPAddress{"10.0.0.1"}});
+    provider.start("multipass.local");
+    provider.remove_host("VM1");
+
+    const auto response = query("vm1.multipass.local");
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->rcode, ARES_RCODE_NXDOMAIN);
+}
+
+TEST_F(LocalDnsProviderTest, teardownUnroutesAndStopsAnswering)
+{
+    provider.start("multipass.local");
+    provider.teardown();
+    provider.teardown(); // idempotent
+
+    EXPECT_THAT(events,
+                ElementsAre("route multipass.local to 127.0.0.1", "unroute multipass.local"));
+    EXPECT_FALSE(answers());
+}
+
+TEST_F(LocalDnsProviderTest, failingToRouteLeavesNothingBehind)
+{
+    fake_route = [](const std::string&, const std::string&) -> std::shared_ptr<void> {
+        throw std::runtime_error{"access denied"};
+    };
+    mp::LocalDnsProvider failing{fake_route, endpoint};
+
+    EXPECT_THROW(failing.start("multipass.local"), std::runtime_error);
+    EXPECT_FALSE(answers());
+    EXPECT_NO_THROW(provider.start("multipass.local")); // the port is free again
+    EXPECT_TRUE(answers());
+}
+
+TEST_F(LocalDnsProviderTest, listensOnTheNextAddressWhenOneIsTaken)
+{
+    const udp::endpoint next{asio::ip::make_address("127.0.0.2"), endpoint.port()};
+    asio::io_context io;
+    {
+        udp::socket probe{io, udp::v4()};
+        boost::system::error_code error;
+        probe.bind(next, error);
+        if (error)
+            GTEST_SKIP() << "The loopback interface lacks 127.0.0.2: " << error.message();
+    }
+
+    const udp::socket squatter{io, endpoint};
+    mp::LocalDnsProvider walking{fake_route, endpoint, 2};
+    walking.set_host("vm1", {mp::IPAddress{"10.0.0.1"}});
+    walking.start("multipass.local");
+
+    EXPECT_THAT(events, ElementsAre("route multipass.local to 127.0.0.2"));
+    const auto response = exchange(next, {.name = "vm1.multipass.local"});
+    ASSERT_TRUE(response);
+    EXPECT_THAT(response->answers, ElementsAre("A 10.0.0.1"));
+}
+
+TEST_F(LocalDnsProviderTest, failsWhenEveryAddressIsTaken)
+{
+    asio::io_context io;
+    const udp::socket squatter{io, endpoint};
+
+    EXPECT_THROW(provider.start("multipass.local"), boost::system::system_error);
+    EXPECT_THAT(events, IsEmpty());
+}
+
+TEST_F(LocalDnsProviderTest, rejectsInvalidDomains)
+{
+    EXPECT_THROW(provider.start(".."), std::invalid_argument);
+    EXPECT_THAT(events, IsEmpty());
 }
