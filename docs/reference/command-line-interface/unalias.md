@@ -1,15 +1,13 @@
 (reference-command-line-interface-unalias)=
 # unalias
 
-> See also: [`alias`](/reference/command-line-interface/alias), [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases)
-
 The `multipass unalias` command removes a previously defined alias.
 
 ```{code-block} text
-multipass unalias name
+multipass unalias <name>
 ```
 
-This will remove the given alias `name`, returning an error if the alias is not defined.
+This will remove the given alias `<name>`, returning an error if the alias is not defined.
 
 ```{note}
 If an instance is deleted, it is not necessary to run `unalias` for the aliases defined on that instance, as they are automatically removed.
@@ -18,13 +16,17 @@ If an instance is deleted, it is not necessary to run `unalias` for the aliases 
 You can remove multiple aliases in a single command:
 
 ```{code-block} text
-multipass unalias name1 name2 name3
+multipass unalias <name1> <name2> <name3>
 ```
 
 Or, use the argument `--all` to remove all the defined aliases:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
 multipass unalias --all
+
+>
 ```
 
 ---
@@ -44,4 +46,8 @@ Options:
 
 Arguments:
   name           Names of aliases to remove
+```
+
+```{seealso}
+{ref}`How to use command aliases <how-to-guides-manage-instances-use-instance-command-aliases>`, [`alias`](reference-command-line-interface-alias)
 ```
