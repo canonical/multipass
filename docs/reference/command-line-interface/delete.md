@@ -1,8 +1,6 @@
 (reference-command-line-interface-delete)=
 # delete
 
-> See also: [`recover`](/reference/command-line-interface/recover)
-
 The `multipass delete` command deletes the instances or snapshots that are specified as arguments.
 
 You can provide multiple arguments in the same delete command, including both instances and snapshots; for example:
