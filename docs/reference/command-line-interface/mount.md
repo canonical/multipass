@@ -1,21 +1,33 @@
 (reference-command-line-interface-mount)=
 # mount
 
-> See also: [How to share data with an instance](/how-to-guides/manage-instances/share-data-with-an-instance), [Mount](/explanation/mount), [`unmount`](/reference/command-line-interface/unmount)
+```{caution}
+Native mounts (`--type=native`) are not supported on the Apple Virtualization framework driver. See {ref}`driver-feature-disparities`.
+```
 
-The `multipass mount` command maps a local directory from the host to an instance, with the possibility to specify the mount type (classic or native) and define group or user [ID mappings](/explanation/id-mapping).
+The `multipass mount` command maps a local directory from the host to an instance, with the possibility to specify the mount type (classic or native) and define group or user {ref}`ID mappings <explanation-id-mapping>`.
 
-For example, here's the syntax for mapping a local directory to your virtual machine using the classic mount:
+To map a local directory to an instance with a classic mount, use this syntax:
 
 ```{code-block} text
 multipass mount --type=classic /host/path <instance name>:/instance/path
 ```
 
+For example, to map the host directory `~/projects/site` to `/var/www/site` on the `my-webserver` instance, run:
+
+```{terminal}
+:prompt: ">"
+
+multipass mount --type=classic ~/projects/site my-webserver:/var/www/site
+
+>
+```
+
 Use the `multipass unmount` command to undo the mapping.
 
-See [Mount](/explanation/mount) to learn more on the difference between "classic" and "native" mounts.
+See {ref}`Mount <explanation-mount>` to learn more on the difference between "classic" and "native" mounts.
 
-See [How to share data with an instance](/how-to-guides/manage-instances/share-data-with-an-instance) for examples of how you can use the `multipass mount` command to share data between your host and an instance.
+See {ref}`How to share data with an instance <how-to-guides-manage-instances-share-data-with-an-instance>` for examples of how you can use the `multipass mount` command to share data between your host and an instance.
 
 ---
 
@@ -64,3 +76,7 @@ Arguments:
 <!-- Discourse contributors
 <small>**Contributors:** @georgeliaojia, @sharder996, @davidekete, @gzanchi </small>
 -->
+
+```{seealso}
+{ref}`How to share data with an instance <how-to-guides-manage-instances-share-data-with-an-instance>`, {ref}`Mount <explanation-mount>`, [`unmount`](reference-command-line-interface-unmount)
+```

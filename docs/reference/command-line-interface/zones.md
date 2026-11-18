@@ -1,13 +1,15 @@
 (reference-command-line-interface-zones)=
 # zones
 
-> See also: {ref}`Availability zone <explanation-availability-zone>`, {ref}`enable-zones <reference-command-line-interface-enable-zones>`, {ref}`disable-zones <reference-command-line-interface-disable-zones>`, {ref}`launch <reference-command-line-interface-launch>`
-
 The `multipass zones` command lists all the {ref}`availability zones <explanation-availability-zone>` known to Multipass, together with their current availability and the subnet reserved for instances launched into them.
 
 For example:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
+multipass zones
+
 Name    State        Subnet
 zone1   Available    10.42.0.0/24
 zone2   Available    10.42.1.0/24
@@ -24,7 +26,11 @@ The `json`, `csv` and `yaml` formats cover regular output only. Errors and log m
 
 For example, `multipass zones --format yaml`:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
+multipass zones --format yaml
+
 zone1:
   available: true
   subnet: 10.42.0.0/24
@@ -55,4 +61,8 @@ Options:
                       Errors and log messages are printed to the standard error
                       stream as plain text, with failures signaled by a
                       non-zero exit status.
+```
+
+```{seealso}
+{ref}`Availability zone <explanation-availability-zone>`, [`enable-zones`](reference-command-line-interface-enable-zones), [`disable-zones`](reference-command-line-interface-disable-zones), [`launch`](reference-command-line-interface-launch)
 ```
