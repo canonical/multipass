@@ -54,6 +54,11 @@ jobs:
     - name: Install cmake
       uses: lukka/get-cmake@v4.4.4
 
+    - name: Install FVM
+      run: |
+        curl -fsSL https://fvm.app/install.sh | bash
+        echo "${HOME}/fvm/bin" >> "${GITHUB_PATH}"
+
     - name: Configure
       run: |
         cmake -B${{ env.BUILD_DIR }} \
@@ -63,7 +68,8 @@ jobs:
 
     - name: Add Flutter to $PATH
       run: |
-        echo "$GITHUB_WORKSPACE/3rd-party/flutter/bin" >> $GITHUB_PATH
+        fvm global "$( ls "${HOME}/fvm/versions" )"
+        echo "${HOME}/fvm/default/bin" >> "${GITHUB_PATH}"
 
     - name: Install Dart analysis tools
       run: |

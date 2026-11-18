@@ -76,6 +76,8 @@ jobs:
               - "rxx/**"
               - "tests/**"
               - ".gitmodules"
+              - ".fvmrc"
+              - ".github/actions/setup-fvm/**"
               - "CMakeLists.txt"
               - "vcpkg-configuration.json"
               - "vcpkg.json"
