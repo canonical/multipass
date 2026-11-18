@@ -22,6 +22,7 @@ add_library(shared STATIC
   sshfs_mount_handler.cpp
   sshfs_server_process_spec.cpp
   stub_availability_zone.cpp
+  virtual_machine_mounts.cpp
   ${CMAKE_SOURCE_DIR}/include/multipass/process/process.h
   ${CMAKE_SOURCE_DIR}/include/multipass/process/basic_process.h)
 

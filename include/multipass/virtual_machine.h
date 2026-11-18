@@ -29,6 +29,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace multipass
@@ -42,6 +43,12 @@ class VMMount;
 struct VMSpecs;
 class MountHandler;
 class Snapshot;
+
+struct MountActivationResult
+{
+    std::vector<std::pair<std::string, std::string>> pruned; // target and failure, now removed
+    bool sshfs_missing = false; // activation stopped at a mount that needs sshfs in the guest
+};
 
 class VirtualMachine : private DisabledCopyMove
 {
