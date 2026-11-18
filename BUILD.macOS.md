@@ -22,16 +22,7 @@ Install Homebrew <https://brew.sh/> for package management. It is the most strai
 
 CocoaPods is required to build the Flutter GUI
 
-    sudo gem install cocoapods
-
-You may need to update your version of Ruby first. You can do so with RVM <https://rvm.io/rvm/install>:
-
-    rvm install 3.1.0 && rvm --default use 3.1.0
-
-**Important: RVM/Ruby may require OpenSSL v1, while building Multipass requires OpenSSL v3. Make sure to switch to the right version of OpenSSL as necessary with `brew link`**
-
-**Additional note**: `gem install` may not work with `sudo`, run the command without it if that is the case.
-
+    brew install cocoapods
 
 ### Cmake
 
@@ -43,9 +34,9 @@ Building a Multipass package requires cmake. The most convenient means to obtain
 ### Rust compiler
 
 To build multipass you will need the rust compiler. It can be installed using brew:
-```
-brew install rustup
-```
+
+    brew install rustup
+
 
 ### FVM
 
