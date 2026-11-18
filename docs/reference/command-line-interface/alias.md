@@ -1,12 +1,20 @@
 (reference-command-line-interface-alias)=
 # alias
 
-> See also: [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases).
-
 The `alias` command makes Multipass create a persistent alias to run commands on a given instance. Its syntax is the following:
 
-```{code-block} text
+```{code-block} bash
 multipass alias instance:command [name]
+```
+
+For example:
+
+```{terminal}
+:prompt: ">"
+
+multipass alias my-webserver:ls webls
+
+>
 ```
 
 If `name` is omitted, the alias name defaults to `command`.
@@ -37,4 +45,8 @@ Arguments:
                                   <instance>:<command>
   name                            Name given to the alias being defined,
                                   defaults to <command>
+```
+
+```{seealso}
+{ref}`How to use command aliases <how-to-guides-manage-instances-use-instance-command-aliases>`
 ```
