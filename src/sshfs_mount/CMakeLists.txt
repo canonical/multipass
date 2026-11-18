@@ -18,11 +18,9 @@ function(add_sshfs_mount_target TARGET_NAME LIBSSH_TARGET)
 
   add_library(${TARGET_NAME} STATIC
     sshfs_mount.cpp
-    sshfs_mount_handler.cpp
     sftp_server.cpp
     # Need to run MOC on these
-    sshfs_mount.h
-    ${CMAKE_SOURCE_DIR}/include/multipass/sshfs_mount/sshfs_mount_handler.h)
+    sshfs_mount.h)
 
   target_link_libraries(${TARGET_NAME}
     ${LIBSSH_TARGET}
