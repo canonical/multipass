@@ -20,4 +20,8 @@ elseif(PORT STREQUAL "gettext")
     # does not call pipe2. Merely setting ac_cv_func_pipe2=no would leave callers using the
     # SDK-declared pipe2.
     list(APPEND VCPKG_CONFIGURE_MAKE_OPTIONS "gl_cv_onwards_func_pipe2=future")
+elseif(PORT STREQUAL "glib")
+    # Meson's has_function finds pipe2 regardless of the deployment target. Like the autoconf check,
+    # it rejects functions that glibc marks as stubs, so pretend pipe2 is one.
+    string(APPEND VCPKG_C_FLAGS " -D__stub_pipe2")
 endif()
