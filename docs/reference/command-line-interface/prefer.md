@@ -1,13 +1,19 @@
 (reference-command-line-interface-prefer)=
 # prefer
 
-> See also: [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases)
-
-The `prefer` command, introduced in Multipass release 1.11.0, is used to switch alias contexts. It accepts a single argument, specifying the name of the context to switch to.
+The `prefer` command is used to switch alias contexts. It accepts a single argument, specifying the name of the context to switch to.
 
 For example, the command `multipass prefer secondary` makes `secondary` the current context. If the given context does not exist, Multipass creates it.
 
-Subsequent calls to [`alias`](/reference/command-line-interface/alias) , [`unalias`](/reference/command-line-interface/unalias) and running any aliases from the command line will use the aliases defined in the given context.
+```{terminal}
+:prompt: ">"
+
+multipass prefer secondary
+
+>
+```
+
+Subsequent calls to [`alias`](reference-command-line-interface-alias), [`unalias`](reference-command-line-interface-unalias) and running any aliases from the command line will use the aliases defined in the given context.
 
 ---
 
@@ -25,4 +31,8 @@ Options:
 
 Arguments:
   name           Name of the context to switch to
+```
+
+```{seealso}
+{ref}`How to use command aliases <how-to-guides-manage-instances-use-instance-command-aliases>`
 ```
