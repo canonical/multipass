@@ -1,25 +1,20 @@
 (reference-command-line-interface-disable-zones)=
 # disable-zones
 
-> See also: {ref}`Availability zone <explanation-availability-zone>`, {ref}`enable-zones <reference-command-line-interface-enable-zones>`, {ref}`zones <reference-command-line-interface-zones>`
-
 The `multipass disable-zones` command makes one or more {ref}`availability zones <explanation-availability-zone>` unavailable, simulating a loss of availability on a cloud provider. Instances in the affected zones are forcefully switched off, and Multipass refuses to launch new instances into the zone, until it is re-enabled with [`multipass enable-zones`](reference-command-line-interface-enable-zones).
 
 Pass one or more zone names as arguments, or use `--all` to disable every zone at once:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
 multipass disable-zones zone2
-```
 
-Since this forcefully stops any running instances in the zone, Multipass asks for confirmation before proceeding:
-
-```{code-block} text
-This operation will forcefully stop the VMs in zone2. Are you sure you want to continue? [Y/n]:
-```
-
-```{code-block} text
+This operation will forcefully stop the VMs in zone2. Are you sure you want to continue? [Y/n]: y
 Zone disabled: zone2
 ```
+
+Since this forcefully stops any running instances in the zone, Multipass asks for confirmation before proceeding.
 
 Use the `--force` option to skip the confirmation prompt. This is required if the command is run non-interactively (i.e. with either standard input or standard output being redirected), since there is no way to query the user for confirmation in that case.
 
@@ -43,4 +38,8 @@ Options:
 
 Arguments:
   zone           Name of the zones to make unavailable
+```
+
+```{seealso}
+{ref}`Availability zone <explanation-availability-zone>`, [`enable-zones`](reference-command-line-interface-enable-zones), [`zones`](reference-command-line-interface-zones)
 ```
