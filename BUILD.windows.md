@@ -18,6 +18,10 @@ Powershell(Admin). To get the best results, in the following order:
 choco install cmake ninja git wget unzip rustup.install -yfd
 ```
 
+The Flutter GUI is built with the Flutter SDK version pinned in `.fvmrc`, which CMake installs
+through [FVM](https://fvm.app). Install FVM by following its
+[installation guide](https://fvm.app/documentation/getting-started/installation).
+
 ```[pwsh]
 choco install visualstudio2022buildtools visualstudio2022-workload-vctools -yfd
 ```

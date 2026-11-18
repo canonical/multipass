@@ -47,6 +47,12 @@ To build multipass you will need the rust compiler. It can be installed using br
 brew install rustup
 ```
 
+### FVM
+
+The Flutter GUI is built with the Flutter SDK version pinned in `.fvmrc`, which CMake installs
+through [FVM](https://fvm.app). Install FVM by following its
+[installation guide](https://fvm.app/documentation/getting-started/installation).
+
 Building
 ---------------------------------------
 
