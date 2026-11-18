@@ -283,6 +283,7 @@ extensions = [
     "sphinx_last_updated_by_git",
     "sphinx_sitemap",
     "sphinx_structured_toc",
+    "sphinx_terminal",
 ]
 
 # Excludes files or directories from processing
