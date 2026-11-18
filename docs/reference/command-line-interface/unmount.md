@@ -1,11 +1,19 @@
 (reference-command-line-interface-unmount)=
 # unmount
 
-> See also: [`mount`](/reference/command-line-interface/mount), [Mount](/explanation/mount), [How to share data with an instance](/how-to-guides/manage-instances/share-data-with-an-instance).
-
 The `unmount` command without any options unmounts all previously defined mappings of local directories from the host to an instance.
 
 You can also unmount only a specific mount if you specify the desired path.
+
+For example:
+
+```{terminal}
+:prompt: ">"
+
+multipass unmount my-webserver
+
+>
+```
 
 ---
 
@@ -25,4 +33,8 @@ Arguments:
   mount          Mount points, in <name>[:<path>] format, where <name> are
                  instance names, and optional <path> are mount points. If
                  omitted, all mounts will be removed from the named instances.
+```
+
+```{seealso}
+{ref}`How to share data with an instance <how-to-guides-manage-instances-share-data-with-an-instance>`, {ref}`Mount <explanation-mount>`, [`mount`](reference-command-line-interface-mount)
 ```
