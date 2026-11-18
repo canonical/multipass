@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,17 +14,29 @@ import 'image_fixtures.dart';
 
 final _l10n = AppLocalizationsEn();
 
+class _FakeGrpcClient extends Fake implements GrpcClient {
+  var imagesCalls = 0;
+
+  @override
+  Future<ImagesReply> images() async {
+    imagesCalls++;
+    return ImagesReply(imagesInfo: [noble]);
+  }
+}
+
+const _catalogueApp = MaterialApp(
+  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
+  home: CatalogueScreen(),
+);
+
 Widget _buildApp(Future<List<ImageInfo>> Function() fetchImages) {
   return ProviderScope(
     // Riverpod retries failed providers by default, which would refetch the
     // images without the Refresh button being pressed.
     retry: (_, __) => null,
     overrides: [imagesProvider.overrideWith((ref) => fetchImages())],
-    child: MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: const CatalogueScreen(),
-    ),
+    child: _catalogueApp,
   );
 }
 
@@ -135,6 +149,69 @@ void main() {
 
       expect(find.text(_l10n.catalogueLoadError('daemon is down')),
           findsOneWidget);
+    });
+
+    testWidgets('shows the whole error when it is not a GrpcError',
+        (tester) async {
+      await tester.pumpWidget(_buildApp(() => Future.error(Exception('boom'))));
+      await tester.pumpAndSettle();
+
+      expect(find.text(_l10n.catalogueLoadError('Exception: boom')),
+          findsOneWidget);
+    });
+
+    testWidgets('shows a loading indicator while fetching the images',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildApp(() => Completer<List<ImageInfo>>().future),
+      );
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    });
+
+    testWidgets('shows a loading indicator instead of the error on Refresh',
+        (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(_buildApp(() {
+        calls++;
+        if (calls == 1) return Future.error(Exception('boom'));
+        return Completer<List<ImageInfo>>().future;
+      }));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(_l10n.catalogueRefresh));
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text(_l10n.catalogueRefresh), findsNothing);
+    });
+
+    testWidgets('fetches the images only once the daemon is available',
+        (tester) async {
+      var daemonAvailable = false;
+      final grpcClient = _FakeGrpcClient();
+      final container = ProviderContainer(
+        overrides: [
+          daemonAvailableProvider.overrideWith((_) => daemonAvailable),
+          grpcClientProvider.overrideWithValue(grpcClient),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: _catalogueApp),
+      );
+      await tester.pumpAndSettle();
+
+      expect(grpcClient.imagesCalls, 0);
+      expect(find.byType(ImageCard), findsNothing);
+
+      daemonAvailable = true;
+      container.invalidate(daemonAvailableProvider);
+      await tester.pumpAndSettle();
+
+      expect(grpcClient.imagesCalls, 1);
+      expect(find.byType(ImageCard), findsOneWidget);
     });
 
     testWidgets('refetches the images when Refresh is pressed', (tester) async {
