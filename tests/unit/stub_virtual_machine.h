@@ -170,6 +170,27 @@ struct StubVirtualMachine final : public VirtualMachine
         return {};
     }
 
+    void add_mount(const std::string&, const VMMount&, ServerVariant) override
+    {
+    }
+
+    void remove_mount(const std::string&) override
+    {
+    }
+
+    std::vector<std::pair<std::string, std::string>> remove_all_mounts() override
+    {
+        return {};
+    }
+
+    MountActivationResult activate_mounts(ServerVariant) override
+    {
+        return {};
+    }
+
+    void stop_mounts() override
+    {
+    }
     SnapshotVista view_snapshots(SnapshotPredicate) const override
     {
         return {};

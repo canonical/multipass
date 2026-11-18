@@ -27,6 +27,8 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>
 
+#include "virtual_machine_mounts.h"
+
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -82,10 +84,13 @@ public:
     {
         throw NotImplementedOnThisBackendException("native mounts");
     }
-    [[nodiscard]] std::unordered_map<std::string, VMMount> get_mounts() const override
-    {
-        return {};
-    }
+    [[nodiscard]] std::unordered_map<std::string, VMMount> get_mounts() const override;
+
+    void add_mount(const std::string& target, const VMMount& mount, ServerVariant server) override;
+    void remove_mount(const std::string& target) override;
+    std::vector<std::pair<std::string, std::string>> remove_all_mounts() override;
+    MountActivationResult activate_mounts(ServerVariant server) override;
+    void stop_mounts() override;
 
     [[nodiscard]] SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const override;
     int get_num_snapshots() const override;
@@ -173,6 +178,12 @@ protected:
     void set_state(State state);
     virtual void handle_state_update();
 
+    // Concrete backends call load_mounts() at the end of their constructors and unload_mounts()
+    // at the start of their destructors, so mount handlers never outlive the full instance. They
+    // last as long as it does, so a deleted instance keeps its mounts, stopped, until it is purged.
+    void load_mounts();
+    void unload_mounts();
+
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
 
@@ -226,6 +237,9 @@ private:
     void ssh_and_cross_to_running();
     void timeout_ssh();
 
+    std::unique_ptr<MountHandler> make_mount_handler(const std::string& target,
+                                                     const VMMount& mount);
+
 protected:
     const std::string vm_name;
     VirtualMachineDescription desc;
@@ -247,6 +261,7 @@ private:
     int snapshot_count = 0; // tracks the number of snapshots ever taken (regardless of deletes)
     mutable std::recursive_mutex snapshot_mutex;
     bool was_running{false};
+    VirtualMachineMounts mounts;
 };
 
 } // namespace multipass

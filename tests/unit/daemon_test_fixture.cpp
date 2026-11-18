@@ -623,6 +623,10 @@ grpc::Status mpt::DaemonTestFixture::call_daemon_slot(Daemon& daemon,
         }
     }
 
+    // Slots can reply before work they handed to other threads has delivered what it queued for the
+    // daemon (e.g. mount reports), so deliver that as the daemon's event loop would
+    QCoreApplication::sendPostedEvents(&daemon, QEvent::MetaCall);
+
     return status_future.get();
 }
 
@@ -659,6 +663,7 @@ MP_INSTANTIATE_CALL_DAEMON_SLOTS(List)
 MP_INSTANTIATE_CALL_DAEMON_SLOTS(Mount)
 MP_INSTANTIATE_CALL_DAEMON_SLOTS(Networks)
 MP_INSTANTIATE_CALL_DAEMON_SLOTS(Purge)
+MP_INSTANTIATE_CALL_DAEMON_SLOTS(Recover)
 MP_INSTANTIATE_CALL_DAEMON_SLOTS(Remotes)
 MP_INSTANTIATE_CALL_DAEMON_SLOTS(Restart)
 MP_INSTANTIATE_CALL_DAEMON_SLOTS(Restore)

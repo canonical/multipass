@@ -23,7 +23,6 @@
 #include <multipass/async_periodic_download_task.h>
 #include <multipass/delayed_shutdown_timer.h>
 #include <multipass/format.h>
-#include <multipass/mount_handler.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_specs.h>
 #include <multipass/vm_status_monitor.h>
@@ -237,23 +236,6 @@ private:
         const std::vector<InstanceTable::iterator>& instance_targets,
         std::vector<VirtualMachine::ShPtr>& started_vms);
 
-    void init_mounts(const std::string& name);
-    void stop_mounts(const std::string& name);
-
-    // This returns whether any specs were updated (and need persisting)
-    bool update_mounts(VMSpecs& vm_specs,
-                       std::unordered_map<std::string, MountHandler::ShPtr>& vm_mounts,
-                       VirtualMachine* vm);
-
-    // This returns whether all required mount handlers were successfully created
-    bool create_missing_mounts(std::unordered_map<std::string, VMMount>& mount_specs,
-                               std::unordered_map<std::string, MountHandler::ShPtr>& vm_mounts,
-                               VirtualMachine* vm);
-
-    MountHandler::ShPtr make_mount(VirtualMachine* vm,
-                                   const std::string& target,
-                                   const VMMount& mount);
-
     void apply_mounts_for(const std::string& name,
                           const std::unordered_map<std::string, VMMount>& mounts);
     const VirtualMachine* find_registered_vm(const std::string& name) const;
@@ -340,7 +322,6 @@ private:
     QFuture<void> image_update_future;
     SettingsHandler* instance_mod_handler;
     SettingsHandler* snapshot_mod_handler;
-    std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::ShPtr>> mounts;
     std::unordered_set<std::string> user_authorized_bridges;
 };
 } // namespace multipass
