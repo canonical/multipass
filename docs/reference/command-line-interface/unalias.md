@@ -19,7 +19,7 @@ You can remove multiple aliases in a single command:
 multipass unalias <name1> <name2> <name3>
 ```
 
-Or, use the argument `--all` to remove all the defined aliases:
+Or, use the argument `--all` to remove all the aliases in the current context:
 
 ```{terminal}
 :prompt: ">"
@@ -28,6 +28,8 @@ multipass unalias --all
 
 >
 ```
+
+Aliases are grouped in contexts, and only one context is active at a time. The `--all` argument leaves the aliases in other contexts in place. To remove those too, switch to each context with [`prefer`](reference-command-line-interface-prefer) and run `multipass unalias --all` again.
 
 ---
 
@@ -49,5 +51,5 @@ Arguments:
 ```
 
 ```{seealso}
-{ref}`How to use command aliases <how-to-guides-manage-instances-use-instance-command-aliases>`, [`alias`](reference-command-line-interface-alias)
+{ref}`How to use command aliases <how-to-guides-manage-instances-use-instance-command-aliases>`, [`alias`](reference-command-line-interface-alias), [`prefer`](reference-command-line-interface-prefer)
 ```
