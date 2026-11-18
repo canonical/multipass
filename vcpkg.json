@@ -1,5 +1,5 @@
 {
-    "builtin-baseline": "fbb0f7bb200b07a9eb9081c7a3cf51d1aa1c51a1",
+    "builtin-baseline": "de36db04550a8625e3154b1a758c60035901f244",
     "dependencies": [
         "boost-algorithm",
         "boost-json",
