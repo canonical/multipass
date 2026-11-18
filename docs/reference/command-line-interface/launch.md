@@ -1,12 +1,13 @@
 (reference-command-line-interface-launch)=
 # launch
 
-> See also: {ref}`Availability zone <explanation-availability-zone>`, {ref}`zones <reference-command-line-interface-zones>`
-
 The `multipass launch` command without any argument will create and start a new instance based on the default image, using a random generated name; for example:
 
-```{code-block} text
-...
+```{terminal}
+:prompt: ">"
+
+multipass launch
+
 Launched: relishing-lionfish in zone1
 ```
 
@@ -16,13 +17,17 @@ You can then shell into an instance by its name:
 multipass shell relishing-lionfish
 ```
 
-The only, optional, positional argument is the image to launch an instance from. See [`images`](/reference/command-line-interface/images) for how to find information on the available images.
+## Image and resources
+
+The only, optional, positional argument is the image to launch an instance from. See {ref}`images <reference-command-line-interface-images>` for how to find information on the available images.
 
 It's also possible to provide a full URL to the image (use `file://` for an image available on the host running `multipassd`).
 
 You can change the resources made available to the instance by passing the `--cpus`, `--disk` or `--memory` options, changing the allocated CPU cores, disk space or RAM, respectively.
 
-If you want your instance to have a name of your choice, use the `--name` option. The instance name has to be unique and conform to a specific [instance name format](/reference/instance-name-format).
+If you want your instance to have a name of your choice, use the `--name` option. The instance name has to be unique and conform to a specific {ref}`instance name format <reference-instance-name-format>`.
+
+## Customisation and networking
 
 By passing a filename or an URL to `--cloud-init`, you can provide user data to [`cloud-init`](https://cloud-init.io/) to customise the instance on first boot. See [cloud-init documentation](https://cloudinit.readthedocs.io/en/latest/topics/examples.html) for examples.
 
@@ -32,7 +37,11 @@ Passing `--bridged` and `--network bridged` are shortcuts to `--network <name>`,
 
 By default, Multipass picks an {ref}`availability zone <explanation-availability-zone>` for the instance automatically, cycling through the available zones. Use the `--zone` option to launch the instance into a specific zone instead. See [`multipass zones`](reference-command-line-interface-zones) for a list of the zones known to Multipass and their availability.
 
+## Mounts
+
 You can also mount folders in the instance after it is launched using the  `--mount` option. It can be specified multiple times, with different mount paths.
+
+## Timeout
 
 Use the `--timeout` option to change how long Multipass waits for the machine to boot and initialise.
 
@@ -111,4 +120,8 @@ Arguments:
                                version, or an alias prefix.
                                <url> is a custom image URL that is in http://,
                                https://, or file:// format.
+```
+
+```{seealso}
+{ref}`How to create an instance <how-to-guides-manage-instances-create-an-instance>`, {ref}`Availability zone <explanation-availability-zone>`, {ref}`zones <reference-command-line-interface-zones>`
 ```

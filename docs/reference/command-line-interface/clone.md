@@ -1,18 +1,21 @@
 (reference-command-line-interface-clone)=
 # clone
 
-The `multipass clone` command creates a clone of an instance. A cloned instance is a standalone instance that is a replica of the original instance in terms of its configuration, installed software, and data at the time of cloning. Cloning an instance can be useful for backup or testing purposes, or to create identical VMs from a working template.
-
 ```{caution}
 The `clone` command is available since Multipass version 1.15.0.
 ```
+
+The `multipass clone` command creates a clone of an instance. A cloned instance is a standalone instance that is a replica of the original instance in terms of its configuration, installed software, and data at the time of cloning. Cloning an instance can be useful for backup or testing purposes, or to create identical VMs from a working template.
 
 Currently, only instances that are in the `Stopped` state can be cloned.
 
 You can run the `clone` command on a source instance without any additional options. For example, `multipass clone natty-nilgai` will produce the following output:
 
-```{code-block} text
-...
+```{terminal}
+:prompt: ">"
+
+multipass clone natty-nilgai
+
 Cloned from natty-nilgai to natty-nilgai-clone1.
 ```
 
@@ -20,8 +23,12 @@ By default, the `multipass clone` command automatically generates a name for the
 
 Alternatively, you can specify a custom name for the cloned instance using `--name` option, following the [standard instance name format](/reference/instance-name-format). For example:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
 multipass clone natty-nilgai --name custom-clone
+
+Cloned from natty-nilgai to custom-clone.
 ```
 
 ---

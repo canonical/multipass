@@ -1,14 +1,15 @@
 (reference-command-line-interface-delete)=
 # delete
 
-> See also: [`recover`](/reference/command-line-interface/recover)
-
 The `multipass delete` command deletes the instances or snapshots that are specified as arguments.
 
 You can provide multiple arguments in the same delete command, including both instances and snapshots; for example:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
 multipass delete legal-takin calm-squirrel.snapshot2
+
 Instance 'legal-takin' and snapshot 'calm-squirrel.snapshot2' will be deleted permanently. Would you like to proceed? [y/N]: y
 legal-takin is deleted.
 calm-squirrel.snapshot2 is deleted.
@@ -37,4 +38,8 @@ Options:
 
 Arguments:
   name           Names of instances and snapshots to delete
+```
+
+```{seealso}
+{ref}`How to remove an instance <how-to-guides-manage-instances-remove-an-instance>`, [`recover`](/reference/command-line-interface/recover)
 ```

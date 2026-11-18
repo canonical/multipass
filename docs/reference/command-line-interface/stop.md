@@ -8,6 +8,16 @@ The `multipass stop` command without any argument will stop the {ref}`primary-in
 Only instances in `Running` status can be stopped.
 ```
 
+For example:
+
+```{terminal}
+:prompt: ">"
+
+multipass stop boisterous-tortoise
+
+>
+```
+
 `Stopped` instances can be started again with [`multipass start`](/reference/command-line-interface/start).
 
 You can use the `--force` option (*available starting from Multipass version 1.14*) to stop the instance when it is in a non-responsive, unknown or suspended state. It can also be used with the `--all` option to stop all instances forcefully.
@@ -38,4 +48,8 @@ Arguments:
   name               Names of instances to stop. If omitted, and without the
                      --all option, 'primary' will be assumed.
 
+```
+
+```{seealso}
+{ref}`How to use an instance <how-to-guides-manage-instances-use-an-instance>`, [`start`](/reference/command-line-interface/start)
 ```
