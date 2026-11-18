@@ -5,7 +5,11 @@ The `multipass shell` command will open a shell prompt on an instance. Without a
 
 If you run `multipass shell` you'll find yourself in the *primary* instance:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
+multipass shell
+
 Welcome to Ubuntu 26.04 LTS (GNU/Linux 7.0.0-15-generic x86_64)
 
  * Documentation:  https://docs.ubuntu.com
@@ -18,7 +22,6 @@ Welcome to Ubuntu 26.04 LTS (GNU/Linux 7.0.0-15-generic x86_64)
   Usage of /:   67.7% of 3.70GB   Users logged in:       0
   Memory usage: 29%               IPv4 address for eth0: 10.97.0.49
   Swap usage:   0%
-
 
 Expanded Security Maintenance for Applications is not enabled.
 
@@ -57,4 +60,8 @@ Arguments:
                        'primary' (the configured primary instance name) will be
                        assumed. If the instance is not running, an attempt is
                        made to start it (see `start` for more info).
+```
+
+```{seealso}
+{ref}`How to use an instance <how-to-guides-manage-instances-use-an-instance>`, {ref}`Multipass exec and shells <explanation-multipass-exec-and-shells>`, [`exec`](reference-command-line-interface-exec)
 ```
