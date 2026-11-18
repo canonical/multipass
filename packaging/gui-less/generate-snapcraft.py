@@ -50,6 +50,17 @@ def generate(input_path: Path, output_path: Path) -> None:
     override_pull = "".join(lines)
     multipass_part["override-pull"] = LiteralScalarString(override_pull)
 
+    # The gui-less snap doesn't build the Flutter GUI, so drop its Flutter steps
+    for scriptlet in ("override-pull", "override-build"):
+        multipass_part[scriptlet] = LiteralScalarString(
+            re.sub(
+                r"\n^# BEGIN FLUTTER\n.*?^# END FLUTTER\n",
+                "",
+                str(multipass_part[scriptlet]),
+                flags=re.MULTILINE | re.DOTALL,
+            )
+        )
+
     # Remove the GUI app
     del data["apps"]["gui"]
 
