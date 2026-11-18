@@ -3663,6 +3663,60 @@ boost::json::object mp::Daemon::retrieve_metadata_for(const std::string& name)
     return vm_instance_specs[name].metadata;
 }
 
+void mp::Daemon::update_mounts_for(const VirtualMachine& vm,
+                                   const std::unordered_map<std::string, VMMount>& mounts)
+{
+    // Only the reporting instance's own record may change. Reports may lag behind, e.g. after the
+    // instance was deleted and its name reused, so `vm` is compared but never dereferenced later.
+    const auto revision = next_mount_report_revision.fetch_add(1, std::memory_order_relaxed) + 1;
+    const auto on_daemon_thread = QThread::currentThread() == thread();
+    auto apply = [this, vm_ptr = &vm, name = vm.get_name(), mounts, revision, on_daemon_thread] {
+        const auto spec_it = vm_instance_specs.find(name);
+        if (spec_it == vm_instance_specs.end() ||
+            !is_current_instance(name, vm_ptr, on_daemon_thread))
+        {
+            mpl::debug(category, "Ignoring mounts reported by a stale instance '{}'", name);
+            return;
+        }
+
+        // A daemon-thread report can overtake an older report queued by a readiness worker.
+        auto& applied_revision = applied_mount_report_revisions[name];
+        if (revision <= applied_revision)
+            return;
+
+        applied_revision = revision;
+        spec_it->second.mounts = mounts;
+        persist_instances();
+    };
+
+    if (on_daemon_thread)
+        apply();
+    else
+        QMetaObject::invokeMethod(
+            this,
+            [apply = std::move(apply)] { top_catch_all(category, apply); },
+            Qt::QueuedConnection);
+}
+
+std::unordered_map<std::string, mp::VMMount> mp::Daemon::retrieve_mounts_for(
+    const std::string& name)
+{
+    const auto spec_it = vm_instance_specs.find(name);
+    return spec_it == vm_instance_specs.end() ? std::unordered_map<std::string, VMMount>{}
+                                              : spec_it->second.mounts;
+}
+
+bool mp::Daemon::is_current_instance(const std::string& name,
+                                     const VirtualMachine* vm,
+                                     bool may_be_unregistered) const
+{
+    for (const auto* table : {&operative_instances, &deleted_instances})
+        if (const auto it = table->find(name); it != table->end())
+            return it->second.get() == vm;
+
+    return may_be_unregistered;
+}
+
 void mp::Daemon::persist_instances()
 {
     auto instance_records_json = boost::json::value_from(vm_instance_specs);
@@ -3685,6 +3739,9 @@ void mp::Daemon::release_resources(const std::string& instance)
 
         vm_instance_specs.erase(spec_it);
     }
+
+    // Later instances by this name must ignore the reports issued until now
+    applied_mount_report_revisions[instance] = next_mount_report_revision.load();
 }
 
 void mp::Daemon::create_vm(const CreateRequest* request,
