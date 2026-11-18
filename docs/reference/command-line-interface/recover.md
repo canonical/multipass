@@ -1,19 +1,21 @@
 (reference-command-line-interface-recover)=
 # recover
 
-> See also: [`delete`](/reference/command-line-interface/delete)
-
 The `multipass recover` command will revive an instance that was marked as deleted by an earlier version of Multipass. Instances deleted with the current `multipass delete` are removed permanently and cannot be recovered.
 
 Use the `--all` option to recover all deleted instances at once:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
 multipass recover --all
+
+>
 ```
 
 ---
 
-The full `multipass help restart` output explains the available options:
+The full `multipass help recover` output explains the available options:
 
 ```{code-block} text
 Usage: multipass recover [options] <name> [<name> ...]
@@ -28,4 +30,8 @@ Options:
 
 Arguments:
   name           Names of instances to recover
+```
+
+```{seealso}
+{ref}`How to remove an instance <how-to-guides-manage-instances-remove-an-instance>`, [`delete`](/reference/command-line-interface/delete)
 ```
