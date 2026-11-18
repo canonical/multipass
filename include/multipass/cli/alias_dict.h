@@ -19,9 +19,11 @@
 
 #include <multipass/alias_definition.h>
 #include <multipass/terminal.h>
+#include <multipass/utils/forward_like.h>
 
 #include <filesystem>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -76,23 +78,15 @@ public:
     std::optional<ContextAliasPair> get_context_and_alias(const std::string& alias) const;
     std::optional<AliasDefinition> get_alias_from_current_context(const std::string& alias) const;
     std::optional<AliasDefinition> get_alias(const std::string& alias) const;
-    DictType::iterator begin()
+    template <typename Self>
+    auto begin(this Self& self) -> std::ranges::iterator_t<forward_like_t<Self&, DictType>>
     {
-        return aliases.begin();
+        return self.aliases.begin();
     }
-    DictType::iterator end()
+    template <typename Self>
+    auto end(this Self& self) -> std::ranges::iterator_t<forward_like_t<Self&, DictType>>
     {
-        return aliases.end();
-    }
-
-    // TODO: Replace these overloads with "deducing `this`" when we upgrade to C++23?
-    DictType::const_iterator begin() const
-    {
-        return aliases.begin();
-    }
-    DictType::const_iterator end() const
-    {
-        return aliases.end();
+        return self.aliases.end();
     }
 
     DictType::const_iterator cbegin() const

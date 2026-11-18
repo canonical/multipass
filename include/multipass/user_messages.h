@@ -17,7 +17,10 @@
 
 #pragma once
 
+#include <multipass/utils/forward_like.h>
+
 #include <concepts>
+#include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
@@ -30,22 +33,17 @@ public:
     using iterator = std::vector<std::string>::iterator;
     using const_iterator = std::vector<std::string>::const_iterator;
 
-    iterator begin()
+    template <typename Self>
+    auto begin(this Self& self)
+        -> std::ranges::iterator_t<forward_like_t<Self&, std::vector<std::string>>>
     {
-        return _messages.begin();
+        return self._messages.begin();
     }
-    iterator end()
+    template <typename Self>
+    auto end(this Self& self)
+        -> std::ranges::iterator_t<forward_like_t<Self&, std::vector<std::string>>>
     {
-        return _messages.end();
-    }
-
-    const_iterator begin() const
-    {
-        return _messages.begin();
-    }
-    const_iterator end() const
-    {
-        return _messages.end();
+        return self._messages.end();
     }
 
     void clear()
