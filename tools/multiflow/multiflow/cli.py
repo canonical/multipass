@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from multiflow import loader, runner
+from multiflow import harness, loader, runner
 from multiflow.backends import BACKENDS, get_backend
 from multiflow.models import COMPLETE, TERMINALS
 
@@ -26,6 +26,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     if not task:
         print("error: provide a TASK or --task-file", file=sys.stderr)
         return 2
+    if args.backend is None:
+        args.backend, how = harness.detect()
+        _log(f"backend: {args.backend} (detected from {how}; override with -b)")
     backend = get_backend(args.backend)
     if not backend.available():
         print(f"error: backend '{backend.name}' not available (`{backend.executable}` not on PATH)", file=sys.stderr)
@@ -161,8 +164,9 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("recipe")
     r.add_argument("task", nargs="?", default="")
     r.add_argument("--task-file", help="read the task description from a file")
-    r.add_argument("-b", "--backend", default="copilot", choices=sorted(BACKENDS),
-                   help="harness used for every step (fake = dry run)")
+    r.add_argument("-b", "--backend", choices=sorted(BACKENDS),
+                   help="harness used for every step (fake = dry run); default: the harness multiflow is "
+                        "run from (Claude Code, Copilot CLI/VS Code, OpenCode), else copilot")
     r.add_argument("-m", "--model", action="append",
                    help="model override: MODEL for all steps or NODE=MODEL (repeatable)")
     r.add_argument("--timeout", type=int, default=None, help="per-step timeout in seconds")

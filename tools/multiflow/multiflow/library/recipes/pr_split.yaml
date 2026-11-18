@@ -1,0 +1,106 @@
+name: pr_split
+description: >-
+  Split a large PR into a chain of small stacked branches (expand -> migrate -> contract), with the split plan
+  reviewed before any branch is created.
+  INVARIANT for every step: the sum of all branch diffs must be identical to the original PR diff, i.e.
+  `git diff <base> <top-branch>` equals `git diff <base> <original>`; equivalently
+  `git diff --quiet <original> <top-branch>` succeeds. Nothing missing, nothing extra, all temporary
+  scaffolding removed by the top branch.
+max_iterations: 3
+
+artifacts:
+  split_plan:
+    path: split_plan.md
+    description: "ordered stack of branches with a file/hunk coverage matrix (read-only after planning)"
+  plan_review:
+    path: plan_review.md
+    description: review of the split plan
+  notes:
+    path: refactor_notes.md
+    description: "branches created, SHAs, scaffolding, build/test results, final diff check"
+  stack_review:
+    path: stack_review.md
+    description: verification of the created stack
+
+nodes:
+  plan:
+    role: planner
+    inputs: ["plan_review?"]
+    outputs: [split_plan]
+    instructions: |
+      This is a stacked-PR refactoring. Do not plan code changes of your own: plan how to split an
+      existing change into a chain of branches that reproduce it exactly.
+
+      1. Identify the original branch and its base from the task. If the task does not name them, use
+         the current branch and its merge-base with the default branch. Record both names and SHAs.
+      2. Make an inventory of the full diff (`git diff --stat <base>...<original>`, then per file).
+         Classify each change: new interface or type, new implementation, caller migration, removal or
+         rename of an old interface, pure move, tests, docs or build.
+      3. Design the stack with these rules:
+         - Expand, migrate, contract: additions come first, caller migrations next, removals last.
+         - Remove an old interface only in a branch after the one where its last use goes away.
+         - Prefer temporary duplication (copies, forwarding wrappers, adapters) over simplifying or
+           merging changes. Each piece of scaffolding must be removed later in the stack.
+         - Every branch must build and pass tests on its own, and have one coherent purpose that is
+           small enough to review.
+         - The sum of all branch diffs must be identical to the original PR diff: every hunk of
+           `git diff <base> <original>` is in exactly one branch (or is introduced and later undone as
+           scaffolding), and nothing else survives to the top branch.
+      4. Name the branches `<original>-stack/NN-<slug>` unless the task gives a naming scheme.
+
+      Use these sections instead of the generic plan sections:
+      1. **Source**: original branch, base, SHAs and the diff stat.
+      2. **Inventory**: the classified changes.
+      3. **Stack**: for each branch, in order: name, parent, purpose, exact files, symbols and hunks,
+         interfaces added, callers migrated, items removed, scaffolding added or removed, and why it
+         builds on its own.
+      4. **Coverage matrix**: every file in the original diff, with the branch or branches that carry
+         its changes. Partially split files list which hunks go where.
+      5. **Validation**: build and test commands for each branch, and the final identity check
+         `git diff --quiet <original> <top-branch>` (the summed stack diff equals the original PR diff).
+      6. **Risks**: tricky splits, ordering hazards, generated files and conflicts.
+      If a plan review exists, address every item in it.
+  plan_review:
+    role: reviewer
+    inputs: [split_plan]
+    outputs: [plan_review]
+    instructions: |
+      You are reviewing the split plan only. No branches exist yet. Use git to check the plan against
+      the original diff:
+      - Coverage: every file and hunk in `git diff <base>...<original>` is assigned; nothing is invented.
+      - Order: no branch uses a symbol that is only introduced in a later branch, and no removal
+        happens while a use remains.
+      - Expand, migrate, contract: additions before migrations before removals. Duplication is used
+        instead of simplification. All scaffolding is removed by the top branch.
+      - Granularity: each branch is coherent, reviewable and plausibly buildable on its own.
+      Approve only if the plan can be carried out as written.
+  refactor:
+    role: refactorer
+    inputs: [split_plan, "stack_review?"]
+    outputs: [notes]
+  verify:
+    role: reviewer
+    inputs: [split_plan, notes]
+    outputs: [stack_review]
+    instructions: |
+      Verify the stack that was created. Do not change the workspace checkout. To build a branch, use
+      `git worktree add <dir outside the workspace> <branch>` and remove the worktree when you are done.
+      Check, in this order:
+      1. The original branch and base still point at the SHAs recorded in the plan.
+      2. The chain: each branch's parent is the previous branch (`git merge-base --is-ancestor`), and
+         the first branch starts from the base.
+      3. Identical result: the sum of all branch diffs equals the original PR diff. Check that
+         `git diff --quiet <original> <top-branch>` succeeds and that `git diff --stat <base> <top-branch>`
+         matches `git diff --stat <base> <original>`. Any difference is blocking; include it.
+      4. Every branch builds and passes the relevant tests.
+      5. Expand, migrate, contract is respected: no branch removes an interface that is still used
+         in it, no branch uses one that does not exist yet, and all scaffolding is gone by the top branch.
+      6. Each branch matches its purpose in the plan. Report unexplained deviations.
+      Approve only if checks 1-4 pass and there are no blocking findings in 5-6.
+
+entry: plan
+transitions:
+  plan:        {done: plan_review}
+  plan_review: {approved: refactor, changes_requested: plan}
+  refactor:    {done: verify}
+  verify:      {approved: __complete__, changes_requested: refactor}

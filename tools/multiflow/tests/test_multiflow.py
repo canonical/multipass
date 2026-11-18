@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
-from multiflow import engine, loader, runner
+from multiflow import engine, harness, loader, runner
 from multiflow.backends import StepInvocation
 from multiflow.backends.claude import ClaudeBackend
 from multiflow.backends.copilot import CopilotBackend
@@ -52,6 +54,18 @@ def test_review_loop_returns_to_implementer_then_completes(tmp_path):
     # The second implement prompt sees the review as an existing input and the history of the rejection.
     second_impl = backend.invocations[3].prompt
     assert "changes_requested" in second_impl and "(not produced yet" not in second_impl.split("`review`")[1][:80]
+
+
+def test_pr_split_reviews_plan_before_refactoring_and_locks_it(tmp_path):
+    _, state, backend = run(tmp_path, "pr_split", scripted({
+        "plan": ["done"], "plan_review": ["changes_requested", "approved"],
+        "refactor": ["done"], "verify": ["changes_requested", "approved"],
+    }))
+    assert state.status == "completed"
+    assert [h.node for h in state.history] == [
+        "plan", "plan_review", "plan", "plan_review", "refactor", "verify", "refactor", "verify"]
+    refactor = backend.invocations[4]
+    assert refactor.tools == "edit" and any(p.name == "split_plan.md" for p in refactor.locked_paths)
 
 
 def test_endless_review_loop_halts_at_max_iterations(tmp_path):
@@ -302,3 +316,74 @@ def test_run_lock_prevents_concurrent_execution(tmp_path):
 def test_unknown_recipe_suggests_closest_name(tmp_path):
     with pytest.raises(loader.LoadError, match="Did you mean 'quick_patch'"):
         loader.resolve(tmp_path, "quick_path")
+
+
+def test_chat_server_offers_recipe_prompts_and_argument_completion(tmp_path):
+    anyio = pytest.importorskip("anyio")
+    Client = pytest.importorskip("mcp").Client
+    from mcp.types import PromptReference
+
+    from multiflow.mcp_server import build_chat_server
+
+    async def check():
+        async with Client(build_chat_server(tmp_path)) as c:
+            prompts = {p.name: p for p in (await c.list_prompts()).prompts}
+            assert {"run", "pr_split", "quick_patch"} <= set(prompts)
+            assert [a.name for a in prompts["pr_split"].arguments] == ["task", "backend"]
+            text = (await c.get_prompt("pr_split", {"task": "Split big-pr"})).messages[0].content.text
+            assert "Split big-pr" in text and "`pr_split`" in text
+
+            ref = PromptReference(type="ref/prompt", name="run")
+            assert (await c.complete(ref, {"name": "recipe", "value": "pr"})).completion.values == ["pr_split"]
+            assert "fake" not in (await c.complete(ref, {"name": "backend", "value": ""})).completion.values
+
+            start = {t.name: t for t in (await c.list_tools()).tools}["multiflow_start"]
+            assert "pr_split" in start.input_schema["properties"]["recipe"]["enum"]
+
+    anyio.run(check)
+
+
+def test_harness_detection_prefers_client_name_then_nearest_ancestor_over_leaked_env(tmp_path, monkeypatch):
+    assert harness.from_client_name("copilot-cli") == "copilot"
+    assert harness.from_client_name("claude-code") == "claude"
+    assert harness.from_client_name("Visual Studio Code") == "copilot"
+    assert harness.from_argv(["node", "/usr/local/bin/copilot"]) == "copilot"
+    assert harness.from_argv(["/usr/bin/python3", "-m", "multiflow"]) is None
+
+    # A process named `claude` started from a Copilot shell: env still says Copilot, the parent says Claude.
+    fake_claude = tmp_path / "claude"
+    fake_claude.symlink_to(shutil.which("sh"))
+    probe = f"{sys.executable} -c 'from multiflow import harness; print(*harness.detect())'"
+    env = {**os.environ, "COPILOT_CLI": "1", "PYTHONPATH": str(Path(harness.__file__).parents[1])}
+    out = subprocess.run([str(fake_claude), "-c", probe], env=env, capture_output=True, text=True, check=True)
+    assert out.stdout.split()[:2] == ["claude", "parent"]
+
+    monkeypatch.setattr(harness, "from_ancestry", lambda pid=None: None)
+    monkeypatch.setenv("COPILOT_CLI", "1")
+    assert harness.detect("claude-code")[0] == "claude"
+    assert harness.detect()[0] == "copilot"
+
+
+def test_chat_server_start_defaults_to_calling_harness(tmp_path, monkeypatch):
+    anyio = pytest.importorskip("anyio")
+    mcp = pytest.importorskip("mcp")
+    from mcp.types import Implementation
+
+    from multiflow.mcp_server import build_chat_server
+
+    seen = []
+
+    def capture(ws, recipe, task, backend, models):
+        seen.append(backend)
+        raise ValueError("stop before launching")
+
+    monkeypatch.setattr(runner, "create_run", capture)
+
+    async def start(**args):
+        info = Implementation(name="claude-code", version="1")
+        async with mcp.Client(build_chat_server(tmp_path), client_info=info) as c:
+            await c.call_tool("multiflow_start", {"recipe": "quick_patch", "task": "t", **args})
+
+    anyio.run(start)
+    anyio.run(lambda: start(backend="opencode"))
+    assert seen == ["claude", "opencode"]

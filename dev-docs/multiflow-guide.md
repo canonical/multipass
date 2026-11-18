@@ -2,6 +2,8 @@
 
 `multiflow` runs **multi-role agent workflows** in a repository: e.g. a *planner* writes a plan, an *implementer* changes the code, a *reviewer* or *tester* checks it, looping until approved. Every step runs as a **separate headless agent session** (GitHub Copilot CLI, Claude Code or OpenCode) with its own prompt, model and file permissions; a small state machine decides what runs next. Design rationale: [`tools/multiflow/README.md`](../tools/multiflow/README.md).
 
+This guide is the exhaustive reference. For step-by-step walkthroughs, see the tutorials [using multiflow from each harness](multiflow-tutorial-harnesses.md) and [adding roles and workflows](multiflow-tutorial-roles-and-recipes.md).
+
 1. [Concepts](#1-concepts)
 2. [Installation](#2-installation)
 3. [Command-line reference](#3-command-line-reference)
@@ -64,7 +66,7 @@ multiflow run RECIPE [TASK] [--task-file FILE] [-b BACKEND] [-m MODEL | -m NODE=
 | --- | --- | --- |
 | `RECIPE` | required | Recipe name (`multiflow list`). Unknown names get a "did you mean" suggestion. |
 | `TASK` / `--task-file FILE` | one required | Task description, inline (quoted) or from a file for long, multi-line tasks. The file wins if both are given. |
-| `-b, --backend` | `copilot` | Harness for every step: `copilot`, `claude`, `opencode`, `fake`. |
+| `-b, --backend` | calling harness | Harness for every step: `copilot`, `claude`, `opencode`, `fake`. Default: the harness `multiflow` is run from ([§5](#5-backends)). |
 | `-m, --model` | none | Repeatable. `-m MODEL` for all steps, `-m NODE=MODEL` for one node ([§4](#4-choosing-models)). Unknown nodes are rejected. |
 | `--timeout SECONDS` | none | Wall-clock limit per step session; a timeout counts as a failed attempt. |
 
@@ -116,7 +118,7 @@ Overrides are saved in the run, so `resume` keeps them. `multiflow show` display
 
 ## 5. Backends
 
-One backend runs all steps of a run (`resume -b` can switch it). Each step's command line (without the prompt) is saved in `steps/<step>/command.txt`, its output in `log.txt`.
+One backend runs all steps of a run (`resume -b` can switch it). **Default backend:** when `run -b` or the `multiflow_start` `backend` argument is omitted, multiflow uses the harness it was dispatched from. It checks, in order: the MCP client name (`copilot-cli` → copilot, `claude-code` → claude, VS Code → copilot, `opencode` → opencode); the nearest harness process among its ancestors (`claude`, `copilot`, `opencode`, VS Code); environment variables (`CLAUDECODE` / `CLAUDE_CODE_ENTRYPOINT`, `OPENCODE`, `COPILOT_CLI`); and otherwise `copilot`. Ancestors are checked before environment variables because the variables leak into nested harnesses: `claude` started from a Copilot shell still has `COPILOT_CLI=1`. `run` prints the backend it chose and how it decided. In a plain terminal, pass `-b` to choose explicitly. Each step's command line (without the prompt) is saved in `steps/<step>/command.txt`, its output in `log.txt`.
 
 | Backend | Command per step | Permission rules | Step MCP config |
 | --- | --- | --- | --- |
@@ -133,10 +135,10 @@ The repository has ready-made configuration for each harness; all of it starts t
 
 | Harness | Server config | How to invoke |
 | --- | --- | --- |
-| Claude Code | `.mcp.json` (approve on first use; check with `claude mcp list`, or add with `claude mcp add multiflow -- multiflow mcp`) | `/multiflow [recipe] <task>` (`.claude/commands/multiflow.md`, uses `backend: "claude"`) |
-| VS Code Copilot Chat | `.vscode/mcp.json` (start/trust it from the MCP view) | `/multiflow [recipe] <task>` in Agent mode (`.github/prompts/multiflow.prompt.md`), or pick the `multiflow` agent (`.github/agents/multiflow.agent.md`); both use `backend: "copilot"` |
-| Copilot CLI | `.mcp.json` (check with `copilot mcp list` or `/mcp`), or `~/.copilot/mcp-config.json` | `copilot --agent multiflow [-p "<task>"]`, or ask any session to "start an multiflow bugfix run for …" |
-| OpenCode (untested) | `opencode.json`: `{"mcp": {"multiflow": {"type": "local", "command": ["multiflow", "mcp"], "enabled": true}}}` | ask for an multiflow run with `backend: "opencode"` |
+| Claude Code | `.mcp.json` (approve on first use; check with `claude mcp list`, or add with `claude mcp add multiflow -- multiflow mcp`) | `/multiflow [recipe] <task>` (`.claude/commands/multiflow.md`), or the server's prompts `/mcp__multiflow__<recipe>` |
+| VS Code Copilot Chat | `.vscode/mcp.json` (start/trust it from the MCP view) | `/multiflow [recipe] <task>` in Agent mode (`.github/prompts/multiflow.prompt.md`), or pick the `multiflow` agent (`.github/agents/multiflow.agent.md`); both start the run on the copilot backend. The server's prompts `/mcp.multiflow.<recipe>` and `/mcp.multiflow.run` also work, with completion of recipe and backend values |
+| Copilot CLI | `.mcp.json` (check with `copilot mcp list` or `/mcp`), or `~/.copilot/mcp-config.json` | `/multiflow [recipe] <task>` (Copilot CLI loads `.claude/commands/multiflow.md` as a skill), `copilot --agent multiflow [-p "<task>"]`, or ask any session to "start a multiflow bugfix run for …" |
+| OpenCode (untested) | `opencode.json`: `{"mcp": {"multiflow": {"type": "local", "command": ["multiflow", "mcp"], "enabled": true}}}` | ask for a multiflow run |
 | Any MCP client | `multiflow -w /path/to/repo mcp` over stdio (without `-w`, the working directory is the workspace) | call the tools in [§7](#7-mcp-tool-reference) |
 
 ```
@@ -145,6 +147,8 @@ The repository has ready-made configuration for each harness; all of it starts t
 ```
 
 The chat lists recipes, uses the one you named (or picks the best fit and says why), calls `multiflow_start`, reports the run id, polls `multiflow_status` about once a minute, and finally summarizes the steps, reads the artifacts and shows the diff. If the run halts it explains why and suggests `resume --extra-attempt`. To pick models, say so ("use opus for the review"); the chat passes them as `models`.
+
+**Autocomplete.** What the `/` menu completes depends on the harness. The `/multiflow` command and the `multiflow` agent complete by name in all three harnesses, and their argument hint lists the built-in recipes (`[quick_patch|bugfix|feature|pr_split] <task>`); arguments are free text. The MCP server also exposes **prompts**, one per recipe (with arguments `task` and optional `backend`) plus `run` (`task`, optional `recipe`, `backend`), and answers `completion/complete` for the `recipe` and `backend` arguments. VS Code lists them as `/mcp.multiflow.<name>` (one input box per argument) and Claude Code as `/mcp__multiflow__<name>`. Claude Code splits prompt arguments on spaces and ignores quotes, so a multi-word task arrives truncated to its first word; prefer `/multiflow` there. Copilot CLI (checked with 1.0.108) only requests the server's tools, not its prompts or completions, so there use `/multiflow`. Prompts and the `multiflow_start` enum are built when the server starts; after adding a project recipe, restart the server (e.g. `/mcp` reload) to see it there, although starting it by name works immediately.
 
 Chat-started runs execute **in the background**, detached from the chat: closing the chat doesn't stop them, `multiflow status` follows them from any terminal, and their runner output goes to `.multiflow/runs/<id>/runner.log`.
 
@@ -155,10 +159,12 @@ Chat-started runs execute **in the background**, detached from the chat: closing
 | Tool | Parameters | Returns |
 | --- | --- | --- |
 | `multiflow_list_recipes` | — | `{name: {description, nodes: {node: role}, entry}}`, or `{name: {error}}` for invalid recipes. |
-| `multiflow_start` | `recipe`, `task` (full description), `backend` (default `copilot`), `models` (optional `{"*": m}` / `{node: m}`) | `{run_id, run_dir, hint}` once the background runner has started, or `{error}`. |
+| `multiflow_start` | `recipe` (schema lists the recipes found at server start as an `enum`; other names are still accepted), `task` (full description), `backend` (omit for the calling harness, see [§5](#5-backends)), `models` (optional `{"*": m}` / `{node: m}`) | `{run_id, run_dir, backend, backend_source, hint}` once the background runner has started, or `{error}`. |
 | `multiflow_status` | `run_id` (empty = latest) | Same as `status --json`: `run_id, recipe, backend, task, status, status_reason, current_node, history[], artifacts, run_dir`; history entries have `index, node, role, model, attempt, verdict, summary, rejected, warnings, ended_at`. |
 | `multiflow_list_runs` | `limit` (default 10) | Newest first: `[{run_id, recipe, status, task, updated_at}]`. |
 | `multiflow_read_artifact` | `run_id` (empty = latest), `name` (e.g. `plan`, `review`) | Artifact text (up to 100 000 characters), a "not produced yet" note, or `ERROR: …`. |
+
+**Chat server prompts** (for clients that show MCP prompts as slash commands): `run(task, recipe?, backend?)` and `<recipe>(task, backend?)` for every valid recipe. Each returns launcher instructions: start the run with `multiflow_start` (passing `backend` only if given), poll `multiflow_status`, then summarize. `completion/complete` completes `recipe` (recipe names) and `backend` (`copilot`, `claude`, `opencode`) by prefix.
 
 **Step server** (`multiflow-step`, injected into every step session; relevant when writing roles or debugging):
 
@@ -178,16 +184,22 @@ If MCP is unavailable inside a step, the agent may instead write `steps/<step>/r
 | `implementer` | edit | `done` | `claude-sonnet-5.5` / `sonnet` | Implements the plan (or task), validates, writes notes; addresses review/test feedback. |
 | `reviewer` | read-only | `approved`, `changes_requested` | `gpt-6.1-sol` / `opus` | Independently reviews the actual diff against task and plan. |
 | `tester` | read-only | `passed`, `failed` | `claude-sonnet-5.5` / `sonnet` | Runs builds/tests and reports with evidence. |
+| `refactorer` | edit (no `git push`) | `done` | `claude-opus-5.5` / `opus` | Rebuilds a change as stacked branches: new interfaces first, callers next, old interfaces removed last; temporary duplication over simplification; final tree identical to the original. |
 
 | Recipe | Flow | Artifacts | Use for |
 | --- | --- | --- | --- |
 | `quick_patch` | `implement` → `review`; `changes_requested` → `implement` | `notes`, `review` | Small, well-understood changes. |
 | `bugfix` | `diagnose` (planner) → `fix` → `verify` (tester); `failed` → `fix` | `plan`, `notes`, `test_report` | Defects: root cause first, then a test-verified fix. |
 | `feature` | `plan` → `implement` → `review`; `changes_requested` → `implement` | `plan`, `notes`, `review` | New functionality with a plan and independent review. |
+| `pr_split` | `plan` (planner) → `plan_review` (reviewer); `changes_requested` → `plan`; `approved` → `refactor` (refactorer) → `verify` (reviewer); `changes_requested` → `refactor` | `split_plan`, `plan_review`, `notes`, `stack_review` | Splitting a large PR into a chain of reviewable branches whose combined diff equals the original. |
+
+`pr_split` example: `multiflow run pr_split "Split branch big-feature (base main) into stacked branches"`. The task should name the original branch and its base; otherwise the planner uses the current branch and its merge-base with the default branch. Branches are named `<original>-stack/NN-<slug>` unless the task asks for another scheme. The original branch is never modified and nothing is pushed. `verify` builds each branch in a temporary `git worktree` outside the workspace (a read-only step must leave the checkout unchanged) and requires `git diff --quiet <original> <top-branch>` to succeed. The rule that **the sum of all branch diffs must be identical to the original PR diff** (`git diff <base> <top-branch>` = `git diff <base> <original>`) is in the recipe description, so every step's prompt contains it, and the planner, refactorer and verify instructions repeat it.
 
 All use `max_iterations: 3` and `max_step_retries: 1`. Sources: `tools/multiflow/multiflow/library/`.
 
 ## 9. Writing roles and recipes
+
+A worked example (new role, new recipe, validation, dry run, loop test) is in the [roles and workflows tutorial](multiflow-tutorial-roles-and-recipes.md).
 
 Project roles go in `<repo>/.multiflow/roles/<name>.md` and recipes in `<repo>/.multiflow/recipes/<name>.yaml` (or `.yml`). A project file with the same name as a built-in **replaces** it for this repository, including inside built-in recipes. Check with `multiflow validate` and `multiflow show`, then try with `-b fake`. Unknown fields are an error in both formats.
 

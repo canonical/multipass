@@ -24,4 +24,6 @@ This documentation section only refers to Multipass development related topics.
 ## AI tooling
 
 - [multiflow usage guide: all commands, options and chat integrations](multiflow-guide.md)
+- [multiflow tutorial: using it from Copilot CLI, Claude Code, VS Code, OpenCode and the terminal](multiflow-tutorial-harnesses.md)
+- [multiflow tutorial: adding roles and workflows](multiflow-tutorial-roles-and-recipes.md)
 - [multiflow: multi-role agent workflows (Copilot CLI, Claude Code, VS Code)](../tools/multiflow/README.md)

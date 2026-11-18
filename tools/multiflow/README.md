@@ -2,7 +2,7 @@
 
 Composable multi-role agent workflows (planner → implementer ⇄ reviewer, …) that run on **GitHub Copilot CLI**, **Claude Code** or **OpenCode**, and can be launched from a terminal, Copilot CLI, VS Code Copilot Chat or Claude Code.
 
-**Full usage guide:** [dev-docs/multiflow-guide.md](../../dev-docs/multiflow-guide.md) (every command, option, integration and authoring field).
+**Full usage guide:** [dev-docs/multiflow-guide.md](../../dev-docs/multiflow-guide.md) (every command, option, integration and authoring field). Tutorials: [using it from each harness](../../dev-docs/multiflow-tutorial-harnesses.md), [adding roles and workflows](../../dev-docs/multiflow-tutorial-roles-and-recipes.md).
 
 ## Design
 
@@ -32,4 +32,4 @@ Node `kind` is reserved for future composition (`kind: recipe` sub-workflows, `k
 cd tools/multiflow && python -m pytest -q     # fake backend, no LLM calls
 ```
 
-Layout: `models.py` (schemas), `loader.py`, `engine.py` (pure state machine), `protection.py`, `step.py` (step contract), `prompt.py`, `runner.py`, `backends/`, `mcp_server.py`, `cli.py`, `library/` (built-in roles and recipes).
+Layout: `models.py` (schemas), `loader.py`, `engine.py` (pure state machine), `protection.py`, `step.py` (step contract), `prompt.py`, `runner.py`, `backends/`, `harness.py` (default-backend detection), `mcp_server.py`, `cli.py`, `library/` (built-in roles and recipes).

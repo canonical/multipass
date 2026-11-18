@@ -8,24 +8,33 @@
 
 from __future__ import annotations
 
+import inspect
 import os
 import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
+
+from pydantic import Field
 
 try:  # mcp >= 2
+    from mcp.server.mcpserver import Context
     from mcp.server.mcpserver import MCPServer as _Server
 except ImportError:  # mcp 1.x
+    from mcp.server.fastmcp import Context  # type: ignore[no-redef]
     from mcp.server.fastmcp import FastMCP as _Server  # type: ignore[no-redef]
 
-from multiflow import loader, runner
+from mcp.types import Completion
+
+from multiflow import harness, loader, runner
+from multiflow.backends import BACKENDS
 from multiflow.backends.base import STEP_ENV_VAR
 from multiflow.models import RunState
 from multiflow.step import load_context, validate_submission, write_result
 
 MAX_ARTIFACT_CHARS = 100_000
+CHAT_BACKENDS = [b for b in BACKENDS if b != "fake"]
 
 
 def build_step_server(step_dir: Path) -> Any:
@@ -111,19 +120,21 @@ def build_chat_server(workspace: Path) -> Any:
                 out[name] = {"error": str(e)}
         return out
 
-    @server.tool()
-    def multiflow_start(recipe: str, task: str, backend: str = "copilot",
-                        models: Optional[dict[str, str]] = None) -> dict:
+    def multiflow_start(recipe: str, task: str, backend: str = "",
+                        models: Optional[dict[str, str]] = None, ctx: Optional[Context] = None) -> dict:
         """Start a workflow run in the background. Each step runs as a separate headless agent session.
 
         Args:
             recipe: recipe name (see multiflow_list_recipes)
             task: full task description for the workflow
-            backend: copilot | claude | opencode
+            backend: copilot | claude | opencode | fake; omit to use the harness this chat runs in
             models: optional model overrides, {"*": model} for all steps or {node: model}
         """
         if os.environ.get(STEP_ENV_VAR):
             return {"error": "multiflow_start is disabled inside a workflow step (no nested workflows)"}
+        how = "argument"
+        if not backend:
+            backend, how = harness.detect(client_name(ctx))
         try:
             run_dir = runner.create_run(workspace, recipe, task, backend, models or {})
         except (loader.LoadError, runner.RunError, ValueError) as e:
@@ -142,8 +153,17 @@ def build_chat_server(workspace: Path) -> Any:
             time.sleep(0.1)
         if proc.poll() not in (None, 0):
             return {"error": f"runner exited with code {proc.returncode}; see {run_dir / 'runner.log'}"}
-        return {"run_id": run_id, "run_dir": str(run_dir),
+        return {"run_id": run_id, "run_dir": str(run_dir), "backend": backend, "backend_source": how,
                 "hint": "Poll multiflow_status(run_id) occasionally; steps take minutes each."}
+
+    # Advertise the valid values as JSON-schema enums so clients and models can offer/choose them.
+    # Validation stays permissive: recipes added after the server started still work (and get a hint if misspelled).
+    recipe_names = sorted(loader.list_recipes(workspace))
+    multiflow_start.__annotations__.update(
+        recipe=Annotated[str, Field(json_schema_extra={"enum": recipe_names})] if recipe_names else str,
+    )
+    server.tool()(multiflow_start)
+    _add_prompts(server, workspace, recipe_names)
 
     @server.tool()
     def multiflow_status(run_id: str = "") -> dict:
@@ -184,6 +204,74 @@ def build_chat_server(workspace: Path) -> Any:
         return path.read_text(errors="replace")[:MAX_ARTIFACT_CHARS]
 
     return server
+
+
+def client_name(ctx: Optional[Context]) -> Optional[str]:
+    """Name the MCP client sent in `initialize` (mcp 2: client_info, mcp 1: clientInfo), if available."""
+    try:
+        params = ctx.session.client_params  # type: ignore[union-attr]
+        info = getattr(params, "client_info", None) or getattr(params, "clientInfo", None)
+        return getattr(info, "name", None)
+    except Exception:
+        return None
+
+
+def launcher_prompt(recipe: str, task: str, backend: str = "") -> str:
+    """Instructions for a chat to launch and monitor a run (used by the MCP prompts)."""
+    pick = (f"Use the recipe `{recipe}`." if recipe else
+            "Call `multiflow_list_recipes` and pick the best-fitting recipe for the task; say which and why.")
+    return (
+        f"Run a multiflow workflow for this task:\n\n{task}\n\n"
+        "Each step runs as a separate headless agent session with its own role, model and file permissions. "
+        "You are only the launcher/monitor: do NOT implement the task yourself.\n\n"
+        f"1. {pick}\n"
+        f"2. Call `multiflow_start` with that recipe and the full task above"
+        + (f" and `backend: \"{backend}\"`. " if backend else
+           ". Omit `backend` unless the user asked for one: the server then uses the harness this chat runs in. ")
+        + "Pass `models` only if the user asked for specific models.\n"
+        "3. Report the run id; progress can also be followed with `multiflow status <run_id>` in a terminal.\n"
+        "4. Poll `multiflow_status` about every 60 seconds (e.g. `sleep 60` in a terminal) until the status is no "
+        "longer `running`. Then summarize each step's verdict and summary, read the final artifacts with "
+        "`multiflow_read_artifact` and show the resulting changes (`git diff --stat`). If the run halted, explain "
+        "`status_reason` and suggest `multiflow resume --extra-attempt <run_id>`."
+    )
+
+
+def _add_prompts(server: Any, workspace: Path, recipe_names: list[str]) -> None:
+    """MCP prompts appear as slash commands in clients that support them (VS Code: `/mcp.multiflow.<name>`,
+    Claude Code: `/mcp__multiflow__<name>`); `completion/complete` completes their arguments."""
+
+    @server.prompt(name="run", description="Launch a multiflow workflow run and monitor it until it finishes.")
+    def run_prompt(task: str, recipe: str = "", backend: str = "") -> str:
+        return launcher_prompt(recipe, task, backend)
+
+    for name in recipe_names:
+        if name == "run":
+            continue
+        try:
+            desc = loader.resolve(workspace, name).recipe.description
+        except loader.LoadError:
+            continue
+
+        def recipe_prompt(task: str, backend: str = "", _recipe: str = name) -> str:
+            return launcher_prompt(_recipe, task, backend)
+
+        # Hide the bound recipe parameter from the prompt's arguments.
+        recipe_prompt.__signature__ = inspect.signature(recipe_prompt).replace(  # type: ignore[attr-defined]
+            parameters=list(inspect.signature(recipe_prompt).parameters.values())[:2])
+        server.prompt(name=name, description=f"multiflow `{name}`: {desc}")(recipe_prompt)
+
+    @server.completion()
+    async def complete(ref: Any, argument: Any, context: Any) -> Optional[Completion]:
+        if getattr(ref, "type", "") != "ref/prompt":
+            return None
+        if argument.name == "recipe":
+            options = sorted(loader.list_recipes(workspace))
+        elif argument.name == "backend":
+            options = CHAT_BACKENDS
+        else:
+            return None
+        return Completion(values=[o for o in options if o.startswith(argument.value or "")][:100])
 
 
 def _status_label(state: RunState, run_dir: Path) -> str:
