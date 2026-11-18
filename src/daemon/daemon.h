@@ -30,6 +30,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -70,6 +71,9 @@ protected:
     void persist_state_for(const std::string& name, const VirtualMachine::State& state) override;
     void update_metadata_for(const std::string& name, const boost::json::object& metadata) override;
     boost::json::object retrieve_metadata_for(const std::string& name) override;
+    void update_mounts_for(const VirtualMachine& vm,
+                           const std::unordered_map<std::string, VMMount>& mounts) override;
+    std::unordered_map<std::string, VMMount> retrieve_mounts_for(const std::string& name) override;
 
 public slots:
     virtual void create(const CreateRequest* request,
@@ -251,6 +255,11 @@ private:
                                   const std::string& target,
                                   const VMMount& mount);
 
+    // Constructors, which run on the daemon thread, may report before registration
+    bool is_current_instance(const std::string& name,
+                             const VirtualMachine* vm,
+                             bool may_be_unregistered) const;
+
     struct AsyncOperationStatus
     {
         grpc::Status status;
@@ -334,5 +343,7 @@ private:
     SettingsHandler* snapshot_mod_handler;
     std::unordered_map<std::string, std::unordered_map<std::string, MountHandler::UPtr>> mounts;
     std::unordered_set<std::string> user_authorized_bridges;
+    std::atomic<std::uint64_t> next_mount_report_revision{0};
+    std::unordered_map<std::string, std::uint64_t> applied_mount_report_revisions;
 };
 } // namespace multipass
