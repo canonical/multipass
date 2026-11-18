@@ -65,6 +65,11 @@ jobs:
 
             const shortHash = str => crypto.createHash("sha256").update(str).digest("hex").slice(0, 12);
 
+            // Flaky runners
+            const flakyRunners = new Set([
+              'self-hosted-linux-s390x-resolute-medium',
+            ]);
+
             if (SNAP_CHANNEL !== '<undefined>') {
               for (const runner of [
                 'ubuntu-latest',
@@ -80,6 +85,7 @@ jobs:
                   'pkg-url': '',
                   'cmd-prologue': '',
                   'snap-channel': SNAP_CHANNEL,
+                  'allow-failure': flakyRunners.has(runner),
                   'concurrency-key': shortHash(SNAP_CHANNEL + runner)
                 });
               }
@@ -130,6 +136,7 @@ jobs:
     needs: GetMatrix
     runs-on: ${{ matrix.os }}
     if: ${{ needs.GetMatrix.outputs.has_targets == 'true' }}
+    continue-on-error: ${{ matrix.allow-failure == true }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.matrix) }}
