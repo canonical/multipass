@@ -1,21 +1,23 @@
 (reference-command-line-interface-snapshot)=
 # snapshot
 
-> See also: [`restore`](/reference/command-line-interface/restore), [`snapshots`](/reference/command-line-interface/snapshots), [`info`](/reference/command-line-interface/info), [`delete`](/reference/command-line-interface/delete)
+```{caution}
+The `snapshot` command is not supported on the Apple Virtualization framework driver. See {ref}`driver-feature-disparities`.
+```
 
 The `multipass snapshot` command takes a snapshot of an instance; for example:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
 multipass snapshot maximal-stag
-```
 
-The output will be similar to the following:
-
-```{code-block} text
-...
 Snapshot 'snapshot1' of 'maximal-stag' created.
 ```
+
 The snapshot will record all the information that is required to later restore the instance to the same state.
+
+## Running and suspended instances
 
 If the instance is running when you take a snapshot, Multipass needs to stop it first. In an interactive terminal, you will be prompted for confirmation:
 
@@ -31,9 +33,11 @@ Instance 'maximal-stag' is suspended. Would you like to resume and stop it, take
 
 If you confirm, the instance is stopped (resuming it first if it was suspended), the snapshot is taken, and the instance is started again automatically. You can skip this prompt by passing the `--restart` (or `-r`) option, which stops, snapshots, and restarts the instance without asking. If the command is run non-interactively (i.e. with either standard input or standard output being redirected) and `--restart` is not given, the command fails, since there is no way to query the user for confirmation.
 
-You have the option to specify a snapshot name using the `--name` option, following the same format as the [instance name format](/reference/instance-name-format).
+## `--name` and `--comment` options
 
-If you don't specify a name, the snapshot will be named "snapshotN", where N is the total number of snapshots that were ever taken of that instance. You can also add an optional comment with `--comment`. Both of these properties can be later modified with the [`set`](/reference/command-line-interface/set) command, via the snapshot settings keys documented in [Settings](/reference/settings/index).
+You have the option to specify a snapshot name using the `--name` option, following the same format as the {ref}`instance name format <reference-instance-name-format>`.
+
+If you don't specify a name, the snapshot will be named "snapshotN", where N is the total number of snapshots that were ever taken of that instance. You can also add an optional comment with `--comment`. Both of these properties can be later modified with the [`set`](reference-command-line-interface-set) command, via the snapshot settings keys documented in {ref}`Settings <reference-settings-index>`.
 
 ---
 
@@ -65,4 +69,8 @@ Options:
 
 Arguments:
   instance                     The instance to take a snapshot of.
+```
+
+```{seealso}
+{ref}`Snapshot <explanation-snapshot>`, [`restore`](reference-command-line-interface-restore), [`snapshots`](reference-command-line-interface-snapshots), [`info`](reference-command-line-interface-info), [`delete`](reference-command-line-interface-delete)
 ```
