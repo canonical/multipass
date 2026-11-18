@@ -25,9 +25,8 @@ Other key directories:
   `VirtualMachine` / `VirtualMachineFactory` interfaces:
   - `qemu/` — primary backend, controlled via QMP (JSON over the process stdio)
   - `applevz/` — macOS Virtualization.framework
-  - `virtualbox/` — VBoxManage integration (macOS/Windows)
   - `hyperv/` — Windows Hyper-V via PowerShell cmdlets
-  - `hyperv_api/` — Windows Hyper-V via the native HCS, HCN, and virtdisk APIs
+  - `hcs/` — Windows Hyper-V via the native HCS, HCN, and virtdisk APIs
   - `shared/` — common base classes (`BaseVirtualMachine`, `BaseSnapshot`)
 - `src/image_host/`, `src/daemon/default_vm_image_vault.cpp` — image hosts (Ubuntu
   SimpleStreams, custom URLs) and the image vault (fetch/verify/cache).
@@ -37,8 +36,7 @@ Other key directories:
   (`test_<area>.cpp`, not a mirror of the source tree) with extensive mock
   infrastructure (nearly every interface has a `mock_*.h`).
 - `tests/cli/` — pytest end-to-end tests driving installed or source-built binaries.
-- `rxx/` — Rust workspace (`namegen` and `macros` crates) with C++ bridge/CMake
-  integration; Rust 1.91, edition 2024.
+- `rxx/` — Rust workspace with C++ bridge/CMake integration; Rust 1.91, edition 2024.
 - `3rd-party/flutter`, `3rd-party/jsoncpp`, `3rd-party/protobuf.dart`,
   `3rd-party/vcpkg` — **git submodules: do not edit them for Multipass changes.**
   The overlay ports in `3rd-party/vcpkg-ports/` and triplets in
@@ -72,96 +70,36 @@ Other key directories:
 
 ## Setup and Build
 
-- Top-level `CMakeLists.txt` is authoritative: CMake 3.29, C++20, Qt6, Cargo.
+- Top-level `CMakeLists.txt` is authoritative for toolchain requirements and build
+  options (e.g. whether tests or the GUI are built); check it and the configured
+  `build/CMakeCache.txt` rather than assuming.
 - Fresh setup: follow `BUILD.linux.md`, `BUILD.macOS.md`, or `BUILD.windows.md`.
 - Use an existing configured `build/` for incremental work; reconfigure only when
   blocked or when changing build options.
-- Tests exist only when configured with `MULTIPASS_ENABLE_TESTS=ON`; the GUI is
-  controlled by `MULTIPASS_ENABLE_FLUTTER_GUI`.
 
-Run commands from the repository root. Prefer narrow targets while iterating:
-
-```bash
-cmake --build build
-cmake --build build --target multipassd
-cmake --build build --target multipass
-cmake --build build --target multipass_cpp_tests
-```
+Run commands from the repository root. Prefer narrow targets while iterating
+(`cmake --build build --target <target>`).
 
 ## Testing
 
-Build `multipass_cpp_tests` before running a focused C++ test. CTest registers the
-C++ suite, the real-SSH integration suite, and the Rust tests:
+Run focused C++ tests directly from `build/bin/` with `--gtest_filter`; list
+the registered suites with `ctest --test-dir build -N`.
 
-```bash
-./build/bin/multipass_cpp_tests --gtest_filter='SomeSuite.SomeTest'
-ctest --test-dir build --output-on-failure -R '^multipass_cpp_tests$'
-ctest --test-dir build --output-on-failure -R '^multipass_rust_tests$'
-ctest --test-dir build --output-on-failure
-# Run directly when diagnosing the real-SSH integration executable:
-./build/bin/multipass_integration_tests
-```
-
-CLI tests require privilege escalation. Standalone mode needs the directory
-containing both source-built binaries:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ./tests/cli
-pytest tests/cli --daemon-controller=standalone --bin-dir=build/bin
-# Narrow by marker, file, or keyword:
-pytest tests/cli -m snapshot --daemon-controller=standalone --bin-dir=build/bin
-pytest tests/cli -k shell_test --daemon-controller=standalone --bin-dir=build/bin
-```
-
-See `tests/cli/README.md` for other daemon controllers, storage options, and
-diagnostics. `--remove-all-instances` deletes all instances in the test storage
-directory. Without `--storage-dir`, the `standalone` and `none` controllers use a
-temporary directory, but `snap`, `launchd`, and `winsvc` use the installed daemon's
-real storage. State that impact and get confirmation before using it.
+For CLI tests, follow `tests/cli/README.md`. Get confirmation before using
+`--remove-all-instances`.
 
 ## Language Workflows
 
-Follow `CONTRIBUTING.md`. Its most important C++ rules:
+Follow `CONTRIBUTING.md` and the CI checks in `.github/workflows/lint.yml`. In
+particular:
 
-- Standard C++20 and `#pragma once`.
-- `CamelCase` for types, `snake_case` for functions and variables.
-- Fully initialize objects in constructors; non-copyable/movable types inherit
-  `DisabledCopyMove`.
-- Keep platform-dependent behavior in dedicated platform units; do not scatter
-  platform `#ifdef`s.
-- Wrap mockable free functions and external APIs with `MockableSingleton`.
-- Avoid const by-value parameters, magic numbers, duplicated sources of truth, and
-  warnings; non-MSVC builds use `-Werror`.
-- C++ formatting follows `.clang-format` (LLVM base, 4-space indent, 100 columns,
-  left pointer alignment, braces on new lines). CI checks only changed lines
-  (`clang-format-diff` on the PR diff, clang version from `CLANG_VERSION` in
-  `snap/snapcraft.yaml`), so format only your changed lines with
-  `git clang-format <base>`; do not reformat whole files.
-
-For GUI work, use the **vendored SDK**, not whatever is on `PATH`. Run `pub get`
-before formatting; CI does too because dependencies can change the formatter's
-output:
-
-```bash
-cd src/client/gui
-../../../3rd-party/flutter/bin/flutter pub get
-../../../3rd-party/flutter/bin/dart format --output=none --set-exit-if-changed .
-../../../3rd-party/flutter/bin/flutter analyze
-../../../3rd-party/flutter/bin/flutter test
-```
-
-Do not hand-edit `src/client/gui/lib/generated/` — changes to
-`src/rpc/multipass.proto` regenerate these Dart bindings during the GUI build.
-
-Rust tools run from `rxx/`:
-
-```bash
-cargo fmt --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
-```
+- Format only the lines you change (`git clang-format <base>`); CI checks the diff,
+  not whole files.
+- For GUI work, use the vendored Flutter SDK in `3rd-party/flutter/`, not whatever
+  is on `PATH`.
+- Do not hand-edit `src/client/gui/lib/generated/`; it is regenerated from
+  `src/rpc/multipass.proto` during the GUI build.
+- The Rust workspace is in `rxx/`.
 
 ## Implementation Rules
 

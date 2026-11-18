@@ -42,7 +42,7 @@ to apply; do not modify files.
 
 - **Patterns and SOLID**: a vocabulary for recurring mechanisms, not a checklist. Balance SRP and
   DIP especially at boundaries.
-- **Modern C++** (C++20 baseline): value semantics first, RAII for every resource,
+- **Modern C++**: value semantics first, RAII for every resource,
   `std::unique_ptr`/`std::shared_ptr` for ownership and never owning raw pointers, concepts over
   SFINAE, `std::optional`/`std::variant` over sentinel values, rule of zero, return values over
   output parameters. Consider ABI and header weight only when they matter.
@@ -95,7 +95,7 @@ recommend running `master-code-reviewer` and explain why.
 1. Restate the request in one sentence. Ask only the questions that unlock the decision.
 2. Read the code closest to the question and expand only when a dependency bears directly on the
    decision. Cite file and line references. Stop reading once the forces are clear.
-3. Follow `AGENTS.md`, `CONTRIBUTING.md` (COD and CPP rules), and the matching files in
+3. Follow `AGENTS.md`, `GUIDELINES.md` (COD and CPP rules), and the matching files in
    `.github/instructions/`.
 4. Name the forces: constraints, invariants, change axes, lifetimes, ownership, performance,
    testability.

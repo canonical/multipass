@@ -18,7 +18,7 @@ Apply the checks for each touched area:
 | Diff touches | Check |
 |---|---|
 | `src/rpc/multipass.proto` | Backward/forward compatibility of the streaming RPC; no field renumbering or reuse; client impact (CLI and Flutter GUI) considered |
-| `src/platform/backends/` | Feature parity or justified asymmetry across backends (qemu, applevz, hyperv, virtualbox); abstraction stays in the common interface — no per-platform leakage |
+| `src/platform/backends/` | Feature parity or justified asymmetry across backends (qemu, applevz, hyperv); abstraction stays in the common interface — no per-platform leakage |
 | `src/daemon/` | VM state machine transitions remain valid; instance metadata/snapshot persistence unchanged or migrated; gRPC reply ordering on streams preserved |
 | `src/client/gui/` | Riverpod state-management conventions followed; Dart test files keep the `_test.dart` suffix (required by the Flutter test runner) |
 | `tests/` | Mocks updated alongside interface changes; error paths covered, not just happy paths |

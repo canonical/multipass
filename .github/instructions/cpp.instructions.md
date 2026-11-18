@@ -5,7 +5,7 @@ applyTo: "src/**/*.{h,hpp,cpp,c,mm},include/**/*.{h,hpp},tests/**/*.{h,cpp}"
 # C++ code
 
 These rules add to `AGENTS.md`, which covers build, formatting, and validation. Rule IDs refer
-to `CONTRIBUTING.md`. They do not apply to the Flutter runner templates under
+to `GUIDELINES.md`. They do not apply to the Flutter runner templates under
 `src/client/gui/{linux,macos,windows}/`.
 
 ## Types and initialization

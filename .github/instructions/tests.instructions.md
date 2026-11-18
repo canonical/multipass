@@ -11,7 +11,7 @@ naming, and assertion style of nearby tests.
 
 - Name files `test_<area>.cpp` and add them to the explicit source list of `multipass_cpp_tests`
   in `tests/unit/CMakeLists.txt`. Platform- and backend-specific tests live in subdirectories
-  (`linux/`, `macos/`, `windows/`, `qemu/`, `hyperv_api/`, ...) and are added with
+  (`linux/`, `macos/`, `windows/`, `qemu/`, `hcs/`, ...) and are added with
   `target_sources(multipass_cpp_tests PRIVATE ...)` in that directory's `CMakeLists.txt`.
 - Include `common.h` and use the `mpt` (`multipass::test`) helpers before writing new ones:
   `TempDir`, `TempFile`, `file_operations.h`, `json_test_utils.h`, `stub_*.h`, and
