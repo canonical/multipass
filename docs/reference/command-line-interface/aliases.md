@@ -1,17 +1,13 @@
 (reference-command-line-interface-aliases)=
 # aliases
 
-> See also: [How to use command aliases](/how-to-guides/manage-instances/use-instance-command-aliases)
-
 The `aliases` command shows the aliases defined for all the instances.
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
 multipass aliases
-```
 
-The output will be similar to the following:
-
-```{code-block} text
 Alias  Instance         Command  Working directory
 lsrm   rewarded-merlin  ls       default
 topfp  flying-pig       top      map
@@ -50,4 +46,8 @@ Options:
                      output working directory states whether the alias runs in
                      the instance's default directory or the alias running
                      directory should try to be mapped to a mounted one.
+```
+
+```{seealso}
+{ref}`How to use command aliases <how-to-guides-manage-instances-use-instance-command-aliases>`
 ```
