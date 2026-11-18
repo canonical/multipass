@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <multipass/user_messages/images_messages.h>
+#include <multipass/wording/images_messages.h>
 
 #include <stdexcept>
 

@@ -29,8 +29,8 @@
 #include <multipass/settings/persistent_settings_handler.h>
 #include <multipass/settings/settings.h>
 #include <multipass/standard_paths.h>
-#include <multipass/user_messages/command_messages.h>
 #include <multipass/utils.h>
+#include <multipass/wording/command_messages.h>
 
 #include <fmt/ostream.h>
 
