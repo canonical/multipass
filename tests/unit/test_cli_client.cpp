@@ -4807,7 +4807,7 @@ TEST_F(ClientAlias, aliasDoesNotOverwriteAlias)
     EXPECT_EQ(
         send_command({"alias", "primary:another_command", "an_alias"}, trash_stream, cerr_stream),
         mp::ReturnCode::CommandLineError);
-    EXPECT_EQ(cerr_stream.str(), "Alias 'an_alias' already exists in current context\n");
+    EXPECT_EQ(cerr_stream.str(), "Alias 'an_alias' already exists\n");
 
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
@@ -5355,7 +5355,7 @@ TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
     send_command({"alias", "primary:another_command", "an_alias"}, cout_stream, cerr_stream);
 
     EXPECT_EQ(cout_stream.str(), "");
-    EXPECT_EQ(cerr_stream.str(), "Alias 'an_alias' already exists in current context\n");
+    EXPECT_EQ(cerr_stream.str(), "Alias 'an_alias' already exists\n");
 
     send_command({"aliases", "--format=csv"}, cout_stream);
 
