@@ -27,6 +27,10 @@ from cli.multipass import get_multipass_env, get_multipassd_path
 
 
 class StandaloneMultipassdController:
+    @staticmethod
+    def get_temp_root() -> Optional[str]:
+        return None
+
     def __init__(self, data_root):
         if not get_multipassd_path():
             raise FileNotFoundError("Could not find 'multipassd' executable!")
