@@ -46,7 +46,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
-#include <multipass/user_messages/launch_messages.h>
+#include <multipass/wording/launch_messages.h>
 
 #include <QStringList>
 #include <QTemporaryFile>

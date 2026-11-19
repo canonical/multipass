@@ -59,8 +59,8 @@ target_link_libraries(commands
   ssh_client
   rpc
   settings
-  user_messages
   utils
+  wording
   Qt6::Core
   Qt6::Network
   yaml-cpp::yaml-cpp)

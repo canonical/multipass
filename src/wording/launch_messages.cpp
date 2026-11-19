@@ -15,7 +15,7 @@
  *
  */
 
-#include <multipass/user_messages/launch_messages.h>
+#include <multipass/wording/launch_messages.h>
 
 #include <fmt/format.h>
 

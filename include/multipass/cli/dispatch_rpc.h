@@ -21,8 +21,8 @@
 #include <multipass/cli/return_codes.h>
 #include <multipass/format.h>
 #include <multipass/reply_concepts.h>
-#include <multipass/user_messages/driver_deprecation_warning.h>
 #include <multipass/utils.h>
+#include <multipass/wording/driver_deprecation_warning.h>
 
 #include <QLocalSocket>
 #include <QString>

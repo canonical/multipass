@@ -33,8 +33,8 @@
 #include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
 #include <multipass/url_downloader.h>
-#include <multipass/user_messages/launch_messages.h>
 #include <multipass/utils.h>
+#include <multipass/wording/launch_messages.h>
 
 #include <yaml-cpp/yaml.h>
 

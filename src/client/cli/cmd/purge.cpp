@@ -20,7 +20,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/platform.h>
-#include <multipass/user_messages/deprecation_warning.h>
+#include <multipass/wording/deprecation_warning.h>
 
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
