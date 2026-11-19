@@ -617,9 +617,8 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
     const auto command_width = width(
         [](const auto& alias) -> int { return alias.second.command.length(); },
         command_col_header.length());
-    const auto dir_width = width(
-        [](const auto& alias) -> int { return alias.second.working_directory.length(); },
-        dir_col_header.length());
+    // The working directory is always "map" or "default", so the header is the widest entry.
+    const auto dir_width = static_cast<int>(dir_col_header.length()) + mp::format::col_buffer;
     const auto context_width = mp::format::column_width(
         aliases.cbegin(),
         aliases.cend(),
