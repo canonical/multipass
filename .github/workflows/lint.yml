@@ -45,6 +45,13 @@ jobs:
         shell: bash
         run: curl --fail-with-body -X POST --data-binary @.github/.codecov.yml https://codecov.io/validate
 
+      # Serve the snaps/debs below from the Linux build's pkgproxy cache to survive Snap Store outages.
+      - name: Set up pkgproxy caching proxy
+        continue-on-error: true
+        uses: zyga/setup-pkgproxy@235db98255cf0a19bad342d62fb9b17a27302750 # v2.1.1
+        with:
+          save-package-cache: never
+
       - name: Read snapcraft.yml parameters
         uses: ./.github/actions/read-snapcraft-yml-params
 

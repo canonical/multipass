@@ -100,6 +100,17 @@ jobs:
         large-packages: false
         swap-storage: false
 
+    # Cache apt and Snap Store downloads through pkgproxy (https://zygoon.pl/pkgproxy/)
+    # so that builds survive Snap Store outages. Must come before anything installs snaps.
+    # Only one job per CPU arch saves the cache, and only on the default branch.
+    - name: Set up pkgproxy caching proxy
+      id: pkgproxy
+      if: ${{ !startsWith(matrix.runs-on, 'self-hosted') }}
+      continue-on-error: true
+      uses: zyga/setup-pkgproxy@235db98255cf0a19bad342d62fb9b17a27302750 # v2.1.1
+      with:
+        save-package-cache: ${{ matrix.build-type == 'Release' && 'default-branch' || 'never' }}
+
     - name: Install Snapcraft
       uses: samuelmeuli/action-snapcraft@v3
 
@@ -170,6 +181,22 @@ jobs:
         mkdir --parents ${MULTIPASS_PART}
         /snap/bin/lxc profile device add default build disk source=${MULTIPASS_PART} path=/root/parts/multipass
         echo "build=${MULTIPASS_PART}/build" >> $GITHUB_OUTPUT
+
+    # This creates the `snapcraft` LXD project from the `default` profile, so it
+    # must run after all devices have been added to that profile.
+    - name: Point snapcraft build containers at pkgproxy
+      if: ${{ steps.pkgproxy.outcome == 'success' }}
+      env:
+        ADDR: ${{ steps.pkgproxy.outputs.addr }}
+      run: |
+        pkgproxyctl setup snapcraft -addr "$ADDR" | sh
+
+        RAW_LXC=$(/snap/bin/lxc profile get default raw.lxc --project snapcraft)
+        if ! printf '%s\n' "$RAW_LXC" | grep -q '^lxc.hook.pre-start = ' ||
+           ! printf '%s\n' "$RAW_LXC" | grep -q '^lxc.hook.post-stop = '; then
+          echo "::error::pkgproxy LXC hooks missing from the snapcraft project's default profile"
+          exit 1
+        fi
 
     - name: Configure
       # To alleviate the race condition in the Snapcraft's LXD
