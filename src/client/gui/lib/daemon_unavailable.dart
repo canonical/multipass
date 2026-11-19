@@ -41,6 +41,67 @@ class _CopyErrorIconState extends State<_CopyErrorIcon> {
   }
 }
 
+class _ErrorPanel extends StatelessWidget {
+  final String title;
+  final String message;
+
+  const _ErrorPanel({required this.title, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Stack(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          constraints: const BoxConstraints(maxWidth: 500),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+              color: Colors.black54,
+              blurRadius: 10,
+              spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error, color: Colors.red, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SelectableText(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => exit(1),
+                child: Text(l10n.daemonExitButton),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: _CopyErrorIcon(errorMessage: message),
+        ),
+      ],
+    );
+  }
+}
+
 class DaemonUnavailable extends ConsumerWidget {
   const DaemonUnavailable({super.key});
 
@@ -49,84 +110,25 @@ class DaemonUnavailable extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final available = ref.watch(daemonAvailableProvider);
     final ffiAvailable = ref.watch(ffiAvailableProvider);
+    final backendError = ref.watch(daemonBackendErrorProvider);
 
-    if (available) {
+    if (available && backendError == null) {
       return const SizedBox.shrink();
     }
 
     Widget content;
 
     if (!ffiAvailable) {
-      // FFI library failed to load - show fatal error
-      final errorMessage =
-          ffiLoadError?.toString() ?? 'Failed to load libdart_ffi library';
-      content = Stack(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            constraints: const BoxConstraints(maxWidth: 500),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black54,
-                  blurRadius: 10,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error, color: Colors.red, size: 48),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.daemonFatalError,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Theme(
-                  data: Theme.of(context).copyWith(
-                    textButtonTheme: TextButtonThemeData(
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                  ),
-                  child: SelectableText(
-                    errorMessage,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TextButton(
-                      onPressed: () => exit(1),
-                      child: Text(l10n.daemonExitButton),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            top: 8,
-            right: 8,
-            child: _CopyErrorIcon(errorMessage: errorMessage),
-          ),
-        ],
+      // FFI library failed to load, show fatal error
+      content = _ErrorPanel(
+        title: l10n.daemonFatalError,
+        message:
+            ffiLoadError?.toString() ?? 'Failed to load libdart_ffi library',
       );
+    } else if (backendError != null) {
+      // The daemon is reachable, but it returned an error while polling VM
+      content =
+          _ErrorPanel(title: l10n.daemonBackendError, message: backendError);
     } else {
       // Regular daemon unavailable message
       content = Container(
@@ -148,10 +150,11 @@ class DaemonUnavailable extends ConsumerWidget {
       );
     }
 
+    final visible = !available || backendError != null;
     return IgnorePointer(
-      ignoring: available, // Only allow interactions when daemon is available
+      ignoring: !visible, // Only allow interactions when nothing is shown
       child: AnimatedOpacity(
-        opacity: available ? 0 : 1,
+        opacity: visible ? 1 : 0,
         duration: const Duration(milliseconds: 500),
         child: Scaffold(
           backgroundColor: Colors.black54,
