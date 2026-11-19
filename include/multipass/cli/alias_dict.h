@@ -73,6 +73,7 @@ public:
     bool add_alias(const std::string& alias, const AliasDefinition& command);
     bool exists_alias(const std::string& alias) const;
     bool remove_alias(const std::string& alias);
+    // TODO@remove-prefer only the default context will remain
     bool remove_alias(const std::string& context, const std::string& alias);
     std::vector<ContextAliasPair> remove_aliases_for_instance(const std::string& instance);
     std::optional<ContextAliasPair> get_context_and_alias(const std::string& alias) const;

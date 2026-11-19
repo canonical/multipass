@@ -198,6 +198,7 @@ std::optional<mp::ContextAliasPair> mp::AliasDict::get_context_and_alias(
     if (get_active_context().contains(alias))
         return std::make_pair(std::string{default_context_name}, alias);
 
+    // TODO@remove-prefer only needed for dotted aliases in inactive contexts
     for (auto dot_pos = alias.rfind('.'); dot_pos != std::string::npos;
          dot_pos = dot_pos == 0 ? std::string::npos : alias.rfind('.', dot_pos - 1))
     {
