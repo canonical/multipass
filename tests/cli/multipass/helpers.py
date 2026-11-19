@@ -21,11 +21,13 @@ import re
 import os
 import json
 import subprocess
+
 from pathlib import Path
 from functools import lru_cache
 from packaging import version
 
 from cli.utilities import sudo
+from cli.config import cfg
 
 from .basics import determine_data_dir
 from .multipass_cmd import multipass
@@ -274,8 +276,11 @@ def get_mac_addr_of(name, interface_name):
 @lru_cache(maxsize=None)
 def get_multipass_version():
     """Return the CLI release version (MAJ.MIN.REV), for feature gating."""
-    with multipass("version") as version_output:
-        cli_version, _ = parse_multipass_versions(version_output.content)
+    # Right after install, the CLI fails until multipassd creates its certs.
+    with multipass("version", retry=getattr(cfg.retries, "version", 30)) as out:
+        if not out:
+            pytest.exit(f"ERROR: `multipass version` kept failing: {out.content}", returncode=1)
+        cli_version, _ = parse_multipass_versions(out.content)
         return _release_version(cli_version)
 
 
