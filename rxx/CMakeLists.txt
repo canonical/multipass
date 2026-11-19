@@ -32,15 +32,15 @@ endif()
 set(RUST_BUILD_DIR "${CMAKE_BINARY_DIR}/rxx")
 set(RUST_BIN_DIR "${RUST_BUILD_DIR}/${RUST_BUILD}")
 
-set(CARGO_ENV "CARGO_TARGET_DIR=${RUST_BUILD_DIR}")
 # Clear MAKEFLAGS so cargo doesn't try to connect to make's jobserver. Under a
 # parallel Make build (-jN), make exports MAKEFLAGS with --jobserver-auth=<fds>,
 # but those pipe file descriptors are not inherited by this custom command, so
 # cargo warns: "failed to connect to jobserver ... Bad file descriptor".
-list(APPEND CARGO_ENV "MAKEFLAGS=")
+set(CARGO_COMMON_ENV "MAKEFLAGS=")
 if(APPLE AND DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
-  list(APPEND CARGO_ENV "MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+  list(APPEND CARGO_COMMON_ENV "MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif()
+set(CARGO_ENV "CARGO_TARGET_DIR=${RUST_BUILD_DIR}" ${CARGO_COMMON_ENV})
 if(WIN32)
   # cc-rs always hardcodes /MD for cxx's internal cxx.cc object on MSVC. Pass
   # CFLAGS/CXXFLAGS (applied last, so they override) to match our CRT and
@@ -57,10 +57,20 @@ if(WIN32)
   list(APPEND CARGO_ENV "CFLAGS=${RUST_CFLAGS}" "CXXFLAGS=${RUST_CXXFLAGS}")
 endif()
 
+set(CARGO_TEST_ENV ${CARGO_ENV})
+if(WIN32 AND RUST_MSVC_CRT_FLAG STREQUAL "/MDd")
+  # `cargo test` binaries are linked by rustc, whose std always uses the release
+  # CRT (msvcrt), so a /MDd cxx.cc leaves _CrtDbgReport unresolved (LNK2019).
+  # Keep cc-rs's default /MD for tests, in a separate target dir so they don't
+  # overwrite the /MDd staticlibs linked into the C++ build.
+  set(CARGO_TEST_ENV "CARGO_TARGET_DIR=${RUST_BUILD_DIR}-test" ${CARGO_COMMON_ENV})
+endif()
+
 #Find cargo, which will be a hard dependency
 find_program(CARGO_EXECUTABLE cargo REQUIRED)
 #Set the build directory via env variable
 set(CARGO_CMD ${CMAKE_COMMAND} -E env ${CARGO_ENV} ${CARGO_EXECUTABLE})
+set(CARGO_TEST_CMD ${CMAKE_COMMAND} -E env ${CARGO_TEST_ENV} ${CARGO_EXECUTABLE})
 #Crates to build. Both consumers and providers of code to the C++ side
 #have to be built, since the CXX glue code has to be generated and compiled
 #for said usage
@@ -145,7 +155,7 @@ endforeach()
 set(TESTING_EXCLUDE_CRATES_ARG --exclude macros --exclude rslogger --exclude rust)
 add_test(
   NAME      multipass_rust_tests
-  COMMAND   ${CARGO_CMD} test
+  COMMAND   ${CARGO_TEST_CMD} test
   --manifest-path ${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml
   --no-fail-fast
   --workspace
