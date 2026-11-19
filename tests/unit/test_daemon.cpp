@@ -1740,7 +1740,6 @@ TEST_F(Daemon, ctorDropsRemovedInstances)
                                       _))
         .Times(2);
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
-        .WillOnce(Return())
         .WillOnce(WithArg<1>([&stayed, &gone](const QByteArrayView& data) {
             EXPECT_THAT(data.toByteArray().toStdString(),
                         AllOf(HasSubstr(stayed), Not(HasSubstr(gone))));
@@ -2865,8 +2864,6 @@ TEST_F(Daemon, purgePersistsInstances)
                                       _))
         .Times(2);
     EXPECT_CALL(*mock_file_ops, write_transactionally(Eq(filename), _))
-        .WillOnce(Return())
-        .WillOnce(Return())
         .WillOnce(WithArg<1>([&name1, &name2](const QByteArrayView& data) {
             EXPECT_THAT(data.toByteArray().toStdString(),
                         AllOf(HasSubstr(name1), HasSubstr(name2)));
