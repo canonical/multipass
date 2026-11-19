@@ -286,17 +286,17 @@ struct Client : public Test
                                    const std::string_view fake_target,
                                    const std::string_view instance_name)
     {
-        const auto automount_source_matcher =
-            Property(&mp::MountRequest::source_path, StrEq(fake_source));
+        const auto automount_source_matcher = Property(&mp::MountRequest::source_path,
+                                                       StrEq(fake_source));
 
-        const auto target_instance_matcher =
-            Property(&mp::TargetPathInfo::instance_name, StrEq(instance_name));
-        const auto target_path_matcher =
-            Property(&mp::TargetPathInfo::target_path, StrEq(fake_target));
+        const auto target_instance_matcher = Property(&mp::TargetPathInfo::instance_name,
+                                                      StrEq(instance_name));
+        const auto target_path_matcher = Property(&mp::TargetPathInfo::target_path,
+                                                  StrEq(fake_target));
         const auto target_info_matcher = AllOf(target_instance_matcher, target_path_matcher);
-        const auto automount_target_matcher =
-            Property(&mp::MountRequest::target_paths,
-                     AllOf(Contains(target_info_matcher), SizeIs(1)));
+        const auto automount_target_matcher = Property(
+            &mp::MountRequest::target_paths,
+            AllOf(Contains(target_info_matcher), SizeIs(1)));
 
         return AllOf(automount_source_matcher, automount_target_matcher);
     }
@@ -317,9 +317,9 @@ struct Client : public Test
             return true;
         };
 
-        const auto uid_map_matcher =
-            Property(&mp::MountRequest::mount_maps,
-                     Property(&mp::MountMaps::uid_mappings, ResultOf(compare_uid_map, true)));
+        const auto uid_map_matcher = Property(
+            &mp::MountRequest::mount_maps,
+            Property(&mp::MountMaps::uid_mappings, ResultOf(compare_uid_map, true)));
 
         auto compare_gid_map = [expected_gid_mappings](auto request_gid_mappings) {
             auto mappings_size = expected_gid_mappings.size();
@@ -334,9 +334,9 @@ struct Client : public Test
             return true;
         };
 
-        const auto gid_map_matcher =
-            Property(&mp::MountRequest::mount_maps,
-                     Property(&mp::MountMaps::gid_mappings, ResultOf(compare_gid_map, true)));
+        const auto gid_map_matcher = Property(
+            &mp::MountRequest::mount_maps,
+            Property(&mp::MountMaps::gid_mappings, ResultOf(compare_gid_map, true)));
 
         return AllOf(uid_map_matcher, gid_map_matcher);
     }
@@ -929,8 +929,8 @@ TEST_F(Client, shellCmdCanTargetPetenvExplicitly)
 TEST_F(Client, shellCmdLaunchesPetenvIfAbsent)
 {
     const auto petenv_ssh_info_matcher = make_ssh_info_instance_matcher(petenv_name);
-    const auto petenv_launch_matcher =
-        Property(&mp::LaunchRequest::instance_name, StrEq(petenv_name));
+    const auto petenv_launch_matcher = Property(&mp::LaunchRequest::instance_name,
+                                                StrEq(petenv_name));
     const grpc::Status notfound{grpc::StatusCode::NOT_FOUND, "msg"};
 
     EXPECT_CALL(mock_daemon, mount).WillRepeatedly(Return(ok)); // 0 or more times
@@ -983,12 +983,12 @@ TEST_F(Client, shellCmdForwardsVerbosityToSubcommands)
 {
     const grpc::Status notfound{grpc::StatusCode::NOT_FOUND, "msg"};
     const auto verbosity = 3;
-    const auto ssh_info_verbosity_matcher =
-        make_request_verbosity_matcher<mp::SSHInfoRequest>(verbosity);
-    const auto launch_verbosity_matcher =
-        make_request_verbosity_matcher<mp::LaunchRequest>(verbosity);
-    const auto mount_verbosity_matcher =
-        make_request_verbosity_matcher<mp::MountRequest>(verbosity);
+    const auto ssh_info_verbosity_matcher = make_request_verbosity_matcher<mp::SSHInfoRequest>(
+        verbosity);
+    const auto launch_verbosity_matcher = make_request_verbosity_matcher<mp::LaunchRequest>(
+        verbosity);
+    const auto mount_verbosity_matcher = make_request_verbosity_matcher<mp::MountRequest>(
+        verbosity);
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, ssh_info)
@@ -1058,8 +1058,8 @@ TEST_F(Client, shellCmdStartsInstanceIfStoppedOrSuspended)
 {
     const auto instance = "ordinary";
     const auto ssh_info_matcher = make_ssh_info_instance_matcher(instance);
-    const auto start_matcher =
-        make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(instance);
+    const auto start_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(
+        instance);
     const grpc::Status aborted{grpc::StatusCode::ABORTED, "msg"};
 
     InSequence seq;
@@ -1080,8 +1080,8 @@ TEST_F(Client, shellCmdStartsInstanceIfStoppedOrSuspended)
 TEST_F(Client, shellCmdStartsPetenvIfStoppedOrSuspended)
 {
     const auto ssh_info_matcher = make_ssh_info_instance_matcher(petenv_name);
-    const auto start_matcher =
-        make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(petenv_name);
+    const auto start_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(
+        petenv_name);
     const grpc::Status aborted{grpc::StatusCode::ABORTED, "msg"};
 
     InSequence seq;
@@ -1389,8 +1389,9 @@ TEST_F(Client, launchCmdAutomountsHomeInPetenv)
 {
     const auto fake_home = QTemporaryDir{}; // the client checks the mount source exists
     const auto env_scope = mpt::SetEnvScope{"HOME", fake_home.path().toUtf8()};
-    const auto home_automount_matcher =
-        make_mount_matcher(fake_home.path().toStdString(), mp::home_automount_dir, petenv_name);
+    const auto home_automount_matcher = make_mount_matcher(fake_home.path().toStdString(),
+                                                           mp::home_automount_dir,
+                                                           petenv_name);
     const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name);
 
     InSequence seq;
@@ -1434,8 +1435,8 @@ TEST_F(Client, launchCmdOnlyWarnsMountForPetEnv)
 
 TEST_F(Client, launchCmdFailsWhenUnableToRetrieveAutomountSetting)
 {
-    const auto except =
-        mp::RemoteHandlerException{grpc::Status{grpc::StatusCode::INTERNAL, "oops"}};
+    const auto except = mp::RemoteHandlerException{
+        grpc::Status{grpc::StatusCode::INTERNAL, "oops"}};
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, launch).WillOnce(Return(ok));
@@ -1457,10 +1458,10 @@ TEST_F(Client, launchCmdFailsWhenAutomountingInPetenvFails)
 TEST_F(Client, launchCmdForwardsVerbosityToSubcommands)
 {
     const auto verbosity = 4;
-    const auto launch_verbosity_matcher =
-        make_request_verbosity_matcher<mp::LaunchRequest>(verbosity);
-    const auto mount_verbosity_matcher =
-        make_request_verbosity_matcher<mp::MountRequest>(verbosity);
+    const auto launch_verbosity_matcher = make_request_verbosity_matcher<mp::LaunchRequest>(
+        verbosity);
+    const auto mount_verbosity_matcher = make_request_verbosity_matcher<mp::MountRequest>(
+        verbosity);
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, launch)
@@ -1622,6 +1623,83 @@ TEST_F(Client, launchCmdCloudinitUrl)
     EXPECT_EQ(send_command({"launch", "--cloud-init", fake_url.toStdString()}), mp::ReturnCode::Ok);
 }
 
+TEST_F(Client, DISABLE_ON_WINDOWS(launchCmdWithUnixAbsolutePath))
+{
+    EXPECT_CALL(mock_daemon, launch).Times(3).WillRepeatedly(Return(ok));
+    EXPECT_EQ(send_command({"launch", "file:///this/is/absolute"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"launch", "file:///this/is/./also/absolute"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"launch", "file:///this/is/../also/./absolute"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"launch", "file://localhost/this/is/../also/./absolute"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, launchCmdWithRelativeAbsolutePath)
+{
+    EXPECT_CALL(mock_daemon, launch).Times(3).WillRepeatedly(Return(ok));
+    EXPECT_EQ(send_command({"launch", "file://./this/is/relative"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"launch", "file://../this/is/also/relative"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"launch", "file://../this/./is/../also/relative"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"launch", "file://localhost/./this/is/../also/relative"}), mp::ReturnCode::Ok);
+}
+
+TEST_F(Client, launchCmdWithInvalidLocalPathCanProvideHint)
+{
+    EXPECT_CALL(mock_daemon, launch).Times(0);
+
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+    {
+        auto cerr_stream = std::stringstream();
+        EXPECT_EQ(send_command({"launch", "file://C:/missing/slash"}, trash_stream, cerr_stream),
+                  mp::ReturnCode::CommandLineError);
+        EXPECT_THAT(cerr_stream.str(),
+                    testing::HasSubstr("Did you mean: `file:///C:/missing/slash`?"));
+    }
+
+    {
+        auto cerr_stream = std::stringstream();
+        EXPECT_EQ(send_command({"launch", "file:///C:\\backward/slash"}, trash_stream, cerr_stream),
+                  mp::ReturnCode::CommandLineError);
+        EXPECT_THAT(cerr_stream.str(),
+                    testing::HasSubstr("Did you mean: `file:///C:/backward/slash`?"));
+    }
+
+    {
+        auto cerr_stream = std::stringstream();
+        EXPECT_EQ(send_command({"launch", "file://C:/backward\\slash"}, trash_stream, cerr_stream),
+                  mp::ReturnCode::CommandLineError);
+        EXPECT_THAT(cerr_stream.str(),
+                    testing::HasSubstr("Did you mean: `file:///C:/backward/slash`?"));
+    }
+
+    {
+        auto cerr_stream = std::stringstream();
+        EXPECT_EQ(send_command({"launch", "file://./relative\\with/backslash"},
+                               trash_stream,
+                               cerr_stream),
+                  mp::ReturnCode::CommandLineError);
+        EXPECT_THAT(cerr_stream.str(),
+                    testing::HasSubstr("Did you mean: `file://./relative\\with/backslash`?"));
+    }
+
+    {
+        auto cerr_stream = std::stringstream();
+        EXPECT_EQ(send_command({"launch", "file://../relative\\with/backslash"},
+                               trash_stream,
+                               cerr_stream),
+                  mp::ReturnCode::CommandLineError);
+        EXPECT_THAT(cerr_stream.str(),
+                    testing::HasSubstr("Did you mean: `file://../relative\\with/backslash`?"));
+    }
+#endif
+
+    {
+        auto cerr_stream = std::stringstream();
+        EXPECT_EQ(send_command({"launch", "file://not/a/local/file"}, trash_stream, cerr_stream),
+                  mp::ReturnCode::CommandLineError);
+        EXPECT_THAT(cerr_stream.str(),
+                    testing::HasSubstr("Did you mean: `file://./not/a/local/file`?"));
+    }
+}
+
 typedef typename std::tuple<mp::id_mappings, mp::id_mappings, mp::id_mappings, mp::id_mappings>
     id_test_tuples;
 struct MountIdMappingsTest : public Client, public WithParamInterface<id_test_tuples>
@@ -1639,8 +1717,8 @@ TEST_P(MountIdMappingsTest, mountCmdIdMappings)
           expected_uid_mappings,
           expected_gid_mappings] = GetParam();
 
-    const auto id_mappings_matcher =
-        make_mount_id_mappings_matcher(expected_uid_mappings, expected_gid_mappings);
+    const auto id_mappings_matcher = make_mount_id_mappings_matcher(expected_uid_mappings,
+                                                                    expected_gid_mappings);
 
     EXPECT_CALL(mock_daemon, mount)
         .WillOnce(WithArg<1>(
@@ -1831,8 +1909,8 @@ TEST_F(Client, execCmdStartsInstanceIfStoppedOrSuspended)
 {
     const auto instance = "ordinary";
     const auto ssh_info_matcher = make_ssh_info_instance_matcher(instance);
-    const auto start_matcher =
-        make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(instance);
+    const auto start_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(
+        instance);
     const grpc::Status aborted{grpc::StatusCode::ABORTED, "msg"};
 
     InSequence seq;
@@ -2347,8 +2425,8 @@ TEST_F(Client, startCmdFailsWithNamesAndAll)
 
 TEST_F(Client, startCmdNoArgsTargetsPetenv)
 {
-    const auto petenv_matcher =
-        make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(
+        petenv_name);
     EXPECT_CALL(mock_daemon, start)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::StartReply, mp::StartRequest>(petenv_matcher, ok)));
@@ -2360,8 +2438,8 @@ TEST_F(Client, startCmdConsidersConfiguredPetenv)
     const auto custom_petenv = "jarjar binks";
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
 
-    const auto petenv_matcher =
-        make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(custom_petenv);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(
+        custom_petenv);
     EXPECT_CALL(mock_daemon, start)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::StartReply, mp::StartRequest>(petenv_matcher, ok)));
@@ -2370,8 +2448,8 @@ TEST_F(Client, startCmdConsidersConfiguredPetenv)
 
 TEST_F(Client, startCmdCanTargetPetenvExplicitly)
 {
-    const auto petenv_matcher =
-        make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(
+        petenv_name);
     EXPECT_CALL(mock_daemon, start)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::StartReply, mp::StartRequest>(petenv_matcher, ok)));
@@ -2380,10 +2458,10 @@ TEST_F(Client, startCmdCanTargetPetenvExplicitly)
 
 TEST_F(Client, startCmdCanTargetPetenvAmongOthers)
 {
-    const auto petenv_matcher2 =
-        make_instance_in_repeated_field_matcher<mp::StartRequest, 2>(petenv_name);
-    const auto petenv_matcher4 =
-        make_instance_in_repeated_field_matcher<mp::StartRequest, 4>(petenv_name);
+    const auto petenv_matcher2 = make_instance_in_repeated_field_matcher<mp::StartRequest, 2>(
+        petenv_name);
+    const auto petenv_matcher4 = make_instance_in_repeated_field_matcher<mp::StartRequest, 4>(
+        petenv_name);
 
     InSequence s;
     EXPECT_CALL(mock_daemon, start(_, _));
@@ -2493,8 +2571,8 @@ std::vector<std::string> concat(const std::vector<std::string>& v1,
 
 TEST_F(Client, startCmdLaunchesPetenvIfAbsent)
 {
-    const auto petenv_start_matcher =
-        make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(petenv_name);
+    const auto petenv_start_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(
+        petenv_name);
     const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name);
     const grpc::Status aborted = aborted_start_status({petenv_name});
 
@@ -2546,12 +2624,12 @@ TEST_F(Client, startCmdForwardsVerbosityToSubcommands)
 {
     const grpc::Status aborted = aborted_start_status({petenv_name});
     const auto verbosity = 2;
-    const auto start_verbosity_matcher =
-        make_request_verbosity_matcher<mp::StartRequest>(verbosity);
-    const auto launch_verbosity_matcher =
-        make_request_verbosity_matcher<mp::LaunchRequest>(verbosity);
-    const auto mount_verbosity_matcher =
-        make_request_verbosity_matcher<mp::MountRequest>(verbosity);
+    const auto start_verbosity_matcher = make_request_verbosity_matcher<mp::StartRequest>(
+        verbosity);
+    const auto launch_verbosity_matcher = make_request_verbosity_matcher<mp::LaunchRequest>(
+        verbosity);
+    const auto mount_verbosity_matcher = make_request_verbosity_matcher<mp::MountRequest>(
+        verbosity);
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, start)
@@ -2600,8 +2678,8 @@ TEST_F(Client, startCmdForwardsTimeoutToSubcommands)
 TEST_F(Client, startCmdFailsWhenUnableToRetrieveAutomountSetting)
 {
     const auto aborted = aborted_start_status({petenv_name});
-    const auto except =
-        mp::RemoteHandlerException{grpc::Status{grpc::StatusCode::INTERNAL, "oops"}};
+    const auto except = mp::RemoteHandlerException{
+        grpc::Status{grpc::StatusCode::INTERNAL, "oops"}};
 
     InSequence seq;
     EXPECT_CALL(mock_daemon, start).WillOnce(Return(aborted));
@@ -2628,8 +2706,8 @@ TEST_F(Client, startCmdLaunchesPetenvIfAbsentAmongOthersPresent)
     std::vector<std::string> instances{"a", "b", petenv_name, "c"},
         cmd = concat({"start"}, instances);
 
-    const auto instance_start_matcher =
-        make_instances_sequence_matcher<mp::StartRequest>(instances);
+    const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(
+        instances);
     const auto petenv_launch_matcher = make_launch_instance_matcher(petenv_name);
     const grpc::Status aborted = aborted_start_status({petenv_name});
 
@@ -2656,10 +2734,10 @@ TEST_F(Client, startCmdFailsIfPetenvIfAbsentAmountOthersAbsent)
     std::vector<std::string> instances{"a", "b", "c", petenv_name, "xyz"},
         cmd = concat({"start"}, instances);
 
-    const auto instance_start_matcher =
-        make_instances_sequence_matcher<mp::StartRequest>(instances);
-    const auto aborted =
-        aborted_start_status({std::next(std::cbegin(instances), 2), std::cend(instances)});
+    const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(
+        instances);
+    const auto aborted = aborted_start_status(
+        {std::next(std::cbegin(instances), 2), std::cend(instances)});
 
     EXPECT_CALL(mock_daemon, start)
         .WillOnce(WithArg<1>(
@@ -2672,8 +2750,8 @@ TEST_F(Client, startCmdFailsIfPetenvIfAbsentAmountOthersDeleted)
 {
     std::vector<std::string> instances{"nope", petenv_name}, cmd = concat({"start"}, instances);
 
-    const auto instance_start_matcher =
-        make_instances_sequence_matcher<mp::StartRequest>(instances);
+    const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(
+        instances);
     const auto aborted = aborted_start_status({}, {instances.front()});
 
     EXPECT_CALL(mock_daemon, start)
@@ -2685,8 +2763,8 @@ TEST_F(Client, startCmdFailsIfPetenvIfAbsentAmountOthersDeleted)
 
 TEST_F(Client, startCmdFailsIfPetenvPresentButDeleted)
 {
-    const auto petenv_start_matcher =
-        make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(petenv_name);
+    const auto petenv_start_matcher = make_instance_in_repeated_field_matcher<mp::StartRequest, 1>(
+        petenv_name);
     const grpc::Status aborted = aborted_start_status({}, {petenv_name});
 
     InSequence seq;
@@ -2701,8 +2779,8 @@ TEST_F(Client, startCmdFailsIfPetenvPresentButDeletedAmongOthers)
 {
     std::vector<std::string> instances{petenv_name, "other"}, cmd = concat({"start"}, instances);
 
-    const auto instance_start_matcher =
-        make_instances_sequence_matcher<mp::StartRequest>(instances);
+    const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(
+        instances);
     const auto aborted = aborted_start_status({}, {instances.front()});
 
     EXPECT_CALL(mock_daemon, start)
@@ -2716,8 +2794,8 @@ TEST_F(Client, startCmdFailsOnOtherAbsentInstance)
 {
     std::vector<std::string> instances{"o-o", "O_o"}, cmd = concat({"start"}, instances);
 
-    const auto instance_start_matcher =
-        make_instances_sequence_matcher<mp::StartRequest>(instances);
+    const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(
+        instances);
     const auto aborted = aborted_start_status({}, {"O_o"});
 
     EXPECT_CALL(mock_daemon, start)
@@ -2732,8 +2810,8 @@ TEST_F(Client, startCmdFailsOnOtherAbsentInstancesWithPetenv)
     std::vector<std::string> cmd{"start"}, instances{petenv_name, "lala", "zzz"};
     cmd.insert(end(cmd), cbegin(instances), cend(instances));
 
-    const auto instance_start_matcher =
-        make_instances_sequence_matcher<mp::StartRequest>(instances);
+    const auto instance_start_matcher = make_instances_sequence_matcher<mp::StartRequest>(
+        instances);
     const auto aborted = aborted_start_status({}, {"zzz"});
     EXPECT_CALL(mock_daemon, start)
         .WillOnce(WithArg<1>(
@@ -2744,8 +2822,8 @@ TEST_F(Client, startCmdFailsOnOtherAbsentInstancesWithPetenv)
 
 TEST_F(Client, startCmdDoesNotAddPetenvToOthers)
 {
-    const auto matcher =
-        make_instances_matcher<mp::StartRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
+    const auto matcher = make_instances_matcher<mp::StartRequest>(
+        ElementsAre(StrEq("foo"), StrEq("bar")));
     EXPECT_CALL(mock_daemon, start)
         .WillOnce(
             WithArg<1>(check_request_and_return<mp::StartReply, mp::StartRequest>(matcher, ok)));
@@ -2793,8 +2871,8 @@ TEST_F(Client, stopCmdFailsWithNamesAndAll)
 
 TEST_F(Client, stopCmdNoArgsTargetsPetenv)
 {
-    const auto petenv_matcher =
-        make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(
+        petenv_name);
     EXPECT_CALL(mock_daemon, stop)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::StopReply, mp::StopRequest>(petenv_matcher, ok)));
@@ -2806,8 +2884,8 @@ TEST_F(Client, stopCmdConsidersConfiguredPetenv)
     const auto custom_petenv = "jarjar binks";
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
 
-    const auto petenv_matcher =
-        make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(custom_petenv);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(
+        custom_petenv);
     EXPECT_CALL(mock_daemon, stop)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::StopReply, mp::StopRequest>(petenv_matcher, ok)));
@@ -2816,8 +2894,8 @@ TEST_F(Client, stopCmdConsidersConfiguredPetenv)
 
 TEST_F(Client, stopCmdCanTargetPetenvExplicitly)
 {
-    const auto petenv_matcher =
-        make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(
+        petenv_name);
     EXPECT_CALL(mock_daemon, stop)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::StopReply, mp::StopRequest>(petenv_matcher, ok)));
@@ -2826,10 +2904,10 @@ TEST_F(Client, stopCmdCanTargetPetenvExplicitly)
 
 TEST_F(Client, stopCmdCanTargetPetenvAmongOthers)
 {
-    const auto petenv_matcher2 =
-        make_instance_in_repeated_field_matcher<mp::StopRequest, 2>(petenv_name);
-    const auto petenv_matcher4 =
-        make_instance_in_repeated_field_matcher<mp::StopRequest, 4>(petenv_name);
+    const auto petenv_matcher2 = make_instance_in_repeated_field_matcher<mp::StopRequest, 2>(
+        petenv_name);
+    const auto petenv_matcher4 = make_instance_in_repeated_field_matcher<mp::StopRequest, 4>(
+        petenv_name);
 
     InSequence s;
     EXPECT_CALL(mock_daemon, stop(_, _));
@@ -2848,8 +2926,8 @@ TEST_F(Client, stopCmdCanTargetPetenvAmongOthers)
 
 TEST_F(Client, stopCmdDoesNotAddPetenvToOthers)
 {
-    const auto matcher =
-        make_instances_matcher<mp::StopRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
+    const auto matcher = make_instances_matcher<mp::StopRequest>(
+        ElementsAre(StrEq("foo"), StrEq("bar")));
     EXPECT_CALL(mock_daemon, stop)
         .WillOnce(
             WithArg<1>(check_request_and_return<mp::StopReply, mp::StopRequest>(matcher, ok)));
@@ -2910,9 +2988,9 @@ TEST_F(Client, stopCmdSucceedsWithCancel)
 TEST_F(Client, stopCmdNoArgsTimeOptionDelaysPetenvShutdown)
 {
     const auto delay = 5;
-    const auto matcher =
-        AllOf(make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(petenv_name),
-              Property(&mp::StopRequest::time_minutes, delay));
+    const auto matcher = AllOf(
+        make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(petenv_name),
+        Property(&mp::StopRequest::time_minutes, delay));
     EXPECT_CALL(mock_daemon, stop)
         .WillOnce(
             WithArg<1>(check_request_and_return<mp::StopReply, mp::StopRequest>(matcher, ok)));
@@ -2921,9 +2999,9 @@ TEST_F(Client, stopCmdNoArgsTimeOptionDelaysPetenvShutdown)
 
 TEST_F(Client, stopCmdNoArgsCancelOptionCancelsDelayedPetenvShutdown)
 {
-    const auto matcher =
-        AllOf(make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(petenv_name),
-              Property(&mp::StopRequest::cancel_shutdown, true));
+    const auto matcher = AllOf(
+        make_instance_in_repeated_field_matcher<mp::StopRequest, 1>(petenv_name),
+        Property(&mp::StopRequest::cancel_shutdown, true));
     EXPECT_CALL(mock_daemon, stop)
         .WillOnce(
             WithArg<1>(check_request_and_return<mp::StopReply, mp::StopRequest>(matcher, ok)));
@@ -3027,8 +3105,8 @@ TEST_F(Client, suspendCmdSucceedsWithAll)
 
 TEST_F(Client, suspendCmdNoArgsTargetsPetenv)
 {
-    const auto petenv_matcher =
-        make_instance_in_repeated_field_matcher<mp::SuspendRequest, 1>(petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 1>(
+        petenv_name);
     EXPECT_CALL(mock_daemon, suspend)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::SuspendReply, mp::SuspendRequest>(petenv_matcher, ok)));
@@ -3040,8 +3118,8 @@ TEST_F(Client, suspendCmdConsidersConfiguredPetenv)
     const auto custom_petenv = "jarjar binks";
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
 
-    const auto petenv_matcher =
-        make_instance_in_repeated_field_matcher<mp::SuspendRequest, 1>(custom_petenv);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 1>(
+        custom_petenv);
     EXPECT_CALL(mock_daemon, suspend)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::SuspendReply, mp::SuspendRequest>(petenv_matcher, ok)));
@@ -3050,8 +3128,8 @@ TEST_F(Client, suspendCmdConsidersConfiguredPetenv)
 
 TEST_F(Client, suspendCmdCanTargetPetenvExplicitly)
 {
-    const auto petenv_matcher =
-        make_instance_in_repeated_field_matcher<mp::SuspendRequest, 1>(petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 1>(
+        petenv_name);
     EXPECT_CALL(mock_daemon, suspend)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::SuspendReply, mp::SuspendRequest>(petenv_matcher, ok)));
@@ -3060,10 +3138,10 @@ TEST_F(Client, suspendCmdCanTargetPetenvExplicitly)
 
 TEST_F(Client, suspendCmdCanTargetPetenvAmongOthers)
 {
-    const auto petenv_matcher2 =
-        make_instance_in_repeated_field_matcher<mp::SuspendRequest, 2>(petenv_name);
-    const auto petenv_matcher4 =
-        make_instance_in_repeated_field_matcher<mp::SuspendRequest, 4>(petenv_name);
+    const auto petenv_matcher2 = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 2>(
+        petenv_name);
+    const auto petenv_matcher4 = make_instance_in_repeated_field_matcher<mp::SuspendRequest, 4>(
+        petenv_name);
 
     InSequence s;
     EXPECT_CALL(mock_daemon, suspend)
@@ -3081,8 +3159,8 @@ TEST_F(Client, suspendCmdCanTargetPetenvAmongOthers)
 
 TEST_F(Client, suspendCmdDoesNotAddPetenvToOthers)
 {
-    const auto matcher =
-        make_instances_matcher<mp::SuspendRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
+    const auto matcher = make_instances_matcher<mp::SuspendRequest>(
+        ElementsAre(StrEq("foo"), StrEq("bar")));
     EXPECT_CALL(mock_daemon, suspend)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::SuspendReply, mp::SuspendRequest>(matcher, ok)));
@@ -3155,8 +3233,8 @@ TEST_F(Client, restartCmdSucceedsWithAll)
 
 TEST_F(Client, restartCmdNoArgsTargetsPetenv)
 {
-    const auto petenv_matcher =
-        make_instance_in_repeated_field_matcher<mp::RestartRequest, 1>(petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::RestartRequest, 1>(
+        petenv_name);
     EXPECT_CALL(mock_daemon, restart)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::RestartReply, mp::RestartRequest>(petenv_matcher, ok)));
@@ -3168,8 +3246,8 @@ TEST_F(Client, restartCmdConsidersConfiguredPetenv)
     const auto custom_petenv = "jarjar binks";
     EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(custom_petenv));
 
-    const auto petenv_matcher =
-        make_instance_in_repeated_field_matcher<mp::RestartRequest, 1>(custom_petenv);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::RestartRequest, 1>(
+        custom_petenv);
     EXPECT_CALL(mock_daemon, restart)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::RestartReply, mp::RestartRequest>(petenv_matcher, ok)));
@@ -3178,8 +3256,8 @@ TEST_F(Client, restartCmdConsidersConfiguredPetenv)
 
 TEST_F(Client, restartCmdCanTargetPetenvExplicitly)
 {
-    const auto petenv_matcher =
-        make_instance_in_repeated_field_matcher<mp::RestartRequest, 1>(petenv_name);
+    const auto petenv_matcher = make_instance_in_repeated_field_matcher<mp::RestartRequest, 1>(
+        petenv_name);
     EXPECT_CALL(mock_daemon, restart)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::RestartReply, mp::RestartRequest>(petenv_matcher, ok)));
@@ -3188,10 +3266,10 @@ TEST_F(Client, restartCmdCanTargetPetenvExplicitly)
 
 TEST_F(Client, restartCmdCanTargetPetenvAmongOthers)
 {
-    const auto petenv_matcher2 =
-        make_instance_in_repeated_field_matcher<mp::RestartRequest, 2>(petenv_name);
-    const auto petenv_matcher4 =
-        make_instance_in_repeated_field_matcher<mp::RestartRequest, 4>(petenv_name);
+    const auto petenv_matcher2 = make_instance_in_repeated_field_matcher<mp::RestartRequest, 2>(
+        petenv_name);
+    const auto petenv_matcher4 = make_instance_in_repeated_field_matcher<mp::RestartRequest, 4>(
+        petenv_name);
 
     InSequence s;
     EXPECT_CALL(mock_daemon, restart)
@@ -3209,8 +3287,8 @@ TEST_F(Client, restartCmdCanTargetPetenvAmongOthers)
 
 TEST_F(Client, restartCmdDoesNotAddPetenvToOthers)
 {
-    const auto matcher =
-        make_instances_matcher<mp::RestartRequest>(ElementsAre(StrEq("foo"), StrEq("bar")));
+    const auto matcher = make_instances_matcher<mp::RestartRequest>(
+        ElementsAre(StrEq("foo"), StrEq("bar")));
     EXPECT_CALL(mock_daemon, restart)
         .WillOnce(WithArg<1>(
             check_request_and_return<mp::RestartReply, mp::RestartRequest>(matcher, ok)));
