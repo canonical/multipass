@@ -15,8 +15,8 @@
  *
  */
 
-#include <multipass/cli/alias_dict.h>
 #include <multipass/cli/argparser.h>
+#include <multipass/user_messages/deprecation_warning.h>
 
 #include "common_cli.h"
 #include "prefer.h"
@@ -24,6 +24,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
+// TODO@remove-prefer remove this command along with alias contexts
 mp::ReturnCodeVariant cmd::Prefer::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);
@@ -32,9 +33,7 @@ mp::ReturnCodeVariant cmd::Prefer::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    aliases.set_active_context(parser->positionalArguments()[0].toStdString());
-
-    return ReturnCode::Ok;
+    return ReturnCode::CommandLineError;
 }
 
 std::string cmd::Prefer::name() const
@@ -75,6 +74,11 @@ mp::ParseCode cmd::Prefer::parse_args(mp::ArgParser* parser)
         cerr << "Wrong number of arguments given\n";
         return ParseCode::CommandLineError;
     }
+
+    cerr << mp::make_deprecation_warning(
+        "`multipass prefer`",
+        "Alias contexts can no longer be switched; only the default context is active. "
+        "Use unique alias names instead.");
 
     return status;
 }

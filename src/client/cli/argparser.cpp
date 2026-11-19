@@ -17,6 +17,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/format.h>
+#include <multipass/user_messages/alias_context_deprecation_warning.h>
 
 #include <QFileInfo>
 #include <QRegularExpression>
@@ -181,6 +182,13 @@ mp::ParseCode mp::ArgParser::parse(const std::optional<mp::AliasDict>& aliases)
         execute_alias = aliases->get_alias(requested_command.toStdString());
         if (execute_alias)
             return prepare_alias_execution(requested_command);
+
+        // TODO@remove-prefer remove along with alias contexts
+        if (aliases->is_inactive_alias(requested_command.toStdString()))
+        {
+            cerr << make_inactive_alias_warning(requested_command.toStdString());
+            return ParseCode::CommandLineError;
+        }
     }
 
     // Fall through

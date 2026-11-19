@@ -21,6 +21,7 @@
 #include <multipass/terminal.h>
 #include <multipass/utils/forward_like.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <optional>
 #include <ranges>
@@ -58,22 +59,22 @@ private:
     AliasDict(Terminal* term);
 
 public:
-    AliasDict(Terminal* term,
-              const std::string& active_context,
-              const std::filesystem::path& filename);
+    AliasDict(Terminal* term, const std::filesystem::path& filename);
     ~AliasDict();
     static std::filesystem::path default_filename();
     static AliasDict load_file(Terminal* term,
                                const std::filesystem::path& filename = default_filename());
 
-    void set_active_context(const std::string& new_active_context);
-    std::string active_context_name() const;
+    // Only the default context is active. It always exists, even if empty.
     const AliasContext& get_active_context() const;
+    // TODO@remove-prefer remove along with alias contexts
+    bool is_context_active(const std::string& context) const;
+    bool is_inactive_alias(const std::string& alias) const;
     bool add_alias(const std::string& alias, const AliasDefinition& command);
     bool exists_alias(const std::string& alias) const;
-    bool is_alias_unique(const std::string& alias) const;
     bool remove_alias(const std::string& alias);
-    bool remove_context(const std::string& context);
+    // TODO@remove-prefer only the default context will remain
+    bool remove_alias(const std::string& context, const std::string& alias);
     std::vector<ContextAliasPair> remove_aliases_for_instance(const std::string& instance);
     std::optional<ContextAliasPair> get_context_and_alias(const std::string& alias) const;
     std::optional<AliasDefinition> get_alias_from_current_context(const std::string& alias) const;
@@ -100,7 +101,9 @@ public:
 
     bool empty() const
     {
-        return (aliases.empty() || (aliases.size() == 1 && get_active_context().empty()));
+        return std::ranges::all_of(aliases, [](const auto& context) {
+            return context.second.empty();
+        });
     }
     size_type size() const
     {
@@ -113,15 +116,14 @@ public:
             modified = true;
 
             aliases.clear();
-            active_context = default_context_name;
             aliases[default_context_name] = AliasContext();
         }
     }
 
 private:
     void save_file();
+    void migrate_legacy_file(const boost::json::value& json); // TODO@remove-prefer
     void sanitize_contexts();
-    std::optional<AliasDefinition> get_alias_from_all_contexts(const std::string& alias) const;
 
     friend void tag_invoke(const boost::json::value_from_tag&,
                            boost::json::value& json,
@@ -130,7 +132,6 @@ private:
                                 const boost::json::value& json,
                                 const AliasDict::JSONContext& context);
 
-    std::string active_context;
     DictType aliases;
 
     bool modified = false;
