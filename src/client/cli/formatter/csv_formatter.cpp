@@ -281,7 +281,7 @@ std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
 
     for (const auto& [context_name, context_contents] : sorted_map_view(aliases))
     {
-        std::string shown_context = context_name.get() == aliases.active_context_name()
+        std::string shown_context = aliases.is_context_active(context_name.get())
                                       ? context_name.get() + "*"
                                       : context_name.get();
 

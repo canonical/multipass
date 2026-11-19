@@ -619,8 +619,7 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
         aliases.cbegin(),
         aliases.cend(),
         [&aliases, &active_context](const auto& alias) -> int {
-            return alias.first == aliases.active_context_name() &&
-                           !aliases.get_active_context().empty()
+            return aliases.is_context_active(alias.first) && !alias.second.empty()
                      ? alias.first.length() + active_context.length()
                      : alias.first.length();
         },
@@ -642,7 +641,7 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
 
     for (const auto& [context_name, context_contents] : sorted_map_view(aliases))
     {
-        std::string shown_context = context_name.get() == aliases.active_context_name()
+        std::string shown_context = aliases.is_context_active(context_name.get())
                                       ? context_name.get() + active_context
                                       : context_name.get();
 

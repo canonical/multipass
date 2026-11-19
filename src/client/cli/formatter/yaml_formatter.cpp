@@ -382,7 +382,7 @@ std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
         aliases_node[context_name.get()] = context_node;
     }
 
-    aliases_list["active_context"] = aliases.active_context_name();
+    aliases_list["active_context"] = default_context_name;
     aliases_list["aliases"] = aliases_node;
 
     return mpu::emit_yaml(aliases_list);
