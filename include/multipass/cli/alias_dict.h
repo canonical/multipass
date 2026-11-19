@@ -122,6 +122,7 @@ public:
 
 private:
     void save_file();
+    void migrate_file(); // TODO@remove-prefer remove along with alias contexts
     void sanitize_contexts();
 
     friend void tag_invoke(const boost::json::value_from_tag&,

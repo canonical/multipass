@@ -395,24 +395,16 @@ TEST_F(AliasDictionary, qualifiedDefaultAliasStillWorks)
     EXPECT_FALSE(dict.is_inactive_alias("unknown"));
 }
 
-TEST_F(AliasDictionary, loadingOldConfigurationDoesNotWrite)
+TEST_F(AliasDictionary, loadingOldConfigurationMigratesOnce)
 {
     const mp::AliasDefinition alias{"instance", "command", "map"};
     populate_db_file({{"show", alias}}, "secondary");
     const auto filename = QString::fromStdString(db_filename());
-    const auto original_file = mpt::load(filename).toStdString();
-    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, try_read_file(_)).Times(2).WillRepeatedly(Return(original_file));
-    ON_CALL(*mock_file_ops, write_transactionally(_, _))
-        .WillByDefault(Throw(std::runtime_error("read-only filesystem")));
-    EXPECT_CALL(*mock_file_ops, write_transactionally(_, _)).Times(0);
 
     std::stringstream warnings;
     mpt::StubTerminal term(trash_stream, warnings, trash_stream);
 
-    for (int attempt = 0; attempt < 2; ++attempt)
     {
-        warnings.str("");
         auto dict = mp::AliasDict::load_file(&term);
         EXPECT_TRUE(dict.get_active_context().empty());
         EXPECT_EQ(dict.size(), 2u);
@@ -422,22 +414,29 @@ TEST_F(AliasDictionary, loadingOldConfigurationDoesNotWrite)
         EXPECT_THAT(warnings.str(), HasSubstr("aliases in the 'secondary' context are inactive"));
         EXPECT_THAT(warnings.str(), HasSubstr("Warning: the alias contexts feature is deprecated"));
         EXPECT_THAT(warnings.str(), HasSubstr("multipass alias <instance>:<command> <new-name>"));
+    }
 
+    const auto migrated_file = mpt::load(filename).toStdString();
+    EXPECT_EQ(boost::json::parse(migrated_file),
+              make_legacy_json({{"default", {}}, {"secondary", {{"show", alias}}}}));
+
+    warnings.str("");
+    {
+        auto dict = mp::AliasDict::load_file(&term);
         const auto copy = dict;
         EXPECT_TRUE(copy.is_inactive_alias("show"));
     }
-
-    EXPECT_EQ(mpt::load(filename).toStdString(), original_file);
+    EXPECT_THAT(warnings.str(), IsEmpty());
+    EXPECT_EQ(mpt::load(filename).toStdString(), migrated_file);
 }
 
-TEST_F(AliasDictionary, failedAliasSaveDoesNotBreakSubsequentLoads)
+TEST_F(AliasDictionary, failedMigrationDoesNotPreventLoading)
 {
     const mp::AliasDefinition alias{"instance", "command", "map"};
     populate_db_file({{"show", alias}}, "secondary");
-    const auto filename = QString::fromStdString(db_filename());
-    const auto original_file = mpt::load(filename).toStdString();
+    const auto original_file = mpt::load(QString::fromStdString(db_filename())).toStdString();
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
-    EXPECT_CALL(*mock_file_ops, try_read_file(_)).Times(2).WillRepeatedly(Return(original_file));
+    EXPECT_CALL(*mock_file_ops, try_read_file(_)).WillOnce(Return(original_file));
     EXPECT_CALL(*mock_file_ops, write_transactionally(_, _))
         .WillOnce(Throw(std::runtime_error("read-only filesystem")));
 
@@ -445,18 +444,13 @@ TEST_F(AliasDictionary, failedAliasSaveDoesNotBreakSubsequentLoads)
     mpt::StubTerminal term(trash_stream, warnings, trash_stream);
     {
         auto dict = mp::AliasDict::load_file(&term);
-        EXPECT_TRUE(dict.add_alias("recreated", alias));
-    }
-    EXPECT_THAT(warnings.str(), HasSubstr("Error saving aliases dictionary: read-only filesystem"));
-
-    warnings.str("");
-    {
-        auto dict = mp::AliasDict::load_file(&term);
+        const auto copy = dict;
         EXPECT_TRUE(dict.is_inactive_alias("show"));
-        EXPECT_EQ(dict.get_alias("recreated"), std::nullopt);
+        EXPECT_TRUE(copy.is_inactive_alias("show"));
     }
+
+    EXPECT_THAT(warnings.str(), HasSubstr("aliases in the 'secondary' context are inactive"));
     EXPECT_THAT(warnings.str(), Not(HasSubstr("Error saving aliases dictionary")));
-    EXPECT_EQ(mpt::load(filename).toStdString(), original_file);
 }
 
 TEST_F(AliasDictionary, getUnexistingAliasReturnsNullopt)
@@ -574,7 +568,7 @@ TEST_F(AliasDictionary, migrationPreservesDefinitionsAndKeepsOnlyDefaultActive)
         EXPECT_EQ(boost::json::value_from(dict), migrated_json);
     }
 
-    EXPECT_EQ(mpt::load(filename).toStdString(), original_file);
+    EXPECT_EQ(boost::json::parse(mpt::load(filename).toStdString()), migrated_json);
 }
 
 struct RemoveInstanceTestsuite

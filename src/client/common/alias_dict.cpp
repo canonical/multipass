@@ -31,13 +31,15 @@ namespace mpl = multipass::logging;
 namespace
 {
 // TODO@remove-prefer remove along with alias contexts
-void warn_about_inactive_legacy_context(const boost::json::value& json, std::ostream& cerr)
+std::optional<std::string> legacy_active_context(const boost::json::value& json)
 {
-    const auto* previous_context =
+    const auto* active_context =
         json.is_object() ? json.as_object().if_contains("active-context") : nullptr;
-    if (previous_context && previous_context->is_string() &&
-        previous_context->as_string() != mp::default_context_name)
-        cerr << mp::make_inactive_alias_context_warning(previous_context->as_string().c_str());
+    if (active_context && active_context->is_string() &&
+        active_context->as_string() != mp::default_context_name)
+        return std::string{active_context->as_string()};
+
+    return std::nullopt;
 }
 } // namespace
 
@@ -82,7 +84,12 @@ mp::AliasDict mp::AliasDict::load_file(mp::Terminal* term, const std::filesystem
         {
             auto json = boost::json::parse(*filedata);
             auto result = value_to<AliasDict>(json, JSONContext{term, filename});
-            warn_about_inactive_legacy_context(json, result.cerr);
+            // TODO@remove-prefer remove along with alias contexts
+            if (const auto previous_context = legacy_active_context(json))
+            {
+                result.cerr << make_inactive_alias_context_warning(*previous_context);
+                result.migrate_file();
+            }
             return result;
         }
         catch (const boost::system::system_error& e)
@@ -262,6 +269,23 @@ void mp::AliasDict::save_file()
 
     auto json = boost::json::value_from(*this);
     MP_FILEOPS.write_transactionally(aliases_file, pretty_print(json));
+}
+
+// Persist the normalized dictionary once, so that the legacy active context is dropped. A failure
+// is not fatal: the original file is left intact and the migration is retried on the next load.
+void mp::AliasDict::migrate_file()
+{
+    try
+    {
+        save_file();
+    }
+    catch (const std::runtime_error& e)
+    {
+        mpl::warn("aliases", "Could not migrate aliases file '{}': {}", aliases_file, e.what());
+    }
+
+    // Commands hold copies of this dictionary; none of them should save it again.
+    modified = false;
 }
 
 // This function removes the contexts which do not contain aliases, except the default context.

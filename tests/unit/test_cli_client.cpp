@@ -5394,12 +5394,14 @@ TEST_F(ClientAlias, readOnlyLegacyAliasesDoNotPreventCommands)
     EXPECT_CALL(*mock_file_ops, try_read_file(_)).Times(2).WillRepeatedly(Return(original_file));
     ON_CALL(*mock_file_ops, write_transactionally(_, _))
         .WillByDefault(Throw(std::runtime_error("read-only filesystem")));
-    EXPECT_CALL(*mock_file_ops, write_transactionally(_, _)).Times(0);
+    EXPECT_CALL(*mock_file_ops, write_transactionally(_, _)).Times(2);
 
-    std::stringstream cout_stream;
-    EXPECT_EQ(send_command({"aliases", "--format=csv"}, cout_stream), mp::ReturnCode::Ok);
+    std::stringstream cout_stream, cerr_stream;
+    EXPECT_EQ(send_command({"aliases", "--format=csv"}, cout_stream, cerr_stream),
+              mp::ReturnCode::Ok);
     EXPECT_EQ(cout_stream.str(), csv_header + "old_alias,primary,whoami,map,secondary,inactive\n");
-    EXPECT_EQ(send_command({"help", "prefer"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"help", "prefer"}, trash_stream, cerr_stream), mp::ReturnCode::Ok);
+    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("Error saving aliases dictionary")));
     EXPECT_EQ(mpt::load(filename).toStdString(), original_file);
 }
 
