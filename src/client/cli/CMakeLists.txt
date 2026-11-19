@@ -24,6 +24,7 @@ target_link_libraries(client
   rpc
   scope_guard
   shared
+  user_messages
   Qt6::Core)
 
 if(MSVC)

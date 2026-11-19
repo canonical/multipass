@@ -17,6 +17,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/format.h>
+#include <multipass/user_messages/alias_context_deprecation_warning.h>
 
 #include <QFileInfo>
 #include <QRegularExpression>
@@ -184,10 +185,7 @@ mp::ParseCode mp::ArgParser::parse(const std::optional<mp::AliasDict>& aliases)
 
         if (aliases->is_inactive_alias(requested_command.toStdString()))
         {
-            cerr << "Alias '" << qUtf8Printable(requested_command)
-                 << "' belongs to an inactive context. Use `multipass aliases` to view its "
-                    "definition, then recreate it in the default context with "
-                    "`multipass alias <instance>:<command> <new-name>`.\n";
+            cerr << make_inactive_alias_warning(requested_command.toStdString());
             return ParseCode::CommandLineError;
         }
     }

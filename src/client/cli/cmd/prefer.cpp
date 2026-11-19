@@ -32,7 +32,6 @@ mp::ReturnCodeVariant cmd::Prefer::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    cerr << "Alias contexts can no longer be switched. Only the default context is active.\n";
     return ReturnCode::CommandLineError;
 }
 
@@ -77,7 +76,8 @@ mp::ParseCode cmd::Prefer::parse_args(mp::ArgParser* parser)
 
     cerr << mp::make_deprecation_warning(
         "`multipass prefer`",
-        "Use unique alias names to avoid switching alias contexts.");
+        "Alias contexts can no longer be switched; only the default context is active. "
+        "Use unique alias names instead.");
 
     return status;
 }
