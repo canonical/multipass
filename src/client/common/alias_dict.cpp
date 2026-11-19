@@ -28,6 +28,19 @@
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 
+namespace
+{
+// TODO@remove-prefer remove along with alias contexts
+void warn_about_inactive_legacy_context(const boost::json::value& json, std::ostream& cerr)
+{
+    const auto* previous_context =
+        json.is_object() ? json.as_object().if_contains("active-context") : nullptr;
+    if (previous_context && previous_context->is_string() &&
+        previous_context->as_string() != mp::default_context_name)
+        cerr << mp::make_inactive_alias_context_warning(previous_context->as_string().c_str());
+}
+} // namespace
+
 mp::AliasDict::AliasDict(mp::Terminal* term) : cerr(term->cerr())
 {
 }
@@ -69,12 +82,7 @@ mp::AliasDict mp::AliasDict::load_file(mp::Terminal* term, const std::filesystem
         {
             auto json = boost::json::parse(*filedata);
             auto result = value_to<AliasDict>(json, JSONContext{term, filename});
-            const auto* previous_context =
-                json.is_object() ? json.as_object().if_contains("active-context") : nullptr;
-            if (previous_context && previous_context->is_string() &&
-                previous_context->as_string() != default_context_name)
-                result.cerr << make_inactive_alias_context_warning(
-                    previous_context->as_string().c_str());
+            warn_about_inactive_legacy_context(json, result.cerr);
             return result;
         }
         catch (const boost::system::system_error& e)
