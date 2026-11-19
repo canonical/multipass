@@ -107,7 +107,14 @@ mp::ParseCode cmd::Authenticate::parse_args(mp::ArgParser* parser)
     }
     else
     {
-        request.set_passphrase(parser->positionalArguments().first().toStdString());
+        const auto passphrase = parser->positionalArguments().first();
+        if (passphrase.isEmpty())
+        {
+            cerr << "No passphrase given\n";
+            return ParseCode::CommandLineError;
+        }
+
+        request.set_passphrase(passphrase.toStdString());
     }
 
     return status;

@@ -9,9 +9,9 @@
 
 ## Description
 
-Passphrase to authenticate users with the Multipass service, via the [`authenticate`](/reference/command-line-interface/authenticate) command.
+Passphrase used to authenticate users with the Multipass service via the [`authenticate`](/reference/command-line-interface/authenticate) command.
 
-The passphrase can be given directly in the command line; if omitted, the user will be prompted to enter it.
+An authenticated user sets this value for other users to reuse. It can be given directly in the command line, or left unset to prompt for a hidden interactive entry.
 
 <!-- TODO: this prompts settings prompts should probably be documented separately -->
 
@@ -21,7 +21,8 @@ Any string
 
 ## Examples
 
-`multipass set local.passphrase`
+- `multipass set local.passphrase`
+- `multipass set local.passphrase=foo`
 
 ## Default value
 
