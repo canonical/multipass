@@ -18,9 +18,6 @@
         </Property>
 
         <Property Id="DRIVER" Value="hcs" Secure="yes" />
-        <!-- TODO hyperv migration, remove: DRIVER_FULL/DRIVER_LIMITED, the dialog sets DRIVER directly -->
-        <Property Id="DRIVER_FULL" Value="hcs" />
-        <Property Id="DRIVER_LIMITED" Value="hcs" />
 
         <Binary Id="CABinary" SourceFile="custom-actions.dll" />
 
@@ -98,7 +95,7 @@
           The new Hyper-V/HCS driver (hcs, backed by VirtualMachinePlatform) is the default
           on every supported edition. The legacy full Hyper-V driver (hyperv, backed by
           Microsoft-Hyper-V) is only offered on editions that support it: Home ("Core") editions do
-          not, so the legacy option is hidden there.
+          not, so the hypervisor dialog is skipped there.
         -->
         <SetProperty Id="LEGACY_HYPERV_AVAILABLE" Value="1"
             Condition="WINDOWS_EDITION AND NOT (WINDOWS_EDITION &gt;&lt; &quot;Core&quot;)"
