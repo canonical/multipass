@@ -43,12 +43,6 @@ This is a fork of the xterm package from pub.dev and it has one patch by Lev:
 
 1. Implement line-height snapping and full line rendering which makes it so that the terminal only displays fully visible lines and it scrolls in increments of one line, instead of having continuous scrolling
 
-#### [hotkey_manager](https://github.com/canonical/hotkey_manager.git)
-
-This is a fork of the hotkey_manager package from pub.dev and it has one patch:
-
-1. Disable cooked accelerators which makes the keybinder recognize bindings such as ctrl+shift+1 instead of ctrl+!; see [this](https://github.com/kupferlauncher/keybinder/blob/04ae06724d914c7d4fec6a2723edf9c6320ec502/libkeybinder/bind.c#L535) for details.
-
 #### [window_size](https://github.com/google/flutter-desktop-embedding.git)
 
 There is also the window_size plugin that comes from GitHub, but we do not have any patches for it, it is just not available on pub.dev, so you don’t have to worry about it too much.
