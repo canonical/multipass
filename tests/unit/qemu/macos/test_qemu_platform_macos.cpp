@@ -43,12 +43,7 @@ struct TestQemuPlatformMacOS : public Test
         {
             for (const auto& args : expected_args)
             {
-                auto it = std::search(platform_args.cbegin(),
-                                      platform_args.cend(),
-                                      args.cbegin(),
-                                      args.cend());
-
-                EXPECT_NE(it, platform_args.cend());
+                EXPECT_TRUE(std::ranges::contains_subrange(platform_args, args));
             }
         }
     };

@@ -57,6 +57,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <ranges>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace mpu = multipass::utils;
@@ -131,15 +133,12 @@ std::optional<mp::NetworkInterfaceInfo> get_network(const QDir& net_dir)
 
     if (net_dir.exists(br_nomenclature))
     {
-        std::vector<std::string> links;
-        QStringList bridge_members = QDir{net_dir.filePath(bridge_fname)}.entryList(
+        const auto bridge_members = QDir{net_dir.filePath(bridge_fname)}.entryList(
             QDir::NoDotAndDotDot | QDir::Dirs);
-
-        links.reserve(bridge_members.size());
-        std::transform(bridge_members.cbegin(),
-                       bridge_members.cend(),
-                       std::back_inserter(links),
-                       [](const QString& interface) { return interface.toStdString(); });
+        auto links = bridge_members | std::views::transform([](const QString& interface) {
+                         return interface.toStdString();
+                     }) |
+                     std::ranges::to<std::vector<std::string>>();
 
         return {{std::move(id),
                  br_nomenclature,

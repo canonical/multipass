@@ -41,6 +41,7 @@
 #include <chrono>
 #include <memory>
 #include <optional>
+#include <ranges>
 
 namespace mp = multipass;
 namespace mpl = multipass::logging;
@@ -175,11 +176,10 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
     }
     if (vault == nullptr)
     {
-        std::vector<VMImageHost*> hosts;
-        for (const auto& image : image_hosts)
-        {
-            hosts.push_back(image.get());
-        }
+        const auto hosts = image_hosts | std::views::transform([](const auto& image_host) {
+                               return image_host.get();
+                           }) |
+                           std::ranges::to<std::vector<VMImageHost*>>();
 
         vault = factory->create_image_vault(
             hosts,
