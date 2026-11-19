@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "daemon_test_fixture.h"
+#include "json_test_utils.h"
 #include "mock_file_ops.h"
 #include "mock_logger.h"
 #include "mock_mount_handler.h"
@@ -35,6 +36,11 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/not_implemented_on_this_backend_exception.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
+#include <multipass/utils.h>
+
+#include <QCoreApplication>
+
+#include <thread>
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
@@ -416,4 +422,61 @@ TEST_F(TestDaemonMount, mountUsesResolvedSource)
         StrictMock<mpt::MockServerReaderWriter<mp::MountReply, mp::MountRequest>>{});
 
     EXPECT_TRUE(status.ok());
+}
+
+TEST_F(TestDaemonMount, mountsReportedFromOtherThreadsArePersistedOnTheDaemonThread)
+{
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    config_builder.data_directory = temp_dir->path();
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    const auto* vm = mock_vm.get();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+    mp::VMStatusMonitor& monitor = daemon;
+
+    const std::unordered_map<std::string, mp::VMMount> mounts{
+        {fake_target_path,
+         {mount_dir.path().toStdString(), {}, {}, mp::VMMount::MountType::Native}}};
+    std::thread{[&] { monitor.update_mounts_for(*vm, mounts); }}.join();
+
+    check_mounts_in_json(boost::json::parse(mp::utils::contents_of(filename)), {});
+
+    QCoreApplication::processEvents();
+    check_mounts_in_json(boost::json::parse(mp::utils::contents_of(filename)), mounts);
+}
+
+TEST_F(TestDaemonMount, mountsReportedByStaleInstancesAreIgnored)
+{
+    const auto [temp_dir,
+                filename] = plant_instance_json(fake_json_contents(mac_addr, extra_interfaces));
+    config_builder.data_directory = temp_dir->path();
+
+    auto mock_vm = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*mock_vm, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
+
+    EXPECT_CALL(*mock_factory, create_virtual_machine).WillOnce(Return(std::move(mock_vm)));
+
+    mp::Daemon daemon{config_builder.build()};
+    mp::VMStatusMonitor& monitor = daemon;
+
+    const std::string ghost_name{"ghost"};
+    NiceMock<mpt::MockVirtualMachine> impostor, ghost;
+    EXPECT_CALL(impostor, get_name).WillRepeatedly(ReturnRef(mock_instance_name));
+    EXPECT_CALL(ghost, get_name).WillRepeatedly(ReturnRef(ghost_name));
+
+    const std::unordered_map<std::string, mp::VMMount> mounts{
+        {fake_target_path,
+         {mount_dir.path().toStdString(), {}, {}, mp::VMMount::MountType::Native}}};
+    monitor.update_mounts_for(impostor, mounts);
+    monitor.update_mounts_for(ghost, mounts);
+
+    EXPECT_TRUE(monitor.retrieve_mounts_for(mock_instance_name).empty());
+    EXPECT_TRUE(monitor.retrieve_mounts_for(ghost_name).empty());
+    daemon.persist_instances();
+    EXPECT_THAT(mp::utils::contents_of(filename), Not(HasSubstr(ghost_name)));
 }
