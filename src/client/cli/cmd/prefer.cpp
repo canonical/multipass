@@ -42,18 +42,18 @@ std::string cmd::Prefer::name() const
 
 QString cmd::Prefer::short_help() const
 {
-    return QStringLiteral("Deprecated: alias contexts can no longer be switched");
+    return QStringLiteral("Switch the current alias context");
 }
 
 QString cmd::Prefer::description() const
 {
-    return QStringLiteral("Alias contexts can no longer be switched. Only the default context "
-                          "is active. Use 'multipass aliases' to inspect inactive definitions.");
+    return QStringLiteral(
+        "Switch the current alias context. If it does not exist, create it before switching.");
 }
 
 mp::ParseCode cmd::Prefer::parse_args(mp::ArgParser* parser)
 {
-    parser->addPositionalArgument("name", "Name of the context (no longer supported)", "<name>");
+    parser->addPositionalArgument("name", "Name of the context to switch to", "<name>");
 
     auto status = parser->commandParse(this);
 

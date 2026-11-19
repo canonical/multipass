@@ -4039,7 +4039,9 @@ INSTANTIATE_TEST_SUITE_P(
                           "Create an alias to be executed on a given instance.\n"),
            std::make_pair(std::string{"aliases"}, "List available aliases\n"),
            std::make_pair(std::string{"unalias"}, "Remove aliases\n"),
-           std::make_pair(std::string{"prefer"}, "Alias contexts can no longer be switched.")));
+           std::make_pair(std::string{"prefer"},
+                          "Switch the current alias context. If it does not exist, create it "
+                          "before switching.")));
 
 TEST_F(Client, commandHelpIsDifferentThanGeneralHelp)
 {

@@ -55,7 +55,7 @@ ALL_COMMANDS = [
     (("list", "ls"), "List all available instances"),
     (("mount",), "Mount a local directory in the instance"),
     (("networks",), "List available network interfaces"),
-    (("prefer",), "Deprecated: alias contexts can no longer be switched"),
+    (("prefer",), "Switch the current alias context"),
     (("purge",), "Purge all deleted instances permanently"),
     (("recover",), "Recover deleted instances"),
     (("restart",), "Restart instances"),

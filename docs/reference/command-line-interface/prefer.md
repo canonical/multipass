@@ -19,8 +19,7 @@ The full `multipass help prefer` output explains the available options:
 
 ```{code-block} text
 Usage: multipass prefer [options] <name>
-Alias contexts can no longer be switched. Only the default context is active. Use
-'multipass aliases' to inspect inactive definitions.
+Switch the current alias context. If it does not exist, create it before switching.
 
 Options:
   -h, --help     Displays help on commandline options
@@ -29,5 +28,5 @@ Options:
                  v's, i.e. -vvvv.
 
 Arguments:
-  name           Name of the context (no longer supported)
+  name           Name of the context to switch to
 ```
