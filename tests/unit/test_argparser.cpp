@@ -78,7 +78,9 @@ TEST_P(TestAliasArguments, testAliasArguments)
 
     const auto& [pre, post] = GetParam();
 
-    populate_db_file(AliasesVector{{"an_alias", {"an_instance", "a_command", "map"}}});
+    populate_db_file(AliasesVector{
+        {"an_alias",
+         {.instance = "an_instance", .command = "a_command", .working_directory = "map"}}});
 
     auto alias_dict = mp::AliasDict::load_file(&term);
     auto parser = mp::ArgParser{pre, cmds, oss, oss};
