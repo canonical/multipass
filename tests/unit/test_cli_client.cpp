@@ -5625,6 +5625,21 @@ TEST_F(ClientAlias, unaliasDashDashAllWorks)
     EXPECT_EQ(cout_stream.str(), csv_header);
 }
 
+TEST_F(ClientAlias, unaliasDashDashAllRemovesAliasesFromInactiveContexts)
+{
+    populate_db_file(AliasesVector{{"old_alias", {"primary", "whoami", "map"}}}, "secondary");
+    EXPECT_CALL(*mock_platform, remove_alias_script("secondary.old_alias")).Times(1);
+    EXPECT_CALL(*mock_platform, remove_alias_script("old_alias")).Times(1);
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"unalias", "--all"}, trash_stream, cerr_stream), mp::ReturnCode::Ok);
+
+    std::stringstream cout_stream;
+    send_command({"aliases", "--format=csv"}, cout_stream);
+
+    EXPECT_EQ(cout_stream.str(), csv_header);
+}
+
 TEST_F(ClientAlias, unaliasDashDashAllClashesWithOtherArguments)
 {
     populate_db_file(AliasesVector{
