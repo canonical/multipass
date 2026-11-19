@@ -499,7 +499,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
                              alias_definition,
                              cout,
                              cerr,
-                             instance_name.toStdString()) == ReturnCode::Ok)
+                             instance_name.toStdString()) != ReturnCode::Ok)
                 warning_aliases.push_back(alias_to_be_created.name());
         }
 

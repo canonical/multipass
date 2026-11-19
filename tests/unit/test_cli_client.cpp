@@ -5365,6 +5365,39 @@ TEST_F(ClientAlias, aliasCreatesAliasThatExistsInAnotherContext)
                              "command,map,new_context*\n");
 }
 
+struct ClientLaunchAlias : public ClientAlias, public WithParamInterface<bool>
+{
+};
+
+TEST_P(ClientLaunchAlias, warnsOnlyAboutAliasesThatFailToBeCreated)
+{
+    const auto fail_script = GetParam();
+    mp::LaunchReply reply;
+    reply.set_vm_instance_name("aliased-vm");
+    auto alias = reply.add_aliases_to_be_created();
+    alias->set_name("generated");
+    alias->set_instance("aliased-vm");
+    alias->set_command("whoami");
+    alias->set_working_directory("map");
+
+    EXPECT_CALL(mock_daemon, launch(_, _))
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(_, ok, reply)));
+    if (fail_script)
+        EXPECT_CALL(*mock_platform, create_alias_script("generated", _))
+            .WillOnce(Throw(std::runtime_error("cannot create script")));
+
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"launch", "--name", "aliased-vm"}, trash_stream, cerr_stream),
+              mp::ReturnCode::Ok);
+    if (fail_script)
+        EXPECT_THAT(cerr_stream.str(), HasSubstr("Warning: unable to create alias generated."));
+    else
+        EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("unable to create alias")));
+}
+
+INSTANTIATE_TEST_SUITE_P(ClientAlias, ClientLaunchAlias, Bool());
+
 TEST_F(ClientAlias, unaliasRemovesExistingAlias)
 {
     populate_db_file(
