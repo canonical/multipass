@@ -5401,6 +5401,32 @@ TEST_F(ClientAlias, readOnlyLegacyAliasesDoNotPreventCommands)
     EXPECT_EQ(mpt::load(filename).toStdString(), original_file);
 }
 
+TEST_F(ClientAlias, inactiveAliasesCannotExecute)
+{
+    populate_db_file(AliasesVector{{"old_alias", {"primary", "whoami", "map"}},
+                                   {"com.mand", {"primary", "whoami", "map"}}},
+                     "secondary");
+    EXPECT_CALL(mock_daemon, info(_, _)).Times(0);
+    EXPECT_CALL(mock_daemon, ssh_info(_, _)).Times(0);
+
+    for (const auto& arguments :
+         std::vector<std::vector<std::string>>{{"old_alias"},
+                                               {"secondary.old_alias"},
+                                               {"com.mand"},
+                                               {"secondary.com.mand"},
+                                               {"secondary.old_alias", "--", "argument"}})
+    {
+        std::stringstream cout_stream, cerr_stream;
+        EXPECT_EQ(send_command(arguments, cout_stream, cerr_stream),
+                  mp::ReturnCode::CommandLineError);
+        EXPECT_THAT(cout_stream.str(), IsEmpty());
+        EXPECT_THAT(cerr_stream.str(), HasSubstr("belongs to an inactive context"));
+        EXPECT_THAT(cerr_stream.str(), HasSubstr("multipass aliases"));
+        EXPECT_THAT(cerr_stream.str(),
+                    HasSubstr("multipass alias <instance>:<command> <new-name>"));
+    }
+}
+
 TEST_F(ClientAlias, inactiveAliasCanBeRecreatedWithNewName)
 {
     populate_db_file(AliasesVector{{"old_alias", {"primary", "whoami", "map"}}}, "secondary");
