@@ -56,6 +56,13 @@ protected:
     std::stringstream trash_stream;
     mpt::StubTerminal trash_term;
     mp::AliasDict::JSONContext json_context;
+
+    mp::AliasDict make_dict(
+        const std::map<std::string, std::vector<std::pair<std::string, mp::AliasDefinition>>>&
+            contexts)
+    {
+        return value_to<mp::AliasDict>(make_legacy_json(contexts), json_context);
+    }
 };
 
 TEST_F(AliasDictionary, worksWithEmptyFile)
@@ -107,7 +114,6 @@ TEST_F(AliasDictionary, skipsCorrectlyBrokenEntriesOldFormat)
     auto dict = value_to<mp::AliasDict>(boost::json::parse(file_contents), json_context);
 
     ASSERT_EQ(dict.size(), 1u);
-    ASSERT_EQ(dict.active_context_name(), "default");
     ASSERT_EQ(dict.get_active_context().size(), 2u);
 
     auto a1 = dict.get_alias("alias1");
@@ -130,7 +136,6 @@ TEST_F(AliasDictionary, skipsCorrectlyBrokenEntries)
     auto dict = value_to<mp::AliasDict>(boost::json::parse(file_contents), json_context);
 
     ASSERT_EQ(dict.size(), 1u);
-    ASSERT_EQ(dict.active_context_name(), "default");
     ASSERT_EQ(dict.get_active_context().size(), 2u);
 
     auto a1 = dict.get_alias("alias1");
@@ -233,7 +238,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_F(AliasDictionary, addAliasWorks)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    auto dict = mp::AliasDict(&trash_term, "");
 
     ASSERT_TRUE(dict.add_alias("repeated",
                                mp::AliasDefinition{.instance = "instance-1",
@@ -253,7 +258,7 @@ TEST_F(AliasDictionary, addAliasWorks)
 
 TEST_F(AliasDictionary, existsAliasWorksWithExistingAlias)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    auto dict = mp::AliasDict(&trash_term, "");
 
     dict.add_alias("existing",
                    mp::AliasDefinition{.instance = "instance",
@@ -265,16 +270,15 @@ TEST_F(AliasDictionary, existsAliasWorksWithExistingAlias)
 
 TEST_F(AliasDictionary, existsAliasWorksWithUnexistingAlias)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    auto dict = mp::AliasDict(&trash_term, "");
 
     ASSERT_FALSE(dict.exists_alias("unexisting"));
 }
 
 TEST_F(AliasDictionary, correctlyRemovesAlias)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    auto dict = mp::AliasDict(&trash_term, "");
 
-    ASSERT_EQ(dict.active_context_name(), "default");
     dict.add_alias("alias",
                    mp::AliasDefinition{.instance = "instance",
                                        .command = "command",
@@ -288,7 +292,7 @@ TEST_F(AliasDictionary, correctlyRemovesAlias)
 
 TEST_F(AliasDictionary, worksWhenRemovingUnexistingAlias)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    auto dict = mp::AliasDict(&trash_term, "");
 
     dict.add_alias("alias",
                    mp::AliasDefinition{.instance = "instance",
@@ -304,7 +308,7 @@ TEST_F(AliasDictionary, worksWhenRemovingUnexistingAlias)
 
 TEST_F(AliasDictionary, clearWorks)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    auto dict = mp::AliasDict(&trash_term, "");
 
     dict.add_alias("first",
                    mp::AliasDefinition{.instance = "instance",
@@ -321,7 +325,7 @@ TEST_F(AliasDictionary, clearWorks)
 
 TEST_F(AliasDictionary, correctlyGetsAliasInDefaultContext)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    auto dict = mp::AliasDict(&trash_term, "");
 
     std::string alias_name{"alias"};
     mp::AliasDefinition alias_def{.instance = "instance",
@@ -336,46 +340,118 @@ TEST_F(AliasDictionary, correctlyGetsAliasInDefaultContext)
     ASSERT_FALSE(dict.empty());
 }
 
-TEST_F(AliasDictionary, correctlyGetsUniqueAliasInAnotherContext)
+TEST_F(AliasDictionary, defaultAliasWorksRegardlessOfPreviouslySelectedContext)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
-
     std::string alias_name{"alias"};
     mp::AliasDefinition alias_def{.instance = "instance",
                                   .command = "command",
                                   .working_directory = "map"};
 
-    dict.add_alias(alias_name, alias_def);
-
-    dict.set_active_context("new_context");
+    auto dict = value_to<mp::AliasDict>(
+        make_legacy_json({{"default", {{alias_name, alias_def}}}, {"new_context", {}}},
+                         "new_context"),
+        json_context);
 
     auto result = dict.get_alias(alias_name);
     ASSERT_EQ(result, alias_def);
     ASSERT_FALSE(dict.empty());
 }
 
-TEST_F(AliasDictionary, correctlyGetsAliasInNonDefaultContext)
+TEST_F(AliasDictionary, nonDefaultAliasIsInactive)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
-
     std::string context{"non-default"};
     std::string alias_name{"alias"};
     mp::AliasDefinition alias_def{.instance = "instance",
                                   .command = "command",
                                   .working_directory = "map"};
 
-    dict.set_active_context(context);
-    dict.add_alias(alias_name, alias_def);
-    dict.set_active_context("default");
+    auto dict = make_dict({{context, {{alias_name, alias_def}}}});
 
     auto result = dict.get_alias(context + '.' + alias_name);
-    ASSERT_EQ(result, alias_def);
+    ASSERT_EQ(result, std::nullopt);
+    EXPECT_EQ(dict.get_alias(alias_name), std::nullopt);
+    EXPECT_TRUE(dict.is_inactive_alias(alias_name));
+    EXPECT_TRUE(dict.is_inactive_alias(context + '.' + alias_name));
     ASSERT_FALSE(dict.empty());
+}
+
+TEST_F(AliasDictionary, qualifiedDefaultAliasStillWorks)
+{
+    auto dict = mp::AliasDict(&trash_term, "");
+    const mp::AliasDefinition alias{"instance", "command", "map"};
+    dict.add_alias("show", alias);
+
+    EXPECT_EQ(dict.get_alias("default.show"), alias);
+    EXPECT_FALSE(dict.is_inactive_alias("default.show"));
+    EXPECT_FALSE(dict.is_inactive_alias("unknown"));
+}
+
+TEST_F(AliasDictionary, loadingOldConfigurationDoesNotWrite)
+{
+    const mp::AliasDefinition alias{"instance", "command", "map"};
+    populate_db_file({{"show", alias}}, "secondary");
+    const auto filename = QString::fromStdString(db_filename());
+    const auto original_file = mpt::load(filename).toStdString();
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, try_read_file(_)).Times(2).WillRepeatedly(Return(original_file));
+    ON_CALL(*mock_file_ops, write_transactionally(_, _))
+        .WillByDefault(Throw(std::runtime_error("read-only filesystem")));
+    EXPECT_CALL(*mock_file_ops, write_transactionally(_, _)).Times(0);
+
+    std::stringstream warnings;
+    mpt::StubTerminal term(trash_stream, warnings, trash_stream);
+
+    for (int attempt = 0; attempt < 2; ++attempt)
+    {
+        warnings.str("");
+        auto dict = mp::AliasDict::load_file(&term);
+        EXPECT_TRUE(dict.get_active_context().empty());
+        EXPECT_EQ(dict.size(), 2u);
+        EXPECT_TRUE(dict.is_inactive_alias("show"));
+        EXPECT_EQ(dict.get_alias("show"), std::nullopt);
+        EXPECT_EQ(dict.get_alias("secondary.show"), std::nullopt);
+        EXPECT_THAT(warnings.str(), HasSubstr("alias context 'secondary' is inactive"));
+        EXPECT_THAT(warnings.str(), HasSubstr("multipass alias <instance>:<command> <new-name>"));
+
+        const auto copy = dict;
+        EXPECT_TRUE(copy.is_inactive_alias("show"));
+    }
+
+    EXPECT_EQ(mpt::load(filename).toStdString(), original_file);
+}
+
+TEST_F(AliasDictionary, failedAliasSaveDoesNotBreakSubsequentLoads)
+{
+    const mp::AliasDefinition alias{"instance", "command", "map"};
+    populate_db_file({{"show", alias}}, "secondary");
+    const auto filename = QString::fromStdString(db_filename());
+    const auto original_file = mpt::load(filename).toStdString();
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, try_read_file(_)).Times(2).WillRepeatedly(Return(original_file));
+    EXPECT_CALL(*mock_file_ops, write_transactionally(_, _))
+        .WillOnce(Throw(std::runtime_error("read-only filesystem")));
+
+    std::stringstream warnings;
+    mpt::StubTerminal term(trash_stream, warnings, trash_stream);
+    {
+        auto dict = mp::AliasDict::load_file(&term);
+        EXPECT_TRUE(dict.add_alias("recreated", alias));
+    }
+    EXPECT_THAT(warnings.str(), HasSubstr("Error saving aliases dictionary: read-only filesystem"));
+
+    warnings.str("");
+    {
+        auto dict = mp::AliasDict::load_file(&term);
+        EXPECT_TRUE(dict.is_inactive_alias("show"));
+        EXPECT_EQ(dict.get_alias("recreated"), std::nullopt);
+    }
+    EXPECT_THAT(warnings.str(), Not(HasSubstr("Error saving aliases dictionary")));
+    EXPECT_EQ(mpt::load(filename).toStdString(), original_file);
 }
 
 TEST_F(AliasDictionary, getUnexistingAliasReturnsNullopt)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    auto dict = mp::AliasDict(&trash_term, "");
 
     ASSERT_EQ(dict.get_alias("unexisting"), std::nullopt);
 }
@@ -399,14 +475,7 @@ TEST_P(FormatterTestsuite, table)
 {
     auto [context, aliases, basename] = GetParam();
 
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
-
-    dict.set_active_context(context);
-
-    for (const auto& alias : aliases)
-        dict.add_alias(alias.first, alias.second);
-
-    dict.set_active_context("default");
+    auto dict = make_dict({{context, aliases}});
 
     auto csv_output = mpt::load_test_file((basename + ".csv").c_str()).toStdString();
     EXPECT_EQ(mp::CSVFormatter().format(dict), csv_output);
@@ -437,6 +506,59 @@ INSTANTIATE_TEST_SUITE_P(
                  {.instance = "docker", .command = "docker-compose", .working_directory = "map"}}},
             "alias_dict/formatter/docker_aliases")));
 
+TEST_F(AliasDictionary, migrationPreservesDefinitionsAndKeepsOnlyDefaultActive)
+{
+    const mp::AliasDefinition default_alias{"primary", "ls", "map"};
+    const mp::AliasDefinition secondary_alias{"secondary", "pwd", "default"};
+    const auto filename = QString::fromStdString(db_filename());
+
+    mpt::make_file_with_content(
+        filename,
+        mp::pretty_print(make_legacy_json(
+            {{"default", {{"show", default_alias}}}, {"secondary", {{"show", secondary_alias}}}},
+            "secondary")));
+
+    const auto original_file = mpt::load(filename).toStdString();
+    auto migrated_json = boost::json::parse(original_file);
+    migrated_json.as_object()["active-context"] = "default";
+
+    {
+        auto dict = mp::AliasDict::load_file(&trash_term);
+
+        EXPECT_EQ(mp::TableFormatter().format(dict),
+                  "Alias   Instance    Command   Context     Working directory\n"
+                  "show    primary     ls        default*    map\n"
+                  "show    secondary   pwd       secondary   default\n");
+        EXPECT_EQ(mp::CSVFormatter().format(dict),
+                  "Alias,Instance,Command,Working directory,Context\n"
+                  "show,primary,ls,map,default*\n"
+                  "show,secondary,pwd,default,secondary\n");
+        EXPECT_EQ(boost::json::parse(mp::JsonFormatter().format(dict)), migrated_json);
+        EXPECT_EQ(mp::YamlFormatter().format(dict),
+                  "active_context: default\n"
+                  "aliases:\n"
+                  "  default:\n"
+                  "    - alias: show\n"
+                  "      command: ls\n"
+                  "      instance: primary\n"
+                  "      working-directory: map\n"
+                  "  secondary:\n"
+                  "    - alias: show\n"
+                  "      command: pwd\n"
+                  "      instance: secondary\n"
+                  "      working-directory: default\n");
+
+        EXPECT_EQ(dict.get_alias("show"), std::make_optional(default_alias));
+        EXPECT_EQ(dict.get_alias("default.show"), std::make_optional(default_alias));
+        EXPECT_FALSE(dict.is_inactive_alias("show"));
+        EXPECT_EQ(dict.get_alias("secondary.show"), std::nullopt);
+        EXPECT_TRUE(dict.is_inactive_alias("secondary.show"));
+        EXPECT_EQ(boost::json::value_from(dict), migrated_json);
+    }
+
+    EXPECT_EQ(mpt::load(filename).toStdString(), original_file);
+}
+
 struct RemoveInstanceTestsuite
     : public AliasDictionary,
       public WithParamInterface<std::pair<AliasesVector, std::vector<std::string>>>
@@ -447,7 +569,7 @@ TEST_P(RemoveInstanceTestsuite, removesInstanceAliases)
 {
     auto [original_aliases, remaining_aliases] = GetParam();
 
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    auto dict = mp::AliasDict(&trash_term, "");
     for (const auto& alias : original_aliases)
         dict.add_alias(alias.first, alias.second);
 
@@ -649,7 +771,7 @@ TEST_F(DaemonAliasTestsuite, keepsAliasesOfInstancesThatFailedToDelete)
     EXPECT_EQ(cout.str(), csv_head + "lsp,primary,ls,map,default*\n");
 }
 
-TEST_F(AliasDictionary, unexistingActiveContextThrows)
+TEST_F(AliasDictionary, unexistingActiveContextFallsBackToDefault)
 {
     auto file_contents = mpt::load_test_file("alias_dict/unexisting_active_context.json")
                              .toStdString();
@@ -657,11 +779,9 @@ TEST_F(AliasDictionary, unexistingActiveContextThrows)
     auto dict = value_to<mp::AliasDict>(boost::json::parse(file_contents), json_context);
 
     ASSERT_EQ(dict.size(), 1u);
-    ASSERT_EQ(dict.active_context_name(), "inconsistent");
-    MP_ASSERT_THROW_THAT(
-        dict.get_active_context(),
-        std::runtime_error,
-        mpt::match_what(HasSubstr("active context \"inconsistent\" does not exist in dictionary")));
+    EXPECT_TRUE(dict.get_active_context().empty());
+    EXPECT_TRUE(dict.is_context_active(mp::default_context_name));
+    EXPECT_FALSE(dict.is_context_active("inconsistent"));
 }
 
 TEST_F(AliasDictionary, removeContextWorks)
@@ -671,21 +791,13 @@ TEST_F(AliasDictionary, removeContextWorks)
     auto dict = value_to<mp::AliasDict>(boost::json::parse(file_contents), json_context);
 
     ASSERT_EQ(dict.size(), 2u);
-    ASSERT_EQ(dict.active_context_name(), "default");
     ASSERT_EQ(dict.get_active_context().size(), 1u);
-
-    dict.set_active_context("another");
-    ASSERT_EQ(dict.active_context_name(), "another");
-    ASSERT_EQ(dict.get_active_context().size(), 1u);
-    auto a2 = dict.get_alias("alias2");
-    ASSERT_TRUE(a2);
+    ASSERT_TRUE(dict.get_context_and_alias("another.alias2"));
 
     dict.remove_context("another");
     ASSERT_EQ(dict.size(), 1u);
-    ASSERT_EQ(dict.active_context_name(), "default");
-
-    dict.set_active_context("another");
-    ASSERT_EQ(dict.get_active_context().size(), 0u);
+    ASSERT_EQ(dict.get_active_context().size(), 1u);
+    ASSERT_EQ(dict.get_context_and_alias("another.alias2"), std::nullopt);
 }
 
 TEST_F(AliasDictionary, removeDefaultContextWorks)
@@ -695,18 +807,6 @@ TEST_F(AliasDictionary, removeDefaultContextWorks)
     auto dict = value_to<mp::AliasDict>(boost::json::parse(file_contents), json_context);
 
     ASSERT_EQ(dict.size(), 2u);
-    ASSERT_EQ(dict.active_context_name(), "default");
-    ASSERT_EQ(dict.get_active_context().size(), 1u);
-
-    dict.set_active_context("another");
-    ASSERT_EQ(dict.active_context_name(), "another");
-    ASSERT_EQ(dict.get_active_context().size(), 1u);
-    auto a2 = dict.get_alias("alias2");
-    ASSERT_TRUE(a2);
-
-    dict.set_active_context("default");
-    ASSERT_EQ(dict.size(), 2u);
-    ASSERT_EQ(dict.active_context_name(), "default");
     ASSERT_EQ(dict.get_active_context().size(), 1u);
 
     dict.remove_context("default");
@@ -714,9 +814,19 @@ TEST_F(AliasDictionary, removeDefaultContextWorks)
     // Removing the default context just empties it.
     ASSERT_EQ(dict.size(), 2u);
     ASSERT_EQ(dict.get_active_context().size(), 0u);
+    ASSERT_TRUE(dict.get_context_and_alias("another.alias2"));
+}
 
-    dict.set_active_context("another");
-    ASSERT_EQ(dict.get_active_context().size(), 1u);
+TEST_F(AliasDictionary, removeAliasFromContextWorks)
+{
+    const mp::AliasDefinition alias{"instance", "command", "map"};
+    auto dict = make_dict({{"default", {{"alias", alias}}}, {"another", {{"alias", alias}}}});
+
+    ASSERT_TRUE(dict.remove_alias("another", "alias"));
+    EXPECT_FALSE(dict.remove_alias("another", "alias"));
+    EXPECT_FALSE(dict.remove_alias("unexisting", "alias"));
+    EXPECT_EQ(dict.get_context_and_alias("another.alias"), std::nullopt);
+    EXPECT_EQ(dict.get_alias("alias"), alias);
 }
 
 TEST_F(AliasDictionary, removingUnexistingContextDoesNothing)
@@ -726,31 +836,27 @@ TEST_F(AliasDictionary, removingUnexistingContextDoesNothing)
     auto dict = value_to<mp::AliasDict>(boost::json::parse(file_contents), json_context);
 
     ASSERT_EQ(dict.size(), 2u);
-    ASSERT_EQ(dict.active_context_name(), "default");
     ASSERT_EQ(dict.get_active_context().size(), 1u);
 
     dict.remove_context("unexisting");
     ASSERT_EQ(dict.size(), 2u);
-    ASSERT_EQ(dict.active_context_name(), "default");
     ASSERT_EQ(dict.get_active_context().size(), 1u);
 }
 
 TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksIfInDifferentContext)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
-
-    dict.add_alias("first_alias",
-                   mp::AliasDefinition{.instance = "instance-1",
-                                       .command = "command-1",
-                                       .working_directory = "map"});
-    dict.set_active_context("new_context");
+    auto dict = make_dict({{"new_context",
+                            {{"first_alias",
+                              mp::AliasDefinition{.instance = "instance-1",
+                                                  .command = "command-1",
+                                                  .working_directory = "map"}}}}});
 
     ASSERT_EQ(dict.get_context_and_alias("first_alias"), std::nullopt);
 }
 
 TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksIfInCurrentContext)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    auto dict = mp::AliasDict(&trash_term, "");
 
     dict.add_alias("first_alias",
                    mp::AliasDefinition{.instance = "instance-1",
@@ -762,47 +868,49 @@ TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksIfInCurrentContext)
     ASSERT_EQ(context_and_alias->second, "first_alias");
 }
 
-TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksWithEquallyNamesAliasesInDifferentContext)
+TEST_F(AliasDictionary, unqualifiedGetContextAndAliasPrefersDefaultContext)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
-
-    dict.add_alias("first_alias",
-                   mp::AliasDefinition{.instance = "instance-1",
-                                       .command = "command-1",
-                                       .working_directory = "map"});
-    dict.set_active_context("new_context");
-    dict.add_alias("first_alias",
-                   mp::AliasDefinition{.instance = "instance-2",
-                                       .command = "command-2",
-                                       .working_directory = "map"});
+    auto dict = make_dict({{"default",
+                            {{"first_alias",
+                              mp::AliasDefinition{.instance = "instance-1",
+                                                  .command = "command-1",
+                                                  .working_directory = "map"}}}},
+                           {"new_context",
+                            {{"first_alias",
+                              mp::AliasDefinition{.instance = "instance-2",
+                                                  .command = "command-2",
+                                                  .working_directory = "map"}}}}});
     auto context_and_alias = dict.get_context_and_alias("first_alias");
 
-    ASSERT_EQ(context_and_alias->first, "new_context");
+    ASSERT_EQ(context_and_alias->first, "default");
     ASSERT_EQ(context_and_alias->second, "first_alias");
 }
 
 TEST_F(AliasDictionary, qualifiedGetContextAndAliasWorksIfAliasAndContextExist)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    auto dict = make_dict({{"default",
+                            {{"first_alias",
+                              mp::AliasDefinition{.instance = "instance-1",
+                                                  .command = "command-1",
+                                                  .working_directory = "map"}}}},
+                           {"new_context",
+                            {{"second_alias",
+                              mp::AliasDefinition{.instance = "instance-2",
+                                                  .command = "command-2",
+                                                  .working_directory = "map"}}}}});
 
-    dict.add_alias("first_alias",
-                   mp::AliasDefinition{.instance = "instance-1",
-                                       .command = "command-1",
-                                       .working_directory = "map"});
-    dict.set_active_context("new_context");
-    dict.add_alias("second_alias",
-                   mp::AliasDefinition{.instance = "instance-2",
-                                       .command = "command-2",
-                                       .working_directory = "map"});
     auto context_and_alias = dict.get_context_and_alias("default.first_alias");
-
     ASSERT_EQ(context_and_alias->first, "default");
     ASSERT_EQ(context_and_alias->second, "first_alias");
+
+    context_and_alias = dict.get_context_and_alias("new_context.second_alias");
+    ASSERT_EQ(context_and_alias->first, "new_context");
+    ASSERT_EQ(context_and_alias->second, "second_alias");
 }
 
 TEST_F(AliasDictionary, qualifiedGetContextAndAliasWorksIfContextDoesNotExist)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    auto dict = mp::AliasDict(&trash_term, "");
 
     dict.add_alias("first_alias",
                    mp::AliasDefinition{.instance = "instance-1",
@@ -813,7 +921,7 @@ TEST_F(AliasDictionary, qualifiedGetContextAndAliasWorksIfContextDoesNotExist)
 
 TEST_F(AliasDictionary, qualifiedGetContextAndAliasWorksIfAliasDoesNotExist)
 {
-    auto dict = mp::AliasDict(&trash_term, mp::default_context_name, "");
+    auto dict = mp::AliasDict(&trash_term, "");
 
     dict.add_alias("first_alias",
                    mp::AliasDefinition{.instance = "instance-1",

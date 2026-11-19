@@ -32,12 +32,10 @@ mp::ReturnCodeVariant cmd::Unalias::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    auto old_active_context = aliases.active_context_name();
-
     for (const auto& [context_from, alias_only] : aliases_to_remove)
     {
-        aliases.set_active_context(context_from);
-        aliases.remove_alias(alias_only); // We know removal won't fail because the alias exists.
+        // We know removal won't fail because the alias exists.
+        aliases.remove_alias(context_from, alias_only);
         try
         {
             MP_PLATFORM.remove_alias_script(context_from + "." + alias_only);
@@ -55,8 +53,6 @@ mp::ReturnCodeVariant cmd::Unalias::run(mp::ArgParser* parser)
                                 alias_only);
         }
     }
-
-    aliases.set_active_context(old_active_context);
 
     return ReturnCode::Ok;
 }
@@ -95,12 +91,8 @@ mp::ParseCode cmd::Unalias::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(all_option_name))
     {
-        const auto& active_context_name = aliases.active_context_name();
-        const auto& active_context = aliases.get_active_context();
-
-        for (auto definition_it = active_context.cbegin(); definition_it != active_context.cend();
-             ++definition_it)
-            aliases_to_remove.emplace_back(active_context_name, definition_it->first);
+        for (const auto& [alias_name, _] : aliases.get_active_context())
+            aliases_to_remove.emplace_back(default_context_name, alias_name);
     }
     else
     {
