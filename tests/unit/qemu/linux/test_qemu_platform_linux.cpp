@@ -249,8 +249,10 @@ TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected
 
 #if defined Q_PROCESSOR_S390
     const auto network_interface = "virtio-net-ccw";
+    const auto balloon_device = "virtio-balloon-ccw,id=balloon0,free-page-reporting=on";
 #else
     const auto network_interface = "virtio-net-pci";
+    const auto balloon_device = "virtio-balloon-pci,id=balloon0,free-page-reporting=on";
 #endif
 
     // Tests the order and correctness of the arguments returned
@@ -281,6 +283,8 @@ TEST_F(QemuPlatformLinux, platformArgsGenerateNetResourcesRemovesWorksAsExpected
         "host",
 #endif
         // clang-format on
+        "-device",
+        balloon_device,
         "-nic",
         QString::fromStdString(fmt::format("tap,ifname={},script=no,downscript=no,model={},mac={}",
                                            saved_opts.last(),
