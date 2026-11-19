@@ -31,10 +31,7 @@ mp::ReturnCodeVariant mp::cmd::create_alias(AliasDict& aliases,
     bool empty_before_add = aliases.empty();
 
     if (!aliases.add_alias(alias_name, alias_definition))
-    {
-        cerr << fmt::format("Alias '{}' already exists in the default context\n", alias_name);
         return ReturnCode::CommandLineError;
-    }
 
     const auto qualified_alias_name = fmt::format("{}.{}", default_context_name, alias_name);
 
