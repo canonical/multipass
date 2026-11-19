@@ -102,7 +102,7 @@ mp::AliasDict mp::AliasDict::load_file(mp::Terminal* term, const std::filesystem
 
 const mp::AliasContext& mp::AliasDict::get_active_context() const
 {
-    // The default context is always present, see the constructors, remove_context and clear.
+    // The default context is always present, see the constructors and clear.
     return aliases.at(default_context_name);
 }
 
@@ -168,29 +168,11 @@ bool mp::AliasDict::remove_alias(const std::string& context, const std::string& 
     return false;
 }
 
-bool mp::AliasDict::remove_context(const std::string& context)
-{
-    if (aliases.erase(context) > 0)
-    {
-        modified = true;
-
-        if (context == default_context_name)
-            aliases.try_emplace(default_context_name);
-
-        return true;
-    }
-
-    return false;
-}
-
-// This function removes the context called as the instance, and then it iterates through all the
-// remaining contexts to see if there are aliases defined for the instance.
+// Removes the aliases of the given instance from all the contexts.
 std::vector<mp::ContextAliasPair> mp::AliasDict::remove_aliases_for_instance(
     const std::string& instance)
 {
     std::vector<mp::ContextAliasPair> removed_aliases;
-
-    remove_context(instance);
 
     for (auto dict_it = begin(); dict_it != end(); ++dict_it)
     {

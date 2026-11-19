@@ -569,6 +569,24 @@ INSTANTIATE_TEST_SUITE_P(
            std::make_pair(AliasesVector{{"alias", {"instance_to_remove", "command", "map"}}},
                           std::vector<std::string>{})));
 
+TEST_F(AliasDictionary, removingInstanceKeepsContextNamedAfterIt)
+{
+    const mp::AliasDefinition lsp{"primary", "ls", "map"}, lsd{"default", "ls", "map"},
+        old{"primary", "pwd", "map"};
+    auto dict = make_dict({{"default", {{"lsp", lsp}, {"lsd", lsd}}}, {"primary", {{"old", old}}}});
+
+    EXPECT_THAT(dict.remove_aliases_for_instance("default"),
+                ElementsAre(mp::ContextAliasPair{"default", "lsd"}));
+    EXPECT_EQ(dict.get_alias("lsp"), lsp);
+    EXPECT_EQ(dict.get_alias("lsd"), std::nullopt);
+    EXPECT_TRUE(dict.get_context_and_alias("primary.old"));
+
+    EXPECT_THAT(dict.remove_aliases_for_instance("primary"),
+                UnorderedElementsAre(mp::ContextAliasPair{"default", "lsp"},
+                                     mp::ContextAliasPair{"primary", "old"}));
+    EXPECT_TRUE(dict.empty());
+}
+
 typedef std::vector<std::vector<std::string>> CmdList;
 
 struct DaemonAliasTestsuite
@@ -740,39 +758,6 @@ TEST_F(AliasDictionary, unexistingActiveContextFallsBackToDefault)
     EXPECT_FALSE(dict.is_context_active("inconsistent"));
 }
 
-TEST_F(AliasDictionary, removeContextWorks)
-{
-    auto file_contents = mpt::load_test_file("alias_dict/with_context.json").toStdString();
-
-    auto dict = value_to<mp::AliasDict>(boost::json::parse(file_contents), json_context);
-
-    ASSERT_EQ(dict.size(), 2u);
-    ASSERT_EQ(dict.get_active_context().size(), 1u);
-    ASSERT_TRUE(dict.get_context_and_alias("another.alias2"));
-
-    dict.remove_context("another");
-    ASSERT_EQ(dict.size(), 1u);
-    ASSERT_EQ(dict.get_active_context().size(), 1u);
-    ASSERT_EQ(dict.get_context_and_alias("another.alias2"), std::nullopt);
-}
-
-TEST_F(AliasDictionary, removeDefaultContextWorks)
-{
-    auto file_contents = mpt::load_test_file("alias_dict/with_context.json").toStdString();
-
-    auto dict = value_to<mp::AliasDict>(boost::json::parse(file_contents), json_context);
-
-    ASSERT_EQ(dict.size(), 2u);
-    ASSERT_EQ(dict.get_active_context().size(), 1u);
-
-    dict.remove_context("default");
-
-    // Removing the default context just empties it.
-    ASSERT_EQ(dict.size(), 2u);
-    ASSERT_EQ(dict.get_active_context().size(), 0u);
-    ASSERT_TRUE(dict.get_context_and_alias("another.alias2"));
-}
-
 TEST_F(AliasDictionary, removeAliasFromContextWorks)
 {
     const mp::AliasDefinition alias{"instance", "command", "map"};
@@ -783,20 +768,6 @@ TEST_F(AliasDictionary, removeAliasFromContextWorks)
     EXPECT_FALSE(dict.remove_alias("unexisting", "alias"));
     EXPECT_EQ(dict.get_context_and_alias("another.alias"), std::nullopt);
     EXPECT_EQ(dict.get_alias("alias"), alias);
-}
-
-TEST_F(AliasDictionary, removingUnexistingContextDoesNothing)
-{
-    auto file_contents = mpt::load_test_file("alias_dict/with_context.json").toStdString();
-
-    auto dict = value_to<mp::AliasDict>(boost::json::parse(file_contents), json_context);
-
-    ASSERT_EQ(dict.size(), 2u);
-    ASSERT_EQ(dict.get_active_context().size(), 1u);
-
-    dict.remove_context("unexisting");
-    ASSERT_EQ(dict.size(), 2u);
-    ASSERT_EQ(dict.get_active_context().size(), 1u);
 }
 
 TEST_F(AliasDictionary, unqualifiedGetContextAndAliasWorksIfInDifferentContext)
