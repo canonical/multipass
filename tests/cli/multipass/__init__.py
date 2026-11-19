@@ -52,7 +52,8 @@ from .helpers import (
     get_multipass_version,
     parse_multipass_versions,
     vm_exists,
-    get_boot_id
+    get_boot_id,
+    get_instance_metadata,
 )
 from .multipass_cmd import multipass
 from .snapshot import (

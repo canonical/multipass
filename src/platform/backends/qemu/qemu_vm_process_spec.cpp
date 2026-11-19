@@ -46,13 +46,21 @@ QStringList mp::QemuVMProcessSpec::arguments() const
     {
         args = resume_data->arguments;
 
-        // A VM suspended in a previous version will not contain the firmware
-        // path. Prepend it to the args so QEMU can locate the BIOS.
-        if (!args.contains("-L"))
+        // Recorded firmware paths may point to a stale install location (e.g. an old
+        // snap revision), so refresh them. VMs suspended by older versions lack -L.
+        const auto stable_firmware_path = QemuPlatform::stable_firmware_path();
+        if (const auto i = args.indexOf("-L"); i >= 0 && i + 1 < args.size())
         {
-            args.prepend(firmware_path());
+            args[i + 1] = stable_firmware_path;
+        }
+        else
+        {
+            args.prepend(stable_firmware_path);
             args.prepend("-L");
         }
+        // `-drive file=` paths are not resolved via -L, so refresh them too.
+        args.replaceInStrings(QRegularExpression{"(?<=^file=)[^,]*(?=/edk2-[^/,]+-code\\.fd,)"},
+                              stable_firmware_path);
 
         // need to append extra arguments for resume
         args << "-loadvm" << resume_data->suspend_tag;
@@ -84,7 +92,7 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
         // clang-format off
         // Tell QEMU where to look for the BIOS files
         args << "-L"
-             << firmware_path();
+             << QemuPlatform::stable_firmware_path();
         args << platform_args;
         // The VM image itself
         args << "-device"

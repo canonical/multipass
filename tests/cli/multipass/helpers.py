@@ -19,10 +19,15 @@
 import sys
 import re
 import os
+import json
+import subprocess
 from pathlib import Path
 from functools import lru_cache
 from packaging import version
 
+from cli.utilities import sudo
+
+from .basics import determine_data_dir
 from .multipass_cmd import multipass
 
 
@@ -228,6 +233,22 @@ def get_boot_id(name):
     """
     assert path_exists(name, "/proc/sys/kernel/random/boot_id")
     return read_file(name, "/proc/sys/kernel/random/boot_id")
+
+def get_instance_metadata(name):
+    """
+    Get the backend metadata the daemon persists for an instance.
+    """
+    data_dir = Path(determine_data_dir())
+    for db_dir in [data_dir, data_dir / "qemu"]:
+        result = subprocess.run(
+            sudo("cat", str(db_dir / "multipassd-vm-instances.json")),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            return json.loads(result.stdout)[name]["metadata"]
+    raise FileNotFoundError(f"Cannot find the instance database under {data_dir}")
 
 def get_default_interface_name(name):
     """
