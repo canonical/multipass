@@ -214,7 +214,7 @@ VirtualMachine::UPtr HCSVirtualMachineFactory::clone_vm_impl(const std::string& 
                                                              const SSHKeyProvider& key_provider)
 {
 
-    const fs::path src_vm_instance_dir{get_instance_directory(source_vm_name).toStdWString()};
+    const auto src_vm_instance_dir{get_instance_directory(source_vm_name)};
 
     if (!fs::exists(src_vm_instance_dir))
     {
