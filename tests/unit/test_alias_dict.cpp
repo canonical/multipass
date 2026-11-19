@@ -482,19 +482,24 @@ TEST_F(AliasDictionary, migrationPreservesDefinitionsAndKeepsOnlyDefaultActive)
     const auto original_file = mpt::load(filename).toStdString();
     auto migrated_json = boost::json::parse(original_file);
     migrated_json.as_object()["active-context"] = "default";
+    EXPECT_FALSE(migrated_json.as_object().contains("context-status"));
 
     {
         auto dict = mp::AliasDict::load_file(&trash_term);
 
         EXPECT_EQ(mp::TableFormatter().format(dict),
-                  "Alias   Instance    Command   Context     Working directory\n"
-                  "show    primary     ls        default*    map\n"
-                  "show    secondary   pwd       secondary   default\n");
+                  "Alias   Instance    Command   Context     Working directory   Context status\n"
+                  "show    primary     ls        default*    map                 active\n"
+                  "show    secondary   pwd       secondary   default             inactive\n");
         EXPECT_EQ(mp::CSVFormatter().format(dict),
-                  "Alias,Instance,Command,Working directory,Context\n"
-                  "show,primary,ls,map,default*\n"
-                  "show,secondary,pwd,default,secondary\n");
-        EXPECT_EQ(boost::json::parse(mp::JsonFormatter().format(dict)), migrated_json);
+                  "Alias,Instance,Command,Working directory,Context,Context status\n"
+                  "show,primary,ls,map,default*,active\n"
+                  "show,secondary,pwd,default,secondary,inactive\n");
+
+        auto expected_json = migrated_json;
+        expected_json.as_object()["context-status"] = {{"default", "active"},
+                                                       {"secondary", "inactive"}};
+        EXPECT_EQ(boost::json::parse(mp::JsonFormatter().format(dict)), expected_json);
         EXPECT_EQ(mp::YamlFormatter().format(dict),
                   "active_context: default\n"
                   "aliases:\n"
@@ -507,7 +512,10 @@ TEST_F(AliasDictionary, migrationPreservesDefinitionsAndKeepsOnlyDefaultActive)
                   "    - alias: show\n"
                   "      command: pwd\n"
                   "      instance: secondary\n"
-                  "      working-directory: default\n");
+                  "      working-directory: default\n"
+                  "context_status:\n"
+                  "  default: active\n"
+                  "  secondary: inactive\n");
 
         EXPECT_EQ(dict.get_alias("show"), std::make_optional(default_alias));
         EXPECT_EQ(dict.get_alias("default.show"), std::make_optional(default_alias));
@@ -652,13 +660,13 @@ TEST_P(DaemonAliasTestsuite, deleteRemovesDeletedInstanceAliasesAndScripts)
     EXPECT_EQ(cout.str(), expected_output);
 }
 
-const std::string csv_head{"Alias,Instance,Command,Working directory,Context\n"};
+const std::string csv_head{"Alias,Instance,Command,Working directory,Context,Context status\n"};
 
 INSTANTIATE_TEST_SUITE_P(
     AliasDictionary,
     DaemonAliasTestsuite,
     Values(std::make_tuple(CmdList{{"delete", "--force", "real-zebraphant"}},
-                           csv_head + "lsp,primary,ls,map,default*\n",
+                           csv_head + "lsp,primary,ls,map,default*,active\n",
                            std::vector<std::string>{"lsz"},
                            std::vector<std::string>{}),
            std::make_tuple(CmdList{{"delete", "--force", "primary", "real-zebraphant"}},
@@ -675,7 +683,7 @@ INSTANTIATE_TEST_SUITE_P(
                            std::vector<std::string>{"lsp"},
                            std::vector<std::string>{"lsz"}),
            std::make_tuple(CmdList{{"delete", "--force", "real-zebraphant"}},
-                           csv_head + "lsp,primary,ls,map,default*\n",
+                           csv_head + "lsp,primary,ls,map,default*,active\n",
                            std::vector<std::string>{},
                            std::vector<std::string>{"lsz"}),
            std::make_tuple(CmdList{{"delete", "--force", "real-zebraphant", "primary"}},
@@ -712,7 +720,7 @@ TEST_F(DaemonAliasTestsuite, keepsAliasesOfInstancesThatFailedToDelete)
     EXPECT_THAT(cerr.str(), HasSubstr("stuck"));
 
     send_command({"aliases", "--format", "csv"}, cout);
-    EXPECT_EQ(cout.str(), csv_head + "lsp,primary,ls,map,default*\n");
+    EXPECT_EQ(cout.str(), csv_head + "lsp,primary,ls,map,default*,active\n");
 }
 
 TEST_F(AliasDictionary, unexistingActiveContextFallsBackToDefault)

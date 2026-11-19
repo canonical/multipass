@@ -580,7 +580,7 @@ mp::SSHInfoReply make_fake_ssh_info_response(const std::string& instance_name)
 
 typedef std::vector<std::pair<std::string, mp::AliasDefinition>> AliasesVector;
 
-const std::string csv_header{"Alias,Instance,Command,Working directory,Context\n"};
+const std::string csv_header{"Alias,Instance,Command,Working directory,Context,Context status\n"};
 
 // Tests for no postional args given
 TEST_F(Client, noCommandIsError)
@@ -4715,8 +4715,8 @@ TEST_F(ClientAlias, aliasCreatesAlias)
     send_command({"aliases", "--format=csv"}, cout_stream);
 
     EXPECT_THAT(cout_stream.str(),
-                csv_header + "an_alias,an_instance,a_command,map,default*\n"
-                             "another_alias,primary,another_command,default,default*\n");
+                csv_header + "an_alias,an_instance,a_command,map,default*,active\n"
+                             "another_alias,primary,another_command,default,default*,active\n");
 }
 
 struct ClientAliasNameSuite
@@ -4741,7 +4741,7 @@ TEST_P(ClientAliasNameSuite, createsCorrectDefaultAliasName)
     send_command({"aliases", "--format=csv"}, cout_stream);
 
     EXPECT_THAT(cout_stream.str(),
-                fmt::format(fmt::runtime(csv_header + "{},primary,{}{},default,default*\n"),
+                fmt::format(fmt::runtime(csv_header + "{},primary,{}{},default,default*,active\n"),
                             command,
                             path,
                             command));
@@ -4807,7 +4807,8 @@ TEST_F(ClientAlias, aliasDoesNotOverwriteAlias)
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,map,default*\n");
+    EXPECT_THAT(cout_stream.str(),
+                csv_header + "an_alias,an_instance,a_command,map,default*,active\n");
 }
 
 struct ArgumentCheckTestsuite
@@ -4968,7 +4969,8 @@ TEST_F(ClientAlias, aliasRefusesCreationNonexistentInstance)
 
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,map,default*\n");
+    EXPECT_THAT(cout_stream.str(),
+                csv_header + "an_alias,an_instance,a_command,map,default*,active\n");
 }
 
 TEST_F(ClientAlias, aliasRefusesCreationRpcError)
@@ -4986,7 +4988,8 @@ TEST_F(ClientAlias, aliasRefusesCreationRpcError)
 
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,map,default*\n");
+    EXPECT_THAT(cout_stream.str(),
+                csv_header + "an_alias,an_instance,a_command,map,default*,active\n");
 }
 
 // zones cli tests
@@ -5338,7 +5341,7 @@ TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
 
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,primary,a_command,map,default*\n");
+    EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,primary,a_command,map,default*,active\n");
 }
 
 TEST_F(ClientAlias, aliasCreatesInDefaultDespiteInactiveContext)
@@ -5360,8 +5363,8 @@ TEST_F(ClientAlias, aliasCreatesInDefaultDespiteInactiveContext)
     send_command({"aliases", "--format=csv"}, cout_stream);
 
     EXPECT_THAT(cout_stream.str(),
-                csv_header + "an_alias,primary,another_command,map,default*\n"
-                             "an_alias,primary,a_command,map,secondary\n");
+                csv_header + "an_alias,primary,another_command,map,default*,active\n"
+                             "an_alias,primary,a_command,map,secondary,inactive\n");
 }
 
 TEST_F(ClientAlias, readOnlyLegacyAliasesDoNotPreventCommands)
@@ -5377,7 +5380,7 @@ TEST_F(ClientAlias, readOnlyLegacyAliasesDoNotPreventCommands)
 
     std::stringstream cout_stream;
     EXPECT_EQ(send_command({"aliases", "--format=csv"}, cout_stream), mp::ReturnCode::Ok);
-    EXPECT_EQ(cout_stream.str(), csv_header + "old_alias,primary,whoami,map,secondary\n");
+    EXPECT_EQ(cout_stream.str(), csv_header + "old_alias,primary,whoami,map,secondary,inactive\n");
     EXPECT_EQ(send_command({"help", "prefer"}), mp::ReturnCode::Ok);
     EXPECT_EQ(mpt::load(filename).toStdString(), original_file);
 }
@@ -5396,8 +5399,8 @@ TEST_F(ClientAlias, inactiveAliasCanBeRecreatedWithNewName)
     std::stringstream cout_stream;
     EXPECT_EQ(send_command({"aliases", "--format=csv"}, cout_stream), mp::ReturnCode::Ok);
     EXPECT_EQ(cout_stream.str(),
-              csv_header + "new_alias,primary,whoami,map,default*\n"
-                           "old_alias,primary,whoami,map,secondary\n");
+              csv_header + "new_alias,primary,whoami,map,default*,active\n"
+                           "old_alias,primary,whoami,map,secondary,inactive\n");
 }
 
 struct ClientLaunchAlias : public ClientAlias, public WithParamInterface<bool>
@@ -5442,7 +5445,7 @@ TEST_P(ClientLaunchAlias, createsAliasesInDefaultAndReportsFailures)
     EXPECT_EQ(send_command({"aliases", "--format=csv"}, cout_stream), mp::ReturnCode::Ok);
     EXPECT_EQ(cout_stream.str(),
               fail_script ? csv_header
-                          : csv_header + "generated,aliased-vm,whoami,map,default*\n");
+                          : csv_header + "generated,aliased-vm,whoami,map,default*,active\n");
 }
 
 INSTANTIATE_TEST_SUITE_P(ClientAlias, ClientLaunchAlias, Bool());
@@ -5472,7 +5475,7 @@ TEST_F(ClientAlias, unaliasRemovesExistingAlias)
     send_command({"aliases", "--format=csv"}, cout_stream);
 
     EXPECT_THAT(cout_stream.str(),
-                csv_header + "an_alias,an_instance,a_command,default,default*\n");
+                csv_header + "an_alias,an_instance,a_command,default,default*,active\n");
 }
 
 TEST_F(ClientAlias, unaliasSucceedsEvenIfScriptCannotBeRemoved)
@@ -5494,7 +5497,8 @@ TEST_F(ClientAlias, unaliasSucceedsEvenIfScriptCannotBeRemoved)
     std::stringstream cout_stream;
     send_command({"aliases", "--format=csv"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,an_instance,a_command,map,default*\n");
+    EXPECT_THAT(cout_stream.str(),
+                csv_header + "an_alias,an_instance,a_command,map,default*,active\n");
 }
 
 TEST_F(ClientAlias, unaliasDoesNotRemoveNonexistentAlias)
@@ -5512,8 +5516,9 @@ TEST_F(ClientAlias, unaliasDoesNotRemoveNonexistentAlias)
     send_command({"aliases", "--format=csv"}, cout_stream);
 
     EXPECT_EQ(cout_stream.str(),
-              csv_header + "an_alias,an_instance,a_command,map,default*\n"
-                           "another_alias,another_instance,another_command,default,default*\n");
+              csv_header +
+                  "an_alias,an_instance,a_command,map,default*,active\n"
+                  "another_alias,another_instance,another_command,default,default*,active\n");
 }
 
 TEST_F(ClientAlias, unaliasDoesNotRemoveNonexistentAliases)
@@ -5538,8 +5543,8 @@ TEST_F(ClientAlias, unaliasDoesNotRemoveNonexistentAliases)
     send_command({"aliases", "--format=csv"}, cout_stream);
 
     EXPECT_EQ(cout_stream.str(),
-              csv_header + "an_alias,an_instance,a_command,default,default*\n"
-                           "another_alias,another_instance,another_command,map,default*\n");
+              csv_header + "an_alias,an_instance,a_command,default,default*,active\n"
+                           "another_alias,another_instance,another_command,map,default*,active\n");
 }
 
 TEST_F(ClientAlias, unaliasDashDashAllWorks)
@@ -5573,8 +5578,9 @@ TEST_F(ClientAlias, unaliasDashDashAllClashesWithOtherArguments)
     send_command({"aliases", "--format=csv"}, cout_stream);
 
     EXPECT_EQ(cout_stream.str(),
-              csv_header + "an_alias,an_instance,a_command,map,default*\n"
-                           "another_alias,another_instance,another_command,default,default*\n");
+              csv_header +
+                  "an_alias,an_instance,a_command,map,default*,active\n"
+                  "another_alias,another_instance,another_command,default,default*,active\n");
 }
 
 TEST_F(ClientAlias, failsIfUnableToCreateDirectory)
@@ -5815,6 +5821,6 @@ TEST_F(ClientAliasNameSuite, preferCannotReactivateExistingContext)
 
     std::stringstream cout_stream;
     EXPECT_EQ(send_command({"aliases", "--format=csv"}, cout_stream), mp::ReturnCode::Ok);
-    EXPECT_EQ(cout_stream.str(), csv_header + "old_alias,primary,whoami,map,secondary\n");
+    EXPECT_EQ(cout_stream.str(), csv_header + "old_alias,primary,whoami,map,secondary,inactive\n");
 }
 } // namespace

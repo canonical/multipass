@@ -9,3 +9,5 @@ aliases:
       command: ls
       instance: primary
       working-directory: map
+context_status:
+  default: active
