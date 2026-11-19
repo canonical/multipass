@@ -22,6 +22,7 @@
 #include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/standard_paths.h>
+#include <multipass/user_messages/alias_context_deprecation_warning.h>
 #include <multipass/utils.h>
 
 namespace mp = multipass;
@@ -72,10 +73,7 @@ mp::AliasDict mp::AliasDict::load_file(mp::Terminal* term, const std::filesystem
                 json.is_object() ? json.as_object().if_contains("active-context") : nullptr;
             if (previous_context && previous_context->is_string() &&
                 previous_context->as_string() != default_context_name)
-                result.cerr << fmt::format(
-                    "Warning: alias context '{}' is inactive. Only the default context is active. "
-                    "Use `multipass aliases` to inspect retained definitions and "
-                    "`multipass alias <instance>:<command> <new-name>` to recreate them.\n",
+                result.cerr << make_inactive_alias_context_warning(
                     previous_context->as_string().c_str());
             return result;
         }

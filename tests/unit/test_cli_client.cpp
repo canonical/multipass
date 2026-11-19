@@ -5358,7 +5358,7 @@ TEST_F(ClientAlias, aliasCreatesInDefaultDespiteInactiveContext)
         mp::ReturnCode::Ok);
 
     EXPECT_EQ(cout_stream.str(), "");
-    EXPECT_THAT(cerr_stream.str(), HasSubstr("alias context 'secondary' is inactive"));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("aliases in the 'secondary' context are inactive"));
 
     send_command({"aliases", "--format=csv"}, cout_stream);
 
@@ -5404,7 +5404,10 @@ TEST_F(ClientAlias, inactiveAliasesCannotExecute)
         EXPECT_EQ(send_command(arguments, cout_stream, cerr_stream),
                   mp::ReturnCode::CommandLineError);
         EXPECT_THAT(cout_stream.str(), IsEmpty());
-        EXPECT_THAT(cerr_stream.str(), HasSubstr("belongs to an inactive context"));
+        EXPECT_THAT(cerr_stream.str(),
+                    HasSubstr("Warning: the alias contexts feature is deprecated"));
+        EXPECT_THAT(cerr_stream.str(),
+                    HasSubstr("belongs to an inactive context and cannot be run"));
         EXPECT_THAT(cerr_stream.str(), HasSubstr("multipass aliases"));
         EXPECT_THAT(cerr_stream.str(),
                     HasSubstr("multipass alias <instance>:<command> <new-name>"));
@@ -5831,8 +5834,7 @@ TEST_F(ClientAliasNameSuite, preferPrintsDeprecationWarning)
               mp::ReturnCode::CommandLineError);
     EXPECT_THAT(cout_stream.str(), IsEmpty());
     EXPECT_THAT(cerr_stream.str(), HasSubstr("`multipass prefer` is deprecated"));
-    EXPECT_THAT(cerr_stream.str(),
-                HasSubstr("Use unique alias names to avoid switching alias contexts."));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("Use unique alias names instead."));
 }
 
 TEST_F(ClientAliasNameSuite, preferDoesNotCreateOrActivateContext)
@@ -5844,7 +5846,7 @@ TEST_F(ClientAliasNameSuite, preferDoesNotCreateOrActivateContext)
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"prefer", "new_context"}, trash_stream, cerr_stream),
               mp::ReturnCode::CommandLineError);
-    EXPECT_THAT(cerr_stream.str(), HasSubstr("Only the default context is active"));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("only the default context is active"));
 
     cout_stream.str(std::string());
     send_command({"aliases", "--format=yaml"}, cout_stream);

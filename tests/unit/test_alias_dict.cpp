@@ -377,7 +377,8 @@ TEST_F(AliasDictionary, loadingOldConfigurationDoesNotWrite)
         EXPECT_TRUE(dict.is_inactive_alias("show"));
         EXPECT_EQ(dict.get_alias("show"), std::nullopt);
         EXPECT_EQ(dict.get_alias("secondary.show"), std::nullopt);
-        EXPECT_THAT(warnings.str(), HasSubstr("alias context 'secondary' is inactive"));
+        EXPECT_THAT(warnings.str(), HasSubstr("aliases in the 'secondary' context are inactive"));
+        EXPECT_THAT(warnings.str(), HasSubstr("Warning: the alias contexts feature is deprecated"));
         EXPECT_THAT(warnings.str(), HasSubstr("multipass alias <instance>:<command> <new-name>"));
 
         const auto copy = dict;

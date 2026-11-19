@@ -23,4 +23,5 @@ target_link_libraries(client_common
   platform
   rpc
   settings
+  user_messages
   Qt6::Core)
