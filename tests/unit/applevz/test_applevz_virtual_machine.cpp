@@ -18,6 +18,7 @@
 #include "mock_applevz_utils.h"
 #include "mock_applevz_wrapper.h"
 #include "tests/unit/common.h"
+#include "tests/unit/mock_availability_zone.h"
 #include "tests/unit/mock_cloud_init_file_ops.h"
 #include "tests/unit/mock_logger.h"
 #include "tests/unit/mock_status_monitor.h"
@@ -87,7 +88,7 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
         0xbadf00d);
     mp::applevz::VMHandle mock_handle{mock_handle_raw, [](mp::applevz::VirtualMachineHandle*) {}};
 
-    auto construct_vm(applevz::AppleVMState initial_state = applevz::AppleVMState::stopped)
+    auto construct_vm(applevz::AppleVMState initial_state, mp::AvailabilityZone& zone)
     {
         EXPECT_CALL(mock_monitor, persist_state_for(desc.vm_name, _)).Times(AnyNumber());
 
@@ -95,15 +96,13 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
             .WillRepeatedly(ReturnArg<0>());
         EXPECT_CALL(mock_image_utils, resize_image(_, _)).WillRepeatedly(Return());
 
-        auto uut = std::make_shared<mp::applevz::AppleVZVirtualMachine>(
-            desc,
-            mock_monitor,
-            stub_key_provider,
-            az_manager.get_zone(desc.zone),
-            instance_dir.path());
+        auto uut = std::make_shared<mp::applevz::AppleVZVirtualMachine>(desc,
+                                                                        mock_monitor,
+                                                                        stub_key_provider,
+                                                                        zone,
+                                                                        instance_dir.path());
 
-        // a VM only has a handle once started, as in the daemon
-        if (initial_state != applevz::AppleVMState::stopped)
+        if (initial_state != applevz::AppleVMState::stopped && zone.is_available())
         {
             EXPECT_CALL(mock_applevz, create_vm(_, _, _))
                 .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(applevz::CFError{})));
@@ -118,6 +117,20 @@ struct AppleVZVirtualMachine_UnitTests : public testing::Test
 
         return uut;
     }
+
+    auto construct_vm(applevz::AppleVMState initial_state = applevz::AppleVMState::stopped)
+    {
+        return construct_vm(initial_state, az_manager.get_zone(desc.zone));
+    }
+
+    auto construct_unavailable_vm(
+        applevz::AppleVMState initial_state = applevz::AppleVMState::stopped)
+    {
+        ON_CALL(unavailable_zone, is_available).WillByDefault(Return(false));
+        return construct_vm(initial_state, unavailable_zone);
+    }
+
+    NiceMock<mpt::MockAvailabilityZone> unavailable_zone;
 };
 
 TEST_F(AppleVZVirtualMachine_UnitTests, startVMFromStoppedSuccess)
@@ -345,6 +358,24 @@ TEST_F(AppleVZVirtualMachine_UnitTests, fetchStateReportsUnavailableWhenZoneUnav
     uut->set_available(false);
 
     EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::unavailable);
+}
+
+TEST_F(AppleVZVirtualMachine_UnitTests, unavailableVMStartsOnceAvailable)
+{
+    auto uut = construct_unavailable_vm();
+
+    EXPECT_FALSE(uut->set_available(true));
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::stopped);
+
+    EXPECT_CALL(mock_applevz, create_vm)
+        .WillOnce(DoAll(SetArgReferee<2>(mock_handle), Return(applevz::CFError{})));
+    EXPECT_CALL(mock_applevz, can_start(_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(mock_applevz, start_vm(_));
+    EXPECT_CALL(mock_applevz, get_state(_)).WillRepeatedly(Return(applevz::AppleVMState::running));
+
+    uut->start();
+
+    EXPECT_EQ(uut->fetch_state(), VirtualMachine::State::starting);
 }
 
 TEST_F(AppleVZVirtualMachine_UnitTests, addNetworkInterfaceAppliesOnNextStart)
