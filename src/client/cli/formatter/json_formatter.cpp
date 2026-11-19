@@ -339,6 +339,7 @@ std::string mp::JsonFormatter::format(const VersionReply& reply,
 std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
 {
     auto json = boost::json::value_from(aliases);
+    // TODO@remove-prefer drop context-status along with alias contexts
     boost::json::object context_status;
 
     for (const auto& context : json.as_object().at("contexts").as_object())

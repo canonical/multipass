@@ -115,6 +115,7 @@ _multipass_complete()
     }
 
     # Set $multipass_aliases to the list of available aliases.
+    # TODO@remove-prefer only complete default aliases once inactive contexts are gone
     _multipass_aliases()
     {
         multipass_aliases=$( multipass aliases --format=csv 2>/dev/null \

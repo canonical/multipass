@@ -603,6 +603,7 @@ std::string mp::TableFormatter::format(const mp::AliasDict& aliases) const
             header_width);
     };
 
+    // TODO@remove-prefer drop the Context status column along with alias contexts
     const std::string alias_col_header = "Alias", instance_col_header = "Instance",
                       command_col_header = "Command", context_col_header = "Context",
                       dir_col_header = "Working directory",
