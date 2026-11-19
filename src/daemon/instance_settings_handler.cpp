@@ -79,11 +79,10 @@ std::pair<std::string, std::string> parse_key(const QString& key)
 }
 
 template <typename InstanceMap>
-typename InstanceMap::mapped_type&
-pick_instance(InstanceMap& instances,
-              const std::string& instance_name,
-              Operation operation,
-              const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted = {})
+auto& pick_instance(InstanceMap& instances,
+                    const std::string& instance_name,
+                    Operation operation,
+                    const std::unordered_map<std::string, mp::VirtualMachine::ShPtr>& deleted = {})
 {
     try
     {
@@ -137,7 +136,7 @@ void update_cpus(const QString& key,
             val,
             QString("Need a positive integer (in decimal format) of minimum %1")
                 .arg(mp::min_cpu_cores)};
-    else if (cpus != spec.num_cores) // NOOP if equal
+    else if (cpus != instance.get_num_cores()) // NOOP if equal
     {
         instance.update_cpus(cpus);
         spec.num_cores = cpus;
@@ -155,7 +154,7 @@ void update_mem(const QString& key,
             key,
             val,
             QString("Memory less than %1 minimum not allowed").arg(mp::min_memory_size)};
-    else if (size != spec.mem_size) // NOOP if equal
+    else if (size != instance.get_mem_size()) // NOOP if equal
     {
         instance.resize_memory(size);
         spec.mem_size = size;
@@ -169,9 +168,10 @@ void update_disk(const QString& key,
                  const mp::MemorySize& size,
                  mp::UserMessages& messages)
 {
-    if (size < spec.disk_space)
+    const auto disk_space = instance.get_disk_space();
+    if (size < disk_space)
         throw mp::InvalidSettingException{key, val, "Disk can only be expanded"};
-    else if (size > spec.disk_space) // NOOP if equal
+    else if (size > disk_space) // NOOP if equal
     {
         instance.resize_disk(size, messages);
         spec.disk_space = size;
@@ -238,21 +238,21 @@ std::set<QString> mp::InstanceSettingsHandler::keys() const
 QString mp::InstanceSettingsHandler::get(const QString& key) const
 {
     auto [instance_name, property] = parse_key(key);
-    const auto& spec = find_spec(instance_name);
+    const auto& instance = find_instance(instance_name);
 
     if (property == bridged_suffix)
     {
         return is_bridged(instance_name) ? "true" : "false";
     }
     if (property == cpus_suffix)
-        return QString::number(spec.num_cores);
+        return QString::number(instance.get_num_cores());
     if (property == mem_suffix)
         return QString::fromStdString(
-            spec.mem_size.human_readable()); /* TODO return in bytes when --raw
+            instance.get_mem_size().human_readable()); /* TODO return in bytes when --raw
                                                 (need unmarshall capability, w/ flag) */
 
     assert(property == disk_suffix);
-    return QString::fromStdString(spec.disk_space.human_readable()); // TODO idem
+    return QString::fromStdString(instance.get_disk_space().human_readable()); // TODO idem
 }
 
 void mp::InstanceSettingsHandler::set(const QString& key,
@@ -307,8 +307,12 @@ auto mp::InstanceSettingsHandler::modify_spec(const std::string& instance_name) 
     return pick_instance(vm_instance_specs, instance_name, Operation::Modify);
 }
 
-auto mp::InstanceSettingsHandler::find_spec(const std::string& instance_name) const
-    -> const VMSpecs&
+auto mp::InstanceSettingsHandler::find_instance(const std::string& instance_name) const
+    -> const VirtualMachine&
 {
-    return pick_instance(vm_instance_specs, instance_name, Operation::Obtain);
+    const auto& instances = deleted_instances.contains(instance_name) ? deleted_instances
+                                                                      : operative_instances;
+    const auto ret = pick_instance(instances, instance_name, Operation::Obtain);
+    assert(ret && "can't have null instance");
+    return *ret;
 }

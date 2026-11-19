@@ -136,6 +136,11 @@ struct TestInstanceSettingsHandler : public Test
     {
         auto ret = std::make_shared<MockCharacter<mpt::MockVirtualMachine>>();
         EXPECT_CALL(*ret, get_name).WillRepeatedly(ReturnRefOfCopy(name));
+        ON_CALL(*ret, get_num_cores).WillByDefault([this, name] { return specs[name].num_cores; });
+        ON_CALL(*ret, get_mem_size).WillByDefault([this, name] { return specs[name].mem_size; });
+        ON_CALL(*ret, get_disk_space).WillByDefault([this, name] {
+            return specs[name].disk_space;
+        });
 
         auto& vm_collection = deleted ? deleted_vms : vms;
         vm_collection.emplace(name, ret);
@@ -227,22 +232,24 @@ TEST_F(TestInstanceSettingsHandler, keysDoesNotPersistInstances)
 TEST_F(TestInstanceSettingsHandler, getFetchesInstanceCPUs)
 {
     constexpr auto target_instance_name = "foo";
-    specs.insert({{target_instance_name, {}}, {"bar", {}}, {"baz", {}}});
-    specs[target_instance_name].num_cores = 78;
+    constexpr auto num_cores = 78;
+    mock_vm("bar");
+    EXPECT_CALL(mock_vm(target_instance_name), get_num_cores).WillOnce(Return(num_cores));
 
     auto got = make_handler().get(make_key(target_instance_name, "cpus"));
-    EXPECT_EQ(got, QString::number(specs[target_instance_name].num_cores));
+    EXPECT_EQ(got, QString::number(num_cores));
 }
 
 TEST_F(TestInstanceSettingsHandler, getFetchesInstanceMemory)
 {
     constexpr auto target_instance_name = "elsa";
-    specs.insert({{"hugo", {}}, {target_instance_name, {}}, {"flint", {}}});
-    specs[target_instance_name].mem_size = mp::MemorySize{"789MiB"};
+    const auto mem_size = mp::MemorySize{"789MiB"};
+    mock_vm("hugo");
+    EXPECT_CALL(mock_vm(target_instance_name), get_mem_size).WillOnce(Return(mem_size));
 
     auto got = make_handler().get(make_key(target_instance_name, "memory"));
     got.remove(".0"); // TODO drop decimal removal once MemorySize accepts it as input
-    EXPECT_EQ(mp::MemorySize{got.toStdString()}, specs[target_instance_name].mem_size); /* note that
+    EXPECT_EQ(mp::MemorySize{got.toStdString()}, mem_size); /* note that
     this doesn't work for all values, because the value is returned in human readable format, which
     approximates (unless and until --raw is used/implemented) */
 }
@@ -250,12 +257,22 @@ TEST_F(TestInstanceSettingsHandler, getFetchesInstanceMemory)
 TEST_F(TestInstanceSettingsHandler, getFetchesInstanceDisk)
 {
     constexpr auto target_instance_name = "blue";
-    specs.insert({{"rhapsody", {}}, {"in", {}}, {target_instance_name, {}}});
-    specs[target_instance_name].disk_space = mp::MemorySize{"123G"};
+    const auto disk_space = mp::MemorySize{"123G"};
+    mock_vm("rhapsody");
+    EXPECT_CALL(mock_vm(target_instance_name), get_disk_space).WillOnce(Return(disk_space));
 
     auto got = make_handler().get(make_key(target_instance_name, "disk"));
-    got.remove(".0"); // TODO idem
-    EXPECT_EQ(mp::MemorySize{got.toStdString()}, specs[target_instance_name].disk_space); // idem
+    got.remove(".0");                                         // TODO idem
+    EXPECT_EQ(mp::MemorySize{got.toStdString()}, disk_space); // idem
+}
+
+TEST_F(TestInstanceSettingsHandler, getFetchesPropertiesOfDeletedInstance)
+{
+    constexpr auto target_instance_name = "vague";
+    auto& instance = mock_vm(target_instance_name, /*deleted=*/true);
+    EXPECT_CALL(instance, get_num_cores).WillOnce(Return(3));
+
+    EXPECT_EQ(make_handler().get(make_key(target_instance_name, "cpus")), "3");
 }
 
 TEST_F(TestInstanceSettingsHandler, getReturnsMemorySizesInHumanReadableFormat)
@@ -263,6 +280,7 @@ TEST_F(TestInstanceSettingsHandler, getReturnsMemorySizesInHumanReadableFormat)
     constexpr auto target_instance_name = "tinkerbell-hates-goatees";
     specs[target_instance_name].disk_space = mp::MemorySize{"12345KiB"};
     specs[target_instance_name].mem_size = mp::MemorySize{"345678"};
+    mock_vm(target_instance_name);
 
     const auto handler = make_handler();
 
@@ -286,6 +304,7 @@ TEST_P(TestBridgedInstanceSettings, getFetchesBridged)
 
     specs[target_instance_name].extra_interfaces = {
         {.id = br_interface, .mac_address = "52:54:00:12:34:56", .auto_mode = true}};
+    mock_vm(target_instance_name);
 
     const auto got = make_handler().get(make_key(target_instance_name, "bridged"));
     EXPECT_EQ(got, bridged ? "true" : "false");
@@ -298,36 +317,16 @@ INSTANTIATE_TEST_SUITE_P(getFetchesBridged,
                                 std::make_pair("eth9", false),
                                 std::make_pair("br-eth9", false)));
 
-TEST_F(TestInstanceSettingsHandler, getFetchesPropertiesOfInstanceInSpecialState)
-{
-    constexpr auto preparing_instance = "nouvelle", deleted_instance = "vague";
-    specs[preparing_instance];
-    specs[deleted_instance];
-
-    fake_instance_state(preparing_instance, SpecialInstanceState::preparing);
-    fake_instance_state(deleted_instance, SpecialInstanceState::deleted);
-
-    const auto handler = make_handler();
-
-    for (const auto* instance : {preparing_instance, deleted_instance})
-    {
-        for (const auto& property : properties)
-        {
-            EXPECT_NO_THROW(handler.get(make_key(instance, property)));
-        }
-    }
-}
-
 TEST_F(TestInstanceSettingsHandler, getDoesNotPersistInstances)
 {
-    constexpr auto ready_instance = "asdf", preparing_instance = "sdfg", deleted_instance = "dfgh";
-    constexpr auto instances = std::array{ready_instance, preparing_instance, deleted_instance};
+    constexpr auto ready_instance = "asdf", deleted_instance = "dfgh";
+    constexpr auto instances = std::array{ready_instance, deleted_instance};
 
     for (const auto& instance : instances)
         specs[instance];
 
-    fake_instance_state(preparing_instance, SpecialInstanceState::preparing);
-    fake_instance_state(deleted_instance, SpecialInstanceState::deleted);
+    mock_vm(ready_instance);
+    mock_vm(deleted_instance, /*deleted=*/true);
 
     const auto handler = make_handler();
 
@@ -358,7 +357,7 @@ outside the handler (only references held there) */
 
     for (const auto* name : {"toto", "tata", "fuzz"})
     {
-        vms[name];
+        mock_vm(name);
         specs.emplace(name, spec);
         spec.mem_size = make_mem_size(++gigs);
         ++spec.num_cores;
@@ -379,7 +378,7 @@ TEST_F(TestInstanceSettingsHandler, getThrowsOnWrongProperty)
 {
     constexpr auto target_instance_name = "asdf";
     constexpr auto wrong_property = "wrong";
-    specs[target_instance_name];
+    mock_vm(target_instance_name);
 
     MP_EXPECT_THROW_THAT(make_handler().get(make_key(target_instance_name, wrong_property)),
                          mp::UnrecognizedSettingException,
