@@ -65,7 +65,7 @@ public:
         };
         auto on_failure = [this](grpc::Status& status) -> mp::ReturnCodeVariant {
             multipass::CreateError create_error;
-            create_error.ParseFromString(status.error_details());
+            EXPECT_TRUE(create_error.ParseFromString(status.error_details()));
             const auto errors = create_error.error_codes();
 
             cerr << "failed: " << status.error_message();

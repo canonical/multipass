@@ -10,3 +10,18 @@ set(VCPKG_OSX_DEPLOYMENT_TARGET "@CMAKE_OSX_DEPLOYMENT_TARGET@")
 # rather than silently weak-linking it (it would resolve to NULL and crash on older macOS)
 set(VCPKG_C_FLAGS "-Werror=unguarded-availability-new")
 set(VCPKG_CXX_FLAGS "-Werror=unguarded-availability-new")
+
+# The macOS 27 SDK declares pipe2 (macOS 27.0+), which some ports would otherwise detect and call
+# unguarded. Make them fall back to pipe() + FD_CLOEXEC instead.
+if(PORT STREQUAL "dbus")
+    list(APPEND VCPKG_CMAKE_CONFIGURE_OPTIONS "-DHAVE_PIPE2=OFF")
+elseif(PORT STREQUAL "gettext")
+    # Take gnulib's "available in a future OS version" path, so it uses its own rpl_pipe2, which
+    # does not call pipe2. Merely setting ac_cv_func_pipe2=no would leave callers using the
+    # SDK-declared pipe2.
+    list(APPEND VCPKG_CONFIGURE_MAKE_OPTIONS "gl_cv_onwards_func_pipe2=future")
+elseif(PORT STREQUAL "glib")
+    # Meson's has_function finds pipe2 regardless of the deployment target. Like the autoconf check,
+    # it rejects functions that glibc marks as stubs, so pretend pipe2 is one.
+    string(APPEND VCPKG_C_FLAGS " -D__stub_pipe2")
+endif()

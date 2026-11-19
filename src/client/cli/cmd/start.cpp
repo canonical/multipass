@@ -68,11 +68,12 @@ mp::ReturnCodeVariant cmd::Start::run(mp::ArgParser* parser)
         spinner.stop();
 
         std::string details;
-        if (status.error_code() == grpc::StatusCode::ABORTED && !status.error_details().empty())
+        mp::StartError start_error;
+        // Malformed details fall through to the generic error, rather than looking like a
+        // missing primary instance (which would trigger launching it)
+        if (status.error_code() == grpc::StatusCode::ABORTED && !status.error_details().empty() &&
+            start_error.ParseFromString(status.error_details()))
         {
-            mp::StartError start_error;
-            start_error.ParseFromString(status.error_details());
-
             for (const auto& pair : start_error.instance_errors())
             {
                 if (pair.second == mp::StartError::INSTANCE_DELETED)

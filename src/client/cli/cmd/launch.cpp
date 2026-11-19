@@ -560,7 +560,9 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             timer->pause();
 
         LaunchError launch_error;
-        launch_error.ParseFromString(status.error_details());
+        if (!launch_error.ParseFromString(status.error_details()))
+            launch_error.Clear(); // malformed details: fall back to the generic error message
+
         std::string error_details;
 
         for (const auto& error : launch_error.error_codes())
