@@ -74,7 +74,6 @@ public:
     bool exists_alias(const std::string& alias) const;
     bool remove_alias(const std::string& alias);
     bool remove_alias(const std::string& context, const std::string& alias);
-    bool remove_context(const std::string& context);
     std::vector<ContextAliasPair> remove_aliases_for_instance(const std::string& instance);
     std::optional<ContextAliasPair> get_context_and_alias(const std::string& alias) const;
     std::optional<AliasDefinition> get_alias_from_current_context(const std::string& alias) const;
