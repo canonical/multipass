@@ -547,13 +547,9 @@ void mp::HyperVVirtualMachine::resize_disk_impl(const MemorySize& new_size)
     power_shell->easy_run(resize_cmd, "Could not resize disk");
 }
 
-void mp::HyperVVirtualMachine::add_network_interface(int /* not used on this backend */,
-                                                     const std::string& default_mac_addr,
-                                                     const NetworkInterface& extra_interface)
+void mp::HyperVVirtualMachine::add_network_interface_impl(const NetworkInterface& extra_interface)
 {
-    desc.extra_interfaces.push_back(extra_interface);
     add_extra_net(*power_shell, name, extra_interface);
-    add_extra_interface_to_instance_cloud_init(default_mac_addr, extra_interface);
 }
 
 mp::MountHandler::UPtr mp::HyperVVirtualMachine::make_native_mount_handler(

@@ -140,7 +140,7 @@ struct StubVirtualMachine final : public VirtualMachine
     {
     }
 
-    void add_network_interface(int, const std::string&, const NetworkInterface&) override
+    void add_network_interface(const NetworkInterface&) override
     {
     }
 

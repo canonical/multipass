@@ -110,6 +110,7 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
     MOCK_METHOD(void, update_cpus_impl, (int), (override));
     MOCK_METHOD(void, resize_memory_impl, (const mp::MemorySize&), (override));
     MOCK_METHOD(void, resize_disk_impl, (const mp::MemorySize&), (override));
+    MOCK_METHOD(void, add_network_interface_impl, (const mp::NetworkInterface&), (override));
 
     MOCK_METHOD(std::unique_ptr<mp::SSHProcess>,
                 make_ssh_process,
@@ -340,18 +341,6 @@ TEST_F(BaseVM, providesInstanceDirectory)
     const StubBaseVirtualMachine vm{St::stopped, zone, std::move(vm_dir)};
 
     EXPECT_EQ(vm.instance_directory().absolutePath(), vm_path);
-}
-
-TEST_F(BaseVM, addNetworkInterfaceThrows)
-{
-    StubBaseVirtualMachine base_vm(zone, St::stopped);
-
-    MP_EXPECT_THROW_THAT(base_vm.add_network_interface(
-                             1,
-                             "",
-                             {.id = "eth1", .mac_address = "52:54:00:00:00:00", .auto_mode = true}),
-                         mp::NotImplementedOnThisBackendException,
-                         mpt::match_what(HasSubstr("networks")));
 }
 
 struct IpTestParams
@@ -1369,6 +1358,39 @@ TEST_F(BaseVM, rollsbackFailedRestore)
     EXPECT_EQ(vm.take_snapshot(current_specs, "", "")->get_parent().get(), &last_snapshot);
 }
 
+TEST_F(BaseVM, rollsBackDescriptionOnFailedRestore)
+{
+    mock_snapshotting();
+
+    const mp::VMSpecs specs{};
+    const auto* snapshot_name = "snapshot1";
+    vm.take_snapshot(specs, snapshot_name, "");
+
+    ASSERT_EQ(snapshot_album.size(), 1);
+    auto& snapshot = *snapshot_album[0];
+
+    const std::vector<mp::NetworkInterface> snapshot_interfaces{{"id", "52:54:00:56:78:91", true}};
+    const auto orig_num_cores = vm.desc.num_cores;
+    const auto orig_interfaces = vm.desc.extra_interfaces;
+
+    EXPECT_CALL(snapshot, get_mounts).WillRepeatedly(ReturnRef(specs.mounts));
+    EXPECT_CALL(snapshot, get_metadata).WillRepeatedly(ReturnRef(specs.metadata));
+    EXPECT_CALL(snapshot, get_extra_interfaces).WillRepeatedly(Return(snapshot_interfaces));
+    EXPECT_CALL(snapshot, apply).WillOnce([this, orig_num_cores, &snapshot_interfaces] {
+        vm.desc.num_cores = orig_num_cores + 1;
+        vm.desc.extra_interfaces = snapshot_interfaces;
+    });
+    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first,
+                update_cloud_init_with_new_extra_interfaces_and_new_id)
+        .WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    auto current_specs = specs;
+    EXPECT_ANY_THROW(vm.restore_snapshot(snapshot_name, current_specs));
+
+    EXPECT_EQ(vm.desc.num_cores, orig_num_cores);
+    EXPECT_EQ(vm.desc.extra_interfaces, orig_interfaces);
+}
+
 TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
 {
     vm.simulate_cloud_init();
@@ -1694,6 +1716,34 @@ TEST_F(BaseVM, resizeMemoryLeavesDescriptionWhenImplThrows)
     EXPECT_THROW(vm.mp::BaseVirtualMachine::resize_memory(new_size), std::runtime_error);
 
     EXPECT_EQ(vm.desc.mem_size, orig_mem_size);
+}
+
+TEST_F(BaseVM, addNetworkInterfaceCallsImplAndUpdatesDescription)
+{
+    const mp::NetworkInterface existing{"eth0", "52:54:00:00:00:01", true};
+    const mp::NetworkInterface new_if{"eth1", "52:54:00:00:00:02", false};
+    vm.desc.default_mac_address = "52:54:00:00:00:00";
+    vm.desc.extra_interfaces = {existing};
+
+    EXPECT_CALL(vm, add_network_interface_impl(new_if));
+    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first,
+                add_extra_interface_to_cloud_init("52:54:00:00:00:00", new_if, _));
+
+    vm.mp::BaseVirtualMachine::add_network_interface(new_if);
+
+    EXPECT_THAT(vm.desc.extra_interfaces, ElementsAre(existing, new_if));
+}
+
+TEST_F(BaseVM, addNetworkInterfaceLeavesDescriptionWhenImplThrows)
+{
+    EXPECT_CALL(vm, add_network_interface_impl).WillOnce(Throw(std::runtime_error{"intentional"}));
+    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first, add_extra_interface_to_cloud_init)
+        .Times(0);
+
+    EXPECT_THROW(vm.mp::BaseVirtualMachine::add_network_interface({"eth1", "", true}),
+                 std::runtime_error);
+
+    EXPECT_THAT(vm.desc.extra_interfaces, IsEmpty());
 }
 
 } // namespace
