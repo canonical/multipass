@@ -775,4 +775,12 @@ TEST_F(PlatformLinux, getPreferredSubnetChecksMultipassSubnetFile)
 
     EXPECT_EQ(MP_PLATFORM.get_preferred_subnet("data/dir"), mp::Subnet{"192.168.42.0/16"});
 }
+
+TEST_F(PlatformLinux, getPreferredSubnetAllowsWhitespaceInMultipassSubnetFile)
+{
+    auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, try_read_file).WillOnce(Return("  192.168.42\n"));
+
+    EXPECT_EQ(MP_PLATFORM.get_preferred_subnet("data/dir"), mp::Subnet{"192.168.42.0/16"});
+}
 } // namespace
