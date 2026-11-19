@@ -74,10 +74,7 @@ mp::ParseCode cmd::Clone::parse_args(ArgParser* parser)
 
     const QCommandLineOption destination_name_option{
         {"n", "name"},
-        "An optional custom name for the cloned instance. The name must follow the usual validity "
-        "rules "
-        "(see \"help launch\"). Default: \"<source_name>-cloneN\", where N is the Nth cloned "
-        "instance.",
+        "Specify a custom name for the cloned instance. The name must follow the same validity rules as instance names (see \"help launch\"). Default: \"<source_name>-cloneN\", where N is the Nth cloned instance.",
         "destination-name"};
 
     parser->addOption(destination_name_option);
