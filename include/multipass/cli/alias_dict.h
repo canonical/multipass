@@ -121,7 +121,7 @@ public:
 
 private:
     void save_file();
-    void migrate_file(); // TODO@remove-prefer remove along with alias contexts
+    void migrate_legacy_file(const boost::json::value& json); // TODO@remove-prefer
     void sanitize_contexts();
 
     friend void tag_invoke(const boost::json::value_from_tag&,

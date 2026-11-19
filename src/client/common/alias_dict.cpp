@@ -84,12 +84,7 @@ mp::AliasDict mp::AliasDict::load_file(mp::Terminal* term, const std::filesystem
         {
             auto json = boost::json::parse(*filedata);
             auto result = value_to<AliasDict>(json, JSONContext{term, filename});
-            // TODO@remove-prefer remove along with alias contexts
-            if (const auto previous_context = legacy_active_context(json))
-            {
-                result.cerr << make_inactive_alias_context_warning(*previous_context);
-                result.migrate_file();
-            }
+            result.migrate_legacy_file(json); // TODO@remove-prefer remove with alias contexts
             return result;
         }
         catch (const boost::system::system_error& e)
@@ -253,10 +248,18 @@ void mp::AliasDict::save_file()
     MP_FILEOPS.write_transactionally(aliases_file, pretty_print(json));
 }
 
-// Persist the normalized dictionary once, so that the legacy active context is dropped. A failure
-// is not fatal: the original file is left intact and the migration is retried on the next load.
-void mp::AliasDict::migrate_file()
+// TODO@remove-prefer remove along with alias contexts
+// Warn about a legacy active context and persist the normalized dictionary once, so that it is
+// dropped. A failed save is not fatal: the original file is left intact and the migration is
+// retried on the next load.
+void mp::AliasDict::migrate_legacy_file(const boost::json::value& json)
 {
+    const auto previous_context = legacy_active_context(json);
+    if (!previous_context)
+        return;
+
+    cerr << make_inactive_alias_context_warning(*previous_context);
+
     try
     {
         save_file();
