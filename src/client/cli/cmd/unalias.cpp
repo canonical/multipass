@@ -91,6 +91,7 @@ mp::ParseCode cmd::Unalias::parse_args(mp::ArgParser* parser)
 
     if (parser->isSet(all_option_name))
     {
+        // TODO@remove-prefer iterate the default context only, along with alias contexts removal
         for (const auto& [context_name, context] : aliases)
             for (const auto& [alias_name, _] : context)
                 aliases_to_remove.emplace_back(context_name, alias_name);
