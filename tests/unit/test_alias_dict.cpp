@@ -323,6 +323,15 @@ TEST_F(AliasDictionary, clearWorks)
     ASSERT_TRUE(dict.empty());
 }
 
+TEST_F(AliasDictionary, emptyWhenAllContextsAreEmpty)
+{
+    const mp::AliasDefinition alias{"instance", "command", "map"};
+
+    EXPECT_TRUE(make_dict({{"default", {}}, {"another", {}}}).empty());
+    EXPECT_FALSE(make_dict({{"default", {}}, {"another", {{"alias", alias}}}}).empty());
+    EXPECT_FALSE(make_dict({{"default", {{"alias", alias}}}, {"another", {}}}).empty());
+}
+
 TEST_F(AliasDictionary, correctlyGetsAliasInDefaultContext)
 {
     auto dict = mp::AliasDict(&trash_term, "");

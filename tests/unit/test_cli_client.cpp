@@ -5401,6 +5401,15 @@ TEST_F(ClientAlias, readOnlyLegacyAliasesDoNotPreventCommands)
     EXPECT_EQ(mpt::load(filename).toStdString(), original_file);
 }
 
+TEST_F(ClientAlias, aliasesReportsNoAliasesWithEmptyInactiveContext)
+{
+    populate_db_file(AliasesVector{}, "secondary");
+
+    std::stringstream cout_stream;
+    EXPECT_EQ(send_command({"aliases"}, cout_stream, trash_stream), mp::ReturnCode::Ok);
+    EXPECT_EQ(cout_stream.str(), "No aliases defined.\n");
+}
+
 TEST_F(ClientAlias, inactiveAliasesCannotExecute)
 {
     populate_db_file(AliasesVector{{"old_alias", {"primary", "whoami", "map"}},

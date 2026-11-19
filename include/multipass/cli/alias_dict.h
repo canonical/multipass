@@ -21,6 +21,7 @@
 #include <multipass/terminal.h>
 #include <multipass/utils/forward_like.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <optional>
 #include <ranges>
@@ -99,7 +100,9 @@ public:
 
     bool empty() const
     {
-        return (aliases.empty() || (aliases.size() == 1 && get_active_context().empty()));
+        return std::ranges::all_of(aliases, [](const auto& context) {
+            return context.second.empty();
+        });
     }
     size_type size() const
     {
