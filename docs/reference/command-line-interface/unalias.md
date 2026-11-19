@@ -40,7 +40,7 @@ Options:
   -v, --verbose  Increase logging verbosity. Repeat the 'v' in the short option
                  for more detail. Maximum verbosity is obtained with 4 (or more)
                  v's, i.e. -vvvv.
-  --all          Remove all aliases from current context
+  --all          Remove all aliases from all contexts
 
 Arguments:
   name           Names of aliases to remove
