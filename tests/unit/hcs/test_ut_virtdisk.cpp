@@ -311,8 +311,8 @@ TEST_F(HyperVVirtDisk_UnitTests, create_virtual_disk_failed)
         const auto& [status, status_msg] = VirtDisk().create_virtual_disk(params);
         EXPECT_FALSE(status.success());
         ASSERT_FALSE(status_msg.empty());
-        EXPECT_NE(status_msg.find(L"CreateVirtualDisk failed"), std::wstring::npos);
-        EXPECT_NE(status_msg.find(L"(0x80070003)"), std::wstring::npos);
+        EXPECT_TRUE(status_msg.contains(L"CreateVirtualDisk failed"));
+        EXPECT_TRUE(status_msg.contains(L"(0x80070003)"));
     }
 }
 
@@ -416,8 +416,8 @@ TEST_F(HyperVVirtDisk_UnitTests, resize_virtual_disk_resize_failed)
         const auto& [status, status_msg] = VirtDisk().resize_virtual_disk("test.vhdx", 1234567);
         EXPECT_FALSE(status.success());
         ASSERT_FALSE(status_msg.empty());
-        EXPECT_NE(status_msg.find(L"ResizeVirtualDisk failed"), std::wstring::npos);
-        EXPECT_NE(status_msg.find(L"(0x80070057)"), std::wstring::npos);
+        EXPECT_TRUE(status_msg.contains(L"ResizeVirtualDisk failed"));
+        EXPECT_TRUE(status_msg.contains(L"(0x80070057)"));
     }
 }
 

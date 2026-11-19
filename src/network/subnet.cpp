@@ -142,7 +142,7 @@ size_t mp::Subnet::size(mp::Subnet::PrefixLength prefix_length) const
     // a range with prefix /24 has 256 prefix /32 networks,
     // so a prefix /16 network can hold 65536 / 256 = 256 prefix /24 networks.
     // ex. 2^(24 - 16) = 256, [192.168.0.0/24, 192.168.255.0/24]
-    return std::size_t{1} << (prefix_length - this->prefix_length());
+    return 1uz << (prefix_length - this->prefix_length());
 }
 
 bool mp::Subnet::contains(Subnet other) const
@@ -190,7 +190,7 @@ mp::Subnet mp::SubnetAllocator::next_available()
     const auto offset_mask = ~get_subnet_mask(base_subnet.prefix_length()).as_uint32();
 
     // The step size as a byte offset for each subnet to allocate.
-    const std::uint32_t step = std::size_t{1} << (32 - prefix);
+    const std::uint32_t step = 1uz << (32 - prefix);
 
     while (block_idx < possible_subnets)
     {
