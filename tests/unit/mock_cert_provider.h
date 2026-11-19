@@ -19,6 +19,8 @@
 
 #include <multipass/cert_provider.h>
 
+#include <gmock/gmock.h>
+
 using namespace testing;
 
 namespace multipass::test

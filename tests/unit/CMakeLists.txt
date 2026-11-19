@@ -155,6 +155,7 @@ add_executable(multipass_cpp_tests
   test_with_mocked_bin_path.cpp
   test_xz_image_decoder.cpp
   test_yaml_node_utils.cpp
+  cli/test_cli_launch.cpp
 )
 
 # TODO hyperv migration, remove
