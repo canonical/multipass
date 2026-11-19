@@ -28,8 +28,8 @@
 
 #include <multipass/exceptions/exitless_sshprocess_exceptions.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
-#include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/vm_mount.h>
+#include <shared/sshfs_mount_handler.h>
 
 #include <QCoreApplication>
 #include <QTimer>

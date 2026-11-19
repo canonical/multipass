@@ -58,7 +58,6 @@
 #include <multipass/settings/settings.h>
 #include <multipass/snapshot.h>
 #include <multipass/ssh/ssh_session.h>
-#include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
 #include <multipass/user_messages/driver_deprecation_warning.h>
 #include <multipass/utils/grpc_utils.h>
@@ -68,6 +67,7 @@
 #include <multipass/vm_image.h>
 #include <multipass/vm_image_vault.h>
 #include <multipass/yaml_node_utils.h>
+#include <shared/sshfs_mount_handler.h>
 
 #include <scope_guard.hpp>
 
