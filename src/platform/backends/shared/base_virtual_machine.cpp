@@ -454,6 +454,21 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
     mpu::try_action_for(on_timeout, timeout, action);
 }
 
+int mp::BaseVirtualMachine::get_num_cores() const
+{
+    return desc.num_cores;
+}
+
+mp::MemorySize mp::BaseVirtualMachine::get_mem_size() const
+{
+    return desc.mem_size;
+}
+
+mp::MemorySize mp::BaseVirtualMachine::get_disk_space() const
+{
+    return desc.disk_space;
+}
+
 void mp::BaseVirtualMachine::update_cpus(int num_cores)
 {
     assert(num_cores > 0);

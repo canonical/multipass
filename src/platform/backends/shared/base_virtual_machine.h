@@ -69,6 +69,9 @@ public:
     void wait_until_ssh_up(std::chrono::milliseconds timeout) override;
     void wait_for_cloud_init(std::chrono::milliseconds timeout) override;
 
+    [[nodiscard]] int get_num_cores() const override;
+    [[nodiscard]] MemorySize get_mem_size() const override;
+    [[nodiscard]] MemorySize get_disk_space() const override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size, UserMessages& messages) override;
