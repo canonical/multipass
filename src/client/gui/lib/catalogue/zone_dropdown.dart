@@ -39,11 +39,13 @@ class ZoneDropdown extends ConsumerWidget {
       });
     }
 
+    final selectedZone = value.isNotEmpty ? value : defaultZone;
+
     String? errorText;
     if (!hasAvailableZones) {
       errorText = l10n.zoneDropdownAllZonesUnavailableError;
-    } else if (!zones.any((z) => z.name == value && z.available)) {
-      errorText = l10n.zoneDropdownSelectedZoneUnavailableError(value);
+    } else if (!zones.any((z) => z.name == selectedZone && z.available)) {
+      errorText = l10n.zoneDropdownSelectedZoneUnavailableError(selectedZone);
     }
 
     return Column(
@@ -65,7 +67,7 @@ class ZoneDropdown extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Dropdown<String>(
-          value: value.isNotEmpty ? value : defaultZone,
+          value: selectedZone,
           enabled: enabled,
           onChanged: onChanged,
           items: {
