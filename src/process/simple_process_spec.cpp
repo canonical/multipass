@@ -37,7 +37,7 @@ public:
         return args;
     }
 
-    QString apparmor_profile() const override
+    QString apparmor_profile(const QString&) const override
     {
         return QString();
     }

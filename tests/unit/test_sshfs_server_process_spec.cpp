@@ -29,6 +29,11 @@ namespace mp = multipass;
 namespace mpt = multipass::test;
 using namespace testing;
 
+namespace
+{
+const QString apparmor_profile_name{"multipass.instance.mount.sshfs_server"};
+}
+
 struct TestSSHFSServerProcessSpec : public Test
 {
     mp::SSHFSServerConfig config{"host",
@@ -71,6 +76,14 @@ TEST_F(TestSSHFSServerProcessSpec, environmentCorrect)
     EXPECT_EQ(spec.environment().value("KEY"), "private_key");
 }
 
+TEST_F(TestSSHFSServerProcessSpec, apparmorProfileUsesProvidedName)
+{
+    mp::SSHFSServerProcessSpec spec(config);
+
+    EXPECT_TRUE(spec.apparmor_profile(apparmor_profile_name)
+                    .contains(QString{"profile %1"}.arg(apparmor_profile_name)));
+}
+
 TEST_F(TestSSHFSServerProcessSpec, snapConfinedApparmorProfileReturnsExpectedData)
 {
     mpt::TempDir bin_dir;
@@ -80,7 +93,7 @@ TEST_F(TestSSHFSServerProcessSpec, snapConfinedApparmorProfileReturnsExpectedDat
     mpt::SetEnvScope env_scope2("SNAP_NAME", snap_name);
     mp::SSHFSServerProcessSpec spec(config);
 
-    const auto apparmor_profile = spec.apparmor_profile();
+    const auto apparmor_profile = spec.apparmor_profile(apparmor_profile_name);
 
     EXPECT_TRUE(apparmor_profile.contains(bin_dir.path() + "/bin/sshfs_server"));
     EXPECT_TRUE(apparmor_profile.contains(bin_dir.path() + "/{usr/,}lib/**"));
@@ -95,7 +108,7 @@ TEST_F(TestSSHFSServerProcessSpec, unconfinedApparmorProfileReturnsExpectedData)
     mpt::SetEnvScope env_scope2("SNAP_NAME", snap_name);
     mp::SSHFSServerProcessSpec spec(config);
     QDir current_dir(QCoreApplication::applicationDirPath());
-    const auto apparmor_profile = spec.apparmor_profile();
+    const auto apparmor_profile = spec.apparmor_profile(apparmor_profile_name);
 
     current_dir.cdUp();
 
