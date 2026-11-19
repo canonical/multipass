@@ -363,6 +363,7 @@ std::string mp::YamlFormatter::format(const VersionReply& reply,
 std::string mp::YamlFormatter::format(const mp::AliasDict& aliases) const
 {
     YAML::Node aliases_list, aliases_node;
+    // TODO@remove-prefer drop context_status along with alias contexts
     YAML::Node context_status{YAML::NodeType::Map};
 
     for (const auto& [context_name, context_contents] : sorted_map_view(aliases))

@@ -24,6 +24,7 @@
 namespace mp = multipass;
 namespace cmd = multipass::cmd;
 
+// TODO@remove-prefer remove this command along with alias contexts
 mp::ReturnCodeVariant cmd::Prefer::run(mp::ArgParser* parser)
 {
     auto ret = parse_args(parser);

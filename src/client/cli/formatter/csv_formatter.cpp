@@ -277,6 +277,7 @@ std::string mp::CSVFormatter::format(const VersionReply& reply,
 std::string mp::CSVFormatter::format(const mp::AliasDict& aliases) const
 {
     fmt::memory_buffer buf;
+    // TODO@remove-prefer drop the Context status column along with alias contexts
     fmt::format_to(std::back_inserter(buf),
                    "Alias,Instance,Command,Working directory,Context,Context status\n");
 

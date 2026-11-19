@@ -67,6 +67,7 @@ public:
 
     // Only the default context is active. It always exists, even if empty.
     const AliasContext& get_active_context() const;
+    // TODO@remove-prefer remove along with alias contexts
     bool is_context_active(const std::string& context) const;
     bool is_inactive_alias(const std::string& alias) const;
     bool add_alias(const std::string& alias, const AliasDefinition& command);

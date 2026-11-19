@@ -183,6 +183,7 @@ mp::ParseCode mp::ArgParser::parse(const std::optional<mp::AliasDict>& aliases)
         if (execute_alias)
             return prepare_alias_execution(requested_command);
 
+        // TODO@remove-prefer remove along with alias contexts
         if (aliases->is_inactive_alias(requested_command.toStdString()))
         {
             cerr << make_inactive_alias_warning(requested_command.toStdString());
