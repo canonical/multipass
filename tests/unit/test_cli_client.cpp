@@ -4039,9 +4039,7 @@ INSTANTIATE_TEST_SUITE_P(
                           "Create an alias to be executed on a given instance.\n"),
            std::make_pair(std::string{"aliases"}, "List available aliases\n"),
            std::make_pair(std::string{"unalias"}, "Remove aliases\n"),
-           std::make_pair(std::string{"prefer"},
-                          "Switch the current alias context. If it does not exist, create it "
-                          "before switching.")));
+           std::make_pair(std::string{"prefer"}, "Alias contexts can no longer be switched.")));
 
 TEST_F(Client, commandHelpIsDifferentThanGeneralHelp)
 {
@@ -5342,29 +5340,6 @@ TEST_F(ClientAlias, aliasRefusesCreateDuplicateAlias)
     EXPECT_THAT(cout_stream.str(), csv_header + "an_alias,primary,a_command,map,default*\n");
 }
 
-TEST_F(ClientAlias, aliasCreatesAliasThatExistsInAnotherContext)
-{
-    EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
-
-    populate_db_file(AliasesVector{{"an_alias", {"primary", "a_command", "map"}}});
-
-    EXPECT_EQ(send_command({"prefer", "new_context"}), mp::ReturnCode::Ok);
-
-    std::stringstream cout_stream, cerr_stream;
-    EXPECT_EQ(
-        send_command({"alias", "primary:another_command", "an_alias"}, cout_stream, cerr_stream),
-        mp::ReturnCode::Ok);
-
-    EXPECT_EQ(cout_stream.str(), "");
-    EXPECT_EQ(cerr_stream.str(), "");
-
-    send_command({"aliases", "--format=csv"}, cout_stream);
-
-    EXPECT_THAT(cout_stream.str(),
-                csv_header + "an_alias,primary,a_command,map,default\nan_alias,primary,another_"
-                             "command,map,new_context*\n");
-}
-
 struct ClientLaunchAlias : public ClientAlias, public WithParamInterface<bool>
 {
 };
@@ -5694,24 +5669,52 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_F(ClientAliasNameSuite, preferWithNoArgumentFails)
 {
-    EXPECT_EQ(send_command({"prefer"}), mp::ReturnCode::CommandLineError);
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"prefer"}, trash_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("is deprecated")));
 }
 
 TEST_F(ClientAliasNameSuite, preferWithManyArgumentsFails)
 {
-    EXPECT_EQ(send_command({"prefer", "arg", "arg"}), mp::ReturnCode::CommandLineError);
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"prefer", "arg", "arg"}, trash_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(cerr_stream.str(), Not(HasSubstr("is deprecated")));
 }
 
-TEST_F(ClientAliasNameSuite, preferWorks)
+TEST_F(ClientAliasNameSuite, preferHelpDoesNotPrintDeprecationWarning)
+{
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"prefer", "--help"}, trash_stream, cerr_stream), mp::ReturnCode::Ok);
+    EXPECT_THAT(cerr_stream.str(), IsEmpty());
+}
+
+TEST_F(ClientAliasNameSuite, preferPrintsDeprecationWarning)
+{
+    std::stringstream cout_stream, cerr_stream;
+    EXPECT_EQ(send_command({"prefer", "new_context"}, cout_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(cout_stream.str(), IsEmpty());
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("`multipass prefer` is deprecated"));
+    EXPECT_THAT(cerr_stream.str(),
+                HasSubstr("Use unique alias names to avoid switching alias contexts."));
+}
+
+TEST_F(ClientAliasNameSuite, preferDoesNotCreateOrActivateContext)
 {
     std::stringstream cout_stream;
     send_command({"aliases", "--format=yaml"}, cout_stream);
     EXPECT_THAT(cout_stream.str(), HasSubstr("active_context: default\n"));
 
-    EXPECT_EQ(send_command({"prefer", "new_context"}), mp::ReturnCode::Ok);
+    std::stringstream cerr_stream;
+    EXPECT_EQ(send_command({"prefer", "new_context"}, trash_stream, cerr_stream),
+              mp::ReturnCode::CommandLineError);
+    EXPECT_THAT(cerr_stream.str(), HasSubstr("Only the default context is active"));
 
     cout_stream.str(std::string());
     send_command({"aliases", "--format=yaml"}, cout_stream);
-    EXPECT_THAT(cout_stream.str(), HasSubstr("active_context: new_context\n"));
+    EXPECT_THAT(cout_stream.str(), HasSubstr("active_context: default\n"));
+    EXPECT_THAT(cout_stream.str(), Not(HasSubstr("new_context")));
 }
 } // namespace
