@@ -10,3 +10,6 @@ aliases:
       command: docker-compose
       instance: docker
       working-directory: map
+context_status:
+  default: active
+  docker: inactive

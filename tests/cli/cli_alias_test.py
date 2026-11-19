@@ -55,6 +55,7 @@ class TestAlias:
                     }
                 }
             },
+            "context-status": {"default": "active"},
         }
         # Delete the instance and verify that the alias is also removed
         assert multipass("delete", instance, "--force")
@@ -62,6 +63,7 @@ class TestAlias:
         assert multipass("aliases", "--format=json").json() == {
             "active-context": "default",
             "contexts": {"default": {}},
+            "context-status": {"default": "active"},
         }
 
     def test_prefer_does_not_switch_context(self, instance):
@@ -92,6 +94,7 @@ class TestAlias:
                     }
                 },
             },
+            "context-status": {"default": "active"},
         }
         assert multipass("unalias", "si")
         assert multipass("unalias", "default.wai")
@@ -100,4 +103,5 @@ class TestAlias:
             "contexts": {
                 "default": {},
             },
+            "context-status": {"default": "active"},
         }
