@@ -44,7 +44,11 @@ jobs:
           },{
             "name": "macOS 26 Sequoia (Intel Silicon)",
             "runs-on": "macos-26-intel",
-          })
+          },{
+            "name": "macOS 27 Golden Gate (Apple Silicon)",
+            "runs-on": "xcode-27",
+          }
+          )
 
           core.setOutput('matrix', JSON.stringify(matrix));
 
