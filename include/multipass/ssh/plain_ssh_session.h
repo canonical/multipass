@@ -34,6 +34,7 @@ namespace multipass
 class SSHKeyProvider;
 class PlainSftpSession;
 class PlainSSHProcess;
+class PlainSSHClient;
 
 class PlainSSHSession final : public SSHSession // final to prevent chopping on move
 {
@@ -82,6 +83,7 @@ public: // but restricted
      * @pre !this->is_moved()
      */
     ssh_session borrow_session(const PrivatePassProvider<PlainSftpSession>::PrivatePass&) const;
+    ssh_session borrow_session(const PrivatePassProvider<PlainSSHClient>::PrivatePass&) const;
 
 private:
     struct RawSSHSessionDeleter

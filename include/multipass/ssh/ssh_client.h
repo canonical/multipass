@@ -17,38 +17,33 @@
 
 #pragma once
 
-#include <multipass/console.h>
-#include <multipass/ssh/ssh_coordinates.h>
-#include <multipass/ssh/ssh_session.h>
+#include <multipass/cli/return_codes.h>
+#include <multipass/disabled_copy_move.h>
 
-#include <functional>
-#include <memory>
 #include <string>
 #include <vector>
 
 namespace multipass
 {
-using SSHSessionUPtr = std::unique_ptr<SSHSession>;
-
-class SSHClient
+class SSHClient : multipass::DisabledCopyMove
 {
 public:
-    using ChannelUPtr = std::unique_ptr<ssh_channel_struct, void (*)(ssh_channel)>;
-    using ConsoleCreator = std::function<Console::UPtr(ssh_channel_struct*)>;
+    virtual ~SSHClient() = default;
 
-    SSHClient(const SSHCoordinates& coordinates, ConsoleCreator console_creator);
-    SSHClient(SSHSessionUPtr ssh_session_obj, ConsoleCreator console_creator);
+    /**
+     * Execute a list of commands in the remote ssh session
+     * @param args_list List of command argument lists to execute
+     * @return The return code resulting from the remote session executing the commands
+     */
+    virtual multipass::VMReturnCode exec(
+        const std::vector<std::vector<std::string>>& args_list) = 0;
+    /**
+     * Open a shell in the remote ssh session
+     * @return The last return code from the shell
+     */
+    virtual multipass::VMReturnCode open_shell() = 0;
 
-    int exec(const std::vector<std::vector<std::string>>& args_list);
-    int connect();
-
-private:
-    void handle_ssh_events();
-    int exec_string(const std::string& cmd_line);
-    int get_ssh_exit_code();
-
-    SSHSessionUPtr ssh_session_obj;
-    ChannelUPtr channel;
-    Console::UPtr console;
+protected:
+    SSHClient() = default;
 };
 } // namespace multipass
