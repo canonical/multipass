@@ -4507,7 +4507,7 @@ void mp::Daemon::populate_instance_info(VirtualMachine& vm,
                                                          info,
                                                          instance_info,
                                                          original_release,
-                                                         vm_specs.num_cores != 1);
+                                                         vm.get_num_cores() != 1);
 }
 
 std::string mp::Daemon::dest_name_for_clone(const CloneRequest& request)

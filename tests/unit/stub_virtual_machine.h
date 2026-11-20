@@ -128,6 +128,21 @@ struct StubVirtualMachine final : public VirtualMachine
     {
     }
 
+    int get_num_cores() const override
+    {
+        return 1;
+    }
+
+    MemorySize get_mem_size() const override
+    {
+        return MemorySize{};
+    }
+
+    MemorySize get_disk_space() const override
+    {
+        return MemorySize{};
+    }
+
     void update_cpus(int /*num_cores*/) override
     {
     }
