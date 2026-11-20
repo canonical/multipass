@@ -15,6 +15,7 @@
 #
 #
 
+import platform
 import pytest
 
 from packaging import version as ver
@@ -23,10 +24,15 @@ from .helpers import get_multipass_version
 
 
 def _feature_version(name):
+    # Optional keys: "min"/"max" gate on Multipass version, "unsupported_arch"
+    # lists host architectures lacking it.
     feats = {
         "appliances": {"min": ver.parse("1"), "max": ver.parse("1.16")},
         "blueprints": {"max": ver.parse("1.16")},
-        "debian_images": {"min": ver.parse("1.17")},
+        "debian_images": {
+            "min": ver.parse("1.17"),
+            "unsupported_arch": {"s390x"}
+        },
         "fedora_images": {"min": ver.parse("1.17")},
         "wait_ready": {"min": ver.parse("1.17")},
         "az": {"min": ver.parse("1.17")},
@@ -55,10 +61,32 @@ def multipass_version_has_feature(feature_name, version=None):
     return True
 
 
-def skip_if_feature_not_supported(feature_name, version=None):
-    if not multipass_version_has_feature(feature_name, version=version):
-        pytest.skip(
-            f"The version does not support `{feature_name}`, skipping.")
+def host_arch_has_feature(feature_name, arch=None):
+    """Check if the specified feature is available on a CPU architecture.
+    Architecture is set to the host's by default."""
+
+    unsupported = _feature_version(feature_name).get("unsupported_arch", set())
+    return (arch or platform.machine()) not in unsupported
+
+
+def requires_feature(feature_name):
+    """
+    Mark tests or parameters to skip before fixtures run when the Multipass
+    version or host architecture lacks the given feature.
+
+    Usage:
+        @requires_feature("debian_images")
+        def test_launch_debian(instance):
+            ...
+    """
+
+    if not multipass_version_has_feature(feature_name):
+        return pytest.mark.skip(
+            reason=f"The version does not support `{feature_name}`")
+    return pytest.mark.skipif(
+        not host_arch_has_feature(feature_name),
+        reason=f"The `{platform.machine()}` architecture does not support `{feature_name}`"
+    )
 
 
 def requires_multipass(spec: str):
