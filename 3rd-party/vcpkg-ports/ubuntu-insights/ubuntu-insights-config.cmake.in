@@ -13,6 +13,7 @@ if(WIN32)
         IMPORTED_LOCATION "${_insights_prefix}/bin/@INSIGHTS_LIBRARY@"
         IMPORTED_LOCATION_DEBUG "${_insights_prefix}/debug/bin/@INSIGHTS_LIBRARY@"
         IMPORTED_IMPLIB "${_insights_prefix}/lib/@INSIGHTS_IMPLIB@"
+        IMPORTED_IMPLIB_DEBUG "${_insights_prefix}/debug/lib/@INSIGHTS_IMPLIB@"
     )
 else()
     set_target_properties(ubuntu-insights::insights PROPERTIES
