@@ -19,12 +19,10 @@ function(add_target TARGET_NAME)
 
   if(MSVC)
     target_sources(${TARGET_NAME} PRIVATE
-      windows_console.cpp
       windows_terminal.cpp)
     qt6_disable_unicode_defines(${TARGET_NAME})
   else()
     target_sources(${TARGET_NAME} PRIVATE
-      unix_console.cpp
       unix_terminal.cpp)
   endif()
 

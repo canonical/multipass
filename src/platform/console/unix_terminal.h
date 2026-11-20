@@ -24,14 +24,11 @@ namespace multipass
 class UnixTerminal : public Terminal
 {
 public:
-    int cin_fd() const;
     bool cin_is_live() const override;
-
-    int cout_fd() const;
     bool cout_is_live() const override;
 
-    void set_cin_echo(const bool enable) override;
+    NativeHandles native_handles() const override;
 
-    ConsolePtr make_console(ssh_channel channel) override;
+    void set_cin_echo(const bool enable) override;
 };
 } // namespace multipass

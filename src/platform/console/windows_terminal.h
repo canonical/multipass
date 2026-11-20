@@ -29,17 +29,12 @@ public:
     explicit WindowsTerminal();
     virtual ~WindowsTerminal();
 
-    HANDLE cin_handle() const;
-    HANDLE cout_handle() const;
-    HANDLE cerr_handle() const;
-
+    NativeHandles native_handles() const override;
     bool cin_is_live() const override;
     bool cout_is_live() const override;
 
     std::string read_all_cin() override;
     void set_cin_echo(const bool enable) override;
-
-    ConsolePtr make_console(ssh_channel channel) override;
 
 private:
     const UINT input_code_page;

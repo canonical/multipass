@@ -17,32 +17,15 @@
 
 #pragma once
 
-#include "disabled_copy_move.h"
-
-#include <memory>
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+#include <windows.h>
+#endif
 
 namespace multipass
 {
-class Console : private DisabledCopyMove
-{
-public:
-    struct ConsoleGeometry
-    {
-        int rows;
-        int columns;
-    };
-
-    using UPtr = std::unique_ptr<Console>;
-
-    virtual ~Console() = default;
-
-    virtual void read_console() = 0;
-    virtual void write_console() = 0;
-    virtual void exit_console() = 0;
-
-    virtual void handle_runtime_events() = 0;
-
-protected:
-    explicit Console() = default;
-};
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+using Handle = HANDLE;
+#else
+using Handle = int;
+#endif
 } // namespace multipass

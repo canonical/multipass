@@ -18,7 +18,6 @@
 #include "client.h"
 
 #include <multipass/cli/client_common.h>
-#include <multipass/console.h>
 #include <multipass/constants.h>
 #include <multipass/ssh/libssh_scope_guard.h>
 #include <multipass/top_catch_all.h>

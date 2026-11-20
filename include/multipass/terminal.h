@@ -17,17 +17,22 @@
 
 #pragma once
 
+#include <multipass/handles.h>
+
 #include <istream>
 #include <memory>
 #include <ostream>
 #include <string>
 
-struct ssh_channel_struct;
-typedef struct ssh_channel_struct* ssh_channel;
-
 namespace multipass
 {
-class Console;
+// TODO@sshclient: document NativeHandles
+struct NativeHandles
+{
+    Handle cin;
+    Handle cout;
+    Handle cerr;
+};
 
 class Terminal
 {
@@ -41,6 +46,9 @@ public:
     virtual bool cin_is_live() const = 0;
     virtual bool cout_is_live() const = 0;
 
+    // TODO@sshclient: document native_handles
+    virtual NativeHandles native_handles() const = 0;
+
     bool is_live() const;
 
     virtual std::string read_all_cin();
@@ -48,8 +56,5 @@ public:
 
     using UPtr = std::unique_ptr<Terminal>;
     static UPtr make_terminal();
-
-    using ConsolePtr = std::unique_ptr<Console>;
-    virtual ConsolePtr make_console(ssh_channel channel) = 0;
 };
 } // namespace multipass

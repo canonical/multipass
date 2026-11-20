@@ -20,28 +20,39 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include "unix_console.h"
-
 namespace mp = multipass;
 
-int mp::UnixTerminal::cin_fd() const
+namespace
+{
+int cin_fd()
 {
     return fileno(stdin);
 }
+
+int cout_fd()
+{
+    return fileno(stdout);
+}
+
+int cerr_fd()
+{
+    return fileno(stderr);
+}
+} // namespace
 
 bool mp::UnixTerminal::cin_is_live() const
 {
     return (isatty(cin_fd()) == 1);
 }
 
-int mp::UnixTerminal::cout_fd() const
-{
-    return fileno(stdout);
-}
-
 bool mp::UnixTerminal::cout_is_live() const
 {
     return (isatty(cout_fd()) == 1);
+}
+
+mp::NativeHandles mp::UnixTerminal::native_handles() const
+{
+    return {.cin = cin_fd(), .cout = cout_fd(), .cerr = cerr_fd()};
 }
 
 void mp::UnixTerminal::set_cin_echo(const bool enable)
@@ -55,9 +66,4 @@ void mp::UnixTerminal::set_cin_echo(const bool enable)
         tty.c_lflag |= ECHO;
 
     tcsetattr(cin_fd(), TCSANOW, &tty);
-}
-
-mp::UnixTerminal::ConsolePtr mp::UnixTerminal::make_console(ssh_channel channel)
-{
-    return std::make_unique<UnixConsole>(channel, this);
 }

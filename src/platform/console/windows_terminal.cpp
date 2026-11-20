@@ -17,13 +17,29 @@
 
 #include "windows_terminal.h"
 
-#include "windows_console.h"
-
 #include <fcntl.h>
 #include <io.h>
 #include <iostream>
 
 namespace mp = multipass;
+
+namespace
+{
+HANDLE cin_handle()
+{
+    return GetStdHandle(STD_INPUT_HANDLE);
+}
+
+HANDLE cout_handle()
+{
+    return GetStdHandle(STD_OUTPUT_HANDLE);
+}
+
+HANDLE cerr_handle()
+{
+    return GetStdHandle(STD_ERROR_HANDLE);
+}
+} // namespace
 
 mp::WindowsTerminal::WindowsTerminal()
     : input_code_page{GetConsoleCP()}, output_code_page{GetConsoleOutputCP()}
@@ -38,9 +54,9 @@ mp::WindowsTerminal::~WindowsTerminal()
     SetConsoleOutputCP(output_code_page);
 }
 
-HANDLE mp::WindowsTerminal::cin_handle() const
+mp::NativeHandles mp::WindowsTerminal::native_handles() const
 {
-    return GetStdHandle(STD_INPUT_HANDLE);
+    return {.cin = cin_handle(), .cout = cout_handle(), .cerr = cerr_handle()};
 }
 
 bool mp::WindowsTerminal::cin_is_live() const
@@ -49,16 +65,6 @@ bool mp::WindowsTerminal::cin_is_live() const
     // receive input.
     DWORD mode;
     return GetConsoleMode(cin_handle(), &mode) && (mode & ENABLE_LINE_INPUT);
-}
-
-HANDLE mp::WindowsTerminal::cout_handle() const
-{
-    return GetStdHandle(STD_OUTPUT_HANDLE);
-}
-
-HANDLE mp::WindowsTerminal::cerr_handle() const
-{
-    return GetStdHandle(STD_ERROR_HANDLE);
 }
 
 bool mp::WindowsTerminal::cout_is_live() const
@@ -88,9 +94,4 @@ void mp::WindowsTerminal::set_cin_echo(const bool enable)
         console_input_mode |= ENABLE_ECHO_INPUT;
 
     SetConsoleMode(cin_handle(), console_input_mode);
-}
-
-mp::WindowsTerminal::ConsolePtr mp::WindowsTerminal::make_console(ssh_channel channel)
-{
-    return std::make_unique<WindowsConsole>(channel, this);
 }
