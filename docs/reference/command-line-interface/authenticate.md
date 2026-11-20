@@ -1,14 +1,16 @@
 (reference-command-line-interface-authenticate)=
 # authenticate
 
-> See also: [Authentication](/explanation/authentication), [How to authenticate users with the Multipass service](how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service), [`local.passhprase`](/reference/settings/local-passphrase)
-
 The `authenticate` command is used to authenticate a user with the Multipass service. Once authenticated, the user can issue commands such as `list`, `launch`, etc.
 
 To help reduce the amount of typing for `authenticate`, one can also use `multipass auth` as an alias:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
 multipass auth foo
+
+>
 ```
 
 If no passphrase is specified in the `multipass authenticate` command line, you will be prompted to enter it.
@@ -32,4 +34,8 @@ Options:
 Arguments:
   passphrase     Passphrase to register with the Multipass service. If omitted,
                  a prompt will be displayed for entering the passphrase.
+```
+
+```{seealso}
+{ref}`How to authenticate users with the Multipass service <how-to-guides-customise-multipass-authenticate-users-with-the-multipass-service>`, {ref}`Authentication <explanation-authentication>`, [`local.passphrase`](reference-settings-local-passphrase)
 ```
