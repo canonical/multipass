@@ -29,6 +29,7 @@
 #include "mock_settings.h"
 #include "mock_sftp_client.h"
 #include "mock_sftp_utils.h"
+#include "mock_ssh_client.h"
 #include "mock_standard_paths.h"
 #include "mock_stdcin.h"
 #include "mock_terminal.h"
@@ -203,6 +204,10 @@ struct Client : public Test
 {
     void SetUp() override
     {
+        ON_CALL(mock_ssh_factory, make_ssh_client).WillByDefault([](auto&&...) {
+            return mp::SSHClientUPtr{std::make_unique<NiceMock<mpt::MockSSHClient>>()};
+        });
+
         EXPECT_CALL(mock_settings, get(Eq(mp::petenv_key))).WillRepeatedly(Return(petenv_name));
         EXPECT_CALL(mock_settings, get(Eq(mp::winterm_key))).WillRepeatedly(Return("none"));
         EXPECT_CALL(mock_settings, get(Eq(mp::mounts_key))).WillRepeatedly(Return("true"));
@@ -467,6 +472,25 @@ struct Client : public Test
     const grpc::Status ok{};
 
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
+
+    mpt::MockClientSSHFactory::GuardedMock mock_ssh_factory_injection =
+        mpt::MockClientSSHFactory::inject<NiceMock>();
+    mpt::MockClientSSHFactory& mock_ssh_factory = *mock_ssh_factory_injection.first;
+
+    static constexpr auto vm_ok = static_cast<mp::VMReturnCode>(0);
+
+    // Makes the factory hand out one client whose commands finish with the given code
+    mpt::MockSSHClient& expect_ssh_client(mp::VMReturnCode exec_code = vm_ok)
+    {
+        auto client = std::make_unique<NiceMock<mpt::MockSSHClient>>();
+        auto& client_ref = *client;
+        ON_CALL(client_ref, exec).WillByDefault(Return(exec_code));
+        ON_CALL(client_ref, open_shell).WillByDefault(Return(exec_code));
+
+        EXPECT_CALL(mock_ssh_factory, make_ssh_client)
+            .WillOnce(Return(ByMove(std::move(client))));
+        return client_ref;
+    }
 };
 
 struct ClientAlias : public Client, public FakeAliasConfig
@@ -631,7 +655,7 @@ TEST_F(Client, handlesRemoteHandlerException)
     auto got = send_command({cmd, key}, trash_stream, fake_cerr);
 
     EXPECT_THAT(fake_cerr.str(), AllOf(HasSubstr(cmd), HasSubstr(msg), Not(HasSubstr(details))));
-    EXPECT_EQ(got, mp::CommandFail);
+    EXPECT_EQ(got, mp::ReturnCode::CommandFail);
 }
 
 // transfer cli tests
@@ -863,7 +887,7 @@ TEST_F(Client, shellCmdNoArgsTargetsPetenv)
     EXPECT_THAT(send_command({"shell"}), Eq(mp::ReturnCode::Ok));
 }
 
-TEST_F(Client, shellCmdCreatesConsole)
+TEST_F(Client, shellCmdOpensShellOnSSHClient)
 {
     EXPECT_CALL(mock_daemon, ssh_info)
         .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
@@ -871,16 +895,29 @@ TEST_F(Client, shellCmdCreatesConsole)
             return grpc::Status{};
         });
 
-    std::string error_string = "attempted to create console";
+    auto& ssh_client = expect_ssh_client();
+    EXPECT_CALL(ssh_client, open_shell()).WillOnce(Return(static_cast<mp::VMReturnCode>(3)));
+    EXPECT_CALL(ssh_client, exec).Times(0);
+
+    EXPECT_EQ(send_command({"shell"}), 3);
+}
+
+TEST_F(Client, shellCmdFailsWhenSSHClientCannotBeCreated)
+{
+    EXPECT_CALL(mock_daemon, ssh_info)
+        .WillOnce([](auto, grpc::ServerReaderWriter<mp::SSHInfoReply, mp::SSHInfoRequest>* server) {
+            server->Write(make_fake_ssh_info_response("fake-instance"));
+            return grpc::Status{};
+        });
+
+    std::string error_string = "attempted to create ssh client";
     std::stringstream cerr_stream;
 
-    mpt::MockTerminal term{};
-    EXPECT_CALL(term, cin()).WillRepeatedly(ReturnRef(trash_stream));
-    EXPECT_CALL(term, cout()).WillRepeatedly(ReturnRef(trash_stream));
-    EXPECT_CALL(term, cerr()).WillRepeatedly(ReturnRef(cerr_stream));
-    EXPECT_CALL(term, make_console(_)).WillOnce(Throw(std::runtime_error(error_string)));
+    EXPECT_CALL(mock_ssh_factory, make_ssh_client)
+        .WillOnce(Throw(std::runtime_error(error_string)));
 
-    EXPECT_EQ(setup_client_and_run({"shell"}, term), mp::ReturnCode::ShellExecFail);
+    EXPECT_EQ(send_command({"shell"}, trash_stream, cerr_stream),
+              mp::ReturnCode::ShellExecFail);
     EXPECT_THAT(cerr_stream.str(), HasSubstr(error_string));
 }
 
@@ -1841,11 +1878,12 @@ TEST_P(SSHClientReturnTest, execCmdWithoutDirWorks)
     std::string instance_name{"instance"};
     mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
 
-    REPLACE(ssh_channel_get_exit_state,
-            [failure_code](ssh_channel_struct*, unsigned int* val, char**, int*) {
-                *val = failure_code;
-                return failure_code == -1 ? SSH_ERROR : SSH_OK;
-            });
+    auto& ssh_client = expect_ssh_client();
+    if (failure_code == -1) // simulates the client failing to obtain the exit state
+        ON_CALL(ssh_client, exec).WillByDefault(Throw(std::runtime_error{"no exit state"}));
+    else
+        ON_CALL(ssh_client, exec)
+            .WillByDefault(Return(static_cast<mp::VMReturnCode>(failure_code)));
     EXPECT_CALL(mock_daemon, ssh_info(_, _))
         .WillOnce(
             [&response](grpc::ServerContext*,
@@ -1867,11 +1905,12 @@ TEST_P(SSHClientReturnTest, execCmdWithDirWorks)
     std::string instance_name{"instance"};
     mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
 
-    REPLACE(ssh_channel_get_exit_state,
-            [failure_code](ssh_channel_struct*, unsigned int* val, char**, int*) {
-                *val = failure_code;
-                return failure_code == -1 ? SSH_ERROR : SSH_OK;
-            });
+    auto& ssh_client = expect_ssh_client();
+    if (failure_code == -1) // simulates the client failing to obtain the exit state
+        ON_CALL(ssh_client, exec).WillByDefault(Throw(std::runtime_error{"no exit state"}));
+    else
+        ON_CALL(ssh_client, exec)
+            .WillByDefault(Return(static_cast<mp::VMReturnCode>(failure_code)));
     EXPECT_CALL(mock_daemon, ssh_info(_, _))
         .WillOnce(
             [&response](grpc::ServerContext*,
@@ -1892,17 +1931,9 @@ TEST_F(Client, execCmdWithDirPrependsCd)
     std::string dir{"/home/ubuntu/"};
     std::string cmd{"pwd"};
 
-    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
-        *val = 0;
-        return SSH_OK;
-    });
-    REPLACE(ssh_channel_request_exec, ([&dir, &cmd](ssh_channel, const char* raw_cmd) {
-                EXPECT_THAT(raw_cmd, StartsWith("cd " + dir));
-                EXPECT_THAT(raw_cmd, HasSubstr("&&"));
-                EXPECT_THAT(raw_cmd, EndsWith(cmd)); // This will fail if cmd needs to be escaped.
-
-                return SSH_OK;
-            }));
+    auto& ssh_client = expect_ssh_client();
+    EXPECT_CALL(ssh_client, exec(ElementsAre(ElementsAre("cd", dir), ElementsAre(cmd))))
+        .WillOnce(Return(vm_ok));
 
     std::string instance_name{"instance"};
     mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
@@ -1928,20 +1959,11 @@ TEST_F(Client, execCmdWithDirAndSudoUsesSh)
     for (size_t i = 1; i < cmds.size(); ++i)
         cmds_string += " " + cmds[i];
 
-    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
-        *val = 0;
-        return SSH_OK;
-    });
-    REPLACE(ssh_channel_request_exec, ([&dir, &cmds_string](ssh_channel, const char* raw_cmd) {
-                // The test expects this exact command format
-                // The issue is that when using sudo -u user, the AppArmor context is not preserved
-                // But we need to match the actual implementation in exec.cpp
-                EXPECT_EQ(raw_cmd,
-                          "sudo sh -c cd\\ " + dir + "\\ \\&\\&\\ sudo\\ -u\\ user\\ " +
-                              mpu::escape_for_shell(cmds_string));
-
-                return SSH_OK;
-            }));
+    auto& ssh_client = expect_ssh_client();
+    EXPECT_CALL(ssh_client,
+                exec(ElementsAre(
+                    ElementsAre("sudo", "sh", "-c", "cd " + dir + " && sudo -u user " + cmds_string))))
+        .WillOnce(Return(vm_ok));
 
     std::string instance_name{"instance"};
     mp::SSHInfoReply response = make_fake_ssh_info_response(instance_name);
@@ -1966,10 +1988,8 @@ TEST_F(Client, execCmdFailsIfSshExecThrows)
     std::string dir{"/home/ubuntu/"};
     std::string cmd{"pwd"};
 
-    REPLACE(ssh_channel_request_exec, ([](ssh_channel, const char*) {
-                throw mp::SSHException("some exception");
-                return SSH_OK;
-            }));
+    auto& ssh_client = expect_ssh_client();
+    EXPECT_CALL(ssh_client, exec).WillOnce(Throw(mp::SSHException("some exception")));
 
     EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
@@ -4921,18 +4941,11 @@ TEST_F(ClientAlias, execAliasRewritesMountedDir)
 
     populate_db_file(AliasesVector{{alias_name, {instance_name, cmd, "map"}}});
 
-    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
-        *val = 0;
-        return SSH_OK;
-    });
-    REPLACE(ssh_channel_request_exec, ([&target_dir, &cmd](ssh_channel, const char* raw_cmd) {
-                EXPECT_THAT(raw_cmd, StartsWith("cd " + target_dir + "/"));
-                EXPECT_THAT(raw_cmd, HasSubstr("&&"));
-                EXPECT_THAT(raw_cmd,
-                            EndsWith(cmd)); // assuming that cmd does not have escaped characters!
-
-                return SSH_OK;
-            }));
+    auto& ssh_client = expect_ssh_client();
+    EXPECT_CALL(ssh_client,
+                exec(ElementsAre(ElementsAre("cd", StartsWith(target_dir + "/")),
+                                 ElementsAre(cmd))))
+        .WillOnce(Return(vm_ok));
 
     mp::SSHInfoReply ssh_info_response = make_fake_ssh_info_response(instance_name);
 
@@ -4973,19 +4986,8 @@ TEST_P(NotDirRewriteTestsuite, execAliasDoesNotRewriteMountedDir)
     populate_db_file(
         AliasesVector{{alias_name, {instance_name, cmd, map_dir ? "map" : "default"}}});
 
-    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
-        *val = 0;
-        return SSH_OK;
-    });
-    REPLACE(ssh_channel_request_exec, ([&cmd](ssh_channel, const char* raw_cmd) {
-                EXPECT_THAT(raw_cmd, Not(StartsWith("cd ")));
-                EXPECT_THAT(raw_cmd, Not(HasSubstr("&&")));
-                EXPECT_THAT(
-                    raw_cmd,
-                    EndsWith(cmd)); // again, assuming that cmd does not have escaped characters
-
-                return SSH_OK;
-            }));
+    auto& ssh_client = expect_ssh_client();
+    EXPECT_CALL(ssh_client, exec(ElementsAre(ElementsAre(cmd)))).WillOnce(Return(vm_ok));
 
     mp::SSHInfoReply ssh_info_response = make_fake_ssh_info_response(instance_name);
 

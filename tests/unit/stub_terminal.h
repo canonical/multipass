@@ -19,8 +19,6 @@
 
 #include <multipass/terminal.h>
 
-#include "stub_console.h"
-
 namespace multipass
 {
 namespace test
@@ -63,9 +61,9 @@ public:
     {
     }
 
-    ConsolePtr make_console(ssh_channel) override
+    NativeHandles native_handles() const override
     {
-        return std::make_unique<StubConsole>();
+        return {};
     }
 
 private:

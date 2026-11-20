@@ -17,10 +17,40 @@
 
 #pragma once
 
-#include <premock.hpp>
+#include "common.h"
+#include "mock_singleton_helpers.h"
 
-#include <libssh/libssh.h>
+#include <multipass/cli/return_codes.h>
+#include <multipass/ssh/client_ssh_factory.h>
+#include <multipass/ssh/ssh_client.h>
 
-DECL_MOCK(ssh_channel_request_shell);
-DECL_MOCK(ssh_channel_request_pty);
-DECL_MOCK(ssh_channel_change_pty_size);
+#include <string>
+#include <vector>
+
+namespace multipass::test
+{
+// TODO@sshclient: document MockSSHClient
+class MockSSHClient : public SSHClient
+{
+public:
+    MOCK_METHOD(VMReturnCode,
+                exec,
+                (const std::vector<std::vector<std::string>>&),
+                (override));
+    MOCK_METHOD(VMReturnCode, open_shell, (), (override));
+};
+
+// TODO@sshclient: document MockClientSSHFactory
+class MockClientSSHFactory : public ClientSSHFactory
+{
+public:
+    using ClientSSHFactory::ClientSSHFactory;
+
+    MOCK_METHOD(SSHClientUPtr,
+                make_ssh_client,
+                (const SSHCoordinates&, Terminal*),
+                (const, override));
+
+    MP_MOCK_SINGLETON_BOILERPLATE(MockClientSSHFactory, ClientSSHFactory);
+};
+} // namespace multipass::test

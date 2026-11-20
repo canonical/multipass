@@ -19,7 +19,6 @@
 
 #include "common.h"
 
-#include <multipass/console.h>
 #include <multipass/terminal.h>
 
 namespace multipass
@@ -34,7 +33,7 @@ struct MockTerminal : public Terminal
     MOCK_METHOD(bool, cin_is_live, (), (const, override));
     MOCK_METHOD(bool, cout_is_live, (), (const, override));
     MOCK_METHOD(void, set_cin_echo, (const bool), (override));
-    MOCK_METHOD(ConsolePtr, make_console, (ssh_channel), (override));
+    MOCK_METHOD(NativeHandles, native_handles, (), (const, override));
 };
 } // namespace test
 } // namespace multipass

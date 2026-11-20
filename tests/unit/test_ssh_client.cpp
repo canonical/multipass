@@ -17,156 +17,302 @@
 
 #include "common.h"
 #include "disabling_macros.h"
-#include "fake_key_data.h"
+#include "mock_libssh.h"
 #include "mock_logger.h"
-#include "mock_ssh_client.h"
-#include "mock_ssh_test_fixture.h"
-#include "stub_console.h"
+#include "mock_terminal.h"
 #include "stub_ssh_key_provider.h"
+#include "stub_terminal.h"
 
+#include <multipass/cli/return_codes.h>
+#include <multipass/ssh/client_ssh_factory.h>
 #include <multipass/ssh/plain_ssh_session.h>
-#include <multipass/ssh/ssh_client.h>
-#include <multipass/ssh/ssh_factory.h>
+#include <multipass/ssh/platform_ssh_client.h>
+
+#include <sstream>
+
+#ifndef _WIN32
+#include <fcntl.h>
+#include <stdlib.h>
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
+#endif
 
 namespace mp = multipass;
 namespace mpt = multipass::test;
 namespace mpl = multipass::logging;
+using namespace testing;
 
 namespace
 {
-struct SSHClient : public testing::Test
+constexpr auto vm_ok = static_cast<mp::VMReturnCode>(0);
+
+struct SSHClient : public Test
 {
-    mp::SSHClient make_ssh_client()
+    SSHClient()
     {
-        auto coord = make_ssh_coordinates(mp::VSOCKHost{std::monostate{}});
-        return {MP_SSH_FACTORY.make_session(coord), console_creator};
+        ON_CALL(mock_libssh, ssh_new()).WillByDefault(Return(fake_session));
+        ON_CALL(mock_libssh, ssh_options_set).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_connect).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_userauth_publickey).WillByDefault(Return(SSH_AUTH_SUCCESS));
+        ON_CALL(mock_libssh, ssh_is_connected).WillByDefault(Return(1));
+        ON_CALL(mock_libssh, ssh_get_fd).WillByDefault(Return(-1)); // no socket to shutdown
+        ON_CALL(mock_libssh, ssh_get_error).WillByDefault(Return("mocked error"));
+        ON_CALL(mock_libssh, ssh_channel_new).WillByDefault(Return(fake_channel));
+        ON_CALL(mock_libssh, ssh_channel_open_session).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_channel_request_exec).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_channel_request_shell).WillByDefault(Return(SSH_OK));
+        ON_CALL(mock_libssh, ssh_channel_is_open).WillByDefault(Return(1));
+        ON_CALL(mock_libssh, ssh_channel_is_eof).WillByDefault(Return(1));
+        expect_exit_state(0);
     }
 
-    mp::SSHCoordinates make_ssh_coordinates(mp::VSOCKHost vsock_host) const
+    void expect_exit_state(uint32_t code, char* signal = nullptr)
     {
-        return {"ubuntu",
-                key_provider.private_key_as_base64(),
-                42,
-                "theanswertoeverything",
-                std::move(vsock_host)};
+        ON_CALL(mock_libssh, ssh_channel_get_exit_state)
+            .WillByDefault(DoAll(SetArgPointee<1>(code), SetArgPointee<2>(signal), Return(SSH_OK)));
     }
 
-    const mpt::StubSSHKeyProvider key_provider;
-    mpt::MockSSHTestFixture mock_ssh_test_fixture;
-    mp::SSHClient::ConsoleCreator console_creator = [](auto /*channel*/) {
-        return std::make_unique<mpt::StubConsole>();
-    };
+    mp::PlainSSHSession make_ssh_session() const
+    {
+        mp::SSHCoordinates coord{"ubuntu",
+                                 key_provider.private_key_as_base64(),
+                                 42,
+                                 "theanswertoeverything",
+                                 {}};
+        return mp::PlainSSHSession{coord};
+    }
+
+    std::unique_ptr<mp::PlatformSSHClient> make_ssh_client()
+    {
+        return std::make_unique<mp::PlatformSSHClient>(make_ssh_session(), &term);
+    }
+
+    mpt::MockLibssh::GuardedMock guarded_mock = mpt::MockLibssh::inject<NiceMock>();
+    mpt::MockLibssh& mock_libssh = *guarded_mock.first;
+
+    constexpr static auto bad_addr = 0xdeadbeefdeadbeefull; // should reliably segfault on 32/64-bit
+    ssh_session fake_session = reinterpret_cast<ssh_session>(bad_addr);
+    ssh_channel fake_channel = reinterpret_cast<ssh_channel>(bad_addr);
+
+    std::stringstream trash_stream;
+    mpt::StubTerminal term{trash_stream, trash_stream, trash_stream};
+    mpt::StubSSHKeyProvider key_provider;
 };
 } // namespace
 
 TEST_F(SSHClient, standardCtorDoesNotThrow)
 {
-    mp::SSHCoordinates coord{"ubuntu",
-                             key_provider.private_key_as_base64(),
-                             42,
-                             "theanswertoeverything",
-                             {}};
-    EXPECT_NO_THROW(mp::SSHClient(coord, console_creator));
+    EXPECT_NO_THROW(make_ssh_client());
+}
+
+TEST_F(SSHClient, clientFactoryMakesPlatformSSHClient)
+{
+    mp::SSHCoordinates coord{"ubuntu", key_provider.private_key_as_base64(), 42, "host", {}};
+
+    auto client = MP_CLIENT_SSH_FACTORY.make_ssh_client(coord, &term);
+
+    EXPECT_THAT(dynamic_cast<mp::PlatformSSHClient*>(client.get()), NotNull());
+}
+
+TEST_F(SSHClient, secondClientCannotBeCreatedWhileFirstIsAlive)
+{
+    auto client = make_ssh_client();
+
+    EXPECT_THROW(make_ssh_client(), std::logic_error);
+}
+
+TEST_F(SSHClient, clientCanBeCreatedAgainAfterPreviousIsDestroyed)
+{
+    make_ssh_client();
+
+    EXPECT_NO_THROW(make_ssh_client());
 }
 
 TEST_F(SSHClient, execSingleCommandReturnsOKNoFailure)
 {
-    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
-        *val = 0;
-        return SSH_OK;
-    });
     auto client = make_ssh_client();
 
-    EXPECT_EQ(client.exec({{"foo"}}), SSH_OK);
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec(fake_channel, HasSubstr("foo")))
+        .WillOnce(Return(SSH_OK));
+
+    EXPECT_EQ(client->exec({{"foo"}}), vm_ok);
 }
 
-TEST_F(SSHClient, execMultipleCommandsReturnsOKNoFailure)
+TEST_F(SSHClient, execMultipleCommandsChainsThemInOneRequest)
 {
     auto client = make_ssh_client();
 
-    std::vector<std::vector<std::string>> commands{{"ls", "-la"}, {"pwd"}};
-    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
-        *val = 0;
-        return SSH_OK;
-    });
-    EXPECT_EQ(client.exec(commands), SSH_OK);
+    EXPECT_CALL(mock_libssh,
+                ssh_channel_request_exec(fake_channel, AllOf(HasSubstr("foo"), HasSubstr("&&"))))
+        .WillOnce(Return(SSH_OK));
+
+    EXPECT_EQ(client->exec({{"foo"}, {"bar"}}), vm_ok);
 }
 
 TEST_F(SSHClient, execReturnsErrorCodeOnFailure)
 {
+    constexpr int failure_code{1};
     auto client = make_ssh_client();
-    constexpr int failure_code{127};
-    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
-        *val = failure_code;
-        return SSH_OK;
-    });
+    expect_exit_state(failure_code);
 
-    EXPECT_EQ(client.exec({{"foo"}}), failure_code);
+    EXPECT_EQ(client->exec({{"foo"}}), static_cast<mp::VMReturnCode>(failure_code));
 }
 
 TEST_F(SSHClient, DISABLE_ON_WINDOWS(execPollingWorksAsExpected))
 {
-    int poll_count{0};
     auto client = make_ssh_client();
 
-    mock_ssh_test_fixture.is_eof.returnValue(0);
+    EXPECT_CALL(mock_libssh, ssh_channel_is_eof(fake_channel))
+        .WillOnce(Return(0))
+        .WillRepeatedly(Return(1));
+    EXPECT_CALL(mock_libssh, ssh_event_dopoll).Times(1).WillOnce(Return(SSH_OK));
 
-    auto event_dopoll = [this, &poll_count](auto...) {
-        ++poll_count;
-        mock_ssh_test_fixture.is_eof.returnValue(true);
-        return SSH_OK;
-    };
-
-    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
-        *val = 0;
-        return SSH_OK;
-    });
-    REPLACE(ssh_event_dopoll, event_dopoll);
-
-    EXPECT_EQ(client.exec({{"foo"}}), SSH_OK);
-    EXPECT_EQ(poll_count, 1);
+    EXPECT_EQ(client->exec({{"foo"}}), vm_ok);
 }
 
 TEST_F(SSHClient, throwsWhenUnableToOpenSession)
 {
-    REPLACE(ssh_channel_open_session, [](auto...) { return SSH_ERROR; });
+    EXPECT_CALL(mock_libssh, ssh_channel_open_session(fake_channel)).WillOnce(Return(SSH_ERROR));
 
     EXPECT_THROW(make_ssh_client(), std::runtime_error);
+}
+
+TEST_F(SSHClient, openShellRequestsAShell)
+{
+    auto client = make_ssh_client();
+
+    EXPECT_CALL(mock_libssh, ssh_channel_request_shell(fake_channel)).WillOnce(Return(SSH_OK));
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec).Times(0);
+
+    EXPECT_EQ(client->open_shell(), vm_ok);
 }
 
 TEST_F(SSHClient, throwWhenRequestShellFails)
 {
     auto client = make_ssh_client();
-    REPLACE(ssh_channel_request_pty, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_channel_change_pty_size, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_channel_request_shell, [](auto...) { return SSH_ERROR; });
+    EXPECT_CALL(mock_libssh, ssh_channel_request_shell).WillOnce(Return(SSH_ERROR));
 
-    EXPECT_THROW(client.connect(), std::runtime_error);
+    EXPECT_THROW(client->open_shell(), std::runtime_error);
 }
 
 TEST_F(SSHClient, throwWhenRequestExecFails)
 {
     auto client = make_ssh_client();
-    REPLACE(ssh_channel_request_pty, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_channel_change_pty_size, [](auto...) { return SSH_OK; });
-    REPLACE(ssh_channel_request_exec, [](auto...) { return SSH_ERROR; });
+    EXPECT_CALL(mock_libssh, ssh_channel_request_exec).WillOnce(Return(SSH_ERROR));
 
-    EXPECT_THROW(client.exec({{"foo"}}), std::runtime_error);
+    EXPECT_THROW(client->exec({{"foo"}}), std::runtime_error);
+}
+
+TEST_F(SSHClient, throwWhenExitStateCannotBeObtained)
+{
+    auto client = make_ssh_client();
+    EXPECT_CALL(mock_libssh, ssh_channel_get_exit_state).WillOnce(Return(SSH_ERROR));
+
+    EXPECT_THROW(client->exec({{"foo"}}), std::runtime_error);
 }
 
 TEST_F(SSHClient, logSignalTerminationFromExitState)
 {
-    auto client = make_ssh_client();
     constexpr int failure_code{128 + 2}; // SIGINT exit status
-    REPLACE(ssh_channel_get_exit_state,
-            [](ssh_channel_struct*, unsigned int* val, char** signal, int* core_dump) {
-                *val = failure_code;
-                *signal = strdup("INT");
-                *core_dump = 0;
-                return SSH_OK;
-            });
+    auto client = make_ssh_client();
+    char signal[] = "INT";
+    expect_exit_state(failure_code, signal);
+
+    EXPECT_CALL(mock_libssh, ssh_string_free_char(signal)).Times(1);
+
     auto logger_scope = mpt::MockLogger::inject();
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     logger_scope.mock_logger->expect_log(mpl::Level::error, "Process terminated by signal: INT");
-    EXPECT_EQ(client.exec({{"foo"}}), failure_code);
+
+    EXPECT_EQ(client->exec({{"foo"}}), static_cast<mp::VMReturnCode>(failure_code));
 }
+
+TEST_F(SSHClient, clientCanBeCreatedAgainAfterConstructionThrows)
+{
+    EXPECT_CALL(mock_libssh, ssh_channel_open_session(fake_channel))
+        .WillOnce(Return(SSH_ERROR))
+        .WillOnce(Return(SSH_OK));
+    EXPECT_THROW(make_ssh_client(), std::runtime_error);
+
+    EXPECT_NO_THROW(make_ssh_client());
+}
+
+#ifndef _WIN32
+namespace
+{
+struct SSHClientLiveTerminal : public SSHClient
+{
+    SSHClientLiveTerminal()
+    {
+        master = posix_openpt(O_RDWR | O_NOCTTY);
+        EXPECT_GE(master, 0);
+        EXPECT_EQ(grantpt(master), 0);
+        EXPECT_EQ(unlockpt(master), 0);
+        slave = open(ptsname(master), O_RDWR | O_NOCTTY);
+        EXPECT_GE(slave, 0);
+
+        winsize size{24, 80, 0, 0};
+        EXPECT_EQ(ioctl(slave, TIOCSWINSZ, &size), 0);
+
+        ON_CALL(mock_term, cin_is_live).WillByDefault(Return(true));
+        ON_CALL(mock_term, cout_is_live).WillByDefault(Return(true));
+        ON_CALL(mock_term, native_handles)
+            .WillByDefault(Return(mp::NativeHandles{.cin = slave, .cout = slave, .cerr = slave}));
+    }
+
+    ~SSHClientLiveTerminal()
+    {
+        close(slave);
+        close(master);
+    }
+
+    termios slave_attrs() const
+    {
+        termios attrs{};
+        EXPECT_EQ(tcgetattr(slave, &attrs), 0);
+        return attrs;
+    }
+
+    int master = -1;
+    int slave = -1;
+    NiceMock<mpt::MockTerminal> mock_term;
+};
+} // namespace
+
+TEST_F(SSHClientLiveTerminal, requestsPtyWithLocalTerminalSize)
+{
+    EXPECT_CALL(mock_libssh, ssh_channel_request_pty_size(fake_channel, _, 80, 24))
+        .WillOnce(Return(SSH_OK));
+
+    mp::PlatformSSHClient client{make_ssh_session(), &mock_term};
+}
+
+TEST_F(SSHClientLiveTerminal, putsTerminalInRawModeAndRestoresItOnDestruction)
+{
+    const auto original = slave_attrs();
+    ASSERT_TRUE(original.c_lflag & ICANON);
+
+    {
+        mp::PlatformSSHClient client{make_ssh_session(), &mock_term};
+        EXPECT_FALSE(slave_attrs().c_lflag & (ICANON | ECHO));
+    }
+
+    const auto restored = slave_attrs();
+    EXPECT_EQ(restored.c_lflag, original.c_lflag);
+    EXPECT_EQ(restored.c_iflag, original.c_iflag);
+    EXPECT_EQ(restored.c_oflag, original.c_oflag);
+}
+
+TEST_F(SSHClientLiveTerminal, nonLiveTerminalSkipsPtyRequestAndRawMode)
+{
+    ON_CALL(mock_term, cin_is_live).WillByDefault(Return(false));
+    const auto original = slave_attrs();
+
+    EXPECT_CALL(mock_libssh, ssh_channel_request_pty_size).Times(0);
+
+    mp::PlatformSSHClient client{make_ssh_session(), &mock_term};
+
+    EXPECT_EQ(slave_attrs().c_lflag, original.c_lflag);
+}
+#endif

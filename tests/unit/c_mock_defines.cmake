@@ -39,9 +39,6 @@ add_c_mocks(
   ssh_channel_new
   ssh_channel_open_session
   ssh_channel_request_exec
-  ssh_channel_request_shell
-  ssh_channel_request_pty
-  ssh_channel_change_pty_size
   ssh_channel_read_timeout
   ssh_channel_get_exit_state
   ssh_channel_free

@@ -19,7 +19,6 @@
 
 #include "mock_libc_functions.h"
 
-#include <src/platform/console/unix_console.h>
 #include <src/platform/console/unix_terminal.h>
 
 namespace mp = multipass;
@@ -35,24 +34,23 @@ struct TestUnixTerminal : public Test
 };
 } // namespace
 
-TEST_F(TestUnixTerminal, cinFdReturnsExpectedFd)
+TEST_F(TestUnixTerminal, nativeHandlesReturnStdStreamFds)
 {
-    REPLACE(fileno, [this](auto stream) {
-        EXPECT_EQ(stream, stdin);
-        return fake_fd;
+    REPLACE(fileno, [](auto stream) {
+        if (stream == stdin)
+            return 10;
+        if (stream == stdout)
+            return 11;
+        if (stream == stderr)
+            return 12;
+        return -1;
     });
 
-    EXPECT_EQ(unix_terminal.cin_fd(), fake_fd);
-}
+    const auto handles = unix_terminal.native_handles();
 
-TEST_F(TestUnixTerminal, coutFdReturnsExpectedFd)
-{
-    REPLACE(fileno, [this](auto stream) {
-        EXPECT_EQ(stream, stdout);
-        return fake_fd;
-    });
-
-    EXPECT_EQ(unix_terminal.cout_fd(), fake_fd);
+    EXPECT_EQ(handles.cin, 10);
+    EXPECT_EQ(handles.cout, 11);
+    EXPECT_EQ(handles.cerr, 12);
 }
 
 TEST_F(TestUnixTerminal, isLiveReturnsTrueWhenTTY)
@@ -107,17 +105,4 @@ TEST_F(TestUnixTerminal, unsetsEchoOnTerminal)
     });
 
     unix_terminal.set_cin_echo(false);
-}
-
-TEST_F(TestUnixTerminal, makeConsoleMakesUnixConsole)
-{
-    // force is_live() to return false so UnixConsole ctor doesn't break
-    REPLACE(fileno, [this](auto) { return fake_fd; });
-    REPLACE(isatty, [this](auto fd) {
-        EXPECT_EQ(fd, fake_fd);
-        return 0;
-    });
-
-    auto console = unix_terminal.make_console(nullptr);
-    EXPECT_NE(dynamic_cast<multipass::UnixConsole*>(console.get()), nullptr);
 }

@@ -53,7 +53,6 @@ add_executable(multipass_cpp_tests
   mock_sftp.cpp
   mock_sftpserver.cpp
   mock_ssh.cpp
-  mock_ssh_client.cpp
   mock_standard_paths.cpp
   path.cpp
   reset_process_factory.cpp
@@ -139,6 +138,7 @@ add_executable(multipass_cpp_tests
   test_ssl_cert_provider.cpp
   test_standard_logger.cpp
   test_subnet.cpp
+  test_terminal.cpp
   test_timer.cpp
   test_top_catch_all.cpp
   test_ubuntu_image_host.cpp
