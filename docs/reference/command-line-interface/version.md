@@ -3,16 +3,24 @@
 
 The `multipass version` command without an argument will display the client and daemon versions of Multipass; for example:
 
-```{code-block} text
-multipass  1.0.0
-multipassd 1.0.0
+```{terminal}
+:prompt: ">"
+
+multipass version
+
+multipass   1.0.0
+multipassd  1.0.0
 ```
 
 If there is an update to Multipass available, it will be printed out in addition to the standard output; for example:
 
-```{code-block} text
-multipass  1.0.0
-multipassd 1.0.0
+```{terminal}
+:prompt: ">"
+
+multipass version
+
+multipass   1.0.0
+multipassd  1.0.0
 
 ########################################################################################
 Multipass 1.0.1 release
@@ -22,7 +30,7 @@ Go here for more information: https://github.com/canonical/multipass/releases/ta
 ########################################################################################
 ```
 
-Like [`list`](/reference/command-line-interface/list), `version` supports the `--format` option to get machine-readable output (`json`, `csv` or `yaml`).
+Like [`list`](reference-command-line-interface-list), `version` supports the `--format` option to get machine-readable output (`json`, `csv` or `yaml`).
 
 ```{note}
 The `json`, `csv` and `yaml` formats cover regular output only. Errors and log messages are printed to the standard error stream as plain text, with failures signaled by a non-zero exit status.
