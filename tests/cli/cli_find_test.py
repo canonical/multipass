@@ -85,12 +85,14 @@ class TestFind:
                 assert len(current_lts) == 1
                 logging.debug(f"Current LTS is {current_lts}")
 
-                # Verify that find has only one image aliased with "devel"
+                # Verify that find has at most one image aliased with "devel".
+                # Depending on timing, there may be no such image listed, e.g.
+                # if the next Ubuntu release hasn't started yet.
                 current_devel = output.jq(
                     '.images | with_entries(select(.value.aliases | index("devel")))'
                 ).first()
-                assert len(current_devel) == 1
-                logging.debug(f"Current devel is {current_devel}")
+                assert len(current_devel) <= 1
+                logging.debug(f"Current devel is {current_devel or '(none)'}")
 
                 if multipass_version_has_feature("appliances"):
                     # Check appliances
