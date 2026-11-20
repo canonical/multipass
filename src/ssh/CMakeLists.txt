@@ -84,10 +84,14 @@ endif()
 
 function(add_ssh_client_target TARGET_NAME LIBSSH_TARGET)
   add_library(${TARGET_NAME} STATIC
-    ssh_factory.cpp
-    ssh_client.cpp
+    client_ssh_factory.cpp
+    plain_ssh_client.cpp
     plain_ssh_session.cpp)
-
+  if(MSVC)
+    target_sources(${TARGET_NAME} PRIVATE platform_ssh_client_win.cpp)
+  else()
+    target_sources(${TARGET_NAME} PRIVATE platform_ssh_client_unix.cpp)
+  endif()
   target_compile_definitions(${TARGET_NAME} PRIVATE WITH_SERVER)
 
   target_link_libraries(${TARGET_NAME}

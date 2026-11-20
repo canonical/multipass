@@ -187,6 +187,13 @@ ssh_session multipass::PlainSSHSession::borrow_session(
     return raw_session.get();
 }
 
+ssh_session multipass::PlainSSHSession::borrow_session(
+    const PrivatePassProvider<PlainSSHClient>::PrivatePass&) const
+{
+    assert(!is_moved() && "precondition - cannot borrow a moved session");
+    return raw_session.get();
+}
+
 mp::PlainSSHSession::operator ssh_session()
 {
     return raw_session.get();

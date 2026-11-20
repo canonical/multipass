@@ -22,6 +22,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/cmd_exceptions.h>
 #include <multipass/settings/settings.h>
+#include <multipass/ssh/client_ssh_factory.h>
 #include <multipass/ssh/ssh_client.h>
 #include <multipass/timer.h>
 #include <multipass/utils/grpc_utils.h>
@@ -69,9 +70,9 @@ mp::ReturnCodeVariant cmd::Shell::run(mp::ArgParser* parser)
             mp::utils::proto_to_coordinates(reply.ssh_coordinates().begin()->second)};
         try
         {
-            auto console_creator = [this](auto channel) { return term->make_console(channel); };
-            mp::SSHClient ssh_client{ssh_coordinates, console_creator};
-            return static_cast<mp::VMReturnCode>(ssh_client.connect());
+            std::unique_ptr<SSHClient> ssh_client{
+                MP_CLIENT_SSH_FACTORY.make_ssh_client(ssh_coordinates, term)};
+            return ssh_client->open_shell();
         }
         catch (const std::exception& e)
         {

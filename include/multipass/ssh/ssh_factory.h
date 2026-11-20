@@ -21,6 +21,9 @@
 #include <multipass/ssh/ssh_coordinates.h>
 #include <multipass/ssh/ssh_session.h>
 
+#include <memory>
+#include <string>
+
 struct ssh_key_struct;
 typedef ssh_key_struct* ssh_key;
 

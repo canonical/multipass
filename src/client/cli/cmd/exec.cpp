@@ -19,6 +19,7 @@
 #include "common_cli.h"
 
 #include <multipass/cli/argparser.h>
+#include <multipass/ssh/client_ssh_factory.h>
 #include <multipass/ssh/ssh_client.h>
 #include <multipass/utils.h>
 #include <multipass/utils/grpc_utils.h>
@@ -169,8 +170,8 @@ mp::ReturnCodeVariant cmd::Exec::exec_success(const mp::SSHInfoReply& reply,
         mpu::proto_to_coordinates(reply.ssh_coordinates().begin()->second)};
     try
     {
-        auto console_creator = [&term](auto channel) { return term->make_console(channel); };
-        mp::SSHClient ssh_client{ssh_coordinates, console_creator};
+        std::unique_ptr<SSHClient> ssh_client{
+            MP_CLIENT_SSH_FACTORY.make_ssh_client(ssh_coordinates, term)};
 
         std::vector<std::vector<std::string>> all_args;
         if (dir)
@@ -192,7 +193,7 @@ mp::ReturnCodeVariant cmd::Exec::exec_success(const mp::SSHInfoReply& reply,
         else
             all_args = {{args}};
 
-        return static_cast<mp::VMReturnCode>(ssh_client.exec(all_args));
+        return ssh_client->exec(all_args);
     }
     catch (const std::exception& e)
     {
