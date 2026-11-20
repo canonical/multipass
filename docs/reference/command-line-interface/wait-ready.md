@@ -1,18 +1,32 @@
 (reference-command-line-interface-wait-ready)=
 # wait-ready
 
-> See also: [`start`](reference-command-line-interface-start), [`launch`](reference-command-line-interface-launch)
-
 The `multipass wait-ready` command blocks execution until the Multipass daemon is fully initialized and ready to accept requests. This is particularly useful in batch operations and automated environments such as CI/CD pipelines, where subsequent Multipass commands may fail if the daemon has not yet finished starting up.
-
-By waiting for the daemon to reach a ready state, scripts and services can safely perform operations such as launching or listing instances without encountering transient "daemon not ready" errors.
 
 Use the `--timeout` option to limit how long the command waits for readiness before exiting with a non-zero status code.
 For example, to wait up to 30 seconds for the daemon to become ready:
 
-```bash
+```{terminal}
+:prompt: ">"
+
 multipass wait-ready --timeout 30
+
+>
 ```
+
+## Example usage
+
+```{code-block} text
+multipass wait-ready && multipass launch
+```
+
+This command ensures that the daemon is ready before launching an instance.
+
+## Notes
+
+- `wait-ready` checks the daemon’s readiness via a gRPC endpoint.
+- If the daemon is not running, `wait-ready` attempts to connect until it becomes available or the timeout elapses.
+- The command exits with status `0` when the daemon is ready, and non-zero otherwise.
 
 ---
 
@@ -38,16 +52,6 @@ Options:
                        initialization is limited to 5 minutes each.
 ```
 
-## **Example usage:**
-
-```bash
-multipass wait-ready && multipass launch
+```{seealso}
+[`start`](reference-command-line-interface-start), [`launch`](reference-command-line-interface-launch)
 ```
-
-This command ensures that the daemon is ready before launching an instance.
-
-## **Notes:**
-
-- `wait-ready` checks the daemon’s readiness via a gRPC endpoint.
-- If the daemon is not running, `wait-ready` attempts to connect until it becomes available or the timeout elapses.
-- The command exits with status `0` when the daemon is ready, and non-zero otherwise.
