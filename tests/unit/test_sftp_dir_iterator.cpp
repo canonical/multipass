@@ -101,6 +101,23 @@ TEST(SFTPDirIterator, success)
                                      "dir/dir3/file6"));
 }
 
+TEST(SFTPDirIterator, opensNestedRemotePathsWithForwardSlashes)
+{
+    const auto remote_path = mp::fs::path{"release-a/logs"};
+    std::string opened_remote_path;
+
+    REPLACE(sftp_opendir, [&](auto, auto path) {
+        opened_remote_path = path;
+        return get_dummy_dir("release-a/logs");
+    });
+    REPLACE(sftp_readdir, [](auto...) { return nullptr; });
+    REPLACE(sftp_dir_eof, [](auto...) { return true; });
+
+    mp::SFTPDirIterator iter{nullptr, remote_path};
+
+    EXPECT_EQ(remote_path.generic_string(), opened_remote_path);
+}
+
 TEST(SFTPDirIterator, failOpendir)
 {
     REPLACE(sftp_opendir, [](auto...) { return nullptr; });
