@@ -23,6 +23,7 @@
 #include <optional>
 #include <queue>
 #include <string>
+#include <string_view>
 #include <thread>
 
 namespace multipass::test
@@ -33,7 +34,7 @@ struct CallbackChannelState
     bool eof{true};
     bool closed{true};
     std::optional<int> exit_code{0};
-    std::optional<std::string> signal;
+    std::optional<std::string_view> signal;
     std::chrono::milliseconds wait{std::chrono::milliseconds(0)};
 };
 
@@ -65,13 +66,16 @@ public:
                                                           *cb_s.exit_code,
                                                           channel_cbs->userdata);
             if (cb_s.signal)
+            {
+                const std::string signal{*cb_s.signal}; // string_view is not null-terminated
                 channel_cbs->channel_exit_signal_function(nullptr,
                                                           nullptr,
-                                                          cb_s.signal->c_str(),
+                                                          signal.c_str(),
                                                           0,
                                                           nullptr,
                                                           nullptr,
                                                           channel_cbs->userdata);
+            }
             if (cb_s.eof)
                 channel_cbs->channel_eof_function(nullptr, nullptr, channel_cbs->userdata);
 
