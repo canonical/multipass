@@ -184,6 +184,7 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout)
     if (!channel) // TODO@sftp remove check
         throw SSHProcessExitError{cmd, "channel is null"};
 
+    // Kept short-lived: the event takes over the session's socket until freed
     auto event = get_event_in_session();
 
     auto deadline = std::chrono::steady_clock::now() + timeout;
@@ -201,9 +202,7 @@ void mp::PlainSSHProcess::read_exit_code(std::chrono::milliseconds timeout)
             throw SSHProcessExitError{cmd, "channel is closed with no exit status"};
 
         if (rc == SSH_ERROR)
-        { // SSH_ERROR with no closed or eof means that poll returned <0. Further polling will fail
-          // (unless the error was EINTR). Not setting the closed or eof.
-
+        { // Polling failed for good (libssh already retries on EINTR)
             const auto err = fmt::format("ssh_event_dopoll failed: {}", std::strerror(errno));
             throw SSHProcessExitError{cmd, err};
         }

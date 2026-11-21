@@ -42,7 +42,8 @@ public:
     /**
      * Obtain the exit code of the process, blocking up to the given timeout.
      * @param timeout Maximum time to wait for the exit code.
-     * @return The process exit code.
+     * @return The process exit code or, as in a shell, 128 + N if it was killed by signal N (just
+     * 128 if the signal is unknown).
      * @throws ExitlessSSHProcessException (or descendant) if the exit code cannot be obtained
      * within the timeout.
      */
