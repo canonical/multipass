@@ -26,8 +26,6 @@
 namespace multipass
 {
 class Terminal;
-// TODO@sshclient: document PlatformSSHClient (platform-specific console setup and SSH event
-// handling)
 class PlatformSSHClient : public PlainSSHClient
 {
 public:
@@ -36,7 +34,6 @@ public:
 
     struct PlatformData;
 
-    // TODO@sshclient: document ConsoleGeometry
     struct ConsoleGeometry
     {
         int rows;
@@ -44,7 +41,6 @@ public:
     };
 
 protected:
-    // TODO@sshclient: document handle_ssh_events
     void handle_ssh_events(ssh_session session) override;
 
 private:

@@ -35,7 +35,6 @@ using SSHSessionUPtr = std::unique_ptr<SSHSession>;
 using ssh_channel = ssh_channel_struct*;
 using ssh_session = ssh_session_struct*;
 
-// TODO@sshclient: document PlainSSHClient (single-instance guard, exec/shell flow)
 class PlainSSHClient : public SSHClient, public PrivatePassProvider<PlainSSHClient>
 {
 public:
@@ -56,7 +55,6 @@ private:
 protected:
     ChannelUPtr channel;
 
-    // TODO@sshclient: document handle_ssh_events contract
     virtual void handle_ssh_events(ssh_session session) = 0;
 };
 } // namespace multipass

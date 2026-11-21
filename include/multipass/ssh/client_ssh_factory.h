@@ -31,13 +31,11 @@ class Terminal;
 
 using SSHClientUPtr = std::unique_ptr<SSHClient>;
 
-// TODO@sshclient: document ClientSSHFactory
 class ClientSSHFactory : public Singleton<ClientSSHFactory>
 {
 public:
     ClientSSHFactory(const Singleton<ClientSSHFactory>::PrivatePass&) noexcept;
 
-    // TODO@sshclient: document make_ssh_client
     virtual SSHClientUPtr make_ssh_client(const SSHCoordinates& ssh_coordinates,
                                           Terminal* term) const;
 };

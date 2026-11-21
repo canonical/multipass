@@ -29,18 +29,13 @@
 
 namespace multipass::test
 {
-// TODO@sshclient: document MockSSHClient
 class MockSSHClient : public SSHClient
 {
 public:
-    MOCK_METHOD(VMReturnCode,
-                exec,
-                (const std::vector<std::vector<std::string>>&),
-                (override));
+    MOCK_METHOD(VMReturnCode, exec, (const std::vector<std::vector<std::string>>&), (override));
     MOCK_METHOD(VMReturnCode, open_shell, (), (override));
 };
 
-// TODO@sshclient: document MockClientSSHFactory
 class MockClientSSHFactory : public ClientSSHFactory
 {
 public:

@@ -26,7 +26,9 @@
 
 namespace multipass
 {
-// TODO@sshclient: document NativeHandles
+/**
+ * NativeHandles holds the platform-specific handles for a terminal's streams
+ */
 struct NativeHandles
 {
     Handle cin;
@@ -46,7 +48,10 @@ public:
     virtual bool cin_is_live() const = 0;
     virtual bool cout_is_live() const = 0;
 
-    // TODO@sshclient: document native_handles
+    /**
+     * Get the platform-specific terminal stream handles
+     @returns The three stream handles: cin, cout, cerr.
+     */
     virtual NativeHandles native_handles() const = 0;
 
     bool is_live() const;
