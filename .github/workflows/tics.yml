@@ -52,7 +52,7 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
 
     - name: Install cmake
-      uses: lukka/get-cmake@v4.4.4
+      uses: lukka/get-cmake@v4.5.0
 
     - name: Configure
       run: |
