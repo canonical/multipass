@@ -182,7 +182,8 @@ struct SshfsMount : public mp::test::SftpServerTest
                 invoked = true;
             }
             // Process completed and channel is done
-            cb.exit_code = callback_mock_engine.success_code;
+            if (!fail_cmd || cmd.find(*fail_cmd) == std::string::npos)
+                cb.exit_code = callback_mock_engine.success_code;
             callback_mock_engine.push_state(cb);
             callback_mock_engine.pop_state();
             return SSH_OK;
