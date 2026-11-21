@@ -69,6 +69,60 @@ TEST_F(SSHProcess, canRetrieveExitStatus)
     EXPECT_THAT(proc->exit_code(), Eq(expected_status));
 }
 
+TEST_F(SSHProcess, exitStatusDeliveredDuringReadIsCached)
+{
+    static constexpr int expected_status{42};
+    mpt::CallbackChannelState cb_state{};
+    cb_state.exit_code = expected_status;
+    cb_state.eof = false;
+    cb_state.closed = false;
+    callback_mock_engine.push_state(cb_state);
+    callback_mock_engine.pop_state();
+
+    EXPECT_CALL(mock_libssh, ssh_channel_read_timeout).WillOnce([](auto...) {
+        MP_LIBSSH.ssh_event_dopoll(nullptr, 0); // delivers the exit status
+        return 0;
+    });
+
+    auto proc = session.exec("something");
+    proc->read_std_output();
+
+    // the status must be already saved: no further polling allowed
+    EXPECT_CALL(mock_libssh, ssh_event_dopoll).Times(0);
+    EXPECT_THAT(proc->exit_code(), Eq(expected_status));
+}
+
+TEST_F(SSHProcess, outputExitStatusEofAndCloseDuringReadAreCached)
+{
+    static constexpr int expected_status{42};
+    std::string expected_output{"some output"};
+    mpt::CallbackChannelState cb_state{};
+    cb_state.exit_code = expected_status; // eof and closed default to true
+    callback_mock_engine.push_state(cb_state);
+    callback_mock_engine.pop_state();
+
+    auto delivered = false;
+    EXPECT_CALL(mock_libssh, ssh_channel_read_timeout)
+        .WillRepeatedly([&](ssh_channel, void* dest, uint32_t count, int, int) -> int {
+            if (!delivered)
+            {
+                delivered = true;
+                std::copy_n(expected_output.begin(),
+                            std::min<size_t>(count, expected_output.size()),
+                            reinterpret_cast<char*>(dest));
+                MP_LIBSSH.ssh_event_dopoll(nullptr, 0); // exit status, eof and close
+                return static_cast<int>(expected_output.size());
+            }
+            return -1; // closed channel
+        });
+
+    auto proc = session.exec("something");
+    EXPECT_THAT(proc->read_std_output(), StrEq(expected_output));
+
+    EXPECT_CALL(mock_libssh, ssh_event_dopoll).Times(0);
+    EXPECT_THAT(proc->exit_code(), Eq(expected_status));
+}
+
 TEST_F(SSHProcess, exitCodeTimesOut)
 {
     EXPECT_CALL(mock_libssh, ssh_event_dopoll).WillRepeatedly([](ssh_event, int timeout) {
