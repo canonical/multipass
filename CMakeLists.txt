@@ -172,8 +172,12 @@ if(MULTIPASS_ENABLE_FLUTTER_GUI)
   if(MSVC)
     set(FLUTTER_TOOLS_EXTENSION ".bat")
   endif()
-  set(FLUTTER_EXECUTABLE ${CMAKE_SOURCE_DIR}/3rd-party/flutter/bin/flutter${FLUTTER_TOOLS_EXTENSION})
-  set(DART_EXECUTABLE ${CMAKE_SOURCE_DIR}/3rd-party/flutter/bin/dart${FLUTTER_TOOLS_EXTENSION})
+
+  include(src/cmake/flutter-sdk.cmake)
+  setup_flutter_sdk()
+  set(FLUTTER_EXECUTABLE ${MULTIPASS_FLUTTER_SDK_DIR}/bin/flutter${FLUTTER_TOOLS_EXTENSION})
+  set(DART_EXECUTABLE ${MULTIPASS_FLUTTER_SDK_DIR}/bin/dart${FLUTTER_TOOLS_EXTENSION})
+
   if(MSVC)
     set(FLUTTER_CONFIG_ARGS --no-enable-linux-desktop --no-enable-macos-desktop --enable-windows-desktop)
   elseif(APPLE)
@@ -181,6 +185,7 @@ if(MULTIPASS_ENABLE_FLUTTER_GUI)
   elseif(UNIX AND NOT APPLE)
     set(FLUTTER_CONFIG_ARGS --enable-linux-desktop --no-enable-macos-desktop --no-enable-windows-desktop)
   endif()
+
   execute_process(COMMAND ${FLUTTER_EXECUTABLE} config ${FLUTTER_CONFIG_ARGS} --suppress-analytics --no-enable-web --no-enable-android --no-enable-ios --no-enable-fuchsia --no-enable-custom-devices
                   COMMAND_ERROR_IS_FATAL ANY)
   execute_process(COMMAND ${FLUTTER_EXECUTABLE} precache ${FLUTTER_PRECACHE_OS}
@@ -191,6 +196,7 @@ if(MULTIPASS_ENABLE_FLUTTER_GUI)
   execute_process(COMMAND ${DART_EXECUTABLE} compile exe bin/protoc_plugin.dart
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/3rd-party/protobuf.dart/protoc_plugin
                   COMMAND_ERROR_IS_FATAL ANY)
+
   set(DART_PROTOC_PLUGIN ${CMAKE_SOURCE_DIR}/3rd-party/protobuf.dart/protoc_plugin/bin/protoc_plugin.exe)
 endif(MULTIPASS_ENABLE_FLUTTER_GUI)
 
