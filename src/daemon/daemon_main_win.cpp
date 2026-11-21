@@ -19,6 +19,7 @@
 #include "daemon.h"
 #include "daemon_config.h"
 #include "daemon_init_settings.h"
+#include "shared/windows/server_port.h"
 
 #include <multipass/build_constants.h>
 #include <multipass/cli/client_common.h>
@@ -139,6 +140,13 @@ int daemon_main(int argc, char* argv[], RegisterConsoleHandler register_console)
     mp::daemon::register_global_settings_handlers();
 
     auto builder = mp::cli::parse(app);
+
+    // Fail fast and clearly if the address to listen on is not available,
+    // instead of failing later on in a way that is hard to diagnose.
+    mp::throw_if_address_in_use(builder.server_address.empty()
+                                    ? mp::platform::default_server_address()
+                                    : builder.server_address);
+
     auto config = builder.build();
 
     mp::daemon::monitor_and_quit_on_settings_change();
@@ -180,8 +188,17 @@ try
 
     logger->log(mpl::Level::info, "service_main", "service is running");
 
-    auto exit_code =
-        daemon_main(daemon_argv.size(), daemon_argv.data(), RegisterConsoleHandler::no);
+    auto exit_code = EXIT_FAILURE;
+    try
+    {
+        exit_code = daemon_main(daemon_argv.size(), daemon_argv.data(), RegisterConsoleHandler::no);
+    }
+    catch (const std::exception& e)
+    {
+        logger->log(mpl::Level::error,
+                    "service_main",
+                    fmt::format("the Multipass service stopped due to an error: {}", e.what()));
+    }
 
     status.dwCurrentState = SERVICE_STOPPED;
     status.dwWin32ExitCode = exit_code;
