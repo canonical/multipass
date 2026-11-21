@@ -82,6 +82,9 @@ mp::PlatformSSHClient::PlatformSSHClient(mp::PlainSSHSession&& ssh_session_obj, 
 
 mp::PlatformSSHClient::~PlatformSSHClient()
 {
+    // Previously called at the end of stdout_thread, which was not exception-safe
+    restore_console();
+    FreeConsole();
 }
 
 void mp::PlatformSSHClient::handle_ssh_events(ssh_session session)
@@ -94,9 +97,6 @@ void mp::PlatformSSHClient::handle_ssh_events(ssh_session session)
         {
             p_data->write_console();
         }
-        // Previously within exit_console
-        restore_console();
-        FreeConsole();
     });
 
     while (MP_LIBSSH.ssh_channel_is_open(channel.get()) &&
