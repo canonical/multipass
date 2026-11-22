@@ -52,6 +52,7 @@ ReturnCode standard_failure_handler_for(const std::string& command,
                                         const std::string& error_details = std::string());
 bool update_available(const UpdateInfo& update_info);
 std::string update_notice(const multipass::UpdateInfo& update_info);
+void print_update_notice(Terminal* term, const multipass::UpdateInfo& update_info);
 
 template <typename Request, typename Reply>
 void handle_password(grpc::ClientReaderWriterInterface<Request, Reply>* client, Terminal* term)

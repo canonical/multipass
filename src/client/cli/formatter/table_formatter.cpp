@@ -569,13 +569,6 @@ std::string mp::TableFormatter::format(const VersionReply& reply,
     if (!reply.version().empty())
     {
         fmt::format_to(std::back_inserter(buf), "{:<12}{}\n", "multipassd", reply.version());
-
-        if (mp::cmd::update_available(reply.update_info()))
-        {
-            fmt::format_to(std::back_inserter(buf),
-                           "{}",
-                           mp::cmd::update_notice(reply.update_info()));
-        }
     }
     return fmt::to_string(buf);
 }
