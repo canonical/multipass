@@ -32,9 +32,9 @@
 #include <multipass/settings/settings.h>
 #include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
+#include <multipass/ui_wording/launch_messages.h>
 #include <multipass/url_downloader.h>
 #include <multipass/utils.h>
-#include <multipass/wording/launch_messages.h>
 
 #include <yaml-cpp/yaml.h>
 

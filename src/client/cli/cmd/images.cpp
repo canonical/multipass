@@ -20,7 +20,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/formatter.h>
-#include <multipass/wording/deprecation_warning.h>
+#include <multipass/ui_wording/deprecation_warning.h>
 
 #include <string>
 

@@ -13,15 +13,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-add_library(wording STATIC
+add_library(ui_wording STATIC
   launch_messages.cpp
 )
 
-target_link_libraries(wording PUBLIC
+target_link_libraries(ui_wording PUBLIC
   fmt::fmt-header-only
   rpc
 )
 
-target_include_directories(wording
+target_include_directories(ui_wording
   PUBLIC "${CMAKE_SOURCE_DIR}/include"
 )

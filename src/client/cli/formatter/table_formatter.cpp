@@ -21,9 +21,9 @@
 #include <multipass/cli/table_formatter.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
+#include <multipass/ui_wording/images_messages.h>
 #include <multipass/utils.h>
 #include <multipass/utils/sorted_map_view.h>
-#include <multipass/wording/images_messages.h>
 
 #include <regex>
 

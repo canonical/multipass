@@ -68,8 +68,8 @@ target_link_libraries(daemon
   settings
   ssh
   sshfs_mount
+  ui_wording
   utils
-  wording
   Qt6::Core
   Qt6::Network
   xz_image_decoder
