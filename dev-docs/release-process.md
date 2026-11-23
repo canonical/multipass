@@ -91,7 +91,7 @@ release/1.15 $ git push --tags
 6. Create a draft release entry on GitHub.
     1. attach the signed macOS and Windows packages.
 7. Upload the package to the Microsoft Store.
-    1. Place the package our content cache following the instructions [here](https://warthogs.atlassian.net/browse/MULTI-3034).
+    1. Place the package in our content cache following the instructions [here](https://warthogs.atlassian.net/browse/MULTI-3034).
     2. Go to https://partner.microsoft.com/en-us/dashboard/apps-and-games/overview, navigate to "Multipass > Packages" and upload the package.
     3. Run validation on the new package. This might take a few working days.
 8. Submit a release notes PR using the [release notes workflow](release-notes-workflow.md)
