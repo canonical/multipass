@@ -28,7 +28,7 @@ class RemoteNotFoundException : public std::runtime_error
 {
 public:
     explicit RemoteNotFoundException(const std::string& remote)
-        : runtime_error(ImagesUserMessages::remote_not_found(remote))
+        : runtime_error(ImagesWording::remote_not_found(remote))
     {
     }
 };

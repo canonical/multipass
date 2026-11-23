@@ -546,7 +546,7 @@ std::string mp::TableFormatter::format(const ImagesReply& reply) const
         {
             fmt::format_to(std::back_inserter(buf),
                            " {}",
-                           ImagesUserMessages::search_remote_hint(reply.retry_with_remote()));
+                           ImagesWording::search_remote_hint(reply.retry_with_remote()));
         }
         else
         {
