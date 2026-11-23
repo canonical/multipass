@@ -20,8 +20,6 @@
 
 #include <multipass/logging/log.h>
 
-#include <fmt/std.h>
-
 #include <winioctl.h>
 
 #include <memory>
@@ -43,7 +41,7 @@ struct HandleCloser
 
 using UniqueHandle = std::unique_ptr<std::remove_pointer_t<HANDLE>, HandleCloser>;
 
-std::error_code last_error(std::string_view operation, const std::filesystem::path& path)
+std::error_code last_error(std::string_view operation, const multipass::NativePath& path)
 {
     const std::error_code ec{static_cast<int>(MP_FILEIOAPI.GetLastError()), std::system_category()};
     mpl::error(category,
@@ -55,7 +53,7 @@ std::error_code last_error(std::string_view operation, const std::filesystem::pa
 }
 } // namespace
 
-std::error_code multipass::clear_sparse_flag(const std::filesystem::path& path)
+std::error_code multipass::clear_sparse_flag(const NativePath& path)
 {
     mpl::debug(category, "clear_sparse_flag(...) > path: {}", path);
     const auto path_w = path.wstring();

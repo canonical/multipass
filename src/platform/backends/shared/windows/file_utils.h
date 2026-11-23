@@ -17,7 +17,8 @@
 
 #pragma once
 
-#include <filesystem>
+#include "native_path.h"
+
 #include <system_error>
 
 namespace multipass
@@ -29,5 +30,5 @@ namespace multipass
  * @param [in] path Path to the file
  * @return An empty error code on success, the Win32 error otherwise
  */
-[[nodiscard]] std::error_code clear_sparse_flag(const std::filesystem::path& path);
+[[nodiscard]] std::error_code clear_sparse_flag(const NativePath& path);
 } // namespace multipass
