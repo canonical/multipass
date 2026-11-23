@@ -90,18 +90,18 @@ bool nice_path(const std::string& p)
     });
 }
 
-bool nice_route(const LaunchUserMessages::MountRoute& mount_route)
+bool nice_route(const LaunchWording::MountRoute& mount_route)
 {
     return nice_path(mount_route.source) && nice_path(mount_route.target);
 }
 
-bool nice_routes(const LaunchUserMessages::MountRoutes& mount_routes)
+bool nice_routes(const LaunchWording::MountRoutes& mount_routes)
 {
     return std::ranges::all_of(mount_routes, nice_route);
 }
 
 void append_mount_commands(fmt::memory_buffer& message,
-                           const LaunchUserMessages::MountRoutes& mount_routes,
+                           const LaunchWording::MountRoutes& mount_routes,
                            std::string_view vm_name)
 {
     auto out = std::back_inserter(message);
@@ -121,8 +121,7 @@ void append_mount_commands(fmt::memory_buffer& message,
 
 } // namespace
 
-std::string LaunchUserMessages::client_timeout(std::string_view vm_name,
-                                               const MountRoutes& mount_routes)
+std::string LaunchWording::client_timeout(std::string_view vm_name, const MountRoutes& mount_routes)
 {
     fmt::memory_buffer message;
     auto out = std::back_inserter(message);
@@ -137,9 +136,9 @@ std::string LaunchUserMessages::client_timeout(std::string_view vm_name,
     return fmt::to_string(message);
 }
 
-std::string LaunchUserMessages::server_timeout(ReadinessError::ErrorCode readiness_error,
-                                               std::string_view vm_name,
-                                               const MountRoutes& mount_routes)
+std::string LaunchWording::server_timeout(ReadinessError::ErrorCode readiness_error,
+                                          std::string_view vm_name,
+                                          const MountRoutes& mount_routes)
 {
     const auto name = display_vm_name(vm_name);
     fmt::memory_buffer message;

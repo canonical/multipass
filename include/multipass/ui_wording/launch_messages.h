@@ -25,7 +25,7 @@
 namespace multipass
 {
 
-struct LaunchUserMessages
+struct LaunchWording
 {
     struct MountRoute
     {

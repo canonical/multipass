@@ -109,10 +109,10 @@ auto net_digest(const QString& options)
     return net;
 }
 
-mp::LaunchUserMessages::MountRoutes user_message_mount_routes(
+mp::LaunchWording::MountRoutes wording_mount_routes(
     const std::vector<std::pair<QString, QString>>& mount_routes)
 {
-    mp::LaunchUserMessages::MountRoutes result;
+    mp::LaunchWording::MountRoutes result;
     result.reserve(mount_routes.size());
 
     for (const auto& [source, target] : mount_routes)
@@ -131,7 +131,7 @@ mp::ReturnCodeVariant cmd::Launch::run(mp::ArgParser* parser)
         return parser->returnCodeFrom(ret);
     }
 
-    // We prepare the mount routes first so that if an error happens, LaunchUserMessages gets the
+    // We prepare the mount routes first so that if an error happens, LaunchWording gets the
     // correct mount routes.
     prepare_mount_routes();
 
@@ -476,7 +476,7 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             parser->value("timeout").toInt(),
             spinner.get(),
             cerr,
-            LaunchUserMessages::client_timeout(vm_name, user_message_mount_routes(mount_routes)));
+            LaunchWording::client_timeout(vm_name, wording_mount_routes(mount_routes)));
         timer->start();
     }
 
@@ -611,10 +611,9 @@ mp::ReturnCodeVariant cmd::Launch::request_launch(const ArgParser* parser)
             const auto& server_vm_name = reply.vm_instance_name().empty()
                                            ? vm_name
                                            : reply.vm_instance_name();
-            error_details = LaunchUserMessages::server_timeout(
-                readiness_error,
-                server_vm_name,
-                user_message_mount_routes(mount_routes));
+            error_details = LaunchWording::server_timeout(readiness_error,
+                                                          server_vm_name,
+                                                          wording_mount_routes(mount_routes));
 
             // In case of timeout, clear status.error_message since we show a clearer
             // error in error_details than the one in the timeout exception.
