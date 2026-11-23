@@ -297,7 +297,9 @@ std::unordered_map<std::string, mp::VMSpecs> load_db(const mp::Path& data_path,
         {
             const std::string name{key};
             auto spec = value_to<mp::VMSpecs>(record, az_manager);
-            legacy_migrator.migrate(name, spec, factory.get_instance_directory(name));
+            legacy_migrator.migrate(name,
+                                    spec,
+                                    MP_PLATFORM.path_to_qstr(factory.get_instance_directory(name)));
             reconstructed_records.emplace(key, std::move(spec));
         }
         catch (mp::GhostInstanceException&)
@@ -331,14 +333,13 @@ auto fetch_image_for(const std::string& name,
                              stub_prepare,
                              stub_progress,
                              std::nullopt,
-                             MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)));
+                             factory.get_instance_directory(name));
 }
 
 std::filesystem::path cloud_init_iso_path(const mp::VirtualMachineFactory& factory,
                                           const std::string& name)
 {
-    return MP_PLATFORM.qstr_to_path(factory.get_instance_directory(name)) /
-           mp::cloud_init_file_name;
+    return factory.get_instance_directory(name) / mp::cloud_init_file_name;
 }
 
 mp::VirtualMachineDescription load_vm_description(const std::string& name, const QDir& instance_dir)
@@ -3899,7 +3900,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 prepare_action,
                 progress_monitor,
                 checksum,
-                MP_PLATFORM.qstr_to_path(config->factory->get_instance_directory(name)));
+                config->factory->get_instance_directory(name));
 
             const auto image_size = config->factory->virtual_size_for(vm_image.image_path);
             vm_desc.disk_space = compute_final_image_size(

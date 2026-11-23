@@ -221,7 +221,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                          monitor,
                                                          key_provider,
                                                          zone,
-                                                         instance_dir.path());
+                                                         instance_dir);
     }
 
     mpt::MockQemuPlatformFactory::GuardedMock qemu_platform_factory_attr{
@@ -1189,7 +1189,7 @@ TEST_F(QemuBackend, sshHostnameReturnsExpectedValue)
                                    stub_monitor,
                                    key_provider,
                                    zone,
-                                   instance_dir.path()};
+                                   instance_dir};
     machine.start();
     machine.set_running();
 
@@ -1208,7 +1208,7 @@ TEST_F(QemuBackend, getsManagementIp)
                                    stub_monitor,
                                    key_provider,
                                    zone,
-                                   instance_dir.path()};
+                                   instance_dir};
     machine.start();
     machine.set_running();
 
@@ -1226,7 +1226,7 @@ TEST_F(QemuBackend, failsToGetManagementIpIfDnsmasqDoesNotReturnAnIp)
                                    stub_monitor,
                                    key_provider,
                                    zone,
-                                   instance_dir.path()};
+                                   instance_dir};
     machine.start();
     machine.set_running();
 
@@ -1246,7 +1246,7 @@ TEST_F(QemuBackend, sshHostnameThrowsImmediatelyWhenIPUnavailable)
                                    stub_monitor,
                                    key_provider,
                                    zone,
-                                   instance_dir.path()};
+                                   instance_dir};
     machine.start();
     machine.set_running();
 
@@ -1499,7 +1499,7 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
         stub_monitor,
         key_provider,
         zone,
-        instance_dir.path(),
+        instance_dir,
         true,
     };
 
