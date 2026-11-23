@@ -31,11 +31,11 @@ from .basics import determine_data_dir
 from .multipass_cmd import multipass
 
 
-def _retrieve_info_field(name, key):
+def _retrieve_info_field(name, key, runtime_info=True):
     """Run `multipass info` for the given instance and return the specified
     field from the JSON output."""
 
-    info_r = info(name)
+    info_r = info(name, runtime_info=runtime_info)
 
     assert name in info_r, f"`info` output does not contain `{name}` key: {str(info_r)}"
     assert (
@@ -50,11 +50,17 @@ def debug_interactive_shell(name):
         sh.interact()
 
 
-def info(name):
+def info(name, runtime_info=True):
     """
     Get 'multipass info' JSON for instance.
+
+    With runtime_info=False, the in-instance stats (load, disk, memory, IPs, ...) are
+    skipped, so the call doesn't need SSH to be reachable.
     """
-    with multipass("info", "--format=json", f"{name}").json() as output:
+    args = ["info", "--format=json", f"{name}"]
+    if not runtime_info:
+        args.append("--no-runtime-information")
+    with multipass(*args).json() as output:
         assert output, f"info({name}) failed ({output.exitstatus}): {str(output)}"
         assert (
             "info" in output
@@ -63,8 +69,11 @@ def info(name):
 
 
 def state(name):
-    """Return the current state (e.g., 'Running', 'Stopped') of the instance."""
-    return _retrieve_info_field(name, "state")
+    """Return the current state (e.g., 'Running', 'Stopped') of the instance.
+
+    Skips runtime info, so this reflects the daemon's view only and doesn't check
+    that SSH is reachable."""
+    return _retrieve_info_field(name, "state", runtime_info=False)
 
 
 def mounts(name):
