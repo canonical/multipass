@@ -484,6 +484,19 @@ void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMes
         messages.add_message(core_image_disk_resize_message());
 }
 
+void mp::BaseVirtualMachine::add_network_interface(const NetworkInterface& extra_interface)
+{
+    mpl::debug(vm_name,
+               "add_network_interface() -> id `{}`, mac `{}`, auto mode `{}`",
+               extra_interface.id,
+               extra_interface.mac_address,
+               extra_interface.auto_mode);
+
+    add_network_interface_impl(extra_interface);
+    add_extra_interface_to_instance_cloud_init(desc.default_mac_address, extra_interface);
+    desc.extra_interfaces.push_back(extra_interface);
+}
+
 auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
 {
     std::vector<IPAddress> all_ipv4;
@@ -911,25 +924,32 @@ std::string mp::BaseVirtualMachine::generate_snapshot_name() const
 
 auto mp::BaseVirtualMachine::make_restore_rollback(const Path& head_path, VMSpecs& specs)
 {
-    return sg::make_scope_guard(
-        [this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
-            top_catch_all(vm_name,
-                          &BaseVirtualMachine::restore_rollback_helper,
-                          this,
-                          head_path,
-                          old_head,
-                          old_specs,
-                          specs);
-        });
+    return sg::make_scope_guard([this,
+                                 &head_path,
+                                 old_head = head_snapshot,
+                                 old_specs = specs,
+                                 &specs,
+                                 old_desc = desc]() noexcept {
+        top_catch_all(vm_name,
+                      &BaseVirtualMachine::restore_rollback_helper,
+                      this,
+                      head_path,
+                      old_head,
+                      old_specs,
+                      specs,
+                      old_desc);
+    });
 }
 
 void mp::BaseVirtualMachine::restore_rollback_helper(const Path& head_path,
                                                      const std::shared_ptr<Snapshot>& old_head,
                                                      const VMSpecs& old_specs,
-                                                     VMSpecs& specs)
+                                                     VMSpecs& specs,
+                                                     const VirtualMachineDescription& old_desc)
 {
     // best effort only
     specs = old_specs;
+    desc = old_desc;
     if (old_head != head_snapshot)
     {
         head_snapshot = old_head;

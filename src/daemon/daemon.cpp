@@ -4634,9 +4634,7 @@ void mp::Daemon::add_bridged_interface(const std::string& instance_name)
     mpl::trace(category, "Adding new interface to instance");
     try
     {
-        instance->add_network_interface(specs.extra_interfaces.size() - 1,
-                                        specs.default_mac_address,
-                                        new_if);
+        instance->add_network_interface(new_if);
         mpl::trace(category, "Done adding");
     }
     catch (const std::exception& e)

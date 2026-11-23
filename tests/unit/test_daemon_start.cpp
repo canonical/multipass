@@ -166,7 +166,7 @@ TEST_F(TestDaemonStart, exitlessSshProcessExceptionDoesNotShowMessage)
     EXPECT_CALL(*mock_vm, start()).Times(1);
     // New networks configuration was moved to the instance settings handler,
     // add_network_interface mustn't be called.
-    EXPECT_CALL(*mock_vm, add_network_interface(_, _, _)).Times(0);
+    EXPECT_CALL(*mock_vm, add_network_interface).Times(0);
 
     auto daemon = make_daemon(std::move(mock_vm));
     auto status = start_instance(*daemon);

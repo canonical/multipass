@@ -889,8 +889,9 @@ TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    const auto machine =
-        backend.create_virtual_machine(default_description, key_provider, stub_monitor);
+    const auto machine = backend.create_virtual_machine(default_description,
+                                                        key_provider,
+                                                        stub_monitor);
     machine->set_running();
     machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff);
 
@@ -1449,7 +1450,7 @@ TEST_F(QemuBackend, addNetworkInterface)
 
     auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     EXPECT_NO_THROW(
-        machine->add_network_interface(0, "", {.id = "", .mac_address = "", .auto_mode = true}));
+        machine->add_network_interface({.id = "", .mac_address = "", .auto_mode = true}));
 }
 
 TEST_F(QemuBackend, createBridgeWithChecksWithQemuPlatform)
@@ -1503,8 +1504,8 @@ TEST_F(QemuBackend, removeAllSnapshotsFromTheImage)
         true,
     };
 
-    const std::vector<mpt::MockProcessFactory::ProcessInfo> processes =
-        process_factory->process_list();
+    const std::vector<mpt::MockProcessFactory::ProcessInfo> processes = process_factory
+                                                                            ->process_list();
 
     EXPECT_GE(processes.size(), 2);
     const auto lastProcessInfo = processes.back();

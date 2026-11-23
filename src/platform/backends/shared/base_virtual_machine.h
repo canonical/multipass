@@ -73,10 +73,7 @@ public:
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size, UserMessages& messages) override;
     [[nodiscard]] std::vector<IPAddress> get_all_ipv4() override;
-    void add_network_interface(int, const std::string&, const NetworkInterface&) override
-    {
-        throw NotImplementedOnThisBackendException("networks");
-    }
+    void add_network_interface(const NetworkInterface& extra_interface) override;
     std::unique_ptr<MountHandler> make_native_mount_handler(const std::string&,
                                                             const VMMount&) override
     {
@@ -136,6 +133,7 @@ protected:
     virtual void update_cpus_impl(int /*num_cores*/) {};
     virtual void resize_memory_impl(const MemorySize& /*new_size*/) {};
     virtual void resize_disk_impl(const MemorySize& new_size) = 0;
+    virtual void add_network_interface_impl(const NetworkInterface& /*extra_interface*/) {};
 
     /**
      * Refresh the VM, if possible, when the startup appears stuck.
@@ -201,7 +199,8 @@ private:
     void restore_rollback_helper(const Path& head_path,
                                  const std::shared_ptr<Snapshot>& old_head,
                                  const VMSpecs& old_specs,
-                                 VMSpecs& specs);
+                                 VMSpecs& specs,
+                                 const VirtualMachineDescription& old_desc);
 
     bool updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const Path& head_path);
     auto make_deleted_head_rollback(const Path& head_path, const bool& wrote_head);
