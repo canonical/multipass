@@ -63,6 +63,14 @@ struct QemuPlatformLinux : public Test
                     _))
                 .WillOnce(Return(false))
                 .WillOnce(Return(true));
+
+            EXPECT_CALL(
+                *mock_utils,
+                run_cmd_for_status(
+                    QString("resolvectl"),
+                    ElementsAre(QString("dns"), QString(vswitch.bridge_name), QString("127.0.0.1")),
+                    _))
+                .WillOnce(Return(true));
         }
 
         EXPECT_CALL(*mock_dnsmasq_server_factory, make_dnsmasq_server(_, _))
