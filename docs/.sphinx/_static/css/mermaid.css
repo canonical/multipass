@@ -1,0 +1,13 @@
+/* Show Mermaid diagrams at their natural size, shrinking them only to fit the page */
+
+body pre.mermaid > svg {
+    width: auto;
+    height: auto;
+}
+
+/* Keep diagrams clear of the fullscreen button in the top-right corner */
+
+body .mermaid-container {
+    box-sizing: border-box;
+    padding-right: 2.5rem;
+}

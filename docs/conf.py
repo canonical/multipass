@@ -277,6 +277,11 @@ extensions = [
     "sphinx_sitemap",
 ]
 
+# Natural diagram size, used by css/mermaid.css
+# https://github.com/mgaitan/sphinxcontrib-mermaid/blob/2.1.1/README.md#mermaid_init_config
+
+mermaid_init_config = {"startOnLoad": False, "flowchart": {"useMaxWidth": False}}
+
 # Excludes files or directories from processing
 
 exclude_patterns = [
@@ -287,6 +292,7 @@ exclude_patterns = [
 
 html_css_files = [
     "css/pdf.css",
+    "css/mermaid.css",
     "cookie-banner.css"
 ]
 
