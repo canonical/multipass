@@ -58,22 +58,11 @@ TEST(Subet, throwsOnInvalidIP)
 
 TEST(SubnetTest, throwsOnLargePrefixLength)
 {
-    // valid but not supported
-    MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/31"},
-                         mp::Subnet::PrefixLengthOutOfRange,
-                         mpt::match_what(HasSubstr("31")));
-
-    MP_EXPECT_THROW_THAT((mp::Subnet{mp::IPAddress{"192.168.0.0"}, 31}),
-                         mp::Subnet::PrefixLengthOutOfRange,
-                         mpt::match_what(HasSubstr("31")));
-
-    // valid but not supported
-    MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/32"},
-                         mp::Subnet::PrefixLengthOutOfRange,
-                         mpt::match_what(HasSubstr("32")));
-
     // boundary case
     MP_EXPECT_THROW_THAT(mp::Subnet{"192.168.0.0/33"},
+                         mp::Subnet::PrefixLengthOutOfRange,
+                         mpt::match_what(HasSubstr("33")));
+    MP_EXPECT_THROW_THAT((mp::Subnet{mp::IPAddress{"192.168.0.0"}, 33}),
                          mp::Subnet::PrefixLengthOutOfRange,
                          mpt::match_what(HasSubstr("33")));
 
@@ -112,6 +101,18 @@ TEST(SubnetTest, givesCorrectRange)
     EXPECT_EQ(subnet.min_address(), mp::IPAddress{"0.0.0.1"});
     EXPECT_EQ(subnet.max_address(), mp::IPAddress{"255.255.255.254"});
     EXPECT_EQ(subnet.usable_address_count(), 4294967294);
+
+    subnet = mp::Subnet{"12.34.56.78/31"};
+    EXPECT_EQ(subnet.masked_address(), mp::IPAddress{"12.34.56.78"});
+    EXPECT_EQ(subnet.min_address(), mp::IPAddress{"12.34.56.78"});
+    EXPECT_EQ(subnet.max_address(), mp::IPAddress{"12.34.56.79"});
+    EXPECT_EQ(subnet.usable_address_count(), 2);
+
+    subnet = mp::Subnet{"12.34.56.78/32"};
+    EXPECT_EQ(subnet.masked_address(), mp::IPAddress{"12.34.56.78"});
+    EXPECT_EQ(subnet.min_address(), mp::IPAddress{"12.34.56.78"});
+    EXPECT_EQ(subnet.max_address(), mp::IPAddress{"12.34.56.78"});
+    EXPECT_EQ(subnet.usable_address_count(), 1);
 }
 
 TEST(SubnetTest, getsAddress)
@@ -157,6 +158,17 @@ TEST(SubnetTest, getsBroadcastAddress)
 
     subnet = mp::Subnet{"255.212.1.152/13"};
     EXPECT_EQ(subnet.broadcast_address(), mp::IPAddress{"255.215.255.255"});
+
+    // Subnets of /31 or /32 don't have broadcast addresses.
+    subnet = mp::Subnet{"192.168.1.152/31"};
+    MP_EXPECT_THROW_THAT((void)subnet.broadcast_address(),
+                         mp::Subnet::NoBroadcastAddressError,
+                         mpt::match_what(HasSubstr("/31")));
+
+    subnet = mp::Subnet{"192.168.1.152/32"};
+    MP_EXPECT_THROW_THAT((void)subnet.broadcast_address(),
+                         mp::Subnet::NoBroadcastAddressError,
+                         mpt::match_what(HasSubstr("/32")));
 }
 
 TEST(SubnetTest, getSubnetMaskReturnsSubnetMask)

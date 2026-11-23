@@ -34,10 +34,15 @@ public:
     {
         template <class T>
         explicit PrefixLengthOutOfRange(const T& value)
-            // Subnet masks of /31 or /32 require some special handling that we don't support.
-            : FormattedExceptionBase{
-                  "Subnet prefix length must be non-negative and less than 31: {}",
-                  value}
+            : FormattedExceptionBase{"Subnet prefix length must be between 0 and 32: {}", value}
+        {
+        }
+    };
+
+    struct NoBroadcastAddressError final : FormattedExceptionBase<std::out_of_range>
+    {
+        explicit NoBroadcastAddressError(uint8_t value)
+            : FormattedExceptionBase{"Subnet of /{} has no broadcast address", value}
         {
         }
     };
@@ -47,7 +52,7 @@ public:
     public:
         constexpr PrefixLength(uint8_t value) : value(value)
         {
-            if (value >= 31)
+            if (value > 32)
                 throw PrefixLengthOutOfRange{value};
         }
 

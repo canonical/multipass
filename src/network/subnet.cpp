@@ -39,10 +39,6 @@ try
         mp::IPAddress addr{cidr_string.substr(0, i)};
 
         const auto prefix_length = std::stoul(cidr_string.substr(i + 1));
-        // Subnet masks of /31 or /32 require some special handling that we don't support.
-        if (prefix_length >= 31)
-            throw mp::Subnet::PrefixLengthOutOfRange(prefix_length);
-
         return mp::Subnet(addr, prefix_length);
     }
     throw std::invalid_argument(
@@ -80,15 +76,19 @@ mp::Subnet::Subnet(const std::string& cidr_string) : Subnet(parse(cidr_string))
 
 mp::IPAddress mp::Subnet::min_address() const
 {
-    return masked_address() + 1;
+    // Subnet masks of /31 or /32 don't have separate network addresses (see RFC 3021). All others
+    // do, so exclude the network address in those cases.
+    return prefix < 31 ? masked_address() + 1 : masked_address();
 }
 
 mp::IPAddress mp::Subnet::max_address() const
 {
-    // address + 2^(32 - prefix) - 1 - 1
-    // address + 2^(32 - prefix) is the next subnet's network address for this prefix length
-    // subtracting 1 to stay in this subnet and another 1 to exclude the broadcast address
-    return masked_address() + ((1ull << (32ull - prefix)) - 2ull);
+    const auto mask = get_subnet_mask(prefix);
+    const auto largest = ip_address.as_uint32() | ~mask.as_uint32();
+
+    // Subnets of /31 or /32 don't have broadcast addresses (see RFC 3021). All others do, so
+    // exclude the broadcast address in those cases.
+    return mp::IPAddress{prefix < 31 ? largest - 1 : largest};
 }
 
 uint32_t mp::Subnet::usable_address_count() const
@@ -108,6 +108,9 @@ mp::IPAddress mp::Subnet::masked_address() const
 
 mp::IPAddress mp::Subnet::broadcast_address() const
 {
+    // Subnets of /31 or /32 don't have broadcast addresses. See RFC 3021.
+    if (prefix >= 31)
+        throw mp::Subnet::NoBroadcastAddressError(prefix);
     const auto mask = get_subnet_mask(prefix);
     return mp::IPAddress{ip_address.as_uint32() | ~mask.as_uint32()};
 }
