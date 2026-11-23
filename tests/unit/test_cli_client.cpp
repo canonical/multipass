@@ -483,6 +483,10 @@ struct Client : public Test
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
 };
 
+constexpr auto inactive_context = "secondary";
+constexpr auto inactive_alias = "old_alias";
+constexpr auto no_aliases_msg = "No aliases defined.\n";
+
 struct ClientAlias : public Client, public FakeAliasConfig
 {
     ClientAlias()
@@ -492,6 +496,13 @@ struct ClientAlias : public Client, public FakeAliasConfig
 
         EXPECT_CALL(*mock_platform, create_alias_script(_, _)).WillRepeatedly(Return());
         EXPECT_CALL(*mock_platform, remove_alias_script(_)).WillRepeatedly(Return());
+    }
+
+    std::string aliases_csv()
+    {
+        std::stringstream cout_stream;
+        send_command({"aliases", "--format=csv"}, cout_stream);
+        return cout_stream.str();
     }
 };
 
@@ -4895,7 +4906,7 @@ TEST_F(ClientAlias, emptyAliases)
     std::stringstream cout_stream;
     send_command({"aliases"}, cout_stream);
 
-    EXPECT_THAT(cout_stream.str(), "No aliases defined.\n");
+    EXPECT_THAT(cout_stream.str(), no_aliases_msg);
 }
 
 TEST_F(ClientAlias, badAliasesFormat)
@@ -5367,7 +5378,7 @@ TEST_F(ClientAlias, aliasCreatesInDefaultDespiteInactiveContext)
     EXPECT_CALL(mock_daemon, info(_, _)).Times(AtMost(1)).WillRepeatedly(make_info_function());
 
     const std::string alias_name{"an_alias"}, instance{"primary"}, old_command{"a_command"},
-        new_command{"another_command"}, context{"secondary"};
+        new_command{"another_command"}, context{inactive_context};
     populate_db_file(AliasesVector{{alias_name, {instance, old_command, "map"}}}, context);
     EXPECT_CALL(*mock_platform, create_alias_script("default." + alias_name, _)).Times(1);
     EXPECT_CALL(*mock_platform, create_alias_script(alias_name, _)).Times(1);
@@ -5395,7 +5406,8 @@ TEST_F(ClientAlias, aliasCreatesInDefaultDespiteInactiveContext)
 
 TEST_F(ClientAlias, failedLegacyMigrationFailsCommands)
 {
-    populate_db_file(AliasesVector{{"old_alias", {"primary", "whoami", "map"}}}, "secondary");
+    populate_db_file(AliasesVector{{inactive_alias, {"primary", "whoami", "map"}}},
+                     inactive_context);
     const auto filename = QString::fromStdString(db_filename());
     const auto original_file = mpt::load(filename).toStdString();
     auto [mock_file_ops, guard] = mpt::MockFileOps::inject();
@@ -5411,27 +5423,29 @@ TEST_F(ClientAlias, failedLegacyMigrationFailsCommands)
 
 TEST_F(ClientAlias, aliasesReportsNoAliasesWithEmptyInactiveContext)
 {
-    populate_db_file(AliasesVector{}, "secondary");
+    populate_db_file(AliasesVector{}, inactive_context);
 
     std::stringstream cout_stream;
     EXPECT_EQ(send_command({"aliases"}, cout_stream, trash_stream), mp::ReturnCode::Ok);
-    EXPECT_EQ(cout_stream.str(), "No aliases defined.\n");
+    EXPECT_EQ(cout_stream.str(), no_aliases_msg);
 }
 
 TEST_F(ClientAlias, inactiveAliasesCannotExecute)
 {
-    populate_db_file(AliasesVector{{"old_alias", {"primary", "whoami", "map"}},
-                                   {"com.mand", {"primary", "whoami", "map"}}},
-                     "secondary");
+    const std::string qualified_alias = std::string{inactive_context} + "." + inactive_alias;
+    const std::string dotted_alias{"com.mand"};
+    const mp::AliasDefinition definition{"primary", "whoami", "map"};
+    populate_db_file(AliasesVector{{inactive_alias, definition}, {dotted_alias, definition}},
+                     inactive_context);
     EXPECT_CALL(mock_daemon, info(_, _)).Times(0);
     EXPECT_CALL(mock_daemon, ssh_info(_, _)).Times(0);
 
     for (const auto& arguments :
-         std::vector<std::vector<std::string>>{{"old_alias"},
-                                               {"secondary.old_alias"},
-                                               {"com.mand"},
-                                               {"secondary.com.mand"},
-                                               {"secondary.old_alias", "--", "argument"}})
+         std::vector<std::vector<std::string>>{{inactive_alias},
+                                               {qualified_alias},
+                                               {dotted_alias},
+                                               {std::string{inactive_context} + "." + dotted_alias},
+                                               {qualified_alias, "--", "argument"}})
     {
         std::stringstream cout_stream, cerr_stream;
         EXPECT_EQ(send_command(arguments, cout_stream, cerr_stream),
@@ -5449,8 +5463,8 @@ TEST_F(ClientAlias, inactiveAliasesCannotExecute)
 
 TEST_F(ClientAlias, inactiveAliasCanBeRecreatedWithNewName)
 {
-    const std::string old_alias{"old_alias"}, new_alias{"new_alias"}, instance{"primary"},
-        command{"whoami"}, context{"secondary"};
+    const std::string old_alias{inactive_alias}, new_alias{"new_alias"}, instance{"primary"},
+        command{"whoami"}, context{inactive_context};
     populate_db_file(AliasesVector{{old_alias, {instance, command, "map"}}}, context);
     EXPECT_CALL(mock_daemon, info(_, _)).Times(2).WillRepeatedly(make_info_function());
     EXPECT_CALL(mock_daemon, ssh_info(_, _));
@@ -5460,9 +5474,7 @@ TEST_F(ClientAlias, inactiveAliasCanBeRecreatedWithNewName)
     EXPECT_EQ(send_command({"alias", instance + ":" + command, new_alias}), mp::ReturnCode::Ok);
     EXPECT_EQ(send_command({new_alias}), mp::ReturnCode::Ok);
 
-    std::stringstream cout_stream;
-    EXPECT_EQ(send_command({"aliases", "--format=csv"}, cout_stream), mp::ReturnCode::Ok);
-    EXPECT_EQ(cout_stream.str(),
+    EXPECT_EQ(aliases_csv(),
               csv_header +
                   fmt::format("{0},{2},{3},map,default*,active\n{1},{2},{3},map,{4},inactive\n",
                               new_alias,
@@ -5479,57 +5491,61 @@ struct ClientLaunchAlias : public ClientAlias, public WithParamInterface<bool>
 TEST_P(ClientLaunchAlias, createsAliasesInDefaultAndReportsFailures)
 {
     const auto fail_script = GetParam();
+    const std::string alias_name{"generated"}, instance{"aliased-vm"};
     mp::LaunchReply reply;
-    reply.set_vm_instance_name("aliased-vm");
+    reply.set_vm_instance_name(instance);
     auto alias = reply.add_aliases_to_be_created();
-    alias->set_name("generated");
-    alias->set_instance("aliased-vm");
+    alias->set_name(alias_name);
+    alias->set_instance(instance);
     alias->set_command("whoami");
     alias->set_working_directory("map");
 
     EXPECT_CALL(mock_daemon, launch(_, _))
         .WillOnce(
             WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(_, ok, reply)));
-    EXPECT_CALL(*mock_platform, create_alias_script("default.generated", _)).Times(1);
+    EXPECT_CALL(*mock_platform, create_alias_script("default." + alias_name, _)).Times(1);
     if (fail_script)
     {
-        EXPECT_CALL(*mock_platform, create_alias_script("generated", _))
+        EXPECT_CALL(*mock_platform, create_alias_script(alias_name, _))
             .WillOnce(Throw(std::runtime_error("cannot create script")));
-        EXPECT_CALL(*mock_platform, remove_alias_script("default.generated")).Times(1);
+        EXPECT_CALL(*mock_platform, remove_alias_script("default." + alias_name)).Times(1);
     }
     else
     {
-        EXPECT_CALL(*mock_platform, create_alias_script("generated", _)).Times(1);
+        EXPECT_CALL(*mock_platform, create_alias_script(alias_name, _)).Times(1);
     }
 
     std::stringstream cerr_stream;
-    EXPECT_EQ(send_command({"launch", "--name", "aliased-vm"}, trash_stream, cerr_stream),
+    EXPECT_EQ(send_command({"launch", "--name", instance}, trash_stream, cerr_stream),
               mp::ReturnCode::Ok);
     if (fail_script)
-        EXPECT_THAT(cerr_stream.str(), HasSubstr("Warning: unable to create alias generated."));
+        EXPECT_THAT(cerr_stream.str(),
+                    HasSubstr("Warning: unable to create alias " + alias_name + "."));
     else
         EXPECT_THAT(cerr_stream.str(), IsEmpty());
 
-    std::stringstream cout_stream;
-    EXPECT_EQ(send_command({"aliases", "--format=csv"}, cout_stream), mp::ReturnCode::Ok);
-    EXPECT_EQ(cout_stream.str(),
-              fail_script ? csv_header
-                          : csv_header + "generated,aliased-vm,whoami,map,default*,active\n");
+    EXPECT_EQ(aliases_csv(),
+              fail_script
+                  ? csv_header
+                  : csv_header +
+                        fmt::format("{},{},whoami,map,default*,active\n", alias_name, instance));
 }
 
 INSTANTIATE_TEST_SUITE_P(ClientAlias, ClientLaunchAlias, Bool());
 
 TEST_F(ClientAlias, unaliasRemovesInactiveAliasWithDots)
 {
-    populate_db_file(AliasesVector{{"com.mand", {"primary", "whoami", "map"}}}, "secondary");
-    EXPECT_CALL(*mock_platform, remove_alias_script("secondary.com.mand")).Times(1);
-    EXPECT_CALL(*mock_platform, remove_alias_script("com.mand")).Times(1);
+    const std::string dotted_alias{"com.mand"};
+    const auto qualified_alias = std::string{inactive_context} + "." + dotted_alias;
+    populate_db_file(AliasesVector{{dotted_alias, {"primary", "whoami", "map"}}}, inactive_context);
+    EXPECT_CALL(*mock_platform, remove_alias_script(qualified_alias)).Times(1);
+    EXPECT_CALL(*mock_platform, remove_alias_script(dotted_alias)).Times(1);
 
-    EXPECT_EQ(send_command({"unalias", "secondary.com.mand"}), mp::ReturnCode::Ok);
+    EXPECT_EQ(send_command({"unalias", qualified_alias}), mp::ReturnCode::Ok);
 
     std::stringstream cout_stream;
     EXPECT_EQ(send_command({"aliases"}, cout_stream), mp::ReturnCode::Ok);
-    EXPECT_EQ(cout_stream.str(), "No aliases defined.\n");
+    EXPECT_EQ(cout_stream.str(), no_aliases_msg);
 }
 
 TEST_F(ClientAlias, unaliasRemovesExistingAlias)
@@ -5612,16 +5628,19 @@ TEST_F(ClientAlias, unaliasDoesNotRemoveNonexistentAliases)
           .command = "another_command",
           .working_directory = "map"}}});
 
+    const std::string nonexistent_alias{"nonexistent_alias"},
+        another_nonexistent_alias{"another_nonexistent_alias"};
+
     std::stringstream cerr_stream;
-    EXPECT_EQ(send_command({"unalias", "nonexistent_alias", "another_nonexistent_alias"},
+    EXPECT_EQ(send_command({"unalias", nonexistent_alias, another_nonexistent_alias},
                            trash_stream,
                            cerr_stream),
               mp::ReturnCode::CommandLineError);
     // Since the container for bad aliases is unordered, we cannot expect an ordered output.
     EXPECT_THAT(cerr_stream.str(), HasSubstr("Nonexistent aliases: "));
-    EXPECT_THAT(cerr_stream.str(), HasSubstr("nonexistent_alias"));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr(nonexistent_alias));
     EXPECT_THAT(cerr_stream.str(), HasSubstr(", "));
-    EXPECT_THAT(cerr_stream.str(), HasSubstr("another_nonexistent_alias"));
+    EXPECT_THAT(cerr_stream.str(), HasSubstr(another_nonexistent_alias));
     EXPECT_THAT(cerr_stream.str(), HasSubstr(".\n"));
 
     std::stringstream cout_stream;
@@ -5654,17 +5673,17 @@ TEST_F(ClientAlias, unaliasDashDashAllWorks)
 
 TEST_F(ClientAlias, unaliasDashDashAllRemovesAliasesFromInactiveContexts)
 {
-    populate_db_file(AliasesVector{{"old_alias", {"primary", "whoami", "map"}}}, "secondary");
-    EXPECT_CALL(*mock_platform, remove_alias_script("secondary.old_alias")).Times(1);
-    EXPECT_CALL(*mock_platform, remove_alias_script("old_alias")).Times(1);
+    populate_db_file(AliasesVector{{inactive_alias, {"primary", "whoami", "map"}}},
+                     inactive_context);
+    EXPECT_CALL(*mock_platform,
+                remove_alias_script(std::string{inactive_context} + "." + inactive_alias))
+        .Times(1);
+    EXPECT_CALL(*mock_platform, remove_alias_script(inactive_alias)).Times(1);
 
     std::stringstream cerr_stream;
     EXPECT_EQ(send_command({"unalias", "--all"}, trash_stream, cerr_stream), mp::ReturnCode::Ok);
 
-    std::stringstream cout_stream;
-    send_command({"aliases", "--format=csv"}, cout_stream);
-
-    EXPECT_EQ(cout_stream.str(), csv_header);
+    EXPECT_EQ(aliases_csv(), csv_header);
 }
 
 TEST_F(ClientAlias, unaliasDashDashAllClashesWithOtherArguments)
@@ -5906,35 +5925,36 @@ TEST_F(ClientAliasNameSuite, preferPrintsDeprecationWarning)
 
 TEST_F(ClientAliasNameSuite, preferDoesNotCreateOrActivateContext)
 {
+    const std::string new_context{"new_context"};
+    const std::string active_context_line{"active_context: default\n"};
+
     std::stringstream cout_stream;
     send_command({"aliases", "--format=yaml"}, cout_stream);
-    EXPECT_THAT(cout_stream.str(), HasSubstr("active_context: default\n"));
+    EXPECT_THAT(cout_stream.str(), HasSubstr(active_context_line));
 
     std::stringstream cerr_stream;
-    EXPECT_EQ(send_command({"prefer", "new_context"}, trash_stream, cerr_stream),
+    EXPECT_EQ(send_command({"prefer", new_context}, trash_stream, cerr_stream),
               mp::ReturnCode::CommandLineError);
     EXPECT_THAT(cerr_stream.str(), HasSubstr("only the default context is active"));
 
     cout_stream.str(std::string());
     send_command({"aliases", "--format=yaml"}, cout_stream);
-    EXPECT_THAT(cout_stream.str(), HasSubstr("active_context: default\n"));
-    EXPECT_THAT(cout_stream.str(), Not(HasSubstr("new_context")));
+    EXPECT_THAT(cout_stream.str(), HasSubstr(active_context_line));
+    EXPECT_THAT(cout_stream.str(), Not(HasSubstr(new_context)));
 }
 
 TEST_F(ClientAliasNameSuite, preferCannotReactivateExistingContext)
 {
-    const std::string alias_name{"old_alias"}, instance{"primary"}, command{"whoami"},
-        context{"secondary"};
+    const std::string alias_name{inactive_alias}, instance{"primary"}, command{"whoami"},
+        context{inactive_context};
     populate_db_file(AliasesVector{{alias_name, {instance, command, "map"}}}, context);
 
     EXPECT_EQ(send_command({"prefer", context}), mp::ReturnCode::CommandLineError);
     EXPECT_EQ(send_command({"prefer", "default"}), mp::ReturnCode::CommandLineError);
     EXPECT_EQ(send_command({context + "." + alias_name}), mp::ReturnCode::CommandLineError);
 
-    std::stringstream cout_stream;
-    EXPECT_EQ(send_command({"aliases", "--format=csv"}, cout_stream), mp::ReturnCode::Ok);
     EXPECT_EQ(
-        cout_stream.str(),
+        aliases_csv(),
         csv_header +
             fmt::format("{},{},{},map,{},inactive\n", alias_name, instance, command, context));
 }
