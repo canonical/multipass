@@ -76,7 +76,7 @@ mp::ParseCode cmd::Unalias::parse_args(mp::ArgParser* parser)
 {
     parser->addPositionalArgument("name", "Names of aliases to remove", "<name> [<name> ...]");
 
-    QCommandLineOption all_option(all_option_name, "Remove all aliases from all contexts");
+    QCommandLineOption all_option(all_option_name, "Remove all aliases");
     parser->addOption(all_option);
 
     auto status = parser->commandParse(this);
