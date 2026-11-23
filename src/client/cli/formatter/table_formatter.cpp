@@ -21,7 +21,7 @@
 #include <multipass/cli/table_formatter.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
-#include <multipass/user_messages/images_messages.h>
+#include <multipass/ui_wording/images_messages.h>
 #include <multipass/utils.h>
 #include <multipass/utils/sorted_map_view.h>
 
@@ -546,7 +546,7 @@ std::string mp::TableFormatter::format(const ImagesReply& reply) const
         {
             fmt::format_to(std::back_inserter(buf),
                            " {}",
-                           ImagesUserMessages::search_remote_hint(reply.retry_with_remote()));
+                           ImagesWording::search_remote_hint(reply.retry_with_remote()));
         }
         else
         {

@@ -46,7 +46,7 @@
 #include <multipass/constants.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/exceptions/ssh_exception.h>
-#include <multipass/user_messages/launch_messages.h>
+#include <multipass/ui_wording/launch_messages.h>
 
 #include <QStringList>
 #include <QTemporaryFile>
@@ -1351,8 +1351,7 @@ TEST_F(Client, launchCmdWithUnavailableZoneFails)
 
 struct LaunchServerTimeout
     : Client,
-      WithParamInterface<
-          std::pair<mp::ReadinessError::ErrorCode, mp::LaunchUserMessages::MountRoutes>>
+      WithParamInterface<std::pair<mp::ReadinessError::ErrorCode, mp::LaunchWording::MountRoutes>>
 {
     void SetUp() override
     {
@@ -1374,8 +1373,7 @@ struct LaunchServerTimeout
         EXPECT_CALL(mock_daemon, mount).Times(0);
     }
 
-    std::vector<std::string> make_launch_command(
-        const mp::LaunchUserMessages::MountRoutes& mount_routes)
+    std::vector<std::string> make_launch_command(const mp::LaunchWording::MountRoutes& mount_routes)
     {
         std::vector<std::string> result = {"launch", "--name", instance_name};
         for (const auto& route : mount_routes)
@@ -1393,9 +1391,9 @@ struct LaunchServerTimeout
     const char* instance_name = "my-vm";
 };
 
-static const mp::LaunchUserMessages::MountRoutes empty_mount_routes = {};
+static const mp::LaunchWording::MountRoutes empty_mount_routes = {};
 
-static const mp::LaunchUserMessages::MountRoutes mount_routes = {
+static const mp::LaunchWording::MountRoutes mount_routes = {
     {"/mount/source", "/mount/target"},
     {"/other/source", "/other/target"},
 };
@@ -1419,8 +1417,7 @@ TEST_P(LaunchServerTimeout, launchServerTimeoutPrintsGuidanceAndReturnsTimeoutFa
 
     EXPECT_THAT(
         cerr_stream.str(),
-        HasSubstr(
-            mp::LaunchUserMessages::server_timeout(readiness_error, instance_name, mount_routes)));
+        HasSubstr(mp::LaunchWording::server_timeout(readiness_error, instance_name, mount_routes)));
 }
 
 TEST_F(Client, launchCmdWithTimer)
@@ -4626,7 +4623,7 @@ TEST_P(TimeoutSuite, commandExitsOnTimeout)
 
     if (GetParam() == "launch")
     {
-        EXPECT_THAT(cerr_stream.str(), HasSubstr(mp::LaunchUserMessages::client_timeout({}, {})));
+        EXPECT_THAT(cerr_stream.str(), HasSubstr(mp::LaunchWording::client_timeout({}, {})));
     }
 }
 

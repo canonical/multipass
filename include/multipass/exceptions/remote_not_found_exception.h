@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <multipass/user_messages/images_messages.h>
+#include <multipass/ui_wording/images_messages.h>
 
 #include <stdexcept>
 
@@ -28,7 +28,7 @@ class RemoteNotFoundException : public std::runtime_error
 {
 public:
     explicit RemoteNotFoundException(const std::string& remote)
-        : runtime_error(ImagesUserMessages::remote_not_found(remote))
+        : runtime_error(ImagesWording::remote_not_found(remote))
     {
     }
 };

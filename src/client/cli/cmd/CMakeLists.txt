@@ -59,7 +59,7 @@ target_link_libraries(commands
   ssh_client
   rpc
   settings
-  user_messages
+  ui_wording
   utils
   Qt6::Core
   Qt6::Network

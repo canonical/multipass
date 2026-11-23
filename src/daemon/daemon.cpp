@@ -60,7 +60,7 @@
 #include <multipass/ssh/ssh_session.h>
 #include <multipass/sshfs_mount/sshfs_mount_handler.h>
 #include <multipass/top_catch_all.h>
-#include <multipass/user_messages/driver_deprecation_warning.h>
+#include <multipass/ui_wording/driver_deprecation_warning.h>
 #include <multipass/utils/grpc_utils.h>
 #include <multipass/virtual_machine.h>
 #include <multipass/virtual_machine_description.h>

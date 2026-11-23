@@ -25,7 +25,7 @@
 namespace multipass
 {
 
-struct ImagesUserMessages
+struct ImagesWording
 {
     static std::string search_remote_hint(const std::string& remote_name)
     {
