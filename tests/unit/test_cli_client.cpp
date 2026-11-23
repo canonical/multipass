@@ -5373,10 +5373,9 @@ TEST_F(ClientAlias, aliasCreatesInDefaultDespiteInactiveContext)
     EXPECT_CALL(*mock_platform, create_alias_script(alias_name, _)).Times(1);
 
     std::stringstream cout_stream, cerr_stream;
-    EXPECT_EQ(send_command({"alias", instance + ":" + new_command, alias_name},
-                           cout_stream,
-                           cerr_stream),
-              mp::ReturnCode::Ok);
+    EXPECT_EQ(
+        send_command({"alias", instance + ":" + new_command, alias_name}, cout_stream, cerr_stream),
+        mp::ReturnCode::Ok);
 
     EXPECT_EQ(cout_stream.str(), "");
     EXPECT_THAT(cerr_stream.str(),
@@ -5934,11 +5933,9 @@ TEST_F(ClientAliasNameSuite, preferCannotReactivateExistingContext)
 
     std::stringstream cout_stream;
     EXPECT_EQ(send_command({"aliases", "--format=csv"}, cout_stream), mp::ReturnCode::Ok);
-    EXPECT_EQ(cout_stream.str(),
-              csv_header + fmt::format("{},{},{},map,{},inactive\n",
-                                       alias_name,
-                                       instance,
-                                       command,
-                                       context));
+    EXPECT_EQ(
+        cout_stream.str(),
+        csv_header +
+            fmt::format("{},{},{},map,{},inactive\n", alias_name, instance, command, context));
 }
 } // namespace

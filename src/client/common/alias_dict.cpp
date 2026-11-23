@@ -33,8 +33,8 @@ namespace
 // TODO@remove-prefer remove along with alias contexts
 std::optional<std::string> legacy_active_context(const boost::json::value& json)
 {
-    const auto* active_context =
-        json.is_object() ? json.as_object().if_contains("active-context") : nullptr;
+    const auto* active_context = json.is_object() ? json.as_object().if_contains("active-context")
+                                                  : nullptr;
     if (active_context && active_context->is_string() &&
         active_context->as_string() != mp::default_context_name)
         return std::string{active_context->as_string()};

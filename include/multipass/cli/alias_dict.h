@@ -101,9 +101,8 @@ public:
 
     bool empty() const
     {
-        return std::ranges::all_of(aliases, [](const auto& context) {
-            return context.second.empty();
-        });
+        return std::ranges::all_of(aliases,
+                                   [](const auto& context) { return context.second.empty(); });
     }
     size_type size() const
     {

@@ -59,8 +59,8 @@ struct FakeAliasConfig
     {
         boost::json::object json_contexts;
         for (const auto& [context, aliases] : contexts)
-            json_contexts[context] =
-                boost::json::value_from(mp::AliasContext{aliases.begin(), aliases.end()});
+            json_contexts[context] = boost::json::value_from(
+                mp::AliasContext{aliases.begin(), aliases.end()});
 
         return {{"active-context", active_context}, {"contexts", std::move(json_contexts)}};
     }
