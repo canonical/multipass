@@ -1,6 +1,6 @@
 # Instructions for releasing a new version of Multipass
 
-The procedure for [feature releases (minor or major)](#feature-releases-minormajor) is slightly different from [patch/maintenance releases](#patch-releases).
+The procedure for [feature releases (minor or major)](#feature-releases-minormajor) is slightly different from [patch/maintenance releases](#patch-releases). Feel free to clone the MULTI-3034 epic and its tasks to track the process in Jira.
 
 Shell commands have the prompt format `branchname` to clarify the context in which the git command is executed e.g. `main`, `release/1.15` etc.
 In this example, we want to release version 1.15.0.
@@ -91,7 +91,7 @@ release/1.15 $ git push --tags
 6. Create a draft release entry on GitHub.
     1. attach the signed macOS and Windows packages.
 7. Upload the package to the Microsoft Store.
-    1. Place the package in our content cache following the instructions [here](https://warthogs.atlassian.net/browse/MULTI-3034).
+    1. Place the package in our content cache following the instructions in MULTI-3034.
     2. Go to https://partner.microsoft.com/en-us/dashboard/apps-and-games/overview, navigate to "Multipass > Packages" and upload the package.
     3. Run validation on the new package. This might take a few working days.
 8. Submit a release notes PR using the [release notes workflow](release-notes-workflow.md)
