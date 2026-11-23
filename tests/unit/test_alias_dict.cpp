@@ -432,6 +432,19 @@ TEST_F(AliasDictionary, loadingOldConfigurationMigratesOnce)
     EXPECT_EQ(mpt::load(filename).toStdString(), migrated_file);
 }
 
+TEST_F(AliasDictionary, loadingOldConfigurationWithEmptyInactiveContextDoesNotWarn)
+{
+    populate_db_file({}, "secondary");
+
+    std::stringstream warnings;
+    mpt::StubTerminal term(trash_stream, warnings, trash_stream);
+
+    auto dict = mp::AliasDict::load_file(&term);
+
+    EXPECT_TRUE(dict.empty());
+    EXPECT_THAT(warnings.str(), IsEmpty());
+}
+
 TEST_F(AliasDictionary, failedMigrationThrows)
 {
     populate_db_file({{"show", {"instance", "command", "map"}}}, "secondary");

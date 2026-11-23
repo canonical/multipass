@@ -346,7 +346,7 @@ std::string mp::JsonFormatter::format(const mp::AliasDict& aliases) const
         context_status[context.key()] = context.key() == default_context_name ? "active"
                                                                               : "inactive";
 
-    json.as_object().emplace("context-status", std::move(context_status));
+    json.as_object()["context-status"] = std::move(context_status);
 
     return pretty_print(json);
 }

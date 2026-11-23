@@ -255,7 +255,10 @@ void mp::AliasDict::migrate_legacy_file(const boost::json::value& json)
 {
     if (const auto previous_context = legacy_active_context(json); previous_context)
     {
-        cerr << make_inactive_alias_context_warning(*previous_context);
+        const auto context = aliases.find(*previous_context);
+        if (context != aliases.end() && !context->second.empty())
+            cerr << make_inactive_alias_context_warning(*previous_context);
+
         save_file();
     }
 }
