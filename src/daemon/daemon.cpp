@@ -3423,6 +3423,7 @@ try
             *config->ssh_key_provider,
             *this);
         ++src_spec.clone_count;
+        source_vm_ptr->increment_clone_count();
         // preparing instance is done
         preparing_instances.erase(destination_name);
         persist_instances();
@@ -4509,8 +4510,9 @@ std::string mp::Daemon::dest_name_for_clone(const CloneRequest& request)
 {
     return request.has_destination_name()
              ? request.destination_name()
-             : generate_next_clone_name(vm_instance_specs.at(request.source_name()).clone_count,
-                                        request.source_name());
+             : generate_next_clone_name(
+                   operative_instances.at(request.source_name())->get_clone_count(),
+                   request.source_name());
 };
 
 grpc::Status mp::Daemon::validate_dest_name(const std::string& name)

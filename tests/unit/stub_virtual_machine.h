@@ -143,6 +143,15 @@ struct StubVirtualMachine final : public VirtualMachine
         return MemorySize{};
     }
 
+    int get_clone_count() const override
+    {
+        return 0;
+    }
+
+    void increment_clone_count() override
+    {
+    }
+
     void update_cpus(int /*num_cores*/) override
     {
     }
