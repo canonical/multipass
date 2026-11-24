@@ -42,6 +42,10 @@ mp::VirtualMachineMounts::VirtualMachineMounts(std::string vm_name,
 void mp::VirtualMachineMounts::load(const MountMap& specs)
 {
     const std::unique_lock replace_lock{replace_mutex};
+    {
+        const std::lock_guard lock{mutex};
+        assert(entries.empty() && "load() is only for initial population");
+    }
     create_missing(specs, specs);
 }
 

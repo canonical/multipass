@@ -38,9 +38,11 @@ namespace multipass
 {
 // Owns an instance's mount specs together with their handlers.
 //
-// The map lock is never held while activating or deactivating, so a slow activation does not
-// block operations on other mounts. Each entry serializes handler use and destruction.
+// The map lock is never held while creating, activating, or deactivating handlers, so a slow
+// operation does not block other mounts. Each entry serializes handler use and destruction.
 // Every change to the set of mounts is reported, under the lock, so reports arrive in order.
+// Callers are expected to coordinate instance start/stop transitions against add() so that
+// is_running() does not race activate_all() or stop_all().
 class VirtualMachineMounts : private DisabledCopyMove
 {
 public:
@@ -56,8 +58,8 @@ public:
                          Reporter report,
                          RunningPredicate is_running);
 
-    // Creates handlers for the given specs, dropping (with a warning) those that cannot be
-    // created. Reports only if something was dropped.
+    // Initial population: creates handlers for the given specs (expects empty), dropping (with a
+    // warning) those that cannot be created. Reports only if something was dropped.
     void load(const MountMap& specs);
 
     // Replaces the current mounts with the given specs, keeping handlers whose spec is unchanged.

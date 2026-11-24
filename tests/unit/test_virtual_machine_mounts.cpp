@@ -506,4 +506,33 @@ TEST_F(VirtualMachineMounts, stopAllForcesDeactivation)
     mounts.stop_all();
     EXPECT_EQ(mounts.specs(), (MountMap{{"/t", native}}));
 }
+
+TEST_F(VirtualMachineMounts, unloadWaitsForInFlightActivationAndDoesNotReport)
+{
+    auto* first = add_inactive("/first", native);
+    auto* second = add_inactive("/second", native);
+    mp::Signal activating, release;
+    EXPECT_CALL(*first, activate_impl).Times(AtMost(1)).WillOnce([&](auto&&...) {
+        activating.signal();
+        release.wait();
+    });
+    EXPECT_CALL(*second, activate_impl).Times(AtMost(1)).WillOnce([&](auto&&...) {
+        activating.signal();
+        release.wait();
+    });
+    EXPECT_CALL(*first, destroyed);
+    EXPECT_CALL(*second, destroyed);
+
+    auto activation = std::async(std::launch::async, [&] { return mounts.activate_all(server); });
+    activating.wait();
+
+    auto unloading = std::async(std::launch::async, [&] { mounts.unload(); });
+    EXPECT_EQ(unloading.wait_for(std::chrono::milliseconds{50}), std::future_status::timeout);
+
+    release.signal();
+    unloading.get();
+    EXPECT_THAT(activation.get().pruned, IsEmpty());
+    EXPECT_TRUE(mounts.empty());
+    EXPECT_THAT(mounts.specs(), IsEmpty());
+}
 } // namespace
