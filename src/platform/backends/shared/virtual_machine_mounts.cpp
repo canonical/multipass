@@ -41,6 +41,8 @@ void mp::VirtualMachineMounts::load(const MountMap& specs)
 {
     const std::lock_guard update_lock{update_mutex};
     assert(empty() && "load() is only for initial population");
+    if (!specs.empty())
+        mpl::debug(vm_name, "Loading {} mount(s)", specs.size());
     auto created = make_entries(specs);
     const std::lock_guard lock{map_mutex};
     entries.merge(created);
@@ -52,38 +54,55 @@ void mp::VirtualMachineMounts::replace(const MountMap& specs)
 {
     const std::lock_guard update_lock{update_mutex};
 
-    const bool removed = retire_obsolete_entries(specs);
+    const auto removed = retire_obsolete_entries(specs);
     auto created = make_entries(missing_specs(specs));
-    if (removed || !created.empty())
+    if (removed > 0 || !created.empty())
     {
-        const std::lock_guard lock{map_mutex};
-        entries.merge(created);
-        report(specs_locked());
+        const auto added = created.size();
+        {
+            const std::lock_guard lock{map_mutex};
+            entries.merge(created);
+            report(specs_locked());
+        }
+        mpl::info(vm_name, "Replaced mounts (removed: {}, added: {})", removed, added);
     }
 }
 
-bool mp::VirtualMachineMounts::retire_obsolete_entries(const MountMap& specs)
+std::size_t mp::VirtualMachineMounts::retire_obsolete_entries(const MountMap& specs)
 {
-    bool removed = false;
-    std::vector<std::pair<std::string, EntryPtr>> obsolete;
+    struct ObsoleteEntry
+    {
+        std::string target;
+        EntryPtr entry;
+        const char* reason;
+    };
+
+    std::size_t removed = 0;
+    std::vector<ObsoleteEntry> obsolete;
     {
         const std::lock_guard lock{map_mutex};
         for (const auto& [target, entry] : entries)
         {
             const auto dead = entry->dead.load();
-            if (const auto it = specs.find(target);
-                dead || it == specs.end() || it->second != entry->spec)
+            const auto it = specs.find(target);
+            const char* reason = dead                      ? "already removed"
+                               : it == specs.end()         ? "removed"
+                               : it->second != entry->spec ? "spec changed"
+                                                           : nullptr;
+            if (reason)
             {
                 entry->dead = true;
-                removed |= !dead;
-                obsolete.emplace_back(target, entry);
+                if (!dead)
+                    ++removed;
+                obsolete.push_back({target, entry, reason});
             }
         }
     }
 
     // Copies of entries may outlive removal, but their handlers must not outlive replacement.
-    for (const auto& [target, entry] : obsolete)
+    for (const auto& [target, entry, reason] : obsolete)
     {
+        mpl::debug(vm_name, R"(Retiring mount "{}" ({}))", target, reason);
         const std::lock_guard lock{entry->mutex};
         destroy_entry_locked(target, entry);
     }
@@ -111,6 +130,9 @@ void mp::VirtualMachineMounts::unload()
         unloaded.swap(entries);
     }
 
+    if (!unloaded.empty())
+        mpl::debug(vm_name, "Unloading {} mount(s)", unloaded.size());
+
     for (const auto& [_, entry] : unloaded)
     {
         const std::lock_guard lock{entry->mutex};
@@ -128,18 +150,31 @@ void mp::VirtualMachineMounts::add(const std::string& target,
     auto handler = make_handler(target, mount);
     if (is_running())
     {
+        mpl::debug(vm_name, R"(Activating mount "{}" => "{}")", mount.get_source_path(), target);
         try
         {
             handler->activate(server);
         }
         catch (const SSHFSMissingError&)
         {
+            mpl::debug(vm_name, R"(Rolling back mount "{}": sshfs is missing)", target);
             throw;
         }
         catch (const std::exception& e)
         {
+            mpl::debug(vm_name,
+                       R"(Rolling back mount "{}" after activation failure: {})",
+                       target,
+                       e.what());
             throw MountActivationError{e.what()};
         }
+    }
+    else
+    {
+        mpl::debug(vm_name,
+                   R"(Adding mount "{}" => "{}" (deferred until instance starts))",
+                   mount.get_source_path(),
+                   target);
     }
 
     publish_entry(target, std::make_shared<Entry>(mount, std::move(handler)));
@@ -173,7 +208,10 @@ void mp::VirtualMachineMounts::remove(const std::string& target)
 
     const std::lock_guard entry_lock{entry->mutex};
     if (!entry->live())
+    {
+        mpl::debug(vm_name, R"(Skipping removal of mount "{}": already removed)", target);
         return;
+    }
 
     entry->handler->deactivate();
     destroy_entry_locked(target, entry, /*report_change=*/true);
@@ -183,20 +221,32 @@ std::vector<std::pair<std::string, std::string>> mp::VirtualMachineMounts::remov
 {
     std::vector<std::pair<std::string, std::string>> failures;
     auto removed_any = false;
+    const auto current = entries_copy();
 
-    for (const auto& [target, entry] : entries_copy())
+    if (!current.empty())
+        mpl::debug(vm_name, "Removing {} mount(s)", current.size());
+
+    for (const auto& [target, entry] : current)
     {
         const std::lock_guard lock{entry->mutex};
         try
         {
             if (!entry->live())
+            {
+                mpl::debug(vm_name, R"(Skipping removal of mount "{}": already removed)", target);
                 continue;
+            }
 
             entry->handler->deactivate();
             removed_any |= destroy_entry_locked(target, entry);
         }
         catch (const std::exception& e)
         {
+            mpl::warn(vm_name,
+                      R"(Failed to remove mount "{}" from '{}': {})",
+                      target,
+                      vm_name,
+                      e.what());
             failures.emplace_back(target, e.what());
         }
     }
@@ -214,12 +264,19 @@ mp::MountActivationResult mp::VirtualMachineMounts::activate_all(ServerVariant s
 {
     MountActivationResult result;
     auto pruned_any = false;
+    const auto current = entries_copy();
 
-    for (const auto& [target, entry] : entries_copy())
+    if (!current.empty())
+        mpl::debug(vm_name, "Activating {} mount(s)", current.size());
+
+    for (const auto& [target, entry] : current)
     {
         const std::lock_guard lock{entry->mutex};
         if (!entry->live())
+        {
+            mpl::debug(vm_name, R"(Skipping activation of mount "{}": already removed)", target);
             continue;
+        }
 
         try
         {
@@ -227,11 +284,16 @@ mp::MountActivationResult mp::VirtualMachineMounts::activate_all(ServerVariant s
         }
         catch (const SSHFSMissingError&)
         {
+            mpl::warn(vm_name,
+                      R"(Stopping mount activation at "{}": sshfs is missing in '{}')",
+                      target,
+                      vm_name);
             result.sshfs_missing = true;
             break;
         }
         catch (const std::exception& e)
         {
+            mpl::warn(vm_name, R"(Removing mount "{}" from '{}': {})", target, vm_name, e.what());
             result.pruned.emplace_back(target, e.what());
             pruned_any |= destroy_entry_locked(target, entry);
         }
@@ -248,7 +310,11 @@ mp::MountActivationResult mp::VirtualMachineMounts::activate_all(ServerVariant s
 
 void mp::VirtualMachineMounts::stop_all()
 {
-    for (const auto& [_, entry] : entries_copy())
+    const auto current = entries_copy();
+    if (!current.empty())
+        mpl::debug(vm_name, "Stopping {} mount(s)", current.size());
+
+    for (const auto& [_, entry] : current)
     {
         const std::lock_guard lock{entry->mutex};
         if (entry->handler)

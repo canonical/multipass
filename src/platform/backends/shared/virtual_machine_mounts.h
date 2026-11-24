@@ -24,6 +24,7 @@
 #include <multipass/vm_mount.h>
 
 #include <atomic>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -98,7 +99,7 @@ private:
     using EntryPtr = std::shared_ptr<Entry>;
     using EntryMap = std::unordered_map<std::string, EntryPtr>;
 
-    bool retire_obsolete_entries(const MountMap& specs);
+    std::size_t retire_obsolete_entries(const MountMap& specs);
     MountMap missing_specs(MountMap requested) const;
     void ensure_target_available(const std::string& target) const;
     void publish_entry(const std::string& target, EntryPtr entry);

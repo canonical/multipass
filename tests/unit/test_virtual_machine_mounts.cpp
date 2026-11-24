@@ -16,6 +16,7 @@
  */
 
 #include "common.h"
+#include "mock_logger.h"
 #include "temp_dir.h"
 
 #include <multipass/exceptions/mount_exceptions.h>
@@ -29,6 +30,7 @@
 #include <stdexcept>
 
 namespace mp = multipass;
+namespace mpl = multipass::logging;
 namespace mpt = multipass::test;
 using namespace testing;
 
@@ -254,6 +256,11 @@ TEST_F(VirtualMachineMounts, removeThrowsForUnknownTarget)
 
 TEST_F(VirtualMachineMounts, removeAllReturnsFailuresAndReportsOnce)
 {
+    auto logger_scope = mpt::MockLogger::inject(mpl::Level::warning);
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         R"(Failed to remove mount "/busy" from 'vm': busy)");
+
     running = true;
     auto* busy = expect_handler("/busy", native);
     expect_handler("/free", native);
@@ -276,6 +283,11 @@ TEST_F(VirtualMachineMounts, removeAllReturnsFailuresAndReportsOnce)
 
 TEST_F(VirtualMachineMounts, activateAllPrunesFailuresAndReports)
 {
+    auto logger_scope = mpt::MockLogger::inject(mpl::Level::warning);
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         R"(Removing mount "/bad" from 'vm': boom)");
+
     auto* bad = add_inactive("/bad", native);
     auto* good = add_inactive("/good", native);
     EXPECT_CALL(*bad, activate_impl).WillOnce(Throw(std::runtime_error{"boom"}));
@@ -290,6 +302,12 @@ TEST_F(VirtualMachineMounts, activateAllPrunesFailuresAndReports)
 
 TEST_F(VirtualMachineMounts, activateAllStopsAtSshfsMissingWithoutPruning)
 {
+    auto logger_scope = mpt::MockLogger::inject(mpl::Level::warning);
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::warning,
+        R"(Stopping mount activation at "/t": sshfs is missing in 'vm')");
+
     auto* handler = add_inactive("/t", classic);
     EXPECT_CALL(*handler, activate_impl).WillOnce(Throw(mp::SSHFSMissingError{}));
 
@@ -467,6 +485,11 @@ TEST_F(VirtualMachineMounts, addWaitsForReplaceInFlight)
 
 TEST_F(VirtualMachineMounts, replaceKeepsUnchangedAndReplacesChangedMounts)
 {
+    auto logger_scope = mpt::MockLogger::inject(mpl::Level::info);
+    logger_scope.mock_logger->screen_logs(mpl::Level::info);
+    logger_scope.mock_logger->expect_log(mpl::Level::info,
+                                         "Replaced mounts (removed: 2, added: 2)");
+
     add_inactive("/same", native);
     add_inactive("/changed", native);
     add_inactive("/gone", native);
