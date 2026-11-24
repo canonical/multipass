@@ -23,6 +23,7 @@
 #include <multipass/virtual_machine.h>
 #include <multipass/vm_mount.h>
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -82,8 +83,15 @@ private:
         {
         }
 
+        // Caller must hold mutex
+        bool live() const noexcept
+        {
+            return handler && !dead;
+        }
+
         const VMMount spec;
         MountHandler::UPtr handler;
+        std::atomic<bool> dead{false};
         std::mutex mutex;
     };
     using EntryPtr = std::shared_ptr<Entry>;
@@ -91,7 +99,9 @@ private:
 
     MountMap specs_locked() const;
     std::vector<std::pair<std::string, EntryPtr>> entries_copy() const;
-    bool erase_if_current_locked(const std::vector<std::pair<std::string, EntryPtr>>& candidates);
+    bool destroy_entry_locked(const std::string& target,
+                              const EntryPtr& entry,
+                              bool report_change = false);
     void create_missing_locked(const MountMap& specs);
 
     const std::string vm_name;

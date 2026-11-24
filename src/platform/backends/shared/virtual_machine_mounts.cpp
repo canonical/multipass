@@ -54,24 +54,29 @@ void mp::VirtualMachineMounts::replace(const MountMap& specs)
     std::vector<std::pair<std::string, EntryPtr>> obsolete;
     {
         const std::lock_guard lock{mutex};
-        previous = specs_locked();
         for (const auto& [target, entry] : entries)
         {
-            const auto it = specs.find(target);
-            if (it == specs.end() || it->second != entry->spec)
+            const auto dead = entry->dead.load();
+            if (!dead)
+                previous.emplace(target, entry->spec);
+
+            if (const auto it = specs.find(target);
+                dead || it == specs.end() || it->second != entry->spec)
+            {
+                entry->dead = true;
                 obsolete.emplace_back(target, entry);
+            }
         }
     }
 
     // Copies of entries may outlive removal, but their handlers must not outlive replacement.
-    for (const auto& [_, entry] : obsolete)
+    for (const auto& [target, entry] : obsolete)
     {
         const std::lock_guard lock{entry->mutex};
-        entry->handler.reset();
+        destroy_entry_locked(target, entry);
     }
 
     const std::lock_guard lock{mutex};
-    erase_if_current_locked(obsolete);
     create_missing_locked(specs);
 
     if (auto current = specs_locked(); current != previous)
@@ -83,6 +88,8 @@ void mp::VirtualMachineMounts::unload()
     EntryMap unloaded;
     {
         const std::lock_guard lock{mutex};
+        for (const auto& [_, entry] : entries)
+            entry->dead = true;
         unloaded.swap(entries);
     }
 
@@ -139,40 +146,35 @@ void mp::VirtualMachineMounts::remove(const std::string& target)
     {
         const std::lock_guard lock{mutex};
         const auto it = entries.find(target);
-        if (it == entries.end())
+        if (it == entries.end() || it->second->dead)
             throw MountNotFoundError{target, vm_name};
 
         entry = it->second;
     }
 
     const std::lock_guard entry_lock{entry->mutex};
-    if (entry->handler)
-    {
-        entry->handler->deactivate();
-        entry->handler.reset();
-    }
+    if (!entry->live())
+        return;
 
-    const std::lock_guard lock{mutex};
-    if (erase_if_current_locked({{target, entry}}))
-        report(specs_locked());
+    entry->handler->deactivate();
+    destroy_entry_locked(target, entry, /*report_change=*/true);
 }
 
 std::vector<std::pair<std::string, std::string>> mp::VirtualMachineMounts::remove_all()
 {
     std::vector<std::pair<std::string, std::string>> failures;
-    std::vector<std::pair<std::string, EntryPtr>> deactivated;
+    auto removed_any = false;
 
     for (const auto& [target, entry] : entries_copy())
     {
         const std::lock_guard lock{entry->mutex};
         try
         {
-            if (entry->handler)
-            {
-                entry->handler->deactivate();
-                entry->handler.reset();
-            }
-            deactivated.emplace_back(target, entry);
+            if (!entry->live())
+                continue;
+
+            entry->handler->deactivate();
+            removed_any |= destroy_entry_locked(target, entry);
         }
         catch (const std::exception& e)
         {
@@ -180,9 +182,11 @@ std::vector<std::pair<std::string, std::string>> mp::VirtualMachineMounts::remov
         }
     }
 
-    const std::lock_guard lock{mutex};
-    if (erase_if_current_locked(deactivated))
+    if (removed_any)
+    {
+        const std::lock_guard lock{mutex};
         report(specs_locked());
+    }
 
     return failures;
 }
@@ -190,12 +194,12 @@ std::vector<std::pair<std::string, std::string>> mp::VirtualMachineMounts::remov
 mp::MountActivationResult mp::VirtualMachineMounts::activate_all(ServerVariant server)
 {
     MountActivationResult result;
-    std::vector<std::pair<std::string, EntryPtr>> failed;
+    auto pruned_any = false;
 
     for (const auto& [target, entry] : entries_copy())
     {
         const std::lock_guard lock{entry->mutex};
-        if (!entry->handler)
+        if (!entry->live())
             continue;
 
         try
@@ -210,16 +214,14 @@ mp::MountActivationResult mp::VirtualMachineMounts::activate_all(ServerVariant s
         catch (const std::exception& e)
         {
             result.pruned.emplace_back(target, e.what());
-            entry->handler.reset();
-            failed.emplace_back(target, entry);
+            pruned_any |= destroy_entry_locked(target, entry);
         }
     }
 
-    if (!failed.empty())
+    if (pruned_any)
     {
         const std::lock_guard lock{mutex};
-        if (erase_if_current_locked(failed))
-            report(specs_locked());
+        report(specs_locked());
     }
 
     return result;
@@ -251,7 +253,8 @@ auto mp::VirtualMachineMounts::specs_locked() const -> MountMap
 {
     MountMap ret;
     for (const auto& [target, entry] : entries)
-        ret.emplace(target, entry->spec);
+        if (!entry->dead)
+            ret.emplace(target, entry->spec);
 
     return ret;
 }
@@ -262,21 +265,23 @@ auto mp::VirtualMachineMounts::entries_copy() const -> std::vector<std::pair<std
     return {entries.begin(), entries.end()};
 }
 
-bool mp::VirtualMachineMounts::erase_if_current_locked(
-    const std::vector<std::pair<std::string, EntryPtr>>& candidates)
+bool mp::VirtualMachineMounts::destroy_entry_locked(const std::string& target,
+                                                    const EntryPtr& entry,
+                                                    bool report_change)
 {
-    auto erased = false;
-    for (const auto& [target, entry] : candidates)
-    {
-        const auto it = entries.find(target);
-        if (it != entries.end() && it->second == entry)
-        {
-            entries.erase(it);
-            erased = true;
-        }
-    }
+    entry->dead = true;
+    entry->handler.reset();
 
-    return erased;
+    const std::lock_guard lock{mutex};
+    const auto it = entries.find(target);
+    if (it == entries.end() || it->second != entry)
+        return false;
+
+    entries.erase(it);
+    if (report_change)
+        report(specs_locked());
+
+    return true;
 }
 
 void mp::VirtualMachineMounts::create_missing_locked(const MountMap& specs)

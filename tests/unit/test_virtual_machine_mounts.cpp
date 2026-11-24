@@ -24,6 +24,7 @@
 #include <multipass/signal.h>
 #include <shared/virtual_machine_mounts.h>
 
+#include <atomic>
 #include <future>
 #include <stdexcept>
 
@@ -323,6 +324,82 @@ TEST_F(VirtualMachineMounts, replaceDestroysBorrowedHandlersBeforeCreatingReplac
     const auto result = activation.get();
     EXPECT_THAT(result.pruned, IsEmpty());
     EXPECT_EQ(mounts.specs(), restored);
+}
+
+TEST_F(VirtualMachineMounts, replaceRecreatesFailedMountDuringActivateAll)
+{
+    auto* first = add_inactive("/first", native);
+    auto* second = add_inactive("/second", native);
+    std::atomic<bool> failed_one{false};
+    std::promise<std::string> failed_target;
+    mp::Signal blocking, release;
+
+    auto on_activate = [&](const std::string& target) {
+        if (!failed_one.exchange(true))
+        {
+            failed_target.set_value(target);
+            throw std::runtime_error{"boom"};
+        }
+        blocking.signal();
+        release.wait();
+    };
+    EXPECT_CALL(*first, activate_impl).WillOnce([&](auto&&...) { on_activate("/first"); });
+    EXPECT_CALL(*second, activate_impl).WillOnce([&](auto&&...) { on_activate("/second"); });
+
+    auto activation = std::async(std::launch::async, [&] { return mounts.activate_all(server); });
+    blocking.wait();
+    const auto failed = failed_target.get_future().get();
+
+    const MountMap restored{{"/first", native}, {"/second", native}};
+    auto* recreated = expect_handler(failed, native);
+    EXPECT_CALL(report, Call(restored));
+    mounts.replace(restored);
+
+    EXPECT_CALL(report, Call(restored));
+    release.signal();
+    const auto result = activation.get();
+    EXPECT_THAT(result.pruned, ElementsAre(Pair(failed, "boom")));
+    EXPECT_EQ(mounts.specs(), restored);
+
+    EXPECT_CALL(*recreated, activate_impl);
+    EXPECT_THAT(mounts.activate_all(server).pruned, IsEmpty());
+}
+
+TEST_F(VirtualMachineMounts, replaceWaitsForDyingHandlerBeforeRecreatingSameSpec)
+{
+    auto* handler = add_inactive("/t", native);
+    mp::Signal destroying, release;
+    std::atomic<bool> destroyed_done{false};
+
+    EXPECT_CALL(*handler, activate_impl).WillOnce(Throw(std::runtime_error{"boom"}));
+    EXPECT_CALL(*handler, destroyed).WillOnce([&] {
+        destroying.signal();
+        release.wait();
+        destroyed_done = true;
+    });
+
+    auto activation = std::async(std::launch::async, [&] { return mounts.activate_all(server); });
+    destroying.wait();
+
+    auto replacement = std::make_unique<NiceMock<TestMountHandler>>("/t", native);
+    auto* replacement_raw = replacement.get();
+    EXPECT_CALL(make_handler, Call("/t", native)).WillOnce([&](auto&&...) {
+        EXPECT_TRUE(destroyed_done.load());
+        return std::move(replacement);
+    });
+    // Both replace() and activate_all() may report, in either order; final state must contain /t.
+    EXPECT_CALL(report, Call(_)).Times(AtLeast(1));
+
+    auto replacing = std::async(std::launch::async, [&] { mounts.replace({{"/t", native}}); });
+    EXPECT_EQ(replacing.wait_for(std::chrono::milliseconds{50}), std::future_status::timeout);
+
+    release.signal();
+    activation.get();
+    replacing.get();
+
+    EXPECT_EQ(mounts.specs(), (MountMap{{"/t", native}}));
+    EXPECT_CALL(*replacement_raw, activate_impl);
+    EXPECT_THAT(mounts.activate_all(server).pruned, IsEmpty());
 }
 
 TEST_F(VirtualMachineMounts, replaceKeepsUnchangedAndReplacesChangedMounts)
