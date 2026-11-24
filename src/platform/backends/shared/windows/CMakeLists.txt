@@ -15,6 +15,8 @@
 set (CMAKE_AUTOMOC ON)
 add_library(shared_win STATIC
   aes.cpp
+  file_io_api.cpp
+  file_utils.cpp
   powershell.cpp
   process_factory.cpp
   smb_mount_handler.cpp
