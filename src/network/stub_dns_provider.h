@@ -22,7 +22,7 @@
 namespace multipass
 {
 // For platforms that cannot make instances resolvable by name: does nothing.
-class NullDnsProvider final : public DnsProvider
+class StubDnsProvider final : public DnsProvider
 {
 public:
     void start(const std::string&) override
