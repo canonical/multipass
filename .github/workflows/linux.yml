@@ -194,13 +194,14 @@ jobs:
               return 0
             fi
 
-            if grep -qE "daemon is stopping to wait for socket activation|Failed to wait for snap refreshes" "$tmpfile"; then
+            if grep -qE "daemon is stopping to wait for socket activation|Failed to wait for snap refreshes|TimeoutExpired" "$tmpfile"; then
               exit 42
             fi
 
             exit $exit_code
           }
-          # The auto-refresh race would manifest itself in the first pull attempt.
+          # The auto-refresh race and timeouts while setting up the base
+          # instance would manifest themselves in the first pull attempt.
           # Hence wrapping only the first call.
           run_snapcraft /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
           /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
