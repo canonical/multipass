@@ -66,6 +66,7 @@ jobs:
 
     env:
       BUILD_DIR: ${{ github.workspace }}/build
+      GOTOOLCHAIN: local
       SCCACHE_DIR: ${{ github.workspace }}/.sccache
       #RUSTC_WRAPPER: "sccache" Removed due to concurrency issues between C++ and Rust
 
@@ -88,6 +89,11 @@ jobs:
 
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
+
+    - name: Set up Go
+      uses: actions/setup-go@v7
+      with:
+        go-version: '1.26.x'
 
     - name: Install other packages from Choco
       uses: crazy-max/ghaction-chocolatey@v4
