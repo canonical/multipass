@@ -68,6 +68,29 @@ void add_address(ares_dns_record_t* record,
     const auto addr = std::bit_cast<in_addr>(address.to_bytes());
     check(ares_dns_rr_set_addr(rr, ARES_RR_A_ADDR, &addr));
 }
+
+// Per RFC 2308, negative answers carry an SOA in the authority section so resolvers bound their
+// negative-cache TTL to min(SOA TTL, SOA MINIMUM) instead of using platform defaults.
+void add_negative_soa(ares_dns_record_t* record, const mp::dns::DnsZone& dns_zone)
+{
+    ares_dns_rr_t* rr = nullptr;
+    check(ares_dns_record_rr_add(&rr,
+                                 record,
+                                 ARES_SECTION_AUTHORITY,
+                                 dns_zone.name.c_str(),
+                                 ARES_REC_TYPE_SOA,
+                                 ARES_CLASS_IN,
+                                 dns_zone.ttl));
+
+    const auto rname = "hostmaster." + dns_zone.name;
+    check(ares_dns_rr_set_str(rr, ARES_RR_SOA_MNAME, dns_zone.name.c_str()));
+    check(ares_dns_rr_set_str(rr, ARES_RR_SOA_RNAME, rname.c_str()));
+    check(ares_dns_rr_set_u32(rr, ARES_RR_SOA_SERIAL, 1));
+    check(ares_dns_rr_set_u32(rr, ARES_RR_SOA_REFRESH, 3600));
+    check(ares_dns_rr_set_u32(rr, ARES_RR_SOA_RETRY, 600));
+    check(ares_dns_rr_set_u32(rr, ARES_RR_SOA_EXPIRE, 86400));
+    check(ares_dns_rr_set_u32(rr, ARES_RR_SOA_MINIMUM, dns_zone.ttl));
+}
 } // namespace
 
 std::string mp::dns::normalize_name(std::string_view name)
@@ -129,9 +152,15 @@ try
 
     // The question is echoed as received, preserving its case for the client to match.
     check(ares_dns_record_query_add(response.get(), qname, qtype, qclass));
-    if (qtype == ARES_REC_TYPE_A)
+    if (qtype == ARES_REC_TYPE_A && !addresses.empty())
+    {
         for (const auto& address : addresses)
             add_address(response.get(), qname, address, dns_zone.ttl);
+    }
+    else
+    {
+        add_negative_soa(response.get(), dns_zone);
+    }
 
     return serialize(response.get());
 }

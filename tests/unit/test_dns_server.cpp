@@ -93,17 +93,28 @@ struct Response
     std::vector<std::string> questions;
     std::vector<std::string> answers;
     std::vector<unsigned int> ttls;
+    std::vector<std::string> authorities;
+    std::vector<unsigned int> authority_ttls;
     std::size_t extra_records; // in the authority and additional sections
 };
 
 std::string render(const ares_dns_rr_t* rr)
 {
-    if (ares_dns_rr_get_type(rr) != ARES_REC_TYPE_A)
-        return fmt::format("TYPE{}", static_cast<int>(ares_dns_rr_get_type(rr)));
+    if (ares_dns_rr_get_type(rr) == ARES_REC_TYPE_A)
+    {
+        const auto bytes = std::bit_cast<asio::ip::address_v4::bytes_type>(
+            *ares_dns_rr_get_addr(rr, ARES_RR_A_ADDR));
+        return "A " + asio::ip::address_v4{bytes}.to_string();
+    }
 
-    const auto bytes = std::bit_cast<asio::ip::address_v4::bytes_type>(
-        *ares_dns_rr_get_addr(rr, ARES_RR_A_ADDR));
-    return "A " + asio::ip::address_v4{bytes}.to_string();
+    if (ares_dns_rr_get_type(rr) == ARES_REC_TYPE_SOA)
+    {
+        return fmt::format("SOA {} minimum={}",
+                           ares_dns_rr_get_name(rr),
+                           ares_dns_rr_get_u32(rr, ARES_RR_SOA_MINIMUM));
+    }
+
+    return fmt::format("TYPE{}", static_cast<int>(ares_dns_rr_get_type(rr)));
 }
 
 Response decode(std::span<const std::uint8_t> bytes)
@@ -120,6 +131,8 @@ Response decode(std::span<const std::uint8_t> bytes)
         .questions = {},
         .answers = {},
         .ttls = {},
+        .authorities = {},
+        .authority_ttls = {},
         .extra_records = ares_dns_record_rr_cnt(record.get(), ARES_SECTION_AUTHORITY) +
                          ares_dns_record_rr_cnt(record.get(), ARES_SECTION_ADDITIONAL)};
 
@@ -136,6 +149,12 @@ Response decode(std::span<const std::uint8_t> bytes)
         const auto* rr = ares_dns_record_rr_get_const(record.get(), ARES_SECTION_ANSWER, i);
         response.answers.push_back(render(rr));
         response.ttls.push_back(ares_dns_rr_get_ttl(rr));
+    }
+    for (std::size_t i = 0; i < ares_dns_record_rr_cnt(record.get(), ARES_SECTION_AUTHORITY); ++i)
+    {
+        const auto* rr = ares_dns_record_rr_get_const(record.get(), ARES_SECTION_AUTHORITY, i);
+        response.authorities.push_back(render(rr));
+        response.authority_ttls.push_back(ares_dns_rr_get_ttl(rr));
     }
 
     return response;
@@ -225,6 +244,8 @@ TEST_F(DnsMessageTest, repliesNoDataForOtherRecordTypes)
 
         EXPECT_EQ(response.rcode, ARES_RCODE_NOERROR) << type;
         EXPECT_THAT(response.answers, IsEmpty()) << type;
+        EXPECT_THAT(response.authorities, ElementsAre("SOA multipass.local minimum=30")) << type;
+        EXPECT_THAT(response.authority_ttls, ElementsAre(30u)) << type;
     }
 }
 
@@ -237,6 +258,8 @@ TEST_F(DnsMessageTest, repliesNxDomainForUnknownHosts)
         EXPECT_EQ(response.rcode, ARES_RCODE_NXDOMAIN) << name;
         EXPECT_EQ(response.flags & ARES_FLAG_AA, ARES_FLAG_AA) << name;
         EXPECT_THAT(response.answers, IsEmpty()) << name;
+        EXPECT_THAT(response.authorities, ElementsAre("SOA multipass.local minimum=30")) << name;
+        EXPECT_THAT(response.authority_ttls, ElementsAre(30u)) << name;
     }
 }
 
@@ -246,6 +269,8 @@ TEST_F(DnsMessageTest, repliesNoDataForTheZoneItself)
 
     EXPECT_EQ(response.rcode, ARES_RCODE_NOERROR);
     EXPECT_THAT(response.answers, IsEmpty());
+    EXPECT_THAT(response.authorities, ElementsAre("SOA multipass.local minimum=30"));
+    EXPECT_THAT(response.authority_ttls, ElementsAre(30u));
 }
 
 TEST_F(DnsMessageTest, matchesNamesCaseInsensitivelyAndEchoesTheQuestion)
