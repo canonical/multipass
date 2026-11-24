@@ -31,6 +31,21 @@ sudo snap install rustup --classic
 rustup default stable
 ```
 
+### Install the Go compiler
+
+Building with Ubuntu Insights enabled (`MULTIPASS_ENABLE_INSIGHTS`) requires Go 1.26 or newer.
+Install the Go snap:
+
+```sh
+sudo snap install go --classic
+```
+
+Before running CMake, verify that the build terminal finds the required version:
+
+```sh
+go version
+```
+
 ## Building
 
 First, go into the repository root and get all the submodules:

@@ -47,6 +47,17 @@ To build multipass you will need the rust compiler. It can be installed using br
 brew install rustup
 ```
 
+### Go compiler
+
+Building with Ubuntu Insights enabled (`MULTIPASS_ENABLE_INSIGHTS`) requires Go 1.26 or newer.
+Install Go using Homebrew:
+
+```sh
+brew install go
+```
+
+Verify that `go version` reports Go 1.26 or newer before running CMake.
+
 Building
 ---------------------------------------
 
