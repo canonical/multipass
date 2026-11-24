@@ -39,7 +39,7 @@
 #include "shared/sshfs_server_process_spec.h"
 #include <daemon/default_vm_image_vault.h>
 #include <default_update_prompt.h>
-#include <network/null_dns_provider.h>
+#include <network/stub_dns_provider.h>
 
 #include <QCoreApplication>
 #include <QDir>
@@ -272,7 +272,7 @@ std::string mp::platform::Platform::bridge_nomenclature() const
 mp::DnsProvider::UPtr mp::platform::Platform::make_dns_provider() const
 {
     // TODO: a LocalDnsProvider, routing the domain through /etc/resolver/<domain>
-    return std::make_unique<NullDnsProvider>();
+    return std::make_unique<StubDnsProvider>();
 }
 
 bool mp::platform::Platform::subnet_used_locally(mp::Subnet subnet) const

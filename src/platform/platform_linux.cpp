@@ -42,7 +42,7 @@
 #include "shared/linux/process_factory.h"
 #include "shared/sshfs_server_process_spec.h"
 #include <disabled_update_prompt.h>
-#include <network/null_dns_provider.h>
+#include <network/stub_dns_provider.h>
 
 #include <QCoreApplication>
 #include <QDir>
@@ -349,7 +349,7 @@ std::string mp::platform::Platform::bridge_nomenclature() const
 mp::DnsProvider::UPtr mp::platform::Platform::make_dns_provider() const
 {
     // TODO: route the domain to the QEMU backend's dnsmasq, through systemd-resolved
-    return std::make_unique<NullDnsProvider>();
+    return std::make_unique<StubDnsProvider>();
 }
 
 // validation of the ip and cidr happen later, otherwise this regex would be massive.
