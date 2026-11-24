@@ -203,12 +203,14 @@ void mp::BaseSnapshot::apply()
 {
     const std::unique_lock lock{mutex};
     auto extra_interfaces = desc.extra_interfaces; // copy first, so nothing throws after apply_impl
+    auto metadata = desc.metadata;
     apply_impl();
 
     vm_desc.num_cores = desc.num_cores;
     vm_desc.mem_size = desc.mem_size;
     vm_desc.disk_space = desc.disk_space;
     vm_desc.extra_interfaces = std::move(extra_interfaces);
+    vm_desc.metadata = std::move(metadata);
     // no need to persist here for the time being: only private fields of the base class are
     // persisted for now, and those cannot be affected by apply_impl (except by setters, which
     // already persist)
