@@ -152,6 +152,10 @@ struct StubVirtualMachine final : public VirtualMachine
     {
     }
 
+    void set_deleted(bool) override
+    {
+    }
+
     void update_cpus(int /*num_cores*/) override
     {
     }
