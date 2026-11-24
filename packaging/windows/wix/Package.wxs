@@ -134,6 +134,10 @@
             Value="[UILevel]|[DRIVER]" />
         <util:CheckRebootRequired />
 
+        <!-- Clean up any leftover Multipass NRPT DNS rules on uninstall -->
+        <CustomAction Id="RemoveNrptRulesAction" BinaryRef="CABinary" DllEntry="RemoveNrptRules"
+            Return="ignore" Execute="deferred" Impersonate="no" />
+
         <CustomAction Id="GUI.TaskClose.SetCmdLine" Execute="immediate"
             Property="WixQuietExecCmdLine"
             Value="&quot;[WindowsFolder]System32\taskkill.exe&quot; /f /t /im multipass.gui.exe" />
@@ -170,6 +174,9 @@
                 Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;yes&quot;" />
             <Custom Action="RemoveMPDataAction" After="RemoveFolders"
                 Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE) AND REMOVE_DATA=&quot;yes&quot;" />
+
+            <Custom Action="RemoveNrptRulesAction" After="StopServices"
+                Condition="Installed AND REMOVE~=&quot;ALL&quot; AND (NOT UPGRADINGPRODUCTCODE)" />
 
             <Custom Action="InstallClientCertsAction" Before="StartServices" />
 
