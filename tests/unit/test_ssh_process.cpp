@@ -92,7 +92,7 @@ TEST_F(SSHProcess, exitStatusDeliveredDuringReadIsCached)
     EXPECT_THAT(proc->exit_code(), Eq(expected_status));
 }
 
-TEST_F(SSHProcess, outputExitStatusEofAndCloseDuringReadAreCached)
+TEST_F(SSHProcess, exitStatusIsCachedWhenOutputEofAndCloseArriveDuringRead)
 {
     static constexpr int expected_status{42};
     std::string expected_output{"some output"};
@@ -103,18 +103,18 @@ TEST_F(SSHProcess, outputExitStatusEofAndCloseDuringReadAreCached)
 
     auto delivered = false;
     EXPECT_CALL(mock_libssh, ssh_channel_read_timeout)
-        .WillRepeatedly([&](ssh_channel, void* dest, uint32_t count, int, int) -> int {
+        .WillRepeatedly(WithArgs<1, 2>([&](void* dest, uint32_t count) -> int {
             if (!delivered)
             {
                 delivered = true;
                 std::copy_n(expected_output.begin(),
                             std::min<size_t>(count, expected_output.size()),
-                            reinterpret_cast<char*>(dest));
+                            static_cast<char*>(dest));
                 MP_LIBSSH.ssh_event_dopoll(nullptr, 0); // exit status, eof and close
                 return static_cast<int>(expected_output.size());
             }
             return -1; // closed channel
-        });
+        }));
 
     auto proc = session.exec("something");
     EXPECT_THAT(proc->read_std_output(), StrEq(expected_output));
