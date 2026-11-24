@@ -21,8 +21,6 @@
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/logging/log.h>
 
-#include <scope_guard.hpp>
-
 #include <cassert>
 
 namespace mp = multipass;
@@ -41,7 +39,7 @@ mp::VirtualMachineMounts::VirtualMachineMounts(std::string vm_name,
 
 void mp::VirtualMachineMounts::load(const MountMap& specs)
 {
-    const std::unique_lock replace_lock{replace_mutex};
+    const std::lock_guard update_lock{update_mutex};
     assert(empty() && "load() is only for initial population");
     auto created = make_entries(specs);
     const std::lock_guard lock{mutex};
@@ -52,7 +50,7 @@ void mp::VirtualMachineMounts::load(const MountMap& specs)
 
 void mp::VirtualMachineMounts::replace(const MountMap& specs)
 {
-    const std::unique_lock replace_lock{replace_mutex};
+    const std::lock_guard update_lock{update_mutex};
 
     bool removed = false;
     std::vector<std::pair<std::string, EntryPtr>> obsolete;
@@ -96,7 +94,7 @@ void mp::VirtualMachineMounts::replace(const MountMap& specs)
 
 void mp::VirtualMachineMounts::unload()
 {
-    const std::unique_lock replace_lock{replace_mutex};
+    const std::lock_guard update_lock{update_mutex};
 
     EntryMap unloaded;
     {
@@ -117,17 +115,12 @@ void mp::VirtualMachineMounts::add(const std::string& target,
                                    const VMMount& mount,
                                    ServerVariant server)
 {
-    const std::shared_lock replace_lock{replace_mutex};
+    const std::lock_guard update_lock{update_mutex};
     {
         const std::lock_guard lock{mutex};
-        if (entries.contains(target) || !reserved.insert(target).second)
+        if (entries.contains(target))
             throw MountTargetInUseError{target, vm_name};
     }
-
-    auto unreserve = sg::make_scope_guard([this, &target]() noexcept {
-        const std::lock_guard lock{mutex};
-        reserved.erase(target);
-    });
 
     auto handler = make_handler(target, mount);
     if (is_running())
@@ -148,8 +141,6 @@ void mp::VirtualMachineMounts::add(const std::string& target,
 
     auto entry = std::make_shared<Entry>(mount, std::move(handler));
     const std::lock_guard lock{mutex};
-    reserved.erase(target);
-    unreserve.dismiss();
     entries.emplace(target, std::move(entry));
     report(specs_locked());
 }
@@ -260,7 +251,7 @@ auto mp::VirtualMachineMounts::specs() const -> MountMap
 bool mp::VirtualMachineMounts::empty() const
 {
     const std::lock_guard lock{mutex};
-    return entries.empty() && reserved.empty();
+    return entries.empty();
 }
 
 auto mp::VirtualMachineMounts::specs_locked() const -> MountMap

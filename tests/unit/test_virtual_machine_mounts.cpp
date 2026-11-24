@@ -146,24 +146,32 @@ TEST_F(VirtualMachineMounts, addRejectsTargetInUse)
     EXPECT_EQ(mounts.specs(), (MountMap{{"/t", native}}));
 }
 
-TEST_F(VirtualMachineMounts, addRejectsTargetWithAddInFlight)
+TEST_F(VirtualMachineMounts, concurrentAddsWaitForActivationThenCheckTheirTargets)
 {
     running = true;
     mp::Signal activating, release;
     auto* handler = expect_handler("/t", native);
+    expect_handler("/other", classic);
     EXPECT_CALL(*handler, activate_impl).WillOnce([&](auto&&...) {
         activating.signal();
         release.wait();
     });
     EXPECT_CALL(report, Call(MountMap{{"/t", native}}));
+    EXPECT_CALL(report, Call(MountMap{{"/t", native}, {"/other", classic}}));
 
     auto first = std::async(std::launch::async, [&] { mounts.add("/t", native, server); });
     activating.wait();
 
-    EXPECT_THROW(mounts.add("/t", native, server), mp::MountTargetInUseError);
+    auto duplicate = std::async(std::launch::async, [&] { mounts.add("/t", classic, server); });
+    auto other = std::async(std::launch::async, [&] { mounts.add("/other", classic, server); });
+    EXPECT_EQ(duplicate.wait_for(std::chrono::milliseconds{50}), std::future_status::timeout);
+    EXPECT_EQ(other.wait_for(std::chrono::milliseconds{50}), std::future_status::timeout);
+    EXPECT_THAT(mounts.specs(), IsEmpty());
 
     release.signal();
     first.get();
+    EXPECT_THROW(duplicate.get(), mp::MountTargetInUseError);
+    other.get();
 }
 
 TEST_F(VirtualMachineMounts, addWrapsActivationFailuresAndRollsBack)

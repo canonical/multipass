@@ -27,10 +27,8 @@
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <shared_mutex>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -38,8 +36,8 @@ namespace multipass
 {
 // Owns an instance's mount specs together with their handlers.
 //
-// The map lock is never held while creating, activating, or deactivating handlers, so a slow
-// operation does not block other mounts. Each entry serializes handler use and destruction.
+// Adds are serialized per VM. The map lock is not held during handler creation, activation,
+// or deactivation. Each entry serializes handler use and destruction.
 // Every change to the set of mounts is reported, under the lock, so reports arrive in order.
 // Callers are expected to coordinate instance start/stop transitions against add() so that
 // is_running() does not race activate_all() or stop_all().
@@ -112,11 +110,9 @@ private:
     const Reporter report;
     const RunningPredicate is_running;
 
-    // Shared by in-flight add(); exclusive for load(), replace(), and unload().
-    // Always acquired before entry->mutex and mutex.
-    std::shared_mutex replace_mutex;
+    // Serializes add/load/replace/unload; acquired before the map or entry locks.
+    std::mutex update_mutex;
     mutable std::mutex mutex;
     EntryMap entries;
-    std::unordered_set<std::string> reserved; // targets with an add in flight
 };
 } // namespace multipass
