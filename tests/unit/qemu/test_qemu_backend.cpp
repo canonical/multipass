@@ -1002,14 +1002,12 @@ TEST_F(QemuBackend, verifyQemuArgumentsWhenResumingSuspendImageUsesMetadata)
     });
 
     process_factory->register_callback(handle_external_process_calls);
-    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
-    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
-        .WillRepeatedly(Return(boost::json::object{{"machine_type", machine_type}}));
+    default_description.metadata = {{"machine_type", machine_type}};
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->start();
     machine->set_running();
 
@@ -1045,16 +1043,14 @@ TEST_F(QemuBackend, verifyQemuArgumentsFromMetadataAreUsed)
     };
 
     process_factory->register_callback(callback);
-    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
 
-    EXPECT_CALL(mock_monitor, retrieve_metadata_for(_))
-        .WillRepeatedly(Return(boost::json::object{
-            {"arguments", {"-hi_there", "-hows_it_going"}},
-            {"mount_data", {{"mytag", {{"source", "src"}, {"arguments", {"-mount_arg"}}}}}}}));
+    default_description.metadata = {
+        {"arguments", {"-hi_there", "-hows_it_going"}},
+        {"mount_data", {{"mytag", {{"source", "src"}, {"arguments", {"-mount_arg"}}}}}}};
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
-    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+    auto machine = backend.create_virtual_machine(default_description, key_provider, stub_monitor);
     machine->start();
     machine->set_running();
 
