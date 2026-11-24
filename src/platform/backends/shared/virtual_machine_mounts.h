@@ -98,6 +98,10 @@ private:
     using EntryPtr = std::shared_ptr<Entry>;
     using EntryMap = std::unordered_map<std::string, EntryPtr>;
 
+    bool retire_obsolete_entries(const MountMap& specs);
+    MountMap missing_specs(MountMap requested) const;
+    void ensure_target_available(const std::string& target) const;
+    void publish_entry(const std::string& target, EntryPtr entry);
     MountMap specs_locked() const;
     std::vector<std::pair<std::string, EntryPtr>> entries_copy() const;
     bool destroy_entry_locked(const std::string& target,
@@ -112,7 +116,7 @@ private:
 
     // Serializes add/load/replace/unload; acquired before the map or entry locks.
     std::mutex update_mutex;
-    mutable std::mutex mutex;
+    mutable std::mutex map_mutex;
     EntryMap entries;
 };
 } // namespace multipass
