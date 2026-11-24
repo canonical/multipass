@@ -73,7 +73,6 @@
 
 #include <algorithm>
 #include <cerrno>
-#include <codecvt>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -712,31 +711,6 @@ auto get_adapters_addresses(ULONG family, ULONG flags)
     }
 }
 } // namespace
-
-std::string mp::wchar_to_utf8(std::wstring_view input)
-{
-    if (input.empty())
-        return {};
-
-    const auto size_needed = WideCharToMultiByte(CP_UTF8,
-                                                 0,
-                                                 input.data(),
-                                                 static_cast<int>(input.size()),
-                                                 nullptr,
-                                                 0,
-                                                 nullptr,
-                                                 nullptr);
-    std::string result(size_needed, 0);
-    WideCharToMultiByte(CP_UTF8,
-                        0,
-                        input.data(),
-                        static_cast<int>(input.size()),
-                        result.data(),
-                        size_needed,
-                        nullptr,
-                        nullptr);
-    return result;
-}
 
 std::map<std::string, mp::NetworkInterfaceInfo>
 mp::platform::Platform::get_network_interfaces_info() const

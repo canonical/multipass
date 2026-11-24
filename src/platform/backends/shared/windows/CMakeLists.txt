@@ -25,6 +25,7 @@ add_library(shared_win STATIC
   network_utils.cpp
   native_path.cpp
   nrpt_rule.cpp
+  wchar_conversion.cpp
   windows_feature_status.cpp)
 
 include_directories(shared_win

@@ -40,17 +40,6 @@ constexpr auto nrpt_base =
 constexpr DWORD nrpt_rule_version = 1;
 constexpr DWORD nrpt_override_dns = 0x8; // ConfigOptions: query the rule's GenericDNSServers
 
-std::wstring widen(const std::string& s)
-{
-    if (s.empty())
-        return {};
-    const int size =
-        ::MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0);
-    std::wstring out(static_cast<std::size_t>(size), L'\0');
-    ::MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), out.data(), size);
-    return out;
-}
-
 bool non_empty(const std::string& value)
 {
     return !value.empty();
@@ -72,7 +61,7 @@ std::string rule_guid_for(const std::vector<std::string>& dns_namespaces)
 
 std::wstring rule_key_path(const std::string& guid)
 {
-    return std::wstring{nrpt_base} + L"\\" + widen(guid);
+    return std::wstring{nrpt_base} + L"\\" + utf8_to_wchar(guid);
 }
 } // namespace
 
@@ -80,7 +69,7 @@ std::wstring make_namespace_multi_sz(const std::vector<std::string>& dns_namespa
 {
     std::wstring multi;
     for (const auto& ns : dns_namespaces | std::views::filter(non_empty))
-        multi += widen(ns) + L'\0'; // terminate this entry
+        multi += utf8_to_wchar(ns) + L'\0'; // terminate this entry
     if (multi.empty())
         multi.push_back(L'\0'); // empty list still needs one terminator before the final one
     multi.push_back(L'\0');     // terminate the list
@@ -141,9 +130,9 @@ NrptRule::NrptRule(const std::vector<std::string>& dns_namespaces,
     const auto names = make_namespace_multi_sz(dns_namespaces);
     set(L"Version", REG_DWORD, &nrpt_rule_version, sizeof(DWORD));
     set(L"Name", REG_MULTI_SZ, names.data(), names.size() * sizeof(wchar_t));
-    set_string(L"GenericDNSServers", widen(join_non_empty(name_servers)));
+    set_string(L"GenericDNSServers", utf8_to_wchar(join_non_empty(name_servers)));
     set(L"ConfigOptions", REG_DWORD, &nrpt_override_dns, sizeof(DWORD));
-    set_string(L"DisplayName", widen(nrpt_rule_display_name));
+    set_string(L"DisplayName", utf8_to_wchar(nrpt_rule_display_name));
     set_string(L"Comment", L"Created by Multipass");
 
     ::RegCloseKey(key);

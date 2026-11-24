@@ -17,9 +17,9 @@
 
 #pragma once
 
+#include <shared/windows/wchar_conversion.h>
+
 #include <array>
-#include <codecvt>
-#include <locale>
 #include <ranges>
 #include <string_view>
 
@@ -27,14 +27,6 @@
 
 namespace multipass::hyperv
 {
-
-inline constexpr auto to_wstring(auto&& value)
-{
-    // TODO: This has been deprecated. Replace with Boost.nowide or equivalent.
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(value.data(),
-                                                                         value.data() +
-                                                                             value.size());
-}
 
 namespace detail
 {
@@ -103,7 +95,7 @@ inline constexpr decltype(auto) formattable_string_literal<Char, N>::adapt(T&& a
 
     if constexpr (std::is_same_v<Char, wchar_t> && narrow_string_like<D>)
     {
-        return to_wstring(std::string_view{std::forward<T>(arg)});
+        return utf8_to_wchar(std::string_view{std::forward<T>(arg)});
     }
     else
         return std::forward<T>(arg);
