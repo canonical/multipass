@@ -42,11 +42,7 @@ mp::VirtualMachineMounts::VirtualMachineMounts(std::string vm_name,
 void mp::VirtualMachineMounts::load(const MountMap& specs)
 {
     const std::unique_lock replace_lock{replace_mutex};
-    const std::lock_guard lock{mutex};
-    create_missing_locked(specs);
-
-    if (auto current = specs_locked(); current != specs)
-        report(current);
+    create_missing(specs, specs);
 }
 
 void mp::VirtualMachineMounts::replace(const MountMap& specs)
@@ -79,11 +75,7 @@ void mp::VirtualMachineMounts::replace(const MountMap& specs)
         destroy_entry_locked(target, entry);
     }
 
-    const std::lock_guard lock{mutex};
-    create_missing_locked(specs);
-
-    if (auto current = specs_locked(); current != previous)
-        report(current);
+    create_missing(specs, previous);
 }
 
 void mp::VirtualMachineMounts::unload()
@@ -290,19 +282,29 @@ bool mp::VirtualMachineMounts::destroy_entry_locked(const std::string& target,
     return true;
 }
 
-void mp::VirtualMachineMounts::create_missing_locked(const MountMap& specs)
+void mp::VirtualMachineMounts::create_missing(const MountMap& specs, const MountMap& report_unless)
 {
-    for (const auto& [target, spec] : specs)
+    std::vector<std::pair<std::string, VMMount>> missing;
     {
-        if (const auto it = entries.find(target); it != entries.end())
+        const std::lock_guard lock{mutex};
+        for (const auto& [target, spec] : specs)
         {
-            assert(it->second->spec == spec && "obsolete mounts must be pruned first");
-            continue;
+            if (const auto it = entries.find(target); it != entries.end())
+            {
+                assert(it->second->spec == spec && "obsolete mounts must be pruned first");
+                continue;
+            }
+            missing.emplace_back(target, spec);
         }
+    }
 
+    std::vector<std::pair<std::string, EntryPtr>> created;
+    created.reserve(missing.size());
+    for (const auto& [target, spec] : missing)
+    {
         try
         {
-            entries.emplace(target, std::make_shared<Entry>(spec, make_handler(target, spec)));
+            created.emplace_back(target, std::make_shared<Entry>(spec, make_handler(target, spec)));
         }
         catch (const std::exception& e)
         {
@@ -314,4 +316,11 @@ void mp::VirtualMachineMounts::create_missing_locked(const MountMap& specs)
                       e.what());
         }
     }
+
+    const std::lock_guard lock{mutex};
+    for (auto& [target, entry] : created)
+        entries.emplace(std::move(target), std::move(entry));
+
+    if (auto current = specs_locked(); current != report_unless)
+        report(current);
 }

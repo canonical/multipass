@@ -479,6 +479,21 @@ TEST_F(VirtualMachineMounts, replaceDoesNotReportWithoutChanges)
     mounts.replace({{"/t", native}});
 }
 
+TEST_F(VirtualMachineMounts, replaceDoesNotHoldMapLockDuringHandlerCreation)
+{
+    add_inactive("/kept", native);
+
+    EXPECT_CALL(make_handler, Call("/new", native)).WillOnce([&](const auto& target, const auto& s) {
+        EXPECT_EQ(mounts.specs(), (MountMap{{"/kept", native}}));
+        return std::make_unique<NiceMock<TestMountHandler>>(target, s);
+    });
+    const MountMap target{{"/kept", native}, {"/new", native}};
+    EXPECT_CALL(report, Call(target));
+
+    mounts.replace(target);
+    EXPECT_EQ(mounts.specs(), target);
+}
+
 TEST_F(VirtualMachineMounts, stopAllForcesDeactivation)
 {
     running = true;
