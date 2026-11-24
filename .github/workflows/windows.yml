@@ -133,6 +133,7 @@ jobs:
 
     - name: Determine cache key
       id: cache-key
+      continue-on-error: true
       shell: bash
       run: |
         # Find common base between main and HEAD to use as cache key.
@@ -141,6 +142,7 @@ jobs:
 
     - name: Restore sccache
       uses: actions/cache/restore@v6
+      continue-on-error: true
       with:
         path: ${{ env.SCCACHE_DIR }}
         key: "sccache-${{ matrix.runs-on }}-${{ matrix.build-type }}-${{ steps.cache-key.outputs.cache-key }}"
@@ -302,7 +304,8 @@ jobs:
 
     - name: Save sccache
       uses: actions/cache/save@v6
-      if: ${{ github.ref == 'refs/heads/main' }}
+      if: ${{ github.ref == 'refs/heads/main' && steps.cache-key.outcome == 'success' }}
+      continue-on-error: true
       with:
         path: ${{ env.SCCACHE_DIR }}
         key: "sccache-${{ matrix.runs-on }}-${{ matrix.build-type }}-${{ steps.cache-key.outputs.cache-key }}"

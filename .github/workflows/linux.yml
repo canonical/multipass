@@ -143,6 +143,7 @@ jobs:
 
     - name: Set up CCache
       id: setup-ccache
+      continue-on-error: true
       run: |
         sudo apt-get install -y ccache
         ccache --max-size=2G
@@ -154,7 +155,9 @@ jobs:
         echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
 
     - name: CCache
+      if: ${{ steps.setup-ccache.outcome == 'success' }}
       uses: actions/cache@v6
+      continue-on-error: true
       with:
         key: ccache-${{ runner.os }}-${{ runner.arch }}-${{ matrix.build-type }}-${{ steps.setup-ccache.outputs.cache-key }}
         restore-keys: |
@@ -218,6 +221,8 @@ jobs:
         /snap/bin/snapcraft build --use-lxd multipass
 
     - name: Clear CCache stats
+      if: ${{ steps.setup-ccache.outcome == 'success' }}
+      continue-on-error: true
       run: ccache --show-stats --zero-stats
 
     - name: Set /proc/sys/kernel/core_pattern
