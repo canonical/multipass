@@ -84,6 +84,9 @@ struct MockVirtualMachineT : public T
             ON_CALL(*this, set_delayed_shutdown).WillByDefault([this] {
                 T::set_delayed_shutdown();
             });
+            ON_CALL(*this, get_num_cores).WillByDefault([this] { return T::get_num_cores(); });
+            ON_CALL(*this, get_mem_size).WillByDefault([this] { return T::get_mem_size(); });
+            ON_CALL(*this, get_disk_space).WillByDefault([this] { return T::get_disk_space(); });
         }
         ON_CALL(*this, ssh_port).WillByDefault(Return(42));
         ON_CALL(*this, ssh_hostname()).WillByDefault(Return("localhost"));
@@ -116,6 +119,9 @@ struct MockVirtualMachineT : public T
 
     MOCK_METHOD(void, wait_until_ssh_up, (std::chrono::milliseconds), (override));
     MOCK_METHOD(void, wait_for_cloud_init, (std::chrono::milliseconds), (override));
+    MOCK_METHOD(int, get_num_cores, (), (const, override));
+    MOCK_METHOD(MemorySize, get_mem_size, (), (const, override));
+    MOCK_METHOD(MemorySize, get_disk_space, (), (const, override));
     MOCK_METHOD(void, update_cpus, (int), (override));
     MOCK_METHOD(void, resize_memory, (const MemorySize&), (override));
     MOCK_METHOD(void, resize_disk, (const MemorySize&, UserMessages&), (override));
