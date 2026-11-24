@@ -20,8 +20,6 @@
 #include <multipass/console.h>
 #include <multipass/ssh/ssh_session.h>
 
-#include <libssh/libssh.h>
-
 #include <functional>
 #include <memory>
 #include <string>
