@@ -42,31 +42,30 @@ mp::VirtualMachineMounts::VirtualMachineMounts(std::string vm_name,
 void mp::VirtualMachineMounts::load(const MountMap& specs)
 {
     const std::unique_lock replace_lock{replace_mutex};
-    {
-        const std::lock_guard lock{mutex};
-        assert(entries.empty() && "load() is only for initial population");
-    }
-    create_missing(specs, specs);
+    assert(empty() && "load() is only for initial population");
+    auto created = make_entries(specs);
+    const std::lock_guard lock{mutex};
+    entries.merge(created);
+    if (entries.size() != specs.size())
+        report(specs_locked());
 }
 
 void mp::VirtualMachineMounts::replace(const MountMap& specs)
 {
     const std::unique_lock replace_lock{replace_mutex};
 
-    MountMap previous;
+    bool removed = false;
     std::vector<std::pair<std::string, EntryPtr>> obsolete;
     {
         const std::lock_guard lock{mutex};
         for (const auto& [target, entry] : entries)
         {
             const auto dead = entry->dead.load();
-            if (!dead)
-                previous.emplace(target, entry->spec);
-
             if (const auto it = specs.find(target);
                 dead || it == specs.end() || it->second != entry->spec)
             {
                 entry->dead = true;
+                removed |= !dead;
                 obsolete.emplace_back(target, entry);
             }
         }
@@ -79,7 +78,20 @@ void mp::VirtualMachineMounts::replace(const MountMap& specs)
         destroy_entry_locked(target, entry);
     }
 
-    create_missing(specs, previous);
+    auto missing = specs;
+    {
+        const std::lock_guard lock{mutex};
+        for (const auto& [target, _] : entries)
+            missing.erase(target);
+    }
+
+    auto created = make_entries(missing);
+    if (removed || !created.empty())
+    {
+        const std::lock_guard lock{mutex};
+        entries.merge(created);
+        report(specs_locked());
+    }
 }
 
 void mp::VirtualMachineMounts::unload()
@@ -286,29 +298,14 @@ bool mp::VirtualMachineMounts::destroy_entry_locked(const std::string& target,
     return true;
 }
 
-void mp::VirtualMachineMounts::create_missing(const MountMap& specs, const MountMap& report_unless)
+auto mp::VirtualMachineMounts::make_entries(const MountMap& specs) const -> EntryMap
 {
-    std::vector<std::pair<std::string, VMMount>> missing;
-    {
-        const std::lock_guard lock{mutex};
-        for (const auto& [target, spec] : specs)
-        {
-            if (const auto it = entries.find(target); it != entries.end())
-            {
-                assert(it->second->spec == spec && "obsolete mounts must be pruned first");
-                continue;
-            }
-            missing.emplace_back(target, spec);
-        }
-    }
-
-    std::vector<std::pair<std::string, EntryPtr>> created;
-    created.reserve(missing.size());
-    for (const auto& [target, spec] : missing)
+    EntryMap created;
+    for (const auto& [target, spec] : specs)
     {
         try
         {
-            created.emplace_back(target, std::make_shared<Entry>(spec, make_handler(target, spec)));
+            created.emplace(target, std::make_shared<Entry>(spec, make_handler(target, spec)));
         }
         catch (const std::exception& e)
         {
@@ -321,10 +318,5 @@ void mp::VirtualMachineMounts::create_missing(const MountMap& specs, const Mount
         }
     }
 
-    const std::lock_guard lock{mutex};
-    for (auto& [target, entry] : created)
-        entries.emplace(std::move(target), std::move(entry));
-
-    if (auto current = specs_locked(); current != report_unless)
-        report(current);
+    return created;
 }

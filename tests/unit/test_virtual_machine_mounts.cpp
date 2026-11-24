@@ -479,6 +479,34 @@ TEST_F(VirtualMachineMounts, replaceDoesNotReportWithoutChanges)
     mounts.replace({{"/t", native}});
 }
 
+TEST_F(VirtualMachineMounts, replaceReportsReinsertionAfterConcurrentRemove)
+{
+    const MountMap restored{{"/kept", native}};
+    add_inactive("/kept", native);
+    auto* dying = add_inactive("/dying", native);
+    mp::Signal destroying, release;
+    EXPECT_CALL(*dying, destroyed).WillOnce([&] {
+        destroying.signal();
+        release.wait();
+    });
+    MountMap last_report;
+    EXPECT_CALL(report, Call(_)).WillRepeatedly(SaveArg<0>(&last_report));
+    expect_handler("/kept", native);
+
+    auto removing = std::async(std::launch::async, [&] { mounts.remove("/dying"); });
+    destroying.wait();
+    auto replacing = std::async(std::launch::async, [&] { mounts.replace(restored); });
+    EXPECT_EQ(replacing.wait_for(std::chrono::milliseconds{50}), std::future_status::timeout);
+
+    mounts.remove("/kept");
+    release.signal();
+    removing.get();
+    replacing.get();
+
+    EXPECT_EQ(mounts.specs(), restored);
+    EXPECT_EQ(last_report, restored);
+}
+
 TEST_F(VirtualMachineMounts, replaceDoesNotHoldMapLockDuringHandlerCreation)
 {
     add_inactive("/kept", native);
@@ -509,19 +537,13 @@ TEST_F(VirtualMachineMounts, stopAllForcesDeactivation)
 
 TEST_F(VirtualMachineMounts, unloadWaitsForInFlightActivationAndDoesNotReport)
 {
-    auto* first = add_inactive("/first", native);
-    auto* second = add_inactive("/second", native);
+    auto* handler = add_inactive("/t", native);
     mp::Signal activating, release;
-    EXPECT_CALL(*first, activate_impl).Times(AtMost(1)).WillOnce([&](auto&&...) {
+    EXPECT_CALL(*handler, activate_impl).WillOnce([&](auto&&...) {
         activating.signal();
         release.wait();
     });
-    EXPECT_CALL(*second, activate_impl).Times(AtMost(1)).WillOnce([&](auto&&...) {
-        activating.signal();
-        release.wait();
-    });
-    EXPECT_CALL(*first, destroyed);
-    EXPECT_CALL(*second, destroyed);
+    EXPECT_CALL(*handler, destroyed);
 
     auto activation = std::async(std::launch::async, [&] { return mounts.activate_all(server); });
     activating.wait();

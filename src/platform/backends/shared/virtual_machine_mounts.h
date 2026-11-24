@@ -105,7 +105,7 @@ private:
     bool destroy_entry_locked(const std::string& target,
                               const EntryPtr& entry,
                               bool report_change = false);
-    void create_missing(const MountMap& specs, const MountMap& report_unless);
+    EntryMap make_entries(const MountMap& specs) const;
 
     const std::string vm_name;
     const HandlerFactory make_handler;
