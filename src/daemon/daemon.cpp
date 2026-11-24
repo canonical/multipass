@@ -3656,11 +3656,6 @@ void mp::Daemon::update_metadata_for(const std::string& name, const boost::json:
     persist_instances();
 }
 
-boost::json::object mp::Daemon::retrieve_metadata_for(const std::string& name)
-{
-    return vm_instance_specs[name].metadata;
-}
-
 void mp::Daemon::persist_instances()
 {
     auto instance_records_json = boost::json::value_from(vm_instance_specs);
