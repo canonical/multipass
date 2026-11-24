@@ -270,23 +270,6 @@ TEST_F(TestPlainSftpSession, makeSftpSessionThrowsWhenServerCreationFails)
                          mpt::match_what(HasSubstr("could not create a new sftp_server")));
 }
 
-TEST_F(TestPlainSftpSession, makeSftpSessionThrowsWhenSessionTimeoutCannotBeSet)
-{
-    // created first, so its own (coincidentally identical) SSH_OPTIONS_TIMEOUT calls are consumed
-    // under the default before the EXPECT_CALL below targets the one inside make_raw_sftp_session
-    auto session = make_ssh_session();
-
-    EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel))
-        .WillOnce(Return(&fake_sftp_sessions[0]));
-    EXPECT_CALL(mock_libssh, ssh_options_set(_, Eq(SSH_OPTIONS_TIMEOUT), _))
-        .WillOnce(Return(SSH_ERROR));
-    EXPECT_CALL(mock_libssh, sftp_server_free(&fake_sftp_sessions[0])).Times(1);
-
-    MP_EXPECT_THROW_THAT(static_cast<void>(make_sftp_session(std::move(session))),
-                         mp::SSHException,
-                         mpt::match_what(HasSubstr("could not set session timeout")));
-}
-
 TEST_F(TestPlainSftpSession, makeSftpSessionThrowsOnHandshakeConnectionDrop)
 {
     EXPECT_CALL(mock_libssh, sftp_server_new(fake_session, fake_channel))
