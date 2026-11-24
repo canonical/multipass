@@ -289,12 +289,28 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
 
         if (remote_image_name.startsWith("file://"))
         {
+// On Windows, if the drive letter is present, we may need to drop a third slash.
+#ifdef MULTIPASS_PLATFORM_WINDOWS
+            const auto extracted = remote_image_name.mid(7);
+            const auto path = QRegularExpression{"^\\/[a-zA-Z]:"}.match(extracted).hasMatch()
+                                ? extracted.mid(1)
+                                : extracted;
+#else
+            const auto path = remote_image_name.mid(7);
+#endif
+
             // Convert to absolute because the daemon doesn't know where the client is being
             // executed.
-            auto file_info = QFileInfo(remote_image_name.remove(0, 7));
-            auto absolute_file_path = file_info.absoluteFilePath();
+            const auto file_uri = QUrl::fromLocalFile(QFileInfo(path).absoluteFilePath())
+                                      .toString();
 
-            request.set_image("file://" + absolute_file_path.toStdString());
+            if (path.isEmpty() || !QUrl{file_uri}.isValid())
+            {
+                cerr << "Invalid file URL `" << remote_image_name.toStdString() << "`\n";
+                return ParseCode::CommandLineError;
+            }
+
+            request.set_image(file_uri.toStdString());
         }
         else if (remote_image_name.startsWith("http://") ||
                  remote_image_name.startsWith("https://"))
