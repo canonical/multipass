@@ -43,7 +43,7 @@ using Record = std::unique_ptr<ares_dns_record_t, decltype([](ares_dns_record_t*
                                    ares_dns_record_destroy(record);
                                })>;
 
-struct Query
+struct DnsQuery
 {
     std::string name;
     ares_dns_rec_type_t type = ARES_REC_TYPE_A;
@@ -53,7 +53,7 @@ struct Query
     bool edns = false;
 };
 
-std::vector<std::uint8_t> encode(const Query& query)
+std::vector<std::uint8_t> encode(const DnsQuery& query)
 {
     ares_dns_record_t* raw = nullptr;
     if (ares_dns_record_create(&raw, 0x1234, query.flags, query.opcode, ARES_RCODE_NOERROR) !=
@@ -162,7 +162,7 @@ Response decode(std::span<const std::uint8_t> bytes)
 
 // Sends `query` to `server` over UDP, waiting up to `timeout` for the response.
 std::optional<Response> exchange(const udp::endpoint& server,
-                                 const Query& query,
+                                 const DnsQuery& query,
                                  std::chrono::milliseconds timeout = std::chrono::seconds{5})
 {
     asio::io_context io;
@@ -189,7 +189,7 @@ struct DnsMessageTest : public Test
         return mp::dns::make_response(query, dns_zone, lookup);
     }
 
-    Response respond(const Query& query)
+    Response respond(const DnsQuery& query)
     {
         const auto response = respond_raw(encode(query));
         if (!response)
