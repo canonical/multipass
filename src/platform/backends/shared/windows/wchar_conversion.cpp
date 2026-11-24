@@ -54,12 +54,8 @@ std::wstring mp::utf8_to_wchar(std::string_view input)
     if (input.empty())
         return {};
 
-    const auto size_needed = ::MultiByteToWideChar(CP_UTF8,
-                                                   0,
-                                                   input.data(),
-                                                   static_cast<int>(input.size()),
-                                                   nullptr,
-                                                   0);
+    const auto size_needed =
+        ::MultiByteToWideChar(CP_UTF8, 0, input.data(), static_cast<int>(input.size()), nullptr, 0);
     std::wstring result(static_cast<std::size_t>(size_needed), L'\0');
     ::MultiByteToWideChar(CP_UTF8,
                           0,

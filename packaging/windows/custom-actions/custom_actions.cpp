@@ -173,8 +173,11 @@ UINT __stdcall RemoveNrptRules(__in MSIHANDLE hInstall)
             L"SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters\\DnsPolicyConfig";
         const wchar_t* const multipass_display_name = L"Multipass";
 
-        const LSTATUS openStatus =
-            ::RegOpenKeyExW(HKEY_LOCAL_MACHINE, nrpt_base, 0, KEY_ENUMERATE_SUB_KEYS, &hBaseKey);
+        const LSTATUS openStatus = ::RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+                                                   nrpt_base,
+                                                   0,
+                                                   KEY_ENUMERATE_SUB_KEYS,
+                                                   &hBaseKey);
         if (openStatus != ERROR_SUCCESS)
         {
             WcaLog(LOGMSG_STANDARD, "Could not open NRPT registry key (error %ld).", openStatus);

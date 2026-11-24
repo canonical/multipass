@@ -44,9 +44,9 @@ constexpr DWORD nrpt_override_dns = 0x8; // ConfigOptions: query the rule's Gene
 // Separated by semicolons, as in the registry.
 std::string join_non_empty(const std::vector<std::string>& values)
 {
-    return fmt::format("{}",
-                       fmt::join(values | std::views::filter(std::not_fn(std::ranges::empty)),
-                                 ";"));
+    return fmt::format(
+        "{}",
+        fmt::join(values | std::views::filter(std::not_fn(std::ranges::empty)), ";"));
 }
 
 // Derived from the namespaces, so that a rule left behind (e.g. by a crash) is reused.
