@@ -22,6 +22,7 @@
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
 
+#include <multipass/cloud_init_iso.h>
 #include <multipass/platform.h>
 #include <multipass/subnet.h>
 
@@ -144,16 +145,27 @@ std::string unique_hostname(const std::string& prefix)
 }
 
 // Builds a NoCloud seed ISO at `iso` whose guest advertises `hostname` over DHCP (option 12), so
-// that the ICS DNS proxy registers it. Requires Python with pycdlib.
+// that the ICS DNS proxy registers it.
 void build_seed_iso(const std::string& hostname, const std::filesystem::path& iso)
 {
-    const auto output = run_powershell(
-        fmt::format("python '{}/cloud-init-fqdn-multipass/make_seed_iso.py' --hostname '{}' "
-                    "--output '{}' 2>&1",
-                    test_data_path,
-                    hostname,
-                    iso.string()));
-    ASSERT_TRUE(std::filesystem::exists(iso)) << "seed ISO build failed: " << output;
+    CloudInitIso seed{};
+    // Stock Alpine's busybox udhcpc does not send DHCP option 12, so re-run it with the hostname
+    // once the network is up.
+    seed["user-data"] = fmt::format(
+        "#cloud-config\n"
+        "chpasswd:\n"
+        "  list: |\n"
+        "     root:password\n"
+        "     alpine:password\n"
+        "  expire: False\n"
+        "runcmd:\n"
+        "  - sh -c 'HN={}; for i in 1 2 3 4 5 6; do udhcpc -i eth0 -x hostname:$HN -n -q && "
+        "break; sleep 3; done'\n",
+        hostname);
+    // local-hostname must be a single DNS label
+    seed["meta-data"] = fmt::format("local-hostname: {}\ncloud-name: proof-of-concept\n",
+                                    hostname.substr(0, hostname.find('.')));
+    seed.write_to(iso);
 }
 
 // Makes the host's DNS client retry a multi-label name that fails to resolve with `suffix`
@@ -1363,19 +1375,8 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_multi_zone_resolution)
     reassemble_alpine_vhdx(vhdx1);
     reassemble_alpine_vhdx(vhdx2);
     const auto iso1 = make_tempfile_path(".iso"), iso2 = make_tempfile_path(".iso");
-    const auto build_iso = [&](const std::string& host, const std::filesystem::path& iso) {
-        return run_powershell(fmt::format("python '{}/cloud-init-fqdn-multipass/make_seed_iso.py' "
-                                          "--hostname '{}' --output '{}' 2>&1",
-                                          test_data_path,
-                                          host,
-                                          iso.string()));
-    };
-    const auto build_out1 = build_iso(host1, iso1);
-    ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(iso1)))
-        << build_out1;
-    const auto build_out2 = build_iso(host2, iso2);
-    ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(iso2)))
-        << build_out2;
+    build_seed_iso(host1, iso1);
+    build_seed_iso(host2, iso2);
 
     auto make_vm = [&](const char* name,
                        const char* mac,
@@ -1489,17 +1490,8 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_two_networks_distinct_zones)
                i1 = make_tempfile_path(".iso"), i2 = make_tempfile_path(".iso");
     reassemble_alpine_vhdx(v1);
     reassemble_alpine_vhdx(v2);
-    const auto mk = [&](const std::string& h, const std::filesystem::path& i) {
-        return run_powershell(fmt::format("python '{}/cloud-init-fqdn-multipass/make_seed_iso.py' "
-                                          "--hostname '{}' --output '{}' 2>&1",
-                                          test_data_path,
-                                          h,
-                                          i.string()));
-    };
-    const auto o1 = mk(host1, i1);
-    ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(i1))) << o1;
-    const auto o2 = mk(host2, i2);
-    ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(i2))) << o2;
+    build_seed_iso(host1, i1);
+    build_seed_iso(host2, i2);
 
     const ScopedHcsResources resources{
         {"mp-net1-vm", "mp-net2-vm"},
@@ -1584,17 +1576,8 @@ TEST_F(HyperV_ComponentIntegrationTests, dns_suffix_one_zone_two_networks)
                i1 = make_tempfile_path(".iso"), i2 = make_tempfile_path(".iso");
     reassemble_alpine_vhdx(v1);
     reassemble_alpine_vhdx(v2);
-    const auto mk = [&](const std::string& h, const std::filesystem::path& i) {
-        return run_powershell(fmt::format("python '{}/cloud-init-fqdn-multipass/make_seed_iso.py' "
-                                          "--hostname '{}' --output '{}' 2>&1",
-                                          test_data_path,
-                                          h,
-                                          i.string()));
-    };
-    const auto o1 = mk(host1, i1);
-    ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(i1))) << o1;
-    const auto o2 = mk(host2, i2);
-    ASSERT_TRUE(std::filesystem::exists(static_cast<const std::filesystem::path&>(i2))) << o2;
+    build_seed_iso(host1, i1);
+    build_seed_iso(host2, i2);
 
     const ScopedHcsResources resources{
         {"mp-zn1-vm", "mp-zn2-vm"},
