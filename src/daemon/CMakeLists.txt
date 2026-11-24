@@ -69,7 +69,6 @@ target_link_libraries(daemon
   ssh
   sshfs_mount
   ui_wording
-  user_messages
   utils
   Qt6::Core
   Qt6::Network
