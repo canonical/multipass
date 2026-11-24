@@ -29,8 +29,8 @@
 
 namespace multipass::dns
 {
-// The zone a server answers for.
-struct Zone
+// The DNS zone a server answers for.
+struct DnsZone
 {
     std::string name; // normalized, e.g. "multipass.local"
     std::uint32_t ttl;
@@ -42,10 +42,10 @@ using HostLookup = std::function<std::vector<boost::asio::ip::address_v4>(std::s
 // Lower-cases `name` and strips its leading and trailing dots.
 std::string normalize_name(std::string_view name);
 
-// Builds the response to `query` from a server for `zone`, looking hosts up with `lookup`. Returns
-// nothing when the message must be dropped: when it is malformed, not a standard Internet query,
-// or for another zone.
+// Builds the response to `query` from a server for `dns_zone`, looking hosts up with `lookup`.
+// Returns nothing when the message must be dropped: when it is malformed, not a standard Internet
+// query, or for another DNS zone.
 std::optional<std::vector<std::uint8_t>> make_response(std::span<const std::uint8_t> query,
-                                                       const Zone& zone,
+                                                       const DnsZone& dns_zone,
                                                        const HostLookup& lookup);
 } // namespace multipass::dns

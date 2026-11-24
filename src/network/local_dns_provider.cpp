@@ -52,22 +52,22 @@ mp::LocalDnsProvider::~LocalDnsProvider()
 
 void mp::LocalDnsProvider::start(const std::string& domain)
 {
-    auto zone = dns::normalize_name(domain);
-    if (zone.empty())
+    auto dns_zone = dns::normalize_name(domain);
+    if (dns_zone.empty())
         throw std::invalid_argument{fmt::format("Invalid DNS domain: \"{}\"", domain)};
 
     teardown();
 
     // Answer first, then route, so that the host's resolver is never pointed at a server that is
     // not there. If routing fails, the new server goes away with the exception.
-    auto new_server = listen(zone);
-    route = route_domain(zone, new_server->endpoint().address().to_string());
+    auto new_server = listen(dns_zone);
+    route = route_domain(dns_zone, new_server->endpoint().address().to_string());
     server = std::move(new_server);
 
-    mpl::info(category, "Instances resolve as <name>.{}", zone);
+    mpl::info(category, "Instances resolve as <name>.{}", dns_zone);
 }
 
-std::unique_ptr<mp::dns::Server> mp::LocalDnsProvider::listen(const std::string& zone)
+std::unique_ptr<mp::dns::Server> mp::LocalDnsProvider::listen(const std::string& dns_zone)
 {
     auto address = first.address().to_v4().to_uint();
     for (unsigned attempt = 1;; ++attempt, ++address)
@@ -76,7 +76,7 @@ std::unique_ptr<mp::dns::Server> mp::LocalDnsProvider::listen(const std::string&
         try
         {
             return std::make_unique<dns::Server>(
-                dns::Zone{zone, ttl},
+                dns::DnsZone{dns_zone, ttl},
                 endpoint,
                 [this](std::string_view host) { return lookup(host); });
         }

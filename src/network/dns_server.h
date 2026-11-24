@@ -30,14 +30,14 @@
 
 namespace multipass::dns
 {
-// Answers DNS queries for a zone over UDP, from its own thread, until destroyed.
+// Answers DNS queries for a DNS zone over UDP, from its own thread, until destroyed.
 class Server : private DisabledCopyMove
 {
 public:
     // Listens on `endpoint` (port 0 picks a free one), looking hosts up with `lookup`, which is
     // called from the server's thread. Throws boost::system::system_error (a std::runtime_error)
     // if the endpoint cannot be bound.
-    Server(Zone zone, const boost::asio::ip::udp::endpoint& endpoint, HostLookup lookup);
+    Server(DnsZone dns_zone, const boost::asio::ip::udp::endpoint& endpoint, HostLookup lookup);
     ~Server();
 
     [[nodiscard]] const boost::asio::ip::udp::endpoint& endpoint() const;
@@ -45,7 +45,7 @@ public:
 private:
     void receive();
 
-    const Zone zone;
+    const DnsZone dns_zone;
     const HostLookup lookup;
     boost::asio::io_context io;
     boost::asio::ip::udp::socket socket;

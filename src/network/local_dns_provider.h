@@ -52,7 +52,7 @@ public:
     void remove_host(const std::string& host) override;
 
 private:
-    std::unique_ptr<dns::Server> listen(const std::string& zone);
+    std::unique_ptr<dns::Server> listen(const std::string& dns_zone);
     std::vector<boost::asio::ip::address_v4> lookup(std::string_view host) const;
 
     const RouteDomain route_domain;

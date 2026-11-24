@@ -167,7 +167,7 @@ struct DnsMessageTest : public Test
 {
     std::optional<std::vector<std::uint8_t>> respond_raw(const std::vector<std::uint8_t>& query)
     {
-        return mp::dns::make_response(query, zone, lookup);
+        return mp::dns::make_response(query, dns_zone, lookup);
     }
 
     Response respond(const Query& query)
@@ -178,7 +178,7 @@ struct DnsMessageTest : public Test
         return decode(*response);
     }
 
-    mp::dns::Zone zone{"multipass.local", 30};
+    mp::dns::DnsZone dns_zone{"multipass.local", 30};
     std::map<std::string, std::vector<asio::ip::address_v4>> hosts{
         {"vm1", {asio::ip::make_address_v4("10.0.0.1")}},
         {"multi", {asio::ip::make_address_v4("10.0.0.2"), asio::ip::make_address_v4("10.0.0.3")}}};

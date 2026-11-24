@@ -31,15 +31,15 @@ namespace
 constexpr auto category = "dns-server";
 } // namespace
 
-mp::dns::Server::Server(Zone zone, const udp::endpoint& endpoint, HostLookup lookup)
-    : zone{std::move(zone)},
+mp::dns::Server::Server(DnsZone dns_zone, const udp::endpoint& endpoint, HostLookup lookup)
+    : dns_zone{std::move(dns_zone)},
       lookup{std::move(lookup)},
       socket{io, endpoint},
       bound_endpoint{socket.local_endpoint()}
 {
     mpl::debug(category,
                "Serving DNS zone {} on {}:{}",
-               this->zone.name,
+               this->dns_zone.name,
                bound_endpoint.address().to_string(),
                bound_endpoint.port());
 
@@ -69,7 +69,7 @@ void mp::dns::Server::receive()
             // Errors are per datagram (e.g. a client that went away), so keep serving.
             if (error)
                 mpl::debug(category, "Failed to receive a DNS query: {}", error.message());
-            else if (const auto response = make_response({buffer.data(), size}, zone, lookup))
+            else if (const auto response = make_response({buffer.data(), size}, dns_zone, lookup))
             {
                 boost::system::error_code send_error;
                 socket.send_to(asio::buffer(*response), sender, 0, send_error);

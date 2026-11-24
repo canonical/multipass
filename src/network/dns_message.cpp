@@ -85,7 +85,7 @@ std::string mp::dns::normalize_name(std::string_view name)
 }
 
 std::optional<std::vector<std::uint8_t>> mp::dns::make_response(std::span<const std::uint8_t> query,
-                                                                const Zone& zone,
+                                                                const DnsZone& dns_zone,
                                                                 const HostLookup& lookup)
 try
 {
@@ -105,14 +105,14 @@ try
     ares_dns_class_t qclass{};
     check(ares_dns_record_query_get(request.get(), 0, &qname, &qtype, &qclass));
 
-    // The host's resolver only sends us names in the zone.
+    // The host's resolver only sends us names in the DNS zone.
     const auto name = normalize_name(qname);
-    const auto suffix = "." + zone.name;
-    const auto apex = name == zone.name;
+    const auto suffix = "." + dns_zone.name;
+    const auto apex = name == dns_zone.name;
     if (qclass != ARES_CLASS_IN || !(apex || name.ends_with(suffix)))
         return std::nullopt;
 
-    // Hosts are single labels, directly under the zone, which itself exists without records.
+    // Hosts are single labels, directly under the DNS zone, which itself exists without records.
     std::vector<asio::ip::address_v4> addresses;
     if (const auto host = std::string_view{name}.substr(0, name.size() - suffix.size());
         !apex && host.find('.') == std::string_view::npos)
@@ -131,7 +131,7 @@ try
     check(ares_dns_record_query_add(response.get(), qname, qtype, qclass));
     if (qtype == ARES_REC_TYPE_A)
         for (const auto& address : addresses)
-            add_address(response.get(), qname, address, zone.ttl);
+            add_address(response.get(), qname, address, dns_zone.ttl);
 
     return serialize(response.get());
 }
