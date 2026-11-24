@@ -402,6 +402,59 @@ TEST_F(VirtualMachineMounts, replaceWaitsForDyingHandlerBeforeRecreatingSameSpec
     EXPECT_THAT(mounts.activate_all(server).pruned, IsEmpty());
 }
 
+TEST_F(VirtualMachineMounts, replaceWaitsForInFlightAddBeforeReplacing)
+{
+    running = true;
+    mp::Signal activating, release;
+    auto* added = expect_handler("/t", native);
+    EXPECT_CALL(*added, activate_impl).WillOnce([&](auto&&...) {
+        activating.signal();
+        release.wait();
+    });
+    {
+        InSequence seq;
+        EXPECT_CALL(report, Call(MountMap{{"/t", native}}));
+        EXPECT_CALL(*added, destroyed);
+        expect_handler("/t", classic);
+        EXPECT_CALL(report, Call(MountMap{{"/t", classic}}));
+    }
+
+    auto adding = std::async(std::launch::async, [&] { mounts.add("/t", native, server); });
+    activating.wait();
+
+    auto replacing = std::async(std::launch::async, [&] { mounts.replace({{"/t", classic}}); });
+    EXPECT_EQ(replacing.wait_for(std::chrono::milliseconds{50}), std::future_status::timeout);
+
+    release.signal();
+    adding.get();
+    replacing.get();
+
+    EXPECT_EQ(mounts.specs(), (MountMap{{"/t", classic}}));
+}
+
+TEST_F(VirtualMachineMounts, addWaitsForReplaceInFlight)
+{
+    auto* old = add_inactive("/old", native);
+    mp::Signal destroying, release;
+    EXPECT_CALL(*old, destroyed).WillOnce([&] {
+        destroying.signal();
+        release.wait();
+    });
+    expect_handler("/t", classic);
+    EXPECT_CALL(report, Call(MountMap{{"/t", classic}}));
+
+    auto replacing = std::async(std::launch::async, [&] { mounts.replace({{"/t", classic}}); });
+    destroying.wait();
+
+    auto adding = std::async(std::launch::async, [&] { mounts.add("/t", native, server); });
+    EXPECT_EQ(adding.wait_for(std::chrono::milliseconds{50}), std::future_status::timeout);
+
+    release.signal();
+    replacing.get();
+    EXPECT_THROW(adding.get(), mp::MountTargetInUseError);
+    EXPECT_EQ(mounts.specs(), (MountMap{{"/t", classic}}));
+}
+
 TEST_F(VirtualMachineMounts, replaceKeepsUnchangedAndReplacesChangedMounts)
 {
     add_inactive("/same", native);

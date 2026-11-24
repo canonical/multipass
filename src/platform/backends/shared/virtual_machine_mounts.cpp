@@ -41,6 +41,7 @@ mp::VirtualMachineMounts::VirtualMachineMounts(std::string vm_name,
 
 void mp::VirtualMachineMounts::load(const MountMap& specs)
 {
+    const std::unique_lock replace_lock{replace_mutex};
     const std::lock_guard lock{mutex};
     create_missing_locked(specs);
 
@@ -50,6 +51,8 @@ void mp::VirtualMachineMounts::load(const MountMap& specs)
 
 void mp::VirtualMachineMounts::replace(const MountMap& specs)
 {
+    const std::unique_lock replace_lock{replace_mutex};
+
     MountMap previous;
     std::vector<std::pair<std::string, EntryPtr>> obsolete;
     {
@@ -85,6 +88,8 @@ void mp::VirtualMachineMounts::replace(const MountMap& specs)
 
 void mp::VirtualMachineMounts::unload()
 {
+    const std::unique_lock replace_lock{replace_mutex};
+
     EntryMap unloaded;
     {
         const std::lock_guard lock{mutex};
@@ -104,6 +109,7 @@ void mp::VirtualMachineMounts::add(const std::string& target,
                                    const VMMount& mount,
                                    ServerVariant server)
 {
+    const std::shared_lock replace_lock{replace_mutex};
     {
         const std::lock_guard lock{mutex};
         if (entries.contains(target) || !reserved.insert(target).second)

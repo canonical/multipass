@@ -27,6 +27,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -109,6 +110,9 @@ private:
     const Reporter report;
     const RunningPredicate is_running;
 
+    // Shared by in-flight add(); exclusive for load(), replace(), and unload().
+    // Always acquired before entry->mutex and mutex.
+    std::shared_mutex replace_mutex;
     mutable std::mutex mutex;
     EntryMap entries;
     std::unordered_set<std::string> reserved; // targets with an add in flight
