@@ -91,7 +91,7 @@ parts:
     plugin: cmake
     build-snaps: []
     build-environment:
-    - PATH: /snap/bin:$PATH
+    - PATH: /usr/lib/go-1.26/bin:/snap/bin:$PATH
     - PYTHON: /usr/bin/python3
     - PYTHONPATH: ""
     - VCPKG_FORCE_SYSTEM_BINARIES: 1
@@ -99,6 +99,7 @@ parts:
     - CLANG_VERSION: "19"
     - CXX: clang++-${CLANG_VERSION}
     - CC: clang-${CLANG_VERSION}
+    - GOTOOLCHAIN: local
     - CMAKE_PRESET: snap-gui-less
     build-packages:
     - on arm64: [libgles2-mesa-dev]
@@ -132,6 +133,9 @@ parts:
     - bison # qtbase[dbus] -> glib2 -> gettext[tools] -> bison
     - gettext # provides msgfmt/msgmerge with matching libgettextsrc on the system loader path
     - rustup
+    # Required by ubuntu-insights
+    - golang-1.26-go
+    - libwayland-dev
 
     stage-packages:
     - apparmor
@@ -144,6 +148,9 @@ parts:
     - libgtkmm-3.0-1t64
     - libglibmm-2.4-1t64
     - libpangomm-1.4-1v5
+    # Required by ubuntu-insights
+    - libwayland-client0
+    - x11-xserver-utils # ubuntu-insights uses xrandr from x11 utils
 
     stage:
     - -**/glvnd
