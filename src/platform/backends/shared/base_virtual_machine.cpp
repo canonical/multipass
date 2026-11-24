@@ -479,6 +479,11 @@ void mp::BaseVirtualMachine::increment_clone_count()
     ++desc.clone_count;
 }
 
+void mp::BaseVirtualMachine::set_deleted(bool deleted)
+{
+    desc.deleted = deleted;
+}
+
 void mp::BaseVirtualMachine::update_cpus(int num_cores)
 {
     assert(num_cores > 0);

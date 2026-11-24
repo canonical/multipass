@@ -91,6 +91,9 @@ struct MockVirtualMachineT : public T
             ON_CALL(*this, increment_clone_count).WillByDefault([this] {
                 T::increment_clone_count();
             });
+            ON_CALL(*this, set_deleted).WillByDefault([this](bool deleted) {
+                T::set_deleted(deleted);
+            });
         }
         ON_CALL(*this, ssh_port).WillByDefault(Return(42));
         ON_CALL(*this, ssh_hostname()).WillByDefault(Return("localhost"));
@@ -128,6 +131,7 @@ struct MockVirtualMachineT : public T
     MOCK_METHOD(MemorySize, get_disk_space, (), (const, override));
     MOCK_METHOD(int, get_clone_count, (), (const, override));
     MOCK_METHOD(void, increment_clone_count, (), (override));
+    MOCK_METHOD(void, set_deleted, (bool), (override));
     MOCK_METHOD(void, update_cpus, (int), (override));
     MOCK_METHOD(void, resize_memory, (const MemorySize&), (override));
     MOCK_METHOD(void, resize_disk, (const MemorySize&, UserMessages&), (override));

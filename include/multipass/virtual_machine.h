@@ -100,6 +100,7 @@ public:
     [[nodiscard]] virtual MemorySize get_disk_space() const = 0;
     [[nodiscard]] virtual int get_clone_count() const = 0;
     virtual void increment_clone_count() = 0;
+    virtual void set_deleted(bool deleted) = 0;
     virtual void update_cpus(int num_cores) = 0;
     virtual void resize_memory(const MemorySize& new_size) = 0;
     virtual void resize_disk(const MemorySize& new_size, UserMessages& messages) = 0;

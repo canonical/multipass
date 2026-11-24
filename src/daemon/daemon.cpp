@@ -2434,6 +2434,7 @@ try
             const auto name = vm_it->first;
             assert(vm_instance_specs[name].deleted);
             vm_instance_specs[name].deleted = false;
+            vm_it->second->set_deleted(false);
             operative_instances[name] = std::move(vm_it->second);
             deleted_instances.erase(vm_it);
             init_mounts(name);
@@ -3962,7 +3963,7 @@ void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, DeleteReply& response)
 {
     const auto name = vm_it->first;
     const auto& instance = vm_it->second;
-    auto& erase_from = vm_instance_specs[name].deleted ? deleted_instances : operative_instances;
+    auto& erase_from = deleted_instances.contains(name) ? deleted_instances : operative_instances;
 
     if (&erase_from == &operative_instances)
     {

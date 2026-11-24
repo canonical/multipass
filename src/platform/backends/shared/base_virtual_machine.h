@@ -74,6 +74,7 @@ public:
     [[nodiscard]] MemorySize get_disk_space() const override;
     [[nodiscard]] int get_clone_count() const override;
     void increment_clone_count() override;
+    void set_deleted(bool deleted) override;
     void update_cpus(int num_cores) override;
     void resize_memory(const MemorySize& new_size) override;
     void resize_disk(const MemorySize& new_size, UserMessages& messages) override;
