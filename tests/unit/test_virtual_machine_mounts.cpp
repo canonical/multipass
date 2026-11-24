@@ -130,9 +130,11 @@ TEST_F(VirtualMachineMounts, addActivatesWhenRunningAndReports)
 
 TEST_F(VirtualMachineMounts, addDoesNotActivateWhenNotRunning)
 {
-    auto* handler = add_inactive("/t", native);
-
+    auto* handler = expect_handler("/t", native);
     EXPECT_CALL(*handler, activate_impl).Times(0);
+    EXPECT_CALL(report, Call(MountMap{{"/t", native}}));
+
+    mounts.add("/t", native, server);
     EXPECT_EQ(mounts.specs(), (MountMap{{"/t", native}}));
 }
 
