@@ -15,7 +15,10 @@
  *
  */
 
-#include <ubuntu_insights/libinsights_wrapper.h>
+// cgo generates C99 _Bool, which is not valid in C++.
+#define _Bool bool
+#include <insights/insights.h>
+#undef _Bool
 
 #include <gtest/gtest.h>
 
@@ -58,34 +61,31 @@ protected:
 
 TEST_F(LibInsights, missingConsentIsUnknown)
 {
-    EXPECT_EQ(MP_LIBINSIGHTS.insights_get_consent_state(&config, "multipass"),
-              INSIGHTS_CONSENT_UNKNOWN);
+    EXPECT_EQ(insights_get_consent_state(&config, "multipass"), INSIGHTS_CONSENT_UNKNOWN);
 }
 
 TEST_F(LibInsights, consentCanBeCreatedAndUpdated)
 {
     for (const auto consent : {true, false})
     {
-        char* error = MP_LIBINSIGHTS.insights_set_consent_state(&config, "multipass", consent);
+        char* error = insights_set_consent_state(&config, "multipass", consent);
 
         EXPECT_EQ(error, nullptr) << error;
-        EXPECT_EQ(MP_LIBINSIGHTS.insights_get_consent_state(&config, "multipass"),
+        EXPECT_EQ(insights_get_consent_state(&config, "multipass"),
                   consent ? INSIGHTS_CONSENT_TRUE : INSIGHTS_CONSENT_FALSE);
 
-        MP_LIBINSIGHTS.insights_free(error);
+        insights_free(error);
     }
 }
 
 TEST_F(LibInsights, consentIsSpecificToSource)
 {
-    char* error = MP_LIBINSIGHTS.insights_set_consent_state(&config, "multipass", true);
+    char* error = insights_set_consent_state(&config, "multipass", true);
 
     EXPECT_EQ(error, nullptr) << error;
-    EXPECT_EQ(MP_LIBINSIGHTS.insights_get_consent_state(&config, "other"),
-              INSIGHTS_CONSENT_UNKNOWN);
-    EXPECT_EQ(MP_LIBINSIGHTS.insights_get_consent_state(&config, "multipass"),
-              INSIGHTS_CONSENT_TRUE);
+    EXPECT_EQ(insights_get_consent_state(&config, "other"), INSIGHTS_CONSENT_UNKNOWN);
+    EXPECT_EQ(insights_get_consent_state(&config, "multipass"), INSIGHTS_CONSENT_TRUE);
 
-    MP_LIBINSIGHTS.insights_free(error);
+    insights_free(error);
 }
 } // namespace multipass::test

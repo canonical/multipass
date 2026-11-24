@@ -276,6 +276,15 @@ find_package(Qt6 COMPONENTS Core Concurrent Network REQUIRED)
 # xz-embedded config
 find_package(xz-embedded CONFIG)
 
+# ubuntu-insights config
+if(MULTIPASS_ENABLE_INSIGHTS)
+  find_package(ubuntu-insights CONFIG REQUIRED)
+  install(IMPORTED_RUNTIME_ARTIFACTS ubuntu-insights::insights
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+  )
+endif()
+
 include(src/cmake/versioning.cmake)
 determine_version(MULTIPASS_VERSION)
 set(MULTIPASS_VERSION ${MULTIPASS_VERSION})
