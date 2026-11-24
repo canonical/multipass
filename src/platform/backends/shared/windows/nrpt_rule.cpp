@@ -26,6 +26,7 @@
 #include <fmt/ranges.h>
 
 #include <algorithm>
+#include <functional>
 #include <ranges>
 #include <stdexcept>
 
@@ -40,15 +41,12 @@ constexpr auto nrpt_base =
 constexpr DWORD nrpt_rule_version = 1;
 constexpr DWORD nrpt_override_dns = 0x8; // ConfigOptions: query the rule's GenericDNSServers
 
-bool non_empty(const std::string& value)
-{
-    return !value.empty();
-}
-
 // Separated by semicolons, as in the registry.
 std::string join_non_empty(const std::vector<std::string>& values)
 {
-    return fmt::format("{}", fmt::join(values | std::views::filter(non_empty), ";"));
+    return fmt::format("{}",
+                       fmt::join(values | std::views::filter(std::not_fn(std::ranges::empty)),
+                                 ";"));
 }
 
 // Derived from the namespaces, so that a rule left behind (e.g. by a crash) is reused.
@@ -68,7 +66,7 @@ std::wstring rule_key_path(const std::string& guid)
 std::wstring make_namespace_multi_sz(const std::vector<std::string>& dns_namespaces)
 {
     std::wstring multi;
-    for (const auto& ns : dns_namespaces | std::views::filter(non_empty))
+    for (const auto& ns : dns_namespaces | std::views::filter(std::not_fn(std::ranges::empty)))
         multi += utf8_to_wchar(ns) + L'\0'; // terminate this entry
     if (multi.empty())
         multi.push_back(L'\0'); // empty list still needs one terminator before the final one
@@ -87,9 +85,9 @@ NrptRule::NrptRule(const std::vector<std::string>& dns_namespaces,
 {
     // An empty "Name" makes the rule inert, and an empty "GenericDNSServers" makes every name in
     // the namespaces fail to resolve. Neither is ever intended.
-    if (std::ranges::none_of(dns_namespaces, non_empty))
+    if (std::ranges::all_of(dns_namespaces, std::ranges::empty))
         throw std::invalid_argument{"NRPT: at least one DNS namespace is required"};
-    if (std::ranges::none_of(name_servers, non_empty))
+    if (std::ranges::all_of(name_servers, std::ranges::empty))
         throw std::invalid_argument{"NRPT: at least one name server is required"};
 
     // Opens the key if it exists, and overwrites all of its values below.
