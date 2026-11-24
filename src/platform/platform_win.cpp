@@ -853,8 +853,8 @@ mp::DnsProvider::UPtr mp::platform::Platform::make_dns_provider() const
     // 127.77.0.1 to 127.77.0.254: other local DNS servers commonly take 127.0.0.1.
     return std::make_unique<LocalDnsProvider>(
         [](const std::string& domain, const std::string& name_server) -> std::shared_ptr<void> {
-            return std::make_shared<hyperv::dns::NrptRule>(fmt::format(".{}", domain),
-                                                           std::vector{name_server});
+            return std::make_shared<dns::NrptRule>(fmt::format(".{}", domain),
+                                                   std::vector{name_server});
         },
         boost::asio::ip::udp::endpoint{boost::asio::ip::make_address_v4("127.77.0.1"), 53},
         254);

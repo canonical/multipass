@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-namespace multipass::hyperv::dns
+namespace multipass::dns
 {
 // The DisplayName of the NRPT rules Multipass creates, to tell them apart from others (e.g. to
 // clean up after a crash).
@@ -62,4 +62,4 @@ public:
 private:
     const std::string rule_guid;
 };
-} // namespace multipass::hyperv::dns
+} // namespace multipass::dns

@@ -23,12 +23,12 @@
 #include <string>
 #include <vector>
 
-namespace dns = multipass::hyperv::dns;
+namespace dns = multipass::dns;
 
 namespace multipass::test
 {
 
-struct HyperVNrptRule_UnitTests : public ::testing::Test
+struct NrptRule_UnitTests : public ::testing::Test
 {
 };
 
@@ -58,7 +58,7 @@ std::vector<std::wstring> parse_multi_sz(const std::wstring& multi)
 // ---------------------------------------------------------
 
 // Multiple suffixes encode as multiple REG_MULTI_SZ entries -- the core of multi-suffix support.
-TEST_F(HyperVNrptRule_UnitTests, multiple_suffixes_encode_as_multiple_entries)
+TEST_F(NrptRule_UnitTests, multiple_suffixes_encode_as_multiple_entries)
 {
     const auto multi = dns::make_namespace_multi_sz({".multipass.zone1", ".multipass.zone2"});
     const auto entries = parse_multi_sz(multi);
@@ -69,7 +69,7 @@ TEST_F(HyperVNrptRule_UnitTests, multiple_suffixes_encode_as_multiple_entries)
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVNrptRule_UnitTests, single_suffix_encodes_as_one_entry)
+TEST_F(NrptRule_UnitTests, single_suffix_encodes_as_one_entry)
 {
     const auto multi = dns::make_namespace_multi_sz({".multipass"});
     const auto entries = parse_multi_sz(multi);
@@ -79,7 +79,7 @@ TEST_F(HyperVNrptRule_UnitTests, single_suffix_encodes_as_one_entry)
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVNrptRule_UnitTests, empty_entries_are_skipped)
+TEST_F(NrptRule_UnitTests, empty_entries_are_skipped)
 {
     const auto multi = dns::make_namespace_multi_sz({".multipass.zone1", "", ".multipass.zone2"});
     const auto entries = parse_multi_sz(multi);
@@ -90,7 +90,7 @@ TEST_F(HyperVNrptRule_UnitTests, empty_entries_are_skipped)
 
 // ---------------------------------------------------------
 
-TEST_F(HyperVNrptRule_UnitTests, empty_list_is_double_nul_terminated)
+TEST_F(NrptRule_UnitTests, empty_list_is_double_nul_terminated)
 {
     const auto multi = dns::make_namespace_multi_sz({});
     ASSERT_EQ(multi.size(), 2u);
@@ -101,7 +101,7 @@ TEST_F(HyperVNrptRule_UnitTests, empty_list_is_double_nul_terminated)
 // ---------------------------------------------------------
 
 // Both cases are rejected before the registry is touched, so they need no privileges.
-TEST_F(HyperVNrptRule_UnitTests, rejects_rule_without_namespaces)
+TEST_F(NrptRule_UnitTests, rejects_rule_without_namespaces)
 {
     const std::vector<std::string> servers{"172.50.224.1"};
     EXPECT_THROW(dns::NrptRule(std::vector<std::string>{}, servers), std::invalid_argument);
@@ -109,7 +109,7 @@ TEST_F(HyperVNrptRule_UnitTests, rejects_rule_without_namespaces)
     EXPECT_THROW(dns::NrptRule(std::string{}, servers), std::invalid_argument);
 }
 
-TEST_F(HyperVNrptRule_UnitTests, rejects_rule_without_name_servers)
+TEST_F(NrptRule_UnitTests, rejects_rule_without_name_servers)
 {
     EXPECT_THROW(dns::NrptRule(".multipass", {}), std::invalid_argument);
     EXPECT_THROW(dns::NrptRule(".multipass", {""}), std::invalid_argument);

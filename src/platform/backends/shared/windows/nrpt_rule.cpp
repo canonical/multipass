@@ -29,7 +29,7 @@
 #include <ranges>
 #include <stdexcept>
 
-namespace multipass::hyperv::dns
+namespace multipass::dns
 {
 namespace
 {
@@ -142,4 +142,4 @@ NrptRule::~NrptRule()
 {
     ::RegDeleteKeyW(HKEY_LOCAL_MACHINE, rule_key_path(rule_guid).c_str());
 }
-} // namespace multipass::hyperv::dns
+} // namespace multipass::dns

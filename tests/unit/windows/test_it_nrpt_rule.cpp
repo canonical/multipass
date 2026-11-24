@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-namespace dns = multipass::hyperv::dns;
+namespace dns = multipass::dns;
 
 namespace multipass::test
 {
@@ -87,13 +87,13 @@ bool contains(const std::wstring& haystack, const wchar_t* needle)
 }
 } // namespace
 
-struct HyperVNrptRule_IntegrationTests : public ::testing::Test
+struct NrptRule_IntegrationTests : public ::testing::Test
 {
 };
 
 // Writes a real two-suffix NRPT rule to HKLM and verifies the live registry holds both
 // namespaces routed to both servers, then that the rule is removed on destruction.
-TEST_F(HyperVNrptRule_IntegrationTests, multi_suffix_rule_written_and_removed)
+TEST_F(NrptRule_IntegrationTests, multi_suffix_rule_written_and_removed)
 {
     const std::vector<std::string> suffixes{".multipass.zone1", ".multipass.zone2"};
     const std::vector<std::string> servers{"172.50.224.1", "172.50.225.1"};
@@ -121,7 +121,7 @@ TEST_F(HyperVNrptRule_IntegrationTests, multi_suffix_rule_written_and_removed)
 
 // A rule left behind (e.g. by a crash) is overwritten by the next one for the same namespaces,
 // instead of rules piling up.
-TEST_F(HyperVNrptRule_IntegrationTests, rule_overwrites_a_leftover_one_for_the_same_namespaces)
+TEST_F(NrptRule_IntegrationTests, rule_overwrites_a_leftover_one_for_the_same_namespaces)
 {
     auto leftover = std::make_unique<dns::NrptRule>(".multipass.reuse",
                                                     std::vector<std::string>{"172.50.224.1"});
