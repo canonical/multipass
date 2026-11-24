@@ -94,23 +94,14 @@ mp::PlainSftpSession::make_raw_sftp_session(ssh_session raw_session, ssh_channel
     // TODO: move to callback-based sftp implementations.
     // https://github.com/canonical/multipass/issues/4445
 
-    constexpr static long give_up_timeout_secs = 5; // libssh reads SSH_OPTIONS_TIMEOUT as long
+    constexpr static std::chrono::duration<int, std::milli> init_timeout_ms = 5s;
 
     RawSftpSessionUptr raw_sftp_session{MP_LIBSSH.sftp_server_new(raw_session, channel)};
     if (!raw_sftp_session)
         throw SSHException(
             fmt::format("[sftp] server init failed: could not create a new sftp_server."));
 
-    // Bound reads/writes to avoid indefinite blocks in mid-message reads, within next_message().
-    if (MP_LIBSSH.ssh_options_set(raw_session, SSH_OPTIONS_TIMEOUT, &give_up_timeout_secs) !=
-        SSH_OK)
-    {
-        const auto raw_error = MP_LIBSSH.ssh_get_error(raw_session);
-        throw SftpInitException{fmt::format("could not set session timeout: '{}'", raw_error)};
-    }
-
-    int res = poll_stdout(raw_sftp_session->channel, static_cast<int>(give_up_timeout_secs * 1000));
-    if (res <= 0)
+    if (auto res = poll_stdout(raw_sftp_session->channel, init_timeout_ms.count()); res <= 0)
     {
         const auto err_detail = res < 0 ? "connection drop or malfunction"
                                         : "timed out waiting for the initial client message";
