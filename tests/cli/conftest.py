@@ -726,9 +726,12 @@ def windows_privileged_mounts(multipassd):
         # Check if privileged mounts are already enabled
         if "true" in multipass("get", "local.privileged-mounts"):
             return
+        if multipassd is None:
+            pytest.skip(
+                "Requires local.privileged-mounts=true or a daemon controller"
+            )
         assert multipass("set", "local.privileged-mounts=1")
-        if multipassd is not None:
-            multipassd.wait_for_restart()
+        multipassd.wait_for_restart()
 
 
 @pytest.fixture(scope="function")

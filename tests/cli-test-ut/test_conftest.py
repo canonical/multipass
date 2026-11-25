@@ -123,17 +123,15 @@ class TestWindowsPrivilegedMounts:
         mock_multipass.assert_called_once_with("get", "local.privileged-mounts")
         mock_daemon.wait_for_restart.assert_not_called()
 
-    def test_skips_wait_when_multipassd_is_none(self, monkeypatch):
+    def test_skips_when_multipassd_is_none_and_disabled(self, monkeypatch):
         monkeypatch.setattr(conftest.sys, "platform", "win32")
-        mock_multipass = MagicMock(side_effect=["false\n", True])
+        mock_multipass = MagicMock(return_value="false\n")
         monkeypatch.setattr(conftest, "multipass", mock_multipass)
 
-        conftest.windows_privileged_mounts.__wrapped__(None)
+        with pytest.raises(pytest.skip.Exception):
+            conftest.windows_privileged_mounts.__wrapped__(None)
 
-        assert mock_multipass.call_args_list == [
-            call("get", "local.privileged-mounts"),
-            call("set", "local.privileged-mounts=1"),
-        ]
+        mock_multipass.assert_called_once_with("get", "local.privileged-mounts")
 
     def test_noop_on_non_windows(self, monkeypatch):
         monkeypatch.setattr(conftest.sys, "platform", "linux")
