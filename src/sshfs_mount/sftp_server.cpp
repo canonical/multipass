@@ -50,7 +50,7 @@ using namespace std::literals::chrono_literals;
 constexpr auto keepalive_interval = 30s;
 constexpr int keepalive_interval_ms =
     std::chrono::duration_cast<std::chrono::milliseconds>(keepalive_interval).count();
-constexpr uint32_t id_unchanged = 0xFFFFFFFF;    // 2^16-1
+constexpr uint32_t id_unchanged = 0xFFFF; // 2^16-1
 
 enum Permissions
 {
