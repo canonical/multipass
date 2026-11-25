@@ -43,8 +43,6 @@ public:
                const std::string& target,
                const id_mappings& gid_mappings,
                const id_mappings& uid_mappings,
-               int default_uid,
-               int default_gid,
                const std::string& sshfs_exec_line);
     SftpServer(SftpServer&& other);
     ~SftpServer();
@@ -103,8 +101,6 @@ private:
     std::unordered_map<void*, std::unique_ptr<DirIterator>> open_dir_handles;
     const id_mappings gid_mappings;
     const id_mappings uid_mappings;
-    const int default_uid;
-    const int default_gid;
     const std::string sshfs_exec_line;
     std::atomic<bool> stop_invoked{false};
 };

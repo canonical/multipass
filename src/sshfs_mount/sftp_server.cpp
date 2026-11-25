@@ -48,6 +48,8 @@ using namespace std::literals::chrono_literals;
 constexpr auto keepalive_interval = 30s;
 constexpr int keepalive_interval_ms =
     std::chrono::duration_cast<std::chrono::milliseconds>(keepalive_interval).count();
+constexpr uint32_t unchanged_id = static_cast<uint32_t>(-1);
+constexpr uint32_t unrecognized_id = static_cast<uint32_t>(-2);
 
 enum Permissions
 {
@@ -243,25 +245,21 @@ auto create_sshfs_process(mp::SSHSession& session,
                           const std::string& source,
                           const std::string& target)
 {
-    auto sshfs_process =
-        session.exec(fmt::format("sudo {} :{:?} {:?}", sshfs_exec_line, source, target));
+    auto sshfs_process = session.exec(
+        fmt::format("sudo {} :{:?} {:?}", sshfs_exec_line, source, target));
 
     check_sshfs_status(*sshfs_process);
 
     return sshfs_process;
 }
 
-int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
+int mapped_id_for(const mp::id_mappings& id_maps, const int id)
 {
-    if (id == mp::no_id_info_available)
-        return default_id;
-
     auto found = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) {
         return id == p.first;
     });
 
-    return found == id_maps.cend() ? -1
-                                   : (found->second == mp::default_id ? default_id : found->second);
+    return found == id_maps.cend() ? unrecognized_id : found->second;
 }
 
 int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
@@ -308,8 +306,6 @@ mp::SftpServer::SftpServer(std::unique_ptr<SSHSession>&& session,
                            const std::string& target,
                            const id_mappings& gid_mappings,
                            const id_mappings& uid_mappings,
-                           int default_uid,
-                           int default_gid,
                            const std::string& sshfs_exec_line)
     : ssh_session{std::move(session)},
       sshfs_process{create_sshfs_process(*ssh_session, sshfs_exec_line, source, target)},
@@ -320,8 +316,6 @@ mp::SftpServer::SftpServer(std::unique_ptr<SSHSession>&& session,
       target_path{fs::path(target).lexically_normal()},
       gid_mappings{gid_mappings},
       uid_mappings{uid_mappings},
-      default_uid{default_uid},
-      default_gid{default_gid},
       sshfs_exec_line{sshfs_exec_line}
 {
 }
@@ -358,12 +352,12 @@ sftp_attributes_struct mp::SftpServer::attr_from(const QFileInfo& file_info)
 
 inline int mp::SftpServer::mapped_uid_for(const int uid)
 {
-    return mapped_id_for(uid_mappings, uid, default_uid);
+    return mapped_id_for(uid_mappings, uid);
 }
 
 inline int mp::SftpServer::mapped_gid_for(const int gid)
 {
-    return mapped_id_for(gid_mappings, gid, default_gid);
+    return mapped_id_for(gid_mappings, gid);
 }
 
 inline int mp::SftpServer::reverse_uid_for(const int uid, const int default_id_)

@@ -173,8 +173,6 @@ auto make_sftp_server(std::unique_ptr<mp::SSHSession>&& session,
                                             leading + missing,
                                             gid_mappings,
                                             uid_mappings,
-                                            default_uid,
-                                            default_gid,
                                             sshfs_exec_line);
 }
 
