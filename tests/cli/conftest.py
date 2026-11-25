@@ -402,9 +402,27 @@ def pytest_runtest_setup(item):
             f"Version-gated test {item} skipped ({current} {op_str} {target})")
 
 
-def remove_temporary_storage_dir(target_dir):
+def remove_temporary_storage_dir(target_dir, retries=1, delay=0.5):
+    import os
     import shutil
-    shutil.rmtree(target_dir)
+    import stat
+    import time
+
+    def _handle_remove_readonly(func, path, exc):
+        if isinstance(exc, PermissionError):
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+        else:
+            raise exc
+
+    for attempt in range(retries):
+        try:
+            shutil.rmtree(target_dir, onexc=_handle_remove_readonly)
+            return
+        except PermissionError:
+            if attempt + 1 >= retries:
+                raise
+            time.sleep(delay)
 
 
 def make_temporary_storage_dir():
@@ -416,13 +434,19 @@ def make_temporary_storage_dir():
             a non-root user cannot remove it. Therefore, try
             privilege escalation if nuking as normal fails."""
             try:
-                remove_temporary_storage_dir(str(tmpdir))
+                remove_temporary_storage_dir(
+                    str(tmpdir), retries=5 if sys.platform == "win32" else 1
+                )
                 print(f"\n🧹 ✅ Cleaned up {tmpdir} normally.")
             except PermissionError:
                 print(
                     f"\n🧹 ⚠️ Permission denied, escalating privilege {tmpdir}")
                 run_in_new_interpreter(
-                    remove_temporary_storage_dir, str(tmpdir), privileged=True)
+                    remove_temporary_storage_dir,
+                    str(tmpdir),
+                    5 if sys.platform == "win32" else 1,
+                    privileged=True,
+                )
 
         # Register finalizer to cleanup on exit
         atexit.register(cleanup)

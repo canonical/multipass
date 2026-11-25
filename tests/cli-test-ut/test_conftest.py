@@ -19,6 +19,8 @@
 
 from unittest.mock import MagicMock, call
 
+import pytest
+
 from cli import conftest
 
 
@@ -72,3 +74,58 @@ class TestWindowsPrivilegedMounts:
 
         mock_multipass.assert_not_called()
         mock_daemon.wait_for_restart.assert_not_called()
+
+
+class TestRemoveTemporaryStorageDir:
+    """Tests for remove_temporary_storage_dir()."""
+
+    def test_removes_readonly_files(self, tmp_path):
+        import os
+        import stat
+
+        target = tmp_path / "storage"
+        target.mkdir()
+        ro_file = target / "cert.pem"
+        ro_file.write_text("secret")
+        os.chmod(ro_file, stat.S_IREAD)
+
+        conftest.remove_temporary_storage_dir(str(target))
+
+        assert not target.exists()
+
+    def test_retries_transient_permission_error(self, tmp_path, monkeypatch):
+        import shutil
+        import time
+
+        target = tmp_path / "storage"
+        target.mkdir()
+        calls = {"count": 0}
+        real_rmtree = shutil.rmtree
+
+        def flaky_rmtree(path, **kwargs):
+            calls["count"] += 1
+            if calls["count"] < 3:
+                raise PermissionError("file in use")
+            real_rmtree(path, **kwargs)
+
+        monkeypatch.setattr(shutil, "rmtree", flaky_rmtree)
+        monkeypatch.setattr(time, "sleep", lambda _: None)
+
+        conftest.remove_temporary_storage_dir(str(target), retries=5, delay=0)
+
+        assert calls["count"] == 3
+        assert not target.exists()
+
+    def test_raises_after_exhausting_retries(self, tmp_path, monkeypatch):
+        import shutil
+        import time
+
+        target = tmp_path / "storage"
+        target.mkdir()
+        monkeypatch.setattr(
+            shutil, "rmtree", MagicMock(side_effect=PermissionError("locked"))
+        )
+        monkeypatch.setattr(time, "sleep", lambda _: None)
+
+        with pytest.raises(PermissionError, match="locked"):
+            conftest.remove_temporary_storage_dir(str(target), retries=3, delay=0)
