@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dropdown.dart';
 import '../l10n/app_localizations.dart';
+import 'setting_widgets.dart';
 import '../notifications.dart';
 import '../providers.dart';
 import '../switch.dart';
@@ -30,10 +31,7 @@ class GeneralSettings extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.generalTitle,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+        SettingsSectionTitle(l10n.generalTitle),
         const SizedBox(height: 20),
         if (update.version.isNotBlank) ...[
           UpdateAvailable(update),
