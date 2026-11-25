@@ -1,0 +1,5 @@
+# Keep Cargo output out of the source tree for any tool that runs Cargo directly
+# (IDEs, rust-analyzer, manual `cargo` invocations). CMake overrides this through
+# the CARGO_TARGET_DIR environment variable, which takes precedence over this file.
+[build]
+target-dir = "../build/rxx-cargo"
