@@ -314,6 +314,37 @@ class TestGovernorStartupFailures:
         assert monitor_task.done()
         assert monitor_task.result() is None
 
+    @pytest.mark.asyncio
+    async def test_fatal_readiness_error_stops_and_exits_with_reason(self):
+        """Fatal readiness errors (e.g. version mismatch) surface their reason."""
+        ctrl = MockController(exit_code=None)
+        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
+        exit_mock = MagicMock(side_effect=SystemExit(12))
+
+        with (
+            patch.object(governor, "_ensure_client_certs_are_created"),
+            patch.object(governor, "_authenticate_client_cert"),
+            patch.object(
+                governor,
+                "wait_for_multipassd_ready",
+                side_effect=TestSessionFailure(
+                    "Version mismatch detected (CLI: 1.0, Daemon: 2.0)."
+                ),
+            ),
+            patch.object(governor, "on_monitor_exit"),
+            patch("cli.controller.multipassd_governor.pytest.exit", exit_mock),
+        ):
+            with pytest.raises(SystemExit) as exc_info:
+                await governor.start_async()
+
+            assert exc_info.value.code == 12
+
+        assert ctrl.stop_called
+        exit_mock.assert_called_once_with(
+            "Tests cannot proceed: Version mismatch detected (CLI: 1.0, Daemon: 2.0).",
+            returncode=12,
+        )
+
 class TestGovernorConcurrentOperations:
     """Test governor concurrent operation scenarios."""
 
@@ -404,9 +435,27 @@ class TestWaitForMultipassdReady:
             "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
             side_effect=[MockSubprocess(), MockSubprocess(stdout=version_out)],
         ):
-            result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
+            if expected:
+                result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
+                assert result is True
+            else:
+                with pytest.raises(TestSessionFailure, match="Version mismatch detected"):
+                    await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
 
-        assert result is expected
+    @pytest.mark.asyncio
+    async def test_unauthenticated_client_raises(self, mock_env):
+        """Unauthenticated client raises TestSessionFailure immediately."""
+        unauth_proc = MockSubprocess(
+            stdout=b"The client is not authenticated with the Multipass service",
+            returncode=1,
+        )
+
+        with patch(
+            "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
+            return_value=unauth_proc,
+        ):
+            with pytest.raises(TestSessionFailure, match="Client is not authenticated"):
+                await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
 
     @pytest.mark.asyncio
     async def test_returns_false_on_timeout(self, mock_env):

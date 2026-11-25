@@ -262,7 +262,20 @@ class MultipassdGovernor:
                     raise
 
             # Wait for daemon to be ready
-            if not await ready_task:
+            try:
+                ready = await ready_task
+            except TestSessionFailure as ex:
+                logging.warning(
+                    "⚠️ multipassd not ready (%s), attempting graceful shutdown...", ex
+                )
+                self.monitor_task = monitor_task
+                await self._stop_locked()
+                pytest.exit(
+                    f"Tests cannot proceed: {ex}",
+                    returncode=12,
+                )
+
+            if not ready:
                 logging.warning(
                     "⚠️ multipassd not ready, attempting graceful shutdown...")
                 self.monitor_task = monitor_task
@@ -437,8 +450,7 @@ class MultipassdGovernor:
                         in find_stdout
                     ):
                         logging.error("Client is not authenticated.")
-                        Session.shouldfail = "Client is not authenticated."
-                        return False
+                        raise TestSessionFailure("Client is not authenticated.")
                     logging.debug(find_stdout)
 
                 # Otherwise, verify the version
@@ -456,14 +468,16 @@ class MultipassdGovernor:
                         f"👉 Daemon version: {daemon_ver}\n"
                     )
                     sys.stderr.flush()
-                    return False
+                    raise TestSessionFailure(
+                        f"Version mismatch detected (CLI: {cli_ver}, Daemon: {daemon_ver})."
+                    )
 
             except asyncio.TimeoutError:
                 # Try again.
                 continue
             except asyncio.CancelledError:
                 raise
-            except AssertionError:
+            except (AssertionError, TestSessionFailure):
                 raise
             except Exception as exc:
                 logging.error(exc)
