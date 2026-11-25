@@ -522,6 +522,40 @@ TEST_F(TestPlainSftpSession, nextMessageReturnsNullWhenGetClientMessageFails)
     EXPECT_THAT(sftp_session->next_message(), NotNull());
 }
 
+TEST_F(TestPlainSftpSession, nextMessageSendsKeepaliveWhileIdle)
+{
+    expect_client_spawns<1>();
+
+    const auto sftp_session = make_sftp_session();
+    ASSERT_THAT(sftp_session, NotNull());
+
+    // nothing to read until the peer is probed, however long that takes
+    bool probed = false;
+    EXPECT_CALL(mock_libssh, ssh_send_keepalive(fake_session))
+        .WillOnce(DoAll(Assign(&probed, true), Return(SSH_OK)));
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0))
+        .WillRepeatedly(WithoutArgs([&probed] { return probed ? 1 : 0; }));
+    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_sessions[0]))
+        .WillOnce(Return(&fake_client_msgs[1]));
+
+    EXPECT_THAT(sftp_session->next_message(), NotNull());
+}
+
+TEST_F(TestPlainSftpSession, nextMessageSkipsKeepaliveWhenDataArrivesPromptly)
+{
+    expect_client_spawns<1>();
+
+    const auto sftp_session = make_sftp_session();
+    ASSERT_THAT(sftp_session, NotNull());
+
+    EXPECT_CALL(mock_libssh, ssh_send_keepalive).Times(0);
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0)).WillOnce(Return(1));
+    EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_sessions[0]))
+        .WillOnce(Return(&fake_client_msgs[1]));
+
+    EXPECT_THAT(sftp_session->next_message(), NotNull());
+}
+
 TEST_F(TestPlainSftpSession, clientExitCodeReportsGracefulClientExit)
 {
     expect_client_spawns<1>();
