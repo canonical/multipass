@@ -16,7 +16,7 @@
  */
 
 #include <multipass/cli/argparser.h>
-#include <multipass/user_messages/deprecation_warning.h>
+#include <multipass/ui_wording/deprecation_warning.h>
 
 #include "common_cli.h"
 #include "prefer.h"

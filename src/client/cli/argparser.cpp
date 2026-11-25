@@ -17,7 +17,7 @@
 
 #include <multipass/cli/argparser.h>
 #include <multipass/format.h>
-#include <multipass/user_messages/alias_context_deprecation_warning.h>
+#include <multipass/ui_wording/alias_context_deprecation_warning.h>
 
 #include <QFileInfo>
 #include <QRegularExpression>

@@ -22,7 +22,7 @@
 #include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/standard_paths.h>
-#include <multipass/user_messages/alias_context_deprecation_warning.h>
+#include <multipass/ui_wording/alias_context_deprecation_warning.h>
 #include <multipass/utils.h>
 
 namespace mp = multipass;
