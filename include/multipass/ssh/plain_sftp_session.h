@@ -74,6 +74,7 @@ public:
      * @li reading a single SFTP message takes longer, e.g. because it arrives in chunks that are
      * slow to complete
      * @li the reading thread is delayed in being scheduled
+     * @li a keepalive is in flight, which is bounded by the SSH session timeout
      */
     void request_stop() noexcept override;
 
