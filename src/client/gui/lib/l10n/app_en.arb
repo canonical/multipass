@@ -257,21 +257,21 @@
             }
         }
     },
-    "generalOnCloseLabel": "When closing Multipass",
+    "generalOnCloseLabel": "Stop running instances when closing Multipass",
     "@generalOnCloseLabel": {
-        "description": "Label for the dropdown that controls what happens when Multipass is closed"
+        "description": "Label for the setting that controls whether instances should be stopped when closing Multipass"
     },
-    "generalOnCloseAsk": "Ask about running instances",
+    "generalOnCloseAsk": "Ask",
     "@generalOnCloseAsk": {
-        "description": "Dropdown option: ask the user what to do with running instances on close"
+        "description": "Option: ask the user what to do with running instances on close"
     },
-    "generalOnCloseStop": "Stop running instances",
+    "generalOnCloseStop": "Yes",
     "@generalOnCloseStop": {
-        "description": "Dropdown option: automatically stop running instances on close"
+        "description": "Option: automatically stop running instances on close"
     },
-    "generalOnCloseNothing": "Do not stop running instances",
+    "generalOnCloseNothing": "No",
     "@generalOnCloseNothing": {
-        "description": "Dropdown option: leave running instances running on close"
+        "description": "Option: leave running instances running on close"
     },
     "privacyTitle": "Privacy",
     "@privacyTitle": {

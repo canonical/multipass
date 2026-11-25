@@ -2,7 +2,6 @@ import 'package:basics/basics.dart';
 import 'package:flutter/material.dart' hide Switch;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../dropdown.dart';
 import '../l10n/app_localizations.dart';
 import 'setting_widgets.dart';
 import '../notifications.dart';
@@ -10,7 +9,6 @@ import '../providers.dart';
 import '../switch.dart';
 import '../update_available.dart';
 import 'autostart_notifiers.dart';
-import 'constants.dart';
 
 final onAppCloseProvider = guiSettingProvider(onAppCloseKey);
 
@@ -48,17 +46,15 @@ class GeneralSettings extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 20),
-        Dropdown(
+        FixedOptionsSetting<String>(
           label: l10n.generalOnCloseLabel,
-          width: settingFieldWidth,
-          value: onAppClose ?? 'ask',
-          onChanged: (value) =>
-              ref.read(onAppCloseProvider.notifier).set(value!),
-          items: {
-            'ask': l10n.generalOnCloseAsk,
+          options: {
             'stop': l10n.generalOnCloseStop,
+            'ask': l10n.generalOnCloseAsk,
             'nothing': l10n.generalOnCloseNothing,
           },
+          value: onAppClose ?? 'ask',
+          onChanged: ref.read(onAppCloseProvider.notifier).set,
         ),
       ],
     );
