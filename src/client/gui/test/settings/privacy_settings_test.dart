@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/settings/privacy_settings.dart';
+import 'package:multipass_gui/settings/settings.dart';
 
 final _l10n = AppLocalizationsEn();
 
@@ -32,7 +33,7 @@ void main() {
       find.byType(SegmentedButton<bool>),
     );
     expect(button.selected, isEmpty);
-  });
+  }, skip: !insightsFeatureEnabled);
 
   testWidgets('selecting options sets consent, re-tapping is a no-op',
       (tester) async {
@@ -49,5 +50,5 @@ void main() {
     await tester.tap(find.text(_l10n.privacyTelemetryOff));
     await tester.pump();
     expect(container.read(telemetryConsentProvider), isFalse);
-  });
+  }, skip: !insightsFeatureEnabled);
 }

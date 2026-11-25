@@ -37,7 +37,7 @@ file(GLOB_RECURSE MULTIPASS_GUI_SOURCE_FILES
   ${MULTIPASS_GUI_SOURCE_DIR}/linux/*.xml
 )
 
-set(FLUTTER_BUILD_ARGS --release --suppress-analytics --verbose --build-name=${MULTIPASS_SEMANTIC_VERSION} --build-number=${MULTIPASS_BUILD_NUMBER})
+set(FLUTTER_BUILD_ARGS --release --suppress-analytics --verbose --build-name=${MULTIPASS_SEMANTIC_VERSION} --build-number=${MULTIPASS_BUILD_NUMBER} ${FLUTTER_DART_DEFINES})
 
 add_custom_command(OUTPUT ${MULTIPASS_GUI_EXECUTABLE_FULL_PATH}
   DEPENDS ${MULTIPASS_GUI_SOURCE_FILES}
