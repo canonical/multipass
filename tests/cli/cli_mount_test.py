@@ -451,9 +451,9 @@ class TestMount:
             assert not expected_subdir.exists()
 
             # verify that they are no longer present in the guest
-            assert not path_exists(instance, expected_file1)
-            assert not path_exists(instance, expected_file2)
-            assert not path_exists(instance, expected_subdir)
+            assert not path_exists(instance, mount_dst / "file1.txt")
+            assert not path_exists(instance, mount_dst / subdir / "file2.txt")
+            assert not path_exists(instance, mount_dst / subdir)
 
             # LXD cannot hot-unmount.
             if cfg.driver == "lxd":
