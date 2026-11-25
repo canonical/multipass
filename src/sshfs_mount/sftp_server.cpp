@@ -48,7 +48,7 @@ using namespace std::literals::chrono_literals;
 constexpr auto keepalive_interval = 30s;
 constexpr int keepalive_interval_ms =
     std::chrono::duration_cast<std::chrono::milliseconds>(keepalive_interval).count();
-constexpr uint32_t unchanged_id = static_cast<uint32_t>(-1);
+constexpr uint32_t id_unchanged = static_cast<uint32_t>(-1);
 constexpr uint32_t unrecognized_id = static_cast<uint32_t>(-2);
 
 enum Permissions
@@ -1234,8 +1234,12 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
     {
-        if (!has_reverse_uid_mapping_for(msg->attr->uid) &&
-            !has_reverse_gid_mapping_for(msg->attr->gid))
+        // -1 indicates to chown to not change that id
+        const auto rev_mapped_uid = id_unchanged == msg->attr->uid ? reverse_uid_for(msg->attr->uid)
+                                                                   : id_unchanged;
+        const auto rev_mapped_gid = id_unchanged == msg->attr->gid ? reverse_gid_for(msg->attr->gid)
+                                                                   : id_unchanged;
+        if (rev_mapped_uid == unrecognized_id || rev_mapped_gid == unrecognized_id)
         {
             mpl::trace(category,
                        "{}: cannot set ownership for \'{}\' without id mapping",
@@ -1244,9 +1248,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
             return reply_perm_denied(msg);
         }
 
-        if (MP_PLATFORM.chown(filename.string().c_str(),
-                              reverse_uid_for(msg->attr->uid),
-                              reverse_gid_for(msg->attr->gid)) < 0)
+        if (MP_PLATFORM.chown(filename.string().c_str(), rev_mapped_uid, rev_mapped_gid) < 0)
         {
             mpl::trace(category,
                        "{}: cannot set ownership for '{}'",
