@@ -84,7 +84,7 @@ class TestLaunchCleanup:
         fake = install(FakeMultipass())
         state.return_value = "Starting"
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(AssertionError, match=f"`{VM_NAME}` is Starting after launch"):
             with launch_module.launch():
                 pytest.fail("Body must not run")
 

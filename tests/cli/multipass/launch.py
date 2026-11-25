@@ -121,8 +121,14 @@ def launch(cfg_override=None):
             assert (
                 already_exists or launch_r), f"Failed to launch VM `{vm_cfg['name']}`: {str(launch_r)}"
 
-        assert mounts(vm_cfg["name"]) == {}
-        assert state(vm_cfg["name"]) == "Running"
+        actual_mounts = mounts(vm_cfg["name"])
+        assert actual_mounts == {}, (
+            f"`{vm_cfg['name']}` has unexpected mounts after launch: {actual_mounts}"
+        )
+        actual_state = state(vm_cfg["name"])
+        assert actual_state == "Running", (
+            f"`{vm_cfg['name']}` is {actual_state} after launch, expected Running"
+        )
 
         yield VMHandle(vm_cfg)
     except BaseException:
