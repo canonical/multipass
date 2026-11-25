@@ -177,7 +177,7 @@ class SnapMultipassdController:
     async def wait_for_self_autorestart(self, timeout=60):
         async def _wait():
             current = self._active_enter_timestamp_monotonic
-            while current == self._active_enter_timestamp_monotonic:
+            while not current or current == self._active_enter_timestamp_monotonic:
                 current = await self._get_active_enter_timestamp_monotonic()
                 await asyncio.sleep(0.3)  # polling interval
             self._active_enter_timestamp_monotonic = current

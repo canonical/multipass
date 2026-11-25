@@ -285,7 +285,7 @@ class WindowsServiceMultipassdController:
     async def wait_for_self_autorestart(self, timeout: int = 60) -> None:
         async def _wait():
             current = self._daemon_pid
-            while current == self._daemon_pid:
+            while not current or current == self._daemon_pid:
                 current = await self._get_pid()
                 await asyncio.sleep(0.3)  # polling interval
             self._daemon_pid = current
