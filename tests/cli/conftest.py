@@ -678,6 +678,8 @@ def windows_privileged_mounts(multipassd):
         if "true" in multipass("get", "local.privileged-mounts"):
             return
         assert multipass("set", "local.privileged-mounts=1")
+        if multipassd is not None:
+            multipassd.wait_for_restart()
 
 
 @pytest.fixture(scope="function")
