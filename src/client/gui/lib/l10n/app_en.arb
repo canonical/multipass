@@ -273,6 +273,26 @@
     "@generalOnCloseNothing": {
         "description": "Dropdown option: leave running instances running on close"
     },
+    "privacyTitle": "Privacy",
+    "@privacyTitle": {
+        "description": "Section heading on the Privacy settings page"
+    },
+    "privacyTelemetryLabel": "Share anonymous metrics with Canonical",
+    "@privacyTelemetryLabel": {
+        "description": "Label for the telemetry consent setting"
+    },
+    "privacyTelemetryLearnMore": "Learn more",
+    "@privacyTelemetryLearnMore": {
+        "description": "Link to the telemetry information notice"
+    },
+    "privacyTelemetryOn": "Allow",
+    "@privacyTelemetryOn": {
+        "description": "Telemetry consent option: allow"
+    },
+    "privacyTelemetryOff": "Deny",
+    "@privacyTelemetryOff": {
+        "description": "Telemetry consent option: deny"
+    },
     "usageTitle": "Usage",
     "@usageTitle": {
         "description": "Section heading on the Usage settings page"

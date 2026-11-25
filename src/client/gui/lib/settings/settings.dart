@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import 'general_settings.dart';
+import 'privacy_settings.dart';
 import 'usage_settings.dart';
 import 'virtualization_settings.dart';
 import 'about_section.dart';
@@ -25,6 +26,8 @@ class SettingsScreen extends StatelessWidget {
           UsageSettings(),
           Divider(height: 60),
           VirtualizationSettings(),
+          Divider(height: 60),
+          PrivacySettings(),
           Divider(height: 60),
           AboutSection(),
         ],
