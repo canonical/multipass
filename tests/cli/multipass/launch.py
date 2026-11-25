@@ -25,7 +25,23 @@ from cli.utilities import merge
 from cli.config import cfg
 
 from .nameutils import random_vm_name
-from .helpers import mounts, multipass, state, vm_exists
+from .helpers import delete_if_exists, mounts, multipass, state, vm_exists
+
+
+def _cleanup_instance(vm_cfg, failed):
+    """Delete the instance on context exit.
+
+    After a failure, deletion is best-effort so it doesn't mask the original
+    error. Instances the test is responsible for deleting (autodelete=False)
+    are only removed if the test left them behind.
+    """
+    if failed or not vm_cfg["autodelete"]:
+        delete_if_exists(vm_cfg["name"])
+        return
+
+    with multipass("delete", vm_cfg["name"], "--force") as result:
+        if vm_cfg["assert"]["delete"]:
+            assert result, f"Failed to delete VM `{vm_cfg['name']}`: {str(result)}"
 
 
 @contextmanager
@@ -76,16 +92,6 @@ def launch(cfg_override=None):
     launch_args.extend(str(arg) for arg in vm_cfg["extra_args"])
     launch_args.append(vm_cfg["image"])
 
-    with multipass(
-        *launch_args,
-        retry=vm_cfg["retry"],
-    ) as launch_r:
-        # The launch does not have a dedicated exit code for the "already exists".
-        already_exists_str = f"instance \"{vm_cfg['name']}\" already exists"
-        already_exists = already_exists_str in str(launch_r)
-        assert (
-            already_exists or launch_r), f"Failed to launch VM `{vm_cfg['name']}`: {str(launch_r)}"
-
     class VMHandle(str):
         """String-like handle (the instance name) exposing config as attributes."""
 
@@ -103,13 +109,24 @@ def launch(cfg_override=None):
             except KeyError as exc:
                 raise AttributeError(item) from exc
 
-    assert mounts(vm_cfg["name"]) == {}
-    assert state(vm_cfg["name"]) == "Running"
-
+    failed = False
     try:
+        with multipass(
+            *launch_args,
+            retry=vm_cfg["retry"],
+        ) as launch_r:
+            # The launch does not have a dedicated exit code for the "already exists".
+            already_exists_str = f"instance \"{vm_cfg['name']}\" already exists"
+            already_exists = already_exists_str in str(launch_r)
+            assert (
+                already_exists or launch_r), f"Failed to launch VM `{vm_cfg['name']}`: {str(launch_r)}"
+
+        assert mounts(vm_cfg["name"]) == {}
+        assert state(vm_cfg["name"]) == "Running"
+
         yield VMHandle(vm_cfg)
+    except BaseException:
+        failed = True
+        raise
     finally:
-        if vm_cfg["autodelete"]:
-            with multipass("delete", vm_cfg["name"], "--force") as result:
-                if vm_cfg["assert"]["delete"]:
-                    assert result, f"Failed to delete VM `{vm_cfg['name']}`: {str(result)}"
+        _cleanup_instance(vm_cfg, failed)

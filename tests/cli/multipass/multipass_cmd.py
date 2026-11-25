@@ -167,7 +167,13 @@ def multipass(*args, **kwargs):
             # Pass retry "0" to prevent further recursion
             return multipass(*args, **{**kwargs, "retry": 0})
 
-        return retry_wrapper()
+        result = retry_wrapper()
+        if result is None:
+            raise pexpect.exceptions.TIMEOUT(
+                f"`multipass {' '.join(map(str, args))}` timed out on all "
+                f"{retry_count + 1} attempts"
+            )
+        return result
 
     governor = getattr(cfg, "active_governor", None)
     if governor is not None and cfg.daemon_health_check:

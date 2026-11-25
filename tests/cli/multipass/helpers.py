@@ -20,7 +20,9 @@ import sys
 import re
 import os
 import json
+import logging
 import subprocess
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from functools import lru_cache
 from packaging import version
@@ -204,6 +206,27 @@ def vm_exists(name):
     with multipass("list", "--format=json").json() as list_json:
         assert "list" in list_json, "`list` key not found in list json output!"
         return list_json.jq(f'[.list[] | select(.name == "{name}")] | any').first()
+
+
+def delete_if_exists(name):
+    """Best-effort deletion of an instance, if it still exists.
+
+    Never raises, so it is safe to call from cleanup paths without masking the
+    original failure.
+    """
+    with suppress(Exception):
+        if vm_exists(name):
+            logging.warning(f"Deleting leftover instance `{name}`")
+            multipass("delete", name, "--force")
+
+
+@contextmanager
+def ensure_deleted_on_exit(name):
+    """Delete the instance on context exit, if it still exists."""
+    try:
+        yield name
+    finally:
+        delete_if_exists(name)
 
 
 def get_ram_size(name):

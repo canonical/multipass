@@ -30,6 +30,7 @@ from cli.multipass import (
     get_default_interface_name,
     get_mac_addr_of,
     get_cloudinit_instance_id,
+    ensure_deleted_on_exit,
 )
 
 
@@ -57,13 +58,14 @@ class TestClone:
     @pytest.mark.snapshot
     def test_clone_instance_with_snapshot(self, instance):
         take_snapshot(instance, "snapshot1")
-        with multipass("clone", f"{instance}") as output:
-            assert output
-            assert f"Cloned from {instance} to {instance}-clone1" in output
+        with ensure_deleted_on_exit(f"{instance}-clone1"):
+            with multipass("clone", f"{instance}") as output:
+                assert output
+                assert f"Cloned from {instance} to {instance}-clone1" in output
 
-        # Verify that the clone does not have any snapshots
-        assert snapshot_count(f"{instance}-clone1") == 0
-        assert multipass("delete", f"{instance}-clone1", "--force")
+            # Verify that the clone does not have any snapshots
+            assert snapshot_count(f"{instance}-clone1") == 0
+            assert multipass("delete", f"{instance}-clone1", "--force")
 
     def test_clone_verify_clone_has_different_properties(self, instance):
         """ip, mac, hostname, etc."""
@@ -72,35 +74,36 @@ class TestClone:
 
         expected_clone_name = f"{instance}-clone1"
 
-        with multipass("clone", f"{instance}") as output:
-            assert output
-            assert f"Cloned from {instance} to {expected_clone_name}" in output
+        with ensure_deleted_on_exit(expected_clone_name):
+            with multipass("clone", f"{instance}") as output:
+                assert output
+                assert f"Cloned from {instance} to {expected_clone_name}" in output
 
-        assert state(expected_clone_name) == "Stopped"
+            assert state(expected_clone_name) == "Stopped"
 
-        assert multipass("start", instance)
-        assert multipass("start", expected_clone_name)
+            assert multipass("start", instance)
+            assert multipass("start", expected_clone_name)
 
-        validate_info_output(
-            expected_clone_name,
-            {
-                "cpu_count": "2",
-                "snapshot_count": "0",
-                "state": "Running",
-                "mounts": {},
-                "image_release": "24.04 LTS",
-                "ipv4": is_valid_ipv4_addr,
-            },
-        )
+            validate_info_output(
+                expected_clone_name,
+                {
+                    "cpu_count": "2",
+                    "snapshot_count": "0",
+                    "state": "Running",
+                    "mounts": {},
+                    "image_release": "24.04 LTS",
+                    "ipv4": is_valid_ipv4_addr,
+                },
+            )
 
-        assert get_cloudinit_instance_id(instance) != get_cloudinit_instance_id(
-            expected_clone_name
-        )
+            assert get_cloudinit_instance_id(instance) != get_cloudinit_instance_id(
+                expected_clone_name
+            )
 
-        i_if_name = get_default_interface_name(instance)
-        i_clone_if_name = get_default_interface_name(expected_clone_name)
+            i_if_name = get_default_interface_name(instance)
+            i_clone_if_name = get_default_interface_name(expected_clone_name)
 
-        assert get_mac_addr_of(instance, i_if_name) != get_mac_addr_of(
-            expected_clone_name, i_clone_if_name
-        )
-        assert multipass("delete", f"{instance}-clone1", "--force")
+            assert get_mac_addr_of(instance, i_if_name) != get_mac_addr_of(
+                expected_clone_name, i_clone_if_name
+            )
+            assert multipass("delete", f"{instance}-clone1", "--force")

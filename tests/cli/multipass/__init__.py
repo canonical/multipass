@@ -52,6 +52,8 @@ from .helpers import (
     get_multipass_version,
     parse_multipass_versions,
     vm_exists,
+    delete_if_exists,
+    ensure_deleted_on_exit,
     get_boot_id,
     get_instance_metadata,
 )
