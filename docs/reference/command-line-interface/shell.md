@@ -41,7 +41,7 @@ The full `multipass help shell` output explains the available options:
 <!-- begin help -->
 
 ```{code-block} text
-Usage: multipass shell [options] [<name>]
+Usage: multipass shell [options] <incorrect-instance-name>
 Open a shell prompt on the instance. If the instance is not running, it will be started automatically.
 
 Options:

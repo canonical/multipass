@@ -30,7 +30,7 @@ Options:
   -v, --verbose        Increase logging verbosity. Repeat the 'v' in the short
                        option for more detail. Maximum verbosity is obtained
                        with 4 (or more) v's, i.e. -vvvv.
-  --all                Start all instances
+  --all                Stop all instances
   --timeout <timeout>  Maximum time, in seconds, to wait for the command to
                        complete. Note that some background operations may
                        continue beyond that. By default, instance startup and
