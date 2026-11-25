@@ -391,7 +391,6 @@ class TestMount:
 
             # We can't assert this yet.
             if not mounts_check_with_retry():
-                debug_interactive_shell(instance)
                 assert mounts_check_with_retry(), f"{mounts(instance)} != {expected_mounts}"
             assert mounts_check_with_retry(), f"{mounts(instance)} != {expected_mounts}"
 
