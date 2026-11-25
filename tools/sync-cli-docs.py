@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Synchronize CLI reference pages with `multipass help <command>` output.
 
+Intended to run on Linux (uses XDG and Snap environment variables to isolate
+client configuration and the root certificate path).
+
 Each command page in docs/reference/command-line-interface/<command>.md must
 contain a single pair of HTML comment markers:
 
@@ -57,15 +60,25 @@ def resolve_multipass_binary(explicit: str | Path | None) -> Path:
         "pass --multipass <path>")
 
 
-def make_isolated_env(tmp_dir: str) -> dict[str, str]:
-    """Isolate user-specific directories and fix the locale."""
+def make_isolated_env(tmp_dir: Path) -> dict[str, str]:
+    """Isolate user-specific directories, root cert path, and locale."""
+    # On Linux, `multipass` reads multipass_root_cert.pem on startup even for
+    # `help`; pointing SNAP_COMMON to tmp_dir lets it run without a daemon
+    # install (this script is intended to run on Linux).
+    snap_common = tmp_dir / "snap-common"
+    root_cert = snap_common / "data" / "multipassd" / "multipass_root_cert.pem"
+    root_cert.parent.mkdir(parents=True, exist_ok=True)
+    root_cert.touch()
+
     return {
         **os.environ,
-        "HOME": tmp_dir,
-        "XDG_DATA_HOME": os.path.join(tmp_dir, "data"),
-        "XDG_CONFIG_HOME": os.path.join(tmp_dir, "config"),
-        "XDG_CACHE_HOME": os.path.join(tmp_dir, "cache"),
-        "XDG_STATE_HOME": os.path.join(tmp_dir, "state"),
+        "HOME": str(tmp_dir),
+        "XDG_DATA_HOME": str(tmp_dir / "data"),
+        "XDG_CONFIG_HOME": str(tmp_dir / "config"),
+        "XDG_CACHE_HOME": str(tmp_dir / "cache"),
+        "XDG_STATE_HOME": str(tmp_dir / "state"),
+        "SNAP_NAME": "multipass",
+        "SNAP_COMMON": str(snap_common),
         "LC_ALL": "C.UTF-8",
         "LANG": "C.UTF-8",
     }
@@ -135,10 +148,10 @@ def format_help_section(help_output: str) -> str:
     return f"{BEGIN_MARKER}\n\n```{{code-block}} text\n{normalized}\n```\n\n{END_MARKER}"
 
 
-def replace_help_section(content: str, help_output: str, path: Path) -> str:
+def replace_help_section(text: str, help_output: str, path: Path) -> str:
     """Replace the delimited help section in a markdown document."""
-    begins = list(BEGIN_RE.finditer(content))
-    ends = list(END_RE.finditer(content))
+    begins = list(BEGIN_RE.finditer(text))
+    ends = list(END_RE.finditer(text))
 
     if len(begins) != 1 or len(ends) != 1:
         raise ValueError(
@@ -152,8 +165,7 @@ def replace_help_section(content: str, help_output: str, path: Path) -> str:
             f"{path}: `{BEGIN_MARKER}` must appear before `{END_MARKER}`.")
 
     replacement = format_help_section(help_output)
-    return content[:begin_match.start()] + replacement + content[end_match.end(
-    ):]
+    return text[:begin_match.start()] + replacement + text[end_match.end():]
 
 
 def sync_docs(multipass_bin: Path, docs_dir: Path, check: bool) -> int:
@@ -165,7 +177,7 @@ def sync_docs(multipass_bin: Path, docs_dir: Path, check: bool) -> int:
 
     with tempfile.TemporaryDirectory(
             prefix="multipass-sync-cli-docs-") as tmp_dir:
-        env = make_isolated_env(tmp_dir)
+        env = make_isolated_env(Path(tmp_dir))
         general_help = run_multipass(multipass_bin, ["help"], env)
         commands = parse_available_commands(general_help)
 
