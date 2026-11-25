@@ -18,6 +18,7 @@
 #include "sshfs_mount.h"
 #include "sftp_server.h"
 
+#include <multipass/cli/client_platform.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/format.h>
 #include <multipass/id_mappings.h>
@@ -125,8 +126,8 @@ auto get_sshfs_exec_and_options(mp::SSHSession& session)
 auto make_sftp_server(std::unique_ptr<mp::SSHSession>&& session,
                       const std::string& source,
                       const std::string& target,
-                      const mp::id_mappings& gid_mappings,
-                      const mp::id_mappings& uid_mappings)
+                      mp::id_mappings&& gid_mappings,
+                      mp::id_mappings&& uid_mappings)
 {
     mpl::debug_location(category, "source = {}, target = {}, …", source, target);
 
@@ -138,10 +139,26 @@ auto make_sftp_server(std::unique_ptr<mp::SSHSession>&& session,
     auto output = MP_UTILS.run_in_ssh_session(*session, "id -u");
     mpl::debug_location(category, "`id -u` = {}", output);
     auto default_uid = std::stoi(output);
+    std::transform(uid_mappings.begin(),
+                   uid_mappings.end(),
+                   uid_mappings.begin(),
+                   [default_uid](auto mapping) {
+                       if (mapping.second == mp::default_id)
+                           mapping.second = default_uid;
+                       return mapping;
+                   });
 
     output = MP_UTILS.run_in_ssh_session(*session, "id -g");
     mpl::debug_location(category, "`id -g` = {}", output);
     auto default_gid = std::stoi(output);
+    std::transform(gid_mappings.begin(),
+                   gid_mappings.end(),
+                   gid_mappings.begin(),
+                   [default_gid](auto& mapping) {
+                       if (mapping.second == mp::default_id)
+                           mapping.second = default_gid;
+                       return mapping;
+                   });
 
     // We need to create the part of the path which does not still exist,
     // and set then the correct ownership.
@@ -166,9 +183,13 @@ auto make_sftp_server(std::unique_ptr<mp::SSHSession>&& session,
 mp::SshfsMount::SshfsMount(std::unique_ptr<SSHSession>&& session,
                            const std::string& source,
                            const std::string& target,
-                           const mp::id_mappings& gid_mappings,
-                           const mp::id_mappings& uid_mappings)
-    : sftp_server{make_sftp_server(std::move(session), source, target, gid_mappings, uid_mappings)},
+                           mp::id_mappings gid_mappings,
+                           mp::id_mappings uid_mappings)
+    : sftp_server{make_sftp_server(std::move(session),
+                                   source,
+                                   target,
+                                   std::move(gid_mappings),
+                                   std::move(uid_mappings))},
       sftp_thread{[this] {
           state.store(State::Running, std::memory_order_release);
 

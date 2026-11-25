@@ -32,8 +32,8 @@ public:
     SshfsMount(std::unique_ptr<SSHSession>&& session,
                const std::string& source,
                const std::string& target,
-               const id_mappings& gid_mappings,
-               const id_mappings& uid_mappings);
+               id_mappings gid_mappings,
+               id_mappings uid_mappings);
     SshfsMount(SshfsMount&& other);
     ~SshfsMount();
 
