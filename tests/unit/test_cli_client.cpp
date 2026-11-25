@@ -1331,6 +1331,28 @@ TEST_F(Client, launchCmdWithUnavailableZoneFails)
     EXPECT_THAT(send_command({"launch", "--zone", "zone1"}), Eq(mp::ReturnCode::CommandFail));
 }
 
+TEST_F(Client, launchCmdWithInvalidNameExplainsRules)
+{
+    const auto request_matcher = Property(&mp::LaunchRequest::instance_name, StrEq("1nvalid-name"));
+    mp::LaunchError launch_error;
+    launch_error.add_error_codes(mp::LaunchError::INVALID_HOSTNAME);
+    const auto failure = grpc::Status{grpc::StatusCode::INVALID_ARGUMENT,
+                                      "msg",
+                                      launch_error.SerializeAsString()};
+    EXPECT_CALL(mock_daemon, launch)
+        .WillOnce(
+            WithArg<1>(check_request_and_return<mp::LaunchReply, mp::LaunchRequest>(request_matcher,
+                                                                                    failure)));
+
+    std::ostringstream cerr_stream;
+    EXPECT_THAT(send_command({"launch", "--name", "1nvalid-name"}, trash_stream, cerr_stream),
+                Eq(mp::ReturnCode::CommandFail));
+    EXPECT_THAT(cerr_stream.str(),
+                AllOf(HasSubstr("Invalid instance name supplied: 1nvalid-name"),
+                      HasSubstr("only alphanumeric characters and hyphens"),
+                      HasSubstr("instance-name-format")));
+}
+
 TEST_F(Client, launchCmdWithTimer)
 {
     EXPECT_CALL(mock_daemon, launch(_, _));
