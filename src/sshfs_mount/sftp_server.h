@@ -58,10 +58,10 @@ public:
 private:
     void process_message(sftp_client_message msg);
     sftp_attributes_struct attr_from(const QFileInfo& file_info);
-    std::optional<int> mapped_uid_for(const int uid);
-    std::optional<int> mapped_gid_for(const int gid);
-    std::optional<int> reverse_uid_for(const int uid);
-    std::optional<int> reverse_gid_for(const int gid);
+    std::optional<uint32_t> mapped_uid_for(const int uid);
+    std::optional<uint32_t> mapped_gid_for(const int gid);
+    std::optional<uint32_t> reverse_uid_for(const int uid);
+    std::optional<uint32_t> reverse_gid_for(const int gid);
     bool has_uid_mapping_for(const int uid);
     bool has_gid_mapping_for(const int gid);
     bool has_reverse_uid_mapping_for(const int uid);

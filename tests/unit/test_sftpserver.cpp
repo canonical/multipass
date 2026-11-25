@@ -3856,9 +3856,9 @@ TEST_P(SftpServerSetstatUnchangedIds, DISABLE_ON_WINDOWS(chownReceivesMinusOneOn
 
     const auto [mock_platform, guard] = mpt::MockPlatform::inject();
 
-    EXPECT_CALL(*mock_platform,
-                chown(_, uid_unchanged ? -1 : host_uid, gid_unchanged ? -1 : host_gid))
-        .Times(1);
+    const unsigned int expected_uid = uid_unchanged ? 0xFFFFFFFF : host_uid;
+    const unsigned int expected_gid = gid_unchanged ? 0xFFFFFFFF : host_gid;
+    EXPECT_CALL(*mock_platform, chown(_, expected_uid, expected_gid)).Times(1);
 
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
     sftp.run();

@@ -50,7 +50,7 @@ using namespace std::literals::chrono_literals;
 constexpr auto keepalive_interval = 30s;
 constexpr int keepalive_interval_ms =
     std::chrono::duration_cast<std::chrono::milliseconds>(keepalive_interval).count();
-constexpr uint32_t id_unchanged = 0xFFFF; // 2^16-1
+constexpr uint32_t id_unchanged = 0xFFFFFFFF; // (uint32_t)-1, sent by sshfs for an id to keep
 
 enum Permissions
 {
@@ -254,21 +254,21 @@ auto create_sshfs_process(mp::SSHSession& session,
     return sshfs_process;
 }
 
-std::optional<int> mapped_id_for(const mp::id_mappings& id_maps, const int id)
+std::optional<uint32_t> mapped_id_for(const mp::id_mappings& id_maps, const int id)
 {
     auto found = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) {
         return id == p.first;
     });
 
-    return found == id_maps.cend() ? std::nullopt : std::optional{found->second};
+    return found == id_maps.cend() ? std::nullopt : std::optional<uint32_t>(found->second);
 }
 
-std::optional<int> reverse_id_for(const mp::id_mappings& id_maps, const int id)
+std::optional<uint32_t> reverse_id_for(const mp::id_mappings& id_maps, const int id)
 {
     auto found = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) {
         return id == p.second;
     });
-    return found == id_maps.cend() ? std::nullopt : std::optional{found->first};
+    return found == id_maps.cend() ? std::nullopt : std::optional<uint32_t>(found->first);
 }
 
 constexpr bool follows_symlinks(uint8_t type)
@@ -344,22 +344,22 @@ sftp_attributes_struct mp::SftpServer::attr_from(const QFileInfo& file_info)
     return attr;
 }
 
-inline std::optional<int> mp::SftpServer::mapped_uid_for(const int uid)
+inline std::optional<uint32_t> mp::SftpServer::mapped_uid_for(const int uid)
 {
     return mapped_id_for(uid_mappings, uid);
 }
 
-inline std::optional<int> mp::SftpServer::mapped_gid_for(const int gid)
+inline std::optional<uint32_t> mp::SftpServer::mapped_gid_for(const int gid)
 {
     return mapped_id_for(gid_mappings, gid);
 }
 
-inline std::optional<int> mp::SftpServer::reverse_uid_for(const int uid)
+inline std::optional<uint32_t> mp::SftpServer::reverse_uid_for(const int uid)
 {
     return reverse_id_for(uid_mappings, uid);
 }
 
-inline std::optional<int> mp::SftpServer::reverse_gid_for(const int gid)
+inline std::optional<uint32_t> mp::SftpServer::reverse_gid_for(const int gid)
 {
     return reverse_id_for(gid_mappings, gid);
 }
@@ -727,8 +727,8 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    int rev_uid = reverse_uid_for(parent_dir.ownerId()).value_or(parent_dir.ownerId());
-    int rev_gid = reverse_gid_for(parent_dir.groupId()).value_or(parent_dir.groupId());
+    auto rev_uid = reverse_uid_for(parent_dir.ownerId()).value_or(parent_dir.ownerId());
+    auto rev_gid = reverse_gid_for(parent_dir.groupId()).value_or(parent_dir.groupId());
 
     if (MP_PLATFORM.chown(filename->string().c_str(), rev_uid, rev_gid) < 0)
     {
@@ -1235,13 +1235,12 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
     {
-        // -1 indicates to chown to not change that id
         const auto rev_mapped_uid = id_unchanged == msg->attr->uid
-                                        ? std::optional<int>{static_cast<int>(id_unchanged)}
-                                        : reverse_uid_for(msg->attr->uid);
+                                      ? std::optional<uint32_t>{id_unchanged}
+                                      : reverse_uid_for(msg->attr->uid);
         const auto rev_mapped_gid = id_unchanged == msg->attr->gid
-                                        ? std::optional<int>{static_cast<int>(id_unchanged)}
-                                        : reverse_gid_for(msg->attr->gid);
+                                      ? std::optional<uint32_t>{id_unchanged}
+                                      : reverse_gid_for(msg->attr->gid);
         if (!rev_mapped_uid || !rev_mapped_gid)
         {
             mpl::trace(category,
