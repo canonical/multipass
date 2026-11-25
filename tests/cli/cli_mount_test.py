@@ -342,6 +342,8 @@ class TestMount:
     @pytest.mark.parametrize("restart_type", ["vm", "daemon"])
     @pytest.mark.xfail(reason="Known bug: classic mounts might not be present after a reboot", strict=False)
     def test_mount_restart(self, multipassd, instance, mount_type, restart_type):
+        if restart_type == "daemon" and multipassd is None:
+            pytest.skip("Requires a daemon controller")
         with TempDirectory() as mount_src, src_to_dst(mount_src) as mount_dst:
             if mount_type == "native":
                 assert multipass("stop", instance)
