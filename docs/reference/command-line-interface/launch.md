@@ -48,6 +48,8 @@ Mounts requested with `--mount` are applied only after the instance starts and i
 
 The full `multipass help launch` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass launch [options] [[<remote>:]<image> | <url>]
 Create and start a new instance.
@@ -112,3 +114,5 @@ Arguments:
                                <url> is a custom image URL that is in http://,
                                https://, or file:// format.
 ```
+
+<!-- end help -->

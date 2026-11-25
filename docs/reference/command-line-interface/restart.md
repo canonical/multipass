@@ -19,6 +19,8 @@ multipass restart desirable-earwig
 
 The full `multipass help restart` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass restart [options] [<name> ...]
 Restart the named instances. If the instance is running, it will be rebooted.
@@ -42,3 +44,5 @@ Arguments:
   name                 Names of instances to restart. If omitted, and without
                        the --all option, 'primary' will be assumed.
 ```
+
+<!-- end help -->

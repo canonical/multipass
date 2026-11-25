@@ -13,6 +13,8 @@ The `multipass purge` command will permanently remove all instances that are in 
 
 The full `multipass help purge` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass purge [options]
 Purge all deleted instances permanently, including all their data.
@@ -23,3 +25,5 @@ Options:
                  for more detail. Maximum verbosity is obtained with 4 (or more)
                  v's, i.e. -vvvv.
 ```
+
+<!-- end help -->

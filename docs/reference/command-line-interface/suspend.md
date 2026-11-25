@@ -27,13 +27,15 @@ Suspended instances can be resumed with the [`multipass start`](/reference/comma
 
 The full `multipass help suspend` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass suspend [options] [<name> ...]
 Suspend the named instances, if running. Exits with
 return code 0 if successful.
 
 Options:
-  -h, --help     Display this help
+  -h, --help     Displays help on commandline options
   -v, --verbose  Increase logging verbosity. Repeat the 'v' in the short option
                  for more detail. Maximum verbosity is obtained with 4 (or more)
                  v's, i.e. -vvvv.
@@ -43,3 +45,5 @@ Arguments:
   name           Names of instances to suspend. If omitted, and without the
                  --all option, 'primary' will be assumed.
 ```
+
+<!-- end help -->

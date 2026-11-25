@@ -21,6 +21,8 @@ See [How to share data with an instance](/how-to-guides/manage-instances/share-d
 
 The full `multipass help mount` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass mount [options] <source> <target> [<target> ...]
 Mount a local directory inside the instance. If the instance is
@@ -54,12 +56,14 @@ Options:
 Arguments:
   source                           Path of the local directory to mount
   target                           Target mount points, in <name>[:<path>]
-                                   format, where <name> is an instance name,
-                                   and optional <path> is the mount point.
-                                   If omitted, the mount point will be under
+                                   format, where <name> is an instance name, and
+                                   optional <path> is the mount point. If
+                                   omitted, the mount point will be under
                                    /home/ubuntu/<source-dir>, where <source-dir>
                                    is the name of the <source> directory.
 ```
+
+<!-- end help -->
 
 <!-- Discourse contributors
 <small>**Contributors:** @georgeliaojia, @sharder996, @davidekete, @gzanchi </small>

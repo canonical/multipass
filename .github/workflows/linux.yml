@@ -263,6 +263,15 @@ jobs:
            LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
            /root/parts/multipass/build/bin/multipass_integration_tests"
 
+    - name: Check CLI reference docs are up to date
+      if: ${{ matrix.build-type == 'Debug' }}
+      timeout-minutes: 2
+      run: |
+        /snap/bin/lxc --project snapcraft exec "$instance_name" \
+          --env LD_LIBRARY_PATH=/root/stage/usr/lib/x86_64-linux-gnu/:/root/stage/lib/:/root/parts/multipass/build/lib/ \
+          -- /root/parts/multipass/src/tools/sync-cli-docs.py --check \
+            --multipass /root/parts/multipass/build/bin/multipass
+
     - name: Measure coverage
       id: measure-coverage
       if: ${{ matrix.build-type == 'Coverage' }}

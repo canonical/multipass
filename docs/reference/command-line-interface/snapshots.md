@@ -28,6 +28,8 @@ calm-squirrel:
 ---
 The full `multipass help snapshots` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass snapshots [options]
 List all snapshots which have been created.
@@ -40,3 +42,5 @@ Options:
   --format <format>  Output list in the requested format.
                      Valid formats are: table (default), json, csv and yaml
 ```
+
+<!-- end help -->

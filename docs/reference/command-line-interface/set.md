@@ -17,12 +17,14 @@ You can read more about the available settings in the [Settings](/reference/sett
 
 The full `multipass help set` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass set [options] <key>[=<value>]
 Set, to the given value, the configuration setting corresponding to the given key.
 
 Some common settings keys are:
-  - client.gui.autostart
+  - client.primary-name
   - local.driver
   - local.privileged-mounts
 
@@ -39,3 +41,5 @@ Arguments:
                  setting to configure. The value is its intended value. If only
                  the key is given, the value will be prompted for.
 ```
+
+<!-- end help -->

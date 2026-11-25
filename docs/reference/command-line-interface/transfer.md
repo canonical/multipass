@@ -46,6 +46,9 @@ multipass transfer --recursive ample-pigeon:dir .
 ---
 
 The full `multipass help transfer` output explains the available options:
+
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass transfer [options] <source> [<source> ...] <destination>
 Copy files and directories between the host and instances.
@@ -64,3 +67,5 @@ Arguments:
   destination      The destination path, prefixed with <name:> for a path
                    inside the instance, or '-' for stdout
 ```
+
+<!-- end help -->

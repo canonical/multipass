@@ -27,20 +27,22 @@ Use the `--force` option to skip the confirmation prompt. This is required if th
 
 The full `multipass help disable-zones` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass disable-zones [options] <zone> [<zone> ...]
-Makes the given availability zones unavailable. Instances therein are
-forcefully switched off and remain unavailable until their zone is
-re-enabled (simulating a loss of availability on a cloud provider).
+Makes the given availability zones unavailable. Instances therein are forcefully switched off and remain unavailable until their zone is re-enabled (simulating a loss of availability on a cloud provider).
 
 Options:
   -h, --help     Displays help on commandline options
-  -v, --verbose  Increase logging verbosity. Repeat the 'v' in the short
-                option for more detail. Maximum verbosity is obtained with
-                4 (or more) v's, i.e. -vvvv.
+  -v, --verbose  Increase logging verbosity. Repeat the 'v' in the short option
+                 for more detail. Maximum verbosity is obtained with 4 (or more)
+                 v's, i.e. -vvvv.
   --all          Disable all zones
   --force        Do not ask for confirmation
 
 Arguments:
   zone           Name of the zones to make unavailable
 ```
+
+<!-- end help -->
