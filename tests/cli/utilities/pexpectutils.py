@@ -69,16 +69,18 @@ class WinptySpawn(SpawnBase):
         # Set timeout so read won't block forever.
         self.pty_proc.fileobj.settimeout(1.0)
 
-        while True:
-            try:
-                data = self.pty_proc.read()
-                self._read_queue.put(data)
-            except socket.timeout:
-                if not self.pty_proc.isalive():
+        try:
+            while True:
+                try:
+                    data = self.pty_proc.read()
+                    self._read_queue.put(data)
+                except socket.timeout:
+                    if not self.pty_proc.isalive():
+                        break
+                except (EOFError, OSError):
                     break
-            except EOFError:
-                break
-        self._read_queue.put(None)
+        finally:
+            self._read_queue.put(None)
 
     def read_nonblocking(self, size=1024, timeout=1):
         buf = self._buf
