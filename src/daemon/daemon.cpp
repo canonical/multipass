@@ -3663,39 +3663,47 @@ boost::json::object mp::Daemon::retrieve_metadata_for(const std::string& name)
     return vm_instance_specs[name].metadata;
 }
 
-void mp::Daemon::update_mounts_for(const VirtualMachine& vm,
+void mp::Daemon::update_mounts_for(const std::string& name,
                                    const std::unordered_map<std::string, VMMount>& mounts)
 {
-    // Only the reporting instance's own record may change. Reports may lag behind, e.g. after the
-    // instance was deleted and its name reused, so `vm` is compared but never dereferenced later.
-    const auto revision = next_mount_report_revision.fetch_add(1, std::memory_order_relaxed) + 1;
-    const auto on_daemon_thread = QThread::currentThread() == thread();
-    auto apply = [this, vm_ptr = &vm, name = vm.get_name(), mounts, revision, on_daemon_thread] {
-        const auto spec_it = vm_instance_specs.find(name);
-        if (spec_it == vm_instance_specs.end() ||
-            !is_current_instance(name, vm_ptr, on_daemon_thread))
-        {
-            mpl::debug(category, "Ignoring mounts reported by a stale instance '{}'", name);
-            return;
-        }
+    if (QThread::currentThread() == thread())
+    {
+        apply_mounts_for(name, mounts);
+        return;
+    }
 
-        // A daemon-thread report can overtake an older report queued by a readiness worker.
-        auto& applied_revision = applied_mount_report_revisions[name];
-        if (revision <= applied_revision)
-            return;
+    // Pull the current mounts on the daemon thread instead of applying a potentially stale
+    // snapshot from a worker thread; this guarantees ordering and ignores retired instances.
+    QMetaObject::invokeMethod(
+        this,
+        [this, name] {
+            top_catch_all(category, [this, &name] {
+                if (const auto* vm = find_registered_vm(name))
+                    apply_mounts_for(name, vm->get_mounts());
+                else
+                    mpl::debug(category,
+                               "Ignoring mounts reported for unregistered instance '{}'",
+                               name);
+            });
+        },
+        Qt::QueuedConnection);
+}
 
-        applied_revision = revision;
-        spec_it->second.mounts = mounts;
-        persist_instances();
-    };
+void mp::Daemon::apply_mounts_for(const std::string& name,
+                                  const std::unordered_map<std::string, VMMount>& mounts)
+{
+    const auto spec_it = vm_instance_specs.find(name);
+    if (spec_it == vm_instance_specs.end())
+    {
+        mpl::debug(category, "Ignoring mounts reported for unknown instance '{}'", name);
+        return;
+    }
 
-    if (on_daemon_thread)
-        apply();
-    else
-        QMetaObject::invokeMethod(
-            this,
-            [apply = std::move(apply)] { top_catch_all(category, apply); },
-            Qt::QueuedConnection);
+    if (spec_it->second.mounts == mounts)
+        return;
+
+    spec_it->second.mounts = mounts;
+    persist_instances();
 }
 
 std::unordered_map<std::string, mp::VMMount> mp::Daemon::retrieve_mounts_for(
@@ -3706,15 +3714,13 @@ std::unordered_map<std::string, mp::VMMount> mp::Daemon::retrieve_mounts_for(
                                               : spec_it->second.mounts;
 }
 
-bool mp::Daemon::is_current_instance(const std::string& name,
-                                     const VirtualMachine* vm,
-                                     bool may_be_unregistered) const
+const mp::VirtualMachine* mp::Daemon::find_registered_vm(const std::string& name) const
 {
     for (const auto* table : {&operative_instances, &deleted_instances})
         if (const auto it = table->find(name); it != table->end())
-            return it->second.get() == vm;
+            return it->second.get();
 
-    return may_be_unregistered;
+    return nullptr;
 }
 
 void mp::Daemon::persist_instances()
@@ -3739,9 +3745,6 @@ void mp::Daemon::release_resources(const std::string& instance)
 
         vm_instance_specs.erase(spec_it);
     }
-
-    // Later instances by this name must ignore the reports issued until now
-    applied_mount_report_revisions[instance] = next_mount_report_revision.load();
 }
 
 void mp::Daemon::create_vm(const CreateRequest* request,

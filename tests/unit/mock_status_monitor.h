@@ -42,7 +42,7 @@ struct MockVMStatusMonitor : public VMStatusMonitor
     MOCK_METHOD(boost::json::object, retrieve_metadata_for, (const std::string&), (override));
     MOCK_METHOD(void,
                 update_mounts_for,
-                (const VirtualMachine&, (const std::unordered_map<std::string, VMMount>&)),
+                (const std::string&, (const std::unordered_map<std::string, VMMount>&)),
                 (override));
     MOCK_METHOD((std::unordered_map<std::string, VMMount>),
                 retrieve_mounts_for,

@@ -87,6 +87,7 @@ struct MockVirtualMachineT : public T
             ON_CALL(*this, get_num_cores).WillByDefault([this] { return T::get_num_cores(); });
             ON_CALL(*this, get_mem_size).WillByDefault([this] { return T::get_mem_size(); });
             ON_CALL(*this, get_disk_space).WillByDefault([this] { return T::get_disk_space(); });
+            ON_CALL(*this, get_mounts).WillByDefault([this] { return T::get_mounts(); });
         }
         ON_CALL(*this, ssh_port).WillByDefault(Return(42));
         ON_CALL(*this, ssh_hostname()).WillByDefault(Return("localhost"));
@@ -130,6 +131,7 @@ struct MockVirtualMachineT : public T
                 make_native_mount_handler,
                 (const std::string&, const VMMount&),
                 (override));
+    MOCK_METHOD((std::unordered_map<std::string, VMMount>), get_mounts, (), (const, override));
     MOCK_METHOD(VirtualMachine::SnapshotVista,
                 view_snapshots,
                 (VirtualMachine::SnapshotPredicate),

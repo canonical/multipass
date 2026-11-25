@@ -165,6 +165,11 @@ struct StubVirtualMachine final : public VirtualMachine
         return std::make_unique<StubMountHandler>();
     }
 
+    std::unordered_map<std::string, VMMount> get_mounts() const override
+    {
+        return {};
+    }
+
     SnapshotVista view_snapshots(SnapshotPredicate) const override
     {
         return {};

@@ -20,6 +20,7 @@
 #include "disabled_copy_move.h"
 #include "network_interface.h"
 #include "user_messages.h"
+#include "vm_mount.h"
 
 #include <QDir>
 #include <fmt/format.h>
@@ -29,6 +30,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -39,7 +41,6 @@ struct IPAddress;
 class MemorySize;
 class SSHProcess;
 class SSHSession;
-class VMMount;
 struct VMSpecs;
 class MountHandler;
 class Snapshot;
@@ -111,6 +112,7 @@ public:
     virtual void add_network_interface(const NetworkInterface& extra_interface) = 0;
     virtual std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
                                                                     const VMMount& mount) = 0;
+    [[nodiscard]] virtual std::unordered_map<std::string, VMMount> get_mounts() const = 0;
 
     using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid
                                                                         // confusion with C++ views

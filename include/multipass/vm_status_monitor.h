@@ -40,8 +40,9 @@ public:
     virtual void update_metadata_for(const std::string& name,
                                      const boost::json::object& metadata) = 0;
     virtual boost::json::object retrieve_metadata_for(const std::string& name) = 0;
-    // May be called from any thread, including while the instance is being constructed
-    virtual void update_mounts_for(const VirtualMachine& vm,
+    // May be called from any thread, including while the instance is being constructed.
+    // Off-thread calls may re-query VirtualMachine::get_mounts() on the monitor's thread.
+    virtual void update_mounts_for(const std::string& name,
                                    const std::unordered_map<std::string, VMMount>& mounts) = 0;
     virtual std::unordered_map<std::string, VMMount> retrieve_mounts_for(
         const std::string& name) = 0;
