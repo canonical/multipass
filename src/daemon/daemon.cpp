@@ -1509,6 +1509,45 @@ catch (const std::exception& e)
     return grpc::Status(grpc::StatusCode::INTERNAL, e.what(), "");
 }
 
+// Makes an instance resolvable by name from the host. Never fails the caller: instances work
+// without it.
+void publish_dns_record(mp::DnsProvider& dns, const std::string& name, mp::VirtualMachine& vm)
+try
+{
+    if (const auto address = vm.management_ipv4())
+        dns.set_host(name, {*address});
+    else
+        mpl::debug(category, "{} will not resolve by name: its IP address is unknown", name);
+}
+catch (const std::exception& e)
+{
+    mpl::warn(category, "{} will not resolve by name: {}", name, e.what());
+}
+
+// Stops an instance from resolving by name. Never fails the caller either.
+void unpublish_dns_record(mp::DnsProvider& dns, const std::string& name)
+try
+{
+    dns.remove_host(name);
+}
+catch (const std::exception& e)
+{
+    mpl::warn(category, "{} may still resolve by name: {}", name, e.what());
+}
+
+void start_dns_provider(mp::DnsProvider& dns)
+try
+{
+    dns.start(mp::default_dns_domain);
+}
+catch (const std::exception& e)
+{
+    mpl::warn(category,
+              "Instances will not resolve as <name>.{}: {}",
+              mp::default_dns_domain,
+              e.what());
+}
+
 } // namespace
 
 // TODO hyperv migration, revert: back to the free function connect_rpc(rpc, daemon) with plain
@@ -1569,46 +1608,6 @@ void mp::Daemon::connect_rpc(DaemonRpc& rpc)
     connect(&DaemonRpc::on_zones_state, &Daemon::zones_state);
 }
 
-namespace
-{
-// Makes an instance resolvable by name from the host. Never fails the caller: instances work
-// without it.
-void publish_dns_record(mp::DnsProvider& dns, const std::string& name, mp::VirtualMachine& vm)
-try
-{
-    if (const auto address = vm.management_ipv4())
-        dns.set_host(name, {*address});
-    else
-        mpl::debug(category, "{} will not resolve by name: its IP address is unknown", name);
-}
-catch (const std::exception& e)
-{
-    mpl::warn(category, "{} will not resolve by name: {}", name, e.what());
-}
-
-// Stops an instance from resolving by name. Never fails the caller either.
-void unpublish_dns_record(mp::DnsProvider& dns, const std::string& name)
-try
-{
-    dns.remove_host(name);
-}
-catch (const std::exception& e)
-{
-    mpl::warn(category, "{} may still resolve by name: {}", name, e.what());
-}
-
-void start_dns_provider(mp::DnsProvider& dns, const std::string& domain)
-try
-{
-    if (!domain.empty())
-        dns.start(domain);
-}
-catch (const std::exception& e)
-{
-    mpl::warn(category, "Instances will not resolve as <name>.{}: {}", domain, e.what());
-}
-} // namespace
-
 mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     : config{std::move(the_config)},
       vm_instance_specs{
@@ -1647,7 +1646,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         mpl::warn(category, "Hypervisor health check failed: {}", e.what());
     }
 
-    start_dns_provider(*config->dns_provider, config->dns_domain);
+    start_dns_provider(*config->dns_provider);
 
     for (const auto& entry : vm_instance_specs)
     {

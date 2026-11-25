@@ -338,7 +338,6 @@ mpt::DaemonTestFixture::DaemonTestFixture()
     config_builder.logger = std::make_unique<StubLogger>();
     config_builder.update_prompt = std::make_unique<DisabledUpdatePrompt>();
     config_builder.dns_provider = std::make_unique<NiceMock<MockDnsProvider>>();
-    config_builder.dns_domain = "";
 }
 
 void mpt::DaemonTestFixture::SetUp()

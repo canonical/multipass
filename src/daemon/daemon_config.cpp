@@ -148,8 +148,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
         factory = platform::vm_backend(data_directory, *az_manager);
     if (dns_provider == nullptr)
         dns_provider = MP_PLATFORM.make_dns_provider();
-    if (!dns_domain)
-        dns_domain = default_dns_domain;
     if (update_prompt == nullptr)
         update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())
@@ -248,7 +246,6 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                          .network_proxy = std::move(network_proxy),
                          .az_manager = std::move(az_manager),
                          .dns_provider = std::move(dns_provider),
-                         .dns_domain = *dns_domain,
                          .cache_directory = cache_directory,
                          .data_directory = data_directory,
                          .server_address = server_address,

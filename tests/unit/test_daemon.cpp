@@ -177,20 +177,11 @@ TEST_F(Daemon, buildsConfig)
     EXPECT_THAT(config->image_hosts, Not(IsEmpty()));
 }
 
-TEST_F(Daemon, startsDnsProviderForTheConfiguredDomain)
+TEST_F(Daemon, startsDnsProvider)
 {
     auto dns_provider = std::make_unique<StrictMock<mpt::MockDnsProvider>>();
-    EXPECT_CALL(*dns_provider, start(Eq("multipass.local")));
+    EXPECT_CALL(*dns_provider, start(Eq(mp::default_dns_domain)));
     config_builder.dns_provider = std::move(dns_provider);
-    config_builder.dns_domain = "multipass.local";
-
-    mp::Daemon daemon{config_builder.build()};
-}
-
-TEST_F(Daemon, doesNotStartDnsProviderWithoutADomain)
-{
-    // StrictMock: any call fails the test.
-    config_builder.dns_provider = std::make_unique<StrictMock<mpt::MockDnsProvider>>();
 
     mp::Daemon daemon{config_builder.build()};
 }
@@ -200,7 +191,6 @@ TEST_F(Daemon, startsDespiteDnsProviderFailingToStart)
     auto dns_provider = std::make_unique<NiceMock<mpt::MockDnsProvider>>();
     EXPECT_CALL(*dns_provider, start).WillOnce(Throw(std::runtime_error{"address in use"}));
     config_builder.dns_provider = std::move(dns_provider);
-    config_builder.dns_domain = "multipass.local";
 
     EXPECT_NO_THROW(mp::Daemon{config_builder.build()});
 }
@@ -208,6 +198,7 @@ TEST_F(Daemon, startsDespiteDnsProviderFailingToStart)
 TEST_F(Daemon, stopsResolvingInstancesThatBecomeUnreachable)
 {
     auto dns_provider = std::make_unique<StrictMock<mpt::MockDnsProvider>>();
+    EXPECT_CALL(*dns_provider, start(Eq(mp::default_dns_domain)));
     EXPECT_CALL(*dns_provider, remove_host(Eq("stopped-vm")));
     EXPECT_CALL(*dns_provider, remove_host(Eq("suspended-vm")));
     EXPECT_CALL(*dns_provider, remove_host(Eq("unavailable-vm")));

@@ -37,7 +37,6 @@
 #include <QNetworkProxy>
 
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -59,7 +58,6 @@ struct DaemonConfig
     const std::unique_ptr<QNetworkProxy> network_proxy;
     const AvailabilityZoneManager::UPtr az_manager;
     const DnsProvider::UPtr dns_provider;
-    const std::string dns_domain; // where instances resolve; none if empty
     const multipass::Path cache_directory;
     const multipass::Path data_directory;
     const std::string server_address;
@@ -82,7 +80,6 @@ struct DaemonConfigBuilder
     std::unique_ptr<QNetworkProxy> network_proxy;
     AvailabilityZoneManager::UPtr az_manager;
     DnsProvider::UPtr dns_provider;
-    std::optional<std::string> dns_domain; // default_dns_domain, if unset
     multipass::Path cache_directory;
     multipass::Path data_directory;
     std::string server_address;
