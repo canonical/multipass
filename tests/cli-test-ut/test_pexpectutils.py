@@ -20,11 +20,13 @@
 import importlib
 import socket
 import sys
+import threading
 import types
 from queue import Queue
 from unittest.mock import MagicMock
 
 import pytest
+from pexpect.exceptions import EOF
 
 
 @pytest.fixture
@@ -52,7 +54,15 @@ def winpty_spawn_cls(monkeypatch):
 def _make_spawn(winpty_spawn_cls, pty_proc):
     spawn = object.__new__(winpty_spawn_cls)
     spawn.pty_proc = pty_proc
+    spawn.encoding = "utf-8"
+    spawn._buf = ""
     spawn._read_queue = Queue()
+    spawn._read_reached_eof = False
+    spawn.flag_eof = False
+    spawn.timeout = 1
+    spawn.logfile = None
+    spawn.logfile_read = None
+    spawn.logfile_send = None
     return spawn
 
 
@@ -104,3 +114,53 @@ class TestWinptySpawnReadIncoming:
 
         assert pty_proc.isalive.call_count == 2
         assert _drain_queue(spawn._read_queue) == ["output", None]
+
+
+class TestWinptySpawnReadNonblocking:
+    """Tests for WinptySpawn.read_nonblocking()."""
+
+    def test_blocks_until_data_arrives(self, winpty_spawn_cls):
+        spawn = _make_spawn(winpty_spawn_cls, MagicMock())
+        timer = threading.Timer(0.02, spawn._read_queue.put, args=("delayed",))
+        timer.start()
+        try:
+            assert spawn.read_nonblocking(size=1024, timeout=1) == "delayed"
+        finally:
+            timer.cancel()
+
+    def test_returns_buffered_data_before_raising_eof(self, winpty_spawn_cls):
+        spawn = _make_spawn(winpty_spawn_cls, MagicMock())
+        spawn._read_queue.put("chunk")
+        spawn._read_queue.put(None)
+
+        assert spawn.read_nonblocking(size=1024, timeout=1) == "chunk"
+        with pytest.raises(EOF):
+            spawn.read_nonblocking(size=1024, timeout=1)
+        assert spawn.flag_eof is True
+
+    def test_raises_eof_immediately_when_queue_only_has_sentinel(self, winpty_spawn_cls):
+        spawn = _make_spawn(winpty_spawn_cls, MagicMock())
+        spawn._read_queue.put(None)
+
+        with pytest.raises(EOF):
+            spawn.read_nonblocking(size=1024, timeout=1)
+        assert spawn.flag_eof is True
+
+    def test_returns_empty_string_on_timeout(self, winpty_spawn_cls):
+        spawn = _make_spawn(winpty_spawn_cls, MagicMock())
+
+        assert spawn.read_nonblocking(size=1024, timeout=0.02) == ""
+
+
+class TestWinptySpawnSendline:
+    """Tests for WinptySpawn.sendline()."""
+
+    def test_sendline_appends_carriage_return_and_logs(self, winpty_spawn_cls):
+        pty_proc = MagicMock()
+        spawn = _make_spawn(winpty_spawn_cls, pty_proc)
+        spawn._log = MagicMock()
+
+        spawn.sendline("exit")
+
+        pty_proc.write.assert_called_once_with("exit\r")
+        spawn._log.assert_called_once_with("exit\r", "send")
