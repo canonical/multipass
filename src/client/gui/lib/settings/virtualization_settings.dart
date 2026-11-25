@@ -92,8 +92,8 @@ class VirtualizationSettings extends ConsumerWidget {
                 ref.notifyError((e) => l10n.virtualizationDriverError('$e')));
           },
         ),
-        const SizedBox(height: 20),
-        if (networks.isNotEmpty)
+        if (networks.isNotEmpty) ...[
+          const SizedBox(height: 20),
           Dropdown<String>(
             label: l10n.bridgeTitle,
             width: settingFieldWidth,
@@ -108,6 +108,7 @@ class VirtualizationSettings extends ConsumerWidget {
                   );
             },
           ),
+        ],
       ],
     );
   }
