@@ -3818,4 +3818,55 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstatChownHonorsMapsInTheHost))
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
     sftp.run();
 }
+
+struct SftpServerSetstatUnchangedIds
+    : public SftpServer,
+      public ::testing::WithParamInterface<std::pair<bool, bool>> // {uid unchanged, gid unchanged}
+{
+};
+
+TEST_P(SftpServerSetstatUnchangedIds, DISABLE_ON_WINDOWS(chownReceivesMinusOneOnlyForUnchangedIds))
+{
+    const auto [uid_unchanged, gid_unchanged] = GetParam();
+
+    mpt::TempDir temp_dir;
+    auto file_name = temp_dir.path() + "/test-file";
+    mpt::make_file_with_content(file_name);
+
+    const int host_uid = QFileInfo(temp_dir.path()).ownerId();
+    const int host_gid = QFileInfo(temp_dir.path()).groupId();
+    const int sftp_uid = 1024;
+    const int sftp_gid = 1025;
+
+    mp::id_mappings uid_mappings{{host_uid, sftp_uid}};
+    mp::id_mappings gid_mappings{{host_gid, sftp_gid}};
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_SETSTAT);
+    auto name = name_as_char_array(file_name.toStdString());
+    sftp_attributes_struct attr{};
+    attr.flags = SSH_FILEXFER_ATTR_UIDGID;
+
+    msg->filename = name.data();
+    msg->attr = &attr;
+    msg->flags = SSH_FXF_WRITE;
+    msg->attr->uid = uid_unchanged ? 0xFFFFFFFF : sftp_uid;
+    msg->attr->gid = gid_unchanged ? 0xFFFFFFFF : sftp_gid;
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
+    EXPECT_CALL(*mock_platform,
+                chown(_, uid_unchanged ? -1 : host_uid, gid_unchanged ? -1 : host_gid))
+        .Times(1);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
+    sftp.run();
+}
+
+INSTANTIATE_TEST_SUITE_P(SftpServer,
+                         SftpServerSetstatUnchangedIds,
+                         ::testing::Values(std::pair{true, false},
+                                           std::pair{false, true},
+                                           std::pair{true, true}));
 } // namespace
