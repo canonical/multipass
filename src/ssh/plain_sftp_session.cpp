@@ -41,6 +41,7 @@ using namespace std::literals::chrono_literals;
 
 constexpr auto category = "sftp session";
 constexpr auto client_exit_timeout = 250ms; // how long we wait on the client's exit status
+constexpr auto keepalive_interval = 30s;    // how long we wait idle before probing the peer
 
 class SftpInitException : public mp::SSHException
 {
@@ -186,13 +187,26 @@ void mp::PlainSftpSession::request_stop() noexcept
 std::unique_ptr<mp::SftpMessage> mp::PlainSftpSession::next_message()
 {
     sftp_client_message raw_msg = nullptr;
+    auto idle_t = 0ms;
     while (!stop_requested.load() && client_process)
     {
         int poll_result = poll_stdout(raw_sftp_session->channel, poll_interval.count());
         if (poll_result > 0) // bounded by session timeout
             raw_msg = MP_LIBSSH.sftp_get_client_message(raw_sftp_session.get());
-        else if (poll_result == 0)
-            continue; // nothing to read yet
+        else if (poll_result == 0) // nothing to read yet
+        {
+            // probe the peer while idle, so that a dead one *eventually* surfaces as a poll error
+            // TODO: detect silently vanished peers: unanswered keepalives go unnoticed
+            // (ssh_send_keepalive always returns SSH_OK), so we only find out when TCP gives up
+            // (~15min on Linux; verified anecdotally with an idle mount and `kill -STOP <vm-pid>`)
+            if ((idle_t += poll_interval) >= keepalive_interval)
+            {
+                mpl::trace(category, "no client activity, sending keepalive");
+                MP_LIBSSH.ssh_send_keepalive(plain_ssh_session.borrow_session(pass));
+                idle_t = 0ms;
+            }
+            continue;
+        }
 
         if (!raw_msg)
             mpl::debug(category,
