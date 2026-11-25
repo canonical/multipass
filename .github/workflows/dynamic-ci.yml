@@ -108,30 +108,6 @@ jobs:
     uses: "./.github/workflows/linux.yml"
     secrets: inherit
 
-  cli-docs:
-    name: CLI reference docs
-    needs: linux
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v7
-
-      - name: Download the built amd64 snap
-        uses: actions/download-artifact@v8
-        with:
-          pattern: '*_amd64.snap'
-          merge-multiple: true
-          path: ${{ runner.temp }}/cli-docs-snap
-
-      - name: Install the built snap
-        run: sudo snap install --dangerous "$RUNNER_TEMP"/cli-docs-snap/*.snap
-
-      - name: Check CLI reference docs are up to date
-        timeout-minutes: 2
-        run: |
-          python3 tools/sync-cli-docs.py --check --multipass /snap/bin/multipass
-
   macos:
     name: macOS
     needs: filter
@@ -162,12 +138,11 @@ jobs:
     name: Finalize
     runs-on: ubuntu-slim
     if: ${{ always() }}
-    needs: [docs, lint, linux, cli-docs, windows, macos, hooks, cli-tests-ut]
+    needs: [docs, lint, linux, windows, macos, hooks, cli-tests-ut]
     steps:
       - name: Docs failure check
         if: ${{
-            needs.docs.result == 'failure' || needs.docs.result == 'cancelled' ||
-            needs.cli-docs.result == 'failure' || needs.cli-docs.result == 'cancelled'
+            needs.docs.result == 'failure' || needs.docs.result == 'cancelled'
           }}
         run: exit 1
 

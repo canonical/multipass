@@ -405,8 +405,6 @@ jobs:
         done
 
     - name: Delete unused artifacts from github
-      # Dynamic CI retains the snaps for its separate CLI reference docs job.
-      if: ${{ github.event_name == 'schedule' }}
       uses: geekyeggo/delete-artifact@v6
       with:
         name: '*.snap'
@@ -429,6 +427,18 @@ jobs:
           Scheduled [Linux](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow exited before completing.
         MATTERMOST_USERNAME: ${{ github.triggering_actor }}
         MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
+
+  Check-CLI-Docs:
+    name: CLI reference docs
+    permissions:
+      contents: read
+      actions: read
+    needs:
+      - BuildAndTest
+      - Publish-Snap
+    uses: ./.github/workflows/check-cli-docs.yml
+    with:
+      snap-channel: ${{ needs.BuildAndTest.outputs.channel }}
 
   Dispatch-CLI-Tests-Workflow:
     permissions:
