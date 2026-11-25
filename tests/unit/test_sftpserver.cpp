@@ -83,8 +83,6 @@ struct SftpServer : public mp::test::SftpServerTest
                 target.empty() ? path : target,
                 gid_mappings,
                 uid_mappings,
-                default_uid,
-                default_gid,
                 "sshfs"};
     }
 
@@ -416,8 +414,6 @@ TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
             "",
             {{default_uid, mp::default_id}},
             {{default_gid, mp::default_id}},
-            default_uid,
-            default_gid,
             "sshfs"};
     };
     EXPECT_THROW(make_sftpserver(), std::runtime_error);
@@ -484,15 +480,13 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
     REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
     REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
 
-    auto sftp =
-        mp::SftpServer{std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
-                       "",
-                       "",
-                       {{default_gid, mp::default_id}},
-                       {{default_uid, mp::default_id}},
-                       default_uid,
-                       default_gid,
-                       "sshfs"};
+    auto sftp = mp::SftpServer{
+        std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
+        "",
+        "",
+        {{default_gid, mp::default_id}},
+        {{default_uid, mp::default_id}},
+        "sshfs"};
     // This is the end of the alternate test
     sftp.run();
 
@@ -2103,12 +2097,14 @@ TEST_F(SftpServer, handlesReaddirAttributesPreserved)
     REPLACE(sftp_reply_names_add, get_test_file_attributes);
     REPLACE(sftp_reply_names, [](auto...) { return SSH_OK; });
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    QFileInfo test_file_info(test_file);
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(),
+                                {{test_file_info.ownerId(), test_file_info.ownerId()}},
+                                {{test_file_info.groupId(), test_file_info.groupId()}});
     sftp.run();
 
     EXPECT_EQ(eof_num_calls, 1);
 
-    QFileInfo test_file_info(test_file);
     EXPECT_EQ(test_file_attrs.size, (uint64_t)test_file_info.size());
     EXPECT_EQ(test_file_attrs.gid, test_file_info.groupId());
     EXPECT_EQ(test_file_attrs.uid, test_file_info.ownerId());

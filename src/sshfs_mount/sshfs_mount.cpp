@@ -34,6 +34,7 @@
 #include <QDir>
 #include <QString>
 
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 
@@ -154,7 +155,7 @@ auto make_sftp_server(std::unique_ptr<mp::SSHSession>&& session,
     std::transform(gid_mappings.begin(),
                    gid_mappings.end(),
                    gid_mappings.begin(),
-                   [default_gid](auto& mapping) {
+                   [default_gid](auto mapping) {
                        if (mapping.second == mp::default_id)
                            mapping.second = default_gid;
                        return mapping;
