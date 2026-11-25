@@ -26,7 +26,6 @@ from contextlib import asynccontextmanager, suppress
 from typing import Optional
 
 import pytest
-from pytest import Session
 
 from cli.config import cfg
 from cli.multipass import (
@@ -262,12 +261,8 @@ class MultipassdGovernor:
             if monitor_task in done:
                 _cancel(ready_task)
                 await _drain(ready_task)
-                try:
-                    await monitor_task
-                    raise TestCaseFailure("daemon exited during startup")
-                except TestSessionFailure as ex:
-                    Session.shouldfail = str(ex)
-                    raise
+                await monitor_task
+                raise TestCaseFailure("daemon exited during startup")
 
             # Wait for daemon to be ready
             try:

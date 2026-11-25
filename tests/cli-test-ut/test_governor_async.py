@@ -438,7 +438,6 @@ class TestGovernorConcurrentOperations:
                 governor, "wait_for_multipassd_ready", side_effect=slow_ready
             ),
             patch.object(governor, "on_monitor_exit"),
-            patch("cli.controller.multipassd_governor.Session"),
         ):
             start_task = asyncio.create_task(governor.start_async())
             await asyncio.sleep(0)

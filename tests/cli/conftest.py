@@ -33,7 +33,6 @@ from functools import partial
 from packaging import version
 
 import pytest
-from pytest import Session
 
 from cli.utilities import (
     wait_for_future,
@@ -56,6 +55,7 @@ from cli.multipass import (
     get_multipass_path,
     get_multipassd_path,
     get_multipass_version,
+    TestSessionFailure,
 )
 
 from cli.config import cfg
@@ -254,6 +254,16 @@ def pytest_configure(config):
     cfg.data_dir = determine_data_dir()
 
     logging.debug(f"pytest_configure :: final config {cfg}")
+
+
+def pytest_runtest_makereport(item, call):
+    """Abort the session once any test phase raises TestSessionFailure.
+
+    pytest checks `session.shouldfail` between tests, so the current test
+    finishes (including teardown) and no further tests run.
+    """
+    if call.excinfo is not None and call.excinfo.errisinstance(TestSessionFailure):
+        item.session.shouldfail = str(call.excinfo.value)
 
 
 def pytest_assertrepr_compare(op, left, right):
@@ -637,8 +647,7 @@ def multipassd_impl():
     try:
         controller = make_daemon_controller(cfg.daemon_controller)()
     except ControllerPrerequisiteError as exc:
-        Session.shouldfail = str(exc)
-        raise
+        raise TestSessionFailure(str(exc)) from exc
 
     with ExitStack() as stack:
         loop = stack.enter_context(BackgroundEventLoop())

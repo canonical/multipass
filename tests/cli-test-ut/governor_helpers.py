@@ -92,7 +92,6 @@ async def run_governor(daemon_controller, ready_delay=3600, ready_result=True):
             side_effect=ready,
         ),
         patch.object(governor, "on_monitor_exit"),
-        patch("cli.controller.multipassd_governor.Session"),
     ):
         await governor.start_async()
     return governor

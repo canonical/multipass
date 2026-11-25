@@ -15,13 +15,80 @@
 #
 #
 
-"""Unit tests for fixtures in cli.conftest."""
+"""Unit tests for fixtures and hooks in cli.conftest."""
 
+import os
+import subprocess
+import sys
+import textwrap
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, call
 
 import pytest
 
 from cli import conftest
+from cli.multipass import TestCaseFailure, TestSessionFailure
+
+
+class TestSessionFailureAbortsSession:
+    """TestSessionFailure from any test phase must stop the session."""
+
+    @staticmethod
+    def _report(exc):
+        def phase():
+            if exc is not None:
+                raise exc
+
+        item = SimpleNamespace(session=SimpleNamespace(shouldfail=False))
+        conftest.pytest_runtest_makereport(item, pytest.CallInfo.from_call(phase, "call"))
+        return item.session.shouldfail
+
+    def test_session_failure_sets_shouldfail(self):
+        assert self._report(TestSessionFailure("daemon is gone")) == "daemon is gone"
+
+    @pytest.mark.parametrize(
+        "exc", [None, TestCaseFailure("case"), RuntimeError("other")]
+    )
+    def test_other_outcomes_leave_session_running(self, exc):
+        assert self._report(exc) is False
+
+    def test_pytest_stops_after_session_failure(self, tmp_path):
+        (tmp_path / "conftest.py").write_text(
+            "from cli.conftest import pytest_runtest_makereport  # noqa: F401\n"
+        )
+        (tmp_path / "test_abort.py").write_text(
+            textwrap.dedent(
+                """\
+                from cli.multipass import TestSessionFailure
+
+                def test_first():
+                    raise TestSessionFailure("daemon is gone")
+
+                def test_second():
+                    pass
+                """
+            )
+        )
+        tests_dir = str(Path(__file__).resolve().parent.parent)
+        env = {**os.environ, "PYTHONPATH": os.pathsep.join(
+            p for p in (tests_dir, os.environ.get("PYTHONPATH")) if p
+        )}
+
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", str(tmp_path), "-p", "no:cacheprovider",
+             "-o", "addopts=", "-rA"],
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=60,
+            check=False,
+        )
+
+        output = result.stdout + result.stderr
+        assert "FAILED test_abort.py::test_first" in output, output
+        assert "test_second" not in output, output
+        assert "daemon is gone" in output, output
 
 
 class TestWindowsPrivilegedMounts:
