@@ -262,19 +262,12 @@ int mapped_id_for(const mp::id_mappings& id_maps, const int id)
     return found == id_maps.cend() ? unrecognized_id : found->second;
 }
 
-int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
+int reverse_id_for(const mp::id_mappings& id_maps, const int id)
 {
     auto found = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) {
         return id == p.second;
     });
-    auto default_found =
-        std::find_if(id_maps.cbegin(), id_maps.cend(), [default_id](std::pair<int, int> p) {
-            return default_id == p.second;
-        });
-
-    return found == id_maps.cend()
-             ? (default_found == id_maps.cend() ? default_id : default_found->first)
-             : found->first;
+    return found == id_maps.cend() ? unrecognized_id : found->first;
 }
 
 constexpr bool follows_symlinks(uint8_t type)
@@ -360,14 +353,14 @@ inline int mp::SftpServer::mapped_gid_for(const int gid)
     return mapped_id_for(gid_mappings, gid);
 }
 
-inline int mp::SftpServer::reverse_uid_for(const int uid, const int default_id_)
+inline int mp::SftpServer::reverse_uid_for(const int uid)
 {
-    return reverse_id_for(uid_mappings, uid, default_id_);
+    return reverse_id_for(uid_mappings, uid);
 }
 
-inline int mp::SftpServer::reverse_gid_for(const int gid, const int default_id_)
+inline int mp::SftpServer::reverse_gid_for(const int gid)
 {
-    return reverse_id_for(gid_mappings, gid, default_id_);
+    return reverse_id_for(gid_mappings, gid);
 }
 
 inline bool mp::SftpServer::has_uid_mapping_for(const int uid)
@@ -733,8 +726,8 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    int rev_uid = reverse_uid_for(parent_dir.ownerId(), parent_dir.ownerId());
-    int rev_gid = reverse_gid_for(parent_dir.groupId(), parent_dir.groupId());
+    int rev_uid = reverse_uid_for(parent_dir.ownerId());
+    int rev_gid = reverse_gid_for(parent_dir.groupId());
 
     if (MP_PLATFORM.chown(filename->string().c_str(), rev_uid, rev_gid) < 0)
     {
@@ -846,8 +839,8 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
     if (!exists)
     {
-        auto new_uid = reverse_uid_for(current_dir.ownerId(), current_dir.ownerId());
-        auto new_gid = reverse_gid_for(current_dir.groupId(), current_dir.groupId());
+        auto new_uid = reverse_uid_for(current_dir.ownerId());
+        auto new_gid = reverse_gid_for(current_dir.groupId());
 
         if (MP_PLATFORM.chown(filename->string().c_str(), new_uid, new_gid) < 0)
         {
@@ -1252,8 +1245,8 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
         }
 
         if (MP_PLATFORM.chown(filename.string().c_str(),
-                              reverse_uid_for(msg->attr->uid, msg->attr->uid),
-                              reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0)
+                              reverse_uid_for(msg->attr->uid),
+                              reverse_gid_for(msg->attr->gid)) < 0)
         {
             mpl::trace(category,
                        "{}: cannot set ownership for '{}'",
