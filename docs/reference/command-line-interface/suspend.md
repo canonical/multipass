@@ -1,6 +1,10 @@
 (reference-command-line-interface-suspend)=
 # suspend
 
+```{caution}
+The `suspend` command is not supported on the Apple Virtualization framework driver. See {ref}`driver-feature-disparities`.
+```
+
 The `multipass suspend` command without any argument will suspend the {ref}`primary-instance` (and fail, if it doesn’t exist). You can also pass one or more instance names or the `--all` option to suspend more instances at the same time.
 
 ```{note}
@@ -9,14 +13,22 @@ Only instances in `Running` status can be suspended.
 
 For example:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
 multipass start boisterous-tortoise
 multipass suspend boisterous-tortoise
+
+>
 ```
 
 If you check your instances with `multipass list`, you'll see that its status is now set to `Suspended`:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
+multipass list
+
 Name                  State       IPv4         Image              Mounts  Zone
 boisterous-tortoise   Suspended   --           Ubuntu 26.04 LTS   0       zone1
 ```
@@ -42,4 +54,8 @@ Options:
 Arguments:
   name           Names of instances to suspend. If omitted, and without the
                  --all option, 'primary' will be assumed.
+```
+
+```{seealso}
+{ref}`How to use an instance <how-to-guides-manage-instances-use-an-instance>`, [`start`](/reference/command-line-interface/start)
 ```
