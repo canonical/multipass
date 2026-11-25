@@ -1,13 +1,15 @@
 (reference-command-line-interface-networks)=
 # networks
 
-> See also: [Driver (backend)](/explanation/driver), [How to set up the driver](/how-to-guides/customise-multipass/set-up-the-driver)
-
 The `multipass networks` command lists network interfaces that multipass can connect instances to. The result depends both on the platform and the driver in use.
 
 For example, on Windows with Hyper-V the `multipass networks` command returns:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
+multipass networks
+
 Name            Type    Description
 Default Switch  switch  Virtual Switch with internal networking
 ExternalSwitch  switch  Virtual Switch with external networking via "Red Hat VirtIO Ethernet Adapter"
@@ -15,13 +17,13 @@ InternalSwitch  switch  Virtual Switch with internal networking
 PrivSwitch      switch  Private virtual switch
 ```
 
-Like [`list`](/reference/command-line-interface/list), `networks` supports the `--format` option.
+Like [`list`](reference-command-line-interface-list), `networks` supports the `--format` option.
 
 ```{note}
 The `json`, `csv` and `yaml` formats cover regular output only. Errors and log messages are printed to the standard error stream as plain text, with failures signaled by a non-zero exit status.
 ```
 
-See [`launch`](/reference/command-line-interface/launch) and {ref}`create-an-instance-with-multiple-network-interfaces` for instructions on how to use these.
+See [`launch`](reference-command-line-interface-launch) and {ref}`create-an-instance-with-multiple-network-interfaces` for instructions on how to use these.
 
 ---
 
@@ -44,4 +46,8 @@ Options:
                      Errors and log messages are printed to the standard error
                      stream as plain text, with failures signaled by a non-zero
                      exit status.
+```
+
+```{seealso}
+{ref}`How to set up the driver <how-to-guides-customise-multipass-set-up-the-driver>`, {ref}`Driver (backend) <explanation-driver>`
 ```
