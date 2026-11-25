@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Synchronize CLI reference pages with `multipass help <command>` output.
 
-Intended to run on Linux (uses XDG and Snap environment variables to isolate
-client configuration and the root certificate path).
+Intended to run on Linux with a clean Multipass installation. The client inherits
+the current environment, except for the locale; existing settings can affect help.
+Source-built clients require their normal certificate and runtime setup.
 
 Each command page in docs/reference/command-line-interface/<command>.md must
 contain a single pair of HTML comment markers:
@@ -30,7 +31,6 @@ import shlex
 import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 BEGIN_MARKER = "<!-- begin help -->"
@@ -58,30 +58,6 @@ def resolve_multipass_binary(explicit: str | Path | None) -> Path:
     raise FileNotFoundError(
         f"multipass executable not found or not executable (tried: {searched}); "
         "pass --multipass <path>")
-
-
-def make_isolated_env(tmp_dir: Path) -> dict[str, str]:
-    """Isolate user-specific directories, root cert path, and locale."""
-    # On Linux, `multipass` reads multipass_root_cert.pem on startup even for
-    # `help`; pointing SNAP_COMMON to tmp_dir lets it run without a daemon
-    # install (this script is intended to run on Linux).
-    snap_common = tmp_dir / "snap-common"
-    root_cert = snap_common / "data" / "multipassd" / "multipass_root_cert.pem"
-    root_cert.parent.mkdir(parents=True, exist_ok=True)
-    root_cert.touch()
-
-    return {
-        **os.environ,
-        "HOME": str(tmp_dir),
-        "XDG_DATA_HOME": str(tmp_dir / "data"),
-        "XDG_CONFIG_HOME": str(tmp_dir / "config"),
-        "XDG_CACHE_HOME": str(tmp_dir / "cache"),
-        "XDG_STATE_HOME": str(tmp_dir / "state"),
-        "SNAP_NAME": "multipass",
-        "SNAP_COMMON": str(snap_common),
-        "LC_ALL": "C.UTF-8",
-        "LANG": "C.UTF-8",
-    }
 
 
 def run_multipass(
@@ -175,52 +151,51 @@ def sync_docs(multipass_bin: Path, docs_dir: Path, check: bool) -> int:
 
     changed_files: list[Path] = []
 
-    with tempfile.TemporaryDirectory(
-            prefix="multipass-sync-cli-docs-") as tmp_dir:
-        env = make_isolated_env(Path(tmp_dir))
-        general_help = run_multipass(multipass_bin, ["help"], env)
-        commands = parse_available_commands(general_help)
+    env = {**os.environ, "LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"}
+    general_help = run_multipass(multipass_bin, ["help"], env)
+    commands = parse_available_commands(general_help)
 
-        doc_files = {
-            path.stem: path
-            for path in docs_dir.glob("*.md") if path.name != "index.md"
-        }
+    doc_files = {
+        path.stem: path
+        for path in docs_dir.glob("*.md") if path.name != "index.md"
+    }
 
-        missing_docs = sorted(commands - doc_files.keys())
-        extra_docs = sorted(doc_files.keys() - commands)
+    missing_docs = sorted(commands - doc_files.keys())
+    extra_docs = sorted(doc_files.keys() - commands)
 
-        if missing_docs or extra_docs:
-            raise ValueError(
-                "CLI reference pages do not match available commands:\n"
-                f"  Missing: {', '.join(missing_docs) or 'none'}\n"
-                f"  Orphaned: {', '.join(extra_docs) or 'none'}")
+    if missing_docs or extra_docs:
+        raise ValueError(
+            "CLI reference pages do not match available commands:\n"
+            f"  Missing: {', '.join(missing_docs) or 'none'}\n"
+            f"  Orphaned: {', '.join(extra_docs) or 'none'}")
 
-        for cmd in sorted(commands):
-            doc_path = doc_files[cmd]
-            help_output = run_multipass(multipass_bin, ["help", cmd], env)
-            original = doc_path.read_text(encoding="utf-8")
-            updated = replace_help_section(original, help_output, doc_path)
+    for cmd in sorted(commands):
+        doc_path = doc_files[cmd]
+        help_output = run_multipass(multipass_bin, ["help", cmd], env)
+        original = doc_path.read_text(encoding="utf-8")
+        updated = replace_help_section(original, help_output, doc_path)
 
-            if updated != original:
-                changed_files.append(doc_path)
-                if check:
-                    diff = difflib.unified_diff(
-                        original.splitlines(keepends=True),
-                        updated.splitlines(keepends=True),
-                        fromfile=str(doc_path),
-                        tofile=f"{doc_path} (expected)",
-                    )
-                    sys.stdout.writelines(diff)
-                else:
-                    doc_path.write_text(updated, encoding="utf-8")
-                    print(f"Updated {doc_path}")
+        if updated != original:
+            changed_files.append(doc_path)
+            if check:
+                diff = difflib.unified_diff(
+                    original.splitlines(keepends=True),
+                    updated.splitlines(keepends=True),
+                    fromfile=str(doc_path),
+                    tofile=f"{doc_path} (expected)",
+                )
+                sys.stdout.writelines(diff)
+            else:
+                doc_path.write_text(updated, encoding="utf-8")
+                print(f"Updated {doc_path}")
 
     if check:
         if changed_files:
             print(
                 f"ERROR: {len(changed_files)} CLI reference page(s) are out of date:\n"
                 + "\n".join(f"  - {p}" for p in changed_files) +
-                "\nRun `tools/sync-cli-docs.py` to update them.",
+                "\nRun `python3 tools/sync-cli-docs.py --multipass <multipass-path>` "
+                "with the matching Multipass version, then commit the updated documentation.",
                 file=sys.stderr,
             )
             return 1
