@@ -115,9 +115,16 @@ _multipass_complete()
     }
 
     # Set $multipass_aliases to the list of available aliases.
+    # TODO@remove-prefer only complete default aliases once inactive contexts are gone
     _multipass_aliases()
     {
-        multipass_aliases=$( multipass aliases --format=csv 2>/dev/null | \tail -n +2 | \cut -d',' -f 1 )
+        multipass_aliases=$( multipass aliases --format=csv 2>/dev/null \
+                            | \awk -F',' -v command="$cmd" 'NR > 1 {
+                                # Read the trailing fields, since the command may contain commas.
+                                sub(/\r$/, "", $NF)
+                                if ($NF == "active") print $1
+                                else if (command == "unalias") print $(NF-1) "." $1
+                            }' )
     }
 
     # Removes the comma or equals sign at the end of $cur.
