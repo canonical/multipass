@@ -4183,20 +4183,7 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
                         name)});
     }
 
-    std::unordered_map<std::string, std::weak_ptr<MountHandler>> vm_mounts;
-    if (auto mounts_it = mounts.find(name); mounts_it != mounts.end())
-    {
-        for (const auto& [target, mount] : mounts_it->second)
-            vm_mounts[target] = mount;
-    }
-
-    struct WaitResult
-    {
-        std::vector<std::string> invalid_mounts;
-        std::exception_ptr sshfs_missing_error;
-    };
-
-    auto wait_op = [=, vm = it->second, vm_mounts = std::move(vm_mounts)]() {
+    auto wait_op = [=, vm = it->second]() -> ReadinessResult {
         vm->wait_until_ssh_up(timeout);
 
         if constexpr (std::is_same_v<LogMsgReply, LaunchReply>)
@@ -4240,13 +4227,10 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
                         fmt::format(sshfs_error_template, name)};
         }
 
-        if (wait_result.sshfs_missing_error)
-            std::rethrow_exception(wait_result.sshfs_missing_error);
+        return {name, ReadinessError::OK, {}};
     };
 
     return QtConcurrent::run(wait_op)
-        .then(this, filter_mounts_op)
-        .then([name] { return ReadinessResult{name, ReadinessError::OK, {}}; })
         .onFailed([](const QUnhandledException& e) -> ReadinessResult {
             std::rethrow_exception(e.exception());
         })
@@ -4260,11 +4244,6 @@ mp::Daemon::async_wait_vm_ready(const std::string& name,
         })
         .onFailed([name](const CloudInitTimeoutException& e) {
             return ReadinessResult{name, ReadinessError::CLOUD_INIT_TIMEOUT, e.what()};
-        })
-        .onFailed([name](const SSHFSMissingError&) {
-            return ReadinessResult{name,
-                                   ReadinessError::SSHFS_MISSING,
-                                   fmt::format(sshfs_error_template, name)};
         })
         .onFailed([name](const std::exception& e) {
             return ReadinessResult{name, ReadinessError::OTHER, e.what()};
