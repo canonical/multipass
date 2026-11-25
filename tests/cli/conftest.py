@@ -189,9 +189,23 @@ def pytest_addoption(parser):
 
     parser.addoption(
         "--health-check-timeout",
-        default=5,
+        default=15,
         type=int,
-        help="Timeout (seconds) for the per-step daemon health check.",
+        help="Timeout (seconds) for each probe of the per-step daemon health check.",
+    )
+
+    parser.addoption(
+        "--health-check-attempts",
+        default=3,
+        type=int,
+        help="Number of probes before the daemon health check gives up.",
+    )
+
+    parser.addoption(
+        "--health-check-retry-delay",
+        default=2,
+        type=float,
+        help="Delay (seconds) between daemon health check probes.",
     )
 
 
@@ -241,6 +255,8 @@ def pytest_configure(config):
     cfg.daemon_health_check = not config.getoption(
         "--no-daemon-health-check")
     cfg.health_check_timeout = config.getoption("--health-check-timeout")
+    cfg.health_check_attempts = config.getoption("--health-check-attempts")
+    cfg.health_check_retry_delay = config.getoption("--health-check-retry-delay")
 
     # If user gave --storage-dir, use it
     if not cfg.storage_dir:

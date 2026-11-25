@@ -34,12 +34,14 @@ from cli.multipass import (
     get_multipass_env,
     get_multipass_path,
     parse_multipass_versions,
+    Output,
     TestSessionFailure,
     TestCaseFailure
 )
 from cli.utilities import (
     SilentAsyncSubprocess,
     StdoutAsyncSubprocess,
+    retry,
     run_in_new_interpreter_async,
 )
 
@@ -359,13 +361,14 @@ class MultipassdGovernor:
         if not self.daemon_ready_event.wait(timeout=timeout):
             raise TimeoutError(f"Daemon did not become ready within {timeout}s")
 
-    def check_health(self, timeout=5):
+    def check_health(self, timeout=15, attempts=3, retry_delay=2):
         """Verify the daemon is responsive before a test step.
 
         Raises the recorded failure if the daemon died unexpectedly. No-op when
         the daemon is believed to be intentionally down (the ready latch is
-        clear). Otherwise probes the daemon and aborts the session on an
-        unresponsive daemon.
+        clear). Otherwise probes the daemon up to `attempts` times, waiting
+        `retry_delay` seconds in between, and aborts the session if it never
+        responds.
         """
         failure = self.daemon_failure
         if failure is not None:
@@ -374,10 +377,15 @@ class MultipassdGovernor:
         if not self.daemon_ready_event.is_set():
             return
 
-        healthy = self.asyncio_loop.run(self._probe_healthy(timeout)).result()
-        if not healthy:
+        @retry(retries=max(0, attempts - 1), delay=retry_delay)
+        def probe():
+            return self.asyncio_loop.run(self._probe_healthy(timeout)).result()
+
+        result = probe()
+        if not result:
             raise TestSessionFailure(
-                "multipassd is unresponsive; aborting the test session."
+                f"multipassd is unresponsive after {attempts} "
+                f"probes (last: {result.content}); aborting the test session."
             )
 
     def wait_for_restart(self, timeout=60):
@@ -411,24 +419,28 @@ class MultipassdGovernor:
 
     @staticmethod
     async def _probe_healthy(timeout):
-        """Return True if the daemon answers a cheap `version` probe within `timeout`."""
+        """Probe the daemon with a cheap `version` call.
+
+        Returns an Output that is truthy when the daemon answered within
+        `timeout`; otherwise its content describes why the probe failed.
+        """
         try:
             exitcode, stdout = await asyncio.wait_for(
                 MultipassdGovernor._run_version_probe(), timeout=timeout
             )
         except asyncio.TimeoutError:
-            return False
+            return Output(f"`multipass version` timed out after {timeout}s", 1)
         except asyncio.CancelledError:
             raise
-        except Exception:
-            return False
+        except Exception as exc:
+            return Output(f"`multipass version` failed: {exc!r}", 1)
 
+        text = stdout.decode("utf-8", "replace").strip()
         if exitcode != 0:
-            return False
-        return any(
-            line.lstrip().startswith("multipassd")
-            for line in stdout.decode("utf-8", "replace").splitlines()
-        )
+            return Output(f"`multipass version` exited {exitcode}: {text}", 1)
+        if not any(line.lstrip().startswith("multipassd") for line in text.splitlines()):
+            return Output(f"no multipassd version in `multipass version` output: {text}", 1)
+        return Output(text, 0)
 
     @staticmethod
     async def wait_for_multipassd_ready(timeout=60):

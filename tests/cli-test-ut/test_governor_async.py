@@ -25,6 +25,7 @@ import pytest
 
 from cli.controller.multipassd_governor import MultipassdGovernor
 from cli.multipass.exceptions import TestCaseFailure, TestSessionFailure
+from cli.utilities.threadutils import BackgroundEventLoop
 from governor_helpers import MockController, run_governor
 
 
@@ -412,6 +413,67 @@ class TestGovernorUnexpectedExit:
 
         assert governor.daemon_failure is None
         await governor.stop_async()
+
+
+class TestGovernorHealthCheck:
+    """check_health() must tolerate a transiently slow daemon."""
+
+    @pytest.fixture
+    def governor(self):
+        with BackgroundEventLoop() as loop:
+            governor = MultipassdGovernor(MockController(), loop, print_daemon_output=False)
+            governor.daemon_ready_event.set()
+            yield governor
+
+    @staticmethod
+    def install_probes(monkeypatch, outcomes):
+        outcomes = iter(outcomes)
+        calls = []
+
+        async def probe():
+            calls.append(None)
+            outcome = next(outcomes)
+            if outcome == "hang":
+                await asyncio.sleep(3600)
+            return outcome
+
+        monkeypatch.setattr(MultipassdGovernor, "_run_version_probe", staticmethod(probe))
+        return calls
+
+    def test_recovers_after_transient_failures(self, governor, monkeypatch):
+        calls = self.install_probes(
+            monkeypatch,
+            ["hang", (1, b"connection refused"), (0, b"multipass 1.0\nmultipassd 1.0\n")],
+        )
+
+        governor.check_health(timeout=0.05, attempts=3, retry_delay=0)
+
+        assert len(calls) == 3
+
+    def test_aborts_with_reason_after_all_probes_fail(self, governor, monkeypatch):
+        calls = self.install_probes(
+            monkeypatch, ["hang", "hang", (0, b"multipass 1.0\n")]
+        )
+
+        with pytest.raises(
+            TestSessionFailure,
+            match=r"unresponsive after 3 probes \(last: no multipassd version",
+        ):
+            governor.check_health(timeout=0.05, attempts=3, retry_delay=0)
+
+        assert len(calls) == 3
+
+
+    def test_attempts_and_delay_come_from_cli_options(self, governor, monkeypatch):
+        calls = self.install_probes(monkeypatch, ["hang"] * 5)
+        sleeps = []
+        monkeypatch.setattr("cli.utilities.functional.time.sleep", sleeps.append)
+
+        with pytest.raises(TestSessionFailure, match="unresponsive after 5 probes"):
+            governor.check_health(timeout=0.05, attempts=5, retry_delay=0.5)
+
+        assert len(calls) == 5
+        assert sleeps == [0.5] * 4
 
 
 class TestGovernorConcurrentOperations:
