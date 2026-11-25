@@ -63,6 +63,7 @@ class MultipassdGovernor:
         self._lifecycle_lock = asyncio.Lock()
         self._start_in_progress = False
         self.monitor_task = None
+        self.daemon_failure = None
         self._reset_state()
 
     def _reset_state(self):
@@ -163,6 +164,10 @@ class MultipassdGovernor:
         if task.cancelled():
             return
 
+        # Retrieve the monitor's failure (if any) so it isn't lost, and keep it
+        # around for check_health() to report on the next test step.
+        failure = task.exception()
+
         async with self._lifecycle_lock:
             multipassd_settings_changed_code = 42
             daemon_exit_code = await self.controller.exit_code()
@@ -174,6 +179,9 @@ class MultipassdGovernor:
                 and daemon_exit_code == multipassd_settings_changed_code
             )
             self._reset_state()
+            if failure is not None:
+                logging.error(f"multipassd-governor :: daemon failed: {failure}")
+                self.daemon_failure = failure
             if needs_restarting:
                 logging.debug("multipassd-governor :: daemon auto-restarting")
                 self.asyncio_loop.run_fn(
@@ -286,6 +294,7 @@ class MultipassdGovernor:
                 )
 
             self.monitor_task = monitor_task
+            self.daemon_failure = None
             self.daemon_stopped_event.clear()
             self.daemon_ready_event.set()
 
@@ -358,10 +367,15 @@ class MultipassdGovernor:
     def check_health(self, timeout=5):
         """Verify the daemon is responsive before a test step.
 
-        No-op when the daemon is believed to be intentionally down (the ready
-        latch is clear). Otherwise probes the daemon and aborts the session on
-        an unresponsive daemon.
+        Raises the recorded failure if the daemon died unexpectedly. No-op when
+        the daemon is believed to be intentionally down (the ready latch is
+        clear). Otherwise probes the daemon and aborts the session on an
+        unresponsive daemon.
         """
+        failure = self.daemon_failure
+        if failure is not None:
+            raise type(failure)(*failure.args) from failure
+
         if not self.daemon_ready_event.is_set():
             return
 

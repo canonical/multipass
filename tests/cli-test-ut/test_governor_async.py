@@ -345,6 +345,75 @@ class TestGovernorStartupFailures:
             returncode=12,
         )
 
+class TestGovernorUnexpectedExit:
+    """Unexpected daemon exits after startup must surface in check_health()."""
+
+    @staticmethod
+    async def _start(ctrl):
+        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
+        with (
+            patch.object(governor, "_ensure_client_certs_are_created"),
+            patch.object(governor, "_authenticate_client_cert"),
+            patch.object(
+                governor,
+                "wait_for_multipassd_ready",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            await governor.start_async()
+        return governor
+
+    @staticmethod
+    async def _wait_for_monitor_exit(governor, timeout=2):
+        async with asyncio.timeout(timeout):
+            while governor.monitor_task is not None:
+                await asyncio.sleep(0.01)
+
+    @pytest.mark.asyncio
+    async def test_check_health_raises_after_crash(self):
+        governor = await self._start(MockController(exit_code=2, exit_delay=0.05))
+        assert governor.daemon_ready_event.is_set()
+
+        await self._wait_for_monitor_exit(governor)
+
+        assert not governor.daemon_ready_event.is_set()
+        for _ in range(2):
+            with pytest.raises(TestCaseFailure, match="multipassd died with code 2"):
+                governor.check_health()
+
+    @pytest.mark.asyncio
+    async def test_graceful_stop_records_no_failure(self):
+        governor = await self._start(MockController())
+
+        await governor.stop_async()
+        await self._wait_for_monitor_exit(governor)
+
+        assert governor.daemon_failure is None
+        governor.check_health()
+
+    @pytest.mark.asyncio
+    async def test_successful_start_clears_previous_failure(self):
+        ctrl = MockController()
+        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
+        governor.daemon_failure = TestCaseFailure("previous crash")
+
+        with (
+            patch.object(governor, "_ensure_client_certs_are_created"),
+            patch.object(governor, "_authenticate_client_cert"),
+            patch.object(
+                governor,
+                "wait_for_multipassd_ready",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            await governor.start_async()
+
+        assert governor.daemon_failure is None
+        await governor.stop_async()
+
+
 class TestGovernorConcurrentOperations:
     """Test governor concurrent operation scenarios."""
 
