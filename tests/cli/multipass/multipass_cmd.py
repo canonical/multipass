@@ -96,17 +96,38 @@ def restart_epilogue(args, kwargs, result, prologue_result):
         # Check before exec'ing, as exec would auto-start a non-running instance and mask the failure
         assert state(vm_name) == "Running", f"{vm_name} is not running after restart"
 
-        @retry(retries=50, delay=20)
-        def attempt_ssh(vm_name):
-            with multipass("exec", vm_name, "--", "echo", "ok") as v:
-                boot_id = get_boot_id(vm_name)
-                v.exitstatus = 0 if boot_id != prologue_result[vm_name] else 1
-                if v.exitstatus == 1:
-                    logging.debug(
-                        f"prev boot id {prologue_result[vm_name]} matches the current {boot_id}, VM hasn't restarted yet.")
-                return v
+        _wait_for_new_boot_id(vm_name, prologue_result[vm_name])
 
-        assert attempt_ssh(vm_name)
+
+# Polling while waiting for a restarted instance to come back. The number of
+# attempts is derived from the `restart` command timeout, which bounds the wait.
+RESTART_POLL_DELAY = 5
+RESTART_POLL_EXEC_TIMEOUT = 30
+
+
+def _wait_for_new_boot_id(vm_name, old_boot_id):
+    """Poll the instance until it reports a boot id other than `old_boot_id`."""
+    attempts = max(
+        1, cfg.timeouts.restart // (RESTART_POLL_DELAY + RESTART_POLL_EXEC_TIMEOUT)
+    )
+
+    @retry(retries=attempts - 1, delay=RESTART_POLL_DELAY)
+    def poll_boot_id():
+        result = multipass(
+            "exec", vm_name, "--", "cat", "/proc/sys/kernel/random/boot_id",
+            timeout=RESTART_POLL_EXEC_TIMEOUT,
+            retry=0,
+        )
+        if result and str(result).strip() == old_boot_id:
+            logging.debug(f"{vm_name} hasn't restarted yet; boot id is unchanged.")
+            result.exitstatus = 1
+        return result
+
+    result = poll_boot_id()
+    assert result, (
+        f"{vm_name} did not come back with a new boot id after {attempts} attempts "
+        f"(before restart: {old_boot_id!r}, last result: {result!r})"
+    )
 
 
 @wrap_call_if("restart", restart_prologue, restart_epilogue)
