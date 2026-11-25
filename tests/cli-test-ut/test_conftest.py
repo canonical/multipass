@@ -18,6 +18,7 @@
 """Unit tests for fixtures and hooks in cli.conftest."""
 
 import os
+import re
 import subprocess
 import sys
 import textwrap
@@ -76,8 +77,9 @@ class TestSessionFailureAbortsSession:
         )}
 
         result = subprocess.run(
-            [sys.executable, "-m", "pytest", str(tmp_path), "-p", "no:cacheprovider",
+            [sys.executable, "-m", "pytest", "test_abort.py", "-p", "no:cacheprovider",
              "-o", "addopts=", "-rA"],
+            cwd=tmp_path,
             capture_output=True,
             text=True,
             env=env,
@@ -86,8 +88,10 @@ class TestSessionFailureAbortsSession:
         )
 
         output = result.stdout + result.stderr
-        assert "FAILED test_abort.py::test_first" in output, output
+        assert "test_abort.py::test_first" in output, output
         assert "test_second" not in output, output
+        assert re.search(r"\b1 failed in\b", output), output
+        assert " passed" not in output, output
         assert "daemon is gone" in output, output
 
 
