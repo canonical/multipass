@@ -277,7 +277,7 @@ The CLI tests has a dedicated workflow in `.github/workflows/cli-tests.yaml` pat
     # The cli-tests.yaml workflow needs checks: write to write test reports.
     permissions:
       contents: read
-      actions: write
+      actions: read
       checks:  write
     secrets: inherit
     uses: ./.github/workflows/cli-tests.yml
@@ -295,15 +295,13 @@ The `pytest-extra-args` can be used to pass additional arguments to the pytest r
 
 Each platform runs as 4 parallel shards, one runner per shard, using [`pytest-split`](https://github.com/jerry-git/pytest-split) with `--splitting-algorithm=least_duration`. The tests must therefore be independent of each other.
 
-The balance comes from a table of per-test durations that is kept in the GitHub Actions cache under `cli-durations-<daemon-controller>-<driver>-<run id>`:
+The balance comes from a table of per-test durations kept in the GitHub Actions cache under `cli-durations-<runner>-<daemon-controller>-<driver>-<run id>`:
 
-1. Each shard restores the latest table and runs its share of the tests with `--store-durations`. Tests missing from the table (e.g. new ones, or a cold cache) get the average duration, so the split is merely less balanced.
-2. The `MergeDurations` job collects the shards' tables, drops the tests that no longer exist, and fails if the shards together did not run every collected test. It reports each shard's wall time and the skew (max/mean) in the job summary.
-3. Only runs on `main` save the merged table, replacing the previous cache entry. Other runs only read it.
+1. `GetMatrix` looks up the latest table saved by `main`, and every shard restores that same entry, so all shards agree on the split. Tests missing from the table (e.g. new ones, or a cold cache) get the average duration, so the split is merely less balanced.
+2. Each shard runs with `--store-durations --clean-durations`, which records only the tests it ran.
+3. On `main`, the `SaveDurations` job merges the shards' tables and saves the result as the new entry. Other runs only read it.
 
 To reproduce a shard locally, pass the same flags to `pytest`, e.g. `--splits=4 --group=2 --splitting-algorithm=least_duration --durations-path=<table>`.
-
-`tools/merge_durations.py` implements the merge.
 
 The manual dispatch can be made through GitHub Web UI, GitHub API, or GitHub CLI. Below is an example how to trigger the cli-tests from GitHub CLI:
 

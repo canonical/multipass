@@ -431,7 +431,7 @@ jobs:
   Dispatch-CLI-Tests-Workflow:
     permissions:
       contents: read
-      actions: write
+      actions: read
       checks:  write
     secrets: inherit
     needs:
