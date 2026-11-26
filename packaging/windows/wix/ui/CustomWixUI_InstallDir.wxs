@@ -57,12 +57,13 @@
 
             <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog"
                 Value="CustomWelcomeDlg" />
+            <!-- TODO hyperv migration, revert: drop the LEGACY_HYPERV_AVAILABLE conditions and ChooseHypervisorDlg -->
             <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog"
                 Value="ChooseHypervisorDlg"
-                Condition="LicenseAccepted = &quot;1&quot; AND NOT WIX_UPGRADE_DETECTED" />
+                Condition="LicenseAccepted = &quot;1&quot; AND NOT WIX_UPGRADE_DETECTED AND LEGACY_HYPERV_AVAILABLE" />
             <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog"
                 Value="ChoosePathInstallDlg"
-                Condition="LicenseAccepted = &quot;1&quot; AND WIX_UPGRADE_DETECTED" />
+                Condition="LicenseAccepted = &quot;1&quot; AND (WIX_UPGRADE_DETECTED OR NOT LEGACY_HYPERV_AVAILABLE)" />
 
             <Publish Dialog="ChooseHypervisorDlg" Control="Back" Event="NewDialog"
                 Value="LicenseAgreementDlg" />
@@ -71,10 +72,10 @@
 
             <Publish Dialog="ChoosePathInstallDlg" Control="Back" Event="NewDialog"
                 Value="LicenseAgreementDlg"
-                Condition="WIX_UPGRADE_DETECTED" />
+                Condition="WIX_UPGRADE_DETECTED OR NOT LEGACY_HYPERV_AVAILABLE" />
             <Publish Dialog="ChoosePathInstallDlg" Control="Back" Event="NewDialog"
                 Value="ChooseHypervisorDlg"
-                Condition="NOT WIX_UPGRADE_DETECTED" />
+                Condition="NOT WIX_UPGRADE_DETECTED AND LEGACY_HYPERV_AVAILABLE" />
             <Publish Dialog="ChoosePathInstallDlg" Control="Next" Event="NewDialog"
                 Value="CustomInstallDirDlg" />
 
