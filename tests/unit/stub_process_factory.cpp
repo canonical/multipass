@@ -79,7 +79,7 @@ public:
 
     bool wait_for_finished(int = 30000) override
     {
-        return false;
+        return true;
     }
 
     bool wait_for_ready_read(int = 30000) override

@@ -42,7 +42,10 @@
 #include <QString>
 #include <QTemporaryFile>
 
+#include <algorithm>
 #include <cassert>
+#include <chrono>
+#include <utility>
 
 namespace mp = multipass;
 namespace mpl = mp::logging;
@@ -258,7 +261,19 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
         mp::top_catch_all(vm_name, [this]() {
             if (state == State::running)
             {
-                suspend();
+                try
+                {
+                    suspend();
+                }
+                catch (const std::runtime_error& e)
+                {
+                    // QEMU refused to save the VM state (e.g. 9p mounts are still in the guest).
+                    // Do not leave the daemon hanging or QEMU orphaned: stop the guest cleanly
+                    mpl::warn(vm_name,
+                              "Suspending on destruction failed ({}), shutting down",
+                              e.what());
+                    shutdown();
+                }
             }
             else
             {
@@ -402,6 +417,7 @@ void mp::QemuVirtualMachine::suspend()
 {
     if ((state == State::running || state == State::delayed_shutdown) && vm_process->running())
     {
+        const auto was_updating_shutdown_status = update_shutdown_status;
         if (update_shutdown_status)
         {
             state = State::suspending;
@@ -410,9 +426,36 @@ void mp::QemuVirtualMachine::suspend()
         }
 
         drop_ssh_session();
+        savevm_pending = true;
+        savevm_error.reset();
         vm_process->write(QByteArray::fromStdString(
             serialize(hmc_to_qmp_json(QString{"savevm "} + suspend_tag))));
-        vm_process->wait_for_finished(vm_shutdown_timeout);
+
+        // QEMU reports a failed savevm as a plain "return" string, not as an error, so stop waiting
+        // as soon as either the RESUME event (success) or that reply (failure) has been handled
+        // (waiting on the process dispatches its output to the handler above)
+        const auto deadline = std::chrono::steady_clock::now() + vm_shutdown_timeout;
+        auto finished = false;
+        while (savevm_pending && !finished && vm_process->running() &&
+               std::chrono::steady_clock::now() < deadline)
+            finished = vm_process->wait_for_finished(250ms);
+
+        if (savevm_error)
+        {
+            // the VM is still running, so undo the state change made above
+            const auto error_msg = std::exchange(savevm_error, std::nullopt).value();
+            update_shutdown_status = was_updating_shutdown_status;
+            if (cached_state() == State::suspending)
+                set_state(State::running);
+            throw std::runtime_error{fmt::format("Failed to suspend {}: {}", vm_name, error_msg)};
+        }
+
+        savevm_pending = false;
+        if (!finished)
+            vm_process->wait_for_finished(
+                std::max(std::chrono::duration_cast<std::chrono::milliseconds>(
+                             deadline - std::chrono::steady_clock::now()),
+                         1000ms));
 
         vm_process.reset(nullptr);
     }
@@ -569,10 +612,20 @@ void mp::QemuVirtualMachine::initialize_vm_process()
                 mpl::info(vm_name, "VM suspended");
                 if (state == State::suspending || state == State::running)
                 {
+                    savevm_pending = false;
                     vm_process->kill();
                     on_suspend();
                 }
             }
+        }
+        else if (savevm_pending && qmp_object.if_contains("return") &&
+                 qmp_object.at("return").is_string() &&
+                 !qmp_object.at("return").as_string().empty())
+        {
+            // HMP command failures come back as a successful reply carrying the error text
+            savevm_error = std::string{qmp_object.at("return").as_string()};
+            savevm_pending = false;
+            mpl::error(vm_name, "Failed to suspend: {}", *savevm_error);
         }
         else if (auto error = qmp_object.if_contains("error"))
         {
