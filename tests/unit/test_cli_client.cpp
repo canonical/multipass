@@ -424,7 +424,7 @@ struct Client : public Test
                                   const grpc::Status& status,
                                   const ReplyType& reply = ReplyType{})
     {
-        return [&matcher, &status, reply = std::move(reply)](
+        return [matcher, &status, reply = std::move(reply)](
                    grpc::ServerReaderWriter<ReplyType, RequestType>* server) {
             RequestType request;
             server->Read(&request);

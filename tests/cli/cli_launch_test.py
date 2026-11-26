@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pytest
 
-from cli.utilities import is_valid_ipv4_addr
+from cli.utilities import TempDirectory, is_valid_ipv4_addr
 from cli.multipass import (
     launch,
     multipass,
@@ -52,26 +52,17 @@ MINIMAL_IMAGE_URL = (
 def local_image():
     """Download a minimal Ubuntu image (once, then cached), and return its
     absolute path.
-
-    The image is stored in a non-hidden folder of the user's home, as a
-    confined daemon (e.g. the snap) cannot read from `/tmp` nor from dot-folders.
     """
 
     arch = "arm64" if platform.machine().lower() in ("arm64", "aarch64") else "amd64"
-    folder = Path.home() / "multipass-cli-tests-images"
-    path = folder / f"ubuntu-minimal-{arch}.img"
-
-    if not path.exists():
-        folder.mkdir(exist_ok=True)
-        partial = path.with_suffix(".part")
+    with TempDirectory() as folder:
+        path = folder / f"ubuntu-minimal-{arch}.img"
         try:
-            urllib.request.urlretrieve(MINIMAL_IMAGE_URL.format(arch=arch), partial)
+            urllib.request.urlretrieve(MINIMAL_IMAGE_URL.format(arch=arch), path)
         except OSError as exc:
-            partial.unlink(missing_ok=True)
             pytest.skip(f"Could not download the minimal Ubuntu image: {exc}")
-        partial.replace(path)
 
-    return str(path)
+        yield str(path)
 
 
 @pytest.mark.launch
