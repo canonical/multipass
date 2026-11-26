@@ -457,25 +457,12 @@ _multipass_complete()
                 fi
             ;;
             "mount")
-                local source_set=0
-                local prev
-                _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
-                # Scan through the current command line to detect if the source
-                # positional arg has been set.
-                for ((i=2; i<CWORD; i++)); do
-                    if [[ "${WORDS[i]}" != -* ]] && \
-                       ([[ "${WORDS[i-1]}" != -* ]] || [[ "${WORDS[i-1]}" == *=* ]]); then
-                            source_set=1
-                            break
-                    fi
-                done
-
-                if [ ${source_set} == 0 ] ; then
-                    if [[ ${prev} != -* ]] || ([[ ${prev} == -* ]] && [[ ${prev} == *=* ]]); then
+                if ! _multipass_has_positional_arg "--gid-map -g --uid-map -u"; then
+                    if [[ ${prev} != -* ]] || [[ ${prev} == *=* ]]; then
                         _filedir -d
                         return
                     fi
-                elif [ ${source_set} == 1 ] && [[ ${prev} != -* ]]; then
+                elif [[ ${prev} != -* ]]; then
                     _multipass_instances "Running"
                     _multipass_instances "Stopped"
                     _multipass_instances "Suspended"
