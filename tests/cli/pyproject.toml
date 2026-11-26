@@ -2,7 +2,7 @@
 name = "multipass-cli-tests"
 version = "1.0.0"
 readme = "README.md"
-dependencies = ["pytest", "pytest-asyncio", "pexpect", "jq", "pywinpty; sys_platform == 'win32'", "pywin32; sys_platform == 'win32'" ]
+dependencies = ["pytest", "pytest-asyncio", "pytest-split", "pexpect", "jq", "pywinpty; sys_platform == 'win32'", "pywin32; sys_platform == 'win32'" ]
 
 # This project is not intended for packaging.
 [tool.setuptools]
@@ -46,4 +46,5 @@ markers = [
     "exec: Exec tests",
     "az: Availability zone tests",
     "restart: Restart tests",
+    "requires_multipass(spec): Skip unless the Multipass version matches the specifier.",
 ]
