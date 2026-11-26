@@ -67,10 +67,9 @@ _multipass_complete()
     # Check whether the command being completed already has a positional argument.
     _multipass_has_positional_arg()
     {
-        # Rebuild the words without breaking on commas, so that comma-separated option values such as
-        # "--comment before,after" are treated as a single value rather than as extra positionals.
+        # Keep option values such as "ops@example.com" and "before,after" in one word.
         local WORDS CWORD cur prev
-        _get_comp_words_by_ref -n :=, -w WORDS -i CWORD cur prev
+        _get_comp_words_by_ref -n :=,@ -w WORDS -i CWORD cur prev
 
         local value_opts=" $1 "
         local skip_next=0
