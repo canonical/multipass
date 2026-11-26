@@ -529,17 +529,18 @@ TEST_F(TestPlainSftpSession, nextMessageSendsKeepaliveWhileIdle)
     const auto sftp_session = make_sftp_session();
     ASSERT_THAT(sftp_session, NotNull());
 
-    // Limit how many polls we accept without a keepalive before failing the test.
-    // Allow a large number of polls, to accommodate any sensible keepalive and poll intervals.
-    static constexpr auto max_polls = 10'000; // allow 2500s for keepalive, on a (fake) 250ms poll
-    bool probed = false;
-    int polls = 0;
-    EXPECT_CALL(mock_libssh, ssh_send_keepalive(fake_session))
-        .WillOnce(DoAll(Assign(&probed, true), Return(SSH_OK)));
+    // Allow a large number of polls without a keepalive before failing the test
+    static constexpr auto max_polls = 10'000; // i.e. 2500s for keepalive, on a (fake) 250ms poll
+
+    // error by default to avoid hanging if the uut fails to honor the stop request
+    ON_CALL(mock_libssh, ssh_channel_poll_timeout).WillByDefault(Return(SSH_ERROR));
+
+    InSequence seq;
     EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0))
-        .WillRepeatedly(WithoutArgs([&probed, &polls] {
-            return probed ? 1 : (++polls > max_polls ? SSH_ERROR : 0);
-        }));
+        .Times(AtMost(max_polls))
+        .WillRepeatedly(Return(0));
+    EXPECT_CALL(mock_libssh, ssh_send_keepalive(fake_session)).WillOnce(Return(SSH_OK));
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0)).WillOnce(Return(1));
     EXPECT_CALL(mock_libssh, sftp_get_client_message(&fake_sftp_sessions[0]))
         .WillOnce(Return(&fake_client_msgs[1]));
 
