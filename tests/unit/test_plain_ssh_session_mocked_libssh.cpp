@@ -211,3 +211,27 @@ TEST_F(TestPlainSSHSessionMockedLibssh, dtorCallsShutdownSocket)
 
     auto session = make_ssh_session();
 }
+
+TEST_F(TestPlainSSHSessionMockedLibssh, setsConnectTimeoutBeforeConnectAndBoundedTimeoutAfter)
+{
+    constexpr long connect_timeout = 5;
+    constexpr long established_timeout = 10;
+    const auto timeout_is = [](long expected) {
+        return ResultOf([](const void* value) { return *static_cast<const long*>(value); },
+                        expected);
+    };
+
+    EXPECT_CALL(mock_libssh, ssh_options_set(_, Ne(SSH_OPTIONS_TIMEOUT), _)).Times(AnyNumber());
+    {
+        InSequence seq;
+        EXPECT_CALL(
+            mock_libssh,
+            ssh_options_set(fake_session, SSH_OPTIONS_TIMEOUT, timeout_is(connect_timeout)));
+        EXPECT_CALL(mock_libssh, ssh_connect(fake_session));
+        EXPECT_CALL(
+            mock_libssh,
+            ssh_options_set(fake_session, SSH_OPTIONS_TIMEOUT, timeout_is(established_timeout)));
+    }
+
+    auto session = make_ssh_session();
+}
