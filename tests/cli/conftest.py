@@ -27,6 +27,7 @@ import re
 import operator
 import atexit
 import time
+import os
 from contextlib import contextmanager, ExitStack, suppress
 from functools import partial
 from packaging import version
@@ -59,11 +60,9 @@ from cli.multipass import (
 
 from cli.config import cfg
 from cli.controller import (
+    CONTROLLERS,
     MultipassdGovernor,
-    SnapMultipassdController,
     StandaloneMultipassdController,
-    LaunchdMultipassdController,
-    WindowsServiceMultipassdController,
     ControllerPrerequisiteError,
 )
 
@@ -432,7 +431,9 @@ def make_temporary_storage_dir():
 
 @pytest.fixture(autouse=True, scope="session")
 def ensure_multipass_binaries_are_present():
-    if not get_multipass_path():
+    try:
+        get_multipass_path()
+    except FileNotFoundError:
         pytest.exit(
             "ERROR: Could not locate the `multipass` binary!",
             returncode=1,
@@ -443,6 +444,39 @@ def ensure_multipass_binaries_are_present():
             "ERROR: Could not locate the `multipassd` binary!",
             returncode=1,
         )
+
+
+def _inhibit_system_sleep():
+    """
+    Prevent macOS from idle-sleeping (and App-Napping) the test process.
+
+    During system sleep the sudo keep-alive thread is frozen, yet sudo measures
+    its credential timeout against Darwin's CLOCK_MONOTONIC, which keeps counting
+    while the system is asleep (see clock_gettime(3)). A sleep longer than
+    `timestamp_timeout` therefore silently expires the sudo ticket even though the
+    keep-alive "only missed" what it thinks is a short interval. Holding a power
+    assertion for the duration of the session keeps the machine awake so the
+    keep-alive can always run.
+    """
+    if sys.platform != "darwin":
+        return
+
+    if not shutil.which("caffeinate"):
+        logging.warning(
+            "caffeinate not found; cannot inhibit system sleep. "
+            "The sudo ticket may expire if the machine idle-sleeps."
+        )
+        return
+
+    # -d display, -i idle system, -m disk, -s system (on AC), -u user active.
+    # -w <pid>: caffeinate exits automatically when this process exits, so the
+    # power assertion can never outlive the test session and needs no teardown.
+    subprocess.Popen(
+        ["caffeinate", "-dimsu", "-w", str(os.getpid())],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -479,6 +513,10 @@ def ensure_sudo_auth():
 
             subprocess.run([*get_sudo_tool(), "-v"], check=True)
 
+        # Keep the machine awake so the keep-alive thread below is never frozen
+        # by idle sleep (which would let the sudo ticket lapse on macOS).
+        _inhibit_system_sleep()
+
         stop_keepalive = threading.Event()
 
         # Renew the sudo credentials ticket by issuing sudo periodically.
@@ -492,11 +530,16 @@ def ensure_sudo_auth():
                     logging.debug(
                         f"sudo keepalive tick :: {elapsed:.1f}s since last tick")
                     last_tick = now
+                    # A bounded timeout is essential: sudo can block for minutes
+                    # inside its authorization machinery (OpenDirectory, DNS, the
+                    # timestamp-file lock). Without it, a single stalled refresh
+                    # freezes the whole loop and the ticket silently expires.
                     result = subprocess.run(
                         [*get_sudo_tool(), "-n", "-v"],
                         stdin=subprocess.DEVNULL,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
+                        timeout=30,
                         check=False,
                     )
                     logging.debug(
@@ -522,10 +565,8 @@ def set_driver(controller):
 def make_daemon_controller(kind):
     # Return a partial so the controller can be instantiated on demand.
     controllers = {
+        **{name: partial(cls) for name, cls in CONTROLLERS.items()},
         "standalone": partial(StandaloneMultipassdController, cfg.storage_dir),
-        "snap": partial(SnapMultipassdController),
-        "launchd": partial(LaunchdMultipassdController),
-        "winsvc": partial(WindowsServiceMultipassdController),
         "none": lambda: None,
     }
 
@@ -625,6 +666,10 @@ def multipassd_class_scoped(request):
         request.cls.multipassd = daemon
         yield daemon
 
+@pytest.fixture(scope="session")
+def multipassd_session_scoped():
+    with multipassd_impl() as daemon:
+        yield daemon
 
 @pytest.fixture
 def windows_privileged_mounts(multipassd):

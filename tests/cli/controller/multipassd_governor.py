@@ -22,8 +22,7 @@ import logging
 import re
 import sys
 import threading
-import time
-from contextlib import suppress
+from contextlib import asynccontextmanager, suppress
 from typing import Optional
 
 import pytest
@@ -42,7 +41,7 @@ from cli.multipass import (
 from cli.utilities import (
     SilentAsyncSubprocess,
     StdoutAsyncSubprocess,
-    run_in_new_interpreter,
+    run_in_new_interpreter_async,
 )
 
 from .multipassd_controller import MultipassdController
@@ -61,6 +60,8 @@ class MultipassdGovernor:
         self.controller = controller
         self.daemon_ready_event = threading.Event()
         self.daemon_stopped_event = threading.Event()
+        self._lifecycle_lock = asyncio.Lock()
+        self._start_in_progress = False
         self.monitor_task = None
         self._reset_state()
 
@@ -147,8 +148,12 @@ class MultipassdGovernor:
             )
 
         except asyncio.CancelledError:
-            # Task was cancelled, this is expected during shutdown
-            stdout_task.cancel()
+            # Task was cancelled, this is expected during shutdown. Drain the
+            # stream reader (mirror the normal path above) so its subscription
+            # cleanup runs deterministically before we propagate the cancel.
+            if not stdout_task.done():
+                stdout_task.cancel()
+            await stdout_task
             raise
 
     async def on_monitor_exit(self, task):
@@ -158,17 +163,21 @@ class MultipassdGovernor:
         if task.cancelled():
             return
 
-        multipassd_settings_changed_code = 42
-        daemon_exit_code = await self.controller.exit_code()
-        needs_restarting = (
-            not self.controller.supports_self_autorestart()
-            and daemon_exit_code == multipassd_settings_changed_code
-        )
-        self._reset_state()
-        if needs_restarting:
-            logging.debug("multipassd-governor :: daemon auto-restarting")
-            self.asyncio_loop.run_fn(
-                lambda: asyncio.create_task(self.start_async()))
+        async with self._lifecycle_lock:
+            multipassd_settings_changed_code = 42
+            daemon_exit_code = await self.controller.exit_code()
+            # Never auto-restart while a graceful stop owns the lifecycle; a
+            # restart here would fight the stop and bring the daemon back up.
+            needs_restarting = (
+                not self.controller.supports_self_autorestart()
+                and not self.graceful_exit_initiated
+                and daemon_exit_code == multipassd_settings_changed_code
+            )
+            self._reset_state()
+            if needs_restarting:
+                logging.debug("multipassd-governor :: daemon auto-restarting")
+                self.asyncio_loop.run_fn(
+                    lambda: asyncio.create_task(self.start_async()))
 
     async def _ensure_client_certs_are_created(self):
         # Call multipass cli to create the client certs
@@ -179,14 +188,30 @@ class MultipassdGovernor:
         ) as version_proc:
             await asyncio.wait_for(version_proc.wait(), timeout=10)
 
-    def _authenticate_client_cert(self):
+    async def _authenticate_client_cert(self):
         # It's important that we get the cert path here instead of under
         # run_as_privileged.
         cert_path = get_client_cert_path()
-        # Authenticate the client against the daemon
-        run_in_new_interpreter(
+        # Authenticate the client against the daemon. Offload the blocking
+        # subprocess to a worker thread so it can't stall the event loop.
+        result = await run_in_new_interpreter_async(
             authenticate_client_cert, str(cert_path), cfg.data_dir, privileged=True
         )
+        if result.returncode != 0:
+            raise TestSessionFailure(
+                f"Client certificate authentication failed (exit {result.returncode})"
+            )
+
+    @asynccontextmanager
+    async def _starting(self):
+        """Hold the lifecycle lock for a start, flagging it so a concurrent
+        `stop_async` can pre-empt it (see there)."""
+        async with self._lifecycle_lock:
+            self._start_in_progress = True
+            try:
+                yield
+            finally:
+                self._start_in_progress = False
 
     async def start_async(self):
         """Start the multipassd daemon"""
@@ -201,56 +226,76 @@ class MultipassdGovernor:
                 with suppress(asyncio.CancelledError):
                     await t
 
-        await self._ensure_client_certs_are_created()
-        self._authenticate_client_cert()
+        async with self._starting():
+            # A prior stop_async leaves `graceful_exit_initiated` set; clear it
+            # so a daemon exit *during startup* isn't misread as "graceful".
+            self.graceful_exit_initiated = False
+            await self._ensure_client_certs_are_created()
+            await self._authenticate_client_cert()
 
-        await self.controller.start()
+            await self.controller.start()
 
-        # Start monitoring task
-        monitor_task = asyncio.create_task(
-            self._monitor(), name="monitor_task")
-        monitor_task.add_done_callback(
-            lambda t: asyncio.create_task(self.on_monitor_exit(t))
-        )
-
-        ready_task = asyncio.create_task(
-            self.wait_for_multipassd_ready(), name="wait_for_ready_task"
-        )
-
-        done, _ = await asyncio.wait(
-            {ready_task, monitor_task},
-            return_when=asyncio.FIRST_COMPLETED,
-        )
-
-        if monitor_task in done:
-            _cancel(ready_task)
-            await _drain(ready_task)
-            try:
-                await monitor_task
-                raise TestCaseFailure("daemon exited during startup")
-            except TestSessionFailure as ex:
-                Session.shouldfail = str(ex)
-                raise
-
-        # Wait for daemon to be ready
-        if not await ready_task:
-            logging.warning(
-                "⚠️ multipassd not ready, attempting graceful shutdown...")
-            self.monitor_task = monitor_task
-            await self.stop_async()
-            pytest.exit(
-                "Tests cannot proceed, multipassd not responding in time.",
-                returncode=12,
+            # Start monitoring task
+            monitor_task = asyncio.create_task(
+                self._monitor(), name="monitor_task")
+            monitor_task.add_done_callback(
+                lambda t: asyncio.create_task(self.on_monitor_exit(t))
             )
 
-        self.monitor_task = monitor_task
-        self.daemon_stopped_event.clear()
-        self.daemon_ready_event.set()
+            ready_task = asyncio.create_task(
+                self.wait_for_multipassd_ready(), name="wait_for_ready_task"
+            )
+
+            done, _ = await asyncio.wait(
+                {ready_task, monitor_task},
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+
+            if monitor_task in done:
+                _cancel(ready_task)
+                await _drain(ready_task)
+                try:
+                    await monitor_task
+                    raise TestCaseFailure("daemon exited during startup")
+                except TestSessionFailure as ex:
+                    Session.shouldfail = str(ex)
+                    raise
+
+            # Wait for daemon to be ready
+            if not await ready_task:
+                logging.warning(
+                    "⚠️ multipassd not ready, attempting graceful shutdown...")
+                self.monitor_task = monitor_task
+                await self._stop_locked()
+                pytest.exit(
+                    "Tests cannot proceed, multipassd not responding in time.",
+                    returncode=12,
+                )
+
+            self.monitor_task = monitor_task
+            self.daemon_stopped_event.clear()
+            self.daemon_ready_event.set()
 
     async def stop_async(self):
         """Stop the multipassd daemon"""
         logging.debug("multipassd-governor :: stop called")
+        if self._start_in_progress:
+            # The pending start holds the lifecycle lock until the daemon is
+            # ready (or exits), so just waiting for the lock would hang on a
+            # daemon that never becomes ready. Stop the daemon first: the start
+            # then fails fast ("daemon exited during startup") and releases the
+            # lock. The locked stop below is idempotent and finishes the job.
+            logging.debug("multipassd-governor :: stop pre-empting a pending start")
+            self.graceful_exit_initiated = True
+            self.daemon_ready_event.clear()
+            with suppress(asyncio.TimeoutError):
+                await asyncio.wait_for(self.controller.stop(), timeout=30)
+        async with self._lifecycle_lock:
+            await self._stop_locked()
+
+    async def _stop_locked(self):
         self.graceful_exit_initiated = True
+        self.daemon_ready_event.clear()
         try:
             await asyncio.wait_for(self.controller.stop(), timeout=30)
         except asyncio.TimeoutError:
@@ -290,10 +335,12 @@ class MultipassdGovernor:
         self.asyncio_loop.run(self.stop_async()).result(timeout=timeout)
 
     def wait_for_shutdown(self, timeout=60):
-        self.daemon_stopped_event.wait(timeout=timeout)
+        if not self.daemon_stopped_event.wait(timeout=timeout):
+            raise TimeoutError(f"Daemon did not shut down within {timeout}s")
 
     def wait_for_start(self, timeout=60):
-        self.daemon_ready_event.wait(timeout=timeout)
+        if not self.daemon_ready_event.wait(timeout=timeout):
+            raise TimeoutError(f"Daemon did not become ready within {timeout}s")
 
     def check_health(self, timeout=5):
         """Verify the daemon is responsive before a test step.
@@ -320,7 +367,11 @@ class MultipassdGovernor:
             logging.debug(
                 "multipassd-governor :: daemon auto-restart detected")
             # Wait until daemon is ready
-            self.asyncio_loop.run(self.wait_for_multipassd_ready()).result()
+            if not self.asyncio_loop.run(
+                self.wait_for_multipassd_ready(timeout=timeout)).result():
+                raise TimeoutError(
+                    f"Daemon did not become ready after restart within {timeout}s"
+                )
             return
         self.wait_for_shutdown(timeout=timeout)
         self.wait_for_start(timeout=timeout)
@@ -362,9 +413,11 @@ class MultipassdGovernor:
         """
         Wait until Multipass daemon starts responding to CLI commands.
         """
-        deadline = time.time() + timeout
+        # `asyncio.timeout_at` measures against the event loop's clock.
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
 
-        while time.time() < deadline:
+        while loop.time() < deadline:
             try:
                 find_stdout = None
                 find_exitcode = 0
@@ -374,7 +427,8 @@ class MultipassdGovernor:
                     "noble",
                     env=get_multipass_env(),
                 ) as find_proc:
-                    find_stdout, _ = await find_proc.communicate()
+                    async with asyncio.timeout_at(deadline):
+                        find_stdout, _ = await find_proc.communicate()
                     find_exitcode = find_proc.returncode
 
                 if find_exitcode != 0:
@@ -388,7 +442,8 @@ class MultipassdGovernor:
                     logging.debug(find_stdout)
 
                 # Otherwise, verify the version
-                _, stdout = await MultipassdGovernor._run_version_probe()
+                async with asyncio.timeout_at(deadline):
+                    _, stdout = await MultipassdGovernor._run_version_probe()
                 cli_ver, daemon_ver = parse_multipass_versions(stdout.decode())
 
                 if daemon_ver is not None:
