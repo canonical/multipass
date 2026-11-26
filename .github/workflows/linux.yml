@@ -266,7 +266,7 @@ jobs:
     - name: Measure coverage
       id: measure-coverage
       if: ${{ matrix.build-type == 'Coverage' }}
-      timeout-minutes: 10
+      timeout-minutes: 20
       run: |
         source "$GITHUB_WORKSPACE/.github/scripts/coredump-helpers.sh"
         /snap/bin/lxc --project snapcraft start $instance_name
