@@ -267,10 +267,10 @@ Json::Value update_profiles(const QString& path,
     Json::Value ret = json_root;
     auto& profiles = edit_profiles(path, ret);
 
-    auto primary_profile_it =
-        std::find_if(std::begin(profiles), std::end(profiles), [](const auto& profile) {
-            return profile["guid"] == mp::winterm_profile_guid;
-        });
+    auto primary_profile_it = std::find_if(
+        std::begin(profiles),
+        std::end(profiles),
+        [](const auto& profile) { return profile["guid"] == mp::winterm_profile_guid; });
 
     Json::Value* primary_profile_ptr = nullptr;
     if (primary_profile_it != std::end(profiles))
@@ -673,14 +673,14 @@ std::vector<std::string> unicast_addrs_to_net_addrs(
         switch (sa.sa_family)
         {
         case AF_INET:
-            network_addr =
-                ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN*>(&sa)->sin_addr,
-                                      unicast_addr->OnLinkPrefixLength);
+            network_addr = ip_utils().to_network(
+                reinterpret_cast<const SOCKADDR_IN*>(&sa)->sin_addr,
+                unicast_addr->OnLinkPrefixLength);
             break;
         case AF_INET6:
-            network_addr =
-                ip_utils().to_network(reinterpret_cast<const SOCKADDR_IN6*>(&sa)->sin6_addr,
-                                      unicast_addr->OnLinkPrefixLength);
+            network_addr = ip_utils().to_network(
+                reinterpret_cast<const SOCKADDR_IN6*>(&sa)->sin6_addr,
+                unicast_addr->OnLinkPrefixLength);
             break;
         }
 
@@ -1376,6 +1376,20 @@ std::filesystem::path mp::platform::Platform::qstr_to_path(const QString& qstr) 
 QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) const
 {
     return QString::fromStdWString(path.generic_wstring());
+}
+
+std::optional<QString> mp::platform::Platform::convert_uri_to_path(const QString& uri) const
+{
+    if (uri.startsWith("file://"))
+    {
+        const auto extracted = uri.mid(7);
+
+        const auto with_drive_regex = QRegularExpression{"^\\/[a-zA-Z]:"};
+        const auto drop_third_slash = with_drive_regex.match(extracted).hasMatch();
+        return drop_third_slash ? extracted.mid(1) : extracted;
+    }
+
+    return std::nullopt;
 }
 
 void mp::platform::Platform::shutdown_socket(mp::Socket socket) const

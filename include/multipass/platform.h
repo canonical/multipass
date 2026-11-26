@@ -36,7 +36,7 @@
 #include <QString>
 
 #include <functional>
-#include <memory>
+#include <optional>
 #include <string>
 
 #define MP_PLATFORM multipass::platform::Platform::instance()
@@ -90,6 +90,9 @@ public:
     // Converts QString to path, using appropriate string functions depending on the platform
     [[nodiscard]] virtual std::filesystem::path qstr_to_path(const QString& qstr) const;
     [[nodiscard]] virtual QString path_to_qstr(const std::filesystem::path& path) const;
+
+    [[deprecated("This function does not comply with RFC 8089.")]]
+    virtual std::optional<QString> convert_uri_to_path(const QString& uri) const;
 
     // Shuts down I/O on a socket in both directions, without closing it
     virtual void shutdown_socket(Socket socket) const;

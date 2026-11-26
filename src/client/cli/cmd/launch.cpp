@@ -29,6 +29,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
+#include <multipass/platform.h>
 #include <multipass/settings/settings.h>
 #include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
@@ -42,7 +43,9 @@
 #include <QRegularExpression>
 #include <QTimeZone>
 #include <QUrl>
+
 #include <filesystem>
+#include <optional>
 #include <unordered_map>
 
 namespace mp = multipass;
@@ -287,24 +290,19 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     {
         auto remote_image_name = parser->positionalArguments().first();
 
-        if (remote_image_name.startsWith("file://"))
-        {
-// On Windows, if the drive letter is present, we may need to drop a third slash.
-#ifdef MULTIPASS_PLATFORM_WINDOWS
-            const auto extracted = remote_image_name.mid(7);
-            const auto path = QRegularExpression{"^\\/[a-zA-Z]:"}.match(extracted).hasMatch()
-                                ? extracted.mid(1)
-                                : extracted;
-#else
-            const auto path = remote_image_name.mid(7);
-#endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+        const auto path = MP_PLATFORM.convert_uri_to_path(remote_image_name);
+#pragma GCC diagnostic pop
 
+        if (path.has_value())
+        {
             // Convert to absolute because the daemon doesn't know where the client is being
             // executed.
-            const auto file_uri = QUrl::fromLocalFile(QFileInfo(path).absoluteFilePath())
+            const auto file_uri = QUrl::fromLocalFile(QFileInfo{*path}.absoluteFilePath())
                                       .toString();
 
-            if (path.isEmpty() || !QUrl{file_uri}.isValid())
+            if (path->isEmpty() || !QUrl{file_uri}.isValid())
             {
                 cerr << "Invalid file URL `" << remote_image_name.toStdString() << "`\n";
                 return ParseCode::CommandLineError;
