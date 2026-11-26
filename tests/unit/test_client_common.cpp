@@ -30,6 +30,7 @@
 #include "temp_dir.h"
 
 #include <multipass/cli/client_common.h>
+#include <multipass/exceptions/file_open_failed_exception.h>
 #include <multipass/utils.h>
 
 #include <grpcpp/support/status.h>
@@ -119,6 +120,13 @@ TEST_F(TestClientCommon, noValidCertsCreatesNewCommonCert)
     EXPECT_TRUE(mp::client::make_channel(server_address, *mp::client::get_cert_provider()));
     EXPECT_TRUE(QFile::exists(common_cert_dir + "/" + mp::client_cert_file));
     EXPECT_TRUE(QFile::exists(common_cert_dir + "/" + mp::client_key_file));
+}
+
+TEST_F(TestClientCommon, missingRootCertDoesNotThrowWhenMakingChannel)
+{
+    EXPECT_CALL(*mock_utils, contents_of(_)).WillOnce(Throw(mp::FileOpenFailedException{"root"}));
+
+    EXPECT_NO_THROW(mp::client::make_channel(server_address, *mp::client::get_cert_provider()));
 }
 
 TEST(TestClientHandleUserPassword, defaultHasNoPassword)

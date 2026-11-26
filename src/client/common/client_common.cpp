@@ -18,6 +18,7 @@
 #include <multipass/cli/client_common.h>
 #include <multipass/constants.h>
 #include <multipass/exceptions/autostart_setup_exception.h>
+#include <multipass/exceptions/file_open_failed_exception.h>
 #include <multipass/exceptions/settings_exceptions.h>
 #include <multipass/format.h>
 #include <multipass/logging/log.h>
@@ -83,7 +84,17 @@ grpc::SslCredentialsOptions get_ssl_credentials_opts_from(const mp::CertProvider
 {
     auto opts = grpc::SslCredentialsOptions();
 
-    opts.pem_root_certs = MP_UTILS.contents_of(MP_PLATFORM.get_root_cert_path().u8string().c_str());
+    // The daemon may not have generated its root cert yet. Leave the roots empty so that the
+    // connection fails with a gRPC error, which commands (e.g. `version`) can handle gracefully.
+    try
+    {
+        opts.pem_root_certs = MP_UTILS.contents_of(
+            MP_PLATFORM.get_root_cert_path().u8string().c_str());
+    }
+    catch (const mp::FileOpenFailedException& e)
+    {
+        mpl::warn("client", "Could not read daemon root certificate: {}", e.what());
+    }
     opts.pem_cert_chain = cert_provider.PEM_certificate();
     opts.pem_private_key = cert_provider.PEM_signing_key();
 
