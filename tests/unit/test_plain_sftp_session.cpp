@@ -561,6 +561,24 @@ TEST_F(TestPlainSftpSession, nextMessageSkipsKeepaliveWhenDataArrivesPromptly)
     EXPECT_THAT(sftp_session->next_message(), NotNull());
 }
 
+TEST_F(TestPlainSftpSession, nextMessageReturnsNullWhenStopRequestedWhileIdle)
+{
+    expect_client_spawns<1>();
+
+    const auto sftp_session = make_sftp_session();
+    ASSERT_THAT(sftp_session, NotNull());
+
+    EXPECT_CALL(mock_libssh, ssh_send_keepalive).Times(0);
+
+    // error by default to avoid hanging if the uut fails to honor the stop request
+    ON_CALL(mock_libssh, ssh_channel_poll_timeout).WillByDefault(Return(SSH_ERROR));
+    EXPECT_CALL(mock_libssh, ssh_channel_poll_timeout(fake_channel, _, 0))
+        .WillOnce(DoAll(InvokeWithoutArgs(sftp_session.get(), &mp::SftpSession::request_stop),
+                        Return(0)));
+
+    EXPECT_THAT(sftp_session->next_message(), IsNull());
+}
+
 TEST_F(TestPlainSftpSession, clientExitCodeReportsGracefulClientExit)
 {
     expect_client_spawns<1>();
