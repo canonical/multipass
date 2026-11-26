@@ -1378,7 +1378,8 @@ QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) 
     return QString::fromStdWString(path.generic_wstring());
 }
 
-std::optional<QString> mp::platform::Platform::convert_uri_to_path(const QString& uri) const
+std::optional<QString> mp::platform::Platform::convert_uri_to_path__deprecated(
+    const QString& uri) const
 {
     if (uri.startsWith("file://"))
     {

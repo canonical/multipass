@@ -290,11 +290,7 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     {
         auto remote_image_name = parser->positionalArguments().first();
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-        const auto path = MP_PLATFORM.convert_uri_to_path(remote_image_name);
-#pragma GCC diagnostic pop
-
+        const auto path = MP_PLATFORM.convert_uri_to_path__deprecated(remote_image_name);
         if (path.has_value())
         {
             // Convert to absolute because the daemon doesn't know where the client is being

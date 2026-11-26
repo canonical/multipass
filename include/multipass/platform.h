@@ -91,8 +91,9 @@ public:
     [[nodiscard]] virtual std::filesystem::path qstr_to_path(const QString& qstr) const;
     [[nodiscard]] virtual QString path_to_qstr(const std::filesystem::path& path) const;
 
-    [[deprecated("This function does not comply with RFC 8089.")]]
-    virtual std::optional<QString> convert_uri_to_path(const QString& uri) const;
+    // This function does not comply with RFC 8089.
+    // Do not use it in new code, it should be removed in the future.
+    virtual std::optional<QString> convert_uri_to_path__deprecated(const QString& uri) const;
 
     // Shuts down I/O on a socket in both directions, without closing it
     virtual void shutdown_socket(Socket socket) const;
