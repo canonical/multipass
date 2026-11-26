@@ -49,6 +49,7 @@ jobs:
     runs-on: ubuntu-slim
     outputs:
       matrix: ${{ steps.neo.outputs.matrix }}
+      merge_matrix: ${{ steps.neo.outputs.merge_matrix }}
       has_targets: ${{ steps.neo.outputs.has_targets }}
     steps:
       - id: neo
@@ -118,7 +119,26 @@ jobs:
               }
             }
 
+            // Fan each target out into shards. pytest-split picks the tests of
+            // each shard based on the durations stored by previous runs.
+            const SHARDS = 4;
+            const targets = matrix.include;
+            matrix.include = targets.flatMap(target =>
+              Array.from({ length: SHARDS }, (_, i) => ({
+                ...target,
+                shard: i + 1,
+                splits: SHARDS,
+                label: `${target.label} [${i + 1}/${SHARDS}]`,
+                'concurrency-key': shortHash(`${target['concurrency-key']}-${i + 1}`),
+                'durations-key': `cli-durations-${target['daemon-controller']}-${target['backend-driver']}`
+              })));
+
+            // One merge job per distinct controller/driver durations table.
+            const merge = { include: [...new Set(matrix.include.map(t => t['durations-key']))]
+              .map(key => ({ 'durations-key': key, splits: SHARDS })) };
+
             core.setOutput('matrix', JSON.stringify(matrix));
+            core.setOutput('merge_matrix', JSON.stringify(merge));
             core.setOutput('has_targets', String(matrix.include.length > 0));
   run-cli-tests:
     concurrency:
@@ -238,11 +258,26 @@ jobs:
           vm_stat | head -10
           sysctl hw.memsize
 
+      - name: Restore test durations
+        uses: actions/cache/restore@v6
+        with:
+          path: .test_durations
+          key: ${{ matrix['durations-key'] }}-unmatched # force a prefix match below
+          restore-keys: ${{ matrix['durations-key'] }}-
+          enableCrossOsArchive: true
+
+      - name: List all tests
+        if: ${{ matrix.shard == 1 }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          ${{ matrix.cmd-prologue }} pytest tests/cli --collect-only -q --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} ${{ env.PYTEST_EXTRA_ARGS }} > collected.txt
+
       - name: Run cli-tests
         id: run-cli-tests
         shell: bash
         run: |
-          ${{ matrix.cmd-prologue }} pytest -s tests/cli --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }} || PYTEST_EXIT=$?
+          ${{ matrix.cmd-prologue }} pytest -s tests/cli --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml --splits=${{ matrix.splits }} --group=${{ matrix.shard }} --splitting-algorithm=least_duration --durations-path=.test_durations --store-durations ${{ env.PYTEST_EXTRA_ARGS }} || PYTEST_EXIT=$?
           echo "pytest-exit=${PYTEST_EXIT:-0}" >> "$GITHUB_OUTPUT"
           exit "${PYTEST_EXIT:-0}"
 
@@ -266,3 +301,89 @@ jobs:
           path: reports/junit.xml
           reporter: java-junit # understands standard JUnit
           fail-on-error: false # fail job if there are test failures
+
+      - name: Stage shard outputs
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p reports
+          cp .test_durations reports/durations.json || true
+          cp collected.txt reports/collected.txt || true
+
+      - name: Upload shard outputs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix['durations-key'] }}-shard-${{ matrix.shard }}
+          path: |
+            reports/junit.xml
+            reports/durations.json
+            reports/collected.txt
+          if-no-files-found: ignore
+
+  MergeDurations:
+    name: Merge test durations (${{ matrix['durations-key'] }})
+    needs: [GetMatrix, run-cli-tests]
+    if: ${{ !cancelled() && needs.GetMatrix.outputs.has_targets == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write # to delete superseded cache entries
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.merge_matrix) }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out cli-tests
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          submodules: false
+          sparse-checkout: |
+            tests/cli/tools
+
+      - name: Download shard outputs
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ matrix['durations-key'] }}-shard-*
+          path: shards
+
+      - name: Restore previous test durations
+        uses: actions/cache/restore@v6
+        with:
+          path: .test_durations
+          key: ${{ matrix['durations-key'] }}-unmatched # force a prefix match below
+          restore-keys: ${{ matrix['durations-key'] }}-
+          enableCrossOsArchive: true
+
+      - name: Merge test durations
+        shell: bash
+        run: |
+          shopt -s nullglob
+          if [ -f .test_durations ]; then mv .test_durations previous.json; fi
+          python3 tests/cli/tools/merge_durations.py \
+            --previous previous.json \
+            --collected shards/*-shard-1/collected.txt \
+            --shards ${{ matrix.splits }} \
+            --junit shards/*/junit.xml \
+            --durations shards/*/durations.json \
+            --out .test_durations | tee -a "$GITHUB_STEP_SUMMARY"
+          test "${PIPESTATUS[0]}" -eq 0
+
+      - name: Save test durations
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: actions/cache/save@v6
+        with:
+          path: .test_durations
+          key: ${{ matrix['durations-key'] }}-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true
+
+      - name: Delete superseded test durations
+        if: ${{ github.ref == 'refs/heads/main' }}
+        shell: bash
+        run: |
+          current="${{ matrix['durations-key'] }}-${{ github.run_id }}-${{ github.run_attempt }}"
+          gh cache list --ref refs/heads/main --key "${{ matrix['durations-key'] }}-" --json id,key \
+            --jq ".[] | select(.key != \"$current\") | .id" |
+            xargs -r -n1 gh cache delete
