@@ -184,8 +184,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
         "{\"return\": \"Error: Migration is disabled when VirtFS export path '/home/ubuntu/mnt' "
         "is mounted in the guest\"}";
 
-    // Like handle_qemu_system, but QEMU answers `savevm` with an HMP error (relayed by QMP as a
-    // successful "return" string). The flag is set once system_powerdown has been written.
+    // Like handle_qemu_system, but savevm fails; the flag is set on system_powerdown
     static auto handle_qemu_system_savevm_error(std::shared_ptr<bool> powerdown_written)
     {
         return [powerdown_written](mpt::MockProcess* process) {
@@ -197,8 +196,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                 emit process->started();
             });
 
-            // Blindly waiting for the process to finish before powering down would be the 5 min
-            // hang
+            // any wait before powerdown would be the 5 min hang
             EXPECT_CALL(*process, wait_for_finished(_))
                 .WillRepeatedly([powerdown_written](int msecs) {
                     if (!*powerdown_written)

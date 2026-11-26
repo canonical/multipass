@@ -267,8 +267,7 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
                 }
                 catch (const std::runtime_error& e)
                 {
-                    // QEMU refused to save the VM state (e.g. 9p mounts are still in the guest).
-                    // Do not leave the daemon hanging or QEMU orphaned: stop the guest cleanly
+                    // savevm was refused (e.g. busy 9p mount), power down instead
                     mpl::warn(vm_name,
                               "Suspending on destruction failed ({}), shutting down",
                               e.what());
@@ -431,9 +430,7 @@ void mp::QemuVirtualMachine::suspend()
         vm_process->write(QByteArray::fromStdString(
             serialize(hmc_to_qmp_json(QString{"savevm "} + suspend_tag))));
 
-        // QEMU reports a failed savevm as a plain "return" string, not as an error, so stop waiting
-        // as soon as either the RESUME event (success) or that reply (failure) has been handled
-        // (waiting on the process dispatches its output to the handler above)
+        // stop on RESUME (success) or on an HMP error reply (failure)
         const auto deadline = std::chrono::steady_clock::now() + vm_shutdown_timeout;
         auto finished = false;
         while (savevm_pending && !finished && vm_process->running() &&
@@ -442,7 +439,7 @@ void mp::QemuVirtualMachine::suspend()
 
         if (savevm_error)
         {
-            // the VM is still running, so undo the state change made above
+            // the VM is still running
             const auto error_msg = std::exchange(savevm_error, std::nullopt).value();
             update_shutdown_status = was_updating_shutdown_status;
             if (cached_state() == State::suspending)
@@ -622,7 +619,7 @@ void mp::QemuVirtualMachine::initialize_vm_process()
                  qmp_object.at("return").is_string() &&
                  !qmp_object.at("return").as_string().empty())
         {
-            // HMP command failures come back as a successful reply carrying the error text
+            // HMP errors come back as a "return" string
             savevm_error = std::string{qmp_object.at("return").as_string()};
             savevm_pending = false;
             mpl::error(vm_name, "Failed to suspend: {}", *savevm_error);
