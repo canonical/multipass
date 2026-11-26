@@ -119,37 +119,51 @@ jobs:
               }
             }
 
-            // Fan each target out into shards, split by pytest-split using the
-            // test durations saved by the latest main run. All shards of a
-            // target restore the same cache entry, so they agree on the split.
-            const SHARDS = 4;
+            // Keep the original targets for the per-target timing jobs.
             const targets = matrix.include;
             for (const target of targets) {
+              target.splits = 4;
               target['durations-key'] = `cli-durations-${target.os}-${target['daemon-controller']}-${target['backend-driver']}`;
-              const { data } = await github.rest.actions.getActionsCacheList({
-                ...context.repo, key: `${target['durations-key']}-`, ref: 'refs/heads/main',
-                sort: 'created_at', direction: 'desc', per_page: 1
-              });
-              target['durations-cache'] = data.actions_caches[0]?.key ?? '';
             }
             matrix.include = targets.flatMap(target =>
-              Array.from({ length: SHARDS }, (_, i) => ({
+              Array.from({ length: target.splits }, (_, i) => ({
                 ...target,
                 shard: i + 1,
-                splits: SHARDS,
-                label: `${target.label} [${i + 1}/${SHARDS}]`,
+                label: `${target.label} [${i + 1}/${target.splits}]`,
                 'concurrency-key': `${target['concurrency-key']}-${i + 1}`
               })));
 
             core.setOutput('matrix', JSON.stringify(matrix));
             core.setOutput('targets', JSON.stringify({ include: targets }));
             core.setOutput('has_targets', String(matrix.include.length > 0));
+
+  PrepareDurations:
+    needs: GetMatrix
+    if: ${{ needs.GetMatrix.outputs.has_targets == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.targets) }}
+    steps:
+      - uses: actions/cache/restore@v6
+        with:
+          path: test-durations.json
+          key: ${{ matrix['durations-key'] }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ matrix['durations-key'] }}-
+          enableCrossOsArchive: true
+      - run: test -f test-durations.json || echo '{}' > test-durations.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: baseline-${{ matrix['durations-key'] }}
+          path: test-durations.json
+          if-no-files-found: error
+          overwrite: true
+
   run-cli-tests:
     concurrency:
       group: cli-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ matrix.concurrency-key }}
       cancel-in-progress: true
     name: CLI Tests (${{ matrix.label }})
-    needs: GetMatrix
+    needs: [GetMatrix, PrepareDurations]
     runs-on: ${{ matrix.os }}
     if: ${{ needs.GetMatrix.outputs.has_targets == 'true' }}
     strategy:
@@ -262,14 +276,10 @@ jobs:
           vm_stat | head -10
           sysctl hw.memsize
 
-      - name: Restore test durations
-        if: ${{ matrix['durations-cache'] != '' }}
-        uses: actions/cache/restore@v6
+      - name: Download shared timing baseline
+        uses: actions/download-artifact@v8
         with:
-          path: test-durations.json
-          key: ${{ matrix['durations-cache'] }}
-          fail-on-cache-miss: true # shards must agree on the split
-          enableCrossOsArchive: true
+          name: baseline-${{ matrix['durations-key'] }}
 
       - name: Run cli-tests
         id: run-cli-tests
@@ -277,6 +287,8 @@ jobs:
         run: |
           ${{ matrix.cmd-prologue }} pytest -s tests/cli --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml --splits=${{ matrix.splits }} --group=${{ matrix.shard }} --splitting-algorithm=least_duration --durations-path=test-durations.json --store-durations --clean-durations ${{ env.PYTEST_EXTRA_ARGS }} || PYTEST_EXIT=$?
           echo "pytest-exit=${PYTEST_EXIT:-0}" >> "$GITHUB_OUTPUT"
+          # least_duration assigns the first selected test to shard 1.
+          if [[ ${PYTEST_EXIT:-0} == 5 && ${{ matrix.shard }} != 1 ]]; then exit 0; fi
           exit "${PYTEST_EXIT:-0}"
 
       - name: Check resources after
@@ -292,7 +304,7 @@ jobs:
           sudo du -sh /var/root/Library/Application\ Support/multipassd/ 2>/dev/null || true
 
       - name: Report cli-tests results to Github Checks
-        if: success() || failure()
+        if: ${{ !cancelled() && steps.run-cli-tests.outputs.pytest-exit != '5' }}
         uses: dorny/test-reporter@v3
         with:
           name: CLI Test results (${{ matrix.label }})
@@ -301,17 +313,18 @@ jobs:
           fail-on-error: false # fail job if there are test failures
 
       - name: Upload test durations
-        if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/main' && inputs.pytest-extra-args == '' }}
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix['durations-key'] }}-${{ matrix.shard }}
           path: test-durations.json
-          if-no-files-found: ignore
+          if-no-files-found: error
+          overwrite: true
 
   SaveDurations:
     name: Save test durations (${{ matrix.label }})
     needs: [GetMatrix, run-cli-tests]
-    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.GetMatrix.outputs.has_targets == 'true' }}
+    if: ${{ github.ref == 'refs/heads/main' && inputs.pytest-extra-args == '' && needs.GetMatrix.outputs.has_targets == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.targets) }}
@@ -324,7 +337,10 @@ jobs:
 
       # Each shard stores only the tests it ran, so their union is the full table.
       - name: Merge test durations
-        run: jq -s add shards/*/test-durations.json > test-durations.json
+        run: |
+          jq -es --argjson expected '${{ matrix.splits }}' \
+            'if length == $expected then add else error("missing shard timings") end' \
+            shards/*/test-durations.json > test-durations.json
 
       - name: Save test durations
         uses: actions/cache/save@v6

@@ -297,9 +297,11 @@ Each platform runs as 4 parallel shards, one runner per shard, using [`pytest-sp
 
 The balance comes from a table of per-test durations kept in the GitHub Actions cache under `cli-durations-<runner>-<daemon-controller>-<driver>-<run id>`:
 
-1. `GetMatrix` looks up the latest table saved by `main`, and every shard restores that same entry, so all shards agree on the split. Tests missing from the table (e.g. new ones, or a cold cache) get the average duration, so the split is merely less balanced.
+1. `PrepareDurations` restores the table once per target and shares it with all four runners as a run artifact. On a cache miss it shares an empty table, so every runner uses the same cold split.
 2. Each shard runs with `--store-durations --clean-durations`, which records only the tests it ran.
-3. On `main`, the `SaveDurations` job merges the shards' tables and saves the result as the new entry. Other runs only read it.
+3. Only successful `main` runs with no `pytest-extra-args` publish timings. `SaveDurations` requires all four shard files before replacing the baseline.
+
+Filtered runs still use four shards. If fewer than four tests match, empty shards are expected. If no tests match at all, shard 1 fails the run.
 
 To reproduce a shard locally, pass the same flags to `pytest`, e.g. `--splits=4 --group=2 --splitting-algorithm=least_duration --durations-path=<table>`.
 
