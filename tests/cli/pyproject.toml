@@ -46,5 +46,4 @@ markers = [
     "exec: Exec tests",
     "az: Availability zone tests",
     "restart: Restart tests",
-    "requires_multipass(spec): Skip unless the Multipass version matches the specifier.",
 ]
