@@ -1382,11 +1382,11 @@ std::optional<QString> mp::platform::Platform::convert_uri_to_path(const QString
 {
     if (uri.startsWith("file://"))
     {
-        const auto extracted = uri.mid(7);
+        const auto extracted = uri.sliced(7);
 
         const auto with_drive_regex = QRegularExpression{"^\\/[a-zA-Z]:"};
         const auto drop_third_slash = with_drive_regex.match(extracted).hasMatch();
-        return drop_third_slash ? extracted.mid(1) : extracted;
+        return drop_third_slash ? extracted.sliced(1) : extracted;
     }
 
     return std::nullopt;

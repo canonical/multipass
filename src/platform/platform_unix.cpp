@@ -287,7 +287,7 @@ QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) 
 
 std::optional<QString> mp::platform::Platform::convert_uri_to_path(const QString& uri) const
 {
-    return uri.startsWith("file://") ? std::make_optional(uri.mid(7)) : std::nullopt;
+    return uri.startsWith("file://") ? std::make_optional(uri.sliced(7)) : std::nullopt;
 }
 
 void mp::platform::Platform::shutdown_socket(mp::Socket socket) const
