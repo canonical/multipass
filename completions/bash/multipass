@@ -73,7 +73,7 @@ _multipass_complete()
 
         local value_opts=" $1 "
         local skip_next=0
-        local i
+        local i j
 
         for ((i=2; i<CWORD; ++i)); do
             local word="${WORDS[i]}"
@@ -85,6 +85,15 @@ _multipass_complete()
             elif [[ "${word}" == -* ]]; then
                 if [[ "${value_opts}" == *" ${word} "* ]]; then
                     skip_next=1
+                elif [[ "${word}" != --* ]]; then
+                    # A short option bundle may end with an option that takes the next word as its value.
+                    for ((j=1; j<${#word}; ++j)); do
+                        local opt="-${word:j:1}"
+                        if [[ "${value_opts}" == *" ${opt} "* ]]; then
+                            [[ ${j} -eq ${#word}-1 ]] && skip_next=1
+                            break
+                        fi
+                    done
                 fi
             else
                 return 0
