@@ -32,6 +32,7 @@
 #include "tests/unit/stub_ssh_key_provider.h"
 #include "tests/unit/stub_status_monitor.h"
 #include "tests/unit/temp_dir.h"
+#include "tests/unit/windows/mock_file_io_api.h"
 #include "tests/unit/windows/mock_net_io_api.h"
 
 #include <memory>
@@ -63,6 +64,10 @@ struct HyperVHCSVirtualMachineFactory_UnitTests : public ::testing::Test
     mpt::MockVirtDiskWrapper::GuardedMock mock_virtdisk_wrapper_injection =
         mpt::MockVirtDiskWrapper::inject<StrictMock>();
     mpt::MockVirtDiskWrapper& mock_virtdisk = *mock_virtdisk_wrapper_injection.first;
+
+    mpt::MockFileIOAPI::GuardedMock mock_file_io_api_injection =
+        mpt::MockFileIOAPI::inject<StrictMock>();
+    mpt::MockFileIOAPI& mock_file_io_api = *mock_file_io_api_injection.first;
 
     mpt::MockNetIOAPI::GuardedMock mock_net_io_api_injection =
         mpt::MockNetIOAPI::inject<NiceMock>();
@@ -243,12 +248,37 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepareInstanceImage)
     multipass::VirtualMachineDescription desc;
     desc.disk_space = multipass::MemorySize::from_bytes(123456);
 
+    ASSERT_NO_THROW(uut = construct_factory());
+
+    // The image must not be sparse by the time it's resized.
+    InSequence sequence;
+    EXPECT_CALL(mock_file_io_api, GetFileAttributesW(StrEq(L"abcdef")))
+        .WillOnce(Return(FILE_ATTRIBUTE_ARCHIVE));
     EXPECT_CALL(mock_virtdisk,
                 resize_virtual_disk(Eq(img.image_path), Eq(desc.disk_space.in_bytes())))
         .WillOnce(Return(hcs_op_result_t{0, L""}));
 
-    ASSERT_NO_THROW(uut = construct_factory());
     uut->prepare_instance_image(img, desc);
+}
+
+TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepareInstanceImageClearSparseFlagFailed)
+{
+    std::shared_ptr<uut_t> uut{nullptr};
+
+    multipass::VMImage img;
+    img.image_path = "abcdef";
+    multipass::VirtualMachineDescription desc;
+    desc.disk_space = multipass::MemorySize::from_bytes(123456);
+
+    EXPECT_CALL(mock_file_io_api, GetFileAttributesW(StrEq(L"abcdef")))
+        .WillOnce(Return(INVALID_FILE_ATTRIBUTES));
+    EXPECT_CALL(mock_file_io_api, GetLastError).WillOnce(Return(ERROR_ACCESS_DENIED));
+    EXPECT_CALL(mock_virtdisk, resize_virtual_disk).Times(0);
+
+    ASSERT_NO_THROW(uut = construct_factory());
+    MP_EXPECT_THROW_THAT(uut->prepare_instance_image(img, desc),
+                         mhv::ImageResizeException,
+                         mpt::match_what(HasSubstr("Failed to clear sparse flag")));
 }
 
 TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepareInstanceImageFailed)
@@ -260,6 +290,8 @@ TEST_F(HyperVHCSVirtualMachineFactory_UnitTests, prepareInstanceImageFailed)
     multipass::VirtualMachineDescription desc;
     desc.disk_space = multipass::MemorySize::from_bytes(123456);
 
+    EXPECT_CALL(mock_file_io_api, GetFileAttributesW(StrEq(L"abcdef")))
+        .WillOnce(Return(FILE_ATTRIBUTE_ARCHIVE));
     EXPECT_CALL(mock_virtdisk,
                 resize_virtual_disk(Eq(img.image_path), Eq(desc.disk_space.in_bytes())))
         .WillOnce(Return(hcs_op_result_t{1, L""}));
