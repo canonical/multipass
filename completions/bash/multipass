@@ -64,10 +64,8 @@ _multipass_complete()
         opts=$( multipass networks --format=csv 2>/dev/null | \tail -n +2 | \cut -d',' -f 1 )
     }
 
-    # Count the positional arguments that were already supplied to the command being completed. Options are
-    # ignored, as are the values of options listed in $1 (provided as a space-separated list). This is used to
-    # avoid suggesting more than one instance where a command accepts a single one.
-    _multipass_positional_count()
+    # Check whether the command being completed already has a positional argument.
+    _multipass_has_positional_arg()
     {
         # Rebuild the words without breaking on commas, so that comma-separated option values such as
         # "--comment before,after" are treated as a single value rather than as extra positionals.
@@ -75,7 +73,6 @@ _multipass_complete()
         _get_comp_words_by_ref -n :=, -w WORDS -i CWORD cur prev
 
         local value_opts=" $1 "
-        local count=0
         local skip_next=0
         local i
 
@@ -91,11 +88,11 @@ _multipass_complete()
                     skip_next=1
                 fi
             else
-                ((count++))
+                return 0
             fi
         done
 
-        echo "${count}"
+        return 1
     }
 
     _multipass_instances_with_colon()
@@ -383,7 +380,7 @@ _multipass_complete()
     if [[ "$prev_opts" = false ]]; then
         case "${cmd}" in
             "exec")
-                if [[ $(_multipass_positional_count "--working-directory -d") -eq 0 ]]; then
+                if ! _multipass_has_positional_arg "--working-directory -d"; then
                     _multipass_instances "Running"
                 fi
             ;;
@@ -405,7 +402,7 @@ _multipass_complete()
                 _multipass_instances "Running"
             ;;
             "connect"|"sh"|"shell")
-                if [[ $(_multipass_positional_count "--timeout") -eq 0 ]]; then
+                if ! _multipass_has_positional_arg "--timeout"; then
                     _multipass_instances "Running"
                     _multipass_instances "Stopped"
                     _multipass_instances "Suspended"
@@ -425,17 +422,17 @@ _multipass_complete()
                 _multipass_instances "Deleted"
             ;;
             "snapshot")
-                if [[ $(_multipass_positional_count "--name -n --comment -c -m") -eq 0 ]]; then
+                if ! _multipass_has_positional_arg "--name -n --comment -c -m"; then
                     _multipass_instances "Stopped"
                 fi
             ;;
             "clone")
-                if [[ $(_multipass_positional_count "--name -n") -eq 0 ]]; then
+                if ! _multipass_has_positional_arg "--name -n"; then
                     _multipass_instances "Stopped"
                 fi
             ;;
             "restore")
-                if [[ $(_multipass_positional_count) -eq 0 ]]; then
+                if ! _multipass_has_positional_arg; then
                     _multipass_restorable_snapshots
                 fi
             ;;
