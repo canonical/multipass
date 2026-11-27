@@ -28,7 +28,7 @@ You will need to install QEMU and Packer (e.g. `sudo apt install qemu packer`), 
 
 ```{code-block} text
 packer build template.json
-multipass launch file://$PWD/output-qemu/packer-qemu --disk 5G
+multipass launch $PWD/output-qemu/packer-qemu --disk 5G
 ```
 
 Now, shell into the new instance that was created, for example:

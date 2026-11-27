@@ -928,6 +928,33 @@ std::vector<StringPairParam> normalize_mount_target_values = {
 
 INSTANTIATE_TEST_SUITE_P(Utils, NormalizeMountTargetTest, ValuesIn(normalize_mount_target_values));
 
+struct LooksLikePathTest : public TestWithParam<std::pair<std::string, bool>>
+{
+};
+
+TEST_P(LooksLikePathTest, detectsPaths)
+{
+    const auto& [input, expected] = GetParam();
+    EXPECT_EQ(mp::utils::looks_like_path(input), expected);
+}
+
+INSTANTIATE_TEST_SUITE_P(Utils,
+                         LooksLikePathTest,
+                         Values(std::pair{"./a.img", true},
+                                std::pair{"../a.img", true},
+                                std::pair{".hidden", true},
+                                std::pair{"/abs/a.img", true},
+                                std::pair{"dir/a.img", true},
+                                std::pair{R"(dir\a.img)", true},
+                                std::pair{R"(C:\a\b.img)", true},
+                                std::pair{"C:/a.img", true},
+                                std::pair{"noble", false},
+                                std::pair{"22.04", false},
+                                std::pair{"release:noble", false},
+                                std::pair{"daily:jammy", false},
+                                std::pair{"abcdef12", false},
+                                std::pair{"", false}));
+
 struct TestReapSSHProcess : public Test
 {
     NiceMock<mpt::MockSSHProcess> proc;
