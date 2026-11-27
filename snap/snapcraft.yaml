@@ -240,6 +240,11 @@ parts:
       # Do the CMake configure at the pull step so we can generate the compile_commands.json
       # for the tool consumption.
       craftctl default
+
+      # BEGIN FLUTTER
+      curl -fsSL https://fvm.app/install.sh | bash
+      export PATH="${HOME}/fvm/bin:${PATH}" FVM_USE_GIT_CACHE=false
+      # END FLUTTER
       cmake --preset "$CMAKE_PRESET" -S ${SNAPCRAFT_PART_SRC_WORK} -B ${SNAPCRAFT_PART_BUILD_WORK}
 
     override-build: |
@@ -255,6 +260,11 @@ parts:
       craftctl set grade=$( echo ${VERSION} | grep -qe '^[0-9]\+\.[0-9]\+\.[0-9]\+\($\|-rc\)' && echo stable || echo devel )
       [ -f ${CRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop ] && \
         sed -i -e 's@^Icon=\(.\+\)$@Icon=/usr/share/icons/hicolor/scalable/apps/\1.svg@' ${CRAFT_PART_INSTALL}/usr/share/applications/multipass.gui.desktop
+
+      # BEGIN FLUTTER
+      FLUTTER_SDK_DIR=$( sed -n 's/^MULTIPASS_FLUTTER_SDK_DIR:INTERNAL=//p' CMakeCache.txt )
+      ( cd "${FLUTTER_SDK_DIR}" && find . -type f \( -name 'LICENSE*' -o -path '*/LICENSE*/*' \) -print0 | xargs -0 -I FILE install --mode=644 -D --no-target-directory FILE ${CRAFT_PART_INSTALL}/licenses/flutter/FILE )
+      # END FLUTTER
 
       cd ${CRAFT_PART_SRC}/3rd-party
       find . -type f \( -name 'LICENSE*' -o -path '*/LICENSE*/*' \) -print0 | xargs -0 -I FILE install --mode=644 -D --no-target-directory FILE ${CRAFT_PART_INSTALL}/licenses/FILE

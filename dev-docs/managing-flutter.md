@@ -4,13 +4,10 @@
 
 Flutter has a new stable release approximately once every quarter. You can check https://github.com/flutter/flutter/blob/stable/CHANGELOG.md to see if there is a new release. Patch releases can come at any time.
 
-Multipass gets its Flutter from the 3rd-party/flutter git submodule. When a new release comes out, you can get it by going inside the submodule and doing:
+Multipass gets its Flutter through [FVM](https://fvm.app), using the version pinned in `.fvmrc` at the root of the repository.
+CMake installs that version with FVM when configuring; CI installs FVM itself through the `.github/actions/setup-fvm` action.
 
-```
-git fetch
-git checkout <release-tag> # go to the actual release tag e.g. 3.32.5
-./bin/flutter precache # download the new flutter binaries
-```
+To run Flutter tools against the pinned version, prefix them with `fvm`, e.g. `fvm flutter analyze` or `fvm dart format`.
 
 ### Updating Flutter dependencies
 

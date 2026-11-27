@@ -31,6 +31,13 @@ sudo snap install rustup --classic
 rustup default stable
 ```
 
+### Install FVM
+
+The Flutter GUI is built with the Flutter SDK version pinned in `.fvmrc`, which CMake installs
+through [FVM](https://fvm.app). Install FVM by following its
+[installation guide](https://fvm.app/documentation/getting-started/installation). FVM is not
+needed when configuring with `-DMULTIPASS_ENABLE_FLUTTER_GUI=OFF`.
+
 ## Building
 
 First, go into the repository root and get all the submodules:

@@ -99,7 +99,7 @@ jobs:
     - name: Install other packages from Choco
       uses: crazy-max/ghaction-chocolatey@v4
       with:
-        args: install --yes wget unzip
+        args: install --yes wget unzip fvm
 
     - name: Set up vcpkg
       id: setup-vcpkg

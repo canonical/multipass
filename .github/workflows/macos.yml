@@ -210,6 +210,11 @@ jobs:
       with:
         version: "v0.19.0"
 
+    - name: Install FVM
+      run: |
+        curl -fsSL https://fvm.app/install.sh | bash
+        echo "${HOME}/fvm/bin" >> "${GITHUB_PATH}"
+
     - name: Configure
       run: >
         cmake

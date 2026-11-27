@@ -94,24 +94,19 @@ jobs:
             exit 1
           fi
 
-      - name: Initialize Flutter submodule and verify installation
-        shell: bash
+      - name: Install FVM
         run: |
-          git submodule update --init 3rd-party/flutter
-          if [ ! -f "3rd-party/flutter/bin/dart" ]; then
-            echo -n "##[error] Flutter submodule not initialized. "
-            echo "Run 'git submodule update --init 3rd-party/flutter' to fix this issue."
-            exit 1
-          fi
+          curl -fsSL https://fvm.app/install.sh | bash
+          echo "${HOME}/fvm/bin" >> "${GITHUB_PATH}"
 
       - name: Run Flutter format check
         shell: bash
         run: |
           # Fetch flutter deps before running the formatter as it can influence the outcome.
-          3rd-party/flutter/bin/flutter pub get -C src/client/gui/
-          if ! 3rd-party/flutter/bin/dart format --output=none --set-exit-if-changed src/client/gui; then
+          fvm flutter pub get -C src/client/gui/
+          if ! fvm dart format --output=none --set-exit-if-changed src/client/gui; then
             echo -n "##[error] Flutter code is not properly formatted. "
-            echo "Run '3rd-party/flutter/bin/dart format' to fix formatting."
+            echo "Run 'fvm dart format src/client/gui' to fix formatting."
             exit 1
           fi
 
