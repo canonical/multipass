@@ -27,6 +27,11 @@ namespace
 {
 // TODO@C++23 Convert casts to std::to_underlying
 
+// Our SFTP vocabulary and interfaces model protocol v3, as per revision 02 of the spec draft
+// (https://datatracker.ietf.org/doc/html/draft-ietf-secsh-filexfer-02): verify that libssh does
+// not negotiate a later version
+static_assert(LIBSFTP_VERSION == 3);
+
 // Verify that our enums have the same width that libssh uses for the corresponding values
 static_assert(std::is_same_v<std::underlying_type_t<mp::SftpMessageType>,
                              decltype(sftp_client_message_struct::type)>);

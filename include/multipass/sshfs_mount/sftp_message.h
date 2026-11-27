@@ -32,7 +32,10 @@ namespace multipass
 /**
  * A unit of communication exchange between an SFTP client and an SFTP server, in either direction.
  *
- * Provides access to the client request along with methods to reply.
+ * Provides access to the client request along with methods to reply. Models version 3 of the SFTP
+ * protocol, which revision 02 of the spec draft specifies (see sftp_protocol.h).
+ *
+ * @see https://datatracker.ietf.org/doc/html/draft-ietf-secsh-filexfer-02
  */
 class SftpMessage : private DisabledCopyMove // TODO@sftp confirm nothing is unused at the end
 {

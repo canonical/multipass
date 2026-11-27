@@ -25,7 +25,10 @@ namespace multipass
 class SftpMessage;
 
 /**
- * A local SFTP session, serving SFTP to a remote client.
+ * A local SFTP session, serving SFTP to a remote client over version 3 of the protocol, which
+ * revision 02 of the spec draft specifies (see sftp_protocol.h).
+ *
+ * @see https://datatracker.ietf.org/doc/html/draft-ietf-secsh-filexfer-02
  */
 class SftpSession
 {

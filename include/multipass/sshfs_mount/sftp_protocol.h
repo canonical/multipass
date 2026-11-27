@@ -20,7 +20,7 @@
  * @brief SFTP protocol vocabulary — constants and attributes, as per version 3 of the protocol.
  *
  * Note: although versions go up to 6, version 3 is the defacto standard that was adopted by
- * openssh (and libssh). It is specified in a draft.
+ * openssh (and libssh). It is specified in revision 02 of the spec draft (linked below).
  *
  * @see https://datatracker.ietf.org/doc/html/draft-ietf-secsh-filexfer-02
  * @see https://en.wikipedia.org/wiki/SSH_File_Transfer_Protocol
