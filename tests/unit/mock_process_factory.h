@@ -84,6 +84,7 @@ public:
     MOCK_METHOD(qint64, write, (const QByteArray&), (override));
     MOCK_METHOD(bool, wait_for_started, (int msecs), (override));
     MOCK_METHOD(bool, wait_for_finished, (int msecs), (override));
+    MOCK_METHOD(bool, wait_for_ready_read, (int msecs), (override));
 
     MockProcess(std::unique_ptr<ProcessSpec>&& spec,
                 std::vector<MockProcessFactory::ProcessInfo>& process_list);
@@ -93,7 +94,6 @@ public:
     QString working_directory() const override;
     QProcessEnvironment process_environment() const override;
 
-    bool wait_for_ready_read(int msecs = 30000) override;
     MOCK_METHOD(QByteArray, read_all_standard_output, (), (override));
     MOCK_METHOD(QByteArray, read_all_standard_error, (), (override));
     void close_write_channel() override;

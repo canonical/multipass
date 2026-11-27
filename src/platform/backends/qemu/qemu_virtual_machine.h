@@ -78,6 +78,9 @@ protected:
 
     std::optional<State> fetch_backend_state() override;
 
+    // bound for confirming a resume over QMP (test-visible)
+    std::chrono::milliseconds qmp_resume_timeout{10000};
+
 private:
     void on_started();
     void on_error();
@@ -85,6 +88,7 @@ private:
     void on_suspend();
     void on_restart();
     void initialize_vm_process();
+    void wait_for_resume();
 
     void connect_vm_signals();
     void disconnect_vm_signals();
@@ -96,6 +100,9 @@ private:
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};
     bool force_shutdown{false};
+    bool qmp_negotiated{false};    // QMP answered our qmp_capabilities handshake
+    bool resume_in_flight{false};  // a resume wait is running and owns the state transitions
+    QByteArray qmp_pending_output; // QMP bytes received that are not a complete line yet
     std::mutex vm_signal_mutex;
     bool vm_signals_connected{false};
     std::chrono::steady_clock::time_point network_deadline;
