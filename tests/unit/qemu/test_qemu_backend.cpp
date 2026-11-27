@@ -801,6 +801,7 @@ TEST_F(QemuBackend, forceShutdownNoProcessLogs)
     logger_scope.mock_logger->expect_log(mpl::Level::info, "State changed", AnyNumber());
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "No process to kill");
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "Saved file", AnyNumber());
 
     auto machine = make_vm_with_settable_state(stub_monitor);
 
@@ -828,6 +829,7 @@ TEST_F(QemuBackend, forceShutdownSuspendDeletesSuspendImageAndOffState)
     logger_scope.mock_logger->expect_log(mpl::Level::info, "State changed", AnyNumber());
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "No process to kill");
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "Saved file", AnyNumber());
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Deleting suspend image");
 
     const auto machine = make_vm_with_settable_state(stub_monitor);
@@ -850,6 +852,7 @@ TEST_F(QemuBackend, forceShutdownSuspendedStateButNoSuspensionSnapshotInImage)
     logger_scope.mock_logger->expect_log(mpl::Level::info, "State changed", AnyNumber());
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "No process to kill");
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "Saved file", AnyNumber());
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning,
         "Image has no suspension snapshot, but the state is suspended");
@@ -882,6 +885,7 @@ TEST_F(QemuBackend, forceShutdownRunningStateButWithSuspensionSnapshotInImage)
     logger_scope.mock_logger->expect_log(mpl::Level::info, "State changed", AnyNumber());
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Forcing shutdown");
     logger_scope.mock_logger->expect_log(mpl::Level::debug, "No process to kill");
+    logger_scope.mock_logger->expect_log(mpl::Level::debug, "Saved file", AnyNumber());
     logger_scope.mock_logger->expect_log(mpl::Level::info, "Deleting suspend image");
     logger_scope.mock_logger->expect_log(
         mpl::Level::warning,
@@ -1542,7 +1546,10 @@ TEST_F(QemuBackend, cloneCopiesRelevantFiles)
                                         "snapshot-head",
                                         "0001.snapshot.json"};
 
-    std::unordered_set<std::string> expected_files{"dummy.img", "dummy.qcow2", "dummy.iso"};
+    std::unordered_set<std::string> expected_files{"dummy.img",
+                                                   "dummy.qcow2",
+                                                   "dummy.iso",
+                                                   "vm-description.json"};
 
     fs::create_directories(src_vm_dir);
     // create the files with the parent directory in place

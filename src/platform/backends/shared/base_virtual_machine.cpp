@@ -28,6 +28,7 @@
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
+#include <multipass/json_utils.h>
 #include <multipass/logging/log.h>
 #include <multipass/platform.h>
 #include <multipass/snapshot.h>
@@ -168,6 +169,7 @@ mp::BaseVirtualMachine::BaseVirtualMachine(St state,
       desc{vm_desc},
       state{state}
 {
+    persist_description();
 }
 
 mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
@@ -1150,6 +1152,23 @@ void mp::BaseVirtualMachine::set_state(St new_state)
     mpl::info(vm_name, "State changed from {} to {}", state, new_state);
     state = new_state;
     handle_state_update();
+}
+
+void mp::BaseVirtualMachine::persist_description() const
+{
+    const std::lock_guard lock{desc_mutex};
+    persist_description_locked();
+}
+
+void mp::BaseVirtualMachine::persist_description_locked() const
+{
+    top_catch_all(vm_name, [this] {
+        auto copy = desc;
+        copy.state = cached_state();
+        MP_FILEOPS.write_transactionally(
+            MP_PLATFORM.qstr_to_path(instance_dir.filePath(vm_description_file_name)),
+            pretty_print(boost::json::value_from(copy)));
+    });
 }
 
 void mp::BaseVirtualMachine::handle_state_update()

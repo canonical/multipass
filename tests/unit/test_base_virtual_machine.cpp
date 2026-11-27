@@ -32,6 +32,7 @@
 
 #include <shared/base_virtual_machine.h>
 
+#include <multipass/constants.h>
 #include <multipass/exceptions/file_open_failed_exception.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
 #include <multipass/exceptions/snapshot_exceptions.h>
@@ -261,6 +262,12 @@ struct BaseVM : public Test
 
         return vm.tmp_dir->filePath(
             QString::fromStdString(fmt::format("{:04}.snapshot.json", idx)));
+    }
+
+    boost::json::value persisted_description() const
+    {
+        return boost::json::parse(
+            mpt::load(vm.tmp_dir->filePath(mp::vm_description_file_name)).toStdString());
     }
 
     static std::string n_occurrences(const std::string& regex, int n)
@@ -866,6 +873,9 @@ TEST_F(BaseVM, restoresSnapshots)
     EXPECT_CALL(snapshot, get_mounts).WillRepeatedly(ReturnRef(original_specs.mounts));
     EXPECT_CALL(snapshot, get_metadata).WillRepeatedly(ReturnRef(original_specs.metadata));
 
+    auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(_, _)).Times(1);
+
     vm.restore_snapshot(snapshot_name, changed_specs);
 
     EXPECT_EQ(original_specs, changed_specs);
@@ -1364,6 +1374,54 @@ TEST_F(BaseVM, rollsbackFailedRestore)
     EXPECT_EQ(vm.take_snapshot(current_specs, "", "")->get_parent().get(), &last_snapshot);
 }
 
+TEST_F(BaseVM, completesRestoreWhenDescriptionWriteFails)
+{
+    mock_snapshotting();
+
+    const mp::VMSpecs snapshot_specs{
+        .num_cores = 2,
+        .mem_size = mp::MemorySize{"2G"},
+        .disk_space = mp::MemorySize{"8G"},
+        .state = St::stopped,
+    };
+    vm.take_snapshot(snapshot_specs, "target", "");
+    vm.take_snapshot(snapshot_specs, "head", "");
+
+    auto& target = *snapshot_album[0];
+    EXPECT_CALL(target, get_state).WillRepeatedly(Return(snapshot_specs.state));
+    EXPECT_CALL(target, get_num_cores).WillRepeatedly(Return(snapshot_specs.num_cores));
+    EXPECT_CALL(target, get_mem_size).WillRepeatedly(Return(snapshot_specs.mem_size));
+    EXPECT_CALL(target, get_disk_space).WillRepeatedly(Return(snapshot_specs.disk_space));
+    EXPECT_CALL(target, get_mounts).WillRepeatedly(ReturnRef(snapshot_specs.mounts));
+    EXPECT_CALL(target, get_metadata).WillRepeatedly(ReturnRef(snapshot_specs.metadata));
+    EXPECT_CALL(target, apply);
+
+    auto current_specs = snapshot_specs;
+    current_specs.num_cores = 9;
+    current_specs.metadata["changed"] = true;
+
+    auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject<NiceMock>();
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_file_ops, mkpath, mp::FileOps);
+    MP_DELEGATE_MOCK_CALLS_ON_BASE(*mock_file_ops, flush, mp::FileOps);
+    MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*mock_file_ops,
+                                                 open,
+                                                 mp::FileOps,
+                                                 (A<QIODevice&>(), A<QIODevice::OpenMode>()));
+    MP_DELEGATE_MOCK_CALLS_ON_BASE_WITH_MATCHERS(*mock_file_ops,
+                                                 write,
+                                                 mp::FileOps,
+                                                 (A<QIODevice&>(), A<const char*>(), A<qint64>()));
+    EXPECT_CALL(*mock_file_ops, write_transactionally(_, _))
+        .WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    EXPECT_NO_THROW(vm.restore_snapshot("target", current_specs));
+
+    EXPECT_EQ(current_specs, snapshot_specs);
+    EXPECT_EQ(vm.description().num_cores, snapshot_specs.num_cores);
+    EXPECT_EQ(vm.description().metadata, snapshot_specs.metadata);
+    EXPECT_EQ(vm.take_snapshot(snapshot_specs, "after", "")->get_parent().get(), &target);
+}
+
 TEST_F(BaseVM, leavesDescriptionUnchangedWhenRestoreFailsBeforeDescriptionUpdate)
 {
     mock_snapshotting();
@@ -1719,6 +1777,42 @@ TEST_F(BaseVM, resizeMemoryLeavesDescriptionWhenImplThrows)
     EXPECT_THROW(vm.mp::BaseVirtualMachine::resize_memory(new_size), std::runtime_error);
 
     EXPECT_EQ(vm.description().mem_size, orig_mem_size);
+}
+
+TEST_F(BaseVM, persistsDescriptionOnConstruction)
+{
+    EXPECT_EQ(persisted_description().at("state"), static_cast<int>(St::stopped));
+}
+
+TEST_F(BaseVM, persistsDescriptionWhenChanged)
+{
+    EXPECT_CALL(vm, update_cpus_impl(7));
+
+    vm.mp::BaseVirtualMachine::update_cpus(7);
+
+    EXPECT_EQ(persisted_description().at("num_cores"), 7);
+}
+
+TEST_F(BaseVM, keepsDescriptionWhenWriteFails)
+{
+    constexpr auto num_cores = 7;
+    EXPECT_CALL(vm, update_cpus_impl(num_cores));
+
+    auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(_, _))
+        .WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    EXPECT_NO_THROW(vm.mp::BaseVirtualMachine::update_cpus(num_cores));
+    EXPECT_EQ(vm.description().num_cores, num_cores);
+}
+
+TEST_F(BaseVM, constructionIgnoresDescriptionWriteFailure)
+{
+    auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject<NiceMock>();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(_, _))
+        .WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    EXPECT_NO_THROW(StubBaseVirtualMachine{zone});
 }
 
 TEST_F(BaseVM, addNetworkInterfaceCallsImplAndUpdatesDescription)

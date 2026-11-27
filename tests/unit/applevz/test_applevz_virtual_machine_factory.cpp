@@ -215,7 +215,9 @@ TEST_F(AppleVZVirtualMachineFactory_UnitTests, cloneCopiesRelevantFiles)
     const fs::path dest_vm_dir = instances_dir / dest_vm_name;
 
     const std::list<std::string> source_files{"dummy.iso", "dummy.raw"};
-    const std::unordered_set<std::string> expected_files{"dummy.iso", "dummy.raw"};
+    const std::unordered_set<std::string> expected_files{"dummy.iso",
+                                                         "dummy.raw",
+                                                         "vm-description.json"};
 
     fs::create_directories(src_vm_dir);
     for (const auto& file : source_files)

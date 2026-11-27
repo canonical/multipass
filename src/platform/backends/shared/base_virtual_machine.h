@@ -177,15 +177,19 @@ protected:
     [[nodiscard]] VirtualMachineDescription description() const;
 
     // The callback must not re-enter edit_description(), acquire other locks, or call backends.
-    // A throwing callback is not rolled back and must leave desc valid.
+    // A throwing callback is not rolled back and must leave desc valid; no write is attempted.
     template <typename F>
     void edit_description(F&& mutate)
     {
         const std::lock_guard lock{desc_mutex};
         std::forward<F>(mutate)(desc);
+        persist_description_locked();
     }
 
 private:
+    void persist_description() const;
+    void persist_description_locked() const; // caller holds desc_mutex
+
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
 
     template <typename LockT>
