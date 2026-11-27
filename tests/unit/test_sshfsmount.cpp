@@ -235,7 +235,7 @@ struct SshfsMount : public mp::test::SftpServerTest
     mpt::MockLogger::Scope logger_scope = mpt::MockLogger::inject();
     const mpt::StubSSHKeyProvider key_provider;
 
-    std::unordered_map<std::string, std::string> default_cmds{
+    const std::unordered_map<std::string, std::string> default_cmds{
         {"snap run multipass-sshfs.env", "LD_LIBRARY_PATH=/foo/bar\nSNAP=/baz\n"},
         {"sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -V", "FUSE library version: 3.0.0\n"},
         {"echo $PWD/target", "/home/ubuntu/target\n"},
@@ -532,13 +532,6 @@ TEST_F(SshfsMount, DISABLE_ON_WINDOWS(defaultIdMappingsResolveToGuestIdsInBothDi
     default_source = source;
     mp::id_mappings uid_mappings{{host_uid, mp::default_id}};
     mp::id_mappings gid_mappings{{host_gid, mp::default_id}};
-
-    default_cmds.emplace(
-        fmt::format("sudo env LD_LIBRARY_PATH=/foo/bar /baz/bin/sshfs -o slave -o "
-                    "transform_symlinks -o allow_other -o Compression=no -o dcache_timeout=3 "
-                    ":{:?} \"target\"",
-                    source),
-        "don't care\n");
 
     std::vector<char> name{file_path.begin(), file_path.end()};
     name.push_back('\0');

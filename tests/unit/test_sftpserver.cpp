@@ -16,7 +16,6 @@
  */
 
 #include "common.h"
-#include "disabling_macros.h"
 #include "file_operations.h"
 #include "mock_file_ops.h"
 #include "mock_logger.h"
@@ -2843,15 +2842,15 @@ TEST_F(SftpServer, readReturnsZeroEndOfFile)
 TEST_F(SftpServer, handleExtendedLink)
 {
     mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
+    auto file_path = temp_dir.path() + "/test-file";
     auto link_name = temp_dir.path() + "/test-link";
-    mpt::make_file_with_content(file_name);
+    mpt::make_file_with_content(file_path);
 
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_EXTENDED);
     auto submessage = name_as_char_array("hardlink@openssh.com");
     msg->submessage = submessage.data();
-    auto name = name_as_char_array(file_name.toStdString());
+    auto name = name_as_char_array(file_path.toStdString());
     msg->filename = name.data();
 
     auto target_name = name_as_char_array(link_name.toStdString());
