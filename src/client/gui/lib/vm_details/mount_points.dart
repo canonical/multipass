@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:basics/basics.dart';
 import 'package:extended_text/extended_text.dart';
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/material.dart' hide Tooltip;
+import 'package:material_ui/material_ui.dart' hide Tooltip;
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../colors.dart';

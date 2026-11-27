@@ -3,7 +3,7 @@ import 'dart:math';
 
 import 'package:basics/basics.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart' hide ImageInfo;
+import 'package:material_ui/material_ui.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
 import 'package:intersperse/intersperse.dart';

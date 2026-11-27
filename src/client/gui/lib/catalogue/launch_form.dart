@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:basics/basics.dart';
-import 'package:flutter/material.dart' hide Switch, ImageInfo, Tooltip;
+import 'package:material_ui/material_ui.dart' hide Switch, ImageInfo, Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 

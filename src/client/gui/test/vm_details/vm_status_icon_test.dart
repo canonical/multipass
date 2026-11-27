@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart' hide Tooltip;
+import 'package:material_ui/material_ui.dart' hide Tooltip;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/colors.dart';
 import 'package:multipass_gui/grpc_client.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/delegates.dart';
 import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/tooltip.dart';
 import 'package:multipass_gui/vm_details/vm_status_icon.dart';
@@ -11,7 +12,7 @@ final _l10n = AppLocalizationsEn();
 
 Widget buildWidget(Status status, {required bool isLaunching}) {
   return MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    localizationsDelegates: appLocalizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
       body: Row(

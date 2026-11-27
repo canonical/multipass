@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/delegates.dart';
 import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/settings/hotkey.dart';
 import 'package:multipass_gui/settings/usage_settings.dart';
@@ -10,7 +11,7 @@ final _l10n = AppLocalizationsEn();
 
 Widget _buildApp(Widget child) {
   return MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    localizationsDelegates: appLocalizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(body: child),
   );

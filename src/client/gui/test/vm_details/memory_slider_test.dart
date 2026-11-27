@@ -1,12 +1,13 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/delegates.dart';
 import 'package:multipass_gui/vm_details/mapping_slider.dart';
 import 'package:multipass_gui/vm_details/memory_slider.dart';
 
 Widget buildWidget({int? initialValue, FormFieldSetter<int>? onSaved}) {
   return MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    localizationsDelegates: appLocalizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
       body: Form(

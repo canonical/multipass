@@ -1,8 +1,9 @@
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/delegates.dart';
 import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/platform/platform.dart';
 import 'package:multipass_gui/providers.dart';
@@ -44,7 +45,7 @@ Widget _buildApp({
       networksProvider.overrideWith((_) async => BuiltSet<String>(networks)),
     ],
     child: MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: appLocalizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: const Scaffold(
         body: SizedBox(width: 600, child: VirtualizationSettings()),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:local_notifier/local_notifier.dart';
@@ -7,6 +7,8 @@ import 'package:window_manager/window_manager.dart';
 
 import 'before_quit_dialog.dart';
 import 'l10n/app_localizations.dart';
+import 'l10n/delegates.dart';
+import 'l10n/legacy_material_bridge.dart';
 import 'catalogue/catalogue.dart';
 import 'colors.dart';
 import 'confirmation_dialog.dart';
@@ -61,8 +63,10 @@ void main() async {
       container: providerContainer,
       child: MaterialApp(
         theme: theme,
+        // Legacy xterm and re_editor widgets still use flutter/material.dart.
+        builder: (context, child) => LegacyMaterialBridge(child: child!),
         home: const UpdateSystemNotificationListener(child: App()),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: appLocalizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
       ),
     ),

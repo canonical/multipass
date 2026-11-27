@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide Tooltip;
+import 'package:material_ui/material_ui.dart' hide Tooltip;
 
 import '../colors.dart';
 import '../extensions.dart';

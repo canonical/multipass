@@ -1,10 +1,11 @@
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/catalogue/zone_dropdown.dart';
 import 'package:multipass_gui/dropdown.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/delegates.dart';
 import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/providers.dart';
 
@@ -22,7 +23,7 @@ Widget _buildDropdown(
   return ProviderScope(
     overrides: [zonesProvider.overrideWithValue(BuiltList(zones))],
     child: MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: appLocalizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: ZoneDropdown(value: value, onChanged: onChanged ?? (_) {}),

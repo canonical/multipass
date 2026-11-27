@@ -1,6 +1,6 @@
 // TODO hyperv migration, remove (whole file)
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:grpc/grpc.dart' hide ConnectionState;
 
 import '../colors.dart';

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide ImageInfo;
+import 'package:material_ui/material_ui.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 

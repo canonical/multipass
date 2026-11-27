@@ -1,5 +1,5 @@
 import 'package:basics/basics.dart';
-import 'package:flutter/material.dart' hide Switch;
+import 'package:material_ui/material_ui.dart' hide Switch;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dropdown.dart';
