@@ -570,12 +570,12 @@ class TestMount:
                 or cannot_write
             )
 
-            # verify that they are present in the guest
-            assert path_exists(instance, mount_dst / "file1.txt") or cannot_write
-            assert path_exists(instance, mount_dst / subdir) or cannot_write
-            assert (
-                path_exists(instance, mount_dst / subdir / "file2.txt") or cannot_write
-            )
+            # verify that they are present in the guest; skipped when writes
+            # are denied, as the guest can't traverse the 0o444 directory either.
+            if not cannot_write:
+                assert path_exists(instance, mount_dst / "file1.txt")
+                assert path_exists(instance, mount_dst / subdir)
+                assert path_exists(instance, mount_dst / subdir / "file2.txt")
 
             # LXD cannot hot-unmount.
             if cfg.driver == "lxd":
