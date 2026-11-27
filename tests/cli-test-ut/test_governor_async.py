@@ -346,6 +346,7 @@ class TestGovernorStartupFailures:
             returncode=12,
         )
 
+
 class TestGovernorUnexpectedExit:
     """Unexpected daemon exits after startup must surface in check_health()."""
 
@@ -452,28 +453,19 @@ class TestGovernorHealthCheck:
 
     def test_aborts_with_reason_after_all_probes_fail(self, governor, monkeypatch):
         calls = self.install_probes(
-            monkeypatch, ["hang", "hang", (0, b"multipass 1.0\n")]
+            monkeypatch, ["hang", "hang", "hang", (0, b"multipass 1.0\n")]
         )
-
-        with pytest.raises(
-            TestSessionFailure,
-            match=r"unresponsive after 3 probes \(last: no multipassd version",
-        ):
-            governor.check_health(timeout=0.05, attempts=3, retry_delay=0)
-
-        assert len(calls) == 3
-
-
-    def test_attempts_and_delay_come_from_cli_options(self, governor, monkeypatch):
-        calls = self.install_probes(monkeypatch, ["hang"] * 5)
         sleeps = []
         monkeypatch.setattr("cli.utilities.functional.time.sleep", sleeps.append)
 
-        with pytest.raises(TestSessionFailure, match="unresponsive after 5 probes"):
-            governor.check_health(timeout=0.05, attempts=5, retry_delay=0.5)
+        with pytest.raises(
+            TestSessionFailure,
+            match=r"unresponsive after 4 probes \(last: no multipassd version",
+        ):
+            governor.check_health(timeout=0.05, attempts=4, retry_delay=0.5)
 
-        assert len(calls) == 5
-        assert sleeps == [0.5] * 4
+        assert len(calls) == 4
+        assert sleeps == [0.5] * 3
 
 
 class TestGovernorConcurrentOperations:

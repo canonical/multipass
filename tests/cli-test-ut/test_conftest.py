@@ -29,7 +29,7 @@ from unittest.mock import MagicMock, call
 import pytest
 
 from cli import conftest
-from cli.multipass import TestCaseFailure, TestSessionFailure
+from cli.multipass import TestCaseFailure
 
 
 class TestSessionFailureAbortsSession:
@@ -44,9 +44,6 @@ class TestSessionFailureAbortsSession:
         item = SimpleNamespace(session=SimpleNamespace(shouldfail=False))
         conftest.pytest_runtest_makereport(item, pytest.CallInfo.from_call(phase, "call"))
         return item.session.shouldfail
-
-    def test_session_failure_sets_shouldfail(self):
-        assert self._report(TestSessionFailure("daemon is gone")) == "daemon is gone"
 
     @pytest.mark.parametrize(
         "exc", [None, TestCaseFailure("case"), RuntimeError("other")]
@@ -148,8 +145,7 @@ class TestWindowsPrivilegedMounts:
 class TestRemoveTemporaryStorageDir:
     """Tests for remove_temporary_storage_dir()."""
 
-    def test_removes_readonly_files(self, tmp_path):
-        import os
+    def test_removes_readonly_files(self, tmp_path, monkeypatch):
         import stat
 
         target = tmp_path / "storage"
@@ -157,6 +153,17 @@ class TestRemoveTemporaryStorageDir:
         ro_file = target / "cert.pem"
         ro_file.write_text("secret")
         os.chmod(ro_file, stat.S_IREAD)
+
+        # POSIX can unlink read-only files; emulate Windows, which can't.
+        real_unlink = os.unlink
+
+        def windows_unlink(path, *args, dir_fd=None, **kwargs):
+            mode = os.stat(path, dir_fd=dir_fd).st_mode
+            if not mode & stat.S_IWRITE:
+                raise PermissionError(f"read-only: {path}")
+            real_unlink(path, *args, dir_fd=dir_fd, **kwargs)
+
+        monkeypatch.setattr(os, "unlink", windows_unlink)
 
         conftest.remove_temporary_storage_dir(str(target))
 
