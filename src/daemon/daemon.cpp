@@ -3470,8 +3470,6 @@ void mp::Daemon::wait_ready(const WaitReadyRequest*,
                             DaemonRpcContext* context)
 try
 {
-    WaitReadyReply response;
-
     mpl::debug("daemon", "Checking connection to image servers...");
 
     // We use wait_update_manifests_all_and_optionally_applied_force to check connectivity to

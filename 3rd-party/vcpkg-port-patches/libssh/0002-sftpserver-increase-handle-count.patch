@@ -10,19 +10,19 @@ Addresses canonical/multipass#1950
  2 files changed, 23 insertions(+), 21 deletions(-)
 
 diff --git a/include/libssh/sftp.h b/include/libssh/sftp.h
-index cf4458c3..a23b454a 100644
+index f401ec0..7c1266e 100644
 --- a/include/libssh/sftp.h
 +++ b/include/libssh/sftp.h
-@@ -93,6 +93,7 @@ struct sftp_session_struct {
-     sftp_ext ext;
+@@ -110,6 +110,7 @@ struct sftp_session_struct {
      sftp_packet read_packet;
      sftp_limits_t limits;
+     struct ssh_list *outstanding_ids;
 +    uint32_t total_allocated_handles;
  };
  
  struct sftp_packet_struct {
 diff --git a/src/sftpserver.c b/src/sftpserver.c
-index 1afd8b2f..8523c47a 100644
+index e926ccc..379279a 100644
 --- a/src/sftpserver.c
 +++ b/src/sftpserver.c
 @@ -55,7 +55,7 @@
@@ -34,7 +34,7 @@ index 1afd8b2f..8523c47a 100644
  
  #define MAX_ENTRIES_NUM_IN_PACKET 50
  #define MAX_LONG_NAME_LEN 350
-@@ -661,22 +661,23 @@ ssh_string sftp_handle_alloc(sftp_session sftp, void *info)
+@@ -890,22 +890,23 @@ ssh_string sftp_handle_alloc(sftp_session sftp, void *info)
      uint32_t val;
      uint32_t i;
  
@@ -70,7 +70,7 @@ index 1afd8b2f..8523c47a 100644
  
      val = i;
      ret = ssh_string_new(4);
-@@ -704,9 +705,9 @@ void *sftp_handle(sftp_session sftp, ssh_string handle)
+@@ -946,9 +947,9 @@ void *sftp_handle(sftp_session sftp, ssh_string handle)
  
      memcpy(&val, ssh_string_data(handle), sizeof(uint32_t));
  
@@ -83,7 +83,7 @@ index 1afd8b2f..8523c47a 100644
  
      return sftp->handles[val];
  }
-@@ -715,12 +716,12 @@ void sftp_handle_remove(sftp_session sftp, void *handle)
+@@ -957,12 +958,12 @@ void sftp_handle_remove(sftp_session sftp, void *handle)
  {
      int i;
  
