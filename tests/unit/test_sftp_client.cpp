@@ -26,9 +26,9 @@
 #include "mock_ssh_test_fixture.h"
 #include "stub_ssh_key_provider.h"
 
+#include <multipass/ssh/client_ssh_factory.h>
+#include <multipass/ssh/plain_sftp_client.h>
 #include <multipass/ssh/plain_ssh_session.h>
-#include <multipass/ssh/sftp_client.h>
-#include <multipass/ssh/ssh_factory.h>
 
 #include <fmt/std.h>
 
@@ -87,10 +87,10 @@ struct SFTPClient : public testing::Test
     {
     }
 
-    mp::SFTPClient make_sftp_client()
+    mp::SftpClientUPtr make_sftp_client()
     {
         mp::SSHCoordinates coord{"ubuntu", key_provider.private_key_as_base64(), 43, "b", {}};
-        return {MP_SSH_FACTORY.make_session(coord)};
+        return MP_CLIENT_SSH_FACTORY.make_sftp_client(coord);
     }
 
 // this is a macro since REPLACE only applies to the current scope and cannot be moved out.
@@ -151,11 +151,11 @@ TEST_F(SFTPClient, isDir)
     auto sftp_client = make_sftp_client();
 
     mocked_sftp_stat.returnValue(nullptr);
-    EXPECT_FALSE(sftp_client.is_remote_dir("non/existent/path"));
+    EXPECT_FALSE(sftp_client->is_remote_dir("non/existent/path"));
     mocked_sftp_stat.returnValue(get_dummy_sftp_attr(SSH_FILEXFER_TYPE_DIRECTORY));
-    EXPECT_TRUE(sftp_client.is_remote_dir("a/true/directory"));
+    EXPECT_TRUE(sftp_client->is_remote_dir("a/true/directory"));
     mocked_sftp_stat.returnValue(get_dummy_sftp_attr(SSH_FILEXFER_TYPE_REGULAR));
-    EXPECT_FALSE(sftp_client.is_remote_dir("not/a/directory"));
+    EXPECT_FALSE(sftp_client->is_remote_dir("not/a/directory"));
 }
 
 TEST_F(SFTPClient, pushFileSuccess)
@@ -185,7 +185,7 @@ TEST_F(SFTPClient, pushFileSuccess)
 
     auto sftp_client = make_sftp_client();
 
-    EXPECT_TRUE(sftp_client.push(source_path, target_path));
+    EXPECT_TRUE(sftp_client->push(source_path, target_path));
     EXPECT_EQ(test_data, written_data);
     EXPECT_EQ(static_cast<mode_t>(status.permissions()), written_perms);
 }
@@ -209,7 +209,7 @@ TEST_F(SFTPClient, pushFileCannotOpenSource)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot open local file {}: {}", source_path, strerror(err)));
-    EXPECT_FALSE(sftp_client.push(source_path, target_path));
+    EXPECT_FALSE(sftp_client->push(source_path, target_path));
 }
 
 TEST_F(SFTPClient, pushFileCannotOpenTarget)
@@ -228,7 +228,7 @@ TEST_F(SFTPClient, pushFileCannotOpenTarget)
 
     mock_logger->expect_log(mpl::Level::error,
                             fmt::format("cannot open remote file {}: {}", target_path, err));
-    EXPECT_FALSE(sftp_client.push(source_path, target_path));
+    EXPECT_FALSE(sftp_client->push(source_path, target_path));
 }
 
 TEST_F(SFTPClient, pushFileCannotWriteTarget)
@@ -251,7 +251,7 @@ TEST_F(SFTPClient, pushFileCannotWriteTarget)
 
     mock_logger->expect_log(mpl::Level::error,
                             fmt::format("cannot write to remote file {}: {}", target_path, err));
-    EXPECT_FALSE(sftp_client.push(source_path, target_path));
+    EXPECT_FALSE(sftp_client->push(source_path, target_path));
 }
 
 TEST_F(SFTPClient, pushFileCannotReadSource)
@@ -283,7 +283,7 @@ TEST_F(SFTPClient, pushFileCannotReadSource)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot read from local file {}: {}", source_path, strerror(err)));
-    EXPECT_FALSE(sftp_client.push(source_path, target_path));
+    EXPECT_FALSE(sftp_client->push(source_path, target_path));
 }
 
 TEST_F(SFTPClient, pushFileCannotSetPerms)
@@ -311,7 +311,7 @@ TEST_F(SFTPClient, pushFileCannotSetPerms)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot set permissions for remote file {}: {}", target_path, err));
-    EXPECT_FALSE(sftp_client.push(source_path, target_path));
+    EXPECT_FALSE(sftp_client->push(source_path, target_path));
 }
 
 TEST_F(SFTPClient, pullFileSuccess)
@@ -346,7 +346,7 @@ TEST_F(SFTPClient, pullFileSuccess)
 
     auto sftp_client = make_sftp_client();
 
-    EXPECT_TRUE(sftp_client.pull(source_path, target_path));
+    EXPECT_TRUE(sftp_client->pull(source_path, target_path));
     EXPECT_EQ(test_data, test_file.str());
     EXPECT_EQ(static_cast<std::filesystem::perms>(perms), written_perms);
 }
@@ -367,7 +367,7 @@ TEST_F(SFTPClient, pullFileCannotOpenSource)
 
     mock_logger->expect_log(mpl::Level::error,
                             fmt::format("cannot open remote file {}: {}", source_path, err));
-    EXPECT_FALSE(sftp_client.pull(source_path, target_path));
+    EXPECT_FALSE(sftp_client->pull(source_path, target_path));
 }
 
 TEST_F(SFTPClient, pullFileCannotOpenTarget)
@@ -389,7 +389,7 @@ TEST_F(SFTPClient, pullFileCannotOpenTarget)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot open local file {}: {}", target_path, strerror(err)));
-    EXPECT_FALSE(sftp_client.pull(source_path, target_path));
+    EXPECT_FALSE(sftp_client->pull(source_path, target_path));
 }
 
 TEST_F(SFTPClient, pullFileCannotWriteTarget)
@@ -420,7 +420,7 @@ TEST_F(SFTPClient, pullFileCannotWriteTarget)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot write to local file {}: {}", target_path, strerror(err)));
-    EXPECT_FALSE(sftp_client.pull(source_path, target_path));
+    EXPECT_FALSE(sftp_client->pull(source_path, target_path));
 }
 
 TEST_F(SFTPClient, pullFileCannotReadSource)
@@ -441,7 +441,7 @@ TEST_F(SFTPClient, pullFileCannotReadSource)
 
     mock_logger->expect_log(mpl::Level::error,
                             fmt::format("cannot read from remote file {}: {}", source_path, err));
-    EXPECT_FALSE(sftp_client.pull(source_path, target_path));
+    EXPECT_FALSE(sftp_client->pull(source_path, target_path));
 }
 
 TEST_F(SFTPClient, pullFileCannotSetPerms)
@@ -466,7 +466,7 @@ TEST_F(SFTPClient, pullFileCannotSetPerms)
 
     mock_logger->expect_log(mpl::Level::error,
                             fmt::format("cannot set permissions for local file {}", target_path));
-    EXPECT_FALSE(sftp_client.pull(source_path, target_path));
+    EXPECT_FALSE(sftp_client->pull(source_path, target_path));
 }
 
 TEST_F(SFTPClient, pushDirSuccessRegular)
@@ -507,7 +507,7 @@ TEST_F(SFTPClient, pushDirSuccessRegular)
 
     auto sftp_client = make_sftp_client();
 
-    EXPECT_TRUE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_TRUE(sftp_client->push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
     EXPECT_EQ(status.permissions(), static_cast<fs::perms>(written_perms));
     EXPECT_EQ(test_data, written_data);
 }
@@ -541,7 +541,7 @@ TEST_F(SFTPClient, pushDirSuccessDir)
 
     auto sftp_client = make_sftp_client();
 
-    EXPECT_TRUE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_TRUE(sftp_client->push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
     EXPECT_EQ(set_perms, static_cast<mode_t>(status.permissions()));
 }
 
@@ -580,7 +580,7 @@ TEST_F(SFTPClient, pushDirFailDir)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot set permissions for remote directory {}: {}", target_path, err));
-    EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_FALSE(sftp_client->push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pushDirSuccessSymlink)
@@ -612,7 +612,7 @@ TEST_F(SFTPClient, pushDirSuccessSymlink)
 
     auto sftp_client = make_sftp_client();
 
-    EXPECT_TRUE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_TRUE(sftp_client->push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pushDirCannotReadSymlink)
@@ -648,7 +648,7 @@ TEST_F(SFTPClient, pushDirCannotReadSymlink)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot read local link {}: {}", source_path / "symlink", err.message()));
-    EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_FALSE(sftp_client->push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pushDirCannotCreateSymlink)
@@ -686,7 +686,7 @@ TEST_F(SFTPClient, pushDirCannotCreateSymlink)
                             fmt::format("cannot create remote symlink \"{}\": {}",
                                         target_path.string() + "/symlink",
                                         err));
-    EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_FALSE(sftp_client->push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pushDirSymlinkOverDir)
@@ -720,7 +720,7 @@ TEST_F(SFTPClient, pushDirSymlinkOverDir)
         mpl::Level::error,
         fmt::format("cannot overwrite remote directory \"{}\" with non-directory",
                     target_path.string() + "/symlink"));
-    EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_FALSE(sftp_client->push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pushDirUnknownFileType)
@@ -750,7 +750,7 @@ TEST_F(SFTPClient, pushDirUnknownFileType)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot copy {}: not a regular file", source_path / "unknown"));
-    EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_FALSE(sftp_client->push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pushDirOpenIterFail)
@@ -772,7 +772,7 @@ TEST_F(SFTPClient, pushDirOpenIterFail)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot open local directory {}: {}", source_path, err.message()));
-    EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_FALSE(sftp_client->push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pushDirCannotAccessTarget)
@@ -790,7 +790,7 @@ TEST_F(SFTPClient, pushDirCannotAccessTarget)
 
     mock_logger->expect_log(mpl::Level::error,
                             fmt::format("cannot access {}: {}", source_path, err.message()));
-    EXPECT_FALSE(sftp_client.push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_FALSE(sftp_client->push(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pushDirRNotSpecified)
@@ -803,7 +803,7 @@ TEST_F(SFTPClient, pushDirRNotSpecified)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("omitting local directory {}: recursive mode not specified", source_path));
-    EXPECT_FALSE(sftp_client.push(source_path, target_path));
+    EXPECT_FALSE(sftp_client->push(source_path, target_path));
 }
 
 TEST_F(SFTPClient, pullDirSuccessRegular)
@@ -856,7 +856,7 @@ TEST_F(SFTPClient, pullDirSuccessRegular)
 
     auto sftp_client = make_sftp_client();
 
-    EXPECT_TRUE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_TRUE(sftp_client->pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
     EXPECT_EQ(test_data, test_file.str());
     EXPECT_EQ(static_cast<std::filesystem::perms>(perms), file_written_perms);
     EXPECT_EQ(static_cast<std::filesystem::perms>(perms), dir_written_perms);
@@ -882,7 +882,7 @@ TEST_F(SFTPClient, pullDirSuccessDir)
 
     auto sftp_client = make_sftp_client();
 
-    EXPECT_TRUE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_TRUE(sftp_client->pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pullDirFailDir)
@@ -917,7 +917,7 @@ TEST_F(SFTPClient, pullDirFailDir)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot set permissions for local directory {}", target_path));
-    EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_FALSE(sftp_client->pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pullDirSuccessSymlink)
@@ -944,7 +944,7 @@ TEST_F(SFTPClient, pullDirSuccessSymlink)
 
     auto sftp_client = make_sftp_client();
 
-    EXPECT_TRUE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_TRUE(sftp_client->pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pullDirCannotReadSymlink)
@@ -973,7 +973,7 @@ TEST_F(SFTPClient, pullDirCannotReadSymlink)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot read remote link \"{}\": {}", source_path.string() + "/symlink", err));
-    EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_FALSE(sftp_client->pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pullDirCannotCreateSymlink)
@@ -1005,7 +1005,7 @@ TEST_F(SFTPClient, pullDirCannotCreateSymlink)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot create local symlink {}: {}", target_path / "symlink", err.message()));
-    EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_FALSE(sftp_client->pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pullDirSymlinkOverDir)
@@ -1033,7 +1033,7 @@ TEST_F(SFTPClient, pullDirSymlinkOverDir)
     mock_logger->expect_log(mpl::Level::error,
                             fmt::format("cannot overwrite local directory {} with non-directory",
                                         target_path / "symlink"));
-    EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_FALSE(sftp_client->pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pullDirUnknownFileType)
@@ -1058,7 +1058,7 @@ TEST_F(SFTPClient, pullDirUnknownFileType)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("cannot copy \"{}\": not a regular file", source_path.string() + "/unknown"));
-    EXPECT_FALSE(sftp_client.pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
+    EXPECT_FALSE(sftp_client->pull(source_path, target_path, mp::SFTPClient::Flag::Recursive));
 }
 
 TEST_F(SFTPClient, pullDirRNotSpecified)
@@ -1071,5 +1071,5 @@ TEST_F(SFTPClient, pullDirRNotSpecified)
     mock_logger->expect_log(
         mpl::Level::error,
         fmt::format("omitting remote directory {}: recursive mode not specified", source_path));
-    EXPECT_FALSE(sftp_client.pull(source_path, target_path));
+    EXPECT_FALSE(sftp_client->pull(source_path, target_path));
 }

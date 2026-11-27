@@ -54,11 +54,6 @@ struct MockSFTPUtils : public SFTPUtils
                 make_SFTPDirIterator,
                 (sftp_session sftp, const fs::path& path),
                 (override));
-    MOCK_METHOD(std::unique_ptr<SFTPClient>,
-                make_SFTPClient,
-                (const SSHCoordinates& coordinates),
-                (override));
-
     MP_MOCK_SINGLETON_BOILERPLATE(MockSFTPUtils, SFTPUtils);
 };
 } // namespace multipass::test

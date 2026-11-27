@@ -46,6 +46,8 @@ public:
                 (const SSHCoordinates&, Terminal*),
                 (const, override));
 
+    MOCK_METHOD(SftpClientUPtr, make_sftp_client, (const SSHCoordinates&), (const, override));
+
     MP_MOCK_SINGLETON_BOILERPLATE(MockClientSSHFactory, ClientSSHFactory);
 };
 } // namespace multipass::test
