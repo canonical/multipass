@@ -21,6 +21,7 @@
 #include <multipass/cert_provider.h>
 #include <multipass/cert_store.h>
 #include <multipass/days.h>
+#include <multipass/dns_provider.h>
 #include <multipass/image_host/vm_image_host.h>
 #include <multipass/logging/logger.h>
 #include <multipass/logging/multiplexing_logger.h>
@@ -36,6 +37,7 @@
 #include <QNetworkProxy>
 
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace multipass
@@ -55,6 +57,7 @@ struct DaemonConfig
     const std::shared_ptr<logging::MultiplexingLogger> logger;
     const std::unique_ptr<QNetworkProxy> network_proxy;
     const AvailabilityZoneManager::UPtr az_manager;
+    const DnsProvider::UPtr dns_provider;
     const multipass::Path cache_directory;
     const multipass::Path data_directory;
     const std::string server_address;
@@ -76,6 +79,7 @@ struct DaemonConfigBuilder
     std::unique_ptr<logging::Logger> logger;
     std::unique_ptr<QNetworkProxy> network_proxy;
     AvailabilityZoneManager::UPtr az_manager;
+    DnsProvider::UPtr dns_provider;
     multipass::Path cache_directory;
     multipass::Path data_directory;
     std::string server_address;

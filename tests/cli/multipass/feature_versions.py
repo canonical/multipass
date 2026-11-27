@@ -32,6 +32,7 @@ def _feature_version(name):
         "core26_images": {"min": ver.parse("1.16.3")},
         "wait_ready": {"min": ver.parse("1.17")},
         "az": {"min": ver.parse("1.17")},
+        "dns_resolution": {"min": ver.parse("1.18")},
     }
     assert name in feats, f"No such feature: {name}"
     return feats[name]

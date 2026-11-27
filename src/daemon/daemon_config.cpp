@@ -146,6 +146,8 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                              std::make_unique<StubAvailabilityZoneManager>());
     if (factory == nullptr)
         factory = platform::vm_backend(data_directory, *az_manager);
+    if (dns_provider == nullptr)
+        dns_provider = MP_PLATFORM.make_dns_provider();
     if (update_prompt == nullptr)
         update_prompt = platform::make_update_prompt();
     if (image_hosts.empty())
@@ -243,6 +245,7 @@ std::unique_ptr<const mp::DaemonConfig> mp::DaemonConfigBuilder::build()
                          .logger = multiplexing_logger,
                          .network_proxy = std::move(network_proxy),
                          .az_manager = std::move(az_manager),
+                         .dns_provider = std::move(dns_provider),
                          .cache_directory = cache_directory,
                          .data_directory = data_directory,
                          .server_address = server_address,

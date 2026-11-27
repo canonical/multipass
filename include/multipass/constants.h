@@ -70,6 +70,8 @@ constexpr auto mounts_key = "local.privileged-mounts";
 constexpr auto winterm_key = "client.apps.windows-terminal.profiles";
 constexpr auto mirror_key = "local.image.mirror"; // the mirror of simple streams
 
+constexpr auto default_dns_domain = "multipass.local"; // instances resolve as <name>.<domain>
+
 constexpr auto cloud_init_file_name = "cloud-init-config.iso";
 constexpr auto vm_description_file_name = "vm-description.json";
 constexpr auto vm_description_schema_version = 1;

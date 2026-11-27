@@ -1,11 +1,11 @@
 # cloud-init-fqdn-multipass
 
-Builds the NoCloud cloud-init seeds used by the Hyper-V HCN DNS end-to-end
+Notes on the NoCloud cloud-init seeds used by the Hyper-V HCN DNS end-to-end
 integration tests (the `HyperV_ComponentIntegrationTests.dns_suffix_*` tests in
 `tests/unit/hcs/test_bb_cit_hyperv.cpp`).
 
-Unlike the other fixtures, the ISO here is **generated at run time** by
-`make_seed_iso.py` rather than committed as a binary. Each test passes a *unique*
+Unlike the other fixtures, the ISO is **generated at run time** by the tests
+(`build_seed_iso`, using `CloudInitIso`) rather than committed as a binary. Each test passes a *unique*
 DHCP hostname per run (e.g. `mp-host-1dd6e733`, or the dotted
 `mp-fqdn-1dd6e733.multipass`). This matters because the ICS DNS proxy persists
 its name→IP registrations across runs (for about a week) and cannot be flushed
@@ -37,20 +37,3 @@ being **dotted**:
 Net result: `<label>.multipass` resolves via the system resolver to the live
 lease, while the global `ICSDomain` stays `mshome.net` the whole time. No
 time-windowed registry values, no extra DNS server/resolver process.
-
-## Files
-
-- `make_seed_iso.py` — builds the seed ISO for a given `--hostname`/`--output`.
-  The `user-data`/`meta-data` templates are embedded in the script.
-
-## Requirements
-
-`python` (3.x) on the `PATH`, with [`pycdlib`](https://pypi.org/project/pycdlib/)
-installed (`python -m pip install pycdlib`). Without it, the tests fail with
-"seed ISO build failed".
-
-## Regenerating manually
-
-```
-python make_seed_iso.py --hostname mp-fqdn-deadbeef.multipass --output cloud-init.iso
-```

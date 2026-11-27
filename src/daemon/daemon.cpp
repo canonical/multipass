@@ -1511,6 +1511,45 @@ catch (const std::exception& e)
     return grpc::Status(grpc::StatusCode::INTERNAL, e.what(), "");
 }
 
+// Makes an instance resolvable by name from the host. Never fails the caller: instances work
+// without it.
+void publish_dns_record(mp::DnsProvider& dns, const std::string& name, mp::VirtualMachine& vm)
+try
+{
+    if (const auto address = vm.management_ipv4())
+        dns.set_host(name, {*address});
+    else
+        mpl::debug(category, "{} will not resolve by name: its IP address is unknown", name);
+}
+catch (const std::exception& e)
+{
+    mpl::warn(category, "{} will not resolve by name: {}", name, e.what());
+}
+
+// Stops an instance from resolving by name. Never fails the caller either.
+void unpublish_dns_record(mp::DnsProvider& dns, const std::string& name)
+try
+{
+    dns.remove_host(name);
+}
+catch (const std::exception& e)
+{
+    mpl::warn(category, "{} may still resolve by name: {}", name, e.what());
+}
+
+void start_dns_provider(mp::DnsProvider& dns)
+try
+{
+    dns.start(mp::default_dns_domain);
+}
+catch (const std::exception& e)
+{
+    mpl::warn(category,
+              "Instances will not resolve as <name>.{}: {}",
+              mp::default_dns_domain,
+              e.what());
+}
+
 } // namespace
 
 // TODO hyperv migration, revert: back to the free function connect_rpc(rpc, daemon) with plain
@@ -1608,6 +1647,8 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
     {
         mpl::warn(category, "Hypervisor health check failed: {}", e.what());
     }
+
+    start_dns_provider(*config->dns_provider);
 
     for (const auto& entry : vm_instance_specs)
     {
@@ -3640,6 +3681,10 @@ void mp::Daemon::persist_state_for(const std::string& name, const VirtualMachine
 {
     vm_instance_specs[name].state = state;
     persist_instances();
+
+    using enum VirtualMachine::State;
+    if (state == stopped || state == suspended || state == unavailable)
+        unpublish_dns_record(*config->dns_provider, name);
 }
 
 void mp::Daemon::update_metadata_for(const std::string& name, const boost::json::object& metadata)
@@ -3667,6 +3712,7 @@ void mp::Daemon::release_resources(const std::string& instance)
 {
     config->vault->remove(instance);
     config->factory->remove_resources_for(instance);
+    unpublish_dns_record(*config->dns_provider, instance);
 
     auto spec_it = vm_instance_specs.find(instance);
     if (spec_it != cend(vm_instance_specs))
@@ -4245,6 +4291,7 @@ QFuture<mp::ReadinessResult> mp::Daemon::async_wait_vm_ready_impl(
 
     auto wait_op = [=, vm = it->second, vm_mounts = std::move(vm_mounts)]() {
         vm->wait_until_ssh_up(timeout);
+        publish_dns_record(*config->dns_provider, name, *vm);
 
         if constexpr (std::is_same_v<LogMsgReply, LaunchReply>)
             if (std::is_same<LogMsgReply, LaunchReply>::value)
