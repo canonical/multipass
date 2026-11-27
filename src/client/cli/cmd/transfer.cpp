@@ -21,7 +21,7 @@
 #include <multipass/cli/argparser.h>
 #include <multipass/cli/client_platform.h>
 #include <multipass/file_ops.h>
-#include <multipass/ssh/sftp_utils.h>
+#include <multipass/ssh/client_ssh_factory.h>
 #include <multipass/utils/grpc_utils.h>
 
 #include <fmt/std.h>
@@ -53,7 +53,7 @@ mp::ReturnCodeVariant cmd::Transfer::run(mp::ArgParser* parser)
                 mp::utils::proto_to_coordinates(ssh_coordinates_rpc)};
             try
             {
-                auto sftp_client = MP_SFTPUTILS.make_SFTPClient(ssh_coordinates);
+                auto sftp_client = MP_CLIENT_SSH_FACTORY.make_sftp_client(ssh_coordinates);
 
                 if (const auto args = std::get_if<InstanceSourcesLocalTarget>(&arguments); args)
                 {
@@ -159,8 +159,10 @@ mp::ParseCode cmd::Transfer::parse_args(mp::ArgParser* parser)
     const auto full_target = positionalArgs.takeLast();
     const auto& full_sources = positionalArgs;
 
-    if (const auto ret_opt =
-            parse_streaming(full_sources, full_target, split_sources, split_target);
+    if (const auto ret_opt = parse_streaming(full_sources,
+                                             full_target,
+                                             split_sources,
+                                             split_target);
         ret_opt)
         return ret_opt.value();
 
@@ -183,10 +185,11 @@ std::vector<std::pair<std::string, fs::path>> cmd::Transfer::args_to_instance_an
         }
 
         const auto source_components = entry.split(':');
-        const auto instance_name =
-            source_components.size() == 1 ? "" : source_components.first().toStdString();
-        const auto file_path =
-            source_components.size() == 1 ? source_components.first() : entry.section(':', 1);
+        const auto instance_name = source_components.size() == 1
+                                     ? ""
+                                     : source_components.first().toStdString();
+        const auto file_path = source_components.size() == 1 ? source_components.first()
+                                                             : entry.section(':', 1);
         if (!instance_name.empty())
             request.add_instance_name()->append(instance_name);
         instance_entry_args.emplace_back(instance_name,
@@ -201,8 +204,9 @@ std::optional<mp::ParseCode> multipass::cmd::Transfer::parse_streaming(
     std::vector<std::pair<std::string, fs::path>> split_sources,
     std::pair<std::string, fs::path> split_target)
 {
-    const auto source_streaming =
-        std::count(full_sources.begin(), full_sources.end(), streaming_symbol);
+    const auto source_streaming = std::count(full_sources.begin(),
+                                             full_sources.end(),
+                                             streaming_symbol);
     const auto target_streaming = full_target == streaming_symbol;
     if ((target_streaming && source_streaming) || source_streaming > 1)
     {
