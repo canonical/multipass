@@ -127,6 +127,9 @@ jobs:
         # vcpkg-libb2: libb2 currently requires the following programs:
         brew install autoconf autoconf-archive automake libtool
 
+    - name: Install NuGet dependencies from brew
+      continue-on-error: true
+      run: |
         # Force brew nuget & mono
         brew install nuget || true
         brew install mono || true
@@ -191,6 +194,7 @@ jobs:
 
     - name: Determine cache key
       id: cache-key
+      continue-on-error: true
       shell: bash
       run: |
         # Find common base between main and HEAD to use as cache key.
@@ -199,6 +203,7 @@ jobs:
 
     - name: Restore sccache
       uses: actions/cache/restore@v6
+      continue-on-error: true
       with:
         path: ${{ env.SCCACHE_DIR }}
         key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"
@@ -349,7 +354,8 @@ jobs:
 
     - name: Save sccache
       uses: actions/cache/save@v6
-      if: ${{ github.ref == 'refs/heads/main' }}
+      if: ${{ github.ref == 'refs/heads/main' && steps.cache-key.outcome == 'success' }}
+      continue-on-error: true
       with:
         path: ${{ env.SCCACHE_DIR }}
         key: "sccache-${{ matrix.runs-on }}-${{ steps.cache-key.outputs.cache-key }}"

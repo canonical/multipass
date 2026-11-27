@@ -34,13 +34,12 @@ jobs:
             "runs-on": "ubuntu-latest"
           });
 
-          let runners = ["ubuntu-latest", "ubuntu-24.04-arm"];
-          if (context.eventName === 'schedule' &&
-              context.repo.owner === 'canonical' &&
-              context.repo.repo === 'multipass') {
-            runners.push("self-hosted-linux-ppc64el-noble-edge",
-                         "self-hosted-linux-s390x-noble-edge");
-          }
+          let runners = [
+            "ubuntu-latest",
+            "ubuntu-24.04-arm",
+            "self-hosted-linux-ppc64el-resolute-medium",
+            "self-hosted-linux-s390x-resolute-medium"
+          ];
 
           for (const runner of runners) {
             matrix.include.push({
@@ -120,7 +119,7 @@ jobs:
       uses: ./.github/actions/read-snapcraft-yml-params
 
     - name: Exclude GUI from unsupported arches
-      if: ${{ matrix.runs-on == 'self-hosted-linux-ppc64el-noble-edge' || matrix.runs-on == 'self-hosted-linux-s390x-noble-edge' }}
+      if: ${{ matrix.runs-on == 'self-hosted-linux-ppc64el-resolute-medium' || matrix.runs-on == 'self-hosted-linux-s390x-resolute-medium' }}
       run: |
         cp packaging/gui-less/snap/snapcraft.yaml snap/snapcraft.yaml
         yq -i '.parts.multipass.source = "." | .parts.glue.source = "snap-wrappers" | del(.parts.glue."source-type", .parts.glue."source-subdir")' snap/snapcraft.yaml
@@ -144,6 +143,7 @@ jobs:
 
     - name: Set up CCache
       id: setup-ccache
+      continue-on-error: true
       run: |
         sudo apt-get install -y ccache
         ccache --max-size=2G
@@ -155,7 +155,9 @@ jobs:
         echo "cache-key=$( git merge-base origin/main ${{ github.sha }} )" >> $GITHUB_OUTPUT
 
     - name: CCache
+      if: ${{ steps.setup-ccache.outcome == 'success' }}
       uses: actions/cache@v6
+      continue-on-error: true
       with:
         key: ccache-${{ runner.os }}-${{ runner.arch }}-${{ matrix.build-type }}-${{ steps.setup-ccache.outputs.cache-key }}
         restore-keys: |
@@ -195,13 +197,14 @@ jobs:
               return 0
             fi
 
-            if grep -qE "daemon is stopping to wait for socket activation|Failed to wait for snap refreshes" "$tmpfile"; then
+            if grep -qE "daemon is stopping to wait for socket activation|Failed to wait for snap refreshes|TimeoutExpired" "$tmpfile"; then
               exit 42
             fi
 
             exit $exit_code
           }
-          # The auto-refresh race would manifest itself in the first pull attempt.
+          # The auto-refresh race and timeouts while setting up the base
+          # instance would manifest themselves in the first pull attempt.
           # Hence wrapping only the first call.
           run_snapcraft /snap/bin/snapcraft pull --use-lxd inject-apt-mirrors
           /snap/bin/snapcraft pull --use-lxd configure-nuget-cache
@@ -218,6 +221,8 @@ jobs:
         /snap/bin/snapcraft build --use-lxd multipass
 
     - name: Clear CCache stats
+      if: ${{ steps.setup-ccache.outcome == 'success' }}
+      continue-on-error: true
       run: ccache --show-stats --zero-stats
 
     - name: Set /proc/sys/kernel/core_pattern
