@@ -209,6 +209,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
     {
         (void)fetch_state();
     }
+
+    load_mounts();
 }
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name,
@@ -276,6 +278,8 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const std::string& source_vm_name
 
     remove_snapshots_from_backend();
     fs::remove_all(exported_vm_path);
+
+    load_mounts();
 }
 
 mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& desc,
@@ -344,6 +348,8 @@ void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_spec
 
 mp::HyperVVirtualMachine::~HyperVVirtualMachine()
 {
+    unload_mounts();
+
     top_catch_all(vm_name, [this]() {
         update_suspend_status = false;
 

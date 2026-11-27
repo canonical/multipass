@@ -19,6 +19,7 @@
 
 #include "disabled_copy_move.h"
 #include "network_interface.h"
+#include "server_variant.h"
 #include "user_messages.h"
 #include "vm_mount.h"
 
@@ -113,6 +114,20 @@ public:
     virtual std::unique_ptr<MountHandler> make_native_mount_handler(const std::string& target,
                                                                     const VMMount& mount) = 0;
     [[nodiscard]] virtual std::unordered_map<std::string, VMMount> get_mounts() const = 0;
+
+    // The instance owns its mounts and reports every change through
+    // VMStatusMonitor::update_mounts_for.
+    // Throws MountTargetInUseError, MountActivationError, SSHFSMissingError, or whatever creating
+    // the mount handler throws. Nothing is added on failure.
+    virtual void add_mount(const std::string& target,
+                           const VMMount& mount,
+                           ServerVariant server) = 0;
+    // Throws MountNotFoundError or the deactivation failure, in which case the mount is kept.
+    virtual void remove_mount(const std::string& target) = 0;
+    // Returns the mounts that failed to deactivate, with their errors. Those are kept.
+    virtual std::vector<std::pair<std::string, std::string>> remove_all_mounts() = 0;
+    virtual MountActivationResult activate_mounts(ServerVariant server) = 0;
+    virtual void stop_mounts() = 0;
 
     using SnapshotVista = std::vector<std::shared_ptr<const Snapshot>>; // using vista to avoid
                                                                         // confusion with C++ views
