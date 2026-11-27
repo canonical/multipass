@@ -64,6 +64,45 @@ _multipass_complete()
         opts=$( multipass networks --format=csv 2>/dev/null | \tail -n +2 | \cut -d',' -f 1 )
     }
 
+    # Check whether the command being completed already has a positional argument.
+    _multipass_has_positional_arg()
+    {
+        # Keep option values such as "ops@example.com" and "before,after" in one word.
+        local WORDS CWORD cur prev
+        _get_comp_words_by_ref -n :=,@ -w WORDS -i CWORD cur prev
+
+        local value_opts=" $1 "
+        local skip_next=0
+        local i j
+
+        for ((i=2; i<CWORD; ++i)); do
+            local word="${WORDS[i]}"
+
+            if [[ ${skip_next} == 1 ]]; then
+                skip_next=0
+            elif [[ "${word}" == --*=* ]]; then
+                continue
+            elif [[ "${word}" == -* ]]; then
+                if [[ "${value_opts}" == *" ${word} "* ]]; then
+                    skip_next=1
+                elif [[ "${word}" != --* ]]; then
+                    # A short option bundle may end with an option that takes the next word as its value.
+                    for ((j=1; j<${#word}; ++j)); do
+                        local opt="-${word:j:1}"
+                        if [[ "${value_opts}" == *" ${opt} "* ]]; then
+                            [[ ${j} -eq ${#word}-1 ]] && skip_next=1
+                            break
+                        fi
+                    done
+                fi
+            else
+                return 0
+            fi
+        done
+
+        return 1
+    }
+
     _multipass_instances_with_colon()
     {
         local opts_bak="${opts}"
@@ -348,7 +387,12 @@ _multipass_complete()
 
     if [[ "$prev_opts" = false ]]; then
         case "${cmd}" in
-            "exec"|"suspend"|"restart")
+            "exec")
+                if ! _multipass_has_positional_arg "--working-directory -d"; then
+                    _multipass_instances "Running"
+                fi
+            ;;
+            "suspend"|"restart")
                 _multipass_instances "Running"
             ;;
             "stop")
@@ -366,9 +410,11 @@ _multipass_complete()
                 _multipass_instances "Running"
             ;;
             "connect"|"sh"|"shell")
-                _multipass_instances "Running"
-                _multipass_instances "Stopped"
-                _multipass_instances "Suspended"
+                if ! _multipass_has_positional_arg "--timeout"; then
+                    _multipass_instances "Running"
+                    _multipass_instances "Stopped"
+                    _multipass_instances "Suspended"
+                fi
             ;;
             "start")
                 _multipass_instances "Stopped"
@@ -384,13 +430,19 @@ _multipass_complete()
                 _multipass_instances "Deleted"
             ;;
             "snapshot")
-                _multipass_instances "Stopped"
+                if ! _multipass_has_positional_arg "--name -n --comment -c -m"; then
+                    _multipass_instances "Stopped"
+                fi
             ;;
             "clone")
-                _multipass_instances "Stopped"
+                if ! _multipass_has_positional_arg "--name -n"; then
+                    _multipass_instances "Stopped"
+                fi
             ;;
             "restore")
-                _multipass_restorable_snapshots
+                if ! _multipass_has_positional_arg; then
+                    _multipass_restorable_snapshots
+                fi
             ;;
             "get")
                 _multipass_settings_keys
@@ -405,25 +457,12 @@ _multipass_complete()
                 fi
             ;;
             "mount")
-                local source_set=0
-                local prev
-                _get_comp_words_by_ref -n := -w WORDS -i CWORD cur prev
-                # Scan through the current command line to detect if the source
-                # positional arg has been set.
-                for ((i=2; i<CWORD; i++)); do
-                    if [[ "${WORDS[i]}" != -* ]] && \
-                       ([[ "${WORDS[i-1]}" != -* ]] || [[ "${WORDS[i-1]}" == *=* ]]); then
-                            source_set=1
-                            break
-                    fi
-                done
-
-                if [ ${source_set} == 0 ] ; then
-                    if [[ ${prev} != -* ]] || ([[ ${prev} == -* ]] && [[ ${prev} == *=* ]]); then
+                if ! _multipass_has_positional_arg "--gid-map -g --uid-map -u"; then
+                    if [[ ${prev} != -* ]] || [[ ${prev} == *=* ]]; then
                         _filedir -d
                         return
                     fi
-                elif [ ${source_set} == 1 ] && [[ ${prev} != -* ]]; then
+                elif [[ ${prev} != -* ]]; then
                     _multipass_instances "Running"
                     _multipass_instances "Stopped"
                     _multipass_instances "Suspended"
