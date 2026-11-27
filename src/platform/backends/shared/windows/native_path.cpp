@@ -16,11 +16,10 @@
  */
 
 #include <shared/windows/native_path.h>
+#include <shared/windows/wchar_conversion.h>
 
 #include <boost/json.hpp>
 
-#include <codecvt>
-#include <locale>
 #include <string_view>
 #include <type_traits>
 
@@ -50,13 +49,7 @@ auto fmt::formatter<NativePath, Char>::format(const NativePath& path, FormatCont
     }
     else if constexpr (std::is_same_v<Char, wchar_t>)
     {
-        // FIXME: std::wstring_convert is deprecated
-        // FIXME: Create a public utility function for converting UTF-8 `std::string`s
-        // to UTF-16 `std::wstring`s. There is multipass::hyperv::to_wstring but it lives under
-        // backends/hcs
-        const auto wide_path = std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>{}.from_bytes(
-            escaped_path.data(),
-            escaped_path.data() + escaped_path.size());
+        const auto wide_path = multipass::utf8_to_wchar(escaped_path);
 
         return formatter<basic_string_view<Char>, Char>::format(
             basic_string_view<Char>{wide_path.data(), wide_path.size()},

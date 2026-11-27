@@ -25,7 +25,6 @@
 #include <hcs/hcs_virtual_machine.h>
 #include <hcs/hcs_virtual_machine_exceptions.h>
 #include <hcs/hcs_virtual_machine_resources.h>
-#include <hcs/util/string_conversion.h>
 
 #include <multipass/constants.h>
 #include <multipass/platform.h>
@@ -34,6 +33,7 @@
 #include <multipass/vm_specs.h>
 #include <shared/windows/file_utils.h>
 #include <shared/windows/net_io_api.h>
+#include <shared/windows/wchar_conversion.h>
 #include <shared/windows/windows_feature_status.h>
 
 #include <computenetwork.h>
@@ -58,7 +58,7 @@ void update_adapter_authorizations(std::vector<multipass::NetworkInterfaceInfo>&
 NET_LUID luid_for_hcn_network(const std::string& network_name)
 {
     using namespace multipass::hyperv;
-    const auto alias = fmt::format(L"vEthernet ({})", to_wstring(network_name));
+    const auto alias = fmt::format(L"vEthernet ({})", multipass::utf8_to_wchar(network_name));
 
     NET_LUID luid{};
     if (const auto ret = MP_NETIOAPI.ConvertInterfaceAliasToLuid(alias.c_str(), &luid);

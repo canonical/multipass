@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <hcs/util/string_conversion.h>
+#include <shared/windows/wchar_conversion.h>
 
 #include <winerror.h>
 
@@ -112,7 +112,7 @@ struct OperationResult
     {
         const auto win32_as_hresult = HRESULT_FROM_WIN32(win32_result_code);
         const std::error_code ec{static_cast<HRESULT>(win32_as_hresult), std::system_category()};
-        const std::wstring msg_as_wstring = to_wstring(ec.message());
+        const std::wstring msg_as_wstring = utf8_to_wchar(ec.message());
         // https://learn.microsoft.com/en-us/windows/win32/api/winerror/nf-winerror-hresult_from_win32
         return OperationResult{
             win32_as_hresult,

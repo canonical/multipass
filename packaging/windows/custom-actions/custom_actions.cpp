@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string>
 #include <tchar.h>
+#include <vector>
 #pragma comment(lib, "dismapi.lib")
 
 UINT __stdcall AskRemoveData(__in MSIHANDLE hInstall)
@@ -156,4 +157,85 @@ LExit:
 
     er = SUCCEEDED(hr) ? ERROR_SUCCESS : ERROR_UNKNOWN_PROPERTY;
     return WcaFinalize(er);
+}
+
+UINT __stdcall RemoveNrptRules(__in MSIHANDLE hInstall)
+{
+    HRESULT hr = S_OK;
+    HKEY hBaseKey = nullptr;
+
+    hr = WcaInitialize(hInstall, __FUNCTION__);
+    ExitOnFailure(hr, "Failed to initialize");
+    WcaLog(LOGMSG_STANDARD, "Begin RemoveNrptRules.");
+
+    {
+        const wchar_t* const nrpt_base =
+            L"SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters\\DnsPolicyConfig";
+        const wchar_t* const multipass_display_name = L"Multipass";
+
+        const LSTATUS openStatus = ::RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+                                                   nrpt_base,
+                                                   0,
+                                                   KEY_ENUMERATE_SUB_KEYS,
+                                                   &hBaseKey);
+        if (openStatus != ERROR_SUCCESS)
+        {
+            WcaLog(LOGMSG_STANDARD, "Could not open NRPT registry key (error %ld).", openStatus);
+            ExitFunction();
+        }
+
+        std::vector<std::wstring> toDelete;
+        for (DWORD index = 0;; ++index)
+        {
+            WCHAR subkeyName[256];
+            DWORD nameLen = _countof(subkeyName);
+            const LSTATUS enumStatus = ::RegEnumKeyExW(hBaseKey,
+                                                       index,
+                                                       subkeyName,
+                                                       &nameLen,
+                                                       nullptr,
+                                                       nullptr,
+                                                       nullptr,
+                                                       nullptr);
+            if (enumStatus == ERROR_NO_MORE_ITEMS)
+                break;
+            if (enumStatus != ERROR_SUCCESS)
+                continue;
+
+            WCHAR displayName[256];
+            DWORD dataSize = sizeof(displayName);
+            if (::RegGetValueW(hBaseKey,
+                               subkeyName,
+                               L"DisplayName",
+                               RRF_RT_REG_SZ,
+                               nullptr,
+                               displayName,
+                               &dataSize) == ERROR_SUCCESS &&
+                wcscmp(displayName, multipass_display_name) == 0)
+            {
+                toDelete.emplace_back(subkeyName, nameLen);
+            }
+        }
+
+        for (const auto& subkey : toDelete)
+        {
+            const LSTATUS delStatus = ::RegDeleteKeyW(hBaseKey, subkey.c_str());
+            if (delStatus == ERROR_SUCCESS)
+            {
+                WcaLog(LOGMSG_STANDARD, "Removed leftover NRPT rule %ls.", subkey.c_str());
+            }
+            else
+            {
+                WcaLog(LOGMSG_STANDARD,
+                       "Failed to remove NRPT rule %ls (error %ld).",
+                       subkey.c_str(),
+                       delStatus);
+            }
+        }
+    }
+
+LExit:
+    if (hBaseKey)
+        ::RegCloseKey(hBaseKey);
+    return WcaFinalize(ERROR_SUCCESS);
 }

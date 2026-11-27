@@ -16,7 +16,7 @@
 
 #include <hcs/util/guid_utils.h>
 
-#include <hcs/util/string_conversion.h>
+#include <shared/windows/wchar_conversion.h>
 
 #include <windows.h>
 #include <objbase.h>
@@ -60,6 +60,6 @@
 
 ::GUID multipass::hyperv::guid_from_string(const std::string& guid_str)
 {
-    const std::wstring v = to_wstring(guid_str);
+    const std::wstring v = utf8_to_wchar(guid_str);
     return guid_from_string(v);
 }

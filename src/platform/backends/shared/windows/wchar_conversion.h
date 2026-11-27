@@ -23,4 +23,5 @@
 namespace multipass
 {
 std::string wchar_to_utf8(std::wstring_view input);
+std::wstring utf8_to_wchar(std::string_view input);
 }
