@@ -3683,7 +3683,7 @@ TEST_F(SftpServer, relativeErrorPermissionDenied)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownHonorsMapsInTheHost))
+TEST_F(SftpServer, mkdirChownHonorsMapsInTheHost)
 {
     mpt::TempDir temp_dir;
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
@@ -3717,7 +3717,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownHonorsMapsInTheHost))
     sftp.run();
 }
 
-TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownWorksWhenIdsAreNotMapped))
+TEST_F(SftpServer, mkdirChownWorksWhenIdsAreNotMapped)
 {
     mpt::TempDir temp_dir;
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
@@ -3744,7 +3744,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownWorksWhenIdsAreNotMapped))
     sftp.run();
 }
 
-TEST_F(SftpServer, DISABLE_ON_WINDOWS(openChownHonorsMapsInTheHost))
+TEST_F(SftpServer, openChownHonorsMapsInTheHost)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -3778,7 +3778,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(openChownHonorsMapsInTheHost))
     sftp.run();
 }
 
-TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstatChownHonorsMapsInTheHost))
+TEST_F(SftpServer, setstatChownHonorsMapsInTheHost)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -3823,7 +3823,13 @@ struct SftpServerSetstatUnchangedIds
 {
 };
 
-TEST_P(SftpServerSetstatUnchangedIds, DISABLE_ON_WINDOWS(chownReceivesMinusOneOnlyForUnchangedIds))
+INSTANTIATE_TEST_SUITE_P(SftpServer,
+                         SftpServerSetstatUnchangedIds,
+                         ::testing::Values(std::pair{true, false},
+                                           std::pair{false, true},
+                                           std::pair{true, true}));
+
+TEST_P(SftpServerSetstatUnchangedIds, chownReceivesMinusOneOnlyForUnchangedIds)
 {
     const auto [uid_unchanged, gid_unchanged] = GetParam();
 
@@ -3862,9 +3868,4 @@ TEST_P(SftpServerSetstatUnchangedIds, DISABLE_ON_WINDOWS(chownReceivesMinusOneOn
     sftp.run();
 }
 
-INSTANTIATE_TEST_SUITE_P(SftpServer,
-                         SftpServerSetstatUnchangedIds,
-                         ::testing::Values(std::pair{true, false},
-                                           std::pair{false, true},
-                                           std::pair{true, true}));
 } // namespace
