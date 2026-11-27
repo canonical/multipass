@@ -24,4 +24,6 @@ cfg.vm = SimpleNamespace()
 cfg.retries = SimpleNamespace()
 cfg.timeouts = SimpleNamespace()
 cfg.daemon_health_check = True
-cfg.health_check_timeout = 5
+cfg.health_check_timeout = 15
+cfg.health_check_attempts = 3
+cfg.health_check_retry_delay = 2

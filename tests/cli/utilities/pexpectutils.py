@@ -69,16 +69,18 @@ class WinptySpawn(SpawnBase):
         # Set timeout so read won't block forever.
         self.pty_proc.fileobj.settimeout(1.0)
 
-        while True:
-            try:
-                data = self.pty_proc.read()
-                self._read_queue.put(data)
-            except socket.timeout:
-                if not self.pty_proc.isalive():
+        try:
+            while True:
+                try:
+                    data = self.pty_proc.read()
+                    self._read_queue.put(data)
+                except socket.timeout:
+                    if not self.pty_proc.isalive():
+                        break
+                except (EOFError, OSError):
                     break
-            except EOFError:
-                break
-        self._read_queue.put(None)
+        finally:
+            self._read_queue.put(None)
 
     def read_nonblocking(self, size=1024, timeout=1):
         buf = self._buf
@@ -98,9 +100,15 @@ class WinptySpawn(SpawnBase):
             timeout = 1e6
 
         t0 = time.time()
-        while (time.time() - t0) < timeout and size and len(buf) < size:
+        while size and len(buf) < size:
             try:
-                incoming = self._read_queue.get_nowait()
+                if not buf and timeout > 0:
+                    remaining = timeout - (time.time() - t0)
+                    if remaining <= 0:
+                        break
+                    incoming = self._read_queue.get(timeout=remaining)
+                else:
+                    incoming = self._read_queue.get_nowait()
             except Empty:
                 break
             else:
@@ -109,6 +117,10 @@ class WinptySpawn(SpawnBase):
                     break
 
                 buf += incoming
+
+        if self._read_reached_eof and not buf:
+            self.flag_eof = True
+            raise EOF("End Of File (EOF).")
 
         r, self._buf = buf[:size], buf[size:]
         self._log(r, "read")
@@ -137,7 +149,7 @@ class WinptySpawn(SpawnBase):
         self.write(s)
 
     def sendline(self, s=""):
-        self.write(s + "\n")
+        self.send(s + "\r")
 
     def close(self):
         self.terminate()

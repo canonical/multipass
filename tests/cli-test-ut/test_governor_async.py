@@ -25,6 +25,7 @@ import pytest
 
 from cli.controller.multipassd_governor import MultipassdGovernor
 from cli.multipass.exceptions import TestCaseFailure, TestSessionFailure
+from cli.utilities.threadutils import BackgroundEventLoop
 from governor_helpers import MockController, run_governor
 
 
@@ -314,6 +315,159 @@ class TestGovernorStartupFailures:
         assert monitor_task.done()
         assert monitor_task.result() is None
 
+    @pytest.mark.asyncio
+    async def test_fatal_readiness_error_stops_and_exits_with_reason(self):
+        """Fatal readiness errors (e.g. version mismatch) surface their reason."""
+        ctrl = MockController(exit_code=None)
+        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
+        exit_mock = MagicMock(side_effect=SystemExit(12))
+
+        with (
+            patch.object(governor, "_ensure_client_certs_are_created"),
+            patch.object(governor, "_authenticate_client_cert"),
+            patch.object(
+                governor,
+                "wait_for_multipassd_ready",
+                side_effect=TestSessionFailure(
+                    "Version mismatch detected (CLI: 1.0, Daemon: 2.0)."
+                ),
+            ),
+            patch.object(governor, "on_monitor_exit"),
+            patch("cli.controller.multipassd_governor.pytest.exit", exit_mock),
+        ):
+            with pytest.raises(SystemExit) as exc_info:
+                await governor.start_async()
+
+            assert exc_info.value.code == 12
+
+        assert ctrl.stop_called
+        exit_mock.assert_called_once_with(
+            "Tests cannot proceed: Version mismatch detected (CLI: 1.0, Daemon: 2.0).",
+            returncode=12,
+        )
+
+
+class TestGovernorUnexpectedExit:
+    """Unexpected daemon exits after startup must surface in check_health()."""
+
+    @staticmethod
+    async def _start(ctrl):
+        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
+        with (
+            patch.object(governor, "_ensure_client_certs_are_created"),
+            patch.object(governor, "_authenticate_client_cert"),
+            patch.object(
+                governor,
+                "wait_for_multipassd_ready",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            await governor.start_async()
+        return governor
+
+    @staticmethod
+    async def _wait_for_monitor_exit(governor, timeout=2):
+        async with asyncio.timeout(timeout):
+            while governor.monitor_task is not None:
+                await asyncio.sleep(0.01)
+
+    @pytest.mark.asyncio
+    async def test_check_health_raises_after_crash(self):
+        governor = await self._start(MockController(exit_code=2, exit_delay=0.05))
+        assert governor.daemon_ready_event.is_set()
+
+        await self._wait_for_monitor_exit(governor)
+
+        assert not governor.daemon_ready_event.is_set()
+        for _ in range(2):
+            with pytest.raises(TestCaseFailure, match="multipassd died with code 2"):
+                governor.check_health()
+
+    @pytest.mark.asyncio
+    async def test_graceful_stop_records_no_failure(self):
+        governor = await self._start(MockController())
+
+        await governor.stop_async()
+        await self._wait_for_monitor_exit(governor)
+
+        assert governor.daemon_failure is None
+        governor.check_health()
+
+    @pytest.mark.asyncio
+    async def test_successful_start_clears_previous_failure(self):
+        ctrl = MockController()
+        governor = MultipassdGovernor(ctrl, None, print_daemon_output=False)
+        governor.daemon_failure = TestCaseFailure("previous crash")
+
+        with (
+            patch.object(governor, "_ensure_client_certs_are_created"),
+            patch.object(governor, "_authenticate_client_cert"),
+            patch.object(
+                governor,
+                "wait_for_multipassd_ready",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            await governor.start_async()
+
+        assert governor.daemon_failure is None
+        await governor.stop_async()
+
+
+class TestGovernorHealthCheck:
+    """check_health() must tolerate a transiently slow daemon."""
+
+    @pytest.fixture
+    def governor(self):
+        with BackgroundEventLoop() as loop:
+            governor = MultipassdGovernor(MockController(), loop, print_daemon_output=False)
+            governor.daemon_ready_event.set()
+            yield governor
+
+    @staticmethod
+    def install_probes(monkeypatch, outcomes):
+        outcomes = iter(outcomes)
+        calls = []
+
+        async def probe():
+            calls.append(None)
+            outcome = next(outcomes)
+            if outcome == "hang":
+                await asyncio.sleep(3600)
+            return outcome
+
+        monkeypatch.setattr(MultipassdGovernor, "_run_version_probe", staticmethod(probe))
+        return calls
+
+    def test_recovers_after_transient_failures(self, governor, monkeypatch):
+        calls = self.install_probes(
+            monkeypatch,
+            ["hang", (1, b"connection refused"), (0, b"multipass 1.0\nmultipassd 1.0\n")],
+        )
+
+        governor.check_health(timeout=0.05, attempts=3, retry_delay=0)
+
+        assert len(calls) == 3
+
+    def test_aborts_with_reason_after_all_probes_fail(self, governor, monkeypatch):
+        calls = self.install_probes(
+            monkeypatch, ["hang", "hang", "hang", (0, b"multipass 1.0\n")]
+        )
+        sleeps = []
+        monkeypatch.setattr("cli.utilities.functional.time.sleep", sleeps.append)
+
+        with pytest.raises(
+            TestSessionFailure,
+            match=r"unresponsive after 4 probes \(last: no multipassd version",
+        ):
+            governor.check_health(timeout=0.05, attempts=4, retry_delay=0.5)
+
+        assert len(calls) == 4
+        assert sleeps == [0.5] * 3
+
+
 class TestGovernorConcurrentOperations:
     """Test governor concurrent operation scenarios."""
 
@@ -338,7 +492,6 @@ class TestGovernorConcurrentOperations:
                 governor, "wait_for_multipassd_ready", side_effect=slow_ready
             ),
             patch.object(governor, "on_monitor_exit"),
-            patch("cli.controller.multipassd_governor.Session"),
         ):
             start_task = asyncio.create_task(governor.start_async())
             await asyncio.sleep(0)
@@ -404,9 +557,27 @@ class TestWaitForMultipassdReady:
             "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
             side_effect=[MockSubprocess(), MockSubprocess(stdout=version_out)],
         ):
-            result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
+            if expected:
+                result = await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
+                assert result is True
+            else:
+                with pytest.raises(TestSessionFailure, match="Version mismatch detected"):
+                    await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
 
-        assert result is expected
+    @pytest.mark.asyncio
+    async def test_unauthenticated_client_raises(self, mock_env):
+        """Unauthenticated client raises TestSessionFailure immediately."""
+        unauth_proc = MockSubprocess(
+            stdout=b"The client is not authenticated with the Multipass service",
+            returncode=1,
+        )
+
+        with patch(
+            "cli.controller.multipassd_governor.StdoutAsyncSubprocess",
+            return_value=unauth_proc,
+        ):
+            with pytest.raises(TestSessionFailure, match="Client is not authenticated"):
+                await MultipassdGovernor.wait_for_multipassd_ready(timeout=1)
 
     @pytest.mark.asyncio
     async def test_returns_false_on_timeout(self, mock_env):

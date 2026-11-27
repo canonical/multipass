@@ -26,7 +26,6 @@ from contextlib import asynccontextmanager, suppress
 from typing import Optional
 
 import pytest
-from pytest import Session
 
 from cli.config import cfg
 from cli.multipass import (
@@ -35,12 +34,14 @@ from cli.multipass import (
     get_multipass_env,
     get_multipass_path,
     parse_multipass_versions,
+    Output,
     TestSessionFailure,
     TestCaseFailure
 )
 from cli.utilities import (
     SilentAsyncSubprocess,
     StdoutAsyncSubprocess,
+    retry,
     run_in_new_interpreter_async,
 )
 
@@ -63,6 +64,7 @@ class MultipassdGovernor:
         self._lifecycle_lock = asyncio.Lock()
         self._start_in_progress = False
         self.monitor_task = None
+        self.daemon_failure = None
         self._reset_state()
 
     def _reset_state(self):
@@ -163,6 +165,10 @@ class MultipassdGovernor:
         if task.cancelled():
             return
 
+        # Retrieve the monitor's failure (if any) so it isn't lost, and keep it
+        # around for check_health() to report on the next test step.
+        failure = task.exception()
+
         async with self._lifecycle_lock:
             multipassd_settings_changed_code = 42
             daemon_exit_code = await self.controller.exit_code()
@@ -174,6 +180,9 @@ class MultipassdGovernor:
                 and daemon_exit_code == multipassd_settings_changed_code
             )
             self._reset_state()
+            if failure is not None:
+                logging.error(f"multipassd-governor :: daemon failed: {failure}")
+                self.daemon_failure = failure
             if needs_restarting:
                 logging.debug("multipassd-governor :: daemon auto-restarting")
                 self.asyncio_loop.run_fn(
@@ -254,15 +263,24 @@ class MultipassdGovernor:
             if monitor_task in done:
                 _cancel(ready_task)
                 await _drain(ready_task)
-                try:
-                    await monitor_task
-                    raise TestCaseFailure("daemon exited during startup")
-                except TestSessionFailure as ex:
-                    Session.shouldfail = str(ex)
-                    raise
+                await monitor_task
+                raise TestCaseFailure("daemon exited during startup")
 
             # Wait for daemon to be ready
-            if not await ready_task:
+            try:
+                ready = await ready_task
+            except TestSessionFailure as ex:
+                logging.warning(
+                    "⚠️ multipassd not ready (%s), attempting graceful shutdown...", ex
+                )
+                self.monitor_task = monitor_task
+                await self._stop_locked()
+                pytest.exit(
+                    f"Tests cannot proceed: {ex}",
+                    returncode=12,
+                )
+
+            if not ready:
                 logging.warning(
                     "⚠️ multipassd not ready, attempting graceful shutdown...")
                 self.monitor_task = monitor_task
@@ -273,6 +291,7 @@ class MultipassdGovernor:
                 )
 
             self.monitor_task = monitor_task
+            self.daemon_failure = None
             self.daemon_stopped_event.clear()
             self.daemon_ready_event.set()
 
@@ -342,20 +361,31 @@ class MultipassdGovernor:
         if not self.daemon_ready_event.wait(timeout=timeout):
             raise TimeoutError(f"Daemon did not become ready within {timeout}s")
 
-    def check_health(self, timeout=5):
+    def check_health(self, timeout=15, attempts=3, retry_delay=2):
         """Verify the daemon is responsive before a test step.
 
-        No-op when the daemon is believed to be intentionally down (the ready
-        latch is clear). Otherwise probes the daemon and aborts the session on
-        an unresponsive daemon.
+        Raises the recorded failure if the daemon died unexpectedly. No-op when
+        the daemon is believed to be intentionally down (the ready latch is
+        clear). Otherwise probes the daemon up to `attempts` times, waiting
+        `retry_delay` seconds in between, and aborts the session if it never
+        responds.
         """
+        failure = self.daemon_failure
+        if failure is not None:
+            raise type(failure)(*failure.args) from failure
+
         if not self.daemon_ready_event.is_set():
             return
 
-        healthy = self.asyncio_loop.run(self._probe_healthy(timeout)).result()
-        if not healthy:
+        @retry(retries=max(0, attempts - 1), delay=retry_delay)
+        def probe():
+            return self.asyncio_loop.run(self._probe_healthy(timeout)).result()
+
+        result = probe()
+        if not result:
             raise TestSessionFailure(
-                "multipassd is unresponsive; aborting the test session."
+                f"multipassd is unresponsive after {attempts} "
+                f"probes (last: {result.content}); aborting the test session."
             )
 
     def wait_for_restart(self, timeout=60):
@@ -389,24 +419,28 @@ class MultipassdGovernor:
 
     @staticmethod
     async def _probe_healthy(timeout):
-        """Return True if the daemon answers a cheap `version` probe within `timeout`."""
+        """Probe the daemon with a cheap `version` call.
+
+        Returns an Output that is truthy when the daemon answered within
+        `timeout`; otherwise its content describes why the probe failed.
+        """
         try:
             exitcode, stdout = await asyncio.wait_for(
                 MultipassdGovernor._run_version_probe(), timeout=timeout
             )
         except asyncio.TimeoutError:
-            return False
+            return Output(f"`multipass version` timed out after {timeout}s", 1)
         except asyncio.CancelledError:
             raise
-        except Exception:
-            return False
+        except Exception as exc:
+            return Output(f"`multipass version` failed: {exc!r}", 1)
 
+        text = stdout.decode("utf-8", "replace").strip()
         if exitcode != 0:
-            return False
-        return any(
-            line.lstrip().startswith("multipassd")
-            for line in stdout.decode("utf-8", "replace").splitlines()
-        )
+            return Output(f"`multipass version` exited {exitcode}: {text}", 1)
+        if not any(line.lstrip().startswith("multipassd") for line in text.splitlines()):
+            return Output(f"no multipassd version in `multipass version` output: {text}", 1)
+        return Output(text, 0)
 
     @staticmethod
     async def wait_for_multipassd_ready(timeout=60):
@@ -437,8 +471,7 @@ class MultipassdGovernor:
                         in find_stdout
                     ):
                         logging.error("Client is not authenticated.")
-                        Session.shouldfail = "Client is not authenticated."
-                        return False
+                        raise TestSessionFailure("Client is not authenticated.")
                     logging.debug(find_stdout)
 
                 # Otherwise, verify the version
@@ -456,14 +489,16 @@ class MultipassdGovernor:
                         f"👉 Daemon version: {daemon_ver}\n"
                     )
                     sys.stderr.flush()
-                    return False
+                    raise TestSessionFailure(
+                        f"Version mismatch detected (CLI: {cli_ver}, Daemon: {daemon_ver})."
+                    )
 
             except asyncio.TimeoutError:
                 # Try again.
                 continue
             except asyncio.CancelledError:
                 raise
-            except AssertionError:
+            except (AssertionError, TestSessionFailure):
                 raise
             except Exception as exc:
                 logging.error(exc)

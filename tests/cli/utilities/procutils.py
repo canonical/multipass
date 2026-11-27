@@ -22,7 +22,11 @@ import sys
 def send_ctrl_c(pid):
     if sys.platform == "win32":
         subprocess.run(
-            f'python -c "import ctypes; k=ctypes.windll.kernel32; k.FreeConsole(); k.AttachConsole({pid}); k.GenerateConsoleCtrlEvent(0, 0)"',
+            [
+                sys.executable,
+                "-c",
+                f"import ctypes; k=ctypes.windll.kernel32; k.FreeConsole(); k.AttachConsole({int(pid)}); k.GenerateConsoleCtrlEvent(0, 0)",
+            ],
             shell=False,
         )
     else:

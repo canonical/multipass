@@ -54,6 +54,8 @@ class TestSettings:
         assert multipass("get", "client.primary-name") == "foo"
 
     def test_set_driver_name_to_default(self, multipassd):
+        if multipassd is None:
+            pytest.skip("Requires a daemon controller")
         assert multipass("set", f"local.driver={default_driver_name()}")
         # Daemon will autorestart here. We should wait until it's back.
         multipassd.wait_for_restart()

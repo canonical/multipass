@@ -33,6 +33,8 @@ class TestAuthenticate:
     """CLI authentication behavior tests."""
 
     def test_authenticate(self, multipassd):
+        if multipassd is None:
+            pytest.skip("Requires a daemon controller")
         assert multipass("set", "local.passphrase=therewillbesecrets")
         multipassd.wait_for_restart()
 

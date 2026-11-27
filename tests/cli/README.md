@@ -210,9 +210,11 @@ pytest tests/cli/cli_tests.py --bin-dir build/bin/ --storage-dir=/tmp/multipass-
 
 #### Daemon health check
 
-Before each CLI command, the test harness runs a lightweight daemon liveness probe (`multipass version` with a short timeout). If the daemon is believed to be up but does not respond, the session aborts immediately instead of hanging on the offending command's own timeout. The check is skipped when the daemon was intentionally stopped by the test.
+Before each CLI command, the test harness runs a lightweight daemon liveness probe (`multipass version` with a short timeout). A busy daemon gets several probes; if the daemon is believed to be up but none of them succeed, the session aborts with the reason instead of hanging on the offending command's own timeout. The check is skipped when the daemon was intentionally stopped by the test.
 
-- `--health-check-timeout` (default `5`): seconds to wait for the probe before treating the daemon as unresponsive.
+- `--health-check-timeout` (default `15`): seconds to wait for each probe before counting it as failed.
+- `--health-check-attempts` (default `3`): number of probes before the session is aborted.
+- `--health-check-retry-delay` (default `2`): seconds to wait between probes.
 - `--no-daemon-health-check`: disable the per-step health check.
 
 ### Setting default resources and parameters for the test VM

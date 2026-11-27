@@ -20,7 +20,9 @@ import sys
 import re
 import os
 import json
+import logging
 import subprocess
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from functools import lru_cache
 from packaging import version
@@ -91,16 +93,22 @@ def snapshot_count(name):
 
 
 def path_exists(vm_name, *paths):
-    """Return True if all given paths exist in the instance, False otherwise."""
-    return bool(
-        multipass(
-            "exec",
-            vm_name,
-            "--",
-            "ls",
-            *(Path(p).as_posix() for p in paths),
-            timeout=180,
-        )
+    """Return True if all given paths exist in the instance, False otherwise.
+
+    Raises if the check itself fails (e.g. the instance is unreachable), so
+    such failures aren't mistaken for missing paths.
+    """
+    posix_paths = [Path(p).as_posix() for p in paths]
+    result = multipass(
+        "exec", vm_name, "--", "ls", "-d", "--", *posix_paths, timeout=180
+    )
+    if result:
+        return True
+    if "No such file or directory" in result.content:
+        return False
+    raise AssertionError(
+        f"Could not check {posix_paths} in `{vm_name}` "
+        f"(exit {result.exitstatus}): {result.content}"
     )
 
 
@@ -204,6 +212,27 @@ def vm_exists(name):
     with multipass("list", "--format=json").json() as list_json:
         assert "list" in list_json, "`list` key not found in list json output!"
         return list_json.jq(f'[.list[] | select(.name == "{name}")] | any').first()
+
+
+def delete_if_exists(name):
+    """Best-effort deletion of an instance, if it still exists.
+
+    Never raises, so it is safe to call from cleanup paths without masking the
+    original failure.
+    """
+    with suppress(Exception):
+        if vm_exists(name):
+            logging.warning(f"Deleting leftover instance `{name}`")
+            multipass("delete", name, "--force")
+
+
+@contextmanager
+def ensure_deleted_on_exit(name):
+    """Delete the instance on context exit, if it still exists."""
+    try:
+        yield name
+    finally:
+        delete_if_exists(name)
 
 
 def get_ram_size(name):

@@ -34,6 +34,8 @@ class TestVersion:
     version_format_regex = r"^(\w+)\s+(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?\r?$"
 
     def test_version_no_daemon(self, multipassd):
+        if multipassd is None:
+            pytest.skip("Requires a daemon controller")
         multipassd.stop()
         with multipass("version") as output:
             assert output

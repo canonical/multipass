@@ -342,6 +342,8 @@ class TestMount:
     @pytest.mark.parametrize("restart_type", ["vm", "daemon"])
     @pytest.mark.xfail(reason="Known bug: classic mounts might not be present after a reboot", strict=False)
     def test_mount_restart(self, multipassd, instance, mount_type, restart_type):
+        if restart_type == "daemon" and multipassd is None:
+            pytest.skip("Requires a daemon controller")
         with TempDirectory() as mount_src, src_to_dst(mount_src) as mount_dst:
             if mount_type == "native":
                 assert multipass("stop", instance)
@@ -391,7 +393,6 @@ class TestMount:
 
             # We can't assert this yet.
             if not mounts_check_with_retry():
-                debug_interactive_shell(instance)
                 assert mounts_check_with_retry(), f"{mounts(instance)} != {expected_mounts}"
             assert mounts_check_with_retry(), f"{mounts(instance)} != {expected_mounts}"
 
@@ -452,9 +453,9 @@ class TestMount:
             assert not expected_subdir.exists()
 
             # verify that they are no longer present in the guest
-            assert not path_exists(instance, expected_file1)
-            assert not path_exists(instance, expected_file2)
-            assert not path_exists(instance, expected_subdir)
+            assert not path_exists(instance, mount_dst / "file1.txt")
+            assert not path_exists(instance, mount_dst / subdir / "file2.txt")
+            assert not path_exists(instance, mount_dst / subdir)
 
             # LXD cannot hot-unmount.
             if cfg.driver == "lxd":
@@ -569,12 +570,12 @@ class TestMount:
                 or cannot_write
             )
 
-            # verify that they are present in the guest
-            assert path_exists(instance, mount_dst / "file1.txt") or cannot_write
-            assert path_exists(instance, mount_dst / subdir) or cannot_write
-            assert (
-                path_exists(instance, mount_dst / subdir / "file2.txt") or cannot_write
-            )
+            # verify that they are present in the guest; skipped when writes
+            # are denied, as the guest can't traverse the 0o444 directory either.
+            if not cannot_write:
+                assert path_exists(instance, mount_dst / "file1.txt")
+                assert path_exists(instance, mount_dst / subdir)
+                assert path_exists(instance, mount_dst / subdir / "file2.txt")
 
             # LXD cannot hot-unmount.
             if cfg.driver == "lxd":

@@ -33,7 +33,6 @@ from functools import partial
 from packaging import version
 
 import pytest
-from pytest import Session
 
 from cli.utilities import (
     wait_for_future,
@@ -56,6 +55,7 @@ from cli.multipass import (
     get_multipass_path,
     get_multipassd_path,
     get_multipass_version,
+    TestSessionFailure,
 )
 
 from cli.config import cfg
@@ -189,9 +189,23 @@ def pytest_addoption(parser):
 
     parser.addoption(
         "--health-check-timeout",
-        default=5,
+        default=15,
         type=int,
-        help="Timeout (seconds) for the per-step daemon health check.",
+        help="Timeout (seconds) for each probe of the per-step daemon health check.",
+    )
+
+    parser.addoption(
+        "--health-check-attempts",
+        default=3,
+        type=int,
+        help="Number of probes before the daemon health check gives up.",
+    )
+
+    parser.addoption(
+        "--health-check-retry-delay",
+        default=2,
+        type=float,
+        help="Delay (seconds) between daemon health check probes.",
     )
 
 
@@ -241,6 +255,8 @@ def pytest_configure(config):
     cfg.daemon_health_check = not config.getoption(
         "--no-daemon-health-check")
     cfg.health_check_timeout = config.getoption("--health-check-timeout")
+    cfg.health_check_attempts = config.getoption("--health-check-attempts")
+    cfg.health_check_retry_delay = config.getoption("--health-check-retry-delay")
 
     # If user gave --storage-dir, use it
     if not cfg.storage_dir:
@@ -254,6 +270,16 @@ def pytest_configure(config):
     cfg.data_dir = determine_data_dir()
 
     logging.debug(f"pytest_configure :: final config {cfg}")
+
+
+def pytest_runtest_makereport(item, call):
+    """Abort the session once any test phase raises TestSessionFailure.
+
+    pytest checks `session.shouldfail` between tests, so the current test
+    finishes (including teardown) and no further tests run.
+    """
+    if call.excinfo is not None and call.excinfo.errisinstance(TestSessionFailure):
+        item.session.shouldfail = str(call.excinfo.value)
 
 
 def pytest_assertrepr_compare(op, left, right):
@@ -402,9 +428,27 @@ def pytest_runtest_setup(item):
             f"Version-gated test {item} skipped ({current} {op_str} {target})")
 
 
-def remove_temporary_storage_dir(target_dir):
+def remove_temporary_storage_dir(target_dir, retries=1, delay=0.5):
+    import os
     import shutil
-    shutil.rmtree(target_dir)
+    import stat
+    import time
+
+    def _handle_remove_readonly(func, path, exc):
+        if isinstance(exc, PermissionError):
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+        else:
+            raise exc
+
+    for attempt in range(retries):
+        try:
+            shutil.rmtree(target_dir, onexc=_handle_remove_readonly)
+            return
+        except PermissionError:
+            if attempt + 1 >= retries:
+                raise
+            time.sleep(delay)
 
 
 def make_temporary_storage_dir():
@@ -416,13 +460,19 @@ def make_temporary_storage_dir():
             a non-root user cannot remove it. Therefore, try
             privilege escalation if nuking as normal fails."""
             try:
-                remove_temporary_storage_dir(str(tmpdir))
+                remove_temporary_storage_dir(
+                    str(tmpdir), retries=5 if sys.platform == "win32" else 1
+                )
                 print(f"\n🧹 ✅ Cleaned up {tmpdir} normally.")
             except PermissionError:
                 print(
                     f"\n🧹 ⚠️ Permission denied, escalating privilege {tmpdir}")
                 run_in_new_interpreter(
-                    remove_temporary_storage_dir, str(tmpdir), privileged=True)
+                    remove_temporary_storage_dir,
+                    str(tmpdir),
+                    5 if sys.platform == "win32" else 1,
+                    privileged=True,
+                )
 
         # Register finalizer to cleanup on exit
         atexit.register(cleanup)
@@ -613,8 +663,7 @@ def multipassd_impl():
     try:
         controller = make_daemon_controller(cfg.daemon_controller)()
     except ControllerPrerequisiteError as exc:
-        Session.shouldfail = str(exc)
-        raise
+        raise TestSessionFailure(str(exc)) from exc
 
     with ExitStack() as stack:
         loop = stack.enter_context(BackgroundEventLoop())
@@ -677,7 +726,12 @@ def windows_privileged_mounts(multipassd):
         # Check if privileged mounts are already enabled
         if "true" in multipass("get", "local.privileged-mounts"):
             return
+        if multipassd is None:
+            pytest.skip(
+                "Requires local.privileged-mounts=true or a daemon controller"
+            )
         assert multipass("set", "local.privileged-mounts=1")
+        multipassd.wait_for_restart()
 
 
 @pytest.fixture(scope="function")
