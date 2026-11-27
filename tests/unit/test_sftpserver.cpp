@@ -3834,8 +3834,8 @@ TEST_P(SftpServerSetstatUnchangedIds, chownReceivesMinusOneOnlyForUnchangedIds)
     const auto [uid_unchanged, gid_unchanged] = GetParam();
 
     mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
-    mpt::make_file_with_content(file_name);
+    auto file_path = temp_dir.path() + "/test-file";
+    mpt::make_file_with_content(file_path);
 
     const int host_uid = QFileInfo(temp_dir.path()).ownerId();
     const int host_gid = QFileInfo(temp_dir.path()).groupId();
@@ -3846,7 +3846,7 @@ TEST_P(SftpServerSetstatUnchangedIds, chownReceivesMinusOneOnlyForUnchangedIds)
     mp::id_mappings gid_mappings{{host_gid, sftp_gid}};
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_SETSTAT);
-    auto name = name_as_char_array(file_name.toStdString());
+    auto name = name_as_char_array(file_path.toStdString());
     sftp_attributes_struct attr{};
     attr.flags = SSH_FILEXFER_ATTR_UIDGID;
 
