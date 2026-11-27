@@ -13,6 +13,7 @@ dependencies:
   basics: ^0.10.0
   built_collection: ^6.0.0
   collection: ^1.19.1
+  cupertino_ui: ^1.1.7
   dartssh2:
     git:
       url: https://github.com/canonical/dartssh2.git
@@ -32,6 +33,7 @@ dependencies:
   intl: ^0.20.2
   local_notifier: ^0.1.6
   logger: ^2.5.0
+  material_ui: ^1.11.1
   path_provider: ^2.1.5
   protobuf: 6.1.0
   rxdart: ^0.28.0
@@ -61,6 +63,9 @@ dependencies:
 
 dev_dependencies:
   flutter_lints: ^6.0.0
+  file_selector_platform_interface: ^2.7.0
+  flutter_test:
+    sdk: flutter
 
 flutter:
   generate: true

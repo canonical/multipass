@@ -1,6 +1,6 @@
 import 'package:basics/basics.dart';
 import 'package:built_collection/built_collection.dart';
-import 'package:flutter/material.dart' hide Tooltip;
+import 'package:material_ui/material_ui.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../colors.dart';

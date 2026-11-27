@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart' hide ImageInfo;
+import 'package:material_ui/material_ui.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:multipass_gui/catalogue/image_card.dart';
 import 'package:multipass_gui/catalogue/launch_form.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/delegates.dart';
 import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/providers.dart';
 
@@ -47,7 +48,7 @@ Future<ProviderContainer> _pumpCard(
     UncontrolledProviderScope(
       container: container,
       child: MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: appLocalizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           endDrawer: const Drawer(),

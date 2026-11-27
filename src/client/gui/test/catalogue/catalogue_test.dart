@@ -1,12 +1,13 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart' hide ImageInfo;
+import 'package:material_ui/material_ui.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
 import 'package:multipass_gui/catalogue/catalogue.dart';
 import 'package:multipass_gui/catalogue/image_card.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
+import 'package:multipass_gui/l10n/delegates.dart';
 import 'package:multipass_gui/l10n/app_localizations_en.dart';
 import 'package:multipass_gui/providers.dart';
 
@@ -24,8 +25,8 @@ class _FakeGrpcClient extends Fake implements GrpcClient {
   }
 }
 
-const _catalogueApp = MaterialApp(
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
+final _catalogueApp = MaterialApp(
+  localizationsDelegates: appLocalizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
   home: CatalogueScreen(),
 );

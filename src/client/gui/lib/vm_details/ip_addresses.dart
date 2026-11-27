@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide Tooltip;
+import 'package:material_ui/material_ui.dart' hide Tooltip;
 
 import '../copyable_text.dart';
 import '../l10n/app_localizations.dart';
