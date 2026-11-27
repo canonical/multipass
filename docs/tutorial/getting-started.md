@@ -33,92 +33,16 @@ Start Multipass from the application launcher. In Ubuntu, press the super key an
 ![|800x450](https://assets.ubuntu.com/v1/949aa05e-mp-linux-1.png)
 -->
 
-After launching the application, you should see the Multipass tray icon on the upper right section of the screen.
+Open a terminal and run:
 
-```{figure} /images/tutorial/mp-linux-2.png
-   :width: 688px
-   :alt: Multipass tray icon
+```{code-block} text
+multipass shell
 ```
-
-<!--
-![|688x52](https://assets.ubuntu.com/v1/5ec546da-mp-linux-2.png)
--->
-
-Click on the Multipass icon and select **Open Shell**.
-
-```{figure} /images/tutorial/mp-linux-2a.png
-   :width: 286px
-   :alt: Multipass tray icon - Select "Open shell"
-```
-
-<!--
-![|286x274](https://assets.ubuntu.com/v1/3ecc5e7d-mp-linux-2a.png)
--->
-
-Clicking this button does many things in the background:
-* It creates a new virtual machine (instance) named `primary`, with 1GB of RAM, 5GB of disk, and 1 CPU. See also: {ref}`primary-instance`
-* It installs the most recent Ubuntu LTS release on that instance.
-* It mounts your `$HOME` directory in the instance.
-* It opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
 
 <!-- note added for https://github.com/canonical/multipass/issues/3537 -->
 
 ```{caution}
 If your local home folder is encrypted using `fscrypt` and you are having trouble accessing its contents when it is automatically mounted inside your primary instance, see [Mount an encrypted home folder](/how-to-guides/troubleshoot/mount-an-encrypted-home-folder).
-```
-
-You can see elements of this in the printout below:
-
-```{code-block} text
-Launched: primary
-Welcome to Ubuntu 26.04 LTS (GNU/Linux 7.0.0-15-generic x86_64)
-
- * Documentation:  https://docs.ubuntu.com
- * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/pro
-
- System information as of Tue Jun  9 15:54:32 UTC 2026
-
-  System load:  0.4               Processes:             123
-  Usage of /:   67.7% of 3.70GB   Users logged in:       0
-  Memory usage: 29%               IPv4 address for eth0: 10.97.0.49
-  Swap usage:   0%
-
-
-Expanded Security Maintenance for Applications is not enabled.
-
-0 updates can be applied immediately.
-
-Enable ESM Apps to receive additional future security updates.
-See https://ubuntu.com/esm or run: sudo pro status
-
-ubuntu@primary:~$
-```
-
-Let's test it. As you've just learnt, the previous step automatically mounted your `$HOME` directory in the instance. Use this to share data with your instance. More concretely, create a new folder called `Multipass_Files` in your `$HOME` directory:
-
-```{figure} /images/tutorial/mp-linux-3.png
-   :width: 720px
-   :alt: Create new "Multipass_Files" folder
-```
-
-<!--
-![|720x405](https://assets.ubuntu.com/v1/fbfc8304-mp-linux-3.png)
--->
-
-As you can see, a `README.md` file has been added to the shared folder. Check for the folder and read the file from your new instance:
-
-```{code-block} text
-cd ./Home/Multipass_Files/
-cat README.md
-```
-
-Sample output:
-
-```{code-block} text
-## Shared Folder
-
-This folder could be a great place to keep files that need to be accessed by both your host machine and Ubuntu VM!
 ```
 
 ````
@@ -137,33 +61,48 @@ Start Multipass from the application launcher. In macOS, open the application la
 ![|720x451](https://assets.ubuntu.com/v1/a4ff7fad-mp-macos-1.png)
 -->
 
-After launching the application, you should see the Multipass tray icon in the upper right section of the screen.
+Open Terminal and run:
 
-```{figure} /images/tutorial/mp-macos-2.png
-   :width: 684px
-   :alt: Multipass tray icon
+```{code-block} text
+multipass shell
+```
+
+````
+
+````{tab-item} Windows
+:sync: Windows
+
+Start Multipass from the application launcher. Press the Windows key and type "Multipass", then launch the application.
+
+```{figure} /images/tutorial/mp-windows-1.png
+   :width: 720px
+   :alt: Launch the Multipass application
 ```
 
 <!--
-![|684x48](https://assets.ubuntu.com/v1/42bb4ccb-mp-macos-2.png)
+![|720x625](https://assets.ubuntu.com/v1/50b86111-mp-windows-1.png)
 -->
 
-Click on the Multipass icon and select **Open Shell**.
+Open PowerShell and enable mounts, which are disabled by default on Windows (see [Mount](/explanation/mount) for details):
 
-```{figure} /images/tutorial/mp-macos-3.png
-   :width: 304px
-   :alt: Multipass tray icon - Select "Open shell"
+```{code-block} text
+multipass set local.privileged-mounts=true
 ```
 
-<!--
-![|304x352](https://assets.ubuntu.com/v1/eb92083a-mp-macos-3.png)
--->
+Then run:
 
-Clicking this button does many things in the background:
+```{code-block} text
+multipass shell
+```
 
-* It creates a new virtual machine (instance) named "primary", with 1GB of RAM, 5GB of disk, and 1 CPU.
+````
+
+`````
+
+This command does several things in the background:
+* It creates a new virtual machine (instance) named `primary`, with 1GB of RAM, 5GB of disk, and 1 CPU. See also: {ref}`primary-instance`
 * It installs the most recent Ubuntu LTS release on that instance.
-* It mounts your `$HOME` directory in the instance.
+* It mounts your home directory in the instance.
 * It opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
 
 You can see elements of this in the printout below:
@@ -194,7 +133,26 @@ See https://ubuntu.com/esm or run: sudo pro status
 ubuntu@primary:~$
 ```
 
-Let’s test it out. As you've just learnt, the previous step automatically mounted your `$HOME` directory in the instance. Use this to share data with your instance. More concretely, create a new folder called `Multipass_Files` in your `$HOME` directory.
+Let's test it. As you've just learnt, the previous step automatically mounted your home directory in the instance. Use this to share data with your instance. More concretely, create a new folder called `Multipass_Files` in your home directory:
+
+`````{tab-set}
+
+````{tab-item} Linux
+:sync: Linux
+
+```{figure} /images/tutorial/mp-linux-3.png
+   :width: 720px
+   :alt: Create new "Multipass_Files" folder
+```
+
+<!--
+![|720x405](https://assets.ubuntu.com/v1/fbfc8304-mp-linux-3.png)
+-->
+
+````
+
+````{tab-item} macOS
+:sync: macOS
 
 ```{figure} /images/tutorial/mp-macos-4.png
    :width: 720px
@@ -205,109 +163,31 @@ Let’s test it out. As you've just learnt, the previous step automatically moun
 ![|720x329](https://assets.ubuntu.com/v1/5867fb49-mp-macos-4.png)
 -->
 
-As you can see, a `README.md` file has been added to the shared folder. Check for the folder and read the file from your new instance:
-
-```{code-block} text
-ubuntu@primary:~$ cd ./Home/Multipass_Files/
-ubuntu@primary:~/Home/Multipass_Files$ cat README.md
-## Shared Folder
-
-This folder could be a great place to keep files that need to be accessed by both your host machine and Ubuntu VM!
-
-ubuntu@primary:~/Home/Multipass_Files$
-```
-
 ````
 
 ````{tab-item} Windows
 :sync: Windows
 
-Start Multipass from the application launcher. Press the Windows key and type "Multipass", then launch the application.
-
-```{figure} /images/tutorial/mp-windows-1.png
-   :width: 720px
-   :alt: Launch the Multipass application
-```
-
-<!--
-![|720x625](https://assets.ubuntu.com/v1/50b86111-mp-windows-1.png)
--->
-
-After launching the application, you should see the Multipass tray icon in the lower right section of the screen (you may need to click on the small arrow located there).
-
-```{figure} /images/tutorial/mp-windows-2.png
-   :width: 429px
-   :alt: Multipass tray icon
-```
-
-<!--
-![|429x221](https://assets.ubuntu.com/v1/8c28e82a-mp-windows-2.png)
--->
-
-Click on the Multipass icon and select **Open Shell**.
-
-```{figure} /images/tutorial/mp-windows-3.png
-   :width: 423px
-   :alt: Multipass tray icon - Select "Open shell"
-```
-
-<!--
-![|423x241](https://assets.ubuntu.com/v1/33a6bf4d-mp-windows-3.png)
--->
-
-Clicking this button does many things in the background:
-* First, it creates a new virtual machine (instance) named "primary", with 1GB of RAM, 5GB of disk, and 1 CPU.
-* Then, it installs the most recent Ubuntu LTS release on that instance.
-* Last, it opens a shell to the instance, announced by the command prompt `ubuntu@primary`.
-
-You can see elements of this in the printout below:
-
-```{code-block} text
-Launched: primary
-Welcome to Ubuntu 26.04 LTS (GNU/Linux 7.0.0-15-generic x86_64)
-
- * Documentation:  https://docs.ubuntu.com
- * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/pro
-
- System information as of Tue Jun  9 15:54:32 UTC 2026
-
-  System load:  0.4               Processes:             123
-  Usage of /:   67.7% of 3.70GB   Users logged in:       0
-  Memory usage: 29%               IPv4 address for eth0: 10.97.0.49
-  Swap usage:   0%
-
-
-Expanded Security Maintenance for Applications is not enabled.
-
-0 updates can be applied immediately.
-
-Enable ESM Apps to receive additional future security updates.
-See https://ubuntu.com/esm or run: sudo pro status
-
-ubuntu@primary:~$
-```
-
-Try out a few Linux commands to see what you’re working with.
-
-```{code-block} text
-ubuntu@primary:~$ free
-               total        used        free      shared  buff/cache   available
-Mem:          925804      203872      362484         916      359448      582120
-Swap:              0           0           0
-ubuntu@primary:~$ df
-Filesystem       1K-blocks    Used  Available Use% Mounted on
-tmpfs                92584     912      91672   1% /run
-/dev/sda1          4893836 1477300    3400152  31% /
-tmpfs               462900       0     462900   0% /dev/shm
-tmpfs                 5120       0       5120   0% /run/lock
-/dev/sda15          106858    5329     101529   5% /boot/efi
-tmpfs                92580       4      92576   1% /run/user/1000
-```
+In File Explorer, you can find your home directory at `C:\Users\<username>`. Create the `Multipass_Files` folder there and add a `README.md` file to it.
 
 ````
 
 `````
+
+As you can see, a `README.md` file has been added to the shared folder. Check for the folder and read the file from your new instance:
+
+```{code-block} text
+cd ./Home/Multipass_Files/
+cat README.md
+```
+
+Sample output:
+
+```{code-block} text
+## Shared Folder
+
+This folder could be a great place to keep files that need to be accessed by both your host machine and Ubuntu VM!
+```
 
 Congratulations, you've got your first instance!
 
@@ -316,7 +196,7 @@ This instance is great for when you just need a quick Ubuntu VM, but let's say y
 ```{dropdown} Optional Exercises
 
 Exercise 1:
-When you select Open Shell, what happens in the background is the equivalent of the CLI commands `multipass launch --name primary` followed by `multipass shell`. Open a terminal and try `multipass shell` (if you didn't follow the steps above, you will have to run the `launch` command first).
+If no `primary` instance exists yet, running `multipass shell` is equivalent to running `multipass launch --name primary` followed by `multipass shell`. Type `exit` to leave the instance, then run `multipass shell` again. This time, it opens a shell in the existing `primary` instance.
 
 Exercise 2:
 In Multipass, an instance with the name "primary" is privileged. That is, it serves as the default argument of `multipass shell` among other capabilities. In different terminal instances, check `multipass shell primary` and `multipass shell`. Both commands should give the same result.
