@@ -137,7 +137,7 @@ in `man qemu-system`, under `-m` option; including suffix to avoid relying on de
     return args;
 }
 
-QString mp::QemuVMProcessSpec::apparmor_profile() const
+QString mp::QemuVMProcessSpec::apparmor_profile(const QString& profile_name) const
 {
     // Following profile is based on /etc/apparmor.d/abstractions/libvirt-qemu
     QString profile_template(R"END(
@@ -250,7 +250,7 @@ profile %1 flags=(attach_disconnected) {
         signal_peer = "unconfined";
     }
 
-    return profile_template.arg(apparmor_profile_name(),
+    return profile_template.arg(profile_name,
                                 signal_peer,
                                 firmware,
                                 root_dir,

@@ -34,7 +34,7 @@ public:
 
     logging::Level error_log_level() const override;
 
-    QString apparmor_profile() const override;
+    QString apparmor_profile(const QString& profile_name) const override;
     QString identifier() const override;
 
 private:

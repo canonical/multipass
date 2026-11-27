@@ -46,7 +46,7 @@ public:
 
     QStringList arguments() const override;
 
-    QString apparmor_profile() const override;
+    QString apparmor_profile(const QString& profile_name) const override;
     QString identifier() const override;
     QString working_directory() const override;
 

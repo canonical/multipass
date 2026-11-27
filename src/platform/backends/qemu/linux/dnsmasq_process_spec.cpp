@@ -83,7 +83,7 @@ mp::logging::Level mp::DNSMasqProcessSpec::error_log_level() const
     return mp::logging::Level::error;
 }
 
-QString mp::DNSMasqProcessSpec::apparmor_profile() const
+QString mp::DNSMasqProcessSpec::apparmor_profile(const QString& profile_name) const
 {
     // Profile based on
     // https://github.com/Rafiot/apparmor-profiles/blob/master/profiles/usr.sbin.dnsmasq
@@ -141,5 +141,5 @@ profile %1 flags=(attach_disconnected) {
     }
 
     return profile_template
-        .arg(apparmor_profile_name(), signal_peer, root_dir, program(), data_dir, conf_file_path);
+        .arg(profile_name, signal_peer, root_dir, program(), data_dir, conf_file_path);
 }
