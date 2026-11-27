@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <multipass/disabled_copy_move.h>
 #include <multipass/sshfs_mount/sftp_protocol.h>
 
 #include <cstddef> // for size_t
@@ -33,14 +34,10 @@ namespace multipass
  *
  * Provides access to the client request along with methods to reply.
  */
-class SftpMessage // TODO@sftp confirm nothing is unused at the end
+class SftpMessage : private DisabledCopyMove // TODO@sftp confirm nothing is unused at the end
 {
 public:
     virtual ~SftpMessage() = default;
-
-    // No copies
-    SftpMessage(const SftpMessage&) = delete;
-    SftpMessage& operator=(const SftpMessage&) = delete;
 
     /**
      * @return The type of request this message conveys.

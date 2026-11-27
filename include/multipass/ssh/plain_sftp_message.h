@@ -31,7 +31,7 @@ namespace multipass
  *
  * @copydoc SftpMessage
  */
-class PlainSftpMessage final : public SftpMessage
+class PlainSftpMessage : public SftpMessage
 {
 public:
     ~PlainSftpMessage() override;
@@ -43,12 +43,6 @@ public:
      * adopted by this PlainSftpMessage
      */
     explicit PlainSftpMessage(sftp_client_message_struct& message) noexcept;
-    PlainSftpMessage(const PlainSftpMessage&) = delete;
-    PlainSftpMessage& operator=(const PlainSftpMessage&) = delete;
-
-    // Make class final before enabling these
-    PlainSftpMessage(PlainSftpMessage&&) = delete;
-    PlainSftpMessage& operator=(PlainSftpMessage&&) = delete;
 
     SftpMessageType type() const noexcept override;
     std::string_view filename() const noexcept override;
