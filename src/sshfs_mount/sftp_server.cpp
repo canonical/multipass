@@ -298,8 +298,8 @@ constexpr bool follows_symlinks(uint8_t type)
 mp::SftpServer::SftpServer(std::unique_ptr<SSHSession>&& session,
                            const std::string& source,
                            const std::string& target,
-                           const id_mappings& gid_mappings,
-                           const id_mappings& uid_mappings,
+                           id_mappings&& gid_mappings,
+                           id_mappings&& uid_mappings,
                            const std::string& sshfs_exec_line)
     : ssh_session{std::move(session)},
       sshfs_process{create_sshfs_process(*ssh_session, sshfs_exec_line, source, target)},
@@ -308,8 +308,8 @@ mp::SftpServer::SftpServer(std::unique_ptr<SSHSession>&& session,
                                                 ->release_channel())}, // TODO@rewiressh no cast
       source_path{MP_FILEOPS.weakly_canonical(source)},
       target_path{fs::path(target).lexically_normal()},
-      gid_mappings{gid_mappings},
-      uid_mappings{uid_mappings},
+      gid_mappings{std::move(gid_mappings)},
+      uid_mappings{std::move(uid_mappings)},
       sshfs_exec_line{sshfs_exec_line}
 {
 }

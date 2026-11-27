@@ -170,8 +170,8 @@ auto make_sftp_server(std::unique_ptr<mp::SSHSession>&& session,
     return std::make_unique<mp::SftpServer>(std::move(session),
                                             source,
                                             leading + missing,
-                                            gid_mappings,
-                                            uid_mappings,
+                                            std::move(gid_mappings),
+                                            std::move(uid_mappings),
                                             sshfs_exec_line);
 }
 

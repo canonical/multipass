@@ -42,8 +42,8 @@ public:
     SftpServer(std::unique_ptr<SSHSession>&& ssh_session,
                const std::string& source,
                const std::string& target,
-               const id_mappings& gid_mappings,
-               const id_mappings& uid_mappings,
+               id_mappings&& gid_mappings,
+               id_mappings&& uid_mappings,
                const std::string& sshfs_exec_line);
     SftpServer(SftpServer&& other);
     ~SftpServer();

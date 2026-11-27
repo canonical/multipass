@@ -63,11 +63,10 @@ struct SftpServer : public mp::test::SftpServerTest
         return make_sftpserver("");
     }
 
-    mp::SftpServer make_sftpserver(
-        const std::string& path,
-        const mp::id_mappings& uid_mappings = {{default_uid, mp::default_id}},
-        const mp::id_mappings& gid_mappings = {{default_gid, mp::default_id}},
-        const std::string& target = {})
+    mp::SftpServer make_sftpserver(const std::string& path,
+                                   mp::id_mappings uid_mappings = {{default_uid, mp::default_id}},
+                                   mp::id_mappings gid_mappings = {{default_gid, mp::default_id}},
+                                   const std::string& target = {})
     {
 
         REPLACE(ssh_channel_new,
@@ -81,8 +80,8 @@ struct SftpServer : public mp::test::SftpServerTest
         return {std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
                 path,
                 target.empty() ? path : target,
-                gid_mappings,
-                uid_mappings,
+                std::move(gid_mappings),
+                std::move(uid_mappings),
                 "sshfs"};
     }
 
