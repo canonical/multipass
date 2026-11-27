@@ -82,6 +82,8 @@ void create_virtual_switch(const mp::Subnet& subnet, const QString& bridge_name)
             "ip",
             {"address", "add", cidr.c_str(), "dev", bridge_name, "broadcast", broadcast.c_str()});
         MP_UTILS.run_cmd_for_status("ip", {"link", "set", bridge_name, "up"});
+
+        MP_UTILS.run_cmd_for_status("resolvectl", {"dns", bridge_name, "127.0.0.1"});
     }
 }
 

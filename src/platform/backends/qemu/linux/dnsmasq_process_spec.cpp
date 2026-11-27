@@ -26,6 +26,8 @@ namespace mpu = multipass::utils;
 
 namespace
 {
+constexpr auto multipass_domain = "multipass.internal";
+
 [[nodiscard]] QStringList make_dnsmasq_subnet_args(const mp::BridgeSubnetList& subnets)
 {
     QStringList out{};
@@ -63,9 +65,9 @@ QStringList mp::DNSMasqProcessSpec::arguments() const
 {
     auto out = QStringList() << "--keep-in-foreground"
                              << "--strict-order"
-                             << "--bind-interfaces" << QString("--pid-file") << "--domain=multipass"
-                             << "--local=/multipass/"
-                             << "--except-interface=lo"
+                             << "--bind-interfaces" << QString("--pid-file")
+                             << QString("--domain=%1").arg(multipass_domain)
+                             << QString("--local=/%1/").arg(multipass_domain)
                              << "--dhcp-no-override"
                              << "--dhcp-ignore-clid"
                              << "--dhcp-authoritative"
