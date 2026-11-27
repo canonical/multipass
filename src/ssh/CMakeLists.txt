@@ -62,7 +62,7 @@ endif()
 function(add_sftp_client_target TARGET_NAME LIBSSH_TARGET)
   add_library(${TARGET_NAME} STATIC
     ssh_factory.cpp
-    sftp_client.cpp
+    plain_sftp_client.cpp
     sftp_dir_iterator.cpp
     sftp_utils.cpp
     plain_ssh_session.cpp)

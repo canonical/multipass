@@ -17,13 +17,9 @@
 
 #pragma once
 
-#include "ssh_coordinates.h"
-#include "ssh_session.h"
-
 #include <libssh/sftp.h>
 
 #include <filesystem>
-#include <functional>
 #include <iostream>
 
 #include <QFlags>
@@ -31,11 +27,6 @@
 namespace multipass
 {
 namespace fs = std::filesystem;
-
-using SSHSessionUPtr = std::unique_ptr<SSHSession>;
-using SFTPSessionUPtr = std::unique_ptr<sftp_session_struct, std::function<void(sftp_session)>>;
-
-SFTPSessionUPtr make_sftp_session(ssh_session session);
 
 class SFTPClient
 {
@@ -47,28 +38,17 @@ public:
     };
     Q_DECLARE_FLAGS(Flags, Flag)
 
-    SFTPClient() = default;
-    SFTPClient(const SSHCoordinates& coordinates);
-    SFTPClient(SSHSessionUPtr ssh_session_obj);
-
-    virtual bool is_remote_dir(const fs::path& path);
-    virtual bool push(const fs::path& source_path, const fs::path& target_path, Flags flags = {});
-    virtual bool pull(const fs::path& source_path, const fs::path& target_path, Flags flags = {});
-    virtual void from_cin(std::istream& cin, const fs::path& target_path, bool make_parent);
-    virtual void to_cout(const fs::path& source_path, std::ostream& cout);
-
     virtual ~SFTPClient() = default;
 
-private:
-    void push_file(const fs::path& source_path, const fs::path& target_path);
-    void pull_file(const fs::path& source_path, const fs::path& target_path);
-    bool push_dir(const fs::path& source_path, const fs::path& target_path);
-    bool pull_dir(const fs::path& source_path, const fs::path& target_path);
-    void do_push_file(std::istream& source, const fs::path& target_path);
-    void do_pull_file(const fs::path& source_path, std::ostream& target);
-
-    SSHSessionUPtr ssh_session_obj;
-    SFTPSessionUPtr sftp;
+    virtual bool is_remote_dir(const fs::path& path) = 0;
+    virtual bool push(const fs::path& source_path,
+                      const fs::path& target_path,
+                      Flags flags = {}) = 0;
+    virtual bool pull(const fs::path& source_path,
+                      const fs::path& target_path,
+                      Flags flags = {}) = 0;
+    virtual void from_cin(std::istream& cin, const fs::path& target_path, bool make_parent) = 0;
+    virtual void to_cout(const fs::path& source_path, std::ostream& cout) = 0;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(SFTPClient::Flags)

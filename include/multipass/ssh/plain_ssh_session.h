@@ -35,6 +35,7 @@ class SSHKeyProvider;
 class PlainSftpSession;
 class PlainSSHProcess;
 class PlainSSHClient;
+class PlainSFTPClient;
 
 class PlainSSHSession final : public SSHSession // final to prevent chopping on move
 {
@@ -84,6 +85,7 @@ public: // but restricted
      */
     ssh_session borrow_session(const PrivatePassProvider<PlainSftpSession>::PrivatePass&) const;
     ssh_session borrow_session(const PrivatePassProvider<PlainSSHClient>::PrivatePass&) const;
+    ssh_session borrow_session(const PrivatePassProvider<PlainSFTPClient>::PrivatePass&) const;
 
 private:
     struct RawSSHSessionDeleter
