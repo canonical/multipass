@@ -119,7 +119,8 @@ struct MockBaseVirtualMachine : public mpt::MockVirtualMachineT<mp::BaseVirtualM
     MOCK_METHOD(std::optional<St>, fetch_backend_state, (), (override));
     MOCK_METHOD(void, handle_state_update, (), (override));
 
-    using mp::BaseVirtualMachine::desc;
+    using mp::BaseVirtualMachine::description;
+    using mp::BaseVirtualMachine::edit_description;
     using mp::BaseVirtualMachine::renew_ssh_session; // promote to public
 
     void simulate_state(St state)
@@ -868,11 +869,11 @@ TEST_F(BaseVM, restoresSnapshots)
     vm.restore_snapshot(snapshot_name, changed_specs);
 
     EXPECT_EQ(original_specs, changed_specs);
-    EXPECT_EQ(vm.desc.num_cores, original_specs.num_cores);
-    EXPECT_EQ(vm.desc.mem_size, original_specs.mem_size);
-    EXPECT_EQ(vm.desc.disk_space, original_specs.disk_space);
-    EXPECT_EQ(vm.desc.extra_interfaces, original_specs.extra_interfaces);
-    EXPECT_EQ(vm.desc.metadata, original_specs.metadata);
+    EXPECT_EQ(vm.description().num_cores, original_specs.num_cores);
+    EXPECT_EQ(vm.description().mem_size, original_specs.mem_size);
+    EXPECT_EQ(vm.description().disk_space, original_specs.disk_space);
+    EXPECT_EQ(vm.description().extra_interfaces, original_specs.extra_interfaces);
+    EXPECT_EQ(vm.description().metadata, original_specs.metadata);
 }
 
 TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
@@ -1375,8 +1376,8 @@ TEST_F(BaseVM, leavesDescriptionUnchangedWhenRestoreFailsBeforeDescriptionUpdate
     auto& snapshot = *snapshot_album[0];
 
     const std::vector<mp::NetworkInterface> snapshot_interfaces{{"id", "52:54:00:56:78:91", true}};
-    const auto orig_num_cores = vm.desc.num_cores;
-    const auto orig_interfaces = vm.desc.extra_interfaces;
+    const auto orig_num_cores = vm.description().num_cores;
+    const auto orig_interfaces = vm.description().extra_interfaces;
 
     EXPECT_CALL(snapshot, get_mounts).WillRepeatedly(ReturnRef(specs.mounts));
     EXPECT_CALL(snapshot, get_metadata).WillRepeatedly(ReturnRef(specs.metadata));
@@ -1389,8 +1390,8 @@ TEST_F(BaseVM, leavesDescriptionUnchangedWhenRestoreFailsBeforeDescriptionUpdate
     auto current_specs = specs;
     EXPECT_ANY_THROW(vm.restore_snapshot(snapshot_name, current_specs));
 
-    EXPECT_EQ(vm.desc.num_cores, orig_num_cores);
-    EXPECT_EQ(vm.desc.extra_interfaces, orig_interfaces);
+    EXPECT_EQ(vm.description().num_cores, orig_num_cores);
+    EXPECT_EQ(vm.description().extra_interfaces, orig_interfaces);
 }
 
 TEST_F(BaseVM, waitForCloudInitNoErrorsAndDoneDoesNotThrow)
@@ -1685,17 +1686,17 @@ TEST_F(BaseVM, updateCpusCallsImplAndUpdatesDescription)
 
     vm.mp::BaseVirtualMachine::update_cpus(num_cores);
 
-    EXPECT_EQ(vm.desc.num_cores, num_cores);
+    EXPECT_EQ(vm.description().num_cores, num_cores);
 }
 
 TEST_F(BaseVM, updateCpusLeavesDescriptionWhenImplThrows)
 {
-    const auto orig_num_cores = vm.desc.num_cores;
+    const auto orig_num_cores = vm.description().num_cores;
     EXPECT_CALL(vm, update_cpus_impl(7)).WillOnce(Throw(std::runtime_error{"intentional"}));
 
     EXPECT_THROW(vm.mp::BaseVirtualMachine::update_cpus(7), std::runtime_error);
 
-    EXPECT_EQ(vm.desc.num_cores, orig_num_cores);
+    EXPECT_EQ(vm.description().num_cores, orig_num_cores);
 }
 
 TEST_F(BaseVM, resizeMemoryCallsImplAndUpdatesDescription)
@@ -1705,27 +1706,29 @@ TEST_F(BaseVM, resizeMemoryCallsImplAndUpdatesDescription)
 
     vm.mp::BaseVirtualMachine::resize_memory(new_size);
 
-    EXPECT_EQ(vm.desc.mem_size, new_size);
+    EXPECT_EQ(vm.description().mem_size, new_size);
 }
 
 TEST_F(BaseVM, resizeMemoryLeavesDescriptionWhenImplThrows)
 {
-    const auto orig_mem_size = vm.desc.mem_size;
+    const auto orig_mem_size = vm.description().mem_size;
     const auto new_size = mp::MemorySize{"3G"};
     EXPECT_CALL(vm, resize_memory_impl(new_size))
         .WillOnce(Throw(std::runtime_error{"intentional"}));
 
     EXPECT_THROW(vm.mp::BaseVirtualMachine::resize_memory(new_size), std::runtime_error);
 
-    EXPECT_EQ(vm.desc.mem_size, orig_mem_size);
+    EXPECT_EQ(vm.description().mem_size, orig_mem_size);
 }
 
 TEST_F(BaseVM, addNetworkInterfaceCallsImplAndUpdatesDescription)
 {
     const mp::NetworkInterface existing{"eth0", "52:54:00:00:00:01", true};
     const mp::NetworkInterface new_if{"eth1", "52:54:00:00:00:02", false};
-    vm.desc.default_mac_address = "52:54:00:00:00:00";
-    vm.desc.extra_interfaces = {existing};
+    vm.edit_description([&](auto& d) {
+        d.default_mac_address = "52:54:00:00:00:00";
+        d.extra_interfaces = {existing};
+    });
 
     EXPECT_CALL(vm, add_network_interface_impl(new_if));
     EXPECT_CALL(*mock_cloud_init_file_ops_injection.first,
@@ -1733,7 +1736,7 @@ TEST_F(BaseVM, addNetworkInterfaceCallsImplAndUpdatesDescription)
 
     vm.mp::BaseVirtualMachine::add_network_interface(new_if);
 
-    EXPECT_THAT(vm.desc.extra_interfaces, ElementsAre(existing, new_if));
+    EXPECT_THAT(vm.description().extra_interfaces, ElementsAre(existing, new_if));
 }
 
 TEST_F(BaseVM, addNetworkInterfaceLeavesDescriptionWhenImplThrows)
@@ -1745,7 +1748,14 @@ TEST_F(BaseVM, addNetworkInterfaceLeavesDescriptionWhenImplThrows)
     EXPECT_THROW(vm.mp::BaseVirtualMachine::add_network_interface({"eth1", "", true}),
                  std::runtime_error);
 
-    EXPECT_THAT(vm.desc.extra_interfaces, IsEmpty());
+    EXPECT_THAT(vm.description().extra_interfaces, IsEmpty());
+}
+
+TEST_F(BaseVM, descriptionReportsCurrentState)
+{
+    vm.simulate_state(St::running);
+
+    EXPECT_EQ(vm.description().state, St::running);
 }
 
 } // namespace

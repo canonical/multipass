@@ -292,10 +292,11 @@ void mp::QemuVirtualMachine::start()
             for (const auto& arg : mount_data.second)
                 proc_args.removeOne(arg);
 
-        desc.metadata = generate_metadata(qemu_platform->vmstate_platform_args(),
+        auto metadata = generate_metadata(qemu_platform->vmstate_platform_args(),
                                           proc_args,
                                           mount_args);
-        monitor.update_metadata_for(vm_name, desc.metadata);
+        edit_description([&metadata](auto& d) { d.metadata = metadata; });
+        monitor.update_metadata_for(vm_name, metadata);
     }
 
     vm_process->start();
@@ -362,9 +363,9 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
             mpl::debug(vm_name, "No process to kill");
         }
 
-        const auto has_suspend_snapshot = mp::backend::instance_image_has_snapshot(
-            desc.image.image_path,
-            suspend_tag);
+        const auto image_path = description().image.image_path;
+        const auto has_suspend_snapshot = mp::backend::instance_image_has_snapshot(image_path,
+                                                                                   suspend_tag);
         if (has_suspend_snapshot != (fetch_state() == State::suspended)) // clang-format off
             mpl::warn(vm_name, "Image has {} suspension snapshot, but the state is {}",
                                                                has_suspend_snapshot ? "a" : "no",
@@ -373,7 +374,7 @@ void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
         if (has_suspend_snapshot)
         {
             mpl::info(vm_name, "Deleting suspend image");
-            mp::backend::delete_snapshot_from_image(desc.image.image_path, suspend_tag);
+            mp::backend::delete_snapshot_from_image(image_path, suspend_tag);
         }
 
         set_state(State::stopped);
@@ -481,7 +482,7 @@ void mp::QemuVirtualMachine::on_restart()
 std::optional<mp::IPAddress> mp::QemuVirtualMachine::management_ipv4()
 {
     if (!management_ip)
-        management_ip = qemu_platform->get_ip_for(desc.default_mac_address);
+        management_ip = qemu_platform->get_ip_for(description().default_mac_address);
 
     return management_ip;
 }
@@ -499,6 +500,7 @@ void mp::QemuVirtualMachine::wait_until_ssh_up(std::chrono::milliseconds timeout
 
 void mp::QemuVirtualMachine::initialize_vm_process()
 {
+    const auto desc = description();
     vm_process = make_qemu_process(
         desc,
         ((fetch_state() == State::suspended) ? std::make_optional(desc.metadata) : std::nullopt),
@@ -696,7 +698,7 @@ void mp::QemuVirtualMachine::disconnect_vm_signals()
 
 void mp::QemuVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
-    mp::backend::resize_instance_image(new_size, desc.image.image_path);
+    mp::backend::resize_instance_image(new_size, description().image.image_path);
 }
 
 mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const std::string& target,
@@ -707,12 +709,13 @@ mp::MountHandler::UPtr mp::QemuVirtualMachine::make_native_mount_handler(const s
 
 void mp::QemuVirtualMachine::remove_snapshots_from_backend() const
 {
+    const auto image_path = description().image.image_path;
     const QStringList snapshot_tag_list = extract_snapshot_tags(
-        backend::snapshot_list_output(desc.image.image_path));
+        backend::snapshot_list_output(image_path));
 
     for (const auto& snapshot_tag : snapshot_tag_list)
     {
-        backend::delete_snapshot_from_image(desc.image.image_path, snapshot_tag);
+        backend::delete_snapshot_from_image(image_path, snapshot_tag);
     }
 }
 
@@ -735,7 +738,7 @@ auto mp::QemuVirtualMachine::make_specific_snapshot(const std::string& snapshot_
                                           std::move(parent),
                                           specs,
                                           *this,
-                                          desc);
+                                          description());
 }
 bool multipass::QemuVirtualMachine::unplugged()
 {
@@ -745,7 +748,7 @@ bool multipass::QemuVirtualMachine::unplugged()
 auto mp::QemuVirtualMachine::make_specific_snapshot(const QString& filename)
     -> std::shared_ptr<Snapshot>
 {
-    return std::make_shared<QemuSnapshot>(MP_PLATFORM.qstr_to_path(filename), *this, desc);
+    return std::make_shared<QemuSnapshot>(MP_PLATFORM.qstr_to_path(filename), *this, description());
 }
 
 void mp::QemuVirtualMachine::refresh_start()

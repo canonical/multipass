@@ -76,7 +76,8 @@ void AppleVZVirtualMachine::start()
                vm_name,
                cached_state());
 
-    // the handle's configuration is fixed at creation, so a cold start rebuilds it from desc
+    // the handle's configuration is fixed at creation, so a cold start rebuilds it from the
+    // description
     if (vm_handle && MP_APPLEVZ.can_start(vm_handle))
         vm_handle.reset();
 
@@ -255,7 +256,7 @@ void AppleVZVirtualMachine::suspend()
 std::optional<IPAddress> AppleVZVirtualMachine::management_ipv4()
 {
     if (!management_ip)
-        management_ip = backend::get_neighbour_ip(desc.default_mac_address);
+        management_ip = backend::get_neighbour_ip(description().default_mac_address);
 
     return management_ip;
 }
@@ -268,7 +269,7 @@ void AppleVZVirtualMachine::handle_state_update()
 
 void AppleVZVirtualMachine::resize_disk_impl(const MemorySize& new_size)
 {
-    MP_APPLEVZ_UTILS.resize_image(new_size, desc.image.image_path);
+    MP_APPLEVZ_UTILS.resize_image(new_size, description().image.image_path);
 }
 
 std::optional<mp::VirtualMachine::State> AppleVZVirtualMachine::fetch_backend_state()
@@ -299,7 +300,7 @@ void AppleVZVirtualMachine::initialize_vm_handle()
 {
     mpl::trace(log_category, "initialize_vm_handle() -> Creating VM handle for '{}'", vm_name);
 
-    if (const auto& error = MP_APPLEVZ.create_vm(desc, zone, vm_handle); error)
+    if (const auto& error = MP_APPLEVZ.create_vm(description(), zone, vm_handle); error)
     {
         throw std::runtime_error(
             fmt::format("Failed to create VM handle for '{}': {}", vm_name, error));

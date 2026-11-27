@@ -161,16 +161,24 @@ mp::BaseVirtualMachine::BaseVirtualMachine(St state,
                                            AvailabilityZone& zone,
                                            const Path& instance_dir)
     : vm_name{vm_name},
-      desc{vm_desc},
       monitor{monitor},
       key_provider{key_provider},
       zone{zone},
       instance_dir{instance_dir},
+      desc{vm_desc},
       state{state}
 {
 }
 
 mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
+
+auto mp::BaseVirtualMachine::description() const -> VirtualMachineDescription
+{
+    const std::lock_guard lock{desc_mutex};
+    auto copy = desc;
+    copy.state = cached_state();
+    return copy;
+}
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
     const std::string& default_mac_addr,
@@ -394,10 +402,10 @@ void mp::BaseVirtualMachine::detect_aborted_start()
             saved_error_msg.clear();
         }
 
-        throw StartException(vm_name,
-                             msg,
-                             !error_occurred &&
-                                 cloud_init_expects_shutdown(desc.cloud_init_iso, vm_name));
+        throw StartException(
+            vm_name,
+            msg,
+            !error_occurred && cloud_init_expects_shutdown(description().cloud_init_iso, vm_name));
     }
 }
 
@@ -456,32 +464,36 @@ void mp::BaseVirtualMachine::wait_for_cloud_init(std::chrono::milliseconds timeo
 
 int mp::BaseVirtualMachine::get_num_cores() const
 {
+    const std::lock_guard lock{desc_mutex};
     return desc.num_cores;
 }
 
 mp::MemorySize mp::BaseVirtualMachine::get_mem_size() const
 {
+    const std::lock_guard lock{desc_mutex};
     return desc.mem_size;
 }
 
 mp::MemorySize mp::BaseVirtualMachine::get_disk_space() const
 {
+    const std::lock_guard lock{desc_mutex};
     return desc.disk_space;
 }
 
 int mp::BaseVirtualMachine::get_clone_count() const
 {
+    const std::lock_guard lock{desc_mutex};
     return desc.clone_count;
 }
 
 void mp::BaseVirtualMachine::increment_clone_count()
 {
-    ++desc.clone_count;
+    edit_description([](auto& d) { ++d.clone_count; });
 }
 
 void mp::BaseVirtualMachine::set_deleted(bool deleted)
 {
-    desc.deleted = deleted;
+    edit_description([deleted](auto& d) { d.deleted = deleted; });
 }
 
 void mp::BaseVirtualMachine::update_cpus(int num_cores)
@@ -490,7 +502,7 @@ void mp::BaseVirtualMachine::update_cpus(int num_cores)
     mpl::debug(vm_name, "update_cpus() -> num_cores `{}`", num_cores);
 
     update_cpus_impl(num_cores);
-    desc.num_cores = num_cores;
+    edit_description([num_cores](auto& d) { d.num_cores = num_cores; });
 }
 
 void mp::BaseVirtualMachine::resize_memory(const MemorySize& new_size)
@@ -499,16 +511,19 @@ void mp::BaseVirtualMachine::resize_memory(const MemorySize& new_size)
     mpl::debug(vm_name, "resize_memory() -> new_size `{}` MiB", new_size.in_megabytes());
 
     resize_memory_impl(new_size);
-    desc.mem_size = new_size;
+    edit_description([&new_size](auto& d) { d.mem_size = new_size; });
 }
 
 void mp::BaseVirtualMachine::resize_disk(const MemorySize& new_size, mp::UserMessages& messages)
 {
-    assert(new_size > desc.disk_space);
+    {
+        const std::lock_guard lock{desc_mutex};
+        assert(new_size > desc.disk_space);
+    }
     mpl::debug(vm_name, "resize_disk() -> new_size `{}` MiB", new_size.in_megabytes());
 
     resize_disk_impl(new_size);
-    desc.disk_space = new_size;
+    edit_description([&new_size](auto& d) { d.disk_space = new_size; });
 
     if (is_core())
         messages.add_message(core_image_disk_resize_message());
@@ -523,8 +538,9 @@ void mp::BaseVirtualMachine::add_network_interface(const NetworkInterface& extra
                extra_interface.auto_mode);
 
     add_network_interface_impl(extra_interface);
-    add_extra_interface_to_instance_cloud_init(desc.default_mac_address, extra_interface);
-    desc.extra_interfaces.push_back(extra_interface);
+    add_extra_interface_to_instance_cloud_init(description().default_mac_address, extra_interface);
+    edit_description(
+        [&extra_interface](auto& d) { d.extra_interfaces.push_back(extra_interface); });
 }
 
 auto mp::BaseVirtualMachine::get_all_ipv4() -> std::vector<IPAddress>
@@ -1026,11 +1042,13 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
 
     // The backend restore has succeeded, so nothing after this point should roll back specs/head.
     rollback.dismiss();
-    desc.num_cores = specs.num_cores;
-    desc.mem_size = specs.mem_size;
-    desc.disk_space = specs.disk_space;
-    desc.extra_interfaces = std::move(restored_extra_interfaces);
-    desc.metadata = std::move(restored_metadata);
+    edit_description([&](auto& d) {
+        d.num_cores = specs.num_cores;
+        d.mem_size = specs.mem_size;
+        d.disk_space = specs.disk_space;
+        d.extra_interfaces = std::move(restored_extra_interfaces);
+        d.metadata = std::move(restored_metadata);
+    });
 }
 
 std::shared_ptr<mp::Snapshot> mp::BaseVirtualMachine::make_specific_snapshot(

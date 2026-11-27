@@ -32,6 +32,7 @@
 #include <mutex>
 #include <optional>
 #include <unordered_map>
+#include <utility>
 
 namespace multipass
 {
@@ -172,6 +173,18 @@ protected:
     void set_state(State state);
     virtual void handle_state_update();
 
+    // A copy taken under the lock, with the current state filled in.
+    [[nodiscard]] VirtualMachineDescription description() const;
+
+    // The callback must not re-enter edit_description(), acquire other locks, or call backends.
+    // A throwing callback is not rolled back and must leave desc valid.
+    template <typename F>
+    void edit_description(F&& mutate)
+    {
+        const std::lock_guard lock{desc_mutex};
+        std::forward<F>(mutate)(desc);
+    }
+
 private:
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
 
@@ -226,7 +239,6 @@ private:
 
 protected:
     const std::string vm_name;
-    VirtualMachineDescription desc;
     VMStatusMonitor& monitor;
     const SSHKeyProvider& key_provider;
     AvailabilityZone& zone;
@@ -237,6 +249,8 @@ protected:
     std::mutex state_mutex;
 
 private:
+    VirtualMachineDescription desc;
+    mutable std::mutex desc_mutex;
     VirtualMachine::State state;
     std::string saved_error_msg = "";
     std::unique_ptr<SSHSession> ssh_session = nullptr;
@@ -280,6 +294,7 @@ inline const std::string& multipass::BaseVirtualMachine::get_name() const noexce
 
 inline std::string multipass::BaseVirtualMachine::ssh_username() const
 {
+    const std::lock_guard lock{desc_mutex};
     return desc.ssh_username;
 }
 
@@ -300,6 +315,7 @@ inline void multipass::BaseVirtualMachine::refresh_start()
 
 inline bool multipass::BaseVirtualMachine::is_core() const
 {
+    const std::lock_guard lock{desc_mutex};
     return desc.image.original_release.find("Core") != std::string::npos;
 }
 

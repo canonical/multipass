@@ -168,7 +168,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
     if (!power_shell->run({"Get-VM", "-Name", name}))
     {
         auto mem_size = QString::number(
-            desc.mem_size.in_bytes()); /* format documented in `Help(New-VM)`, under
+            vm_desc.mem_size.in_bytes()); /* format documented in `Help(New-VM)`, under
 `-MemoryStartupBytes` option; */
 
         power_shell->easy_run({QString("$switch = Get-VMSwitch -Id %1").arg(default_switch_guid)},
@@ -180,7 +180,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
                                "-Generation",
                                "2",
                                "-VHDPath",
-                               '"' + MP_PLATFORM.path_to_qstr(desc.image.image_path) + '"',
+                               '"' + MP_PLATFORM.path_to_qstr(vm_desc.image.image_path) + '"',
                                "-BootDevice",
                                "VHD",
                                "-SwitchName",
@@ -191,10 +191,10 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
         power_shell->easy_run({"Set-VMFirmware", "-VMName", name, "-EnableSecureBoot", "Off"},
                               "Could not disable secure boot");
         power_shell->easy_run(
-            {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(desc.num_cores)},
+            {"Set-VMProcessor", "-VMName", name, "-Count", QString::number(vm_desc.num_cores)},
             "Could not configure VM processor");
         power_shell->easy_run(
-            {"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + desc.cloud_init_iso + '"'},
+            {"Add-VMDvdDrive", "-VMName", name, "-Path", '"' + vm_desc.cloud_init_iso + '"'},
             "Could not setup cloud-init drive");
         power_shell->easy_run({"Set-VMMemory", "-VMName", name, "-DynamicMemoryEnabled", "$false"},
                               "Could not disable dynamic memory");
@@ -292,6 +292,7 @@ mp::HyperVVirtualMachine::HyperVVirtualMachine(const VirtualMachineDescription& 
 
 void mp::HyperVVirtualMachine::setup_network_interfaces()
 {
+    const auto desc = description();
     power_shell->easy_run({"Set-VMNetworkAdapter",
                            "-VMName",
                            name,
@@ -315,6 +316,7 @@ void mp::HyperVVirtualMachine::update_network_interfaces(const VMSpecs& src_spec
     // backward compatible. 2. Assume the network adapters are in the added order. However, hyper-v
     // Get-VMNetworkAdapter does not guarantee that. 3. Use the switch name to query the network
     // adapter. However, it might look like a unique identifier but actually it is not.
+    const auto desc = description();
     power_shell->easy_run(
         {"Get-VMNetworkAdapter -VMName",
          name,
@@ -359,7 +361,7 @@ void mp::HyperVVirtualMachine::start()
     {
         default_switch_interface = resolve_default_switch_interface();
         const auto switch_interface = default_switch_interface.load();
-        if (!switch_interface || !remove_permanent_ipv4_neighbors(desc.default_mac_address,
+        if (!switch_interface || !remove_permanent_ipv4_neighbors(description().default_mac_address,
                                                                   to_net_luid(*switch_interface)))
             mpl::warn(vm_name, "Could not remove all stale management IP entries");
     }
@@ -467,7 +469,7 @@ std::optional<mp::IPAddress> mp::HyperVVirtualMachine::management_ipv4()
     if (!switch_interface)
         return std::nullopt;
 
-    if (const auto ip_address = permanent_ipv4_neighbor(desc.default_mac_address,
+    if (const auto ip_address = permanent_ipv4_neighbor(description().default_mac_address,
                                                         to_net_luid(*switch_interface)))
     {
         IPAddress address{*ip_address};
@@ -595,6 +597,6 @@ auto mp::HyperVVirtualMachine::make_specific_snapshot(const QString& filename)
 {
     return std::make_shared<HyperVSnapshot>(MP_PLATFORM.qstr_to_path(filename),
                                             *this,
-                                            desc,
+                                            description(),
                                             *power_shell);
 }

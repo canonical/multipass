@@ -171,16 +171,17 @@ void HCSVirtualMachine::compute_system_event_callback(HCS_EVENT* event, void* co
 
 std::filesystem::path HCSVirtualMachine::get_guest_state_file_path() const
 {
-    return std::filesystem::path{desc.image.image_path}.replace_extension(".vmgs");
+    return std::filesystem::path{description().image.image_path}.replace_extension(".vmgs");
 }
 std::filesystem::path HCSVirtualMachine::get_runtime_state_file_path() const
 {
-    return std::filesystem::path{desc.image.image_path}.replace_extension(".vmrs");
+    return std::filesystem::path{description().image.image_path}.replace_extension(".vmrs");
 }
 
 std::filesystem::path HCSVirtualMachine::get_saved_state_file_path() const
 {
-    return std::filesystem::path{desc.image.image_path}.replace_extension(".SavedState.vmrs");
+    return std::filesystem::path{description().image.image_path}.replace_extension(
+        ".SavedState.vmrs");
 }
 
 bool HCSVirtualMachine::has_saved_state_file() const
@@ -190,7 +191,7 @@ bool HCSVirtualMachine::has_saved_state_file() const
 
 std::filesystem::path HCSVirtualMachine::get_primary_disk_path() const
 {
-    return desc.image.image_path;
+    return description().image.image_path;
 }
 
 void HCSVirtualMachine::grant_access_to_scsi_device(const hcs::HcsScsiDevice& device) const
@@ -254,6 +255,7 @@ void HCSVirtualMachine::set_compute_system_callback_handler()
 
 std::vector<hcn::CreateEndpointParameters> HCSVirtualMachine::make_endpoint_parameters() const
 {
+    const auto desc = description();
     // Deterministic, instance-based name tagged onto every endpoint that belongs to this
     // VM. It allows the endpoints to be discovered and removed by name later on (e.g. during
     // instance purge), without needing to reopen the compute system to retrieve its RuntimeId.
@@ -307,6 +309,8 @@ bool HCSVirtualMachine::maybe_create_compute_system()
 {
     if (maybe_open_compute_system())
         return false;
+
+    const auto desc = description();
 
     // Create the VM from scratch.
     if (!has_saved_state_file() &&
@@ -428,7 +432,7 @@ void HCSVirtualMachine::start()
     const auto is_cold_start = hcs_state == hcs::ComputeSystemState::created ||
                                hcs_state == hcs::ComputeSystemState::stopped;
     if (!created_from_scratch && is_cold_start && !has_saved_state_file() &&
-        !remove_management_ipv4_neighbors(primary_network_guid, desc.default_mac_address))
+        !remove_management_ipv4_neighbors(primary_network_guid, description().default_mac_address))
     {
         mpl::warn(get_name(), "Could not remove all stale management IP entries");
     }
@@ -570,7 +574,7 @@ void HCSVirtualMachine::suspend()
 
 std::optional<IPAddress> HCSVirtualMachine::management_ipv4()
 {
-    const auto endpoint_guid = endpoint_guid_for_mac(desc.default_mac_address);
+    const auto endpoint_guid = endpoint_guid_for_mac(description().default_mac_address);
     hcn::HcnEndpointInfo endpoint_info;
     if (const auto query_result = HCN().query_endpoint(endpoint_guid, endpoint_info); !query_result)
     {
@@ -648,7 +652,7 @@ void HCSVirtualMachine::resize_disk_impl(const MemorySize& new_size)
                                   "snapshots. To resize, delete the snapshots first."};
     }
 
-    if (const auto result = VirtDisk().resize_virtual_disk(desc.image.image_path,
+    if (const auto result = VirtDisk().resize_virtual_disk(description().image.image_path,
                                                            new_size.in_bytes());
         !result)
     {
@@ -683,12 +687,14 @@ std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(
                                                         parent,
                                                         specs,
                                                         *this,
-                                                        desc);
+                                                        description());
 }
 
 std::shared_ptr<Snapshot> HCSVirtualMachine::make_specific_snapshot(const QString& filename)
 {
-    return std::make_shared<virtdisk::VirtDiskSnapshot>(filename.toStdWString(), *this, desc);
+    return std::make_shared<virtdisk::VirtDiskSnapshot>(filename.toStdWString(),
+                                                        *this,
+                                                        description());
 }
 
 std::error_code HCSVirtualMachine::remove_saved_state_file_if_exists()
