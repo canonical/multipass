@@ -117,6 +117,9 @@ Here you can find a comprehensive list of the details that `multipass info` prov
 ---
 
 The full `multipass help info` output explains the available options:
+
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass info [options] <instance>[.snapshot] [<instance>[.snapshot] ...]
 Display information about instances or snapshots
@@ -141,3 +144,5 @@ Arguments:
   instance/snapshot  Names of instances or snapshots to display information
                      about
 ```
+
+<!-- end help -->

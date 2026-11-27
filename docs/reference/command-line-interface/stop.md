@@ -16,6 +16,8 @@ You can use the `--force` option (*available starting from Multipass version 1.1
 
 The full `multipass help stop` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass stop [options] [<name> ...]
 Stop the named instances. Exits with return code 0
@@ -37,5 +39,6 @@ Options:
 Arguments:
   name               Names of instances to stop. If omitted, and without the
                      --all option, 'primary' will be assumed.
-
 ```
+
+<!-- end help -->

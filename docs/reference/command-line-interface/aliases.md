@@ -39,6 +39,8 @@ The `json`, `csv` and `yaml` formats cover regular output only. Errors and log m
 
 The full `multipass help aliases` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass aliases [options]
 List available aliases
@@ -57,3 +59,5 @@ Options:
                      the instance's default directory or the alias running
                      directory should try to be mapped to a mounted one.
 ```
+
+<!-- end help -->

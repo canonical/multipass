@@ -27,6 +27,7 @@ jobs:
     outputs:
       docs: ${{ steps.filter.outputs.docs }}
       code: ${{ steps.filter.outputs.code }}
+      cli-docs: ${{ steps.filter.outputs.cli-docs }}
       hooks: ${{ steps.filter.outputs.hooks }}
       is-tag: ${{ steps.check-tag.outputs.is-tag }}
       cli-tests: ${{ steps.filter.outputs.cli-tests }}
@@ -79,6 +80,8 @@ jobs:
               - "CMakeLists.txt"
               - "vcpkg-configuration.json"
               - "vcpkg.json"
+            cli-docs:
+              - "tools/sync-cli-docs.py"
             cli-tests:
               - 'tests/cli/**'
               - 'tests/cli-test-ut/**'
@@ -101,7 +104,7 @@ jobs:
   linux:
     name: Linux
     needs: filter
-    if: needs.filter.outputs.code == 'true' || needs.filter.outputs.is-tag == 'true'
+    if: needs.filter.outputs.code == 'true' || needs.filter.outputs.cli-docs == 'true' || needs.filter.outputs.is-tag == 'true'
     uses: "./.github/workflows/linux.yml"
     secrets: inherit
 

@@ -52,6 +52,8 @@ The third option is to directly run the command in the default directory in the 
 
 The full `multipass help exec` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass exec [options] <name> [--] <command>
 Run a command on an instance
@@ -70,3 +72,5 @@ Arguments:
   name                            Name of instance to execute the command on
   command                         Command to execute on the instance
 ```
+
+<!-- end help -->

@@ -18,8 +18,9 @@ multipass wait-ready --timeout 30
 
 The full `multipass help wait-ready` output explains the available options:
 
-```{code-block} text
+<!-- begin help -->
 
+```{code-block} text
 Usage: multipass wait-ready [options]
 Wait for the Multipass daemon to be ready. This command will block until the
 daemon has initialized, fetched up-to-date image information, and is ready to
@@ -34,9 +35,10 @@ Options:
                        with 4 (or more) v's, i.e. -vvvv.
   --timeout <timeout>  Maximum time, in seconds, to wait for the command to
                        complete. Note that some background operations may
-                       continue beyond that. By default, instance startup and
-                       initialization is limited to 5 minutes each.
+                       continue beyond that.
 ```
+
+<!-- end help -->
 
 ## **Example usage:**
 

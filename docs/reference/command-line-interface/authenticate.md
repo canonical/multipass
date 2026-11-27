@@ -17,6 +17,8 @@ If no passphrase is specified in the `multipass authenticate` command line, you 
 
 The full `multipass help authenticate` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass authenticate [options] [<passphrase>]
 Authenticate with the Multipass service.
@@ -33,3 +35,5 @@ Arguments:
   passphrase     Passphrase to register with the Multipass service. If omitted,
                  a prompt will be displayed for entering the passphrase.
 ```
+
+<!-- end help -->

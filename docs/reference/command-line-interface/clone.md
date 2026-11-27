@@ -28,6 +28,8 @@ multipass clone natty-nilgai --name custom-clone
 
 The full `multipass help clone` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass clone [options] <source_name>
 Create an independent copy of an existing (stopped) instance.
@@ -47,3 +49,5 @@ Options:
 Arguments:
   source_name                    The name of the source instance to be cloned
 ```
+
+<!-- end help -->

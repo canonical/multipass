@@ -25,3 +25,25 @@ Available commands:
 See our [CLI reference](/reference/command-line-interface/index) for information on the available commands.
 
 The `--verbose` option will increase its output verbosity and you can repeat it (up to three times) to get even more output. By default, only errors will be displayed, with `-v` warnings would be added, `-vv` enables informational messages and `-vvv` will print out debugging information.
+
+---
+
+The full `multipass help help` output explains the available options:
+
+<!-- begin help -->
+
+```{code-block} text
+Usage: multipass help [options] <command>
+Displays help for the given command.
+
+Options:
+  -h, --help     Displays help on commandline options
+  -v, --verbose  Increase logging verbosity. Repeat the 'v' in the short option
+                 for more detail. Maximum verbosity is obtained with 4 (or more)
+                 v's, i.e. -vvvv.
+
+Arguments:
+  command        Name of command to display help for
+```
+
+<!-- end help -->

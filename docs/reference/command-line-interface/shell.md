@@ -38,9 +38,11 @@ multipass shell <instance name>
 
 The full `multipass help shell` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass shell [options] [<name>]
-Open a shell prompt on the instance.
+Open a shell prompt on the instance. If the instance is not running, it will be started automatically.
 
 Options:
   -h, --help           Displays help on commandline options
@@ -50,7 +52,7 @@ Options:
   --timeout <timeout>  Maximum time, in seconds, to wait for the command to
                        complete. Note that some background operations may
                        continue beyond that. By default, instance startup and
-                       initialisation is limited to 5 minutes each.
+                       initialization is limited to 5 minutes each.
 
 Arguments:
   name                 Name of the instance to open a shell on. If omitted,
@@ -58,3 +60,5 @@ Arguments:
                        assumed. If the instance is not running, an attempt is
                        made to start it (see `start` for more info).
 ```
+
+<!-- end help -->

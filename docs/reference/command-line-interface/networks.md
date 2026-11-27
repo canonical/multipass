@@ -27,6 +27,8 @@ See [`launch`](/reference/command-line-interface/launch) and {ref}`create-an-ins
 
 The `multipass help networks` command explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass networks [options]
 List host network devices (physical interfaces, virtual switches, bridges)
@@ -45,3 +47,5 @@ Options:
                      stream as plain text, with failures signaled by a non-zero
                      exit status.
 ```
+
+<!-- end help -->

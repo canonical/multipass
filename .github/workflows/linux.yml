@@ -428,6 +428,18 @@ jobs:
         MATTERMOST_USERNAME: ${{ github.triggering_actor }}
         MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
 
+  Check-CLI-Docs:
+    name: CLI reference docs
+    permissions:
+      contents: read
+      actions: read
+    needs:
+      - BuildAndTest
+      - Publish-Snap
+    uses: ./.github/workflows/check-cli-docs.yml
+    with:
+      snap-channel: ${{ needs.BuildAndTest.outputs.channel }}
+
   Dispatch-CLI-Tests-Workflow:
     permissions:
       contents: read

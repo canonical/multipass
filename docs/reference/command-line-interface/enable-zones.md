@@ -19,18 +19,21 @@ Zones enabled: zone2, zone3
 
 The full `multipass help enable-zones` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass enable-zones [options] <zone> [<zone> ...]
-Makes the given availability zones available. Instances therein are
-started if they were running when their zone was last disabled.
+Makes the given availability zones available. Instances therein are started if they were running when their zone was last disabled.
 
 Options:
   -h, --help     Displays help on commandline options
-  -v, --verbose  Increase logging verbosity. Repeat the 'v' in the short
-                option for more detail. Maximum verbosity is obtained with
-                4 (or more) v's, i.e. -vvvv.
+  -v, --verbose  Increase logging verbosity. Repeat the 'v' in the short option
+                 for more detail. Maximum verbosity is obtained with 4 (or more)
+                 v's, i.e. -vvvv.
   --all          Enable all zones
 
 Arguments:
   zone           Name of the zones to make available
 ```
+
+<!-- end help -->

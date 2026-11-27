@@ -20,6 +20,8 @@ The `--all` option will delete all instances and their snapshots. Take care if u
 
 The output of `multipass help delete` explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass delete [options] <instance>[.snapshot] [<instance>[.snapshot] ...]
 Permanently delete instances and snapshots (in stopped instances).
@@ -36,3 +38,5 @@ Options:
 Arguments:
   name           Names of instances and snapshots to delete
 ```
+
+<!-- end help -->
