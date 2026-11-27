@@ -1,33 +1,31 @@
-# Canonical theme (still needed for Furo theme and custom templates)
-canonical-sphinx>=0.5.1
+# Ulwazi theme
+ulwazi~=1.0
 
 # Extensions previously auto-loaded by canonical-sphinx
 myst-parser~=4.0    # v5.0.0 causes version conflicts
-sphinx-autobuild
-sphinx-design
-sphinx-notfound-page
-sphinx-reredirects
-sphinx-tabs
-sphinxcontrib-jquery
-sphinxext-opengraph
+sphinx-autobuild==2024.10.3
+sphinx-design==0.6.1
+sphinxcontrib-jquery~=4.1
+sphinxext-opengraph~=0.13
+sphinx-rerediraffe~=0.1
 
 # Extra extensions, previously bundled as canonical-sphinx-extensions
-sphinx-config-options>=0.1.0
-sphinx-contributor-listing>=0.1.0
-sphinx-filtered-toctree>=0.1.0
-sphinx-related-links>=0.1.1
-sphinx-structured-toc>=0.1.1
-sphinx-roles>=0.1.0
-sphinx-terminal>=1.0.2
-sphinx-ubuntu-images>=0.1.0
-sphinx-youtube-links>=0.1.0
+sphinx-config-options~=0.1
+sphinx-related-links~=0.1
+sphinx-roles~=1.0
+sphinx-terminal~=1.1
+sphinx-youtube-links~=0.1
 
 # Other dependencies
-packaging
-sphinxcontrib-svg2pdfconverter[CairoSVG]
-sphinx-last-updated-by-git
-sphinx-sitemap
+packaging~=26.3
+sphinxcontrib-svg2pdfconverter[CairoSVG]~=2.1
+sphinx-sitemap~=2.9
+sphinx-llm~=1.1
+sphinx-modern-pdf-style~=0.1
 
 # Vale dependencies
 rst2html
 vale==3.13.0.0
+
+# Project-specific dependencies
+sphinx-structured-toc~=0.2    # Provides the {domain} and {slice} directives on the home page
