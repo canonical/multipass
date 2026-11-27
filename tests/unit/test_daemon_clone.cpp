@@ -145,6 +145,24 @@ TEST_F(TestDaemonClone, successfulCloneSpecifyDestNameOkStatus)
     EXPECT_THAT(process_request(*daemon, request, &mp::Daemon::clone), Success());
 }
 
+TEST_F(TestDaemonClone, generatedDestNameUsesAndBumpsSourceCloneCount)
+{
+    const auto [daemon, instance] = build_daemon_with_mock_instance();
+    EXPECT_CALL(*instance, fetch_state).WillOnce(Return(mp::VirtualMachine::State::stopped));
+    EXPECT_CALL(*instance, get_clone_count).WillOnce(Return(2));
+    EXPECT_CALL(*instance, increment_clone_count);
+    EXPECT_CALL(mock_factory, clone_bare_vm)
+        .WillOnce(WithArg<3>([this](const std::string& dest_name) {
+            EXPECT_EQ(dest_name, mock_src_instance_name + "-clone3");
+            return mp::VirtualMachine::UPtr{};
+        }));
+
+    mp::CloneRequest request{};
+    request.set_source_name(mock_src_instance_name);
+
+    EXPECT_THAT(process_request(*daemon, request, &mp::Daemon::clone), Success());
+}
+
 TEST_F(TestDaemonClone, failsOnCloneOnNonStoppedInstance)
 {
     const auto [daemon, instance] = build_daemon_with_mock_instance();

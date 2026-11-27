@@ -2954,6 +2954,29 @@ TEST_F(Daemon, infoAllReturnsAllInstances)
     call_daemon_slot(daemon, &mp::Daemon::info, mp::InfoRequest{}, mock_server);
 }
 
+TEST_F(Daemon, recoverClearsDeletedFlagOnInstance)
+{
+    const std::string name{"lazarus"};
+    const auto [temp_dir, __] = plant_instance_json(
+        fmt::format("{{{}}}", fmt::format(deleted_template, name, "12")));
+    config_builder.data_directory = temp_dir->path();
+    config_builder.vault = std::make_unique<NiceMock<mpt::MockVMImageVault>>();
+
+    auto instance = std::make_unique<NiceMock<mpt::MockVirtualMachine>>();
+    EXPECT_CALL(*instance, set_deleted(false));
+    EXPECT_CALL(*use_a_mock_vm_factory(), create_virtual_machine)
+        .WillOnce(Return(std::move(instance)));
+
+    mp::Daemon daemon{config_builder.build()};
+
+    mp::RecoverRequest request;
+    request.mutable_instance_names()->add_instance_name(name);
+    call_daemon_slot(daemon,
+                     &mp::Daemon::recover,
+                     request,
+                     NiceMock<mpt::MockServerReaderWriter<mp::RecoverReply, mp::RecoverRequest>>{});
+}
+
 TEST_F(Daemon, setsPermissionsOnProvidedStoragePath)
 {
     const QString path{"Where all the secrets go"};

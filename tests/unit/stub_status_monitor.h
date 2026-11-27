@@ -45,10 +45,6 @@ struct StubVMStatusMonitor : public multipass::VMStatusMonitor
                              const boost::json::object& /*metadata*/) override
     {
     }
-    boost::json::object retrieve_metadata_for(const std::string& /*name*/) override
-    {
-        return {};
-    }
 };
 } // namespace test
 } // namespace multipass

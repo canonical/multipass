@@ -39,7 +39,6 @@ struct MockVMStatusMonitor : public VMStatusMonitor
                 update_metadata_for,
                 (const std::string&, const boost::json::object&),
                 (override));
-    MOCK_METHOD(boost::json::object, retrieve_metadata_for, (const std::string&), (override));
 };
 } // namespace test
 } // namespace multipass

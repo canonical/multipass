@@ -469,6 +469,21 @@ mp::MemorySize mp::BaseVirtualMachine::get_disk_space() const
     return desc.disk_space;
 }
 
+int mp::BaseVirtualMachine::get_clone_count() const
+{
+    return desc.clone_count;
+}
+
+void mp::BaseVirtualMachine::increment_clone_count()
+{
+    ++desc.clone_count;
+}
+
+void mp::BaseVirtualMachine::set_deleted(bool deleted)
+{
+    desc.deleted = deleted;
+}
+
 void mp::BaseVirtualMachine::update_cpus(int num_cores)
 {
     assert(num_cores > 0);

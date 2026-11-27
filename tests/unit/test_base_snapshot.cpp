@@ -618,12 +618,14 @@ TEST_F(TestBaseSnapshot, applyCallsImpl)
 
 TEST_F(TestBaseSnapshot, applyUpdatesVmDescription)
 {
+    specs.metadata = {{"arguments", {"-snapshot_arg"}}};
     NiceMock<MockBaseSnapshot> snapshot{"Elaine", "governor", "", nullptr, specs, vm, desc};
 
     desc.num_cores = specs.num_cores + 1;
     desc.mem_size = mp::MemorySize{"3G"};
     desc.disk_space = mp::MemorySize{"20G"};
     desc.extra_interfaces.clear();
+    desc.metadata.clear();
 
     snapshot.apply();
 
@@ -631,6 +633,7 @@ TEST_F(TestBaseSnapshot, applyUpdatesVmDescription)
     EXPECT_EQ(desc.mem_size, specs.mem_size);
     EXPECT_EQ(desc.disk_space, specs.disk_space);
     EXPECT_EQ(desc.extra_interfaces, specs.extra_interfaces);
+    EXPECT_EQ(desc.metadata, specs.metadata);
 }
 
 TEST_F(TestBaseSnapshot, applyLeavesVmDescriptionOnFailure)
@@ -639,6 +642,7 @@ TEST_F(TestBaseSnapshot, applyLeavesVmDescriptionOnFailure)
     EXPECT_CALL(snapshot, apply_impl).WillOnce([] { throw std::runtime_error{"test"}; });
 
     desc.disk_space = mp::MemorySize{"20G"};
+    desc.metadata = {{"arguments", {"-vm_arg"}}};
     const auto orig_desc = desc;
 
     MP_EXPECT_THROW_THAT(snapshot.apply(), std::runtime_error, mpt::match_what(StrEq("test")));
@@ -647,6 +651,7 @@ TEST_F(TestBaseSnapshot, applyLeavesVmDescriptionOnFailure)
     EXPECT_EQ(desc.mem_size, orig_desc.mem_size);
     EXPECT_EQ(desc.disk_space, orig_desc.disk_space);
     EXPECT_EQ(desc.extra_interfaces, orig_desc.extra_interfaces);
+    EXPECT_EQ(desc.metadata, orig_desc.metadata);
 }
 
 TEST_F(TestBaseSnapshot, eraseCallsImpl)

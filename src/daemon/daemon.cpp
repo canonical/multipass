@@ -2437,6 +2437,7 @@ try
             const auto name = vm_it->first;
             assert(vm_instance_specs[name].deleted);
             vm_instance_specs[name].deleted = false;
+            vm_it->second->set_deleted(false);
             operative_instances[name] = std::move(vm_it->second);
             deleted_instances.erase(vm_it);
             init_mounts(name);
@@ -3420,6 +3421,7 @@ try
             *config->ssh_key_provider,
             *this);
         ++src_spec.clone_count;
+        source_vm_ptr->increment_clone_count();
         // preparing instance is done
         preparing_instances.erase(destination_name);
         persist_instances();
@@ -3647,11 +3649,6 @@ void mp::Daemon::update_metadata_for(const std::string& name, const boost::json:
     vm_instance_specs[name].metadata = metadata;
 
     persist_instances();
-}
-
-boost::json::object mp::Daemon::retrieve_metadata_for(const std::string& name)
-{
-    return vm_instance_specs[name].metadata;
 }
 
 void mp::Daemon::persist_instances()
@@ -3958,7 +3955,7 @@ void mp::Daemon::delete_vm(InstanceTable::iterator vm_it, DeleteReply& response)
 {
     const auto name = vm_it->first;
     const auto& instance = vm_it->second;
-    auto& erase_from = vm_instance_specs[name].deleted ? deleted_instances : operative_instances;
+    auto& erase_from = deleted_instances.contains(name) ? deleted_instances : operative_instances;
 
     if (&erase_from == &operative_instances)
     {
@@ -4552,8 +4549,9 @@ std::string mp::Daemon::dest_name_for_clone(const CloneRequest& request)
 {
     return request.has_destination_name()
              ? request.destination_name()
-             : generate_next_clone_name(vm_instance_specs.at(request.source_name()).clone_count,
-                                        request.source_name());
+             : generate_next_clone_name(
+                   operative_instances.at(request.source_name())->get_clone_count(),
+                   request.source_name());
 };
 
 grpc::Status mp::Daemon::validate_dest_name(const std::string& name)
