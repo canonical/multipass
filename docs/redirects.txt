@@ -1,0 +1,17 @@
+# Client-side page redirects. Each mapping takes the format:
+#
+#     "<old path>" "<current path>"
+#
+# Paths must be represented as source files relative to the root of the docs directory.
+# The old path must be a file that doesn't exist in the source. The current path must be
+# a file that does exist in the source. Redirecting to a specific section is not supported.
+
+"explanation/about-security.md" "explanation/security/index.md"
+"reference/command-line-interface/find.md" "reference/command-line-interface/images.md"
+"reference/command-line-interface/umount.md" "reference/command-line-interface/unmount.md"
+"how-to-guides/manage-instances/run-a-docker-container-in-multipass.md" "how-to-guides/manage-instances/launch-customized-instances-with-multipass-and-cloud-init.md"
+
+# URLs inherited from the Discourse-hosted documentation at https://discourse.ubuntu.com/t/multipass-documentation/8294
+"mount.md" "explanation/mount.md"
+"platform.md" "explanation/platform.md"
+"explanation/host.md" "explanation/platform.md"

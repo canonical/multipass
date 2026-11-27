@@ -1,0 +1,23 @@
+repos:
+  - repo: local
+    hooks:
+      - id: make-spelling
+        name: Run make spelling
+        entry: make -C docs spelling
+        language: system
+        pass_filenames: false
+        files: ^docs/.*\.(rst|md|txt)$
+
+      - id: make-linkcheck
+        name: Run make linkcheck
+        entry: make -C docs linkcheck
+        language: system
+        pass_filenames: false
+        files: ^docs/.*\.(rst|md|txt)$
+
+      - id: make-woke
+        name: Run make woke
+        entry: make -C docs woke
+        language: system
+        pass_filenames: false
+        files: ^docs/.*\.(rst|md|txt)$
