@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fpdart/fpdart.dart' hide State;
 
+import '../colors.dart';
 import '../notifications/notifications_provider.dart';
 import '../providers.dart';
 import '../l10n/app_localizations.dart';
@@ -351,12 +352,12 @@ class SettingField extends StatelessWidget {
         if (changed) ...[
           OutlinedButton(
             onPressed: onSave,
-            child: const Icon(Icons.check, color: Color(0xff0E8620)),
+            child: Icon(Icons.check, color: context.colors.positive),
           ),
           const SizedBox(width: 12),
           OutlinedButton(
             onPressed: onDiscard,
-            child: const Icon(Icons.close, color: Color(0xffC7162B)),
+            child: Icon(Icons.close, color: context.colors.negative),
           ),
           const SizedBox(width: 12),
         ],

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'colors.dart';
 import 'ffi.dart';
 import 'l10n/app_localizations.dart';
 import 'providers.dart';
@@ -50,6 +51,13 @@ class DaemonUnavailable extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final available = ref.watch(daemonAvailableProvider);
     final ffiAvailable = ref.watch(ffiAvailableProvider);
+    final colors = context.colors;
+    final dialogDecoration = BoxDecoration(
+      color: colors.surface,
+      boxShadow: [
+        BoxShadow(color: colors.shadow, blurRadius: 10, spreadRadius: 5),
+      ],
+    );
 
     if (available) {
       return const SizedBox.shrink();
@@ -66,27 +74,18 @@ class DaemonUnavailable extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(20),
             constraints: const BoxConstraints(maxWidth: 500),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black54,
-                  blurRadius: 10,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
+            decoration: dialogDecoration,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error, color: Colors.red, size: 48),
+                Icon(Icons.error, color: colors.error, size: 48),
                 const SizedBox(height: 16),
                 Text(
                   l10n.daemonFatalError,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.red,
+                    color: colors.error,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -94,8 +93,8 @@ class DaemonUnavailable extends ConsumerWidget {
                   data: Theme.of(context).copyWith(
                     textButtonTheme: TextButtonThemeData(
                       style: TextButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
+                        backgroundColor: colors.surface,
+                        foregroundColor: colors.textPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -132,16 +131,11 @@ class DaemonUnavailable extends ConsumerWidget {
       // Regular daemon unavailable message
       content = Container(
         padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(color: Colors.black54, blurRadius: 10, spreadRadius: 5),
-          ],
-        ),
+        decoration: dialogDecoration,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(color: Colors.orange),
+            CircularProgressIndicator(color: colors.loadingIndicator),
             const SizedBox(width: 20),
             Text(l10n.daemonWaiting),
           ],
@@ -155,7 +149,7 @@ class DaemonUnavailable extends ConsumerWidget {
         opacity: available ? 0 : 1,
         duration: const Duration(milliseconds: 500),
         child: Scaffold(
-          backgroundColor: Colors.black54,
+          backgroundColor: colors.scrim,
           body: BackdropFilter(
             filter: const ColorFilter.mode(Colors.grey, BlendMode.saturation),
             child: Center(child: content),

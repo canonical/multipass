@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart' as fl;
 
+import 'colors.dart';
+
 class Tooltip extends fl.StatelessWidget {
   final fl.Widget child;
   final String message;
@@ -21,7 +23,7 @@ class Tooltip extends fl.StatelessWidget {
         message: message,
         textAlign: fl.TextAlign.center,
         decoration: fl.BoxDecoration(
-          color: const fl.Color(0xff111111),
+          color: context.colors.tooltipBackground,
           borderRadius: fl.BorderRadius.circular(2),
         ),
         child: child,

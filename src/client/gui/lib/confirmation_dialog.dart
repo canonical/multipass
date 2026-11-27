@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'colors.dart';
+
 class ConfirmationDialog extends StatelessWidget {
   final String title;
   final Widget body;
@@ -58,7 +60,10 @@ class ConfirmationDialog extends StatelessWidget {
         OutlinedButton(onPressed: onInaction, child: Text(inactionText)),
         TextButton(
           onPressed: onAction,
-          style: TextButton.styleFrom(backgroundColor: const Color(0xffC7162B)),
+          style: TextButton.styleFrom(
+            backgroundColor: context.colors.negative,
+            foregroundColor: context.colors.onNegative,
+          ),
           child: Text(actionText),
         ),
       ],

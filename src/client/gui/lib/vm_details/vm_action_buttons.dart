@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../colors.dart';
 import '../delete_instance_dialog.dart';
 import '../l10n/app_localizations.dart';
 import '../notifications.dart';
@@ -74,7 +75,7 @@ class VmActionButtons extends ConsumerWidget {
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xff333333)),
+          border: Border.all(color: context.colors.buttonBorder),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -111,7 +112,7 @@ class ActionTile extends ConsumerWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       title: Text(
         action.label(AppLocalizations.of(context)!),
-        style: enabled ? const TextStyle(color: Colors.black) : null,
+        style: enabled ? TextStyle(color: context.colors.textPrimary) : null,
       ),
       onTap: () {
         Navigator.pop(context);

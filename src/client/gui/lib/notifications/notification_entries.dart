@@ -140,21 +140,36 @@ class _TimeoutNotificationState extends State<TimeoutNotification>
   }
 }
 
-class ErrorNotification extends SimpleNotification {
-  ErrorNotification({super.key, required String text})
-    : super(
-        child: Text(text),
-        barColor: Colors.red,
-        icon: const Icon(Icons.cancel_outlined, color: Colors.red),
-      );
+class ErrorNotification extends StatelessWidget {
+  final Widget child;
+
+  ErrorNotification({super.key, required String text}) : child = Text(text);
+
+  @override
+  Widget build(BuildContext context) {
+    final color = context.colors.error;
+    return SimpleNotification(
+      barColor: color,
+      icon: Icon(Icons.cancel_outlined, color: color),
+      child: child,
+    );
+  }
 }
 
-class WarningNotification extends SimpleNotification {
-  const WarningNotification({super.key, required super.child})
-    : super(
-        barColor: warningAmber,
-        icon: const Icon(Icons.warning_rounded, color: warningAmber),
-      );
+class WarningNotification extends StatelessWidget {
+  final Widget child;
+
+  const WarningNotification({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = context.colors.warning;
+    return SimpleNotification(
+      barColor: color,
+      icon: Icon(Icons.warning_rounded, color: color),
+      child: child,
+    );
+  }
 }
 
 class DeprecationNotification extends WarningNotification {
@@ -182,12 +197,20 @@ class DeprecationNotification extends WarningNotification {
        );
 }
 
-class SuccessNotification extends TimeoutNotification {
-  const SuccessNotification({super.key, required super.child})
-    : super(
-        barColor: Colors.green,
-        icon: const Icon(Icons.check_circle_outline, color: Colors.green),
-      );
+class SuccessNotification extends StatelessWidget {
+  final Widget child;
+
+  const SuccessNotification({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = context.colors.success;
+    return TimeoutNotification(
+      barColor: color,
+      icon: Icon(Icons.check_circle_outline, color: color),
+      child: child,
+    );
+  }
 }
 
 class OperationNotification extends StatelessWidget {
@@ -212,11 +235,12 @@ class OperationNotification extends StatelessWidget {
         final data = snapshot.data;
         if (data != null) return SuccessNotification(child: Text(data));
 
+        final color = context.colors.info;
         return SimpleNotification(
-          barColor: Colors.blue,
+          barColor: color,
           closeable: false,
-          icon: const CircularProgressIndicator(
-            color: Colors.blue,
+          icon: CircularProgressIndicator(
+            color: color,
             strokeAlign: -2,
             strokeWidth: 3.5,
           ),
@@ -242,6 +266,7 @@ class LaunchingNotification extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.colors;
     return StreamBuilder(
       stream: stream,
       builder: (_, snapshot) {
@@ -261,6 +286,7 @@ class LaunchingNotification extends ConsumerWidget {
                     l10n.launchSuccessTitle(name).span.bold,
                     l10n.launchSuccessBody.span,
                   ].spans,
+                  style: TextStyle(color: colors.textPrimary),
                 ),
                 Divider(),
                 Row(
@@ -301,10 +327,10 @@ class LaunchingNotification extends ConsumerWidget {
         final (message, cancelable) = data ?? ('', false);
 
         final notification = SimpleNotification(
-          barColor: Colors.blue,
+          barColor: colors.info,
           closeable: false,
-          icon: const CircularProgressIndicator(
-            color: Colors.blue,
+          icon: CircularProgressIndicator(
+            color: colors.info,
             strokeAlign: -2,
             strokeWidth: 3.5,
           ),
@@ -313,6 +339,7 @@ class LaunchingNotification extends ConsumerWidget {
             children: [
               Text.rich(
                 [l10n.launchInProgress(name).span.bold, message.span].spans,
+                style: TextStyle(color: colors.textPrimary),
               ),
               if (cancelable) ...[
                 const Divider(),

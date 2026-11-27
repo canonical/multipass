@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide ImageInfo;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../colors.dart';
 import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import 'catalogue.dart';
@@ -72,15 +73,14 @@ class ImageCard extends ConsumerWidget {
       });
     }
 
+    final colors = context.colors;
     return Container(
       width: width,
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xff707070)),
-      ),
+      decoration: BoxDecoration(border: Border.all(color: colors.cardBorder)),
       padding: const EdgeInsets.all(16),
       child: DefaultTextStyle(
-        style: const TextStyle(
-          color: Colors.black,
+        style: TextStyle(
+          color: colors.textPrimary,
           fontFamily: 'Ubuntu',
           fontSize: 16,
         ),
@@ -116,9 +116,9 @@ class ImageCard extends ConsumerWidget {
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: const Color(0xfff5f5f5),
+                color: colors.cardDropdownFill,
                 border: Border(
-                  bottom: BorderSide(color: Colors.black, width: 1),
+                  bottom: BorderSide(color: colors.inputBorder, width: 1),
                 ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 8),

@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
+import 'colors.dart';
+
 class Switch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool>? onChanged;
@@ -20,12 +22,13 @@ class Switch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final switchBox = SizedBox(
       height: size,
       child: FittedBox(
         child: CupertinoSwitch(
-          activeTrackColor: CupertinoColors.activeBlue,
-          inactiveTrackColor: const Color(0xffd9d9d9),
+          activeTrackColor: colors.switchActiveTrack,
+          inactiveTrackColor: colors.switchInactiveTrack,
           value: value,
           onChanged: enabled ? onChanged : null,
         ),

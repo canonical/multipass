@@ -1,6 +1,7 @@
 import 'package:basics/basics.dart';
 import 'package:flutter/material.dart';
 
+import 'colors.dart';
 import 'grpc_client.dart';
 import 'l10n/app_localizations.dart';
 
@@ -52,17 +53,22 @@ class VmActionButton extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final enabled = action.allowedStatuses.containsAny(currentStatuses);
     final onPressed = enabled ? function : null;
-    return _buildButton(onPressed, l10n);
+    return _buildButton(onPressed, l10n, context.colors.buttonBorder);
   }
 
-  Widget _buildButton(VoidCallback? onPressed, AppLocalizations l10n) {
+  Widget _buildButton(
+    VoidCallback? onPressed,
+    AppLocalizations l10n,
+    Color borderColor,
+  ) {
     return OutlinedButton(
       onPressed: onPressed,
       style: ButtonStyle(
         side: WidgetStateBorderSide.resolveWith(
           (states) => BorderSide(
-            color: const Color(0xff333333)
-                .withAlpha(states.contains(WidgetState.disabled) ? 128 : 255),
+            color: borderColor.withAlpha(
+              states.contains(WidgetState.disabled) ? 128 : 255,
+            ),
           ),
         ),
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'colors.dart';
 import 'l10n/app_localizations.dart';
 import 'sidebar.dart';
 
@@ -30,7 +31,6 @@ extension TextSpanFromStringExt on String {
   TextSpan get span => TextSpan(
     text: this,
     style: const TextStyle(
-      color: Colors.black,
       fontFamily: 'Ubuntu',
       fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
     ),
@@ -38,10 +38,7 @@ extension TextSpanFromStringExt on String {
 }
 
 extension TextSpanFromListExt on List<TextSpan> {
-  TextSpan get spans => TextSpan(
-    children: this,
-    style: const TextStyle(color: Colors.black),
-  );
+  TextSpan get spans => TextSpan(children: this);
 }
 
 extension TextSpanExt on TextSpan {
@@ -79,13 +76,14 @@ extension TextSpanExt on TextSpan {
 
   TextSpan link(WidgetRef ref, VoidCallback callback) {
     final hovered = ref.watch(_hoveredLinkProvider) == this;
+    final linkColor = ref.context.colors.link;
     return TextSpan(
       text: text,
       children: children,
       style: (style ?? noStyle).copyWith(
-        color: hovered ? Colors.blue : null,
+        color: hovered ? linkColor : null,
         decoration: hovered ? TextDecoration.underline : null,
-        decorationColor: Colors.blue,
+        decorationColor: linkColor,
       ),
       recognizer: TapGestureRecognizer()..onTap = callback,
       onEnter: (_) => ref.read(_hoveredLinkProvider.notifier).set(this),

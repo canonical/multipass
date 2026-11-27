@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:re_highlight/languages/yaml.dart';
-import 'package:re_highlight/styles/atom-one-light.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
+import 'package:multipass_gui/colors.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/notifications.dart';
 import 'package:multipass_gui/platform/platform.dart';
@@ -157,7 +157,7 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
       fontSize: 16,
       codeTheme: CodeHighlightTheme(
         languages: {'yaml': CodeHighlightThemeMode(mode: langYaml)},
-        theme: atomOneLightTheme,
+        theme: context.colors.codeHighlight,
       ),
     ),
     shortcutsActivatorsBuilder: const CloudInitShortcutsActivatorsBuilder(),

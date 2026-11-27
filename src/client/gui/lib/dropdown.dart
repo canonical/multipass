@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'colors.dart';
+
 class Dropdown<T> extends StatelessWidget {
   final String? label;
   final T? value;
@@ -26,7 +28,7 @@ class Dropdown<T> extends StatelessWidget {
       icon: const Icon(Icons.keyboard_arrow_down),
       isDense: true,
       isExpanded: true,
-      focusColor: Colors.white,
+      focusColor: context.colors.surface,
       underline: const SizedBox.shrink(),
       value: items.containsKey(value) ? value : null,
       onChanged: enabled ? onChanged : null,

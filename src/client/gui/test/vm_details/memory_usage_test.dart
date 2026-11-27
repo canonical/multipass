@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:multipass_gui/colors.dart';
 import 'package:multipass_gui/vm_details/memory_usage.dart';
 
 void main() {
@@ -13,11 +14,11 @@ void main() {
 
   group('MemoryUsage color logic', () {
     for (final (used, colorName, color) in [
-      ('500', 'normalColor', MemoryUsage.normalColor),
-      ('799', 'normalColor', MemoryUsage.normalColor),
-      ('800', 'almostFullColor', MemoryUsage.almostFullColor),
-      ('1000', 'almostFullColor', MemoryUsage.almostFullColor),
-      ('2000', 'almostFullColor', MemoryUsage.almostFullColor),
+      ('500', 'usageNormal', AppColors.light.usageNormal),
+      ('799', 'usageNormal', AppColors.light.usageNormal),
+      ('800', 'usageHigh', AppColors.light.usageHigh),
+      ('1000', 'usageHigh', AppColors.light.usageHigh),
+      ('2000', 'usageHigh', AppColors.light.usageHigh),
     ]) {
       testWidgets('uses $colorName when $used of 1000 is used', (tester) async {
         await tester.pumpWidget(buildWidget(used, '1000'));
@@ -50,7 +51,7 @@ void main() {
       });
     }
 
-    testWidgets('uses backgroundColor on LinearProgressIndicator', (
+    testWidgets('uses usageTrack as the LinearProgressIndicator background', (
       tester,
     ) async {
       await tester.pumpWidget(buildWidget('512', '1024'));
@@ -59,7 +60,7 @@ void main() {
       final indicator = tester.widget<LinearProgressIndicator>(
         find.byType(LinearProgressIndicator),
       );
-      expect(indicator.backgroundColor, MemoryUsage.backgroundColor);
+      expect(indicator.backgroundColor, AppColors.light.usageTrack);
     });
   });
 

@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../colors.dart';
 import '../providers.dart';
 
 class CpuSparkline extends ConsumerWidget {
@@ -15,11 +16,12 @@ class CpuSparkline extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final values = ref.watch(cpuUsagesProvider(name));
+    final colors = context.colors;
 
     final sparkline = LineChartBarData(
       barWidth: 1,
-      belowBarData: BarAreaData(show: true, color: const Color(0xff717171)),
-      color: const Color(0xff666666),
+      belowBarData: BarAreaData(show: true, color: colors.sparklineFill),
+      color: colors.sparklineLine,
       dotData: const FlDotData(show: false),
       preventCurveOverShooting: true,
       spots: values.indexed.map((e) {

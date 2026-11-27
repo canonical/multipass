@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../catalogue/catalogue.dart';
+import '../colors.dart';
 import '../extensions.dart';
 import '../l10n/app_localizations.dart';
 import '../sidebar.dart';
@@ -13,11 +14,12 @@ class NoVms extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.colors;
 
     final multipassLogo = SvgPicture.asset(
       'assets/multipass.svg',
       width: 40,
-      colorFilter: const ColorFilter.mode(Color(0xffD9D9D9), BlendMode.srcIn),
+      colorFilter: ColorFilter.mode(colors.emptyStateIcon, BlendMode.srcIn),
     );
 
     goToCatalogue() {
@@ -39,10 +41,11 @@ class NoVms extends ConsumerWidget {
               [
                 l10n.noVmsMessageBefore.span,
                 l10n.catalogueLabel.span
-                    .color(Colors.blue)
+                    .color(colors.link)
                     .link(ref, goToCatalogue),
                 l10n.noVmsMessageAfter.span,
               ].spans.size(16),
+              style: TextStyle(color: colors.textPrimary),
             ),
           ],
         ),

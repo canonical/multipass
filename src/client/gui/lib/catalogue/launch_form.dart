@@ -5,6 +5,7 @@ import 'package:flutter/material.dart' hide Switch, ImageInfo, Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../colors.dart';
 import '../ffi.dart';
 import '../l10n/app_localizations.dart';
 import '../notifications.dart';
@@ -386,7 +387,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
                               child: Text(
                                 l10n.launchFormEnableZoneLabel,
                                 style: TextStyle(
-                                  color: Colors.blue[700],
+                                  color: context.colors.linkSecondary,
                                   decoration: TextDecoration.underline,
                                   fontSize: 14,
                                   height: 1.5,
@@ -423,7 +424,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
                               child: Text(
                                 l10n.launchFormEnableAllZonesLabel,
                                 style: TextStyle(
-                                  color: Colors.blue[700],
+                                  color: context.colors.linkSecondary,
                                   decoration: TextDecoration.underline,
                                   fontSize: 14,
                                   height: 1.5,
@@ -524,7 +525,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
           bottom: 80,
           child: Container(
             alignment: Alignment.topCenter,
-            color: Colors.white,
+            color: context.colors.surface,
             child: Form(
               key: formKey,
               autovalidateMode: AutovalidateMode.always,
@@ -542,7 +543,7 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         Align(
           alignment: Alignment.bottomCenter,
           child: Container(
-            color: Colors.white,
+            color: context.colors.surface,
             padding: const EdgeInsets.all(16).copyWith(top: 4),
             child: Column(
               mainAxisSize: MainAxisSize.min,
