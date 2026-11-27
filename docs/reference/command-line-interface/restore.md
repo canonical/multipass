@@ -44,9 +44,11 @@ You can use the `--destructive` (or `-d`) option to skip the question and discar
 
 The full `multipass help restore` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass restore [options] <instance>.<snapshot>
-Restore an instance to the state of a previously taken snapshot.
+Restore a stopped instance to the state of a previously taken snapshot.
 
 Options:
   -h, --help         Displays help on commandline options
@@ -60,3 +62,5 @@ Arguments:
                      <instance>.<snapshot> format, where <instance> is the name
                      of an instance, and <snapshot> is the name of a snapshot
 ```
+
+<!-- end help -->

@@ -34,13 +34,15 @@ You can read more about the available settings in the [Settings](/reference/sett
 
 The full `multipass help get` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass get [options] [<arg>]
 Get the configuration setting corresponding to the given key, or all settings if no key is specified.
 (Support for multiple keys and wildcards coming...)
 
 Some common settings keys are:
-  - client.gui.autostart
+  - client.primary-name
   - local.driver
   - local.privileged-mounts
 
@@ -60,3 +62,5 @@ Options:
 Arguments:
   arg            Setting key, i.e. path to the intended setting.
 ```
+
+<!-- end help -->

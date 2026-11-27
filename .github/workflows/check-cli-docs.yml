@@ -1,0 +1,74 @@
+name: CLI reference docs
+
+on:
+  workflow_call:
+    inputs:
+      snap-channel:
+        type: string
+        description: "Snap channel to install Multipass from"
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  SNAP_CHANNEL: ${{ inputs['snap-channel'] }}
+
+jobs:
+  check-cli-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out cli-docs
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          submodules: false
+          sparse-checkout: |
+            tools
+            docs/reference/command-line-interface
+
+      # Install specific python
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.15'
+
+      - name: Install package (Snap)
+        if: runner.os == 'Linux'
+        run: sudo snap install multipass --channel="$SNAP_CHANNEL"
+
+      - name: Check CLI reference docs are up to date
+        id: check-docs
+        timeout-minutes: 2
+        run: |
+          python3 tools/sync-cli-docs.py --check --multipass /snap/bin/multipass
+
+      - name: Generate CLI docs patch
+        id: docs-patch
+        if: ${{ failure() && steps.check-docs.outcome == 'failure' }}
+        timeout-minutes: 2
+        run: |
+          python3 tools/sync-cli-docs.py --multipass /snap/bin/multipass
+          git diff --binary -- docs/reference/command-line-interface/ > "$RUNNER_TEMP/cli-docs.patch"
+          if [ -s "$RUNNER_TEMP/cli-docs.patch" ]; then
+            echo "created=true" >> "$GITHUB_OUTPUT"
+            cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ### CLI reference docs are out of date
+
+          Download and extract the `cli-docs-patch` artifact, then run from the repository root:
+
+          ```bash
+          git apply --check /path/to/cli-docs.patch
+          git apply /path/to/cli-docs.patch
+          ```
+          EOF
+          fi
+
+      - name: Upload CLI docs patch
+        if: ${{ failure() && steps.docs-patch.outcome == 'success' && steps.docs-patch.outputs.created == 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: cli-docs-patch
+          path: ${{ runner.temp }}/cli-docs.patch
+          if-no-files-found: error

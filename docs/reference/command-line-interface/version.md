@@ -32,6 +32,8 @@ The `json`, `csv` and `yaml` formats cover regular output only. Errors and log m
 
 The full `multipass help version` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass version [options]
 Display version information about the multipass command
@@ -49,3 +51,5 @@ Options:
                      stream as plain text, with failures signaled by a non-zero
                      exit status.
 ```
+
+<!-- end help -->

@@ -113,6 +113,8 @@ The `json`, `csv` and `yaml` formats cover regular output only. Errors and log m
 
 The full `multipass help images` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass images [options] [<remote>:][<filter>]
 Lists available images matching <filter> for creating instances from.
@@ -141,3 +143,5 @@ Arguments:
                       <filter> can be a codename, an alias, a major version, or
                       an alias prefix.
 ```
+
+<!-- end help -->

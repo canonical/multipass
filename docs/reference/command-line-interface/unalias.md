@@ -31,6 +31,8 @@ multipass unalias --all
 
 The full `multipass help unalias` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass unalias [options] <name> [<name> ...]
 Remove aliases
@@ -45,3 +47,5 @@ Options:
 Arguments:
   name           Names of aliases to remove
 ```
+
+<!-- end help -->

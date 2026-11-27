@@ -45,6 +45,8 @@ calm-squirrel:
 ---
 The full `multipass help list` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass list [options]
 List all instances which have been created.
@@ -61,3 +63,5 @@ Options:
                      stream as plain text, with failures signaled by a non-zero
                      exit status.
 ```
+
+<!-- end help -->

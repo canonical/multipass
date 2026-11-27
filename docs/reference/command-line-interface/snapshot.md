@@ -39,11 +39,12 @@ If you don't specify a name, the snapshot will be named "snapshotN", where N is 
 
 The full `multipass help snapshot` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass snapshot [options] instance
 Take a snapshot of an instance that can later be restored to recover the current state.
-Info: if the instance is running, you will be prompted to stop it before taking the
-snapshot, unless the '--restart' option is given.
+Info: if the instance is running, you will be prompted to stop it before taking the snapshot, unless the '--restart' option is given.
 
 Options:
   -h, --help                   Displays help on commandline options
@@ -66,3 +67,5 @@ Options:
 Arguments:
   instance                     The instance to take a snapshot of.
 ```
+
+<!-- end help -->

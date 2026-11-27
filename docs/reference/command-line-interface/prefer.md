@@ -17,6 +17,8 @@ To use a definition from an inactive context, recreate it in `default` with [`al
 
 The full `multipass help prefer` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass prefer [options] <name>
 Switch the current alias context. If it does not exist, create it before switching.
@@ -30,3 +32,5 @@ Options:
 Arguments:
   name           Name of the context to switch to
 ```
+
+<!-- end help -->

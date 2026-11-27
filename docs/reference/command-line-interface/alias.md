@@ -19,6 +19,8 @@ By default, if the host folder where the alias is being executed is mounted on t
 
 The full `multipass help alias` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass alias [options] <definition> [<name>]
 Create an alias to be executed on a given instance.
@@ -38,3 +40,5 @@ Arguments:
   name                            Name given to the alias being defined,
                                   defaults to <command>
 ```
+
+<!-- end help -->

@@ -11,6 +11,8 @@ You can also unmount only a specific mount if you specify the desired path.
 
 The full `multipass help unmount` output explains the available options:
 
+<!-- begin help -->
+
 ```{code-block} text
 Usage: multipass unmount [options] <mount> [<mount> ...]
 Unmount a directory from an instance.
@@ -26,3 +28,5 @@ Arguments:
                  instance names, and optional <path> are mount points. If
                  omitted, all mounts will be removed from the named instances.
 ```
+
+<!-- end help -->
