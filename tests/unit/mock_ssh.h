@@ -36,6 +36,7 @@ DECL_MOCK(ssh_channel_free);
 DECL_MOCK(ssh_channel_open_session);
 DECL_MOCK(ssh_channel_request_exec);
 DECL_MOCK(ssh_channel_read_timeout);
+DECL_MOCK(ssh_channel_read_nonblocking);
 DECL_MOCK(ssh_channel_poll_timeout);
 DECL_MOCK(ssh_send_keepalive);
 DECL_MOCK(ssh_channel_get_exit_state);
