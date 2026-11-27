@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'copyable_text.dart';
+import 'settings/setting_widgets.dart';
 
 class DisplayField extends StatelessWidget {
   final String? label;
@@ -12,7 +13,7 @@ class DisplayField extends StatelessWidget {
   const DisplayField({
     super.key,
     this.label,
-    this.labelStyle = const TextStyle(fontSize: 16),
+    this.labelStyle = settingLabelStyle,
     this.text,
     this.width = 360,
     this.copyable = false,

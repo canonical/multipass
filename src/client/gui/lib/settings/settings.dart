@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import 'general_settings.dart';
+import 'privacy_settings.dart';
 import 'usage_settings.dart';
 import 'virtualization_settings.dart';
 import 'about_section.dart';
+
+const insightsFeatureEnabled =
+    bool.fromEnvironment('MULTIPASS_ENABLE_INSIGHTS');
 
 class SettingsScreen extends StatelessWidget {
   static const sidebarKey = 'settings';
@@ -26,6 +30,10 @@ class SettingsScreen extends StatelessWidget {
           Divider(height: 60),
           VirtualizationSettings(),
           Divider(height: 60),
+          if (insightsFeatureEnabled) ...[
+            PrivacySettings(),
+            Divider(height: 60),
+          ],
           AboutSection(),
         ],
       ),

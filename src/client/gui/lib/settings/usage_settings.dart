@@ -10,6 +10,7 @@ import 'package:fpdart/fpdart.dart' hide State;
 import '../notifications/notifications_provider.dart';
 import '../providers.dart';
 import '../l10n/app_localizations.dart';
+import 'setting_widgets.dart';
 import '../switch.dart';
 import 'constants.dart';
 import 'hotkey.dart';
@@ -54,10 +55,7 @@ class UsageSettings extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.usageTitle,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+        SettingsSectionTitle(l10n.usageTitle),
         const SizedBox(height: 20),
         PrimaryNameField(
           value: primaryName,
@@ -341,7 +339,7 @@ class SettingField extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 16))),
+        Expanded(child: Text(label, style: settingLabelStyle)),
         const SizedBox(width: 12),
         if (changed) ...[
           OutlinedButton(

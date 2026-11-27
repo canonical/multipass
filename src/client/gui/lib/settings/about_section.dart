@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../display_field.dart';
 import '../ffi.dart';
 import '../l10n/app_localizations.dart';
+import 'setting_widgets.dart';
 import '../providers.dart';
 import 'constants.dart';
 
@@ -17,10 +18,7 @@ class AboutSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.aboutTitle,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+        SettingsSectionTitle(l10n.aboutTitle),
         const SizedBox(height: 20),
         DisplayField(
           label: l10n.aboutVersionLabel,

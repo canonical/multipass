@@ -103,10 +103,6 @@ Here you can change various Multipass settings, although not all settings that a
    :alt: GUI client - Settings tab
 ```
 
-<!-- Original image on the Asset Manager
-![Settings page](https://assets.ubuntu.com/v1/4ad40d35-multipass-gui-settings-tab.png)
--->
-
 (gui-client-tray-icon)=
 ## Tray icon
 

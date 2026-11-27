@@ -100,15 +100,13 @@ void main() {
     });
   });
 
-  group('GeneralSettings: on-close dropdown', () {
+  group('GeneralSettings: on-close setting', () {
     testWidgets('selecting an option saves it', (tester) async {
       final onAppCloseSets = <String>[];
       await tester.pumpWidget(_buildApp(onAppCloseSets: onAppCloseSets));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(_l10n.generalOnCloseAsk));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(_l10n.generalOnCloseStop).last);
+      await tester.tap(find.text(_l10n.generalOnCloseStop));
       await tester.pumpAndSettle();
 
       expect(onAppCloseSets, ['stop']);

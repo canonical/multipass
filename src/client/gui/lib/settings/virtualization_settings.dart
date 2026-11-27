@@ -4,6 +4,7 @@ import 'package:rxdart/rxdart.dart';
 
 import '../dropdown.dart';
 import '../l10n/app_localizations.dart';
+import 'setting_widgets.dart';
 import '../notifications/driver_migration_notification.dart';
 import '../notifications/notifications_provider.dart';
 import '../platform/platform.dart';
@@ -71,10 +72,7 @@ class VirtualizationSettings extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.virtualizationTitle,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+        SettingsSectionTitle(l10n.virtualizationTitle),
         const SizedBox(height: 20),
         Dropdown(
           label: l10n.virtualizationDriverLabel,
@@ -94,8 +92,8 @@ class VirtualizationSettings extends ConsumerWidget {
                 ref.notifyError((e) => l10n.virtualizationDriverError('$e')));
           },
         ),
-        const SizedBox(height: 20),
-        if (networks.isNotEmpty)
+        if (networks.isNotEmpty) ...[
+          const SizedBox(height: 20),
           Dropdown<String>(
             label: l10n.bridgeTitle,
             width: settingFieldWidth,
@@ -110,6 +108,7 @@ class VirtualizationSettings extends ConsumerWidget {
                   );
             },
           ),
+        ],
       ],
     );
   }

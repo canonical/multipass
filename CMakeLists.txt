@@ -174,6 +174,9 @@ if(MULTIPASS_ENABLE_FLUTTER_GUI)
   endif()
   set(FLUTTER_EXECUTABLE ${CMAKE_SOURCE_DIR}/3rd-party/flutter/bin/flutter${FLUTTER_TOOLS_EXTENSION})
   set(DART_EXECUTABLE ${CMAKE_SOURCE_DIR}/3rd-party/flutter/bin/dart${FLUTTER_TOOLS_EXTENSION})
+  if(MULTIPASS_ENABLE_INSIGHTS)
+    set(FLUTTER_DART_DEFINES --dart-define=MULTIPASS_ENABLE_INSIGHTS=true)
+  endif()
   if(MSVC)
     set(FLUTTER_CONFIG_ARGS --no-enable-linux-desktop --no-enable-macos-desktop --enable-windows-desktop)
   elseif(APPLE)
@@ -373,7 +376,7 @@ if(CMAKE_BUILD_TYPE_LOWER  MATCHES "coverage")
     if(MULTIPASS_ENABLE_FLUTTER_GUI)
       set(FLUTTER_COVERAGE_COMMANDS
         COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}/src/client/gui
-                ${FLUTTER_EXECUTABLE} test --coverage
+                ${FLUTTER_EXECUTABLE} test ${FLUTTER_DART_DEFINES} --coverage
         # Flutter emits package-relative paths (SF:lib/...), so the exclude
         # patterns must not require a leading path segment before 'lib/'.
         COMMAND ${LCOV}
@@ -445,7 +448,7 @@ if(MULTIPASS_ENABLE_TESTS)
   if(MULTIPASS_ENABLE_FLUTTER_GUI)
     add_test(
       NAME multipass_gui_tests
-      COMMAND ${FLUTTER_EXECUTABLE} test
+      COMMAND ${FLUTTER_EXECUTABLE} test ${FLUTTER_DART_DEFINES}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/client/gui
     )
   endif()

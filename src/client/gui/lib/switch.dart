@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
+import 'settings/setting_widgets.dart';
+
 class Switch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool>? onChanged;
@@ -32,7 +34,7 @@ class Switch extends StatelessWidget {
       ),
     );
 
-    final labelText = Text(label, style: const TextStyle(fontSize: 16));
+    final labelText = Text(label, style: settingLabelStyle);
 
     return trailingSwitch
         ? Row(

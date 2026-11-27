@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'settings/setting_widgets.dart';
+
 class Dropdown<T> extends StatelessWidget {
   final String? label;
   final T? value;
@@ -59,7 +61,7 @@ class Dropdown<T> extends StatelessWidget {
     return Row(
       children: [
         if (label != null) ...[
-          Expanded(child: Text(label!, style: const TextStyle(fontSize: 16))),
+          Expanded(child: Text(label!, style: settingLabelStyle)),
         ],
         styledDropdown,
       ],
