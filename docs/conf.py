@@ -45,8 +45,7 @@ ogp_site_name = project
 ogp_image = "https://assets.ubuntu.com/v1/253da317-image-document-ubuntudocs.svg"
 
 # Product favicon; shown in bookmarks, browser tabs, etc.
-# TODO: To customise the favicon, uncomment and update the next line.
-# html_favicon = "_static/favicon.png"
+html_favicon = "_static/favicon.png"
 
 # The theme for the HTML output
 html_theme = "ulwazi"
