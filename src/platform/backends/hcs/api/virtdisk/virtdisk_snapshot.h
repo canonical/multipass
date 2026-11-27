@@ -40,10 +40,10 @@ public:
                      std::shared_ptr<Snapshot> parent,
                      const VMSpecs& specs,
                      const VirtualMachine& vm,
-                     VirtualMachineDescription& desc);
+                     const VirtualMachineDescription& desc);
     VirtDiskSnapshot(const std::filesystem::path& filename,
                      VirtualMachine& vm,
-                     VirtualMachineDescription& desc);
+                     const VirtualMachineDescription& desc);
 
 protected:
     void capture_impl() override;

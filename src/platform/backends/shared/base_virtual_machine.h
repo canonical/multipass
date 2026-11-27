@@ -205,8 +205,7 @@ private:
     void restore_rollback_helper(const Path& head_path,
                                  const std::shared_ptr<Snapshot>& old_head,
                                  const VMSpecs& old_specs,
-                                 VMSpecs& specs,
-                                 const VirtualMachineDescription& old_desc);
+                                 VMSpecs& specs);
 
     bool updated_deleted_head(std::shared_ptr<Snapshot>& snapshot, const Path& head_path);
     auto make_deleted_head_rollback(const Path& head_path, const bool& wrote_head);

@@ -43,11 +43,10 @@ public:
                  const std::string& cloud_init_instance_id,
                  std::shared_ptr<Snapshot> parent,
                  const VMSpecs& specs,
-                 const VirtualMachine& vm,
-                 VirtualMachineDescription& vm_desc);
+                 const VirtualMachine& vm);
     BaseSnapshot(const std::filesystem::path& filename,
                  VirtualMachine& vm,
-                 VirtualMachineDescription& vm_desc);
+                 const VirtualMachineDescription& vm_desc);
 
     int get_index() const noexcept override;
     std::string get_name() const override;
@@ -88,12 +87,8 @@ private:
     BaseSnapshot(SnapshotDescription desc,
                  std::shared_ptr<Snapshot> parent,
                  const VirtualMachine& vm,
-                 VirtualMachineDescription& vm_desc,
                  bool captured);
-    BaseSnapshot(SnapshotDescription desc,
-                 VirtualMachine& vm,
-                 VirtualMachineDescription& vm_desc,
-                 bool captured);
+    BaseSnapshot(SnapshotDescription desc, VirtualMachine& vm, bool captured);
 
     auto erase_helper();
     std::string derive_snapshot_filename() const;
@@ -107,7 +102,6 @@ private:
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::string id;
     const std::filesystem::path storage_dir;
-    VirtualMachineDescription& vm_desc;
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     bool captured;

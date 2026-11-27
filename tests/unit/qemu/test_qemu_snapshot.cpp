@@ -329,21 +329,10 @@ TEST_F(TestQemuSnapshot, appliesSnapshot)
                                 QString::fromStdString(desc.image.image_path)));
     });
 
-    desc.num_cores = 8598;
-    desc.mem_size = mp::MemorySize{"49"};
-    desc.disk_space = mp::MemorySize{"328"};
-    desc.extra_interfaces = std::vector<mp::NetworkInterface>{
-        {.id = "eth16", .mac_address = "16:16:16:16:16:16", .auto_mode = true}};
-
     snapshot.apply();
-
-    EXPECT_EQ(desc.num_cores, snapshot.get_num_cores());
-    EXPECT_EQ(desc.mem_size, snapshot.get_mem_size());
-    EXPECT_EQ(desc.disk_space, snapshot.get_disk_space());
-    EXPECT_EQ(desc.extra_interfaces, snapshot.get_extra_interfaces());
 }
 
-TEST_F(TestQemuSnapshot, keepsDescOnFailure)
+TEST_F(TestQemuSnapshot, propagatesApplyFailure)
 {
     auto snapshot = loaded_snapshot();
     auto proc_count = 0;
@@ -354,21 +343,9 @@ TEST_F(TestQemuSnapshot, keepsDescOnFailure)
         EXPECT_CALL(*process, execute).WillOnce(Return(failure));
     });
 
-    desc.num_cores = 123;
-    desc.mem_size = mp::MemorySize{"321"};
-    desc.disk_space = mp::MemorySize{"56K"};
-    desc.extra_interfaces = std::vector<mp::NetworkInterface>{
-        {.id = "eth17", .mac_address = "17:17:17:17:17:17", .auto_mode = true}};
-
-    const auto orig_desc = desc;
     MP_EXPECT_THROW_THAT(snapshot.apply(),
                          std::runtime_error,
                          mpt::match_what(HasSubstr("qemu-img failed")));
-
-    EXPECT_EQ(orig_desc.num_cores, desc.num_cores);
-    EXPECT_EQ(orig_desc.mem_size, desc.mem_size);
-    EXPECT_EQ(orig_desc.disk_space, desc.disk_space);
-    EXPECT_EQ(orig_desc.extra_interfaces, desc.extra_interfaces);
 }
 
 } // namespace

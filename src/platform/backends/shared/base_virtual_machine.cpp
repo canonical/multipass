@@ -954,32 +954,25 @@ std::string mp::BaseVirtualMachine::generate_snapshot_name() const
 
 auto mp::BaseVirtualMachine::make_restore_rollback(const Path& head_path, VMSpecs& specs)
 {
-    return sg::make_scope_guard([this,
-                                 &head_path,
-                                 old_head = head_snapshot,
-                                 old_specs = specs,
-                                 &specs,
-                                 old_desc = desc]() noexcept {
-        top_catch_all(vm_name,
-                      &BaseVirtualMachine::restore_rollback_helper,
-                      this,
-                      head_path,
-                      old_head,
-                      old_specs,
-                      specs,
-                      old_desc);
-    });
+    return sg::make_scope_guard(
+        [this, &head_path, old_head = head_snapshot, old_specs = specs, &specs]() noexcept {
+            top_catch_all(vm_name,
+                          &BaseVirtualMachine::restore_rollback_helper,
+                          this,
+                          head_path,
+                          old_head,
+                          old_specs,
+                          specs);
+        });
 }
 
 void mp::BaseVirtualMachine::restore_rollback_helper(const Path& head_path,
                                                      const std::shared_ptr<Snapshot>& old_head,
                                                      const VMSpecs& old_specs,
-                                                     VMSpecs& specs,
-                                                     const VirtualMachineDescription& old_desc)
+                                                     VMSpecs& specs)
 {
     // best effort only
     specs = old_specs;
-    desc = old_desc;
     if (old_head != head_snapshot)
     {
         head_snapshot = old_head;
@@ -1015,6 +1008,10 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
         persist_head_snapshot_index(head_path);
     }
 
+    // Copy snapshot data before backend apply so the description edit only moves it into place.
+    auto restored_extra_interfaces = specs.extra_interfaces;
+    auto restored_metadata = specs.metadata;
+
     snapshot->apply();
 
     if (are_extra_interfaces_different)
@@ -1027,7 +1024,13 @@ void mp::BaseVirtualMachine::restore_snapshot(const std::string& name, VMSpecs& 
             snapshot->get_cloud_init_instance_id());
     }
 
+    // The backend restore has succeeded, so nothing after this point should roll back specs/head.
     rollback.dismiss();
+    desc.num_cores = specs.num_cores;
+    desc.mem_size = specs.mem_size;
+    desc.disk_space = specs.disk_space;
+    desc.extra_interfaces = std::move(restored_extra_interfaces);
+    desc.metadata = std::move(restored_metadata);
 }
 
 std::shared_ptr<mp::Snapshot> mp::BaseVirtualMachine::make_specific_snapshot(

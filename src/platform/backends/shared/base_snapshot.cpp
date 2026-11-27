@@ -89,13 +89,11 @@ std::shared_ptr<mp::Snapshot> find_parent(const mp::SnapshotDescription& desc,
 mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc,
                                std::shared_ptr<Snapshot> parent,
                                const VirtualMachine& vm,
-                               VirtualMachineDescription& vm_desc,
                                bool captured)
     : desc{std::move(desc)},
       parent{std::move(parent)},
       id{fmt::format(snapshot_template, this->desc.index)},
       storage_dir{MP_PLATFORM.qstr_to_path(vm.instance_directory().path())},
-      vm_desc{vm_desc},
       captured{captured}
 {
     this->desc.parent_index = this->parent ? this->parent->get_index() : 0;
@@ -103,14 +101,10 @@ mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc,
         persist();
 }
 
-mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc,
-                               VirtualMachine& vm,
-                               VirtualMachineDescription& vm_desc,
-                               bool captured)
+mp::BaseSnapshot::BaseSnapshot(SnapshotDescription desc, VirtualMachine& vm, bool captured)
     : desc{std::move(desc)},
       id{fmt::format(snapshot_template, desc.index)},
       storage_dir{MP_PLATFORM.qstr_to_path(vm.instance_directory().path())},
-      vm_desc{vm_desc},
       captured{captured}
 {
     parent = find_parent(this->desc, vm);
@@ -124,8 +118,7 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                                const std::string& cloud_init_instance_id,
                                std::shared_ptr<Snapshot> parent,
                                const VMSpecs& specs,
-                               const VirtualMachine& vm,
-                               VirtualMachineDescription& vm_desc)
+                               const VirtualMachine& vm)
     : BaseSnapshot{{name,
                     comment,
                     parent ? parent->get_index() : 0,
@@ -141,15 +134,14 @@ mp::BaseSnapshot::BaseSnapshot(const std::string& name,
                     specs.metadata},
                    std::move(parent),
                    vm,
-                   vm_desc,
                    /*captured=*/false}
 {
 }
 
 mp::BaseSnapshot::BaseSnapshot(const std::filesystem::path& filename,
                                VirtualMachine& vm,
-                               VirtualMachineDescription& vm_desc)
-    : BaseSnapshot{read_snapshot_json(filename, vm, vm_desc), vm, vm_desc, /*captured=*/true}
+                               const VirtualMachineDescription& vm_desc)
+    : BaseSnapshot{read_snapshot_json(filename, vm, vm_desc), vm, /*captured=*/true}
 {
 }
 
@@ -202,18 +194,7 @@ void mp::BaseSnapshot::erase()
 void mp::BaseSnapshot::apply()
 {
     const std::unique_lock lock{mutex};
-    auto extra_interfaces = desc.extra_interfaces; // copy first, so nothing throws after apply_impl
-    auto metadata = desc.metadata;
     apply_impl();
-
-    vm_desc.num_cores = desc.num_cores;
-    vm_desc.mem_size = desc.mem_size;
-    vm_desc.disk_space = desc.disk_space;
-    vm_desc.extra_interfaces = std::move(extra_interfaces);
-    vm_desc.metadata = std::move(metadata);
-    // no need to persist here for the time being: only private fields of the base class are
-    // persisted for now, and those cannot be affected by apply_impl (except by setters, which
-    // already persist)
 }
 
 std::string mp::BaseSnapshot::derive_snapshot_filename() const

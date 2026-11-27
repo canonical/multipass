@@ -35,10 +35,10 @@ public:
                  std::shared_ptr<Snapshot> parent,
                  const VMSpecs& specs,
                  QemuVirtualMachine& vm,
-                 VirtualMachineDescription& desc);
+                 const VirtualMachineDescription& desc);
     QemuSnapshot(const std::filesystem::path& filename,
                  QemuVirtualMachine& vm,
-                 VirtualMachineDescription& desc);
+                 const VirtualMachineDescription& desc);
 
 protected:
     void capture_impl() override;
@@ -46,7 +46,7 @@ protected:
     void apply_impl() override;
 
 private:
-    const std::filesystem::path& image_path;
+    const std::filesystem::path image_path;
 };
 
 } // namespace multipass
