@@ -11,6 +11,11 @@ name: Version Upgrade Tests
 # Multipass (`stable`) to the snap *built by the branch* (`to-snap-channel`).
 # Both ends are plain snap channels, so the upgrade is a `snap refresh` that
 # keeps the common data dir in place.
+#
+# The suite is sharded across runners like the cli-tests: pytest-split divides
+# the seed phase, and each shard's verify phase checks only the scenarios its
+# seed run selected (recorded in the manifest), so a scenario's seed and verify
+# always share a runner.
 
 on:
   workflow_call:
@@ -48,14 +53,31 @@ env:
   BACKEND_DRIVER: ${{ inputs['backend-driver'] }}
   PYTEST_EXTRA_ARGS: ${{ inputs['pytest-extra-args'] }}
   MANIFEST: reports/upgrade-manifest.json
+  SPLITS: 4
+  # Also spelled out in the test-durations.yml calls, where `env` is unavailable.
+  DURATIONS_KEY: upgrade-durations-ubuntu-latest-snap-${{ inputs['backend-driver'] }}
 
 jobs:
+  PrepareDurations:
+    uses: ./.github/workflows/test-durations.yml
+    with:
+      mode: restore
+      durations-key: upgrade-durations-ubuntu-latest-snap-${{ inputs['backend-driver'] }}
+
   upgrade-tests:
-    name: Upgrade ${{ inputs['from-snap-channel'] }} -> ${{ inputs['to-snap-channel'] }} (Snap)
+    name: Upgrade ${{ inputs['from-snap-channel'] }} -> ${{ inputs['to-snap-channel'] }} (Snap) [${{ matrix.shard }}/4]
+    needs: PrepareDurations
     runs-on: ubuntu-latest
     concurrency:
-      group: upgrade-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+      group: upgrade-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ matrix.shard }}
       cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in sync with env.SPLITS (env is not available here).
+        shard: [1, 2, 3, 4]
+    env:
+      SHARD: ${{ matrix.shard }}
     steps:
       - name: Check out cli-tests
         uses: actions/checkout@v7
@@ -99,6 +121,11 @@ jobs:
           echo "Multipass daemon did not become ready in time" >&2
           exit 1
 
+      - name: Download shared timing baseline
+        uses: actions/download-artifact@v8
+        with:
+          name: baseline-${{ env.DURATIONS_KEY }}
+
       - name: Seed VMs (phase 1)
         id: seed
         shell: bash
@@ -110,14 +137,28 @@ jobs:
             --driver="${BACKEND_DRIVER}" \
             --print-all-output \
             --junitxml=reports/junit-seed.xml \
-            ${PYTEST_EXTRA_ARGS} || echo "seed-exit=$?" >> "$GITHUB_OUTPUT"
+            --splits="${SPLITS}" \
+            --group="${SHARD}" \
+            --splitting-algorithm=least_duration \
+            --durations-path=test-durations.json \
+            --store-durations \
+            --clean-durations \
+            ${PYTEST_EXTRA_ARGS} || SEED_EXIT=$?
+          # least_duration assigns the first selected test to shard 1, so only
+          # other shards may legitimately be left with nothing to seed.
+          if [[ ${SEED_EXIT:-0} == 5 && ${SHARD} != 1 ]]; then
+            echo "empty=true" >> "$GITHUB_OUTPUT"
+          elif [[ ${SEED_EXIT:-0} != 0 ]]; then
+            echo "seed-exit=${SEED_EXIT}" >> "$GITHUB_OUTPUT"
+          fi
 
       ##################################################################
       # The upgrade itself. `snap refresh` keeps the common data dir in
       # place, so seeded instances persist across the binary swap.
       ##################################################################
       - name: Upgrade Multipass (to / version Y)
-        if: steps.seed.outputs.seed-exit == '' # only upgrade if seeding passed
+        # only upgrade if seeding passed
+        if: steps.seed.outputs.seed-exit == '' && steps.seed.outputs.empty != 'true'
         shell: bash
         run: |
           sudo snap refresh multipass --channel="${TO_SNAP_CHANNEL}"
@@ -131,11 +172,12 @@ jobs:
           exit 1
 
       ##################################################################
-      # Phase 2: validate the seeded VMs on the 'to' version.
+      # Phase 2: validate the seeded VMs on the 'to' version. Not split:
+      # the manifest restricts it to the scenarios this shard seeded.
       ##################################################################
       - name: Verify VMs after upgrade (phase 2)
         id: verify
-        if: steps.seed.outputs.seed-exit == ''
+        if: steps.seed.outputs.seed-exit == '' && steps.seed.outputs.empty != 'true'
         shell: bash
         run: |
           pytest -s tests/upgrade \
@@ -151,24 +193,59 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: upgrade-manifest
+          name: upgrade-manifest-${{ matrix.shard }}
           path: ${{ env.MANIFEST }}
           if-no-files-found: warn
 
       - name: Report seed results
-        if: success() || failure()
+        if: (success() || failure()) && steps.seed.outputs.empty != 'true'
         uses: dorny/test-reporter@v3
         with:
-          name: Upgrade seed results (X=${{ inputs['from-snap-channel'] }})
+          name: Upgrade seed results (X=${{ inputs['from-snap-channel'] }}) [${{ matrix.shard }}/4]
           path: reports/junit-seed.xml
           reporter: java-junit
           fail-on-error: false
 
       - name: Report verify results
-        if: success() || failure()
+        if: (success() || failure()) && steps.seed.outputs.empty != 'true'
         uses: dorny/test-reporter@v3
         with:
-          name: Upgrade verify results (Y=${{ inputs['to-snap-channel'] }})
+          name: Upgrade verify results (Y=${{ inputs['to-snap-channel'] }}) [${{ matrix.shard }}/4]
           path: reports/junit-verify.xml
           reporter: java-junit
           fail-on-error: false
+
+      - name: Upload test durations
+        if: ${{ github.ref == 'refs/heads/main' && inputs.pytest-extra-args == '' && steps.seed.outputs.seed-exit == '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.DURATIONS_KEY }}-${{ matrix.shard }}
+          path: test-durations.json
+          if-no-files-found: error
+          overwrite: true
+
+  SaveDurations:
+    name: Save upgrade test durations
+    needs: upgrade-tests
+    if: ${{ github.ref == 'refs/heads/main' && inputs.pytest-extra-args == '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download test durations
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ env.DURATIONS_KEY }}-*
+          path: shards
+
+      # Each shard stores only the seed tests it ran, so their union is the full
+      # table. A shard whose seed run failed uploads nothing, which fails this.
+      - name: Merge test durations
+        run: |
+          jq -es --argjson expected "${SPLITS}" \
+            'if length == $expected then add else error("missing shard timings") end' \
+            shards/*/test-durations.json > test-durations.json
+
+      - name: Save test durations
+        uses: actions/cache/save@v6
+        with:
+          path: test-durations.json
+          key: ${{ env.DURATIONS_KEY }}-${{ github.run_id }}-${{ github.run_attempt }}

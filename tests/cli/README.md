@@ -291,6 +291,20 @@ The `macos-pkg-url`, `windows-pkg-url` and `snap-channel` will determine the mat
 
 The `pytest-extra-args` can be used to pass additional arguments to the pytest run, to e.g. enable additional debug output, or run a specific set of tests instead of the full test harness.
 
+### Sharding
+
+Each platform runs as 4 parallel shards, one runner per shard, using [`pytest-split`](https://github.com/jerry-git/pytest-split) with `--splitting-algorithm=least_duration`. The tests must therefore be independent of each other.
+
+The balance comes from a table of per-test durations kept in the GitHub Actions cache under `cli-durations-<runner>-<daemon-controller>-<driver>-<run id>`:
+
+1. `PrepareDurations` restores the table once per target and shares it with all four runners as a run artifact. On a cache miss it shares an empty table, so every runner uses the same cold split.
+2. Each shard runs with `--store-durations --clean-durations`, which records only the tests it ran.
+3. Only successful `main` runs with no `pytest-extra-args` publish timings. `SaveDurations` requires all four shard files before replacing the baseline.
+
+Filtered runs still use four shards. If fewer than four tests match, empty shards are expected. If no tests match at all, shard 1 fails the run.
+
+To reproduce a shard locally, pass the same flags to `pytest`, e.g. `--splits=4 --group=2 --splitting-algorithm=least_duration --durations-path=<table>`.
+
 The manual dispatch can be made through GitHub Web UI, GitHub API, or GitHub CLI. Below is an example how to trigger the cli-tests from GitHub CLI:
 
 ```sh

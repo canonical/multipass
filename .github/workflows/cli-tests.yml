@@ -49,6 +49,7 @@ jobs:
     runs-on: ubuntu-slim
     outputs:
       matrix: ${{ steps.neo.outputs.matrix }}
+      targets: ${{ steps.neo.outputs.targets }}
       has_targets: ${{ steps.neo.outputs.has_targets }}
     steps:
       - id: neo
@@ -118,14 +119,40 @@ jobs:
               }
             }
 
+            // Keep the original targets for the per-target timing jobs.
+            const targets = matrix.include;
+            for (const target of targets) {
+              target.splits = 4;
+              target['durations-key'] = `cli-durations-${target.os}-${target['daemon-controller']}-${target['backend-driver']}`;
+            }
+            matrix.include = targets.flatMap(target =>
+              Array.from({ length: target.splits }, (_, i) => ({
+                ...target,
+                shard: i + 1,
+                label: `${target.label} [${i + 1}/${target.splits}]`,
+                'concurrency-key': `${target['concurrency-key']}-${i + 1}`
+              })));
+
             core.setOutput('matrix', JSON.stringify(matrix));
+            core.setOutput('targets', JSON.stringify({ include: targets }));
             core.setOutput('has_targets', String(matrix.include.length > 0));
+
+  PrepareDurations:
+    needs: GetMatrix
+    if: ${{ needs.GetMatrix.outputs.has_targets == 'true' }}
+    strategy:
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.targets) }}
+    uses: ./.github/workflows/test-durations.yml
+    with:
+      mode: restore
+      durations-key: ${{ matrix['durations-key'] }}
+
   run-cli-tests:
     concurrency:
       group: cli-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ matrix.concurrency-key }}
       cancel-in-progress: true
     name: CLI Tests (${{ matrix.label }})
-    needs: GetMatrix
+    needs: [GetMatrix, PrepareDurations]
     runs-on: ${{ matrix.os }}
     if: ${{ needs.GetMatrix.outputs.has_targets == 'true' }}
     strategy:
@@ -238,12 +265,19 @@ jobs:
           vm_stat | head -10
           sysctl hw.memsize
 
+      - name: Download shared timing baseline
+        uses: actions/download-artifact@v8
+        with:
+          name: baseline-${{ matrix['durations-key'] }}
+
       - name: Run cli-tests
         id: run-cli-tests
         shell: bash
         run: |
-          ${{ matrix.cmd-prologue }} pytest -s tests/cli --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml ${{ env.PYTEST_EXTRA_ARGS }} || PYTEST_EXIT=$?
+          ${{ matrix.cmd-prologue }} pytest -s tests/cli --print-all-output --daemon-controller=${{ matrix.daemon-controller }} --driver=${{ matrix.backend-driver }} --remove-all-instances --junitxml=reports/junit.xml --splits=${{ matrix.splits }} --group=${{ matrix.shard }} --splitting-algorithm=least_duration --durations-path=test-durations.json --store-durations --clean-durations ${{ env.PYTEST_EXTRA_ARGS }} || PYTEST_EXIT=$?
           echo "pytest-exit=${PYTEST_EXIT:-0}" >> "$GITHUB_OUTPUT"
+          # least_duration assigns the first selected test to shard 1.
+          if [[ ${PYTEST_EXIT:-0} == 5 && ${{ matrix.shard }} != 1 ]]; then exit 0; fi
           exit "${PYTEST_EXIT:-0}"
 
       - name: Check resources after
@@ -259,10 +293,31 @@ jobs:
           sudo du -sh /var/root/Library/Application\ Support/multipassd/ 2>/dev/null || true
 
       - name: Report cli-tests results to Github Checks
-        if: success() || failure()
+        if: ${{ !cancelled() && steps.run-cli-tests.outputs.pytest-exit != '5' }}
         uses: dorny/test-reporter@v3
         with:
           name: CLI Test results (${{ matrix.label }})
           path: reports/junit.xml
           reporter: java-junit # understands standard JUnit
           fail-on-error: false # fail job if there are test failures
+
+      - name: Upload test durations
+        if: ${{ github.ref == 'refs/heads/main' && inputs.pytest-extra-args == '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix['durations-key'] }}-${{ matrix.shard }}
+          path: test-durations.json
+          if-no-files-found: error
+          overwrite: true
+
+  SaveDurations:
+    name: Save test durations (${{ matrix.label }})
+    needs: [GetMatrix, run-cli-tests]
+    if: ${{ github.ref == 'refs/heads/main' && inputs.pytest-extra-args == '' && needs.GetMatrix.outputs.has_targets == 'true' }}
+    strategy:
+      matrix: ${{ fromJSON(needs.GetMatrix.outputs.targets) }}
+    uses: ./.github/workflows/test-durations.yml
+    with:
+      mode: save
+      durations-key: ${{ matrix['durations-key'] }}
+      splits: ${{ matrix.splits }}

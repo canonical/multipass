@@ -77,29 +77,34 @@ def pytest_configure(config):
     cfg.upgrade.manifest = config.getoption("--upgrade-manifest")
 
 
-def _env_meta() -> dict:
-    return {
-        "version": str(get_multipass_version()),
-        "driver": cfg.driver,
-        "controller": cfg.daemon_controller,
-    }
+#: The seed run's manifest document: opened once seed tests are collected and
+#: written at session end.
+SEED_DOCUMENT = pytest.StashKey[dict]()
 
 
-@pytest.fixture(scope="session")
-def seed_manifest(request):
-    """Dict the seed tests fill in; written to disk once at session end.
+def _item_scenario(item):
+    marker = item.get_closest_marker("scenario")
+    return marker.args[0] if marker is not None and marker.args else None
 
-    Only instantiated when seed tests run (``-m seed``), so the verify run never
-    overwrites the manifest. Scenarios from a previous seed run are merged in so
-    a partial re-seed (e.g. ``--lf``) updates the failed scenarios without
-    dropping the rest. Run with ``--cache-clear`` to start from an empty
-    manifest instead. Without the cache plugin (``-p no:cacheprovider``), an
-    existing manifest is always merged.
+
+def _open_seed_document(config, items) -> dict:
+    """Start the seed run's manifest, recording which scenarios it selected.
+
+    ``selected`` lists every scenario the seed run collected, including those it
+    then skips, so the verify run checks exactly the same scenarios. That keeps
+    the two phases paired when the seed run is filtered or sharded (e.g. by
+    pytest-split).
+
+    Scenarios from a previous seed run are merged in so a partial re-seed (e.g.
+    ``--lf``) updates the failed scenarios without dropping the rest. Run with
+    ``--cache-clear`` to start from an empty manifest instead. Without the cache
+    plugin (``-p no:cacheprovider``), an existing manifest is always merged.
     """
-    meta = _env_meta()
+    meta = {"driver": cfg.driver, "controller": cfg.daemon_controller}
     document = {"schema": SCHEMA, "seed": meta, "scenarios": {}}
+    selected = {_item_scenario(item) for item in items} - {None}
 
-    cache = getattr(request.config, "cache", None)
+    cache = getattr(config, "cache", None)
     keep = cache is None or cache.get(KEEP_MANIFEST_CACHE_KEY, False)
     if cache is not None:
         cache.set(KEEP_MANIFEST_CACHE_KEY, True)
@@ -114,9 +119,26 @@ def seed_manifest(request):
                 "run with `--cache-clear` to start fresh)", path, len(scenarios)
             )
             document["scenarios"].update(scenarios)
+            selected.update(prior.get("selected", []), scenarios)
 
-    yield document["scenarios"]
+    document["selected"] = sorted(selected)
+    return document
 
+
+def pytest_collection_finish(session):
+    config = session.config
+    if config.option.collectonly:
+        return
+    if any(item.get_closest_marker("seed") for item in session.items):
+        config.stash[SEED_DOCUMENT] = _open_seed_document(config, session.items)
+
+
+def pytest_sessionfinish(session):
+    """Write the seed manifest, even if every selected seed test was skipped."""
+    document = session.config.stash.get(SEED_DOCUMENT, None)
+    if document is None:
+        return
+    path = Path(cfg.upgrade.manifest)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(document, indent=2, sort_keys=True))
@@ -124,6 +146,18 @@ def seed_manifest(request):
     logging.info(
         "upgrade :: wrote %d record(s) to %s", len(document["scenarios"]), path
     )
+
+
+@pytest.fixture(scope="session")
+def seed_manifest(request):
+    """Dict the seed tests fill in; written to disk once at session end.
+
+    Only exists when seed tests run (``-m seed``), so the verify run never
+    overwrites the manifest.
+    """
+    document = request.config.stash[SEED_DOCUMENT]
+    document["seed"]["version"] = str(get_multipass_version())
+    return document["scenarios"]
 
 
 @pytest.fixture(scope="session")
@@ -260,3 +294,29 @@ def pytest_collection_modifyitems(config, items):
             "seed and verify tests must be run separately; "
             "select a phase with `-m seed` or `-m verify`."
         )
+
+    if selected == {"verify"}:
+        _deselect_unseeded(config, items)
+
+
+def _deselect_unseeded(config, items):
+    """Verify only the scenarios the seed run selected (see ``_open_seed_document``).
+
+    Manifests without a ``selected`` list (older harness versions) keep every
+    verify test.
+    """
+    path = Path(cfg.upgrade.manifest)
+    if not path.exists():
+        return
+    document = json.loads(path.read_text())
+    if document.get("schema") != SCHEMA or "selected" not in document:
+        return
+
+    seeded = set(document["selected"])
+    keep, drop = [], []
+    for item in items:
+        scenario = _item_scenario(item)
+        (keep if scenario is None or scenario in seeded else drop).append(item)
+    if drop:
+        config.hook.pytest_deselected(items=drop)
+        items[:] = keep
