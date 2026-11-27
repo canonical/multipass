@@ -18,15 +18,10 @@ Widget _buildApp({
 }) {
   return ProviderScope(
     overrides: [
-      updateProvider.overrideWithBuild(
-        (ref, _) => update ?? UpdateInfo(),
-      ),
+      updateProvider.overrideWithBuild((ref, _) => update ?? UpdateInfo()),
       onAppCloseProvider.overrideWith(
-        () => _FakeGuiSettingNotifier(
-          onAppCloseKey,
-          'ask',
-          onAppCloseSets ?? [],
-        ),
+        () =>
+            _FakeGuiSettingNotifier(onAppCloseKey, 'ask', onAppCloseSets ?? []),
       ),
       autostartProvider.overrideWith(
         () => _StaticAutostartNotifier(false, autostartSets ?? []),
@@ -68,8 +63,9 @@ class _FakeGuiSettingNotifier extends GuiSettingNotifier {
 
 void main() {
   group('GeneralSettings: UpdateAvailable banner', () {
-    testWidgets('shows UpdateAvailable widget when version is set',
-        (tester) async {
+    testWidgets('shows UpdateAvailable widget when version is set', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildApp(update: UpdateInfo()..version = '1.2.3'),
       );
@@ -78,8 +74,9 @@ void main() {
       expect(find.byType(UpdateAvailable), findsOneWidget);
     });
 
-    testWidgets('hides UpdateAvailable widget when version is blank',
-        (tester) async {
+    testWidgets('hides UpdateAvailable widget when version is blank', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildApp(update: UpdateInfo()));
       await tester.pumpAndSettle();
 

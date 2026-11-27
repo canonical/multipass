@@ -12,8 +12,8 @@ enum VmDetailsLocation { shells, details }
 
 final vmScreenLocationProvider = NotifierProvider.autoDispose
     .family<VmScreenLocationNotifier, VmDetailsLocation, String>(
-  VmScreenLocationNotifier.new,
-);
+      VmScreenLocationNotifier.new,
+    );
 
 class VmScreenLocationNotifier extends Notifier<VmDetailsLocation> {
   VmScreenLocationNotifier(this.arg);
@@ -33,8 +33,8 @@ enum ActiveEditPage { resources, bridge, mounts }
 
 final activeEditPageProvider = NotifierProvider.autoDispose
     .family<ActiveEditPageNotifier, ActiveEditPage?, String>(
-  ActiveEditPageNotifier.new,
-);
+      ActiveEditPageNotifier.new,
+    );
 
 class ActiveEditPageNotifier extends Notifier<ActiveEditPage?> {
   ActiveEditPageNotifier(this.name);

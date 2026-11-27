@@ -57,7 +57,7 @@ class MpPrettyPrinter extends LogPrinter {
   });
 
   @override
-  List<String> log(final LogEvent event) {
+  List<String> log(LogEvent event) {
     String? stackTraceStr;
     if (event.error != null) {
       if ((errorMethodCount == null || errorMethodCount! > 0)) {
@@ -91,8 +91,9 @@ class MpPrettyPrinter extends LogPrinter {
     }).toList();
 
     final formatted = <String>[];
-    final stackTraceLength =
-        methodCount != null ? min(lines.length, methodCount) : lines.length;
+    final stackTraceLength = methodCount != null
+        ? min(lines.length, methodCount)
+        : lines.length;
 
     for (var count = 0; count < stackTraceLength; count++) {
       final line = lines[count];
@@ -103,7 +104,7 @@ class MpPrettyPrinter extends LogPrinter {
     return formatted.isEmpty ? null : formatted.join('\n');
   }
 
-  bool _isInExcludePaths(final String segment) {
+  bool _isInExcludePaths(String segment) {
     return excludePaths.any(segment.startsWith);
   }
 

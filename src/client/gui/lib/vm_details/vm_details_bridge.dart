@@ -30,12 +30,16 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final networks = ref.watch(networksProvider).when(
+    final networks = ref
+        .watch(networksProvider)
+        .when(
           data: (data) => data,
           loading: () => const <String>{},
           error: (_, __) => const <String>{},
         );
-    final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).when(
+    final bridgedNetworkSetting = ref
+        .watch(bridgedNetworkProvider)
+        .when(
           data: (data) => data,
           loading: () => null,
           error: (_, __) => null,
@@ -62,9 +66,10 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
       initialValue: bridged ?? false,
       onSaved: (value) {
         if (value!) {
-          ref.read(bridgedProvider.notifier).set(value.toString()).onError(
-                ref.notifyError((e) => l10n.bridgeFailedNetwork('$e')),
-              );
+          ref
+              .read(bridgedProvider.notifier)
+              .set(value.toString())
+              .onError(ref.notifyError((e) => l10n.bridgeFailedNetwork('$e')));
         }
       },
       builder: (field) {
@@ -72,8 +77,8 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
         final message = networks.isEmpty
             ? l10n.bridgeNoNetworks
             : validBridgedNetwork
-                ? l10n.bridgeEstablishedWarning
-                : l10n.bridgeNoValidNetwork;
+            ? l10n.bridgeEstablishedWarning
+            : l10n.bridgeNoValidNetwork;
         return CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
@@ -131,8 +136,10 @@ class _BridgedDetailsState extends ConsumerState<BridgedDetails> {
             children: [
               SizedBox(
                 height: 50,
-                child: Text(l10n.bridgeTitle,
-                    style: const TextStyle(fontSize: 24)),
+                child: Text(
+                  l10n.bridgeTitle,
+                  style: const TextStyle(fontSize: 24),
+                ),
               ),
               const Spacer(),
               if (editing)

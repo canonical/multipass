@@ -15,9 +15,7 @@ Widget _buildApp({List<String> ipv4 = const [], bool isLaunching = false}) {
   return ProviderScope(
     overrides: [
       vmInfoProvider(_vmName).overrideWithBuild(
-        (ref, _) => DetailedInfoItem(
-          instanceInfo: InstanceDetails(ipv4: ipv4),
-        ),
+        (ref, _) => DetailedInfoItem(instanceInfo: InstanceDetails(ipv4: ipv4)),
       ),
       isLaunchingProvider.overrideWith((ref, _) => isLaunching),
     ],
@@ -30,9 +28,9 @@ Widget _buildApp({List<String> ipv4 = const [], bool isLaunching = false}) {
 }
 
 Finder _statValue(String label, String value) => find.descendant(
-      of: find.widgetWithText(VmStat, label),
-      matching: find.text(value),
-    );
+  of: find.widgetWithText(VmStat, label),
+  matching: find.text(value),
+);
 
 void main() {
   group('InstanceDetailsExtensions.formattedCreationTime', () {
@@ -41,12 +39,12 @@ void main() {
     });
 
     for (final isLaunching in [true, false]) {
-      test(
-          'formats a set timestamp in local time when '
+      test('formats a set timestamp in local time when '
           'isLaunching=$isLaunching', () {
         final details = InstanceDetails(
-          creationTimestamp:
-              Timestamp.fromDateTime(DateTime(2024, 1, 15, 10, 30, 5)),
+          creationTimestamp: Timestamp.fromDateTime(
+            DateTime(2024, 1, 15, 10, 30, 5),
+          ),
         );
 
         expect(
@@ -80,8 +78,9 @@ void main() {
   });
 
   group('GeneralDetails', () {
-    testWidgets('shows the first IPv4 as private and the second as public',
-        (tester) async {
+    testWidgets('shows the first IPv4 as private and the second as public', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildApp(ipv4: ['192.168.64.1', '10.0.0.1']));
       await tester.pumpAndSettle();
 
@@ -89,8 +88,9 @@ void main() {
       expect(_statValue(_l10n.vmStatPublicIp, '10.0.0.1'), findsOneWidget);
     });
 
-    testWidgets('shows "-" for the public IP with a single address',
-        (tester) async {
+    testWidgets('shows "-" for the public IP with a single address', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildApp(ipv4: ['192.168.64.1']));
       await tester.pumpAndSettle();
 
@@ -106,8 +106,9 @@ void main() {
       expect(_statValue(_l10n.vmStatPublicIp, '-'), findsOneWidget);
     });
 
-    testWidgets('shows "-" as the creation time while launching',
-        (tester) async {
+    testWidgets('shows "-" as the creation time while launching', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildApp(isLaunching: true));
       // The launching spinner never settles.
       await tester.pump();

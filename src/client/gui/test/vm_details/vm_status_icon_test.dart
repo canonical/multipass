@@ -42,15 +42,17 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('falls back to unknownIcon for an unmapped status',
-        (tester) async {
+    testWidgets('falls back to unknownIcon for an unmapped status', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildWidget(Status.UNKNOWN, isLaunching: false));
 
       expect(find.byWidget(unknownIcon), findsOneWidget);
     });
 
-    testWidgets('shows a spinner and launching label instead of the status',
-        (tester) async {
+    testWidgets('shows a spinner and launching label instead of the status', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildWidget(Status.RUNNING, isLaunching: true));
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);

@@ -62,9 +62,13 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             initialValue: cpus,
             onSaved: (value) {
               if (value == null || value == cpus) return;
-              ref.read(cpusProvider.notifier).set('$value').onError(
+              ref
+                  .read(cpusProvider.notifier)
+                  .set('$value')
+                  .onError(
                     ref.notifyError(
-                        (error) => l10n.resourcesFailedCpus('$error')),
+                      (error) => l10n.resourcesFailedCpus('$error'),
+                    ),
                   );
             },
           );
@@ -79,7 +83,10 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             initialValue: ram,
             onSaved: (value) {
               if (value == null || value == ram) return;
-              ref.read(ramProvider.notifier).set('${value}B').onError(
+              ref
+                  .read(ramProvider.notifier)
+                  .set('${value}B')
+                  .onError(
                     ref.notifyError((e) => l10n.resourcesFailedMemory('$e')),
                   );
             },
@@ -96,7 +103,10 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             initialValue: disk,
             onSaved: (value) {
               if (value == null || value == disk) return;
-              ref.read(diskProvider.notifier).set('${value}B').onError(
+              ref
+                  .read(diskProvider.notifier)
+                  .set('${value}B')
+                  .onError(
                     ref.notifyError((e) => l10n.resourcesFailedDisk('$e')),
                   );
             },
@@ -148,8 +158,10 @@ class _ResourcesDetailsState extends ConsumerState<ResourcesDetails> {
             children: [
               SizedBox(
                 height: 50,
-                child: Text(l10n.resourcesTitle,
-                    style: const TextStyle(fontSize: 24)),
+                child: Text(
+                  l10n.resourcesTitle,
+                  style: const TextStyle(fontSize: 24),
+                ),
               ),
               const Spacer(),
               editing ? cancelButton : configureButton,

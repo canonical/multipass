@@ -30,8 +30,9 @@ void main() {
       expect(container.read(searchNameProvider), 'myvm');
     });
 
-    testWidgets('clearing the text resets searchNameProvider to empty',
-        (tester) async {
+    testWidgets('clearing the text resets searchNameProvider to empty', (
+      tester,
+    ) async {
       final container = await pumpSearchBox(tester);
 
       await tester.enterText(find.byType(TextField), 'filter');

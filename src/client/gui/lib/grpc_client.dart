@@ -185,9 +185,7 @@ class GrpcClient {
   Future<ImagesReply> images() {
     return doRpc(
       _client.images,
-      ImagesRequest(
-        allRemotes: true,
-      ),
+      ImagesRequest(allRemotes: true),
     ).then((r) => r!);
   }
 
@@ -264,10 +262,8 @@ class CustomChannelCredentials extends ChannelCredentials {
     required List<int> certificate,
     required this.certificateKey,
     required this.rootCertificate,
-  })  : certificateChain = certificate,
-        super.secure(
-          certificates: certificate,
-        );
+  }) : certificateChain = certificate,
+       super.secure(certificates: certificate);
 
   @override
   SecurityContext get securityContext {

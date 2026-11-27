@@ -39,8 +39,9 @@ void saveForm(WidgetTester tester) =>
 
 void main() {
   group('CpusSlider', () {
-    testWidgets('labels the range from 1 to the number of cores',
-        (tester) async {
+    testWidgets('labels the range from 1 to the number of cores', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildWidget(cores: 6, initialValue: 2));
       await tester.pumpAndSettle();
 
@@ -50,16 +51,18 @@ void main() {
 
     for (final (value, warns) in [(5, true), (4, false)]) {
       testWidgets(
-          '${warns ? 'warns' : 'does not warn'} about over-provisioning '
-          'at $value CPUs with 4 cores', (tester) async {
-        await tester.pumpWidget(buildWidget(cores: 4, initialValue: value));
-        await tester.pumpAndSettle();
+        '${warns ? 'warns' : 'does not warn'} about over-provisioning '
+        'at $value CPUs with 4 cores',
+        (tester) async {
+          await tester.pumpWidget(buildWidget(cores: 4, initialValue: value));
+          await tester.pumpAndSettle();
 
-        expect(
-          find.byIcon(Icons.warning_rounded),
-          warns ? findsOneWidget : findsNothing,
-        );
-      });
+          expect(
+            find.byIcon(Icons.warning_rounded),
+            warns ? findsOneWidget : findsNothing,
+          );
+        },
+      );
     }
 
     testWidgets('rejects non-integer input', (tester) async {
@@ -84,8 +87,9 @@ void main() {
     });
 
     for (final (input, expected) in [('3', 3), ('99', 4), ('0', 1)]) {
-      testWidgets('saves typed "$input" as $expected with 4 cores',
-          (tester) async {
+      testWidgets('saves typed "$input" as $expected with 4 cores', (
+        tester,
+      ) async {
         int? saved;
         await tester.pumpWidget(
           buildWidget(cores: 4, initialValue: 2, onSaved: (v) => saved = v),
@@ -99,8 +103,9 @@ void main() {
       });
     }
 
-    testWidgets('snaps the field to the clamped value when focus is lost',
-        (tester) async {
+    testWidgets('snaps the field to the clamped value when focus is lost', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildWidget(cores: 4, initialValue: 2));
       await tester.pumpAndSettle();
 

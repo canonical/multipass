@@ -16,10 +16,8 @@ Widget buildWidget({required VoidCallback onDelete, int count = 1}) {
         builder: (context) => TextButton(
           onPressed: () => showDialog(
             context: context,
-            builder: (_) => DeleteInstanceDialog(
-              onDelete: onDelete,
-              count: count,
-            ),
+            builder: (_) =>
+                DeleteInstanceDialog(onDelete: onDelete, count: count),
           ),
           child: const Text('Open'),
         ),
@@ -41,8 +39,9 @@ void main() {
       });
     }
 
-    testWidgets('delete button calls onDelete and closes the dialog',
-        (tester) async {
+    testWidgets('delete button calls onDelete and closes the dialog', (
+      tester,
+    ) async {
       var deleted = false;
       await tester.pumpWidget(buildWidget(onDelete: () => deleted = true));
       await tester.tap(find.text('Open'));
@@ -55,8 +54,9 @@ void main() {
       expect(find.byType(ConfirmationDialog), findsNothing);
     });
 
-    testWidgets('cancel button closes the dialog without invoking onDelete',
-        (tester) async {
+    testWidgets('cancel button closes the dialog without invoking onDelete', (
+      tester,
+    ) async {
       var deleted = false;
       await tester.pumpWidget(buildWidget(onDelete: () => deleted = true));
       await tester.tap(find.text('Open'));

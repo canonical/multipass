@@ -36,17 +36,19 @@ void main() {
       (<Status>[], false),
     ]) {
       testWidgets(
-          '${enabled ? 'invokes' : 'does not invoke'} stop when tapped with '
-          'statuses ${statuses.map((s) => s.name)}', (tester) async {
-        var pressed = false;
-        await tester.pumpWidget(
-          buildWidget(statuses: statuses, onPressed: () => pressed = true),
-        );
+        '${enabled ? 'invokes' : 'does not invoke'} stop when tapped with '
+        'statuses ${statuses.map((s) => s.name)}',
+        (tester) async {
+          var pressed = false;
+          await tester.pumpWidget(
+            buildWidget(statuses: statuses, onPressed: () => pressed = true),
+          );
 
-        await tester.tap(find.byType(OutlinedButton));
+          await tester.tap(find.byType(OutlinedButton));
 
-        expect(pressed, enabled);
-      });
+          expect(pressed, enabled);
+        },
+      );
     }
   });
 }

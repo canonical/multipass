@@ -77,20 +77,19 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
     label: _l10n().trayCopyright,
     enabled: false,
   );
-  providerContainer.listen<String>(
-    daemonVersionProvider,
-    (previous, next) async {
-      await aboutSubmenu.remove('multipassd-version');
-      if (next == multipassVersion) return;
-      await aboutSubmenu.addLabel(
-        'multipassd-version',
-        label: _l10n().trayMultipassdVersion(next),
-        enabled: false,
-        before: 'copyright',
-      );
-    },
-    fireImmediately: true,
-  );
+  providerContainer.listen<String>(daemonVersionProvider, (
+    previous,
+    next,
+  ) async {
+    await aboutSubmenu.remove('multipassd-version');
+    if (next == multipassVersion) return;
+    await aboutSubmenu.addLabel(
+      'multipassd-version',
+      label: _l10n().trayMultipassdVersion(next),
+      enabled: false,
+      before: 'copyright',
+    );
+  }, fireImmediately: true);
   await TrayMenu.instance.addLabel(
     'quit',
     label: _l10n().trayQuit,
@@ -119,8 +118,9 @@ Future<void> setupTrayMenu(ProviderContainer providerContainer) async {
 }
 
 Future<void> _setTrayMenuError() async {
-  final keys =
-      TrayMenu.instance.keys.where((key) => key.startsWith('vm-')).toList();
+  final keys = TrayMenu.instance.keys
+      .where((key) => key.startsWith('vm-'))
+      .toList();
   for (final key in keys) {
     await TrayMenu.instance.remove(key);
   }
@@ -148,9 +148,9 @@ extension on InstanceStatus_Status {
 }
 
 Future<void> _updateTrayMenu(
-  final ProviderContainer providerContainer,
-  final Map<String, Status> previousVms,
-  final Map<String, Status> nextVms,
+  ProviderContainer providerContainer,
+  Map<String, Status> previousVms,
+  Map<String, Status> nextVms,
 ) async {
   final grpcClient = providerContainer.read(grpcClientProvider);
 

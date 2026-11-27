@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:multipass_gui/vm_details/spec_input.dart';
 
 Widget buildWidget(SpecInput input) {
-  return MaterialApp(home: Scaffold(body: Form(child: input)));
+  return MaterialApp(
+    home: Scaffold(body: Form(child: input)),
+  );
 }
 
 FormState formState(WidgetTester tester) =>
@@ -41,9 +43,11 @@ void main() {
 
     testWidgets('saves the initial value when untouched', (tester) async {
       String? saved;
-      await tester.pumpWidget(buildWidget(
-        SpecInput(initialValue: 'my-vm', onSaved: (v) => saved = v),
-      ));
+      await tester.pumpWidget(
+        buildWidget(
+          SpecInput(initialValue: 'my-vm', onSaved: (v) => saved = v),
+        ),
+      );
 
       formState(tester).save();
 
@@ -52,9 +56,11 @@ void main() {
 
     testWidgets('saves the entered text', (tester) async {
       String? saved;
-      await tester.pumpWidget(buildWidget(
-        SpecInput(initialValue: 'my-vm', onSaved: (v) => saved = v),
-      ));
+      await tester.pumpWidget(
+        buildWidget(
+          SpecInput(initialValue: 'my-vm', onSaved: (v) => saved = v),
+        ),
+      );
 
       await tester.enterText(find.byType(TextFormField), 'other-vm');
       formState(tester).save();
@@ -63,9 +69,11 @@ void main() {
     });
 
     testWidgets('shows the validator error', (tester) async {
-      await tester.pumpWidget(buildWidget(
-        SpecInput(validator: (v) => v!.isEmpty ? 'Required' : null),
-      ));
+      await tester.pumpWidget(
+        buildWidget(
+          SpecInput(validator: (v) => v!.isEmpty ? 'Required' : null),
+        ),
+      );
 
       formState(tester).validate();
       await tester.pump();
@@ -74,9 +82,11 @@ void main() {
     });
 
     testWidgets('applies input formatters', (tester) async {
-      await tester.pumpWidget(buildWidget(
-        SpecInput(inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
-      ));
+      await tester.pumpWidget(
+        buildWidget(
+          SpecInput(inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
+        ),
+      );
 
       await tester.enterText(find.byType(TextFormField), 'a1b2');
 

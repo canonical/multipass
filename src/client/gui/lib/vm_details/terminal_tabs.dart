@@ -84,10 +84,10 @@ class Tab extends StatelessWidget {
     final iconData = osl.contains('ubuntu')
         ? ('assets/ubuntu.svg', const Color(0xffE95420), Colors.white)
         : osl.contains('debian')
-            ? ('assets/debian.svg', null, null)
-            : osl.contains('fedora')
-                ? ('assets/fedora.svg', null, null)
-                : ('assets/ubuntu.svg', const Color(0xffE95420), Colors.white);
+        ? ('assets/debian.svg', null, null)
+        : osl.contains('fedora')
+        ? ('assets/fedora.svg', null, null)
+        : ('assets/ubuntu.svg', const Color(0xffE95420), Colors.white);
 
     return Container(
       alignment: Alignment.center,
@@ -96,10 +96,7 @@ class Tab extends StatelessWidget {
       width: 17,
       height: 17,
       child: iconData.$3 == null
-          ? SvgPicture.asset(
-              iconData.$1,
-              width: 12,
-            )
+          ? SvgPicture.asset(iconData.$1, width: 12)
           : SvgPicture.asset(
               iconData.$1,
               width: 12,

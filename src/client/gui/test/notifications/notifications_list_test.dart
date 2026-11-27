@@ -21,9 +21,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            home: Scaffold(
-              body: NotificationTile(const Text('tile content')),
-            ),
+            home: Scaffold(body: NotificationTile(const Text('tile content'))),
           ),
         ),
       );
@@ -32,42 +30,44 @@ void main() {
     });
 
     testWidgets(
-        'CloseNotificationIntent removes the notification from the provider',
-        (tester) async {
-      final notification = const Text('closeable note');
-      final container = ProviderContainer(
-        overrides: [
-          notificationsProvider.overrideWith(
-            () => _PreseededNotifier(BuiltList([notification])),
+      'CloseNotificationIntent removes the notification from the provider',
+      (tester) async {
+        final notification = const Text('closeable note');
+        final container = ProviderContainer(
+          overrides: [
+            notificationsProvider.overrideWith(
+              () => _PreseededNotifier(BuiltList([notification])),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+        container.listen(notificationsProvider, (_, __) {});
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              home: Scaffold(body: NotificationTile(notification)),
+            ),
           ),
-        ],
-      );
-      addTearDown(container.dispose);
-      container.listen(notificationsProvider, (_, __) {});
+        );
 
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            home: Scaffold(body: NotificationTile(notification)),
-          ),
-        ),
-      );
+        expect(container.read(notificationsProvider), hasLength(1));
 
-      expect(container.read(notificationsProvider), hasLength(1));
+        // Dispatch the intent from within the tile's subtree.
+        final ctx = tester.element(find.text('closeable note'));
+        Actions.invoke(ctx, const CloseNotificationIntent());
+        await tester.pump();
 
-      // Dispatch the intent from within the tile's subtree.
-      final ctx = tester.element(find.text('closeable note'));
-      Actions.invoke(ctx, const CloseNotificationIntent());
-      await tester.pump();
-
-      expect(container.read(notificationsProvider), isEmpty);
-    });
+        expect(container.read(notificationsProvider), isEmpty);
+      },
+    );
   });
 
   group('NotificationList', () {
-    testWidgets('renders pre-seeded notification in the provider',
-        (tester) async {
+    testWidgets('renders pre-seeded notification in the provider', (
+      tester,
+    ) async {
       final notification = const Text('initial notification');
 
       await tester.pumpWidget(
@@ -77,17 +77,16 @@ void main() {
               () => _PreseededNotifier(BuiltList([notification])),
             ),
           ],
-          child: const MaterialApp(
-            home: Scaffold(body: NotificationList()),
-          ),
+          child: const MaterialApp(home: Scaffold(body: NotificationList())),
         ),
       );
 
       expect(find.text('initial notification'), findsOneWidget);
     });
 
-    testWidgets('shows notifications added after the first build',
-        (tester) async {
+    testWidgets('shows notifications added after the first build', (
+      tester,
+    ) async {
       final container = await pumpList(tester);
 
       container.read(notificationsProvider.notifier).add(const Text('new'));
@@ -109,8 +108,9 @@ void main() {
       expect(find.text('to remove'), findsNothing);
     });
 
-    testWidgets('shows a notification added in the same frame as a removal',
-        (tester) async {
+    testWidgets('shows a notification added in the same frame as a removal', (
+      tester,
+    ) async {
       final container = await pumpList(tester);
       final notifier = container.read(notificationsProvider.notifier);
       const old = Text('old');
@@ -125,8 +125,9 @@ void main() {
       expect(find.text('new'), findsOneWidget);
     });
 
-    testWidgets('skips a notification added and removed in the same frame',
-        (tester) async {
+    testWidgets('skips a notification added and removed in the same frame', (
+      tester,
+    ) async {
       final container = await pumpList(tester);
       final notifier = container.read(notificationsProvider.notifier);
       const old = Text('old');

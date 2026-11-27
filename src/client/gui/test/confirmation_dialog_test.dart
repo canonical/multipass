@@ -50,8 +50,9 @@ void main() {
     expect(inactionCount, 0);
   });
 
-  testWidgets('tapping inaction button invokes only onInaction',
-      (tester) async {
+  testWidgets('tapping inaction button invokes only onInaction', (
+    tester,
+  ) async {
     var actionCount = 0;
     var inactionCount = 0;
     await openDialog(
@@ -67,8 +68,9 @@ void main() {
     expect(inactionCount, 1);
   });
 
-  testWidgets('tapping close button dismisses without invoking callbacks',
-      (tester) async {
+  testWidgets('tapping close button dismisses without invoking callbacks', (
+    tester,
+  ) async {
     var callbackCount = 0;
     await openDialog(
       tester,

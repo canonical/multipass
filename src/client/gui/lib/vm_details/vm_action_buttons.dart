@@ -24,13 +24,18 @@ class VmActionButtons extends ConsumerWidget {
         final notificationsNotifier = ref.read(notificationsProvider.notifier);
         notificationsNotifier.addOperation(
           function([name]),
-          loading:
-              l10n.vmActionNotification(action.continuousTense(l10n), name),
+          loading: l10n.vmActionNotification(
+            action.continuousTense(l10n),
+            name,
+          ),
           onSuccess: (_) =>
               l10n.vmActionNotification(action.pastTense(l10n), name),
           onError: (error) {
             return l10n.vmActionNotificationError(
-                action.name.toLowerCase(), name, '$error');
+              action.name.toLowerCase(),
+              name,
+              '$error',
+            );
           },
         );
       };
@@ -74,8 +79,10 @@ class VmActionButtons extends ConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Text(l10n.vmActionsMenuTitle,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              l10n.vmActionsMenuTitle,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             const Icon(Icons.keyboard_arrow_down),
           ],
         ),

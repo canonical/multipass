@@ -20,7 +20,9 @@ class GeneralSettings extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final update = ref.watch(updateProvider);
-    final autostart = ref.watch(autostartProvider).when(
+    final autostart = ref
+        .watch(autostartProvider)
+        .when(
           data: (data) => data,
           loading: () => false,
           error: (_, __) => false,
@@ -45,8 +47,12 @@ class GeneralSettings extends ConsumerWidget {
           trailingSwitch: true,
           size: 30,
           onChanged: (value) {
-            ref.read(autostartProvider.notifier).set(value).onError(
-                ref.notifyError((e) => l10n.generalAutostartError('$e')));
+            ref
+                .read(autostartProvider.notifier)
+                .set(value)
+                .onError(
+                  ref.notifyError((e) => l10n.generalAutostartError('$e')),
+                );
           },
         ),
         const SizedBox(height: 20),

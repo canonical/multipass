@@ -23,8 +23,9 @@ void main() {
       expect(find.byType(Text), findsOneWidget);
     });
 
-    testWidgets('shows the label and the value when text is set',
-        (tester) async {
+    testWidgets('shows the label and the value when text is set', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         buildWidget(const DisplayField(label: 'Version', text: '1.16.0')),
       );

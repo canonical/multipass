@@ -55,8 +55,9 @@ void main() {
       ('10.0.0.1', SystemMouseCursors.click),
       ('-', SystemMouseCursors.basic),
     ]) {
-      testWidgets('shows a ${cursor.kind} cursor on hover for "$text"',
-          (tester) async {
+      testWidgets('shows a ${cursor.kind} cursor on hover for "$text"', (
+        tester,
+      ) async {
         await tester.pumpWidget(buildWidget(CopyableText(text)));
 
         final mouse = await tester.createGesture(
@@ -66,15 +67,13 @@ void main() {
         await mouse.addPointer(location: tester.getCenter(find.text(text)));
         await tester.pump();
 
-        expect(
-          tester.binding.mouseTracker.debugDeviceActiveCursor(1),
-          cursor,
-        );
+        expect(tester.binding.mouseTracker.debugDeviceActiveCursor(1), cursor);
       });
     }
 
-    testWidgets('tapping copies the text and updates the tooltip',
-        (tester) async {
+    testWidgets('tapping copies the text and updates the tooltip', (
+      tester,
+    ) async {
       final copied = mockClipboard(tester);
       await tester.pumpWidget(buildWidget(const CopyableText('10.0.0.1')));
       expect(tooltipMessage(tester), _l10n.copyableTextClickToCopy);
@@ -102,8 +101,9 @@ void main() {
       expect(tooltipMessage(tester), _l10n.copyableTextClickToCopy);
     });
 
-    testWidgets('"-" placeholder has no tooltip and is not copied on tap',
-        (tester) async {
+    testWidgets('"-" placeholder has no tooltip and is not copied on tap', (
+      tester,
+    ) async {
       final copied = mockClipboard(tester);
       await tester.pumpWidget(buildWidget(const CopyableText('-')));
 
@@ -114,8 +114,9 @@ void main() {
       expect(copied, isEmpty);
     });
 
-    testWidgets('does not throw when removed while the copy is in progress',
-        (tester) async {
+    testWidgets('does not throw when removed while the copy is in progress', (
+      tester,
+    ) async {
       final copyDone = Completer<void>();
       mockClipboard(tester, pendingCopy: copyDone.future);
       await tester.pumpWidget(buildWidget(const CopyableText('10.0.0.1')));

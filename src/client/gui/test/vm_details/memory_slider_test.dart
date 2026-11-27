@@ -42,19 +42,22 @@ void main() {
 
     for (final (gibis, warns) in [(5, true), (4, false)]) {
       testWidgets(
-          '${warns ? 'warns' : 'does not warn'} about over-provisioning '
-          'at $gibis GiB with 4 GiB available', (tester) async {
-        await tester.pumpWidget(buildWidget(initialValue: gibis.gibi));
+        '${warns ? 'warns' : 'does not warn'} about over-provisioning '
+        'at $gibis GiB with 4 GiB available',
+        (tester) async {
+          await tester.pumpWidget(buildWidget(initialValue: gibis.gibi));
 
-        expect(
-          find.byIcon(Icons.warning_rounded),
-          warns ? findsOneWidget : findsNothing,
-        );
-      });
+          expect(
+            find.byIcon(Icons.warning_rounded),
+            warns ? findsOneWidget : findsNothing,
+          );
+        },
+      );
     }
 
-    testWidgets('saves typed values converted from the selected unit',
-        (tester) async {
+    testWidgets('saves typed values converted from the selected unit', (
+      tester,
+    ) async {
       int? saved;
       await tester.pumpWidget(
         buildWidget(initialValue: 2.gibi, onSaved: (v) => saved = v),

@@ -91,17 +91,20 @@ void main() {
       (debian, _l10n.imageCardTitleDebian, _l10n.imageCardDescDebian),
       (fedora, _l10n.imageCardTitleFedora, _l10n.imageCardDescFedora),
     ]) {
-      testWidgets('shows the title and description for ${image.aliases.first}',
-          (tester) async {
-        await _pumpCard(tester, parentImage: image);
+      testWidgets(
+        'shows the title and description for ${image.aliases.first}',
+        (tester) async {
+          await _pumpCard(tester, parentImage: image);
 
-        expect(find.text(title), findsOneWidget);
-        expect(find.text(description), findsOneWidget);
-      });
+          expect(find.text(title), findsOneWidget);
+          expect(find.text(description), findsOneWidget);
+        },
+      );
     }
 
-    testWidgets('shows the OS name as the title for an unknown OS',
-        (tester) async {
+    testWidgets('shows the OS name as the title for an unknown OS', (
+      tester,
+    ) async {
       await _pumpCard(tester, parentImage: alpine);
 
       expect(find.text('Alpine'), findsOneWidget);
@@ -124,12 +127,14 @@ void main() {
       ([noble, jammy], true),
     ]) {
       testWidgets(
-          'version dropdown is ${enabled ? 'enabled' : 'disabled'} with '
-          '${versions.length} version(s)', (tester) async {
-        await _pumpCard(tester, parentImage: noble, versions: versions);
+        'version dropdown is ${enabled ? 'enabled' : 'disabled'} with '
+        '${versions.length} version(s)',
+        (tester) async {
+          await _pumpCard(tester, parentImage: noble, versions: versions);
 
-        expect(_versionDropdown(tester).onChanged != null, enabled);
-      });
+          expect(_versionDropdown(tester).onChanged != null, enabled);
+        },
+      );
     }
 
     testWidgets('selecting a version shows its label', (tester) async {
@@ -141,8 +146,9 @@ void main() {
       expect(find.text('24.04 LTS (Noble Numbat)'), findsNothing);
     });
 
-    testWidgets('Launch launches the selected version with default resources',
-        (tester) async {
+    testWidgets('Launch launches the selected version with default resources', (
+      tester,
+    ) async {
       final grpcClient = _FakeGrpcClient();
       await _pumpCard(
         tester,
@@ -166,8 +172,9 @@ void main() {
       ]);
     });
 
-    testWidgets('Launch omits the remote for images without one',
-        (tester) async {
+    testWidgets('Launch omits the remote for images without one', (
+      tester,
+    ) async {
       final grpcClient = _FakeGrpcClient();
       await _pumpCard(tester, parentImage: debian, grpcClient: grpcClient);
 
@@ -176,8 +183,9 @@ void main() {
       expect(grpcClient.launchRequests.single.hasRemoteName(), isFalse);
     });
 
-    testWidgets('Configure opens the launch form for the selected version',
-        (tester) async {
+    testWidgets('Configure opens the launch form for the selected version', (
+      tester,
+    ) async {
       final container = await _pumpCard(
         tester,
         parentImage: noble,
@@ -189,8 +197,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(container.read(launchingImageProvider), jammy);
-      expect(tester.state<ScaffoldState>(find.byType(Scaffold)).isEndDrawerOpen,
-          isTrue);
+      expect(
+        tester.state<ScaffoldState>(find.byType(Scaffold)).isEndDrawerOpen,
+        isTrue,
+      );
     });
   });
 }

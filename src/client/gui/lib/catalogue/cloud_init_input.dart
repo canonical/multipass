@@ -72,7 +72,8 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
     try {
       // Check that the first line is #cloud-config
       const marker = "#cloud-config";
-      final markerIsMissing = !value.startsWith(marker) ||
+      final markerIsMissing =
+          !value.startsWith(marker) ||
           (value.length > marker.length &&
               value[marker.length] != '\n' &&
               value[marker.length] != '\r');
@@ -110,9 +111,7 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
 
     return TextSpan(
       style: TextStyle(
-        backgroundColor: Theme.of(context)
-            .colorScheme
-            .errorContainer
+        backgroundColor: Theme.of(context).colorScheme.errorContainer
             .withValues(alpha: 0.10),
       ),
       children: [textSpan],
@@ -149,33 +148,41 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
   }
 
   CodeEditor _createEditor(FormFieldState<String> field) => CodeEditor(
-      controller: _controller,
-      onChanged: (_) => field.didChange(_controller.text),
-      wordWrap: false,
-      autofocus: false,
-      style: CodeEditorStyle(
-          fontFamily: 'UbuntuMono',
-          fontSize: 16,
-          codeTheme: CodeHighlightTheme(
-              languages: {'yaml': CodeHighlightThemeMode(mode: langYaml)},
-              theme: atomOneLightTheme)),
-      shortcutsActivatorsBuilder: const CloudInitShortcutsActivatorsBuilder(),
-      indicatorBuilder:
-          (context, editingController, chunkController, notifier) =>
-              Row(children: [
-                DefaultCodeLineNumber(
-                    controller: editingController, notifier: notifier),
-                VerticalDivider()
-              ]));
+    controller: _controller,
+    onChanged: (_) => field.didChange(_controller.text),
+    wordWrap: false,
+    autofocus: false,
+    style: CodeEditorStyle(
+      fontFamily: 'UbuntuMono',
+      fontSize: 16,
+      codeTheme: CodeHighlightTheme(
+        languages: {'yaml': CodeHighlightThemeMode(mode: langYaml)},
+        theme: atomOneLightTheme,
+      ),
+    ),
+    shortcutsActivatorsBuilder: const CloudInitShortcutsActivatorsBuilder(),
+    indicatorBuilder: (context, editingController, chunkController, notifier) =>
+        Row(
+          children: [
+            DefaultCodeLineNumber(
+              controller: editingController,
+              notifier: notifier,
+            ),
+            VerticalDivider(),
+          ],
+        ),
+  );
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(l10n.launchFormCloudInitDescription),
-      const SizedBox(height: 12),
-      FormField<String>(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.launchFormCloudInitDescription),
+        const SizedBox(height: 12),
+        FormField<String>(
           initialValue: initialUserData,
           // The validator is called whenever the text is changed due to
           // autovalidateMode being set to always in `launch_form.dart`.
@@ -184,30 +191,35 @@ class _CloudInitInputState extends ConsumerState<CloudInitInput> {
           validator: validateCloudInitUserData,
           onSaved: widget.onSaved,
           builder: (field) => InputDecorator(
-              decoration: InputDecoration(
-                  labelText: l10n.launchFormCloudInitUserDataLabel,
-                  errorText: field.errorText,
-                  // Reserve space for errorText so that widgets underneath
-                  // don't get pushed down.
-                  helperText: ' ',
-                  labelStyle:
-                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              child: SizedBox(height: 220, child: _createEditor(field)))),
-      const SizedBox(height: 12),
-      Row(children: [
-        OutlinedButton(
-          onPressed: _pickFile,
-          child: Text(l10n.launchFormCloudInitLoadFile),
+            decoration: InputDecoration(
+              labelText: l10n.launchFormCloudInitUserDataLabel,
+              errorText: field.errorText,
+              // Reserve space for errorText so that widgets underneath
+              // don't get pushed down.
+              helperText: ' ',
+              labelStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            child: SizedBox(height: 220, child: _createEditor(field)),
+          ),
         ),
-        const SizedBox(width: 12),
-        OutlinedButton(
-          onPressed: () => setState(() {
-            _controller.text = initialUserData;
-          }),
-          child: Text(l10n.launchFormCloudInitReset),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            OutlinedButton(
+              onPressed: _pickFile,
+              child: Text(l10n.launchFormCloudInitLoadFile),
+            ),
+            const SizedBox(width: 12),
+            OutlinedButton(
+              onPressed: () => setState(() {
+                _controller.text = initialUserData;
+              }),
+              child: Text(l10n.launchFormCloudInitReset),
+            ),
+          ],
         ),
-      ])
-    ]);
+      ],
+    );
   }
 }
 
@@ -220,25 +232,37 @@ class CloudInitShortcutsActivatorsBuilder
     switch (type) {
       case CodeShortcutType.selectionExtendWordBoundaryForward:
         return [
-          SingleActivator(LogicalKeyboardKey.arrowLeft,
-              shift: true, control: true)
+          SingleActivator(
+            LogicalKeyboardKey.arrowLeft,
+            shift: true,
+            control: true,
+          ),
         ];
       case CodeShortcutType.selectionExtendWordBoundaryBackward:
         return [
-          SingleActivator(LogicalKeyboardKey.arrowRight,
-              shift: true, control: true)
+          SingleActivator(
+            LogicalKeyboardKey.arrowRight,
+            shift: true,
+            control: true,
+          ),
         ];
       case CodeShortcutType.selectionExtendUp:
         return [
           SingleActivator(LogicalKeyboardKey.arrowUp, shift: true),
-          SingleActivator(LogicalKeyboardKey.arrowUp,
-              shift: true, control: true)
+          SingleActivator(
+            LogicalKeyboardKey.arrowUp,
+            shift: true,
+            control: true,
+          ),
         ];
       case CodeShortcutType.selectionExtendDown:
         return [
           SingleActivator(LogicalKeyboardKey.arrowDown, shift: true),
-          SingleActivator(LogicalKeyboardKey.arrowDown,
-              shift: true, control: true)
+          SingleActivator(
+            LogicalKeyboardKey.arrowDown,
+            shift: true,
+            control: true,
+          ),
         ];
       default:
         return super.build(type);

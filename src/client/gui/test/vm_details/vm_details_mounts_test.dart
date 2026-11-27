@@ -15,17 +15,14 @@ void main() {
     return ProviderScope(
       overrides: [
         vmInfoProvider(vmName).overrideWithBuild(
-          (ref, notifier) => DetailedInfoItem(
-            instanceStatus: InstanceStatus(status: status),
-          ),
+          (ref, notifier) =>
+              DetailedInfoItem(instanceStatus: InstanceStatus(status: status)),
         ),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
-          body: MountDetails(vmName),
-        ),
+        home: Scaffold(body: MountDetails(vmName)),
       ),
     );
   }
@@ -52,16 +49,13 @@ void main() {
       await tester.pumpWidget(buildWidget(Status.UNAVAILABLE));
       await tester.pumpAndSettle();
 
-      final button = tester.widget<OutlinedButton>(
-        find.byType(OutlinedButton),
-      );
+      final button = tester.widget<OutlinedButton>(find.byType(OutlinedButton));
       expect(button.onPressed, isNull);
     });
   });
 
   group('MountDetails becoming unavailable mid-edit', () {
-    testWidgets(
-        'closes the add-mount form and disables actions when instance '
+    testWidgets('closes the add-mount form and disables actions when instance '
         'becomes unavailable while adding a mount', (tester) async {
       late VmInfoNotifier notifier;
 
@@ -78,9 +72,7 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(
-              body: MountDetails(vmName),
-            ),
+            home: Scaffold(body: MountDetails(vmName)),
           ),
         ),
       );
@@ -97,8 +89,10 @@ void main() {
         expect(pendingException, isNull);
       } else {
         expect(pendingException, isNotNull);
-        expect(pendingException.toString(),
-            contains('Failed to load libdart_ffi library'));
+        expect(
+          pendingException.toString(),
+          contains('Failed to load libdart_ffi library'),
+        );
       }
 
       expect(find.byType(EditableMountPoint), findsOneWidget);
@@ -114,9 +108,7 @@ void main() {
       expect(find.widgetWithText(TextButton, 'Save'), findsNothing);
 
       // The top-level button reverts to a disabled Add mount button.
-      final button = tester.widget<OutlinedButton>(
-        find.byType(OutlinedButton),
-      );
+      final button = tester.widget<OutlinedButton>(find.byType(OutlinedButton));
       expect(button.onPressed, isNull);
     });
   });

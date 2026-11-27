@@ -64,16 +64,19 @@ final pollingProvider = StreamProvider<({List<VmInfo> info, List<Zone> zones})>(
     while (true) {
       final timer = Future.delayed(1900.milliseconds);
       try {
-        final [info, zones] = await Future.wait(
-          [grpcClient.info(), grpcClient.zones()],
-          eagerError: true,
-        );
+        final [info, zones] = await Future.wait([
+          grpcClient.info(),
+          grpcClient.zones(),
+        ], eagerError: true);
         yield (info: info as List<VmInfo>, zones: zones as List<Zone>);
         lastError = null;
       } catch (error, stackTrace) {
         if (error != lastError) {
-          logger.e('Error on polling info',
-              error: error, stackTrace: stackTrace);
+          logger.e(
+            'Error on polling info',
+            error: error,
+            stackTrace: stackTrace,
+          );
           yield* Stream.error(error, stackTrace);
         }
         lastError = error;
@@ -108,7 +111,9 @@ final daemonInfoProvider = FutureProvider((ref) {
 class AllVmInfosNotifier extends Notifier<List<DetailedInfoItem>> {
   @override
   List<DetailedInfoItem> build() {
-    return ref.watch(pollingProvider).when(
+    return ref
+        .watch(pollingProvider)
+        .when(
           data: (data) => data.info,
           loading: () => const [],
           error: (_, __) => const [],
@@ -122,8 +127,8 @@ class AllVmInfosNotifier extends Notifier<List<DetailedInfoItem>> {
 
 final allVmInfosProvider =
     NotifierProvider<AllVmInfosNotifier, List<DetailedInfoItem>>(
-  AllVmInfosNotifier.new,
-);
+      AllVmInfosNotifier.new,
+    );
 
 final vmInfosProvider = Provider((ref) {
   final existingVms = ref
@@ -175,7 +180,9 @@ final deletedVmsProvider = Provider((ref) {
 });
 
 final zonesProvider = Provider<BuiltList<Zone>>((ref) {
-  return ref.watch(pollingProvider).when(
+  return ref
+      .watch(pollingProvider)
+      .when(
         data: (data) => data.zones.build(),
         loading: () => BuiltList(),
         error: (_, __) => BuiltList(),
@@ -186,10 +193,9 @@ final zonesProvider = Provider<BuiltList<Zone>>((ref) {
 // (old Hyper-V) return no zones, so an empty list means unsupported.
 // TODO@backends: remove once deprecated backends are removed
 final azSupportedProvider = Provider<bool>((ref) {
-  return ref.watch(pollingProvider).maybeWhen(
-        data: (data) => data.zones.isNotEmpty,
-        orElse: () => true,
-      );
+  return ref
+      .watch(pollingProvider)
+      .maybeWhen(data: (data) => data.zones.isNotEmpty, orElse: () => true);
 });
 
 class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
@@ -203,18 +209,16 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
   void add(LaunchRequest request) {
     final vms = state;
     state = vms.rebuild((builder) {
-      builder.add(DetailedInfoItem(
-        name: request.instanceName,
-        cpuCount: request.numCores.toString(),
-        diskTotal: request.diskSpace,
-        memoryTotal: request.memSize,
-        zone: Zone(
-          name: ref.read(azSupportedProvider) ? request.zone : '',
+      builder.add(
+        DetailedInfoItem(
+          name: request.instanceName,
+          cpuCount: request.numCores.toString(),
+          diskTotal: request.diskSpace,
+          memoryTotal: request.memSize,
+          zone: Zone(name: ref.read(azSupportedProvider) ? request.zone : ''),
+          instanceInfo: InstanceDetails(currentRelease: request.image),
         ),
-        instanceInfo: InstanceDetails(
-          currentRelease: request.image,
-        ),
-      ));
+      );
     });
   }
 
@@ -236,8 +240,8 @@ class LaunchingVmsNotifier extends Notifier<BuiltList<DetailedInfoItem>> {
 
 final launchingVmsProvider =
     NotifierProvider<LaunchingVmsNotifier, BuiltList<DetailedInfoItem>>(
-  LaunchingVmsNotifier.new,
-);
+      LaunchingVmsNotifier.new,
+    );
 
 final isLaunchingProvider = Provider.autoDispose.family<bool, String>((
   ref,
@@ -254,7 +258,9 @@ class ClientSettingNotifier extends Notifier<String> {
 
   @override
   String build() {
-    file.parent.create(recursive: true).then(
+    file.parent
+        .create(recursive: true)
+        .then(
           (dir) => dir
               .watch()
               .where((event) => event.path == file.path)
@@ -400,10 +406,8 @@ class GuiSettingNotifier extends Notifier<String?> {
   @override
   String? build() {
     final sharedPreferences = ref.read(sharedPreferencesProvider);
-// Define defaults for specific keys
-    final defaultValues = {
-      onAppCloseKey: 'ask',
-    };
+    // Define defaults for specific keys
+    final defaultValues = {onAppCloseKey: 'ask'};
 
     // Return the stored value, or the default value, or null
     return sharedPreferences.getString(arg) ?? defaultValues[arg];
@@ -425,13 +429,12 @@ const askTerminalCloseKey = 'askTerminalClose';
 final guiSettingProvider = NotifierProvider.autoDispose
     .family<GuiSettingNotifier, String?, String>(GuiSettingNotifier.new);
 
-final networksProvider =
-    FutureProvider.autoDispose<BuiltSet<String>>((ref) async {
-  final driver = ref.watch(daemonSettingProvider(driverKey)).when(
-        data: (data) => data,
-        loading: () => null,
-        error: (_, __) => null,
-      );
+final networksProvider = FutureProvider.autoDispose<BuiltSet<String>>((
+  ref,
+) async {
+  final driver = ref
+      .watch(daemonSettingProvider(driverKey))
+      .when(data: (data) => data, loading: () => null, error: (_, __) => null);
   if (driver != null && ref.watch(daemonAvailableProvider)) {
     final networks = await ref.watch(grpcClientProvider).networks();
     return BuiltSet<String>(networks);
@@ -451,4 +454,5 @@ class SessionTerminalFontSizeNotifier extends Notifier<double> {
 
 final sessionTerminalFontSizeProvider =
     NotifierProvider<SessionTerminalFontSizeNotifier, double>(
-        SessionTerminalFontSizeNotifier.new);
+      SessionTerminalFontSizeNotifier.new,
+    );

@@ -76,7 +76,7 @@ num gibiToBytes(num value) => value.gibi;
 const _sectorSize = 512;
 const _scale = 8;
 
-int log2(final int x) => math.log(x) ~/ math.ln2;
+int log2(int x) => math.log(x) ~/ math.ln2;
 
 int nonLinearMapping(int value) {
   value ~/= _sectorSize;
@@ -88,7 +88,7 @@ int nonLinearMapping(int value) {
   return power * _scale + step;
 }
 
-int nonLinearInverseMapping(final int value) {
+int nonLinearInverseMapping(int value) {
   final power = value ~/ _scale;
   final step = value % _scale;
   final tickMb = math.pow(2, power) as int;

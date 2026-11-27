@@ -36,8 +36,9 @@ void main() {
       expect(find.text('hello'), findsOneWidget);
     });
 
-    testWidgets('close button dispatches CloseNotificationIntent',
-        (tester) async {
+    testWidgets('close button dispatches CloseNotificationIntent', (
+      tester,
+    ) async {
       var invoked = false;
 
       await tester.pumpWidget(
@@ -85,23 +86,20 @@ void main() {
     });
 
     testWidgets('shows cancel outlined icon', (tester) async {
-      await tester.pumpWidget(
-        buildWidget(ErrorNotification(text: 'error')),
-      );
+      await tester.pumpWidget(buildWidget(ErrorNotification(text: 'error')));
       expect(find.byIcon(Icons.cancel_outlined), findsOneWidget);
     });
 
     testWidgets('is closeable (shows close button)', (tester) async {
-      await tester.pumpWidget(
-        buildWidget(ErrorNotification(text: 'error')),
-      );
+      await tester.pumpWidget(buildWidget(ErrorNotification(text: 'error')));
       expect(find.byIcon(Icons.close), findsOneWidget);
     });
   });
 
   group('OperationNotification', () {
-    testWidgets('shows CircularProgressIndicator while pending',
-        (tester) async {
+    testWidgets('shows CircularProgressIndicator while pending', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         buildWidget(
           OperationNotification(
@@ -115,8 +113,9 @@ void main() {
       expect(find.text('Working...'), findsOneWidget);
     });
 
-    testWidgets('shows success notification when future completes',
-        (tester) async {
+    testWidgets('shows success notification when future completes', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         buildWidget(
           OperationNotification(
@@ -136,12 +135,7 @@ void main() {
       future.ignore();
 
       await tester.pumpWidget(
-        buildWidget(
-          OperationNotification(
-            future: future,
-            text: 'Working...',
-          ),
-        ),
+        buildWidget(OperationNotification(future: future, text: 'Working...')),
       );
       await tester.pumpAndSettle();
 
@@ -159,8 +153,8 @@ void main() {
               actions: {
                 CloseNotificationIntent:
                     CallbackAction<CloseNotificationIntent>(
-                  onInvoke: (_) => onClose(),
-                ),
+                      onInvoke: (_) => onClose(),
+                    ),
               },
               child: TimeoutNotification(
                 barColor: Colors.green,
@@ -185,8 +179,9 @@ void main() {
       expect(closed, isTrue);
     });
 
-    testWidgets('hovering pauses the timeout and leaving restarts it',
-        (tester) async {
+    testWidgets('hovering pauses the timeout and leaving restarts it', (
+      tester,
+    ) async {
       var closed = false;
       await pumpTimeout(tester, () => closed = true);
       await tester.pump(const Duration(milliseconds: 900));
@@ -211,9 +206,7 @@ void main() {
   group('SuccessNotification', () {
     testWidgets('shows the child with a success icon', (tester) async {
       await tester.pumpWidget(
-        buildWidget(
-          const SuccessNotification(child: Text('success message')),
-        ),
+        buildWidget(const SuccessNotification(child: Text('success message'))),
       );
 
       expect(find.text('success message'), findsOneWidget);
@@ -224,9 +217,7 @@ void main() {
   group('LaunchingNotification', () {
     Future<ProviderContainer> pumpApp(WidgetTester tester, Widget body) async {
       final container = ProviderContainer(
-        overrides: [
-          vmNamesProvider.overrideWith((ref) => BuiltSet<String>()),
-        ],
+        overrides: [vmNamesProvider.overrideWith((ref) => BuiltSet<String>())],
       );
       addTearDown(container.dispose);
       await tester.pumpWidget(
@@ -253,12 +244,14 @@ void main() {
       LaunchProgress_ProgressType type, [
       String percentComplete = '',
     ]) {
-      return Left(LaunchReply(
-        launchProgress: LaunchProgress(
-          type: type,
-          percentComplete: percentComplete,
+      return Left(
+        LaunchReply(
+          launchProgress: LaunchProgress(
+            type: type,
+            percentComplete: percentComplete,
+          ),
         ),
-      ));
+      );
     }
 
     testWidgets('shows GrpcError.message text on stream error', (tester) async {
@@ -273,16 +266,19 @@ void main() {
       );
       await tester.pump();
 
-      final error =
-          GrpcError.custom(StatusCode.unknown, 'gRPC failure message');
+      final error = GrpcError.custom(
+        StatusCode.unknown,
+        'gRPC failure message',
+      );
       controller.addError(error);
       await tester.pump();
 
       expect(find.text('gRPC failure message'), findsOneWidget);
     });
 
-    testWidgets('shows error.toString() for non-GrpcError on stream error',
-        (tester) async {
+    testWidgets('shows error.toString() for non-GrpcError on stream error', (
+      tester,
+    ) async {
       final controller = newController();
       await pumpApp(
         tester,
@@ -301,41 +297,44 @@ void main() {
     });
 
     testWidgets(
-        'shows SuccessNotification with "Go to instance" when stream completes',
-        (tester) async {
-      await pumpApp(
-        tester,
-        LaunchingNotification(
-          stream: Stream<Either<LaunchReply, MountReply>?>.fromIterable([]),
-          cancelCompleter: Completer(),
-          name: 'my-vm',
-        ),
-      );
-      await tester.pump();
+      'shows SuccessNotification with "Go to instance" when stream completes',
+      (tester) async {
+        await pumpApp(
+          tester,
+          LaunchingNotification(
+            stream: Stream<Either<LaunchReply, MountReply>?>.fromIterable([]),
+            cancelCompleter: Completer(),
+            name: 'my-vm',
+          ),
+        );
+        await tester.pump();
 
-      expect(find.byType(SuccessNotification), findsOneWidget);
-      expect(find.text(_l10n.launchGoToInstance), findsOneWidget);
-    });
+        expect(find.byType(SuccessNotification), findsOneWidget);
+        expect(find.text(_l10n.launchGoToInstance), findsOneWidget);
+      },
+    );
 
     testWidgets(
-        '"Go to instance" button sets sidebarKeyProvider to "vm-{name}"',
-        (tester) async {
-      final container = await pumpApp(
-        tester,
-        LaunchingNotification(
-          stream: Stream<Either<LaunchReply, MountReply>?>.fromIterable([]),
-          cancelCompleter: Completer(),
-          name: 'my-vm',
-        ),
-      );
-      await tester.pump();
+      '"Go to instance" button sets sidebarKeyProvider to "vm-{name}"',
+      (tester) async {
+        final container = await pumpApp(
+          tester,
+          LaunchingNotification(
+            stream: Stream<Either<LaunchReply, MountReply>?>.fromIterable([]),
+            cancelCompleter: Completer(),
+            name: 'my-vm',
+          ),
+        );
+        await tester.pump();
 
-      await tester.tap(find.text(_l10n.launchGoToInstance));
-      expect(container.read(sidebarKeyProvider), equals('vm-my-vm'));
-    });
+        await tester.tap(find.text(_l10n.launchGoToInstance));
+        expect(container.read(sidebarKeyProvider), equals('vm-my-vm'));
+      },
+    );
 
-    testWidgets('tapping the in-progress notification goes to the instance',
-        (tester) async {
+    testWidgets('tapping the in-progress notification goes to the instance', (
+      tester,
+    ) async {
       final controller = newController();
       final container = await pumpApp(
         tester,
@@ -353,8 +352,9 @@ void main() {
       expect(container.read(sidebarKeyProvider), equals('vm-my-vm'));
     });
 
-    testWidgets('VERIFY progress shows verify message without cancel button',
-        (tester) async {
+    testWidgets('VERIFY progress shows verify message without cancel button', (
+      tester,
+    ) async {
       final controller = newController();
       await pumpApp(
         tester,
@@ -372,8 +372,9 @@ void main() {
       expect(find.text(_l10n.commonCancel), findsNothing);
     });
 
-    testWidgets('download progress shows percentage and cancel button',
-        (tester) async {
+    testWidgets('download progress shows percentage and cancel button', (
+      tester,
+    ) async {
       final controller = newController();
       await pumpApp(
         tester,
@@ -417,8 +418,9 @@ void main() {
       });
     }
 
-    testWidgets('tapping cancel button completes cancelCompleter',
-        (tester) async {
+    testWidgets('tapping cancel button completes cancelCompleter', (
+      tester,
+    ) async {
       final cancelCompleter = Completer<void>();
       final controller = newController();
       await pumpApp(
@@ -439,11 +441,14 @@ void main() {
       expect(cancelCompleter.isCompleted, isTrue);
     });
 
-    testWidgets('tapping cancel again while the notification closes is safe',
-        (tester) async {
+    testWidgets('tapping cancel again while the notification closes is safe', (
+      tester,
+    ) async {
       final controller = newController();
       final container = await pumpApp(tester, const NotificationList());
-      container.read(notificationsProvider.notifier).add(
+      container
+          .read(notificationsProvider.notifier)
+          .add(
             LaunchingNotification(
               stream: controller.stream,
               cancelCompleter: Completer(),

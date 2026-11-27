@@ -112,8 +112,9 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
       message: l10n.vmDetailsUnavailableToMount,
       child: mounts.isEmpty ? addMountButton : configureButton,
     );
-    final topRightButton =
-        effectivePhase == MountDetailsPhase.idle ? detailsButton : cancelButton;
+    final topRightButton = effectivePhase == MountDetailsPhase.idle
+        ? detailsButton
+        : cancelButton;
 
     return Form(
       key: formKey,
@@ -125,8 +126,10 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
             children: [
               SizedBox(
                 height: 50,
-                child: Text(l10n.mountsTitle,
-                    style: const TextStyle(fontSize: 24)),
+                child: Text(
+                  l10n.mountsTitle,
+                  style: const TextStyle(fontSize: 24),
+                ),
               ),
               const Spacer(),
               topRightButton,
@@ -190,7 +193,10 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
                 l10n.unmountNotificationSuccess(target, widget.name),
             onError: (error) {
               return l10n.unmountNotificationError(
-                  target, widget.name, '$error');
+                target,
+                widget.name,
+                '$error',
+              );
             },
           );
         },

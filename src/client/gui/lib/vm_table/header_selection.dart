@@ -19,8 +19,8 @@ class EnabledHeadersNotifier extends Notifier<BuiltMap<String, bool>> {
 
 final enabledHeadersProvider =
     NotifierProvider<EnabledHeadersNotifier, BuiltMap<String, bool>>(
-  EnabledHeadersNotifier.new,
-);
+      EnabledHeadersNotifier.new,
+    );
 
 class HeaderSelectionTile extends ConsumerWidget {
   final String name;

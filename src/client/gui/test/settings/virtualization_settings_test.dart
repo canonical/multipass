@@ -69,13 +69,14 @@ void main() {
         mpPlatform.drivers.entries.first;
 
     testWidgets(
-        'shows the current driver even if the platform does not list it',
-        (tester) async {
-      await tester.pumpWidget(_buildApp(driver: 'unlisted'));
-      await tester.pumpAndSettle();
+      'shows the current driver even if the platform does not list it',
+      (tester) async {
+        await tester.pumpWidget(_buildApp(driver: 'unlisted'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('unlisted'), findsOneWidget);
-    });
+        expect(find.text('unlisted'), findsOneWidget);
+      },
+    );
 
     testWidgets('selecting another driver saves it', (tester) async {
       final driverSets = <String>[];
@@ -89,8 +90,9 @@ void main() {
       expect(driverSets, [platformDriver]);
     });
 
-    testWidgets('selecting the current driver does not save it',
-        (tester) async {
+    testWidgets('selecting the current driver does not save it', (
+      tester,
+    ) async {
       final driverSets = <String>[];
       await tester.pumpWidget(
         _buildApp(driver: platformDriver, driverSets: driverSets),
@@ -112,8 +114,9 @@ void main() {
       expect(find.byType(DropdownButton<String>), findsOneWidget);
     });
 
-    testWidgets('selects the saved network when it is available',
-        (tester) async {
+    testWidgets('selects the saved network when it is available', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildApp(bridgedNetwork: 'eth0', networks: {'eth0', 'en0'}),
       );
@@ -123,8 +126,9 @@ void main() {
       expect(_bridgeDropdown(tester).value, 'eth0');
     });
 
-    testWidgets('falls back to "None" when the saved network is unavailable',
-        (tester) async {
+    testWidgets('falls back to "None" when the saved network is unavailable', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildApp(bridgedNetwork: 'eth99', networks: {'eth0', 'en0'}),
       );
@@ -136,10 +140,7 @@ void main() {
     testWidgets('selecting a network saves it', (tester) async {
       final bridgedNetworkSets = <String>[];
       await tester.pumpWidget(
-        _buildApp(
-          networks: {'eth0'},
-          bridgedNetworkSets: bridgedNetworkSets,
-        ),
+        _buildApp(networks: {'eth0'}, bridgedNetworkSets: bridgedNetworkSets),
       );
       await tester.pumpAndSettle();
 

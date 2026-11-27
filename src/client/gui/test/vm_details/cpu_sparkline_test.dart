@@ -12,17 +12,16 @@ class _CpuTimesNotifier extends Notifier<String> {
   void set(String value) => state = value;
 }
 
-final _cpuTimesProvider =
-    NotifierProvider<_CpuTimesNotifier, String>(_CpuTimesNotifier.new);
+final _cpuTimesProvider = NotifierProvider<_CpuTimesNotifier, String>(
+  _CpuTimesNotifier.new,
+);
 
 ProviderContainer makeContainer() {
   final container = ProviderContainer(
     overrides: [
       vmInfoProvider('test-vm').overrideWithBuild(
         (ref, notifier) => DetailedInfoItem(
-          instanceInfo: InstanceDetails(
-            cpuTimes: ref.watch(_cpuTimesProvider),
-          ),
+          instanceInfo: InstanceDetails(cpuTimes: ref.watch(_cpuTimesProvider)),
         ),
       ),
     ],
@@ -79,7 +78,9 @@ void main() {
             .set('cpu  1000 0 0 0 0 0 0 0');
 
         expect(
-            container.read(cpuUsagesProvider('test-vm')).last, equals(100.0));
+          container.read(cpuUsagesProvider('test-vm')).last,
+          equals(100.0),
+        );
       });
 
       test('reports 50% usage when the CPU was busy for half the interval', () {
@@ -122,7 +123,9 @@ void main() {
             .set('cpu  1500 0 0 500 0 0 0 0');
 
         expect(
-            container.read(cpuUsagesProvider('test-vm')).last, equals(100.0));
+          container.read(cpuUsagesProvider('test-vm')).last,
+          equals(100.0),
+        );
       });
 
       test('records 0% usage for an empty sample', () {
@@ -148,7 +151,9 @@ void main() {
             .set('cpu  1000 0 0 0 0 0 0 0');
 
         expect(
-            container.read(cpuUsagesProvider('test-vm')).last, equals(100.0));
+          container.read(cpuUsagesProvider('test-vm')).last,
+          equals(100.0),
+        );
       });
     });
 
@@ -237,7 +242,9 @@ void main() {
           container.read(_cpuTimesProvider.notifier).set(sample);
 
           expect(
-              container.read(cpuUsagesProvider('test-vm')).last, equals(50.0));
+            container.read(cpuUsagesProvider('test-vm')).last,
+            equals(50.0),
+          );
         });
       }
 

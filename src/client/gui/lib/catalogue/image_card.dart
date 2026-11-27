@@ -107,8 +107,10 @@ class ImageCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(_getDescription(parentImage, l10n),
-                style: const TextStyle(fontWeight: FontWeight.w300)),
+            Text(
+              _getDescription(parentImage, l10n),
+              style: const TextStyle(fontWeight: FontWeight.w300),
+            ),
             const SizedBox(height: 16),
             const Spacer(),
             Container(
@@ -127,14 +129,16 @@ class ImageCard extends ConsumerWidget {
                 isExpanded: true,
                 underline: const SizedBox(),
                 items: versions
-                    .map((v) => DropdownMenuItem(
-                          value: v.release,
-                          child: Text(
-                            _getVersionLabel(v),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ))
+                    .map(
+                      (v) => DropdownMenuItem(
+                        value: v.release,
+                        child: Text(
+                          _getVersionLabel(v),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    )
                     .toList(),
                 onChanged: versions.length > 1
                     ? (String? newValue) {
@@ -152,35 +156,39 @@ class ImageCard extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             const SizedBox(height: 16),
-            Row(children: [
-              TextButton(
-                onPressed: () {
-                  final name = ref.read(randomNameProvider);
-                  final alias = selectedImage.aliases.first;
-                  final launchRequest = LaunchRequest(
-                    instanceName: name,
-                    image: alias,
-                    numCores: defaultCpus,
-                    memSize: '${defaultRam}B',
-                    diskSpace: '${defaultDisk}B',
-                    remoteName: selectedImage.hasRemoteName()
-                        ? selectedImage.remoteName
-                        : null,
-                  );
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () {
+                    final name = ref.read(randomNameProvider);
+                    final alias = selectedImage.aliases.first;
+                    final launchRequest = LaunchRequest(
+                      instanceName: name,
+                      image: alias,
+                      numCores: defaultCpus,
+                      memSize: '${defaultRam}B',
+                      diskSpace: '${defaultDisk}B',
+                      remoteName: selectedImage.hasRemoteName()
+                          ? selectedImage.remoteName
+                          : null,
+                    );
 
-                  initiateLaunchFlow(ref, launchRequest);
-                },
-                child: Text(l10n.commonLaunch),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: () {
-                  ref.read(launchingImageProvider.notifier).set(selectedImage);
-                  Scaffold.of(context).openEndDrawer();
-                },
-                child: Text(l10n.commonConfigure),
-              ),
-            ]),
+                    initiateLaunchFlow(ref, launchRequest);
+                  },
+                  child: Text(l10n.commonLaunch),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: () {
+                    ref
+                        .read(launchingImageProvider.notifier)
+                        .set(selectedImage);
+                    Scaffold.of(context).openEndDrawer();
+                  },
+                  child: Text(l10n.commonConfigure),
+                ),
+              ],
+            ),
           ],
         ),
       ),

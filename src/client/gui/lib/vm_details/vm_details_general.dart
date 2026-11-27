@@ -193,7 +193,8 @@ class _RenderHeaderLayout extends RenderBox
     double top,
   ) {
     final tail = row.sublist(1);
-    final tailWidth = tail.fold<double>(0, (sum, b) => sum + b.size.width) +
+    final tailWidth =
+        tail.fold<double>(0, (sum, b) => sum + b.size.width) +
         _headerGap * (tail.length - 1);
     final available = width - tailWidth - _headerGap;
     name.layout(
