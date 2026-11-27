@@ -17,9 +17,10 @@
 
 #pragma once
 
+#include <multipass/singleton.h>
+#include <multipass/ssh/sftp_client.h>
 #include <multipass/ssh/ssh_client.h>
 #include <multipass/ssh/ssh_coordinates.h>
-#include <multipass/singleton.h>
 
 #include <memory>
 
@@ -30,6 +31,7 @@ namespace multipass
 class Terminal;
 
 using SSHClientUPtr = std::unique_ptr<SSHClient>;
+using SftpClientUPtr = std::unique_ptr<SFTPClient>;
 
 class ClientSSHFactory : public Singleton<ClientSSHFactory>
 {
@@ -38,5 +40,6 @@ public:
 
     virtual SSHClientUPtr make_ssh_client(const SSHCoordinates& ssh_coordinates,
                                           Terminal* term) const;
+    virtual SftpClientUPtr make_sftp_client(const SSHCoordinates& ssh_coordinates) const;
 };
 } // namespace multipass

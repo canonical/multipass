@@ -16,11 +16,13 @@
  */
 
 #include <multipass/ssh/client_ssh_factory.h>
+#include <multipass/ssh/plain_sftp_client.h>
 #include <multipass/ssh/platform_ssh_client.h>
 
 namespace mp = multipass;
 
-mp::ClientSSHFactory::ClientSSHFactory(const Singleton<ClientSSHFactory>::PrivatePass& pass) noexcept
+mp::ClientSSHFactory::ClientSSHFactory(
+    const Singleton<ClientSSHFactory>::PrivatePass& pass) noexcept
     : Singleton<ClientSSHFactory>::Singleton{pass}
 {
 }
@@ -29,4 +31,10 @@ mp::SSHClientUPtr mp::ClientSSHFactory::make_ssh_client(const mp::SSHCoordinates
                                                         Terminal* term) const
 {
     return std::make_unique<mp::PlatformSSHClient>(mp::PlainSSHSession{ssh_coordinates}, term);
+}
+
+mp::SftpClientUPtr mp::ClientSSHFactory::make_sftp_client(
+    const mp::SSHCoordinates& ssh_coordinates) const
+{
+    return std::make_unique<mp::PlainSFTPClient>(mp::PlainSSHSession{ssh_coordinates});
 }

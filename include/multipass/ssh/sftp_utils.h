@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include "sftp_client.h"
 #include "sftp_dir_iterator.h"
 
 #include <multipass/format.h>
@@ -84,6 +83,5 @@ struct SFTPUtils : public Singleton<SFTPUtils>
     virtual void mkdir_recursive(sftp_session sftp, const fs::path& path);
     virtual std::unique_ptr<SFTPDirIterator> make_SFTPDirIterator(sftp_session sftp,
                                                                   const fs::path& path);
-    virtual std::unique_ptr<SFTPClient> make_SFTPClient(const SSHCoordinates& coordinates);
 };
 } // namespace multipass
