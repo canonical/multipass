@@ -15,7 +15,7 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
-SPHINX_DIR = os.path.join(os.getcwd(), ".sphinx")
+DEV_DIR = os.path.join(os.getcwd(), "_dev")
 
 GITHUB_REPO = "canonical/documentation-style-guide"
 GITHUB_CLONE_URL = f"https://github.com/{GITHUB_REPO}.git"
@@ -133,7 +133,7 @@ def parse_arguments():
 
 def main():
     # Define local directory paths
-    vale_files_dict = {file: os.path.join(SPHINX_DIR, file) for file in VALE_FILE_LIST}
+    vale_files_dict = {file: os.path.join(DEV_DIR, file) for file in VALE_FILE_LIST}
 
     # Parse command line arguments, default to overwrite_enabled = True
     overwrite_enabled = not parse_arguments().no_overwrite
