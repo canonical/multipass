@@ -29,5 +29,4 @@ sphinx-last-updated-by-git
 sphinx-sitemap
 
 # Vale dependencies
-rst2html
 vale==3.13.0.0
