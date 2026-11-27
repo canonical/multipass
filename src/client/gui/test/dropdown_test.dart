@@ -44,8 +44,9 @@ void main() {
     expect(find.text('My Label'), findsOneWidget);
   });
 
-  testWidgets('shows only the selected item text when label is null',
-      (tester) async {
+  testWidgets('shows only the selected item text when label is null', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildDropdown());
 
     expect(find.byType(Text), findsOneWidget);
@@ -63,8 +64,9 @@ void main() {
     expect(find.text('Something is wrong'), findsOneWidget);
   });
 
-  testWidgets('invokes onChanged with the key of the tapped item',
-      (tester) async {
+  testWidgets('invokes onChanged with the key of the tapped item', (
+    tester,
+  ) async {
     String? changedValue;
     await tester.pumpWidget(buildDropdown(onChanged: (v) => changedValue = v));
 
@@ -76,13 +78,13 @@ void main() {
     expect(changedValue, 'b');
   });
 
-  testWidgets('does not open the menu or invoke onChanged when disabled',
-      (tester) async {
+  testWidgets('does not open the menu or invoke onChanged when disabled', (
+    tester,
+  ) async {
     var changeCount = 0;
-    await tester.pumpWidget(buildDropdown(
-      enabled: false,
-      onChanged: (_) => changeCount++,
-    ));
+    await tester.pumpWidget(
+      buildDropdown(enabled: false, onChanged: (_) => changeCount++),
+    );
 
     await tester.tap(find.byType(DropdownButton<String>));
     await tester.pumpAndSettle();
@@ -91,8 +93,9 @@ void main() {
     expect(changeCount, 0);
   });
 
-  testWidgets('shows no selection when value is not one of the items',
-      (tester) async {
+  testWidgets('shows no selection when value is not one of the items', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildDropdown(value: 'missing'));
 
     expect(tester.takeException(), isNull);

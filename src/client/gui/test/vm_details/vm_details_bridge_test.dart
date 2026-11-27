@@ -36,9 +36,8 @@ Future<ProviderContainer> _pumpBridge(
   final container = ProviderContainer(
     overrides: [
       vmInfoProvider(_vmName).overrideWithBuild(
-        (ref, _) => DetailedInfoItem(
-          instanceStatus: InstanceStatus(status: status),
-        ),
+        (ref, _) =>
+            DetailedInfoItem(instanceStatus: InstanceStatus(status: status)),
       ),
       vmResourceProvider(_bridgedKey).overrideWith(
         () => _FakeVmResourceNotifier(
@@ -48,9 +47,8 @@ Future<ProviderContainer> _pumpBridge(
         ),
       ),
       networksProvider.overrideWith((_) async => BuiltSet<String>(networks)),
-      daemonSettingProvider('local.bridged-network').overrideWithBuild(
-        (ref, _) => bridgedNetwork,
-      ),
+      daemonSettingProvider('local.bridged-network')
+          .overrideWithBuild((ref, _) => bridgedNetwork),
     ],
   );
   addTearDown(container.dispose);
@@ -78,9 +76,8 @@ Future<void> _tapButton(WidgetTester tester, String text) async {
   await tester.pumpAndSettle();
 }
 
-OutlinedButton _configureButton(WidgetTester tester) => tester.widget(
-      find.widgetWithText(OutlinedButton, _l10n.commonConfigure),
-    );
+OutlinedButton _configureButton(WidgetTester tester) =>
+    tester.widget(find.widgetWithText(OutlinedButton, _l10n.commonConfigure));
 
 void main() {
   group('BridgedDetails', () {
@@ -102,16 +99,18 @@ void main() {
     });
 
     for (final status in [Status.RUNNING, Status.SUSPENDED, Status.STARTING]) {
-      testWidgets('disables Configure when status is ${status.name}',
-          (tester) async {
+      testWidgets('disables Configure when status is ${status.name}', (
+        tester,
+      ) async {
         await _pumpBridge(tester, status: status);
 
         expect(_configureButton(tester).onPressed, isNull);
       });
     }
 
-    testWidgets('Configure enters editing and claims the edit page',
-        (tester) async {
+    testWidgets('Configure enters editing and claims the edit page', (
+      tester,
+    ) async {
       final container = await _pumpBridge(tester);
 
       await _tapButton(tester, _l10n.commonConfigure);
@@ -141,8 +140,9 @@ void main() {
         true,
       ),
     ]) {
-      testWidgets('checkbox enabled=$enabled when $description',
-          (tester) async {
+      testWidgets('checkbox enabled=$enabled when $description', (
+        tester,
+      ) async {
         await _pumpBridge(
           tester,
           networks: networks,
@@ -151,15 +151,17 @@ void main() {
 
         await _tapButton(tester, _l10n.commonConfigure);
 
-        final checkbox =
-            tester.widget<CheckboxListTile>(find.byType(CheckboxListTile));
+        final checkbox = tester.widget<CheckboxListTile>(
+          find.byType(CheckboxListTile),
+        );
         expect(checkbox.enabled, enabled);
         expect(find.text(message), findsOneWidget);
       });
     }
 
-    testWidgets('saving a checked box bridges and releases the edit page',
-        (tester) async {
+    testWidgets('saving a checked box bridges and releases the edit page', (
+      tester,
+    ) async {
       final bridgedSets = <String>[];
       final container = await _pumpBridge(tester, bridgedSets: bridgedSets);
 
@@ -182,8 +184,9 @@ void main() {
       expect(bridgedSets, isEmpty);
     });
 
-    testWidgets('Cancel discards the change and releases the edit page',
-        (tester) async {
+    testWidgets('Cancel discards the change and releases the edit page', (
+      tester,
+    ) async {
       final bridgedSets = <String>[];
       final container = await _pumpBridge(tester, bridgedSets: bridgedSets);
 
@@ -196,8 +199,9 @@ void main() {
       expect(container.read(activeEditPageProvider(_vmName)), isNull);
     });
 
-    testWidgets('stops editing when the instance leaves STOPPED',
-        (tester) async {
+    testWidgets('stops editing when the instance leaves STOPPED', (
+      tester,
+    ) async {
       final container = await _pumpBridge(tester);
       await _tapButton(tester, _l10n.commonConfigure);
 

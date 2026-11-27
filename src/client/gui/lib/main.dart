@@ -52,9 +52,7 @@ void main() async {
   await hotKeyManager.unregisterAll();
 
   providerContainer = ProviderContainer(
-    overrides: [
-      sharedPreferencesProvider.overrideWithValue(sharedPreferences),
-    ],
+    overrides: [sharedPreferencesProvider.overrideWithValue(sharedPreferences)],
   );
   setupTrayMenu(providerContainer);
   runApp(
@@ -89,12 +87,14 @@ class _AppState extends ConsumerState<App> with WindowListener {
             'https://canonical.com/multipass/docs/stable/how-to-guides/customise-multipass/';
         final learnMoreUrl = switch (driver.value) {
           'hyperv' => Uri.parse(
-              '${deprecationDocsPrefix}migrate-from-hyperv-to-hcs-on-windows',
-            ),
+            '${deprecationDocsPrefix}migrate-from-hyperv-to-hcs-on-windows',
+          ),
           _ => null,
         };
         if (learnMoreUrl != null) {
-          ref.read(notificationsProvider.notifier).add(
+          ref
+              .read(notificationsProvider.notifier)
+              .add(
                 DeprecationNotification(
                   text: 'Your current driver is deprecated.',
                   learnMoreUrl: learnMoreUrl,
@@ -233,8 +233,10 @@ class _AppState extends ConsumerState<App> with WindowListener {
     }
 
     final daemonAvailable = ref.read(daemonAvailableProvider);
-    final vmsRunning =
-        ref.read(vmStatusesProvider).values.contains(Status.RUNNING);
+    final vmsRunning = ref
+        .read(vmStatusesProvider)
+        .values
+        .contains(Status.RUNNING);
     final closeJob = ref.read(guiSettingProvider(onAppCloseKey));
 
     // nothing to do

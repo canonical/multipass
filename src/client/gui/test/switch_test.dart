@@ -27,49 +27,59 @@ void main() {
     );
   }
 
-  testWidgets('CupertinoSwitch value is true when value is true',
-      (tester) async {
+  testWidgets('CupertinoSwitch value is true when value is true', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildSwitch(value: true));
     await tester.pumpAndSettle();
 
-    final cupertinoSwitch =
-        tester.widget<CupertinoSwitch>(find.byType(CupertinoSwitch));
+    final cupertinoSwitch = tester.widget<CupertinoSwitch>(
+      find.byType(CupertinoSwitch),
+    );
     expect(cupertinoSwitch.value, isTrue);
   });
 
-  testWidgets('CupertinoSwitch value is false when value is false',
-      (tester) async {
+  testWidgets('CupertinoSwitch value is false when value is false', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildSwitch(value: false));
     await tester.pumpAndSettle();
 
-    final cupertinoSwitch =
-        tester.widget<CupertinoSwitch>(find.byType(CupertinoSwitch));
+    final cupertinoSwitch = tester.widget<CupertinoSwitch>(
+      find.byType(CupertinoSwitch),
+    );
     expect(cupertinoSwitch.value, isFalse);
   });
 
-  testWidgets('CupertinoSwitch onChanged is not null when enabled is true',
-      (tester) async {
+  testWidgets('CupertinoSwitch onChanged is not null when enabled is true', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildSwitch(value: false, onChanged: (_) {}));
     await tester.pumpAndSettle();
 
-    final cupertinoSwitch =
-        tester.widget<CupertinoSwitch>(find.byType(CupertinoSwitch));
+    final cupertinoSwitch = tester.widget<CupertinoSwitch>(
+      find.byType(CupertinoSwitch),
+    );
     expect(cupertinoSwitch.onChanged, isNotNull);
   });
 
-  testWidgets('CupertinoSwitch onChanged is null when enabled is false',
-      (tester) async {
+  testWidgets('CupertinoSwitch onChanged is null when enabled is false', (
+    tester,
+  ) async {
     await tester.pumpWidget(
-        buildSwitch(value: false, onChanged: (_) {}, enabled: false));
+      buildSwitch(value: false, onChanged: (_) {}, enabled: false),
+    );
     await tester.pumpAndSettle();
 
-    final cupertinoSwitch =
-        tester.widget<CupertinoSwitch>(find.byType(CupertinoSwitch));
+    final cupertinoSwitch = tester.widget<CupertinoSwitch>(
+      find.byType(CupertinoSwitch),
+    );
     expect(cupertinoSwitch.onChanged, isNull);
   });
 
-  testWidgets('switch appears before label when trailingSwitch is false',
-      (tester) async {
+  testWidgets('switch appears before label when trailingSwitch is false', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildSwitch(value: false, label: 'My Label'));
     await tester.pumpAndSettle();
 
@@ -78,10 +88,12 @@ void main() {
     expect(switchRect.dx, lessThan(textRect.dx));
   });
 
-  testWidgets('label appears before switch when trailingSwitch is true',
-      (tester) async {
+  testWidgets('label appears before switch when trailingSwitch is true', (
+    tester,
+  ) async {
     await tester.pumpWidget(
-        buildSwitch(value: false, label: 'My Label', trailingSwitch: true));
+      buildSwitch(value: false, label: 'My Label', trailingSwitch: true),
+    );
     await tester.pumpAndSettle();
 
     final switchRect = tester.getTopLeft(find.byType(CupertinoSwitch));
@@ -89,11 +101,13 @@ void main() {
     expect(textRect.dx, lessThan(switchRect.dx));
   });
 
-  testWidgets('tapping switch invokes callback when enabled is true',
-      (tester) async {
+  testWidgets('tapping switch invokes callback when enabled is true', (
+    tester,
+  ) async {
     bool? receivedValue;
     await tester.pumpWidget(
-        buildSwitch(value: false, onChanged: (v) => receivedValue = v));
+      buildSwitch(value: false, onChanged: (v) => receivedValue = v),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byType(CupertinoSwitch));
@@ -102,11 +116,13 @@ void main() {
     expect(receivedValue, isTrue);
   });
 
-  testWidgets('tapping switch does not invoke callback when enabled is false',
-      (tester) async {
+  testWidgets('tapping switch does not invoke callback when enabled is false', (
+    tester,
+  ) async {
     var callCount = 0;
-    await tester.pumpWidget(buildSwitch(
-        value: false, onChanged: (_) => callCount++, enabled: false));
+    await tester.pumpWidget(
+      buildSwitch(value: false, onChanged: (_) => callCount++, enabled: false),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byType(CupertinoSwitch));

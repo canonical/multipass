@@ -37,8 +37,9 @@ void main() {
       ('800', '1000', 0.8),
       ('2000', '1000', 2.0),
     ]) {
-      testWidgets('computes $expected for used=$used total=$total',
-          (tester) async {
+      testWidgets('computes $expected for used=$used total=$total', (
+        tester,
+      ) async {
         await tester.pumpWidget(buildWidget(used, total));
         await tester.pumpAndSettle();
 
@@ -49,8 +50,9 @@ void main() {
       });
     }
 
-    testWidgets('uses backgroundColor on LinearProgressIndicator',
-        (tester) async {
+    testWidgets('uses backgroundColor on LinearProgressIndicator', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildWidget('512', '1024'));
       await tester.pumpAndSettle();
 
@@ -71,8 +73,9 @@ void main() {
       ('1024', 'bar'),
       ('1.5', '1024'),
     ]) {
-      testWidgets('shows an empty bar and a dash for used=$used total=$total',
-          (tester) async {
+      testWidgets('shows an empty bar and a dash for used=$used total=$total', (
+        tester,
+      ) async {
         await tester.pumpWidget(buildWidget(used, total));
         await tester.pumpAndSettle();
 

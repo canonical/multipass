@@ -18,17 +18,14 @@ void main() {
     return ProviderScope(
       overrides: [
         vmInfoProvider(vmName).overrideWithBuild(
-          (ref, notifier) => DetailedInfoItem(
-            instanceStatus: InstanceStatus(status: status),
-          ),
+          (ref, notifier) =>
+              DetailedInfoItem(instanceStatus: InstanceStatus(status: status)),
         ),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
-          body: ActionTile(vmName, action, onTap ?? () {}),
-        ),
+        home: Scaffold(body: ActionTile(vmName, action, onTap ?? () {})),
       ),
     );
   }
@@ -37,14 +34,17 @@ void main() {
     void runEnabledTests(VmAction action, List<(Status, bool)> cases) {
       for (final (status, enabled) in cases) {
         testWidgets(
-            'is ${enabled ? 'enabled' : 'disabled'} when status is ${status.name}',
-            (tester) async {
-          await tester.pumpWidget(buildWidget(action: action, status: status));
-          await tester.pumpAndSettle();
+          'is ${enabled ? 'enabled' : 'disabled'} when status is ${status.name}',
+          (tester) async {
+            await tester.pumpWidget(
+              buildWidget(action: action, status: status),
+            );
+            await tester.pumpAndSettle();
 
-          final tile = tester.widget<ListTile>(find.byType(ListTile));
-          expect(tile.enabled, enabled);
-        });
+            final tile = tester.widget<ListTile>(find.byType(ListTile));
+            expect(tile.enabled, enabled);
+          },
+        );
       }
     }
 
@@ -89,21 +89,24 @@ void main() {
                 s == Status.SUSPENDED ||
                 s == Status.RUNNING ||
                 s == Status.UNAVAILABLE ||
-                s == Status.DELETED
+                s == Status.DELETED,
           ),
       ]);
     });
 
     group('tap behaviour', () {
-      testWidgets('invokes callback when tapped while enabled',
-          (WidgetTester tester) async {
+      testWidgets('invokes callback when tapped while enabled', (
+        WidgetTester tester,
+      ) async {
         var tapped = false;
 
-        await tester.pumpWidget(buildWidget(
-          action: VmAction.stop,
-          status: Status.RUNNING,
-          onTap: () => tapped = true,
-        ));
+        await tester.pumpWidget(
+          buildWidget(
+            action: VmAction.stop,
+            status: Status.RUNNING,
+            onTap: () => tapped = true,
+          ),
+        );
         await tester.pumpAndSettle();
 
         await tester.tap(find.byType(ListTile));
@@ -112,17 +115,18 @@ void main() {
         expect(tapped, isTrue);
       });
 
-      testWidgets('displays action label as tile title',
-          (WidgetTester tester) async {
-        await tester.pumpWidget(buildWidget(
-          action: VmAction.start,
-          status: Status.STOPPED,
-        ));
+      testWidgets('displays action label as tile title', (
+        WidgetTester tester,
+      ) async {
+        await tester.pumpWidget(
+          buildWidget(action: VmAction.start, status: Status.STOPPED),
+        );
         await tester.pumpAndSettle();
 
         final context = tester.element(find.byType(ListTile));
-        final expectedLabel =
-            VmAction.start.label(AppLocalizations.of(context)!);
+        final expectedLabel = VmAction.start.label(
+          AppLocalizations.of(context)!,
+        );
 
         final text = tester.widget<Text>(
           find.descendant(
@@ -133,12 +137,12 @@ void main() {
         expect(text.data, expectedLabel);
       });
 
-      testWidgets('title text style is not null when enabled',
-          (WidgetTester tester) async {
-        await tester.pumpWidget(buildWidget(
-          action: VmAction.start,
-          status: Status.STOPPED,
-        ));
+      testWidgets('title text style is not null when enabled', (
+        WidgetTester tester,
+      ) async {
+        await tester.pumpWidget(
+          buildWidget(action: VmAction.start, status: Status.STOPPED),
+        );
         await tester.pumpAndSettle();
 
         final text = tester.widget<Text>(
@@ -150,12 +154,12 @@ void main() {
         expect(text.style?.color, isNotNull);
       });
 
-      testWidgets('title text style is null when disabled',
-          (WidgetTester tester) async {
-        await tester.pumpWidget(buildWidget(
-          action: VmAction.start,
-          status: Status.RUNNING,
-        ));
+      testWidgets('title text style is null when disabled', (
+        WidgetTester tester,
+      ) async {
+        await tester.pumpWidget(
+          buildWidget(action: VmAction.start, status: Status.RUNNING),
+        );
         await tester.pumpAndSettle();
 
         final text = tester.widget<Text>(

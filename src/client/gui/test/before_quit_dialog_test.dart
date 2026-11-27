@@ -12,25 +12,27 @@ Future<void> pumpDialog(
   ValueChanged<bool>? onStop,
   ValueChanged<bool>? onKeep,
 }) async {
-  await tester.pumpWidget(MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: Scaffold(
-      body: Builder(
-        builder: (context) => TextButton(
-          onPressed: () => showDialog(
-            context: context,
-            builder: (_) => BeforeQuitDialog(
-              runningCount: runningCount,
-              onStop: onStop ?? (_) {},
-              onKeep: onKeep ?? (_) {},
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => BeforeQuitDialog(
+                runningCount: runningCount,
+                onStop: onStop ?? (_) {},
+                onKeep: onKeep ?? (_) {},
+              ),
             ),
+            child: const Text('Open'),
           ),
-          child: const Text('Open'),
         ),
       ),
     ),
-  ));
+  );
   await tester.tap(find.text('Open'));
   await tester.pumpAndSettle();
 }
@@ -45,8 +47,9 @@ Future<void> tapCheckbox(WidgetTester tester, int times) async {
 void main() {
   group('BeforeQuitDialog', () {
     for (final count in [1, 3, 10]) {
-      testWidgets('shows the message for $count running instances',
-          (tester) async {
+      testWidgets('shows the message for $count running instances', (
+        tester,
+      ) async {
         await pumpDialog(tester, runningCount: count);
 
         expect(find.text(_l10n.beforeQuitTitle), findsOneWidget);
@@ -64,8 +67,7 @@ void main() {
       (_l10n.beforeQuitKeepAction, 'onKeep'),
     ]) {
       for (final (taps, remember) in [(0, false), (1, true), (2, false)]) {
-        testWidgets(
-            '"$button" calls only $callback with remember=$remember '
+        testWidgets('"$button" calls only $callback with remember=$remember '
             'after $taps checkbox taps', (tester) async {
           final calls = <(String, bool)>[];
           await pumpDialog(
@@ -83,8 +85,9 @@ void main() {
       }
     }
 
-    testWidgets('close button dismisses without calling onStop or onKeep',
-        (tester) async {
+    testWidgets('close button dismisses without calling onStop or onKeep', (
+      tester,
+    ) async {
       final calls = <(String, bool)>[];
       await pumpDialog(
         tester,

@@ -43,7 +43,10 @@ class BulkActionsBar extends ConsumerWidget {
               l10n.bulkActionMessage(action.pastTense(l10n), object),
           onError: (error) {
             return l10n.bulkActionError(
-                action.label(l10n).toLowerCase(), object, '$error');
+              action.label(l10n).toLowerCase(),
+              object,
+              '$error',
+            );
           },
         );
       };

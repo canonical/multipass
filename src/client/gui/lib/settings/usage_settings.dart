@@ -78,7 +78,10 @@ class UsageSettings extends ConsumerWidget {
           hasPassphrase: hasPassphrase,
           l10n: l10n,
           onSave: (value) {
-            ref.read(passphraseProvider.notifier).set(value).onError(
+            ref
+                .read(passphraseProvider.notifier)
+                .set(value)
+                .onError(
                   ref.notifyError((e) => l10n.usagePassphraseError('$e')),
                 );
           },
@@ -197,11 +200,12 @@ class HotkeyField extends StatefulWidget {
   final AppLocalizations l10n;
   final ValueChanged<SingleActivator?> onSave;
 
-  const HotkeyField(
-      {super.key,
-      required this.value,
-      required this.l10n,
-      required this.onSave});
+  const HotkeyField({
+    super.key,
+    required this.value,
+    required this.l10n,
+    required this.onSave,
+  });
 
   @override
   State<HotkeyField> createState() => _HotkeyFieldState();
@@ -288,7 +292,8 @@ class _PassphraseFieldState extends State<PassphraseField> {
     Timer(PassphraseField.changeDelay, () {
       if (!mounted) return;
       setState(() {
-        changed = (focus.hasFocus && widget.hasPassphrase) ||
+        changed =
+            (focus.hasFocus && widget.hasPassphrase) ||
             controller.text.isNotEmpty;
       });
     });

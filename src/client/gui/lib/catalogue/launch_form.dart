@@ -35,8 +35,8 @@ class LaunchingImageNotifier extends Notifier<ImageInfo> {
 
 final launchingImageProvider =
     NotifierProvider<LaunchingImageNotifier, ImageInfo>(
-  LaunchingImageNotifier.new,
-);
+      LaunchingImageNotifier.new,
+    );
 
 final randomNameProvider = Provider.autoDispose(
   (ref) => generatePetname(ref.watch(vmNamesProvider)),
@@ -45,7 +45,8 @@ final randomNameProvider = Provider.autoDispose(
 String imageName(ImageInfo imageInfo) {
   final result = '${imageInfo.os} ${imageInfo.release}';
   final codename = imageInfo.codename;
-  final omitCodename = codename.isEmpty ||
+  final omitCodename =
+      codename.isEmpty ||
       codename.toLowerCase() == imageInfo.release.toLowerCase() ||
       imageInfo.aliases.any((a) => RegExp(r'\bcore\d{0,2}\b').hasMatch(a));
   return omitCodename ? result : '$result $codename';
@@ -129,7 +130,9 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       loading: () => const <String>{},
       error: (_, __) => const <String>{},
     );
-    final bridgedNetworkSetting = ref.watch(bridgedNetworkProvider).when(
+    final bridgedNetworkSetting = ref
+        .watch(bridgedNetworkProvider)
+        .when(
           data: (data) => data,
           loading: () => null,
           error: (_, __) => null,
@@ -167,8 +170,9 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       helper: l10n.launchFormNameHelper,
       hint: randomName,
       validator: nameValidator(vmNames, deletedVms, l10n),
-      onSaved: (value) => launchRequest.instanceName =
-          value.isNullOrBlank ? randomName : value!,
+      onSaved: (value) => launchRequest.instanceName = value.isNullOrBlank
+          ? randomName
+          : value!,
       width: 360,
     );
 
@@ -200,8 +204,9 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     );
 
     // Determine minimums based on image type
-    final isCore =
-        imageInfo.aliases.any((a) => RegExp(r'\bcore\d{0,2}\b').hasMatch(a));
+    final isCore = imageInfo.aliases.any(
+      (a) => RegExp(r'\bcore\d{0,2}\b').hasMatch(a),
+    );
     final minRam = isCore ? 512.mebi : 1024.mebi;
     final minDisk = isCore ? 1.gibi : 5.gibi;
 
@@ -232,8 +237,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         final message = networks.isEmpty
             ? l10n.bridgeNoNetworks
             : validBridgedNetwork
-                ? l10n.launchFormBridgeConnect
-                : l10n.launchFormBridgeNoValidNetwork;
+            ? l10n.launchFormBridgeConnect
+            : l10n.launchFormBridgeNoValidNetwork;
 
         return Switch(
           label: message,
@@ -294,8 +299,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       existingTargets: mountRequests.map((r) => r.targetPaths.first.targetPath),
       initialSource:
           mountRequests.any((r) => r.sourcePath == mpPlatform.homeDirectory)
-              ? null
-              : mpPlatform.homeDirectory,
+          ? null
+          : mpPlatform.homeDirectory,
       onSaved: (request) => setState(() {
         mountRequests.add(request);
         addingMount = false;
@@ -320,7 +325,8 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
     );
 
     final cloudInitInput = CloudInitInput(
-        onSaved: (value) => launchRequest.cloudInitUserData = value ?? "");
+      onSaved: (value) => launchRequest.cloudInitUserData = value ?? "",
+    );
 
     final formBody = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,8 +357,9 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
                       zoneDropdown,
                       if (!selectedZoneAvailable &&
                           launchRequest.zone.isNotEmpty &&
-                          !zones.any((z) =>
-                              z.name == launchRequest.zone && z.available))
+                          !zones.any(
+                            (z) => z.name == launchRequest.zone && z.available,
+                          ))
                         Padding(
                           padding: const EdgeInsets.only(left: 8),
                           child: MouseRegion(
@@ -363,11 +370,15 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
                                 final zone = launchRequest.zone;
                                 grpcClient.zonesState([zone], true).then((_) {
                                   updateZoneAvailability();
-                                  ref.read(notificationsProvider.notifier).add(
+                                  ref
+                                      .read(notificationsProvider.notifier)
+                                      .add(
                                         SuccessNotification(
                                           child: Text(
-                                              l10n.launchFormEnableZoneSuccess(
-                                                  zone)),
+                                            l10n.launchFormEnableZoneSuccess(
+                                              zone,
+                                            ),
+                                          ),
                                         ),
                                       );
                                 });
@@ -393,14 +404,18 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
                             child: GestureDetector(
                               onTap: () {
                                 final grpcClient = ref.read(grpcClientProvider);
-                                final allZones =
-                                    zones.map((z) => z.name).toList();
+                                final allZones = zones
+                                    .map((z) => z.name)
+                                    .toList();
                                 grpcClient.zonesState(allZones, true).then((_) {
                                   updateZoneAvailability();
-                                  ref.read(notificationsProvider.notifier).add(
+                                  ref
+                                      .read(notificationsProvider.notifier)
+                                      .add(
                                         SuccessNotification(
-                                          child: Text(l10n
-                                              .launchFormEnableAllZonesSuccess),
+                                          child: Text(
+                                            l10n.launchFormEnableAllZonesSuccess,
+                                          ),
                                         ),
                                       );
                                 });
@@ -428,8 +443,10 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         const Divider(height: 60),
         SizedBox(
           height: 50,
-          child:
-              Text(l10n.resourcesTitle, style: const TextStyle(fontSize: 24)),
+          child: Text(
+            l10n.resourcesTitle,
+            style: const TextStyle(fontSize: 24),
+          ),
         ),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -458,8 +475,10 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
         const Divider(height: 60),
         SizedBox(
           height: 50,
-          child: Text(l10n.launchFormCloudInitTitle,
-              style: const TextStyle(fontSize: 24)),
+          child: Text(
+            l10n.launchFormCloudInitTitle,
+            style: const TextStyle(fontSize: 24),
+          ),
         ),
         cloudInitInput,
       ],
@@ -498,44 +517,52 @@ class _LaunchFormState extends ConsumerState<LaunchForm> {
       child: Text(l10n.commonCancel),
     );
 
-    return Stack(fit: StackFit.loose, children: [
-      Positioned.fill(
-        bottom: 80,
-        child: Container(
-          alignment: Alignment.topCenter,
-          color: Colors.white,
-          child: Form(
-            key: formKey,
-            autovalidateMode: AutovalidateMode.always,
-            child: SingleChildScrollView(
-              clipBehavior: Clip.none,
-              controller: scrollController,
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: formBody,
+    return Stack(
+      fit: StackFit.loose,
+      children: [
+        Positioned.fill(
+          bottom: 80,
+          child: Container(
+            alignment: Alignment.topCenter,
+            color: Colors.white,
+            child: Form(
+              key: formKey,
+              autovalidateMode: AutovalidateMode.always,
+              child: SingleChildScrollView(
+                clipBehavior: Clip.none,
+                controller: scrollController,
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: formBody,
+                ),
               ),
             ),
           ),
         ),
-      ),
-      Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          color: Colors.white,
-          padding: const EdgeInsets.all(16).copyWith(top: 4),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Divider(height: 30),
-            Row(children: [
-              launchButton,
-              const SizedBox(width: 16),
-              launchAndConfigureNextButton,
-              const SizedBox(width: 16),
-              cancelButton,
-            ]),
-          ]),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            color: Colors.white,
+            padding: const EdgeInsets.all(16).copyWith(top: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Divider(height: 30),
+                Row(
+                  children: [
+                    launchButton,
+                    const SizedBox(width: 16),
+                    launchAndConfigureNextButton,
+                    const SizedBox(width: 16),
+                    cancelButton,
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
-    ]);
+      ],
+    );
   }
 
   void launch(ImageInfo imageInfo, {bool configureNext = false}) {

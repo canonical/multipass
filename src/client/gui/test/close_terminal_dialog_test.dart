@@ -12,25 +12,27 @@ Future<void> pumpDialog(
   VoidCallback? onNo,
   ValueChanged<bool>? onDoNotAsk,
 }) async {
-  await tester.pumpWidget(MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    home: Scaffold(
-      body: Builder(
-        builder: (context) => TextButton(
-          onPressed: () => showDialog(
-            context: context,
-            builder: (_) => CloseTerminalDialog(
-              onYes: onYes ?? () {},
-              onNo: onNo ?? () {},
-              onDoNotAsk: onDoNotAsk ?? (_) {},
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => CloseTerminalDialog(
+                onYes: onYes ?? () {},
+                onNo: onNo ?? () {},
+                onDoNotAsk: onDoNotAsk ?? (_) {},
+              ),
             ),
+            child: const Text('Open'),
           ),
-          child: const Text('Open'),
         ),
       ),
     ),
-  ));
+  );
   await tester.tap(find.text('Open'));
   await tester.pumpAndSettle();
 }
@@ -45,8 +47,7 @@ Future<void> tapCheckbox(WidgetTester tester, int times) async {
 void main() {
   group('CloseTerminalDialog', () {
     for (final (taps, doNotAsk) in [(0, false), (1, true), (2, false)]) {
-      testWidgets(
-          'confirm button calls onYes and onDoNotAsk($doNotAsk) '
+      testWidgets('confirm button calls onYes and onDoNotAsk($doNotAsk) '
           'after $taps checkbox taps', (tester) async {
         var closed = false;
         bool? savedDoNotAsk;
@@ -65,8 +66,9 @@ void main() {
       });
     }
 
-    testWidgets('cancel button calls onNo without saving doNotAsk',
-        (tester) async {
+    testWidgets('cancel button calls onNo without saving doNotAsk', (
+      tester,
+    ) async {
       var cancelled = false;
       var doNotAskSaved = false;
       await pumpDialog(
@@ -83,8 +85,9 @@ void main() {
       expect(doNotAskSaved, isFalse);
     });
 
-    testWidgets('close button dismisses without calling any callback',
-        (tester) async {
+    testWidgets('close button dismisses without calling any callback', (
+      tester,
+    ) async {
       var called = false;
       await pumpDialog(
         tester,

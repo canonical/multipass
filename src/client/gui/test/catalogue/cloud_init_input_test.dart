@@ -61,10 +61,12 @@ Future<void> _setUserData(WidgetTester tester, String userData) async {
 }
 
 String? _errorText(WidgetTester tester) => tester
-    .widget<InputDecorator>(find.ancestor(
-      of: find.byType(CodeEditor),
-      matching: find.byType(InputDecorator),
-    ))
+    .widget<InputDecorator>(
+      find.ancestor(
+        of: find.byType(CodeEditor),
+        matching: find.byType(InputDecorator),
+      ),
+    )
     .decoration
     .errorText;
 
@@ -83,8 +85,9 @@ void main() {
   });
 
   group('CloudInitInput', () {
-    testWidgets('saves the default user data when left untouched',
-        (tester) async {
+    testWidgets('saves the default user data when left untouched', (
+      tester,
+    ) async {
       String? savedUserData;
       await _pumpInput(tester, onSaved: (value) => savedUserData = value);
 
@@ -120,11 +123,7 @@ void main() {
         '#cloud-config\n- curl',
         'Expected a mapping at the document root.',
       ),
-      (
-        'rejects malformed YAML',
-        '#cloud-config\npackages: [curl',
-        isNotNull,
-      ),
+      ('rejects malformed YAML', '#cloud-config\npackages: [curl', isNotNull),
       (
         'accepts Windows line endings',
         '#cloud-config\r\npackages: [curl]\r\n',
@@ -154,8 +153,9 @@ void main() {
       expect(savedUserData, initialUserData);
     });
 
-    testWidgets('Load file replaces the user data with the file contents',
-        (tester) async {
+    testWidgets('Load file replaces the user data with the file contents', (
+      tester,
+    ) async {
       const contents = '#cloud-config\npackages: [jq]\n';
       FileSelectorPlatform.instance = _FakeFileSelector(
         () async => XFile.fromData(utf8.encode(contents)),
@@ -170,8 +170,9 @@ void main() {
       expect(savedUserData, contents);
     });
 
-    testWidgets('Load file keeps the user data when no file is chosen',
-        (tester) async {
+    testWidgets('Load file keeps the user data when no file is chosen', (
+      tester,
+    ) async {
       FileSelectorPlatform.instance = _FakeFileSelector(() async => null);
       String? savedUserData;
       await _pumpInput(tester, onSaved: (value) => savedUserData = value);
@@ -184,11 +185,13 @@ void main() {
       expect(savedUserData, '#cloud-config\n');
     });
 
-    testWidgets('Load file shows an error when the file cannot be read',
-        (tester) async {
+    testWidgets('Load file shows an error when the file cannot be read', (
+      tester,
+    ) async {
       final error = Exception('permission denied');
-      FileSelectorPlatform.instance =
-          _FakeFileSelector(() => Future.error(error));
+      FileSelectorPlatform.instance = _FakeFileSelector(
+        () => Future.error(error),
+      );
       final container = await _pumpInput(tester);
 
       await tester.tap(find.text(_l10n.launchFormCloudInitLoadFile));

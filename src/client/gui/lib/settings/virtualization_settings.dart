@@ -28,8 +28,8 @@ class MigrationInProgressNotifier extends Notifier<bool> {
 // TODO hyperv migration, remove
 final migrationInProgressProvider =
     NotifierProvider<MigrationInProgressNotifier, bool>(
-  MigrationInProgressNotifier.new,
-);
+      MigrationInProgressNotifier.new,
+    );
 
 // TODO hyperv migration, remove
 // Switching from hyperv migrates the instances, which is reported as the change
@@ -38,10 +38,12 @@ void migrateToHcs(WidgetRef ref) {
   final inProgress = ref.read(migrationInProgressProvider.notifier);
   inProgress.set(true);
   final replies = ref.read(driverProvider.notifier).setStreaming('hcs');
-  ref.read(notificationsProvider.notifier).add(
+  ref
+      .read(notificationsProvider.notifier)
+      .add(
         DriverMigrationNotification(
-          progress:
-              migrationProgress(replies).doOnDone(() => inProgress.set(false)),
+          progress: migrationProgress(replies)
+              .doOnDone(() => inProgress.set(false)),
         ),
       );
 }
@@ -52,17 +54,23 @@ class VirtualizationSettings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final driver = ref.watch(driverProvider).when(
+    final driver = ref
+        .watch(driverProvider)
+        .when(
           data: (data) => data,
           loading: () => null,
           error: (_, __) => null,
         );
-    final bridgedNetwork = ref.watch(bridgedNetworkProvider).when(
+    final bridgedNetwork = ref
+        .watch(bridgedNetworkProvider)
+        .when(
           data: (data) => data,
           loading: () => null,
           error: (_, __) => null,
         );
-    final networks = ref.watch(networksProvider).when(
+    final networks = ref
+        .watch(networksProvider)
+        .when(
           data: (data) => data,
           loading: () => const <String>{},
           error: (_, __) => const <String>{},
@@ -90,8 +98,12 @@ class VirtualizationSettings extends ConsumerWidget {
               migrateToHcs(ref);
               return;
             }
-            ref.read(driverProvider.notifier).set(value as String).onError(
-                ref.notifyError((e) => l10n.virtualizationDriverError('$e')));
+            ref
+                .read(driverProvider.notifier)
+                .set(value as String)
+                .onError(
+                  ref.notifyError((e) => l10n.virtualizationDriverError('$e')),
+                );
           },
         ),
         const SizedBox(height: 20),
@@ -102,10 +114,13 @@ class VirtualizationSettings extends ConsumerWidget {
             value: networks.contains(bridgedNetwork) ? bridgedNetwork : '',
             items: {
               '': l10n.virtualizationBridgedNetworkNone,
-              ...Map.fromIterable(networks)
+              ...Map.fromIterable(networks),
             },
             onChanged: (value) {
-              ref.read(bridgedNetworkProvider.notifier).set(value!).onError(
+              ref
+                  .read(bridgedNetworkProvider.notifier)
+                  .set(value!)
+                  .onError(
                     ref.notifyError((e) => l10n.bridgeFailedNetwork('$e')),
                   );
             },

@@ -83,8 +83,9 @@ void main() {
   });
 
   group('CatalogueScreen', () {
-    testWidgets('shows the Ubuntu card, then the Core card, then the others',
-        (tester) async {
+    testWidgets('shows the Ubuntu card, then the Core card, then the others', (
+      tester,
+    ) async {
       final cards = await _pumpCards(tester, [debian, core24, fedora, noble]);
 
       expect(
@@ -93,8 +94,9 @@ void main() {
       );
     });
 
-    testWidgets('lists Ubuntu releases newest first with the LTS as parent',
-        (tester) async {
+    testWidgets('lists Ubuntu releases newest first with the LTS as parent', (
+      tester,
+    ) async {
       final cards = await _pumpCards(tester, [jammy, noble, questing]);
 
       expect(cards, hasLength(1));
@@ -102,22 +104,26 @@ void main() {
       expect(cards.single.versions, orderedEquals([questing, noble, jammy]));
     });
 
-    testWidgets('uses the newest Ubuntu release as parent without an LTS',
-        (tester) async {
+    testWidgets('uses the newest Ubuntu release as parent without an LTS', (
+      tester,
+    ) async {
       final cards = await _pumpCards(tester, [jammy, questing]);
 
       expect(cards.single.parentImage, same(questing));
     });
 
-    testWidgets('adds daily images only for releases not in the release remote',
-        (tester) async {
-      final cards = await _pumpCards(tester, [dailyNoble, noble, devel]);
+    testWidgets(
+      'adds daily images only for releases not in the release remote',
+      (tester) async {
+        final cards = await _pumpCards(tester, [dailyNoble, noble, devel]);
 
-      expect(cards.single.versions, orderedEquals([devel, noble]));
-    });
+        expect(cards.single.versions, orderedEquals([devel, noble]));
+      },
+    );
 
-    testWidgets('lists Core images newest first in their own card',
-        (tester) async {
+    testWidgets('lists Core images newest first in their own card', (
+      tester,
+    ) async {
       final cards = await _pumpCards(tester, [core22, core24]);
 
       expect(cards, hasLength(1));
@@ -125,8 +131,9 @@ void main() {
       expect(cards.single.versions, orderedEquals([core24, core22]));
     });
 
-    testWidgets('shows each image without a remote in a separate card',
-        (tester) async {
+    testWidgets('shows each image without a remote in a separate card', (
+      tester,
+    ) async {
       final cards = await _pumpCards(tester, [debian, fedora]);
 
       expect(cards.map((c) => c.versions), [
@@ -147,21 +154,27 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text(_l10n.catalogueLoadError('daemon is down')),
-          findsOneWidget);
+      expect(
+        find.text(_l10n.catalogueLoadError('daemon is down')),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('shows the whole error when it is not a GrpcError',
-        (tester) async {
+    testWidgets('shows the whole error when it is not a GrpcError', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildApp(() => Future.error(Exception('boom'))));
       await tester.pumpAndSettle();
 
-      expect(find.text(_l10n.catalogueLoadError('Exception: boom')),
-          findsOneWidget);
+      expect(
+        find.text(_l10n.catalogueLoadError('Exception: boom')),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('shows a loading indicator while fetching the images',
-        (tester) async {
+    testWidgets('shows a loading indicator while fetching the images', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildApp(() => Completer<List<ImageInfo>>().future),
       );
@@ -169,14 +182,17 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('shows a loading indicator instead of the error on Refresh',
-        (tester) async {
+    testWidgets('shows a loading indicator instead of the error on Refresh', (
+      tester,
+    ) async {
       var calls = 0;
-      await tester.pumpWidget(_buildApp(() {
-        calls++;
-        if (calls == 1) return Future.error(Exception('boom'));
-        return Completer<List<ImageInfo>>().future;
-      }));
+      await tester.pumpWidget(
+        _buildApp(() {
+          calls++;
+          if (calls == 1) return Future.error(Exception('boom'));
+          return Completer<List<ImageInfo>>().future;
+        }),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text(_l10n.catalogueRefresh));
@@ -186,8 +202,9 @@ void main() {
       expect(find.text(_l10n.catalogueRefresh), findsNothing);
     });
 
-    testWidgets('fetches the images only once the daemon is available',
-        (tester) async {
+    testWidgets('fetches the images only once the daemon is available', (
+      tester,
+    ) async {
       var daemonAvailable = false;
       final grpcClient = _FakeGrpcClient();
       final container = ProviderContainer(
@@ -216,11 +233,13 @@ void main() {
 
     testWidgets('refetches the images when Refresh is pressed', (tester) async {
       var calls = 0;
-      await tester.pumpWidget(_buildApp(() async {
-        calls++;
-        if (calls == 1) throw Exception('boom');
-        return [noble];
-      }));
+      await tester.pumpWidget(
+        _buildApp(() async {
+          calls++;
+          if (calls == 1) throw Exception('boom');
+          return [noble];
+        }),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text(_l10n.catalogueRefresh));

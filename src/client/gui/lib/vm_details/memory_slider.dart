@@ -146,7 +146,8 @@ class _MemorySliderState extends State<MemorySlider> {
                   const SizedBox(width: 5),
                   Text(
                     l10n.memorySliderOverProvisioning(
-                        widget.label.toLowerCase()),
+                      widget.label.toLowerCase(),
+                    ),
                     style: const TextStyle(fontSize: 16),
                   ),
                 ],

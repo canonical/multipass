@@ -29,8 +29,8 @@ class SelectedImageNotifier extends Notifier<ImageInfo?> {
 
 final selectedImageProvider =
     NotifierProvider.family<SelectedImageNotifier, ImageInfo?, String>(
-  SelectedImageNotifier.new,
-);
+      SelectedImageNotifier.new,
+    );
 
 final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
   if (!ref.watch(daemonAvailableProvider)) {
@@ -39,8 +39,10 @@ final imagesProvider = FutureProvider<List<ImageInfo>>((ref) async {
     return [];
   }
 
-  final images =
-      await ref.watch(grpcClientProvider).images().then((r) => r.imagesInfo);
+  final images = await ref
+      .watch(grpcClientProvider)
+      .images()
+      .then((r) => r.imagesInfo);
 
   // artificial delay so that we can see the loading spinner a bit
   // otherwise the reply arrives too quickly and we only see a flash of the spinner
@@ -68,8 +70,10 @@ List<Widget> _groupAndCreateCards(List<ImageInfo> images, double cardWidth) {
 
   final releaseImages = images.where((i) => isUbuntuRelease(i));
 
-  final unlistedDailyImages = images.where((i) =>
-      isUbuntuDaily(i) && !releaseImages.any((r) => r.release == i.release));
+  final unlistedDailyImages = images.where(
+    (i) =>
+        isUbuntuDaily(i) && !releaseImages.any((r) => r.release == i.release),
+  );
 
   final ubuntuImages = releaseImages
       .followedBy(unlistedDailyImages)
@@ -120,7 +124,9 @@ class CatalogueScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final content = ref.watch(imagesProvider).when(
+    final content = ref
+        .watch(imagesProvider)
+        .when(
           skipLoadingOnRefresh: false,
           data: _buildCatalogue,
           error: (error, _) {
@@ -152,8 +158,10 @@ class CatalogueScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.catalogueWelcomeTitle,
-              style: const TextStyle(fontSize: 37)),
+          Text(
+            l10n.catalogueWelcomeTitle,
+            style: const TextStyle(fontSize: 37),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
@@ -205,7 +213,8 @@ class CatalogueScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: rowCards
                           .map(
-                              (card) => SizedBox(width: cardWidth, child: card))
+                            (card) => SizedBox(width: cardWidth, child: card),
+                          )
                           .intersperse(const SizedBox(width: spacing))
                           .toList(),
                     ),
@@ -214,8 +223,9 @@ class CatalogueScreen extends ConsumerWidget {
               }
 
               return Column(
-                children:
-                    rows.intersperse(const SizedBox(height: spacing)).toList(),
+                children: rows
+                    .intersperse(const SizedBox(height: spacing))
+                    .toList(),
               );
             },
           ),

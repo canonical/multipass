@@ -33,8 +33,12 @@ class _BeforeQuitDialogState extends State<BeforeQuitDialog> {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 8),
-            child: Text(l10n.beforeQuitMessage(
-                widget.runningCount, widget.runningCount.spelledOut(l10n))),
+            child: Text(
+              l10n.beforeQuitMessage(
+                widget.runningCount,
+                widget.runningCount.spelledOut(l10n),
+              ),
+            ),
           ),
           const SizedBox(height: 24),
           Row(

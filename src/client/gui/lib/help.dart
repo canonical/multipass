@@ -24,10 +24,7 @@ class HelpScreen extends StatelessWidget {
             const SizedBox(height: 32),
             SizedBox(
               width: 530,
-              child: Text(
-                l10n.helpBody,
-                style: const TextStyle(fontSize: 16),
-              ),
+              child: Text(l10n.helpBody, style: const TextStyle(fontSize: 16)),
             ),
             const SizedBox(height: 32),
             TextButton(

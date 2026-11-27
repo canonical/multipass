@@ -38,12 +38,12 @@ class MigrationProgress {
   }
 
   MigrationProgress finish({String? error}) => MigrationProgress(
-        phase: phase,
-        diagnostics: diagnostics,
-        summary: summary,
-        done: true,
-        error: error,
-      );
+    phase: phase,
+    diagnostics: diagnostics,
+    summary: summary,
+    done: true,
+    error: error,
+  );
 }
 
 /// Folds the replies of a driver change into its migration progress, ending

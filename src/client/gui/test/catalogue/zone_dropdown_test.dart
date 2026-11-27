@@ -36,8 +36,9 @@ Dropdown<String> _dropdown(WidgetTester tester) =>
 
 void main() {
   group('ZoneDropdown', () {
-    testWidgets('lists every zone and marks the unavailable ones',
-        (tester) async {
+    testWidgets('lists every zone and marks the unavailable ones', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildDropdown([_zoneA, _unavailableZone], value: 'zone-a'),
       );
@@ -48,13 +49,17 @@ void main() {
       });
     });
 
-    testWidgets('selects the first available zone when none is selected',
-        (tester) async {
+    testWidgets('selects the first available zone when none is selected', (
+      tester,
+    ) async {
       final selections = <String?>[];
-      await tester.pumpWidget(_buildDropdown(
-        [_unavailableZone, _zoneB, _zoneA],
-        onChanged: selections.add,
-      ));
+      await tester.pumpWidget(
+        _buildDropdown([
+          _unavailableZone,
+          _zoneB,
+          _zoneA,
+        ], onChanged: selections.add),
+      );
 
       expect(selections, ['zone-b']);
       expect(find.text('zone-b'), findsOneWidget);
@@ -62,25 +67,29 @@ void main() {
 
     testWidgets('keeps the selected zone', (tester) async {
       final selections = <String?>[];
-      await tester.pumpWidget(_buildDropdown(
-        [_zoneA, _zoneB],
-        value: 'zone-b',
-        onChanged: selections.add,
-      ));
+      await tester.pumpWidget(
+        _buildDropdown(
+          [_zoneA, _zoneB],
+          value: 'zone-b',
+          onChanged: selections.add,
+        ),
+      );
 
       expect(selections, isEmpty);
       expect(find.text('zone-b'), findsOneWidget);
     });
 
-    testWidgets('shows no error while selecting the default zone',
-        (tester) async {
+    testWidgets('shows no error while selecting the default zone', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildDropdown([_zoneA]));
 
       expect(_dropdown(tester).errorText, isNull);
     });
 
-    testWidgets('shows an error when the selected zone is unavailable',
-        (tester) async {
+    testWidgets('shows an error when the selected zone is unavailable', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildDropdown([_zoneA, _unavailableZone], value: 'zone-c'),
       );
@@ -91,8 +100,7 @@ void main() {
       );
     });
 
-    testWidgets(
-        'shows an error and selects nothing when all zones are '
+    testWidgets('shows an error and selects nothing when all zones are '
         'unavailable', (tester) async {
       final selections = <String?>[];
       await tester.pumpWidget(

@@ -84,19 +84,21 @@ void main() {
       expect(errorText(state().first), equals('formatted: raw error'));
     });
 
-    test('addOperation() adds an OperationNotification with the loading text',
-        () {
-      notifier().addOperation(
-        Future.value('result'),
-        loading: 'doing work',
-        onSuccess: (r) => r,
-        onError: (e) => e.toString(),
-      );
+    test(
+      'addOperation() adds an OperationNotification with the loading text',
+      () {
+        notifier().addOperation(
+          Future.value('result'),
+          loading: 'doing work',
+          onSuccess: (r) => r,
+          onError: (e) => e.toString(),
+        );
 
-      expect(state(), hasLength(1));
-      final notification = state().first as OperationNotification;
-      expect(notification.text, equals('doing work'));
-    });
+        expect(state(), hasLength(1));
+        final notification = state().first as OperationNotification;
+        expect(notification.text, equals('doing work'));
+      },
+    );
 
     test('addOperation() maps a successful result through onSuccess', () async {
       notifier().addOperation(
@@ -110,23 +112,26 @@ void main() {
       await expectLater(notification.future, completion('success: 42'));
     });
 
-    test('addOperation() passes only the GrpcError message to onError',
-        () async {
-      notifier().addOperation<String>(
-        Future.error(GrpcError.internal('boom')),
-        loading: 'loading',
-        onSuccess: (r) => r,
-        onError: (e) => 'error: $e',
-      );
+    test(
+      'addOperation() passes only the GrpcError message to onError',
+      () async {
+        notifier().addOperation<String>(
+          Future.error(GrpcError.internal('boom')),
+          loading: 'loading',
+          onSuccess: (r) => r,
+          onError: (e) => 'error: $e',
+        );
 
-      final notification = state().first as OperationNotification;
-      await expectLater(notification.future, throwsA('error: boom'));
-    });
+        final notification = state().first as OperationNotification;
+        await expectLater(notification.future, throwsA('error: boom'));
+      },
+    );
   });
 
   group('ErrorNotificationWidgetRefExtension.notifyError', () {
-    testWidgets('adds an ErrorNotification with the formatted error',
-        (tester) async {
+    testWidgets('adds an ErrorNotification with the formatted error', (
+      tester,
+    ) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
       container.listen(notificationsProvider, (_, __) {});

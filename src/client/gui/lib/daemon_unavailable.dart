@@ -7,6 +7,7 @@ import 'ffi.dart';
 import 'l10n/app_localizations.dart';
 import 'providers.dart';
 import 'tooltip.dart';
+
 import 'package:flutter/services.dart';
 
 class _CopyErrorIcon extends StatefulWidget {

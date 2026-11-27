@@ -25,11 +25,7 @@ void main() {
     }) async {
       await tester.pumpWidget(
         _buildApp(
-          PrimaryNameField(
-            value: value,
-            l10n: _l10n,
-            onSave: onSave ?? (_) {},
-          ),
+          PrimaryNameField(value: value, l10n: _l10n, onSave: onSave ?? (_) {}),
         ),
       );
     }
@@ -73,8 +69,9 @@ void main() {
       });
     }
 
-    testWidgets('saves an empty name to unset the primary instance',
-        (tester) async {
+    testWidgets('saves an empty name to unset the primary instance', (
+      tester,
+    ) async {
       String? saved;
       await pumpField(tester, value: 'primary', onSave: (v) => saved = v);
 
@@ -83,8 +80,9 @@ void main() {
       expect(saved, isEmpty);
     });
 
-    testWidgets('drops characters other than letters, digits and dashes',
-        (tester) async {
+    testWidgets('drops characters other than letters, digits and dashes', (
+      tester,
+    ) async {
       await pumpField(tester);
 
       await tester.enterText(find.byType(TextFormField), 'my_vm.1!');
@@ -92,8 +90,9 @@ void main() {
       expect(fieldText(tester), 'myvm1');
     });
 
-    testWidgets('discard restores the original value and clears the error',
-        (tester) async {
+    testWidgets('discard restores the original value and clears the error', (
+      tester,
+    ) async {
       await pumpField(tester, value: 'original');
       await enterAndSave(tester, '1abc');
 
@@ -116,8 +115,9 @@ void main() {
       expect(find.byIcon(Icons.check), findsOneWidget);
     });
 
-    testWidgets('shows the new value when it changes externally',
-        (tester) async {
+    testWidgets('shows the new value when it changes externally', (
+      tester,
+    ) async {
       await pumpField(tester, value: 'old');
 
       await pumpField(tester, value: 'new');
@@ -164,8 +164,9 @@ void main() {
       expect(saved?.meta, isTrue);
     });
 
-    testWidgets('discarded hotkey does not reappear when the parent rebuilds',
-        (tester) async {
+    testWidgets('discarded hotkey does not reappear when the parent rebuilds', (
+      tester,
+    ) async {
       await pumpField(tester);
       await recordMetaK(tester);
 
@@ -242,16 +243,18 @@ void main() {
       );
     }
 
-    testWidgets('hides save and discard buttons when unchanged',
-        (tester) async {
+    testWidgets('hides save and discard buttons when unchanged', (
+      tester,
+    ) async {
       await pumpField(tester, changed: false);
 
       expect(find.byIcon(Icons.check), findsNothing);
       expect(find.byIcon(Icons.close), findsNothing);
     });
 
-    testWidgets('save and discard buttons invoke their callbacks',
-        (tester) async {
+    testWidgets('save and discard buttons invoke their callbacks', (
+      tester,
+    ) async {
       var saved = false;
       var discarded = false;
       await pumpField(

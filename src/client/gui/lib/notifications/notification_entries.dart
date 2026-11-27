@@ -142,50 +142,52 @@ class _TimeoutNotificationState extends State<TimeoutNotification>
 
 class ErrorNotification extends SimpleNotification {
   ErrorNotification({super.key, required String text})
-      : super(
-          child: Text(text),
-          barColor: Colors.red,
-          icon: const Icon(Icons.cancel_outlined, color: Colors.red),
-        );
+    : super(
+        child: Text(text),
+        barColor: Colors.red,
+        icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+      );
 }
 
 class WarningNotification extends SimpleNotification {
   const WarningNotification({super.key, required super.child})
-      : super(
-          barColor: warningAmber,
-          icon: const Icon(Icons.warning_rounded, color: warningAmber),
-        );
+    : super(
+        barColor: warningAmber,
+        icon: const Icon(Icons.warning_rounded, color: warningAmber),
+      );
 }
 
 class DeprecationNotification extends WarningNotification {
-  DeprecationNotification(
-      {super.key, required String text, required Uri learnMoreUrl})
-      : super(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(text),
-              const Divider(),
-              Row(
-                children: [
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () => launchUrl(learnMoreUrl),
-                    child: const Text('Learn more'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
+  DeprecationNotification({
+    super.key,
+    required String text,
+    required Uri learnMoreUrl,
+  }) : super(
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
+             Text(text),
+             const Divider(),
+             Row(
+               children: [
+                 const Spacer(),
+                 TextButton(
+                   onPressed: () => launchUrl(learnMoreUrl),
+                   child: const Text('Learn more'),
+                 ),
+               ],
+             ),
+           ],
+         ),
+       );
 }
 
 class SuccessNotification extends TimeoutNotification {
   const SuccessNotification({super.key, required super.child})
-      : super(
-          barColor: Colors.green,
-          icon: const Icon(Icons.check_circle_outline, color: Colors.green),
-        );
+    : super(
+        barColor: Colors.green,
+        icon: const Icon(Icons.check_circle_outline, color: Colors.green),
+      );
 }
 
 class OperationNotification extends StatelessWidget {
@@ -310,7 +312,8 @@ class LaunchingNotification extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text.rich(
-                  [l10n.launchInProgress(name).span.bold, message.span].spans),
+                [l10n.launchInProgress(name).span.bold, message.span].spans,
+              ),
               if (cancelable) ...[
                 const Divider(),
                 Row(

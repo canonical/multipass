@@ -37,10 +37,8 @@ class RunningShellsNotifier extends Notifier<int> {
   }
 }
 
-final runningShellsProvider =
-    NotifierProvider.autoDispose.family<RunningShellsNotifier, int, String>(
-  RunningShellsNotifier.new,
-);
+final runningShellsProvider = NotifierProvider.autoDispose
+    .family<RunningShellsNotifier, int, String>(RunningShellsNotifier.new);
 
 class ShellId {
   final int id;
@@ -176,8 +174,8 @@ class TerminalNotifier extends Notifier<Terminal?> {
 
 final terminalProvider = NotifierProvider.autoDispose
     .family<TerminalNotifier, Terminal?, TerminalIdentifier>(
-  TerminalNotifier.new,
-);
+      TerminalNotifier.new,
+    );
 
 class VmTerminal extends ConsumerStatefulWidget {
   final String name;
@@ -238,21 +236,28 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
     if (widget.isCurrent) focusNode.requestFocus();
   }
 
-  Future<void> startVmIfNeeded(final bool vmRunning) async {
+  Future<void> startVmIfNeeded(bool vmRunning) async {
     if (vmRunning) return;
     final l10n = AppLocalizations.of(context)!;
     final name = widget.name;
     final action = VmAction.start;
     final operation = ref.read(grpcClientProvider).start([name]);
-    ref.read(notificationsProvider.notifier).addOperation(
+    ref
+        .read(notificationsProvider.notifier)
+        .addOperation(
           operation,
-          loading:
-              l10n.vmActionNotification(action.continuousTense(l10n), name),
+          loading: l10n.vmActionNotification(
+            action.continuousTense(l10n),
+            name,
+          ),
           onSuccess: (_) =>
               l10n.vmActionNotification(action.pastTense(l10n), name),
           onError: (error) {
             return l10n.vmActionNotificationError(
-                action.name.toLowerCase(), name, '$error');
+              action.name.toLowerCase(),
+              name,
+              '$error',
+            );
           },
         );
     await operation;
@@ -325,17 +330,13 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
         label: l10n.terminalContextSelectAll,
         onPressed: () {
           ContextMenuController.removeAny();
-          Actions.maybeInvoke(
-            context,
-            const SelectAllTerminalTextIntent(),
-          );
+          Actions.maybeInvoke(context, const SelectAllTerminalTextIntent());
         },
       ),
     ];
 
-    final style = Theme.of(context).textButtonTheme.style?.copyWith(
-          backgroundColor: WidgetStatePropertyAll(Colors.transparent),
-        );
+    final style = Theme.of(context).textButtonTheme.style
+        ?.copyWith(backgroundColor: WidgetStatePropertyAll(Colors.transparent));
 
     contextMenuController.show(
       context: context,
@@ -493,8 +494,10 @@ class _VmTerminalState extends ConsumerState<VmTerminal> {
           // Start from the first line, first column
           final start = buffer.createAnchor(0, 0);
           // End at the last content line, last column
-          final end =
-              buffer.createAnchor(buffer.viewWidth - 1, lastContentLine);
+          final end = buffer.createAnchor(
+            buffer.viewWidth - 1,
+            lastContentLine,
+          );
 
           // Set the selection to cover all meaningful text
           terminalController.setSelection(start, end);

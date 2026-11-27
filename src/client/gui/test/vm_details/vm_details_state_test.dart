@@ -60,8 +60,9 @@ void main() {
     }
 
     void setStatus(ProviderContainer container, Status status) {
-      container.read(vmInfoProvider(_vmName).notifier).state =
-          DetailedInfoItem(instanceStatus: InstanceStatus(status: status));
+      container.read(vmInfoProvider(_vmName).notifier).state = DetailedInfoItem(
+        instanceStatus: InstanceStatus(status: status),
+      );
     }
 
     test('starts with no active page', () {

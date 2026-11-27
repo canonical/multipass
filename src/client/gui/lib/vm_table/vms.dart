@@ -33,8 +33,8 @@ final runningOnlyProvider = NotifierProvider<RunningOnlyNotifier, bool>(
 
 final selectedVmsProvider =
     NotifierProvider<SelectedVmsNotifier, BuiltSet<String>>(
-  SelectedVmsNotifier.new,
-);
+      SelectedVmsNotifier.new,
+    );
 
 class SelectedVmsNotifier extends Notifier<BuiltSet<String>> {
   @override
@@ -106,8 +106,9 @@ class Vms extends ConsumerWidget {
     );
 
     final enabledHeaderNames = ref.watch(enabledHeadersProvider).asMap();
-    final enabledHeaders =
-        headers.where((h) => enabledHeaderNames[h.name]!).toList();
+    final enabledHeaders = headers
+        .where((h) => enabledHeaderNames[h.name]!)
+        .toList();
 
     final infos = ref
         .watch(vmInfosProvider)
@@ -153,21 +154,23 @@ class Vms extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.all(20).copyWith(top: 52),
-      child: Column(children: [
-        heading,
-        const SizedBox(height: 35),
-        vmFilters,
-        const SizedBox(height: 20),
-        const BulkActionsBar(),
-        const SizedBox(height: 20),
-        Flexible(
-          child: Table<VmInfo>(
-            headers: enabledHeaders,
-            data: infos,
-            finalRow: infos.isNotEmpty ? totalUsageRow : null,
+      child: Column(
+        children: [
+          heading,
+          const SizedBox(height: 35),
+          vmFilters,
+          const SizedBox(height: 20),
+          const BulkActionsBar(),
+          const SizedBox(height: 20),
+          Flexible(
+            child: Table<VmInfo>(
+              headers: enabledHeaders,
+              data: infos,
+              finalRow: infos.isNotEmpty ? totalUsageRow : null,
+            ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }

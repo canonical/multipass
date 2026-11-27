@@ -19,20 +19,20 @@ enum VmAction {
       l10n.vmActionContinuousTense(name);
 
   Set<Status> get allowedStatuses => switch (this) {
-        start => const {Status.STOPPED, Status.SUSPENDED},
-        stop => const {Status.RUNNING},
-        suspend => const {Status.RUNNING},
-        restart => const {Status.RUNNING},
-        delete => const {
-            Status.STOPPED,
-            Status.SUSPENDED,
-            Status.RUNNING,
-            Status.UNAVAILABLE,
-            Status.DELETED,
-          },
-        recover => const {Status.DELETED},
-        edit => const {Status.STOPPED},
-      };
+    start => const {Status.STOPPED, Status.SUSPENDED},
+    stop => const {Status.RUNNING},
+    suspend => const {Status.RUNNING},
+    restart => const {Status.RUNNING},
+    delete => const {
+      Status.STOPPED,
+      Status.SUSPENDED,
+      Status.RUNNING,
+      Status.UNAVAILABLE,
+      Status.DELETED,
+    },
+    recover => const {Status.DELETED},
+    edit => const {Status.STOPPED},
+  };
 }
 
 class VmActionButton extends StatelessWidget {
@@ -61,9 +61,8 @@ class VmActionButton extends StatelessWidget {
       style: ButtonStyle(
         side: WidgetStateBorderSide.resolveWith(
           (states) => BorderSide(
-            color: const Color(
-              0xff333333,
-            ).withAlpha(states.contains(WidgetState.disabled) ? 128 : 255),
+            color: const Color(0xff333333)
+                .withAlpha(states.contains(WidgetState.disabled) ? 128 : 255),
           ),
         ),
       ),
