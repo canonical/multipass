@@ -16,7 +16,6 @@
  */
 
 #include "common.h"
-#include "disabling_macros.h"
 #include "file_operations.h"
 #include "mock_file_ops.h"
 #include "mock_logger.h"
@@ -63,11 +62,10 @@ struct SftpServer : public mp::test::SftpServerTest
         return make_sftpserver("");
     }
 
-    mp::SftpServer make_sftpserver(
-        const std::string& path,
-        const mp::id_mappings& uid_mappings = {{default_uid, mp::default_id}},
-        const mp::id_mappings& gid_mappings = {{default_gid, mp::default_id}},
-        const std::string& target = {})
+    mp::SftpServer make_sftpserver(const std::string& path,
+                                   mp::id_mappings uid_mappings = {{default_uid, mp::default_id}},
+                                   mp::id_mappings gid_mappings = {{default_gid, mp::default_id}},
+                                   const std::string& target = {})
     {
 
         REPLACE(ssh_channel_new,
@@ -81,10 +79,8 @@ struct SftpServer : public mp::test::SftpServerTest
         return {std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
                 path,
                 target.empty() ? path : target,
-                gid_mappings,
-                uid_mappings,
-                default_uid,
-                default_gid,
+                std::move(gid_mappings),
+                std::move(uid_mappings),
                 "sshfs"};
     }
 
@@ -416,8 +412,6 @@ TEST_F(SftpServer, throwsWhenSshfsErrorsOnStart)
             "",
             {{default_uid, mp::default_id}},
             {{default_gid, mp::default_id}},
-            default_uid,
-            default_gid,
             "sshfs"};
     };
     EXPECT_THROW(make_sftpserver(), std::runtime_error);
@@ -484,15 +478,13 @@ TEST_F(SftpServer, sshfsRestartsOnTimeout)
     REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
     REPLACE(ssh_event_dopoll, [](auto...) { return SSH_OK; });
 
-    auto sftp =
-        mp::SftpServer{std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
-                       "",
-                       "",
-                       {{default_gid, mp::default_id}},
-                       {{default_uid, mp::default_id}},
-                       default_uid,
-                       default_gid,
-                       "sshfs"};
+    auto sftp = mp::SftpServer{
+        std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
+        "",
+        "",
+        {{default_gid, mp::default_id}},
+        {{default_uid, mp::default_id}},
+        "sshfs"};
     // This is the end of the alternate test
     sftp.run();
 
@@ -2103,12 +2095,14 @@ TEST_F(SftpServer, handlesReaddirAttributesPreserved)
     REPLACE(sftp_reply_names_add, get_test_file_attributes);
     REPLACE(sftp_reply_names, [](auto...) { return SSH_OK; });
 
-    auto sftp = make_sftpserver(temp_dir.path().toStdString());
+    QFileInfo test_file_info(test_file);
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(),
+                                {{test_file_info.ownerId(), test_file_info.ownerId()}},
+                                {{test_file_info.groupId(), test_file_info.groupId()}});
     sftp.run();
 
     EXPECT_EQ(eof_num_calls, 1);
 
-    QFileInfo test_file_info(test_file);
     EXPECT_EQ(test_file_attrs.size, (uint64_t)test_file_info.size());
     EXPECT_EQ(test_file_attrs.gid, test_file_info.groupId());
     EXPECT_EQ(test_file_attrs.uid, test_file_info.ownerId());
@@ -2848,15 +2842,15 @@ TEST_F(SftpServer, readReturnsZeroEndOfFile)
 TEST_F(SftpServer, handleExtendedLink)
 {
     mpt::TempDir temp_dir;
-    auto file_name = temp_dir.path() + "/test-file";
+    auto file_path = temp_dir.path() + "/test-file";
     auto link_name = temp_dir.path() + "/test-link";
-    mpt::make_file_with_content(file_name);
+    mpt::make_file_with_content(file_path);
 
     auto init_msg = make_msg(SSH_FXP_INIT);
     auto msg = make_msg(SFTP_EXTENDED);
     auto submessage = name_as_char_array("hardlink@openssh.com");
     msg->submessage = submessage.data();
-    auto name = name_as_char_array(file_name.toStdString());
+    auto name = name_as_char_array(file_path.toStdString());
     msg->filename = name.data();
 
     auto target_name = name_as_char_array(link_name.toStdString());
@@ -3689,7 +3683,7 @@ TEST_F(SftpServer, relativeErrorPermissionDenied)
     EXPECT_THAT(num_calls, Eq(1));
 }
 
-TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownHonorsMapsInTheHost))
+TEST_F(SftpServer, mkdirChownHonorsMapsInTheHost)
 {
     mpt::TempDir temp_dir;
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
@@ -3723,7 +3717,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownHonorsMapsInTheHost))
     sftp.run();
 }
 
-TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownWorksWhenIdsAreNotMapped))
+TEST_F(SftpServer, mkdirChownWorksWhenIdsAreNotMapped)
 {
     mpt::TempDir temp_dir;
     auto new_dir = fmt::format("{}/mkdir-test", temp_dir.path().toStdString());
@@ -3750,7 +3744,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(mkdirChownWorksWhenIdsAreNotMapped))
     sftp.run();
 }
 
-TEST_F(SftpServer, DISABLE_ON_WINDOWS(openChownHonorsMapsInTheHost))
+TEST_F(SftpServer, openChownHonorsMapsInTheHost)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -3784,7 +3778,7 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(openChownHonorsMapsInTheHost))
     sftp.run();
 }
 
-TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstatChownHonorsMapsInTheHost))
+TEST_F(SftpServer, setstatChownHonorsMapsInTheHost)
 {
     mpt::TempDir temp_dir;
     auto file_name = temp_dir.path() + "/test-file";
@@ -3822,4 +3816,56 @@ TEST_F(SftpServer, DISABLE_ON_WINDOWS(setstatChownHonorsMapsInTheHost))
     auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
     sftp.run();
 }
+
+struct SftpServerSetstatUnchangedIds
+    : public SftpServer,
+      public ::testing::WithParamInterface<std::pair<bool, bool>> // {uid unchanged, gid unchanged}
+{
+};
+
+INSTANTIATE_TEST_SUITE_P(SftpServer,
+                         SftpServerSetstatUnchangedIds,
+                         ::testing::Values(std::pair{true, false},
+                                           std::pair{false, true},
+                                           std::pair{true, true}));
+
+TEST_P(SftpServerSetstatUnchangedIds, chownReceivesMinusOneOnlyForUnchangedIds)
+{
+    const auto [uid_unchanged, gid_unchanged] = GetParam();
+
+    mpt::TempDir temp_dir;
+    auto file_path = temp_dir.path() + "/test-file";
+    mpt::make_file_with_content(file_path);
+
+    const int host_uid = QFileInfo(temp_dir.path()).ownerId();
+    const int host_gid = QFileInfo(temp_dir.path()).groupId();
+    const int sftp_uid = 1024;
+    const int sftp_gid = 1025;
+
+    mp::id_mappings uid_mappings{{host_uid, sftp_uid}};
+    mp::id_mappings gid_mappings{{host_gid, sftp_gid}};
+    auto init_msg = make_msg(SSH_FXP_INIT);
+    auto msg = make_msg(SFTP_SETSTAT);
+    auto name = name_as_char_array(file_path.toStdString());
+    sftp_attributes_struct attr{};
+    attr.flags = SSH_FILEXFER_ATTR_UIDGID;
+
+    msg->filename = name.data();
+    msg->attr = &attr;
+    msg->flags = SSH_FXF_WRITE;
+    msg->attr->uid = uid_unchanged ? 0xFFFFFFFF : sftp_uid;
+    msg->attr->gid = gid_unchanged ? 0xFFFFFFFF : sftp_gid;
+
+    REPLACE(sftp_get_client_message, make_msg_handler());
+
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
+
+    const unsigned int expected_uid = uid_unchanged ? 0xFFFFFFFF : host_uid;
+    const unsigned int expected_gid = gid_unchanged ? 0xFFFFFFFF : host_gid;
+    EXPECT_CALL(*mock_platform, chown(_, expected_uid, expected_gid)).Times(1);
+
+    auto sftp = make_sftpserver(temp_dir.path().toStdString(), uid_mappings, gid_mappings);
+    sftp.run();
+}
+
 } // namespace

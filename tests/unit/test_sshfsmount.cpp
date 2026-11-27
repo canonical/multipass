@@ -16,14 +16,19 @@
  */
 
 #include "common.h"
+#include "disabling_macros.h"
+#include "file_operations.h"
 #include "mock_logger.h"
+#include "mock_platform.h"
 #include "mock_ssh_process_exit_status.h"
 #include "sftp_server_test_fixture.h"
 #include "stub_ssh_key_provider.h"
+#include "temp_dir.h"
 
 #include <libssh/callbacks.h>
 #include <src/sshfs_mount/sshfs_mount.h>
 
+#include <multipass/cli/client_platform.h>
 #include <multipass/exceptions/sshfs_missing_error.h>
 #include <multipass/logging/log.h>
 #include <multipass/signal.h>
@@ -31,6 +36,7 @@
 #include <multipass/utils.h>
 
 #include <algorithm>
+#include <queue>
 #include <tuple>
 #include <vector>
 
@@ -506,4 +512,109 @@ TEST_F(SshfsMount, blankFuseVersionLogsError)
                     StrEq("Unable to parse the FUSE library version: FUSE library version:")));
 
     test_command_execution(commands);
+}
+
+TEST_F(SshfsMount, DISABLE_ON_WINDOWS(defaultIdMappingsResolveToGuestIdsInBothDirections))
+{
+    const int guest_uid = 1234;
+    const int guest_gid = 5678;
+    const CommandVector commands{{"id -u", fmt::format("{}\n", guest_uid)},
+                                 {"id -g", fmt::format("{}\n", guest_gid)}};
+
+    mpt::TempDir temp_dir;
+    const auto source = temp_dir.path().toStdString();
+    const auto file_path = fmt::format("{}/test-file", source);
+    mpt::make_file_with_content(QString::fromStdString(file_path));
+
+    const QFileInfo file_info{QString::fromStdString(file_path)};
+    const auto host_uid = static_cast<int>(file_info.ownerId());
+    const auto host_gid = static_cast<int>(file_info.groupId());
+    default_source = source;
+    mp::id_mappings uid_mappings{{host_uid, mp::default_id}};
+    mp::id_mappings gid_mappings{{host_gid, mp::default_id}};
+
+    std::vector<char> name{file_path.begin(), file_path.end()};
+    name.push_back('\0');
+
+    sftp_client_message_struct init_msg{make_init_message()};
+    sftp_client_message_struct stat_msg{};
+    stat_msg.type = SFTP_STAT;
+    stat_msg.filename = name.data();
+
+    sftp_attributes_struct setstat_attr{};
+    setstat_attr.flags = SSH_FILEXFER_ATTR_UIDGID;
+    setstat_attr.uid = guest_uid;
+    setstat_attr.gid = guest_gid;
+    sftp_client_message_struct setstat_msg{};
+    setstat_msg.type = SFTP_SETSTAT;
+    setstat_msg.filename = name.data();
+    setstat_msg.attr = &setstat_attr;
+
+    std::queue<sftp_client_message> messages;
+    messages.push(&init_msg);
+    messages.push(&stat_msg);
+    messages.push(&setstat_msg);
+
+    mp::Signal processed, release;
+    REPLACE(sftp_get_client_message, [&](sftp_session) -> sftp_client_message {
+        if (messages.empty())
+        {
+            release.wait();
+            return nullptr;
+        }
+        auto msg = messages.front();
+        messages.pop();
+        return msg;
+    });
+
+    uint32_t reported_uid{0}, reported_gid{0};
+    REPLACE(sftp_reply_attr, [&](auto, sftp_attributes attr) {
+        reported_uid = attr->uid;
+        reported_gid = attr->gid;
+        return SSH_OK;
+    });
+    REPLACE(sftp_reply_status, [&](auto...) {
+        processed.signal();
+        return SSH_OK;
+    });
+
+    const auto [mock_platform, guard] = mpt::MockPlatform::inject();
+    EXPECT_CALL(*mock_platform, chown(_, host_uid, host_gid)).Times(1);
+
+    bool invoked{false};
+    std::string output;
+    auto remaining = output.size();
+    CommandVector::const_iterator next_expected_cmd = commands.begin();
+    std::optional<std::string> no_fail_cmd;
+    std::optional<bool> no_fail_invoked;
+
+    REPLACE(ssh_channel_new,
+            [](auto...) { return reinterpret_cast<ssh_channel>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_channel_free, [](auto...) { return; });
+    REPLACE(ssh_remove_channel_callbacks, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_event_new, [](auto...) { return reinterpret_cast<ssh_event>(0xdeadbeefdeadbeef); });
+    REPLACE(ssh_event_free, [](auto...) { return; });
+    REPLACE(ssh_event_add_session, [](auto...) { return SSH_OK; });
+    REPLACE(ssh_channel_read_timeout, make_channel_read_return(output, remaining, invoked));
+    REPLACE(ssh_channel_request_exec,
+            make_exec_to_check_commands(commands,
+                                        remaining,
+                                        next_expected_cmd,
+                                        output,
+                                        invoked,
+                                        no_fail_cmd,
+                                        no_fail_invoked));
+
+    {
+        mp::SshfsMount mount{std::make_unique<mp::PlainSSHSession>("a", 42, "ubuntu", key_provider),
+                             default_source,
+                             default_target,
+                             std::move(gid_mappings),
+                             std::move(uid_mappings)};
+        processed.wait();
+        release.signal();
+    }
+
+    EXPECT_EQ(reported_uid, static_cast<uint32_t>(guest_uid));
+    EXPECT_EQ(reported_gid, static_cast<uint32_t>(guest_gid));
 }

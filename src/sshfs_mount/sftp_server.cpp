@@ -32,6 +32,8 @@
 
 #include <fcntl.h>
 
+#include <optional>
+
 namespace mp = multipass;
 namespace mpl = multipass::logging;
 namespace fs = std::filesystem;
@@ -48,6 +50,7 @@ using namespace std::literals::chrono_literals;
 constexpr auto keepalive_interval = 30s;
 constexpr int keepalive_interval_ms =
     std::chrono::duration_cast<std::chrono::milliseconds>(keepalive_interval).count();
+constexpr uint32_t id_unchanged = 0xFFFFFFFF; // (uint32_t)-1, sent by sshfs for an id to keep
 
 enum Permissions
 {
@@ -243,40 +246,29 @@ auto create_sshfs_process(mp::SSHSession& session,
                           const std::string& source,
                           const std::string& target)
 {
-    auto sshfs_process =
-        session.exec(fmt::format("sudo {} :{:?} {:?}", sshfs_exec_line, source, target));
+    auto sshfs_process = session.exec(
+        fmt::format("sudo {} :{:?} {:?}", sshfs_exec_line, source, target));
 
     check_sshfs_status(*sshfs_process);
 
     return sshfs_process;
 }
 
-int mapped_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
+std::optional<uint32_t> mapped_id_for(const mp::id_mappings& id_maps, const int id)
 {
-    if (id == mp::no_id_info_available)
-        return default_id;
-
     auto found = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) {
         return id == p.first;
     });
 
-    return found == id_maps.cend() ? -1
-                                   : (found->second == mp::default_id ? default_id : found->second);
+    return found == id_maps.cend() ? std::nullopt : std::optional<uint32_t>(found->second);
 }
 
-int reverse_id_for(const mp::id_mappings& id_maps, const int id, const int default_id)
+std::optional<uint32_t> reverse_id_for(const mp::id_mappings& id_maps, const int id)
 {
     auto found = std::find_if(id_maps.cbegin(), id_maps.cend(), [id](std::pair<int, int> p) {
         return id == p.second;
     });
-    auto default_found =
-        std::find_if(id_maps.cbegin(), id_maps.cend(), [default_id](std::pair<int, int> p) {
-            return default_id == p.second;
-        });
-
-    return found == id_maps.cend()
-             ? (default_found == id_maps.cend() ? default_id : default_found->first)
-             : found->first;
+    return found == id_maps.cend() ? std::nullopt : std::optional<uint32_t>(found->first);
 }
 
 constexpr bool follows_symlinks(uint8_t type)
@@ -306,10 +298,8 @@ constexpr bool follows_symlinks(uint8_t type)
 mp::SftpServer::SftpServer(std::unique_ptr<SSHSession>&& session,
                            const std::string& source,
                            const std::string& target,
-                           const id_mappings& gid_mappings,
-                           const id_mappings& uid_mappings,
-                           int default_uid,
-                           int default_gid,
+                           id_mappings&& gid_mappings,
+                           id_mappings&& uid_mappings,
                            const std::string& sshfs_exec_line)
     : ssh_session{std::move(session)},
       sshfs_process{create_sshfs_process(*ssh_session, sshfs_exec_line, source, target)},
@@ -318,10 +308,8 @@ mp::SftpServer::SftpServer(std::unique_ptr<SSHSession>&& session,
                                                 ->release_channel())}, // TODO@rewiressh no cast
       source_path{MP_FILEOPS.weakly_canonical(source)},
       target_path{fs::path(target).lexically_normal()},
-      gid_mappings{gid_mappings},
-      uid_mappings{uid_mappings},
-      default_uid{default_uid},
-      default_gid{default_gid},
+      gid_mappings{std::move(gid_mappings)},
+      uid_mappings{std::move(uid_mappings)},
       sshfs_exec_line{sshfs_exec_line}
 {
 }
@@ -337,8 +325,8 @@ sftp_attributes_struct mp::SftpServer::attr_from(const QFileInfo& file_info)
 
     attr.size = file_info.size();
 
-    attr.uid = mapped_uid_for(file_info.ownerId());
-    attr.gid = mapped_gid_for(file_info.groupId());
+    attr.uid = mapped_uid_for(file_info.ownerId()).value_or(id_unchanged);
+    attr.gid = mapped_gid_for(file_info.groupId()).value_or(id_unchanged);
 
     attr.permissions = to_unix_permissions(file_info.permissions());
     attr.atime = file_info.lastRead().toUTC().toMSecsSinceEpoch() / 1000;
@@ -356,24 +344,24 @@ sftp_attributes_struct mp::SftpServer::attr_from(const QFileInfo& file_info)
     return attr;
 }
 
-inline int mp::SftpServer::mapped_uid_for(const int uid)
+inline std::optional<uint32_t> mp::SftpServer::mapped_uid_for(const int uid)
 {
-    return mapped_id_for(uid_mappings, uid, default_uid);
+    return mapped_id_for(uid_mappings, uid);
 }
 
-inline int mp::SftpServer::mapped_gid_for(const int gid)
+inline std::optional<uint32_t> mp::SftpServer::mapped_gid_for(const int gid)
 {
-    return mapped_id_for(gid_mappings, gid, default_gid);
+    return mapped_id_for(gid_mappings, gid);
 }
 
-inline int mp::SftpServer::reverse_uid_for(const int uid, const int default_id_)
+inline std::optional<uint32_t> mp::SftpServer::reverse_uid_for(const int uid)
 {
-    return reverse_id_for(uid_mappings, uid, default_id_);
+    return reverse_id_for(uid_mappings, uid);
 }
 
-inline int mp::SftpServer::reverse_gid_for(const int gid, const int default_id_)
+inline std::optional<uint32_t> mp::SftpServer::reverse_gid_for(const int gid)
 {
-    return reverse_id_for(gid_mappings, gid, default_id_);
+    return reverse_id_for(gid_mappings, gid);
 }
 
 inline bool mp::SftpServer::has_uid_mapping_for(const int uid)
@@ -739,8 +727,8 @@ int mp::SftpServer::handle_mkdir(sftp_client_message msg)
         return reply_failure(msg);
     }
 
-    int rev_uid = reverse_uid_for(parent_dir.ownerId(), parent_dir.ownerId());
-    int rev_gid = reverse_gid_for(parent_dir.groupId(), parent_dir.groupId());
+    auto rev_uid = reverse_uid_for(parent_dir.ownerId()).value_or(parent_dir.ownerId());
+    auto rev_gid = reverse_gid_for(parent_dir.groupId()).value_or(parent_dir.groupId());
 
     if (MP_PLATFORM.chown(filename->string().c_str(), rev_uid, rev_gid) < 0)
     {
@@ -852,8 +840,8 @@ int mp::SftpServer::handle_open(sftp_client_message msg)
 
     if (!exists)
     {
-        auto new_uid = reverse_uid_for(current_dir.ownerId(), current_dir.ownerId());
-        auto new_gid = reverse_gid_for(current_dir.groupId(), current_dir.groupId());
+        auto new_uid = reverse_uid_for(current_dir.ownerId()).value_or(current_dir.ownerId());
+        auto new_gid = reverse_gid_for(current_dir.groupId()).value_or(current_dir.groupId());
 
         if (MP_PLATFORM.chown(filename->string().c_str(), new_uid, new_gid) < 0)
         {
@@ -988,8 +976,8 @@ int mp::SftpServer::handle_readdir(sftp_client_message msg)
         {
             mp::platform::symlink_attr_from(file_info.absoluteFilePath().toStdString().c_str(),
                                             &attr);
-            attr.uid = mapped_uid_for(attr.uid);
-            attr.gid = mapped_gid_for(attr.gid);
+            attr.uid = mapped_uid_for(attr.uid).value_or(id_unchanged);
+            attr.gid = mapped_gid_for(attr.gid).value_or(id_unchanged);
         }
         else
         {
@@ -1247,8 +1235,13 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
 
     if (msg->attr->flags & SSH_FILEXFER_ATTR_UIDGID)
     {
-        if (!has_reverse_uid_mapping_for(msg->attr->uid) &&
-            !has_reverse_gid_mapping_for(msg->attr->gid))
+        const auto rev_mapped_uid = id_unchanged == msg->attr->uid
+                                      ? std::optional<uint32_t>{id_unchanged}
+                                      : reverse_uid_for(msg->attr->uid);
+        const auto rev_mapped_gid = id_unchanged == msg->attr->gid
+                                      ? std::optional<uint32_t>{id_unchanged}
+                                      : reverse_gid_for(msg->attr->gid);
+        if (!rev_mapped_uid || !rev_mapped_gid)
         {
             mpl::trace(category,
                        "{}: cannot set ownership for \'{}\' without id mapping",
@@ -1257,9 +1250,7 @@ int mp::SftpServer::handle_setstat(sftp_client_message msg)
             return reply_perm_denied(msg);
         }
 
-        if (MP_PLATFORM.chown(filename.string().c_str(),
-                              reverse_uid_for(msg->attr->uid, msg->attr->uid),
-                              reverse_gid_for(msg->attr->gid, msg->attr->gid)) < 0)
+        if (MP_PLATFORM.chown(filename.string().c_str(), *rev_mapped_uid, *rev_mapped_gid) < 0)
         {
             mpl::trace(category,
                        "{}: cannot set ownership for '{}'",
@@ -1293,8 +1284,8 @@ int mp::SftpServer::handle_stat(sftp_client_message msg, const bool follow)
     if (!follow && file_info.isSymLink() &&
         mp::platform::symlink_attr_from(filename->string().c_str(), &attr) == 0)
     {
-        attr.uid = mapped_uid_for(attr.uid);
-        attr.gid = mapped_gid_for(attr.gid);
+        attr.uid = mapped_uid_for(attr.uid).value_or(id_unchanged);
+        attr.gid = mapped_gid_for(attr.gid).value_or(id_unchanged);
     }
     else
     {

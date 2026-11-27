@@ -25,6 +25,7 @@
 
 #include <atomic>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
 #include <QFile>
@@ -41,10 +42,8 @@ public:
     SftpServer(std::unique_ptr<SSHSession>&& ssh_session,
                const std::string& source,
                const std::string& target,
-               const id_mappings& gid_mappings,
-               const id_mappings& uid_mappings,
-               int default_uid,
-               int default_gid,
+               id_mappings&& gid_mappings,
+               id_mappings&& uid_mappings,
                const std::string& sshfs_exec_line);
     SftpServer(SftpServer&& other);
     ~SftpServer();
@@ -59,10 +58,10 @@ public:
 private:
     void process_message(sftp_client_message msg);
     sftp_attributes_struct attr_from(const QFileInfo& file_info);
-    int mapped_uid_for(const int uid);
-    int mapped_gid_for(const int gid);
-    int reverse_uid_for(const int uid, const int default_id);
-    int reverse_gid_for(const int gid, const int default_id);
+    std::optional<uint32_t> mapped_uid_for(const int uid);
+    std::optional<uint32_t> mapped_gid_for(const int gid);
+    std::optional<uint32_t> reverse_uid_for(const int uid);
+    std::optional<uint32_t> reverse_gid_for(const int gid);
     bool has_uid_mapping_for(const int uid);
     bool has_gid_mapping_for(const int gid);
     bool has_reverse_uid_mapping_for(const int uid);
@@ -103,8 +102,6 @@ private:
     std::unordered_map<void*, std::unique_ptr<DirIterator>> open_dir_handles;
     const id_mappings gid_mappings;
     const id_mappings uid_mappings;
-    const int default_uid;
-    const int default_gid;
     const std::string sshfs_exec_line;
     std::atomic<bool> stop_invoked{false};
 };
