@@ -1815,6 +1815,34 @@ TEST_F(BaseVM, constructionIgnoresDescriptionWriteFailure)
     EXPECT_NO_THROW(StubBaseVirtualMachine{zone});
 }
 
+TEST_F(BaseVM, persistsStateChangesInDescription)
+{
+    vm.simulate_state(St::running);
+
+    EXPECT_EQ(persisted_description().at("state"), static_cast<int>(St::running));
+}
+
+TEST_F(BaseVM, stateChangeIgnoresDescriptionWriteFailure)
+{
+    auto [mock_file_ops, file_ops_guard] = mpt::MockFileOps::inject();
+    EXPECT_CALL(*mock_file_ops, write_transactionally(_, _))
+        .WillOnce(Throw(std::runtime_error{"intentional"}));
+
+    EXPECT_NO_THROW(vm.simulate_state(St::running));
+    EXPECT_EQ(vm.fetch_state(), St::running);
+}
+
+TEST_F(BaseVM, persistsStateWhenBecomingAvailable)
+{
+    StubBaseVirtualMachine base_vm{zone, St::unavailable};
+
+    base_vm.set_available(true);
+
+    const auto persisted = boost::json::parse(
+        mpt::load(base_vm.tmp_dir->filePath(mp::vm_description_file_name)).toStdString());
+    EXPECT_EQ(persisted.at("state"), static_cast<int>(St::stopped));
+}
+
 TEST_F(BaseVM, addNetworkInterfaceCallsImplAndUpdatesDescription)
 {
     const mp::NetworkInterface existing{"eth0", "52:54:00:00:00:01", true};

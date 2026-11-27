@@ -173,7 +173,7 @@ protected:
     void set_state(State state);
     virtual void handle_state_update();
 
-    // A copy taken under the lock, with the current state filled in.
+    // A copy taken under the lock.
     [[nodiscard]] VirtualMachineDescription description() const;
 
     // The callback must not re-enter edit_description(), acquire other locks, or call backends.
@@ -183,12 +183,11 @@ protected:
     {
         const std::lock_guard lock{desc_mutex};
         std::forward<F>(mutate)(desc);
-        persist_description_locked();
+        persist_description();
     }
 
 private:
-    void persist_description() const;
-    void persist_description_locked() const; // caller holds desc_mutex
+    void persist_description() const; // caller holds desc_mutex
 
     using SnapshotMap = std::unordered_map<std::string, std::shared_ptr<Snapshot>>;
 
@@ -255,7 +254,6 @@ protected:
 private:
     VirtualMachineDescription desc;
     mutable std::mutex desc_mutex;
-    VirtualMachine::State state;
     std::string saved_error_msg = "";
     std::unique_ptr<SSHSession> ssh_session = nullptr;
     SnapshotMap snapshots;
@@ -338,5 +336,6 @@ inline std::string multipass::BaseVirtualMachine::core_image_disk_resize_message
 
 inline multipass::VirtualMachine::State multipass::BaseVirtualMachine::cached_state() const
 {
-    return state;
+    const std::lock_guard lock{desc_mutex};
+    return desc.state;
 }

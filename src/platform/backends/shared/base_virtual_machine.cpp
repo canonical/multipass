@@ -166,10 +166,9 @@ mp::BaseVirtualMachine::BaseVirtualMachine(St state,
       key_provider{key_provider},
       zone{zone},
       instance_dir{instance_dir},
-      desc{vm_desc},
-      state{state}
+      desc{vm_desc}
 {
-    persist_description();
+    edit_description([state](auto& d) { d.state = state; });
 }
 
 mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
@@ -177,9 +176,7 @@ mp::BaseVirtualMachine::~BaseVirtualMachine() = default;
 auto mp::BaseVirtualMachine::description() const -> VirtualMachineDescription
 {
     const std::lock_guard lock{desc_mutex};
-    auto copy = desc;
-    copy.state = cached_state();
-    return copy;
+    return desc;
 }
 
 void mp::BaseVirtualMachine::apply_extra_interfaces_and_instance_id_to_cloud_init(
@@ -270,8 +267,8 @@ bool mp::BaseVirtualMachine::set_available(bool available)
     if (available)
     {
         assert(cached_state() == St::unavailable);
-        mpl::info(vm_name, "State changed from {} to {}", state, St::stopped);
-        state = St::stopped;
+        mpl::info(vm_name, "State changed from {} to {}", St::unavailable, St::stopped);
+        edit_description([](auto& d) { d.state = St::stopped; });
         handle_state_update();
         return was_running;
     }
@@ -665,7 +662,7 @@ std::shared_ptr<const mp::Snapshot> mp::BaseVirtualMachine::take_snapshot(
     const std::string& comment)
 {
     std::unique_lock lock{snapshot_mutex};
-    assert_vm_stopped(state); // precondition
+    assert_vm_stopped(cached_state()); // precondition
 
     auto sname = snapshot_name.empty() ? generate_snapshot_name() : snapshot_name;
 
@@ -1126,9 +1123,9 @@ St mp::BaseVirtualMachine::fetch_state()
     const auto backend_state = fetch_backend_state();
     if (!backend_state.has_value() ||
         backend_to_multipass_equivalence.at(backend_state.value()).contains(cached_state()))
-        return state;
+        return cached_state();
     set_state(backend_state.value());
-    return state;
+    return cached_state();
 }
 
 void mp::BaseVirtualMachine::set_running()
@@ -1149,25 +1146,17 @@ void mp::BaseVirtualMachine::set_state(St new_state)
         return;
     if (cached_state() == St::unavailable)
         return;
-    mpl::info(vm_name, "State changed from {} to {}", state, new_state);
-    state = new_state;
+    mpl::info(vm_name, "State changed from {} to {}", cached_state(), new_state);
+    edit_description([new_state](auto& d) { d.state = new_state; });
     handle_state_update();
 }
 
 void mp::BaseVirtualMachine::persist_description() const
 {
-    const std::lock_guard lock{desc_mutex};
-    persist_description_locked();
-}
-
-void mp::BaseVirtualMachine::persist_description_locked() const
-{
     top_catch_all(vm_name, [this] {
-        auto copy = desc;
-        copy.state = cached_state();
         MP_FILEOPS.write_transactionally(
             MP_PLATFORM.qstr_to_path(instance_dir.filePath(vm_description_file_name)),
-            pretty_print(boost::json::value_from(copy)));
+            pretty_print(boost::json::value_from(desc)));
     });
 }
 
