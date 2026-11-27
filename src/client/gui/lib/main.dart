@@ -8,6 +8,7 @@ import 'package:window_manager/window_manager.dart';
 import 'before_quit_dialog.dart';
 import 'l10n/app_localizations.dart';
 import 'catalogue/catalogue.dart';
+import 'colors.dart';
 import 'confirmation_dialog.dart';
 import 'daemon_unavailable.dart';
 import 'help.dart';
@@ -307,71 +308,77 @@ class _AppState extends ConsumerState<App> with WindowListener {
   }
 }
 
-final theme = ThemeData(
+final theme = buildTheme(AppColors.light);
+
+ThemeData buildTheme(AppColors colors) => ThemeData(
   useMaterial3: false,
+  extensions: [colors],
   fontFamily: 'Ubuntu',
   fontFamilyFallback: ['NotoColorEmoji', 'FreeSans'],
-  inputDecorationTheme: const InputDecorationTheme(
-    contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 6),
-    fillColor: Color(0xfff2f2f2),
+  inputDecorationTheme: InputDecorationTheme(
+    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 6),
+    fillColor: colors.inputFill,
     filled: true,
     focusedBorder: UnderlineInputBorder(
-      borderSide: BorderSide(width: 2),
+      borderSide: BorderSide(width: 2, color: colors.inputBorder),
       borderRadius: BorderRadius.zero,
     ),
     enabledBorder: UnderlineInputBorder(
-      borderSide: BorderSide(width: 2),
+      borderSide: BorderSide(width: 2, color: colors.inputBorder),
       borderRadius: BorderRadius.zero,
     ),
     isDense: true,
-    suffixIconColor: Colors.black,
+    suffixIconColor: colors.textPrimary,
   ),
   outlinedButtonTheme: OutlinedButtonThemeData(
     style: OutlinedButton.styleFrom(
-      disabledForegroundColor: Colors.black.withAlpha(128),
-      foregroundColor: Colors.black,
+      disabledForegroundColor: colors.textPrimary.withAlpha(128),
+      foregroundColor: colors.textPrimary,
       padding: const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
-      side: const BorderSide(color: Color(0xff333333)),
+      side: BorderSide(color: colors.buttonBorder),
       textStyle: const TextStyle(fontFamily: 'Ubuntu', fontSize: 16),
     ),
   ),
-  scaffoldBackgroundColor: Colors.white,
+  scaffoldBackgroundColor: colors.background,
   textButtonTheme: TextButtonThemeData(
     style: TextButton.styleFrom(
-      backgroundColor: const Color(0xff0E8620),
-      disabledForegroundColor: Colors.white.withAlpha(128),
-      foregroundColor: Colors.white,
+      backgroundColor: colors.positive,
+      disabledForegroundColor: colors.onPositive.withAlpha(128),
+      foregroundColor: colors.onPositive,
       padding: const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
       textStyle: const TextStyle(fontFamily: 'Ubuntu', fontSize: 16),
     ),
   ),
-  textSelectionTheme: const TextSelectionThemeData(
-    cursorColor: Colors.black,
-    selectionColor: Colors.grey,
+  textSelectionTheme: TextSelectionThemeData(
+    cursorColor: colors.textPrimary,
+    selectionColor: colors.textSelection,
   ),
-  tabBarTheme: const TabBarThemeData(
+  tabBarTheme: TabBarThemeData(
     indicator: BoxDecoration(
-      color: Colors.black12,
-      border: Border(bottom: BorderSide(width: 3)),
+      color: colors.tabIndicator,
+      border: Border(bottom: BorderSide(width: 3, color: colors.textPrimary)),
     ),
     indicatorSize: TabBarIndicatorSize.tab,
-    labelColor: Colors.black,
-    labelStyle: TextStyle(fontFamily: 'Ubuntu', fontWeight: FontWeight.bold),
-    unselectedLabelColor: Colors.black,
-    unselectedLabelStyle: TextStyle(
+    labelColor: colors.textPrimary,
+    labelStyle: const TextStyle(
+      fontFamily: 'Ubuntu',
+      fontWeight: FontWeight.bold,
+    ),
+    unselectedLabelColor: colors.textPrimary,
+    unselectedLabelStyle: const TextStyle(
       fontFamily: 'Ubuntu',
       fontWeight: FontWeight.bold,
     ),
     tabAlignment: TabAlignment.start,
   ),
   sliderTheme: SliderThemeData(
-    activeTrackColor: Color(0xff0066cc),
-    inactiveTrackColor: Color(0xffd9d9d9),
+    activeTrackColor: colors.sliderActiveTrack,
+    inactiveTrackColor: colors.sliderInactiveTrack,
     overlayShape: SliderComponentShape.noThumb,
-    thumbColor: Colors.white,
-    thumbShape: CustomThumbShape(),
+    thumbColor: colors.sliderThumb,
+    thumbShape: CustomThumbShape(borderColor: colors.sliderThumbBorder),
     tickMarkShape: SliderTickMarkShape.noTickMark,
     trackHeight: 2,
     trackShape: CustomTrackShape(),

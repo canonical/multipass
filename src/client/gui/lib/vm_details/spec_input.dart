@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../colors.dart';
+
 class SpecInput extends StatelessWidget {
   final bool autofocus;
   final bool enabled;
@@ -33,16 +35,14 @@ class SpecInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textStyle = TextStyle(color: context.colors.textPrimary);
     return SizedBox(
       width: width,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (label != null) ...[
-            Text(
-              label!,
-              style: const TextStyle(fontSize: 16, color: Colors.black),
-            ),
+            Text(label!, style: textStyle.copyWith(fontSize: 16)),
             const SizedBox(height: 8),
           ],
           TextFormField(
@@ -52,9 +52,9 @@ class SpecInput extends StatelessWidget {
               hintText: hint,
               helperText: helper,
               helperMaxLines: 3,
-              helperStyle: const TextStyle(color: Colors.black),
-              disabledBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.black12),
+              helperStyle: textStyle,
+              disabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: context.colors.disabledBorder),
                 borderRadius: BorderRadius.zero,
               ),
             ),
@@ -63,7 +63,7 @@ class SpecInput extends StatelessWidget {
             initialValue: initialValue,
             inputFormatters: inputFormatters,
             onSaved: onSaved,
-            style: const TextStyle(color: Colors.black),
+            style: textStyle,
             validator: validator,
           ),
         ],

@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../colors.dart';
 import '../copyable_text.dart';
 import '../extensions.dart';
 import '../l10n/app_localizations.dart';
@@ -64,15 +65,16 @@ class VmDetailsHeader extends ConsumerWidget {
 
     final currentLocation = ref.watch(vmScreenLocationProvider(name));
     final buttonStyle = Theme.of(context).outlinedButtonTheme.style;
+    final colors = context.colors;
 
     OutlinedButton locationButton(VmDetailsLocation location) {
       final style = buttonStyle?.copyWith(
         shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
         backgroundColor: location == currentLocation
-            ? const WidgetStatePropertyAll(Color(0xff333333))
+            ? WidgetStatePropertyAll(colors.toggleSelectedBackground)
             : null,
         foregroundColor: location == currentLocation
-            ? const WidgetStatePropertyAll(Colors.white)
+            ? WidgetStatePropertyAll(colors.toggleSelectedForeground)
             : null,
       );
       return OutlinedButton(

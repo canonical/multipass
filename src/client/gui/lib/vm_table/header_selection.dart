@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../colors.dart';
 import '../l10n/app_localizations.dart';
 import 'vm_table_headers.dart';
 
@@ -34,7 +35,7 @@ class HeaderSelectionTile extends ConsumerWidget {
 
     return CheckboxListTile(
       controlAffinity: ListTileControlAffinity.leading,
-      title: Text(label, style: const TextStyle(color: Colors.black)),
+      title: Text(label, style: TextStyle(color: context.colors.textPrimary)),
       value: enabledHeaders[name],
       onChanged: (isSelected) => ref
           .read(enabledHeadersProvider.notifier)
@@ -49,6 +50,7 @@ class HeaderSelection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.colors;
     final columnLabels = {
       'STATE': l10n.vmStatState,
       'CPU USAGE': l10n.vmStatCpuUsage,
@@ -71,14 +73,16 @@ class HeaderSelection extends StatelessWidget {
         width: 120,
         height: 42,
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
+        decoration: BoxDecoration(
+          border: Border.all(color: colors.tableBorder),
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             SvgPicture.asset(
               'assets/settings.svg',
-              colorFilter: const ColorFilter.mode(
-                Color(0xff333333),
+              colorFilter: ColorFilter.mode(
+                colors.iconSecondary,
                 BlendMode.srcIn,
               ),
             ),

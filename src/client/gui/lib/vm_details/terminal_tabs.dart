@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../close_terminal_dialog.dart';
+import '../colors.dart';
 import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import 'terminal.dart';
@@ -78,16 +79,16 @@ class Tab extends StatelessWidget {
     required this.os,
   });
 
-  Widget _buildIcon(String os) {
+  Widget _buildIcon(String os, AppColors colors) {
     final osl = os.toLowerCase();
     // Tuple: (asset path, background color, svg color)
     final iconData = osl.contains('ubuntu')
-        ? ('assets/ubuntu.svg', const Color(0xffE95420), Colors.white)
+        ? ('assets/ubuntu.svg', colors.brand, colors.onBrand)
         : osl.contains('debian')
         ? ('assets/debian.svg', null, null)
         : osl.contains('fedora')
         ? ('assets/fedora.svg', null, null)
-        : ('assets/ubuntu.svg', const Color(0xffE95420), Colors.white);
+        : ('assets/ubuntu.svg', colors.brand, colors.onBrand);
 
     return Container(
       alignment: Alignment.center,
@@ -107,29 +108,33 @@ class Tab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final tabTitle = Text(
       title,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w300),
+      style: TextStyle(
+        color: colors.terminalTabForeground,
+        fontWeight: FontWeight.w300,
+      ),
     );
 
     final closeButton = Material(
       color: Colors.transparent,
       child: IconButton(
-        hoverColor: Colors.white24,
+        hoverColor: colors.terminalTabHover,
         splashRadius: 10,
         onPressed: onClose,
-        icon: const Icon(Icons.close, color: Colors.white, size: 17),
+        icon: Icon(Icons.close, color: colors.terminalTabForeground, size: 17),
       ),
     );
 
     final decoration = BoxDecoration(
-      color: Color(selected ? 0xff2B2B2B : 0xff222222),
+      color: selected
+          ? colors.terminalTabSelectedBackground
+          : colors.terminalTabBarBackground,
       border: selected
-          ? const Border(
-              bottom: BorderSide(color: Color(0xffE95420), width: 2.5),
-            )
+          ? Border(bottom: BorderSide(color: colors.brand, width: 2.5))
           : null,
     );
 
@@ -140,7 +145,7 @@ class Tab extends StatelessWidget {
         decoration: decoration,
         child: Row(
           children: [
-            _buildIcon(os),
+            _buildIcon(os, colors),
             Expanded(child: tabTitle),
             closeButton,
           ],
@@ -216,12 +221,13 @@ class TerminalTabs extends ConsumerWidget {
       return (tab: tab, shell: shell);
     }).toList();
 
+    final colors = context.colors;
     final addShellButton = Material(
       color: Colors.transparent,
       child: IconButton(
-        hoverColor: Colors.white24,
+        hoverColor: colors.terminalTabHover,
         splashRadius: 10,
-        icon: const Icon(Icons.add, color: Colors.white, size: 20),
+        icon: Icon(Icons.add, color: colors.terminalTabForeground, size: 20),
         onPressed: () => ref.read(notifier).add(),
       ),
     );
@@ -247,7 +253,11 @@ class TerminalTabs extends ConsumerWidget {
 
     return Column(
       children: [
-        Container(color: const Color(0xff222222), height: 35, child: tabList),
+        Container(
+          color: colors.terminalTabBarBackground,
+          height: 35,
+          child: tabList,
+        ),
         Expanded(child: shellStack),
       ],
     );

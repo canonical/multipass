@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart' hide ConnectionState;
 
+import '../colors.dart';
 import '../extensions.dart';
 import '../grpc_client.dart';
 import '../l10n/app_localizations.dart';
@@ -71,6 +72,8 @@ class DriverMigrationNotification extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.colors;
+    final textStyle = TextStyle(color: colors.textPrimary);
     return StreamBuilder<MigrationProgress>(
       stream: progress,
       builder: (_, snapshot) {
@@ -78,15 +81,16 @@ class DriverMigrationNotification extends StatelessWidget {
 
         if (!progress.done) {
           return SimpleNotification(
-            barColor: Colors.blue,
+            barColor: colors.info,
             closeable: false,
-            icon: const CircularProgressIndicator(
-              color: Colors.blue,
+            icon: CircularProgressIndicator(
+              color: colors.info,
               strokeAlign: -2,
               strokeWidth: 3.5,
             ),
             child: Text.rich(
               [l10n.migrationInProgress.span.bold, progress.phase.span].spans,
+              style: textStyle,
             ),
           );
         }
@@ -101,10 +105,11 @@ class DriverMigrationNotification extends StatelessWidget {
           // Not a timed notification: the summary warns about running the
           // retained originals.
           return SimpleNotification(
-            barColor: Colors.green,
-            icon: const Icon(Icons.check_circle_outline, color: Colors.green),
+            barColor: colors.success,
+            icon: Icon(Icons.check_circle_outline, color: colors.success),
             child: Text.rich(
               [l10n.migrationDone.span.bold, details.span].spans,
+              style: textStyle,
             ),
           );
         }
@@ -113,6 +118,7 @@ class DriverMigrationNotification extends StatelessWidget {
           return WarningNotification(
             child: Text.rich(
               [l10n.migrationDoneWithProblems.span.bold, details.span].spans,
+              style: textStyle,
             ),
           );
         }

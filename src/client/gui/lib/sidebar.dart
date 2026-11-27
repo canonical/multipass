@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'catalogue/catalogue.dart';
+import 'colors.dart';
 import 'extensions.dart';
 import 'help.dart';
 import 'l10n/app_localizations.dart';
@@ -108,6 +109,7 @@ class SideBar extends ConsumerWidget {
     final vmNames = ref.watch(vmNamesProvider);
     final expanded = ref.watch(sidebarExpandedProvider);
     final pushContent = ref.watch(sidebarPushContentProvider);
+    final colors = context.colors;
 
     bool isSelected(String key) => key == selectedSidebarKey;
 
@@ -153,11 +155,11 @@ class SideBar extends ConsumerWidget {
     final pinSidebarButton = Material(
       color: Colors.transparent,
       child: IconButton(
-        hoverColor: Colors.white24,
+        hoverColor: colors.sidebarHover,
         splashRadius: 15,
         icon: Icon(
           pushContent ? Icons.chevron_left : Icons.chevron_right,
-          color: Colors.white,
+          color: colors.sidebarForeground,
         ),
         onPressed: () => ref
             .read(sidebarPushContentProvider.notifier)
@@ -170,7 +172,7 @@ class SideBar extends ConsumerWidget {
       children: [
         Container(
           alignment: Alignment.bottomCenter,
-          color: const Color(0xffE95420),
+          color: colors.brand,
           height: 50,
           margin: const EdgeInsets.symmetric(horizontal: 8),
           padding: const EdgeInsets.all(4),
@@ -183,8 +185,8 @@ class SideBar extends ConsumerWidget {
             duration: SideBar.animationDuration,
             child: Text.rich(
               [
-                'Canonical\n'.span.size(12).color(Colors.white),
-                'Multipass'.span.size(24).color(Colors.white),
+                'Canonical\n'.span.size(12).color(colors.sidebarForeground),
+                'Multipass'.span.size(24).color(colors.sidebarForeground),
               ].spans,
             ),
           ),
@@ -227,7 +229,7 @@ class SideBar extends ConsumerWidget {
       },
       child: AnimatedContainer(
         duration: SideBar.animationDuration,
-        color: const Color(0xff262626),
+        color: colors.sidebarBackground,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         width: expanded ? expandedWidth : collapsedWidth,
         child: Column(
@@ -238,7 +240,7 @@ class SideBar extends ConsumerWidget {
             catalogue,
             instances,
             Expanded(child: ListView(children: vmEntries.toList())),
-            Divider(color: Colors.white.withAlpha(77)),
+            Divider(color: colors.sidebarDivider),
             help,
             settings,
           ],
@@ -248,10 +250,10 @@ class SideBar extends ConsumerWidget {
 
     return DefaultTextStyle(
       softWrap: false,
-      style: const TextStyle(
+      style: TextStyle(
         height: 1,
         overflow: TextOverflow.clip,
-        color: Colors.white,
+        color: colors.sidebarForeground,
         fontWeight: FontWeight.w300,
       ),
       child: sidebar,
@@ -278,13 +280,14 @@ class SidebarEntry extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final expanded = ref.watch(sidebarExpandedProvider);
+    final colors = context.colors;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         border: Border(
           left: selected
-              ? const BorderSide(color: Colors.white, width: 2)
+              ? BorderSide(color: colors.sidebarForeground, width: 2)
               : BorderSide.none,
         ),
       ),
@@ -293,7 +296,7 @@ class SidebarEntry extends ConsumerWidget {
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
           backgroundColor: selected
-              ? const Color(0xff444444)
+              ? colors.sidebarSelectedBackground
               : Colors.transparent,
         ),
         child: Row(
@@ -301,7 +304,7 @@ class SidebarEntry extends ConsumerWidget {
             badge == null
                 ? icon
                 : Badge(
-                    backgroundColor: const Color(0xff333333),
+                    backgroundColor: colors.sidebarBadgeBackground,
                     isLabelVisible: !expanded,
                     label: Text(badge!),
                     offset: const Offset(10, -6),
@@ -318,8 +321,8 @@ class SidebarEntry extends ConsumerWidget {
             if (badge != null && expanded)
               Flexible(
                 child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xff333333),
+                  decoration: BoxDecoration(
+                    color: colors.sidebarBadgeBackground,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,

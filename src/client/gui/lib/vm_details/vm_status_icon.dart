@@ -1,26 +1,42 @@
 import 'package:flutter/material.dart' hide Tooltip;
 
+import '../colors.dart';
 import '../extensions.dart';
 import '../grpc_client.dart';
 import '../l10n/app_localizations.dart';
 import '../tooltip.dart';
 
-const unknownIcon = Icon(Icons.help, color: Color(0xff757575), size: 15);
-const icons = {
-  Status.RUNNING: Icon(Icons.circle, color: Color(0xff0C8420), size: 10),
-  Status.STOPPED: Icon(Icons.circle, color: Colors.black, size: 10),
-  Status.SUSPENDED: Icon(Icons.circle, color: Color(0xff666666), size: 10),
-  Status.RESTARTING: Icon(Icons.more_horiz, color: Color(0xff757575), size: 15),
-  Status.STARTING: Icon(Icons.more_horiz, color: Color(0xff757575), size: 15),
-  Status.SUSPENDING: Icon(Icons.more_horiz, color: Color(0xff757575), size: 15),
-  Status.DELETED: Icon(Icons.close, color: Colors.redAccent, size: 15),
-  Status.DELAYED_SHUTDOWN: Icon(
-    Icons.circle,
-    color: Color(0xff0C8420),
-    size: 10,
-  ),
-  Status.UNAVAILABLE: Icon(Icons.circle, color: Color(0xff757575), size: 10),
-};
+Icon unknownStatusIcon(AppColors colors) {
+  return Icon(Icons.help, color: colors.statusUnknown, size: 15);
+}
+
+Map<Status, Icon> statusIcons(AppColors colors) {
+  final running = Icon(Icons.circle, color: colors.statusRunning, size: 10);
+  final transitioning = Icon(
+    Icons.more_horiz,
+    color: colors.statusTransitioning,
+    size: 15,
+  );
+  return {
+    Status.RUNNING: running,
+    Status.STOPPED: Icon(Icons.circle, color: colors.statusStopped, size: 10),
+    Status.SUSPENDED: Icon(
+      Icons.circle,
+      color: colors.statusSuspended,
+      size: 10,
+    ),
+    Status.RESTARTING: transitioning,
+    Status.STARTING: transitioning,
+    Status.SUSPENDING: transitioning,
+    Status.DELETED: Icon(Icons.close, color: colors.statusDeleted, size: 15),
+    Status.DELAYED_SHUTDOWN: running,
+    Status.UNAVAILABLE: Icon(
+      Icons.circle,
+      color: colors.statusUnknown,
+      size: 10,
+    ),
+  };
+}
 
 class VmStatusIcon extends StatelessWidget {
   final Status status;
@@ -35,8 +51,9 @@ class VmStatusIcon extends StatelessWidget {
       !isLaunching ? status.name.toLowerCase() : 'launching',
     );
 
+    final colors = context.colors;
     final icon = !isLaunching
-        ? icons[status] ?? unknownIcon
+        ? statusIcons(colors)[status] ?? unknownStatusIcon(colors)
         : SizedBox(
             width: 10,
             height: 10,

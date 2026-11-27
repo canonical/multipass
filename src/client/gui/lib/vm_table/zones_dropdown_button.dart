@@ -17,6 +17,8 @@ class ZonesDropdownButton extends ConsumerWidget {
     final zones = ref.watch(zonesProvider);
     if (!ref.watch(azSupportedProvider)) return const SizedBox.shrink();
     final unavailableZones = zones.where((z) => !z.available).length;
+    final colors = context.colors;
+    final textStyle = TextStyle(color: colors.textPrimary);
 
     return Row(
       children: [
@@ -40,10 +42,9 @@ class ZonesDropdownButton extends ConsumerWidget {
                 ),
                 child: Text(
                   l10n.vmTableZonesPopupTitle,
-                  style: TextStyle(
+                  style: textStyle.copyWith(
                     fontSize: 24,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black,
                   ),
                   maxLines: 1, // Prevent text wrapping
                   overflow: TextOverflow.ellipsis,
@@ -60,9 +61,7 @@ class ZonesDropdownButton extends ConsumerWidget {
                     border: zone == zones.last
                         ? Border()
                         : Border(
-                            bottom: BorderSide(
-                              color: Colors.grey.withAlpha(77),
-                            ),
+                            bottom: BorderSide(color: colors.subtleDivider),
                           ),
                   ),
                   margin: const EdgeInsets.symmetric(vertical: 4),
@@ -88,23 +87,20 @@ class ZonesDropdownButton extends ConsumerWidget {
               children: [
                 SvgPicture.asset('assets/zones.svg'),
                 const SizedBox(width: 8),
-                Text(
-                  l10n.vmTableZonesButtonTitle,
-                  style: TextStyle(color: Colors.black),
-                ),
+                Text(l10n.vmTableZonesButtonTitle, style: textStyle),
                 const SizedBox(width: 4),
-                const Icon(Icons.expand_more, color: Colors.black, size: 20),
+                Icon(Icons.expand_more, color: colors.textPrimary, size: 20),
               ],
             ),
           ),
         ),
         if (unavailableZones > 0) ...[
           const SizedBox(width: 8),
-          Icon(Icons.warning_rounded, color: warningAmber, size: 24),
+          Icon(Icons.warning_rounded, color: colors.warning, size: 24),
           const SizedBox(width: 4),
           Text(
             l10n.vmTableZonesUnavailableLabel(unavailableZones, zones.length),
-            style: TextStyle(color: Colors.black),
+            style: textStyle,
           ),
         ],
       ],
@@ -196,6 +192,7 @@ class _ZoneToggleRow extends ConsumerWidget {
             .length;
       }),
     );
+    final textColor = context.colors.textPrimary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,7 +205,7 @@ class _ZoneToggleRow extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.black,
+                color: textColor,
               ),
             ),
             MouseRegion(
@@ -224,7 +221,7 @@ class _ZoneToggleRow extends ConsumerWidget {
         ),
         Text(
           l10n.vmTableZonesRunningInstanceCount(runningInstancesCount),
-          style: TextStyle(fontSize: 16, height: 1.5, color: Colors.black),
+          style: TextStyle(fontSize: 16, height: 1.5, color: textColor),
         ),
       ],
     );

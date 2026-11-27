@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../colors.dart';
 import '../dropdown.dart';
 import '../l10n/app_localizations.dart';
 import '../providers.dart';
@@ -60,7 +61,7 @@ class ZoneDropdown extends ConsumerWidget {
               child: Icon(
                 Icons.info_outline,
                 size: 16,
-                color: Colors.blue[700],
+                color: context.colors.linkSecondary,
               ),
             ),
           ],

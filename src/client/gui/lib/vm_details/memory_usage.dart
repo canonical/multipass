@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../colors.dart';
+
 class MemoryUsage extends StatelessWidget {
   final String used;
   final String total;
 
   const MemoryUsage({super.key, required this.used, required this.total});
-
-  static const normalColor = Color(0xff0066cc);
-  static const almostFullColor = Color(0xffEC6C04);
-  static const backgroundColor = Color(0x3d006ada);
 
   @override
   Widget build(BuildContext context) {
@@ -16,11 +14,12 @@ class MemoryUsage extends StatelessWidget {
     final totalBytes = int.tryParse(total) ?? 0;
     var value = usedBytes / totalBytes;
     value = value.isFinite ? value : 0.0;
+    final colors = context.colors;
 
     final indicator = LinearProgressIndicator(
       value: value,
-      backgroundColor: backgroundColor,
-      color: value < 0.8 ? normalColor : almostFullColor,
+      backgroundColor: colors.usageTrack,
+      color: value < 0.8 ? colors.usageNormal : colors.usageHigh,
     );
 
     final label = Text(

@@ -2,6 +2,7 @@ import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../colors.dart';
 import '../confirmation_dialog.dart';
 import '../extensions.dart';
 import '../l10n/app_localizations.dart';
@@ -182,6 +183,7 @@ class _MountDetailsState extends ConsumerState<MountDetails> {
             '${mountPaths.sourcePath} ⭢ $target'.span.font('UbuntuMono'),
             l10n.mountDeleteBodySuffix(widget.name).span,
           ].spans,
+          style: TextStyle(color: context.colors.textPrimary),
         ),
         actionText: l10n.commonDelete,
         onAction: () {

@@ -6,6 +6,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../colors.dart';
 import '../ffi.dart';
 import '../l10n/app_localizations.dart';
 import '../platform/platform.dart';
@@ -68,7 +69,7 @@ class _EditableMountPointState extends State<EditableMountPoint> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final headers = DefaultTextStyle.merge(
-      style: const TextStyle(color: Colors.black),
+      style: TextStyle(color: context.colors.textPrimary),
       child: Row(
         children: [
           Expanded(
@@ -184,9 +185,10 @@ class MountPointsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final mounts = this.mounts.toList();
+    final colors = context.colors;
 
     final headers = DefaultTextStyle.merge(
-      style: const TextStyle(color: Colors.black),
+      style: TextStyle(color: colors.textPrimary),
       child: Row(
         children: [
           Expanded(child: Text(l10n.mountHostDirLabel)),
@@ -196,7 +198,7 @@ class MountPointsView extends StatelessWidget {
       ),
     );
 
-    const divider = Divider(height: 15, color: Colors.black38);
+    final divider = Divider(height: 15, color: colors.divider);
 
     return Column(
       children: [

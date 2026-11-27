@@ -4,6 +4,8 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
 
+import '../colors.dart';
+
 class TableHeader<T> {
   final String name;
   final Widget Function(String) childBuilder;
@@ -54,7 +56,9 @@ class _TableState<T> extends State<Table<T>> {
   bool sortAscending = false;
   int? sortIndex;
 
-  static const borderSide = BorderSide(color: Colors.grey, width: 0.5);
+  BorderSide get borderSide {
+    return BorderSide(color: context.colors.tableBorder, width: 0.5);
+  }
 
   @override
   void dispose() {
@@ -78,7 +82,7 @@ class _TableState<T> extends State<Table<T>> {
         child: Container(
           width: 10,
           margin: const EdgeInsets.symmetric(vertical: 10),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: Colors.transparent,
             border: Border(right: borderSide),
           ),
@@ -145,6 +149,7 @@ class _TableState<T> extends State<Table<T>> {
 
   @override
   Widget build(BuildContext context) {
+    final borderSide = this.borderSide;
     Iterable<T> data = widget.data;
     final sortKey = widget.headers
         .elementAtOrNull(sortIndex ?? widget.headers.length)
@@ -192,9 +197,7 @@ class _TableState<T> extends State<Table<T>> {
           ? MouseCursor.defer
           : SystemMouseCursors.resizeColumn,
       child: DecoratedBox(
-        decoration: const BoxDecoration(
-          border: Border.fromBorderSide(borderSide),
-        ),
+        decoration: BoxDecoration(border: Border.fromBorderSide(borderSide)),
         child: addScrollbars(table),
       ),
     );

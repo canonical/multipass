@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:multipass_gui/colors.dart';
 import 'package:multipass_gui/grpc_client.dart';
 import 'package:multipass_gui/l10n/app_localizations.dart';
 import 'package:multipass_gui/l10n/app_localizations_en.dart';
@@ -22,6 +23,20 @@ Widget buildWidget(Status status, {required bool isLaunching}) {
   );
 }
 
+final runningIcon = find.byWidgetPredicate(
+  (w) =>
+      w is Icon &&
+      w.icon == Icons.circle &&
+      w.color == AppColors.light.statusRunning,
+);
+
+final unknownIcon = find.byWidgetPredicate(
+  (w) =>
+      w is Icon &&
+      w.icon == Icons.help &&
+      w.color == AppColors.light.statusUnknown,
+);
+
 String statusLabel(WidgetTester tester) =>
     tester.widget<Tooltip>(find.byType(Tooltip)).message;
 
@@ -38,16 +53,16 @@ void main() {
     testWidgets('shows the icon mapped to the status', (tester) async {
       await tester.pumpWidget(buildWidget(Status.RUNNING, isLaunching: false));
 
-      expect(find.byWidget(icons[Status.RUNNING]!), findsOneWidget);
+      expect(runningIcon, findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('falls back to unknownIcon for an unmapped status', (
+    testWidgets('falls back to the unknown icon for an unmapped status', (
       tester,
     ) async {
       await tester.pumpWidget(buildWidget(Status.UNKNOWN, isLaunching: false));
 
-      expect(find.byWidget(unknownIcon), findsOneWidget);
+      expect(unknownIcon, findsOneWidget);
     });
 
     testWidgets('shows a spinner and launching label instead of the status', (
@@ -56,7 +71,7 @@ void main() {
       await tester.pumpWidget(buildWidget(Status.RUNNING, isLaunching: true));
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.byWidget(icons[Status.RUNNING]!), findsNothing);
+      expect(runningIcon, findsNothing);
       expect(statusLabel(tester), _l10n.vmStatusLabel('launching'));
     });
   });

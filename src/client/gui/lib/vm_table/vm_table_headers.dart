@@ -3,6 +3,7 @@ import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart' hide Tooltip;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../colors.dart';
 import '../copyable_text.dart';
 import '../extensions.dart';
 import '../l10n/app_localizations.dart';
@@ -191,6 +192,7 @@ class VmNameLink extends ConsumerWidget {
       message: name,
       child: Text.rich(
         name.nonBreaking.span.link(ref, goToVm),
+        style: TextStyle(color: context.colors.textPrimary),
         overflow: TextOverflow.ellipsis,
       ),
     );

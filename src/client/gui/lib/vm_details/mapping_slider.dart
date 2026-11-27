@@ -118,7 +118,10 @@ class CustomTrackShape extends RectangularSliderTrackShape {
 }
 
 class CustomThumbShape extends RoundSliderThumbShape {
-  CustomThumbShape() : super(enabledThumbRadius: 8, pressedElevation: 4);
+  final Color borderColor;
+
+  CustomThumbShape({required this.borderColor})
+    : super(enabledThumbRadius: 8, pressedElevation: 4);
 
   @override
   void paint(
@@ -156,7 +159,7 @@ class CustomThumbShape extends RoundSliderThumbShape {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5
-        ..color = const Color(0xff757575),
+        ..color = borderColor,
     );
   }
 }

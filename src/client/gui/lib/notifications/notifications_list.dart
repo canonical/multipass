@@ -3,6 +3,7 @@ import 'package:built_collection/built_collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../colors.dart';
 import 'notifications_provider.dart';
 
 class NotificationList extends ConsumerStatefulWidget {
@@ -44,7 +45,7 @@ class _NotificationListState extends ConsumerState<NotificationList> {
     updateState(notifications);
 
     return DefaultTextStyle(
-      style: const TextStyle(fontSize: 16, color: Colors.black),
+      style: TextStyle(fontSize: 16, color: context.colors.textPrimary),
       child: AnimatedList(
         key: listKey,
         reverse: true,
@@ -79,6 +80,7 @@ class NotificationTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     return Actions(
       actions: {
         CloseNotificationIntent: CallbackAction<CloseNotificationIntent>(
@@ -92,9 +94,11 @@ class NotificationTile extends ConsumerWidget {
           child: Container(
             margin: const EdgeInsets.all(5),
             constraints: const BoxConstraints(minHeight: 60),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              boxShadow: [BoxShadow(blurRadius: 5, color: Colors.black38)],
+            decoration: BoxDecoration(
+              color: colors.surface,
+              boxShadow: [
+                BoxShadow(blurRadius: 5, color: colors.notificationShadow),
+              ],
             ),
             child: DefaultTextStyle.merge(
               maxLines: 10,
