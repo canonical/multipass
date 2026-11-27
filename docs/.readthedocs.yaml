@@ -11,7 +11,7 @@ build:
   tools:
     python: "3.11"
   jobs:
-    pre_install:
+    post_checkout:
     - git fetch --unshallow || true
     # Cancel building pull requests when there aren't changed in the docs directory.
     # If there are no changes (git diff exits with 0) we force the command to return with 183.
