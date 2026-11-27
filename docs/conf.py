@@ -252,3 +252,14 @@ rst_prolog = """
 # intersphinx_mapping = {
 #     "snap": ("https://snapcraft.io/docs/", None),
 # }
+
+
+def _ulwazi_page_context(app, pagename, _templatename, context, _doctree):
+    """Preserve canonical directory URLs previously corrected by Furo."""
+    if app.builder.name == "dirhtml" and app.config.html_baseurl:
+        context["pageurl"] = app.config.html_baseurl + app.builder.get_target_uri(pagename)
+
+
+def setup(app):
+    """Register local Sphinx hooks."""
+    app.connect("html-page-context", _ulwazi_page_context, priority=900)
