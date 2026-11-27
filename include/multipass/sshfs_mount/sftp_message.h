@@ -67,9 +67,11 @@ public:
     virtual std::optional<std::string_view> submessage() const noexcept = 0;
 
     /**
-     * @return The access flags of an open request (a combination of SftpOpenFlags).
+     * @return The open flags ("pflags" in the spec) of an open request (a combination of
+     * SftpOpenFlags); 0 for other requests. Distinct from the flags in the request's attributes
+     * (see #attributes()).
      */
-    virtual uint32_t flags() const noexcept = 0;
+    virtual uint32_t open_flags() const noexcept = 0;
 
     /**
      * @return The file offset of a read/write request.

@@ -76,7 +76,7 @@ std::optional<std::string_view> mp::PlainSftpMessage::submessage() const noexcep
     return raw ? std::optional<std::string_view>{raw} : std::nullopt;
 }
 
-uint32_t mp::PlainSftpMessage::flags() const noexcept
+uint32_t mp::PlainSftpMessage::open_flags() const noexcept
 {
     return MP_LIBSSH.sftp_client_message_get_flags(message.get());
 }

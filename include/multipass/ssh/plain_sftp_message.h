@@ -48,7 +48,7 @@ public:
     std::string_view filename() const noexcept override;
     std::string_view data() const noexcept override;
     std::optional<std::string_view> submessage() const noexcept override;
-    uint32_t flags() const noexcept override;
+    uint32_t open_flags() const noexcept override;
     uint64_t offset() const noexcept override;
     uint32_t length() const noexcept override;
     std::optional<SftpAttributes> attributes() const noexcept override;

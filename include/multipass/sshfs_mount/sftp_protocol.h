@@ -82,7 +82,8 @@ enum class SftpStatus : uint32_t
 };
 
 /**
- * Access flags of an open request (SSH_FXF_* in the protocol spec); see SftpMessage::flags.
+ * Open flags ("pflags") of an open request (SSH_FXF_* in the protocol spec); see
+ * SftpMessage::open_flags.
  */
 struct SftpOpenFlags
 {
