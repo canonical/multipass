@@ -3663,6 +3663,66 @@ boost::json::object mp::Daemon::retrieve_metadata_for(const std::string& name)
     return vm_instance_specs[name].metadata;
 }
 
+void mp::Daemon::update_mounts_for(const std::string& name,
+                                   const std::unordered_map<std::string, VMMount>& mounts)
+{
+    if (QThread::currentThread() == thread())
+    {
+        apply_mounts_for(name, mounts);
+        return;
+    }
+
+    // Pull the current mounts on the daemon thread instead of applying a potentially stale
+    // snapshot from a worker thread; this guarantees ordering and ignores retired instances.
+    QMetaObject::invokeMethod(
+        this,
+        [this, name] {
+            top_catch_all(category, [this, &name] {
+                if (const auto* vm = find_registered_vm(name))
+                    apply_mounts_for(name, vm->get_mounts());
+                else
+                    mpl::debug(category,
+                               "Ignoring mounts reported for unregistered instance '{}'",
+                               name);
+            });
+        },
+        Qt::QueuedConnection);
+}
+
+void mp::Daemon::apply_mounts_for(const std::string& name,
+                                  const std::unordered_map<std::string, VMMount>& mounts)
+{
+    const auto spec_it = vm_instance_specs.find(name);
+    if (spec_it == vm_instance_specs.end())
+    {
+        mpl::debug(category, "Ignoring mounts reported for unknown instance '{}'", name);
+        return;
+    }
+
+    if (spec_it->second.mounts == mounts)
+        return;
+
+    spec_it->second.mounts = mounts;
+    persist_instances();
+}
+
+std::unordered_map<std::string, mp::VMMount> mp::Daemon::retrieve_mounts_for(
+    const std::string& name)
+{
+    const auto spec_it = vm_instance_specs.find(name);
+    return spec_it == vm_instance_specs.end() ? std::unordered_map<std::string, VMMount>{}
+                                              : spec_it->second.mounts;
+}
+
+const mp::VirtualMachine* mp::Daemon::find_registered_vm(const std::string& name) const
+{
+    for (const auto* table : {&operative_instances, &deleted_instances})
+        if (const auto it = table->find(name); it != table->end())
+            return it->second.get();
+
+    return nullptr;
+}
+
 void mp::Daemon::persist_instances()
 {
     auto instance_records_json = boost::json::value_from(vm_instance_specs);

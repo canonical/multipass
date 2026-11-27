@@ -70,6 +70,9 @@ protected:
     void persist_state_for(const std::string& name, const VirtualMachine::State& state) override;
     void update_metadata_for(const std::string& name, const boost::json::object& metadata) override;
     boost::json::object retrieve_metadata_for(const std::string& name) override;
+    void update_mounts_for(const std::string& name,
+                           const std::unordered_map<std::string, VMMount>& mounts) override;
+    std::unordered_map<std::string, VMMount> retrieve_mounts_for(const std::string& name) override;
 
 public slots:
     virtual void create(const CreateRequest* request,
@@ -250,6 +253,10 @@ private:
     MountHandler::ShPtr make_mount(VirtualMachine* vm,
                                    const std::string& target,
                                    const VMMount& mount);
+
+    void apply_mounts_for(const std::string& name,
+                          const std::unordered_map<std::string, VMMount>& mounts);
+    const VirtualMachine* find_registered_vm(const std::string& name) const;
 
     struct AsyncOperationStatus
     {

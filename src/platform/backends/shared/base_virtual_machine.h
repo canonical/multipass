@@ -82,6 +82,10 @@ public:
     {
         throw NotImplementedOnThisBackendException("native mounts");
     }
+    [[nodiscard]] std::unordered_map<std::string, VMMount> get_mounts() const override
+    {
+        return {};
+    }
 
     [[nodiscard]] SnapshotVista view_snapshots(SnapshotPredicate predicate = {}) const override;
     int get_num_snapshots() const override;
