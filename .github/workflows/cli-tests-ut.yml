@@ -20,6 +20,7 @@ jobs:
           sparse-checkout: |
             tests/cli
             tests/cli-test-ut
+            tests/upgrade
 
       - name: Set up Python
         uses: actions/setup-python@v7

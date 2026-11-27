@@ -140,23 +140,12 @@ jobs:
   PrepareDurations:
     needs: GetMatrix
     if: ${{ needs.GetMatrix.outputs.has_targets == 'true' }}
-    runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.targets) }}
-    steps:
-      - uses: actions/cache/restore@v6
-        with:
-          path: test-durations.json
-          key: ${{ matrix['durations-key'] }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: ${{ matrix['durations-key'] }}-
-          enableCrossOsArchive: true
-      - run: test -f test-durations.json || echo '{}' > test-durations.json
-      - uses: actions/upload-artifact@v7
-        with:
-          name: baseline-${{ matrix['durations-key'] }}
-          path: test-durations.json
-          if-no-files-found: error
-          overwrite: true
+    uses: ./.github/workflows/test-durations.yml
+    with:
+      mode: restore
+      durations-key: ${{ matrix['durations-key'] }}
 
   run-cli-tests:
     concurrency:
@@ -325,26 +314,10 @@ jobs:
     name: Save test durations (${{ matrix.label }})
     needs: [GetMatrix, run-cli-tests]
     if: ${{ github.ref == 'refs/heads/main' && inputs.pytest-extra-args == '' && needs.GetMatrix.outputs.has_targets == 'true' }}
-    runs-on: ubuntu-latest
     strategy:
       matrix: ${{ fromJSON(needs.GetMatrix.outputs.targets) }}
-    steps:
-      - name: Download test durations
-        uses: actions/download-artifact@v8
-        with:
-          pattern: ${{ matrix['durations-key'] }}-*
-          path: shards
-
-      # Each shard stores only the tests it ran, so their union is the full table.
-      - name: Merge test durations
-        run: |
-          jq -es --argjson expected '${{ matrix.splits }}' \
-            'if length == $expected then add else error("missing shard timings") end' \
-            shards/*/test-durations.json > test-durations.json
-
-      - name: Save test durations
-        uses: actions/cache/save@v6
-        with:
-          path: test-durations.json
-          key: ${{ matrix['durations-key'] }}-${{ github.run_id }}-${{ github.run_attempt }}
-          enableCrossOsArchive: true
+    uses: ./.github/workflows/test-durations.yml
+    with:
+      mode: save
+      durations-key: ${{ matrix['durations-key'] }}
+      splits: ${{ matrix.splits }}

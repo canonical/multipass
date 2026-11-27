@@ -1,0 +1,74 @@
+name: Test Durations
+
+# Shares the pytest-split timing table between the shards of a sharded test run.
+#
+# `restore` (before the shards): restores the cached table for `durations-key`
+# and uploads it as the `baseline-<durations-key>` artifact, so every shard
+# splits against the same table. On a cache miss it shares an empty table.
+#
+# `save` (after the shards): merges the `<durations-key>-<shard>` artifacts the
+# shards uploaded (each holds only the tests that shard ran) and caches the
+# result. It fails unless all `splits` shards uploaded their timings.
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        type: string
+        description: "`restore` or `save`"
+        required: true
+      durations-key:
+        type: string
+        description: "Cache key prefix of the timing table"
+        required: true
+      splits:
+        type: number
+        description: "Number of shards whose timings `save` must merge"
+        required: false
+        default: 0
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    if: ${{ inputs.mode == 'restore' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/cache/restore@v6
+        with:
+          path: test-durations.json
+          key: ${{ inputs['durations-key'] }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ inputs['durations-key'] }}-
+          enableCrossOsArchive: true
+      - run: test -f test-durations.json || echo '{}' > test-durations.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: baseline-${{ inputs['durations-key'] }}
+          path: test-durations.json
+          if-no-files-found: error
+          overwrite: true
+
+  save:
+    if: ${{ inputs.mode == 'save' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download test durations
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ inputs['durations-key'] }}-*
+          path: shards
+
+      # Each shard stores only the tests it ran, so their union is the full table.
+      - name: Merge test durations
+        run: |
+          jq -es --argjson expected '${{ inputs.splits }}' \
+            'if length == $expected then add else error("missing shard timings") end' \
+            shards/*/test-durations.json > test-durations.json
+
+      - name: Save test durations
+        uses: actions/cache/save@v6
+        with:
+          path: test-durations.json
+          key: ${{ inputs['durations-key'] }}-${{ github.run_id }}-${{ github.run_attempt }}
+          enableCrossOsArchive: true

@@ -46,6 +46,8 @@ Both runs must use the same `--upgrade-manifest` path, `--driver`, and `--daemon
 - `--upgrade-manifest=PATH`: location of the JSON manifest carrying expectations between phases. Defaults to `upgrade-manifest.json` in the working directory.
 - `--cache-clear`: start the seed run from an empty manifest. Otherwise a seed run merges into the manifest left by a previous seed run, so a partial re-seed (e.g. `--lf`) only replaces the scenarios it re-runs.
 
+The seed run records every scenario it selected (including ones it skipped) in the manifest's `selected` list. The verify run deselects every other scenario, so filtering or sharding the seed run (e.g. `-k mount`, or pytest-split's `--splits`/`--group`) carries over to verify without passing the same filter again.
+
 ## The manifest
 
 The manifest is a small, human-readable JSON document. It captures the seed environment and maps each VM name to the expectations the seed test recorded:
@@ -56,11 +58,12 @@ The manifest is a small, human-readable JSON document. It captures the seed envi
   "seed": { "version": "1.16.0", "driver": "qemu", "controller": "snap" },
   "scenarios": {
     "upg-lifecycle": { "sentinel_path": "...", "fingerprint": { "...": "..." } }
-  }
+  },
+  "selected": ["upg-lifecycle"]
 }
 ```
 
-It is attached as a CI artifact (`upgrade-manifest`) so a failed verify run can be diffed against what was seeded.
+It is attached as a CI artifact (`upgrade-manifest-<shard>`, one per shard) so a failed verify run can be diffed against what was seeded.
 
 ## The tests
 
@@ -94,6 +97,8 @@ Drop a `<concern>_test.py` in `tests/upgrade/` (or extend an existing one) and, 
 ## Running in GitHub Actions
 
 The upgrade suite has its own workflow at `.github/workflows/version-upgrade-tests.yml`, triggerable via `workflow_call` or `workflow_dispatch`. It installs the `from` channel, seeds, `snap refresh`es to the `to` channel, then verifies — all in one job, reporting both phases to GitHub Checks.
+
+**Sharding.** Like the cli-tests (see [Sharding](../cli/README.md#sharding)), the suite runs as 4 parallel shards, one runner per shard. Only the seed phase is split by pytest-split (`--splitting-algorithm=least_duration`); each shard's verify phase then checks just the scenarios its seed run selected (see [Options](#options)). The per-test timing table covers the seed tests only and is cached under `upgrade-durations-ubuntu-latest-snap-<driver>-<run id>`. It is shared and refreshed the same way as the cli-tests table, so only successful `main` runs without `pytest-extra-args` publish timings. Each shard uploads its own `upgrade-manifest-<shard>` artifact and reports its own seed/verify checks.
 
 **Automatic CI.** The Linux build (`linux.yml`) dispatches this workflow on every PR / merge-group / release build, once it has published the branch's snap to its channel. That run upgrades the **latest released** Multipass (`stable`) to the **snap built by the branch** (`edge/pr<N>`, `edge/ci<N>`, or `beta`), so each change is checked for upgrade safety. It runs only when a branch channel exists (it `needs` the publish job), and is Linux-only for now — GitHub-hosted Windows runners lack full Hyper-V and macOS runners can't nest-virtualize.
 
