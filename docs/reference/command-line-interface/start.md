@@ -5,13 +5,18 @@ The `multipass start` command without any argument will start the {ref}`primary-
 
 For example, the command `multipass start` will produce the following output:
 
-```{code-block} text
-Configuring primary \
-Launching primary |
+```{terminal}
+:prompt: ">"
+
+multipass start
+
+Creating primary in zone1
+...
+Launched: primary in zone1
 ...
 ```
 
-Only instances in `Stopped` or `Suspended` status can be started. Running instances can be restarted with [`multipass restart`](/reference/command-line-interface/restart), stopped with [`multipass stop`](/reference/command-line-interface/stop), and suspended with [`multipass suspend`](/reference/command-line-interface/suspend).
+Only instances in `Stopped` or `Suspended` status can be started. Running instances can be restarted with [`multipass restart`](reference-command-line-interface-restart), stopped with [`multipass stop`](reference-command-line-interface-stop), and suspended with [`multipass suspend`](reference-command-line-interface-suspend).
 
 ---
 
@@ -38,8 +43,12 @@ Arguments:
   name                 Names of instances to start. If omitted, and without the
                        --all option, 'primary' (the configured primary instance
                        name) will be assumed. If 'primary' does not exist but is
-                       included in a successful start command either implicitly
+                       included in a successful start command (either implicitly
                        or explicitly), it is launched automatically (see
                        `launch` for more info).
 
+```
+
+```{seealso}
+{ref}`How to use an instance <how-to-guides-manage-instances-use-an-instance>`
 ```

@@ -1,8 +1,6 @@
 (reference-command-line-interface-recover)=
 # recover
 
-> See also: [`delete`](/reference/command-line-interface/delete)
-
 ```{caution}
 The `recover` command is deprecated and will be removed in an upcoming release. When removed, all `DELETED` instances will be automatically recovered.
 ```
@@ -11,13 +9,17 @@ The `multipass recover` command will revive an instance that was marked as delet
 
 Use the `--all` option to recover all deleted instances at once:
 
-```{code-block} text
+```{terminal}
+:prompt: ">"
+
 multipass recover --all
+
+>
 ```
 
 ---
 
-The full `multipass help restart` output explains the available options:
+The full `multipass help recover` output explains the available options:
 
 ```{code-block} text
 Usage: multipass recover [options] <name> [<name> ...]
@@ -32,4 +34,8 @@ Options:
 
 Arguments:
   name           Names of instances to recover
+```
+
+```{seealso}
+{ref}`How to remove an instance <how-to-guides-manage-instances-remove-an-instance>`, [`delete`](/reference/command-line-interface/delete)
 ```
