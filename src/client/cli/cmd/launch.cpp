@@ -29,6 +29,7 @@
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
 #include <multipass/memory_size.h>
+#include <multipass/platform.h>
 #include <multipass/settings/settings.h>
 #include <multipass/snap_utils.h>
 #include <multipass/standard_paths.h>
@@ -42,7 +43,9 @@
 #include <QRegularExpression>
 #include <QTimeZone>
 #include <QUrl>
+
 #include <filesystem>
+#include <optional>
 #include <unordered_map>
 
 namespace mp = multipass;
@@ -287,14 +290,21 @@ mp::ParseCode cmd::Launch::parse_args(mp::ArgParser* parser)
     {
         auto remote_image_name = parser->positionalArguments().first();
 
-        if (remote_image_name.startsWith("file://"))
+        const auto path = MP_PLATFORM.convert_uri_to_path__deprecated(remote_image_name);
+        if (path.has_value())
         {
             // Convert to absolute because the daemon doesn't know where the client is being
             // executed.
-            auto file_info = QFileInfo(remote_image_name.remove(0, 7));
-            auto absolute_file_path = file_info.absoluteFilePath();
+            const auto file_uri = QUrl::fromLocalFile(QFileInfo{*path}.absoluteFilePath())
+                                      .toString();
 
-            request.set_image("file://" + absolute_file_path.toStdString());
+            if (path->isEmpty() || !QUrl{file_uri}.isValid())
+            {
+                cerr << "Invalid file URL `" << remote_image_name.toStdString() << "`\n";
+                return ParseCode::CommandLineError;
+            }
+
+            request.set_image(file_uri.toStdString());
         }
         else if (remote_image_name.startsWith("http://") ||
                  remote_image_name.startsWith("https://"))

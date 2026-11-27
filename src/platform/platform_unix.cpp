@@ -185,9 +185,7 @@ QString mp::platform::Platform::multipass_storage_location() const
 
 int mp::platform::symlink_attr_from(const char* path, sftp_attributes_struct* attr)
 {
-    struct stat st
-    {
-    };
+    struct stat st{};
 
     auto ret = lstat(path, &st);
 
@@ -285,6 +283,12 @@ std::filesystem::path mp::platform::Platform::qstr_to_path(const QString& qstr) 
 QString mp::platform::Platform::path_to_qstr(const std::filesystem::path& path) const
 {
     return QString::fromStdString(path.generic_string());
+}
+
+std::optional<QString> mp::platform::Platform::convert_uri_to_path__deprecated(
+    const QString& uri) const
+{
+    return uri.startsWith("file://") ? std::make_optional(uri.sliced(7)) : std::nullopt;
 }
 
 void mp::platform::Platform::shutdown_socket(mp::Socket socket) const

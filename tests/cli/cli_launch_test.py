@@ -18,10 +18,16 @@
 
 """Multipass command line tests for the `multipass launch`."""
 
+import os
+import platform
+import urllib.request
+from pathlib import Path
+
 import pytest
 
-from cli.utilities import is_valid_ipv4_addr
+from cli.utilities import TempDirectory, is_valid_ipv4_addr
 from cli.multipass import (
+    launch,
     multipass,
     validate_list_output,
     validate_info_output,
@@ -33,6 +39,30 @@ from cli.multipass import (
     vm_exists,
     skip_if_feature_not_supported
 )
+
+
+# Lightest official Ubuntu image (minimal cloud image, ~250 MB)
+MINIMAL_IMAGE_URL = (
+    "https://cloud-images.ubuntu.com/minimal/releases/noble/release/"
+    "ubuntu-24.04-minimal-cloudimg-{arch}.img"
+)
+
+
+@pytest.fixture(scope="session")
+def local_image():
+    """Download a minimal Ubuntu image (once, then cached), and return its
+    absolute path.
+    """
+
+    arch = "arm64" if platform.machine().lower() in ("arm64", "aarch64") else "amd64"
+    with TempDirectory() as folder:
+        path = folder / f"ubuntu-minimal-{arch}.img"
+        try:
+            urllib.request.urlretrieve(MINIMAL_IMAGE_URL.format(arch=arch), path)
+        except OSError as exc:
+            pytest.skip(f"Could not download the minimal Ubuntu image: {exc}")
+
+        yield str(path)
 
 
 @pytest.mark.launch
@@ -260,3 +290,19 @@ class TestLaunch:
             assert not output
             assert "6CiG is not a valid memory size" in output
             assert not vm_exists(name)
+
+    def test_launch_local_absolute_path(self, local_image):
+        """Launching from a plain absolute path must work."""
+
+        with launch({"image": "file://" + local_image}) as vm:
+            assert state(vm) == "Running"
+
+    def test_launch_local_relative_path(self, local_image):
+        """Launching from a plain relative path must work."""
+
+        relative = os.path.relpath(local_image)
+        if not relative.startswith("."):
+            relative = os.path.join(".", relative)
+
+        with launch({"image": "file://" + relative}) as vm:
+            assert state(vm) == "Running"
