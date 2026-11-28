@@ -122,12 +122,13 @@ mpu::TimeoutAction log_and_retry(const ExceptionT& e,
     return mpu::TimeoutAction::retry;
 };
 
-bool cloud_init_expects_shutdown(const mp::Path& cloud_init_iso, const std::string& vm_name)
+bool cloud_init_expects_shutdown(const std::filesystem::path& cloud_init_iso,
+                                 const std::string& vm_name)
 {
     try
     {
         mp::CloudInitIso iso;
-        iso.read_from(MP_PLATFORM.qstr_to_path(cloud_init_iso));
+        iso.read_from(cloud_init_iso);
         return mpu::expects_shutdown_from_cloud_init(YAML::Load(iso.at("user-data")));
     }
     catch (const std::exception& e)

@@ -1648,8 +1648,7 @@ mp::Daemon::Daemon(std::unique_ptr<const DaemonConfig> the_config)
         const auto instance_dir = config->factory->get_instance_directory(name);
         std::ignore = load_vm_description(name, instance_dir);
 
-        const auto cloud_init_iso = MP_PLATFORM.path_to_qstr(
-            cloud_init_iso_path(*config->factory, name));
+        const auto cloud_init_iso = cloud_init_iso_path(*config->factory, name);
         mp::VirtualMachineDescription vm_desc{.num_cores = spec_copy.num_cores,
                                               .mem_size = spec_copy.mem_size,
                                               .disk_space = spec_copy.disk_space,
@@ -3853,7 +3852,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
                 .extra_interfaces = {},
                 .ssh_username = config->ssh_username,
                 .image = VMImage{},
-                .cloud_init_iso = "",
+                .cloud_init_iso = {},
                 .metadata = {},
                 .state = VirtualMachine::State::stopped,
                 .clone_count = 0,
@@ -3942,7 +3941,7 @@ void mp::Daemon::create_vm(const CreateRequest* request,
             vm_desc.image = vm_image;
             const auto cloud_init_iso = cloud_init_iso_path(*config->factory, name);
             CloudInitIso{cloud_init}.write_to(cloud_init_iso);
-            vm_desc.cloud_init_iso = MP_PLATFORM.path_to_qstr(cloud_init_iso);
+            vm_desc.cloud_init_iso = cloud_init_iso;
             config->factory->prepare_instance_image(vm_image, vm_desc);
 
             // Everything went well, add the MAC addresses used in this instance.

@@ -811,25 +811,26 @@ TEST_P(DaemonCreateLaunchTestSuite, writesCloudInitIsoToInstanceDirectory)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    const auto expected_iso = QDir{instance_dir.path()}.filePath(mp::cloud_init_file_name);
+    const auto expected_iso = instance_dir / mp::cloud_init_file_name;
     EXPECT_CALL(*mock_factory, create_virtual_machine)
         .WillOnce(WithArg<0>([&expected_iso](const mp::VirtualMachineDescription& desc) {
             EXPECT_EQ(desc.cloud_init_iso, expected_iso);
-            EXPECT_TRUE(QFile::exists(desc.cloud_init_iso));
+            EXPECT_TRUE(std::filesystem::exists(desc.cloud_init_iso));
             return std::make_unique<mpt::StubVirtualMachine>();
         }));
 
     send_command({GetParam()});
 }
 
-YAML::Node cloud_init_file_in(const mp::Path& cloud_init_iso, const std::string& file_name)
+YAML::Node cloud_init_file_in(const std::filesystem::path& cloud_init_iso,
+                              const std::string& file_name)
 {
     mp::CloudInitIso iso;
-    iso.read_from(cloud_init_iso.toStdString());
+    iso.read_from(cloud_init_iso);
     return YAML::Load(iso.at(file_name));
 }
 
-auto saves_cloud_init_iso_to(mp::Path& cloud_init_iso)
+auto saves_cloud_init_iso_to(std::filesystem::path& cloud_init_iso)
 {
     return WithArg<0>([&cloud_init_iso](const mp::VirtualMachineDescription& desc) {
         cloud_init_iso = desc.cloud_init_iso;
@@ -961,7 +962,7 @@ TEST_P(DaemonCreateLaunchTestSuite, defaultCloudInitGrowsRootFs)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    mp::Path cloud_init_iso;
+    std::filesystem::path cloud_init_iso;
     EXPECT_CALL(*mock_factory, create_virtual_machine)
         .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
@@ -984,7 +985,7 @@ TEST_P(DaemonCreateLaunchTestSuite, addsSshKeysToCloudInitConfig)
     config_builder.ssh_key_provider = std::make_unique<mpt::DummyKeyProvider>(expected_key);
     mp::Daemon daemon{config_builder.build()};
 
-    mp::Path cloud_init_iso;
+    std::filesystem::path cloud_init_iso;
     EXPECT_CALL(*mock_factory, create_virtual_machine)
         .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
@@ -1012,7 +1013,7 @@ TEST_P(DaemonCreateLaunchPollinateDataTestSuite, addsPollinateUserAgentToCloudIn
                      alias.empty() ? "default" : alias)}};
     mp::Daemon daemon{config_builder.build()};
 
-    mp::Path cloud_init_iso;
+    std::filesystem::path cloud_init_iso;
     EXPECT_CALL(*mock_factory, create_virtual_machine)
         .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
@@ -1028,7 +1029,7 @@ TEST_P(DaemonCreateLaunchTestSuite, addsMountMotdScriptToCloudInitConfig)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    mp::Path cloud_init_iso;
+    std::filesystem::path cloud_init_iso;
     EXPECT_CALL(*mock_factory, create_virtual_machine)
         .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
@@ -1048,7 +1049,7 @@ TEST_P(DaemonCreateLaunchTestSuite, omitsMountMotdScriptOnFedora)
     auto mock_factory = use_a_mock_vm_factory();
     mp::Daemon daemon{config_builder.build()};
 
-    mp::Path cloud_init_iso;
+    std::filesystem::path cloud_init_iso;
     EXPECT_CALL(*mock_factory, create_virtual_machine)
         .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
@@ -1064,7 +1065,7 @@ TEST_P(LaunchWithNoExtraNetworkCloudInit, noExtraNetworkCloudInit)
 
     const auto launch_args = GetParam();
 
-    mp::Path cloud_init_iso;
+    std::filesystem::path cloud_init_iso;
     EXPECT_CALL(*mock_factory, create_virtual_machine)
         .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 
@@ -1111,7 +1112,7 @@ TEST_P(LaunchWithBridges, createsNetworkCloudInitIso)
     const auto args = test_params.first;
     const auto forbidden_names = test_params.second;
 
-    mp::Path cloud_init_iso;
+    std::filesystem::path cloud_init_iso;
     EXPECT_CALL(*mock_factory, create_virtual_machine)
         .WillOnce(saves_cloud_init_iso_to(cloud_init_iso));
 

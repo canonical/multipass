@@ -48,7 +48,7 @@ struct TestQemuVMProcessSpec : public Test
                                                        .release_date = "",
                                                        .os = "",
                                                        .aliases = {}},
-                                             .cloud_init_iso = mp::Path{"/path/to/cloud_init.iso"},
+                                             .cloud_init_iso = "/path/to/cloud_init.iso",
                                              .metadata = {},
                                              .state = {},
                                              .clone_count = 0,

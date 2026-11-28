@@ -36,7 +36,6 @@
 #include <multipass/vm_mount.h>
 #include <multipass/vm_status_monitor.h>
 
-#include <QFile>
 #include <QProcess>
 #include <QRegularExpression>
 #include <QString>
@@ -100,7 +99,7 @@ auto make_qemu_process(const mp::VirtualMachineDescription& desc,
                        const mp::QemuVirtualMachine::MountArgs& mount_args,
                        const QStringList& platform_args)
 {
-    if (!MP_FILEOPS.exists(desc.image.image_path) || !QFile::exists(desc.cloud_init_iso))
+    if (!MP_FILEOPS.exists(desc.image.image_path) || !MP_FILEOPS.exists(desc.cloud_init_iso))
     {
         throw std::runtime_error("cannot start VM without an image");
     }

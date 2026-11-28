@@ -146,7 +146,7 @@ struct HyperVBackend : public Test
                                                                 .release_date = "",
                                                                 .os = {},
                                                                 .aliases = {}},
-                                                      .cloud_init_iso = dummy_cloud_init_iso.name(),
+                                                      .cloud_init_iso = dummy_cloud_init_iso.path(),
                                                       .metadata = {},
                                                       .state = {},
                                                       .clone_count = 0,

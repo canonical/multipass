@@ -101,7 +101,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                                                                 .release_date = "",
                                                                 .os = "",
                                                                 .aliases = {}},
-                                                      .cloud_init_iso = dummy_cloud_init_iso.name(),
+                                                      .cloud_init_iso = dummy_cloud_init_iso.path(),
                                                       .metadata = {},
                                                       .state = {},
                                                       .clone_count = 0,
@@ -511,10 +511,10 @@ TEST_F(QemuBackend, shutdownWhileStartingWithCloudInitPoweroffIsIntentional)
     // configure cloud-init to request an unconditional poweroff, which should make the resulting
     // StartException be flagged as intentional once BaseVirtualMachine detects the shutdown
     auto description = default_description;
-    description.cloud_init_iso = QDir{instance_dir.path()}.filePath("cloud-init-config.iso");
+    description.cloud_init_iso = instance_dir / "cloud-init-config.iso";
     mp::CloudInitIso iso;
     iso["user-data"] = "power_state:\n  mode: poweroff\n";
-    iso.write_to(description.cloud_init_iso.toStdString());
+    iso.write_to(description.cloud_init_iso);
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 
@@ -557,10 +557,10 @@ TEST_F(QemuBackend, shutdownWhileStartingWithCloudInitPoweroffFalseConditionIsNo
     // a poweroff guarded by a condition that evaluates to false means the shutdown was not
     // actually requested by cloud-init, so the resulting StartException must not be intentional
     auto description = default_description;
-    description.cloud_init_iso = QDir{instance_dir.path()}.filePath("cloud-init-config.iso");
+    description.cloud_init_iso = instance_dir / "cloud-init-config.iso";
     mp::CloudInitIso iso;
     iso["user-data"] = "power_state:\n  mode: poweroff\n  condition: false\n";
-    iso.write_to(description.cloud_init_iso.toStdString());
+    iso.write_to(description.cloud_init_iso);
 
     mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
 

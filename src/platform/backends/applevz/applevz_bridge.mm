@@ -141,7 +141,7 @@ CFError init_with_configuration(const multipass::VirtualMachineDescription& desc
         [storageDevices addObject:disk];
 
         // Cloud-init ISO
-        NSString* cloudIsoPath = nsstring_from_qstring(desc.cloud_init_iso);
+        NSString* cloudIsoPath = nsstring_from_stdstring(desc.cloud_init_iso.string());
         NSURL* cloudIsoURL = [NSURL fileURLWithPath:cloudIsoPath];
         VZDiskImageStorageDeviceAttachment* cloudAttachment =
             [[VZDiskImageStorageDeviceAttachment alloc] initWithURL:cloudIsoURL

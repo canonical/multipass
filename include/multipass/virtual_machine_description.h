@@ -26,6 +26,7 @@
 
 #include <boost/json.hpp>
 
+#include <filesystem>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -46,7 +47,7 @@ public:
     std::vector<NetworkInterface> extra_interfaces;
     std::string ssh_username;
     VMImage image;
-    Path cloud_init_iso;
+    std::filesystem::path cloud_init_iso;
 
     // Merged in fields from `VMSpec`
     // TODO: remove this comment once the `vm-description.json` file becomes the source of truth

@@ -111,7 +111,7 @@ mp::VirtualMachine::UPtr mp::BaseVirtualMachineFactory::clone_bare_vm(
                                                .extra_interfaces = dest_spec.extra_interfaces,
                                                .ssh_username = dest_spec.ssh_username,
                                                .image = dest_image,
-                                               .cloud_init_iso = cloud_init_path.string().c_str(),
+                                               .cloud_init_iso = cloud_init_path,
                                                .metadata = dest_spec.metadata,
                                                .state = dest_spec.state,
                                                .clone_count = dest_spec.clone_count,
