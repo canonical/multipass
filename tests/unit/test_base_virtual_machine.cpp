@@ -291,11 +291,13 @@ struct BaseVM : public Test
     mpt::StubAvailabilityZone zone{};
     mpt::MockSSHTestFixture mock_ssh_test_fixture;
     const mpt::DummyKeyProvider key_provider{"keeper of the seven keys"};
-    NiceMock<MockBaseVirtualMachine> vm{"mock-vm",
-                                        mp::VirtualMachineDescription{},
-                                        stub_monitor,
-                                        key_provider,
-                                        zone};
+    const std::filesystem::path cloud_init_iso{"/path/to/cloud-init.iso"};
+    NiceMock<MockBaseVirtualMachine> vm{
+        "mock-vm",
+        mp::VirtualMachineDescription{.cloud_init_iso = cloud_init_iso},
+        stub_monitor,
+        key_provider,
+        zone};
     std::vector<std::shared_ptr<mpt::MockSnapshot>> snapshot_album;
     QString head_path = vm.tmp_dir->filePath(head_filename);
     QString count_path = vm.tmp_dir->filePath(count_filename);
@@ -436,7 +438,10 @@ TEST_F(BaseVM, takesSnapshots)
     auto snapshot = std::make_shared<NiceMock<mpt::MockSnapshot>>();
     EXPECT_CALL(*snapshot, capture).Times(1);
 
-    EXPECT_CALL(vm, make_specific_snapshot(_, _, _, _, _)).WillOnce(Return(snapshot));
+    EXPECT_CALL(*mock_cloud_init_file_ops_injection.first,
+                get_instance_id_from_cloud_init(cloud_init_iso))
+        .WillOnce(Return("vm-id"));
+    EXPECT_CALL(vm, make_specific_snapshot(_, _, "vm-id", _, _)).WillOnce(Return(snapshot));
     vm.take_snapshot(mp::VMSpecs{}, "s1", "");
 
     EXPECT_EQ(vm.get_num_snapshots(), 1);
@@ -916,7 +921,7 @@ TEST_F(BaseVM, restoresSnapshotsWithExtraInterfaceDiff)
         .WillRepeatedly(Return(original_specs.extra_interfaces));
 
     EXPECT_CALL(*mock_cloud_init_file_ops_injection.first,
-                update_cloud_init_with_new_extra_interfaces_and_new_id(_, _, _, _))
+                update_cloud_init_with_new_extra_interfaces_and_new_id(_, _, _, cloud_init_iso))
         .Times(1);
 
     vm.restore_snapshot(snapshot_name, new_specs);
@@ -1854,7 +1859,7 @@ TEST_F(BaseVM, addNetworkInterfaceCallsImplAndUpdatesDescription)
 
     EXPECT_CALL(vm, add_network_interface_impl(new_if));
     EXPECT_CALL(*mock_cloud_init_file_ops_injection.first,
-                add_extra_interface_to_cloud_init("52:54:00:00:00:00", new_if, _));
+                add_extra_interface_to_cloud_init("52:54:00:00:00:00", new_if, cloud_init_iso));
 
     vm.mp::BaseVirtualMachine::add_network_interface(new_if);
 
