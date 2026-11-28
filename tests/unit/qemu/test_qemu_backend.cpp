@@ -53,8 +53,11 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QProcess>
 #include <boost/json.hpp>
 
+#include <cerrno>
+#include <sys/wait.h>
 #include <thread>
 
 namespace mp = multipass;
@@ -67,12 +70,36 @@ namespace
 constexpr auto suspend_tag = "suspend";
 // we need a whitespace to terminate the tag column in the fake output of qemu-img
 const QByteArray fake_snapshot_list_with_suspend_tag = QByteArray{suspend_tag} + " ";
+// what a freshly started QEMU writes before any command: the QMP greeting, then the reply to
+// our qmp_capabilities. -loadvm is processed before the main loop can dispatch commands, and
+// QEMU drops QMP events until the handshake, so no RESUME event is ever seen here
+const QByteArray fake_qmp_greeting_and_handshake =
+    "{\"QMP\": {\"version\": {\"qemu\": {\"major\": 10, \"micro\": 0, \"minor\": 2}}}}\n"
+    "{\"return\": {}}\n";
 
 struct QemuVMWithSettableState : public mp::QemuVirtualMachine
 {
     using mp::QemuVirtualMachine::QemuVirtualMachine;
-    using mp::QemuVirtualMachine::set_state; // promote to public
+    using mp::QemuVirtualMachine::qmp_resume_timeout; // promote to public
+    using mp::QemuVirtualMachine::set_state;          // promote to public
 };
+
+// Wait until the child has exited: observable as a zombie (not yet reaped) or already reaped
+// underneath us (e.g. by Qt's child machinery); either way the OS-level probe reports it dead.
+bool child_has_exited(QProcess& process)
+{
+    for (int i = 0; i < 500; ++i)
+    {
+        siginfo_t info{};
+        const auto ret = waitid(P_PID, process.processId(), &info, WEXITED | WNOHANG | WNOWAIT);
+        const auto pid = static_cast<pid_t>(process.processId());
+        if (ret == 0 ? info.si_pid == pid : errno == ECHILD)
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10)); // let the child exit
+    }
+    return false;
+}
 } // namespace
 
 struct QemuBackend : public mpt::TestWithMockedBinPath
@@ -135,6 +162,27 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                 exit_state.exit_code = 0;
                 ON_CALL(*process, execute(_)).WillByDefault(Return(exit_state));
             }
+            else if (process->program().contains("qemu-system-") &&
+                     !process->arguments().contains(
+                         "-dump-vmstate")) // the actual vm process, resumed from suspension
+            {
+                EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                    emit process->state_changed(QProcess::Running);
+                    emit process->started();
+                });
+
+                EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
+                    auto json = boost::json::parse(std::string_view(data));
+                    if (value_to<std::string>(json.at("execute")) == "qmp_capabilities")
+                    {
+                        EXPECT_CALL(*process, read_all_standard_output())
+                            .WillRepeatedly(Return(fake_qmp_greeting_and_handshake));
+                        emit process->ready_read_standard_output();
+                    }
+
+                    return data.size();
+                });
+            }
         };
 
     static void handle_qemu_system(mpt::MockProcess* process)
@@ -169,7 +217,7 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
                         EXPECT_CALL(*process, read_all_standard_output())
                             .WillRepeatedly(Return("{\"timestamp\": {\"seconds\": 1541188919, "
                                                    "\"microseconds\": 838498}, \"event\": "
-                                                   "\"RESUME\"}"));
+                                                   "\"RESUME\"}\n"));
 
                         EXPECT_CALL(*process, kill()).WillOnce([process] {
                             mp::ProcessState exit_state{
@@ -353,7 +401,7 @@ TEST_F(QemuBackend, QMPErrorGetsLogged)
                                                    // cause an error
                 {
                     EXPECT_CALL(*process, read_all_standard_output())
-                        .WillRepeatedly(Return("{\"error\": {\"desc\": \"some error\"}} "));
+                        .WillRepeatedly(Return("{\"error\": {\"desc\": \"some error\"}}\n"));
                     emit process->ready_read_standard_output();
                 }
 
@@ -1591,4 +1639,517 @@ TEST(QemuPlatform, baseQemuPlatformReturnsExpectedValues)
 
     EXPECT_TRUE(qemu_platform.vmstate_platform_args().isEmpty());
     EXPECT_TRUE(qemu_platform.get_directory_name().isEmpty());
+}
+
+TEST_F(QemuBackend, qemuDeathDuringResumeWaitKeepsInstanceSuspended)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    // The liveness probe must see a live QEMU when the wait starts; the child that has already
+    // exited stands for the QEMU that dies while the wait is pumping its output
+    QProcess live_process;
+    live_process.start("mock_process", {"0", "hold"});
+    ASSERT_TRUE(live_process.waitForStarted(5000));
+    const auto live_pid = static_cast<qint64>(live_process.processId());
+
+    QProcess dead_process;
+    dead_process.start("mock_process", {"0"});
+    ASSERT_TRUE(dead_process.waitForStarted(5000));
+    ASSERT_TRUE(child_has_exited(dead_process));
+    const auto dead_pid = static_cast<qint64>(dead_process.processId());
+
+    mpt::MockProcess* qemu_process{nullptr};
+    process_factory->register_callback(
+        [this, &qemu_process, live_pid, dead_pid](mpt::MockProcess* process) {
+            if (process->program().contains("qemu-system-") &&
+                !process->arguments().contains(
+                    "-dump-vmstate")) // we only care about the actual vm process
+            {
+                qemu_process = process;
+                EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                    emit process->state_changed(QProcess::Running);
+                    emit process->started();
+                });
+                EXPECT_CALL(*process, process_id())
+                    .WillOnce(Return(live_pid))
+                    .WillRepeatedly(Return(dead_pid));
+
+                // Qt delivers stderr and finished from inside waitForReadyRead when QEMU dies
+                EXPECT_CALL(*process, wait_for_ready_read(_))
+                    .WillOnce([process](auto...) {
+                        EXPECT_CALL(*process, read_all_standard_error())
+                            .WillOnce(Return("qemu-system-x86_64: Snapshot 'suspend' does not "
+                                             "exist in one or more devices"))
+                            .WillRepeatedly(Return(QByteArray{})); // drained by the handler
+                        emit process->ready_read_standard_error(); // handler drains and saves it
+                        mp::ProcessState exit_state;
+                        exit_state.exit_code = 1;
+                        emit process->finished(exit_state); // the resume wait owns the state
+                        return false;
+                    })
+                    .WillRepeatedly(Return(false));
+                // QProcess has already processed the death: nothing left to reap
+                EXPECT_CALL(*process, running()).WillRepeatedly(Return(false));
+                EXPECT_CALL(*process, process_state())
+                    .WillRepeatedly(Return(mp::ProcessState{1, std::nullopt}));
+                EXPECT_CALL(*process, wait_for_finished(_)).Times(0);
+            }
+            else
+            {
+                // Have the fake `qemu-img` report the suspend snapshot, so that the VM starts out
+                // suspended
+                handle_external_process_calls(process);
+            }
+        });
+
+    auto machine = make_vm_with_settable_state(mock_monitor);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
+
+    EXPECT_CALL(mock_monitor, on_resume());
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(AnyNumber());
+    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::stopped)).Times(0);
+    EXPECT_CALL(mock_monitor, on_shutdown()).Times(0);
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::error,
+        "Qemu quit unexpectedly with exit code 1 while resuming from a suspended state");
+
+    MP_EXPECT_THROW_THAT(machine->start(),
+                         mp::StartException,
+                         AllOf(Property(&mp::StartException::name, Eq(machine->get_name())),
+                               mpt::match_what(HasSubstr("Snapshot 'suspend' does not exist"))));
+
+    // the instance stays suspended: the snapshot is kept for recovery and nothing shut it down
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
+
+    const auto processes = process_factory->process_list();
+    EXPECT_TRUE(std::none_of(processes.cbegin(), processes.cend(), [](const auto& info) {
+        return info.command.contains("qemu-img") && info.arguments.contains("-d") &&
+               info.arguments.contains(suspend_tag);
+    }));
+
+    live_process.kill();
+    ASSERT_TRUE(live_process.waitForFinished(5000));
+    dead_process.waitForFinished(5000); // let QProcess reap the child normally afterwards
+}
+
+TEST_F(QemuBackend, startReturnsPromptlyWhenResumeHandshakeCompletes)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    process_factory->register_callback(handle_external_process_calls);
+
+    auto machine = make_vm_with_settable_state(mock_monitor);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
+
+    EXPECT_CALL(mock_monitor, on_resume());
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error,
+                                         "Qemu quit unexpectedly",
+                                         testing::Exactly(0));
+    logger_scope.mock_logger->expect_log(mpl::Level::info,
+                                         "Timed out waiting for QMP to confirm the resume",
+                                         testing::Exactly(0));
+
+    const auto began = std::chrono::steady_clock::now();
+    machine->start(); // the handshake confirms the resume; no wait for a QEMU-dropped RESUME
+    EXPECT_LT(std::chrono::steady_clock::now() - began, std::chrono::seconds{2});
+
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::starting);
+    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::running));
+    machine->set_running(); // the usual flow proceeds afterwards
+}
+
+TEST_F(QemuBackend, throwsWhenQemuDiesBeforeQmpHandshake)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    // A real child that exits immediately; its QProcess state stays stale ("running"), so only
+    // the OS-level probe can tell it is gone - before any QMP output was ever produced
+    QProcess dead_process;
+    dead_process.start("mock_process", {"0"});
+    ASSERT_TRUE(dead_process.waitForStarted(5000));
+    ASSERT_TRUE(child_has_exited(dead_process));
+    const auto dead_pid = static_cast<qint64>(dead_process.processId());
+
+    mpt::MockProcess* qemu_process{nullptr};
+    process_factory->register_callback([this, &qemu_process, dead_pid](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") &&
+            !process->arguments().contains(
+                "-dump-vmstate")) // we only care about the actual vm process
+        {
+            qemu_process = process;
+            EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                emit process->state_changed(QProcess::Running);
+                emit process->started();
+            });
+            EXPECT_CALL(*process, process_id()).WillRepeatedly(Return(dead_pid));
+            // dies before any QMP output: detected via the OS, without any pumping
+            EXPECT_CALL(*process, wait_for_ready_read(_)).Times(0);
+            EXPECT_CALL(*process, read_all_standard_error())
+                .WillOnce(Return("qemu-system-x86_64: Could not load snapshot 'suspend'"));
+            // the death is reaped through QProcess, which reports the exit code
+            EXPECT_CALL(*process, wait_for_finished(_)).WillOnce([process](auto...) {
+                mp::ProcessState exit_state;
+                exit_state.exit_code = 1;
+                emit process->finished(exit_state);
+                return true;
+            });
+        }
+        else
+        {
+            // Have the fake `qemu-img` report the suspend snapshot, so that the VM starts out
+            // suspended
+            handle_external_process_calls(process);
+        }
+    });
+
+    auto machine = make_vm_with_settable_state(mock_monitor);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
+
+    EXPECT_CALL(mock_monitor, on_resume());
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(AnyNumber());
+    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::stopped)).Times(0);
+    EXPECT_CALL(mock_monitor, on_shutdown()).Times(0);
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::error,
+        "Qemu quit unexpectedly while resuming from a suspended state");
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "process finished with exit code 1");
+
+    MP_EXPECT_THROW_THAT(machine->start(),
+                         mp::StartException,
+                         AllOf(Property(&mp::StartException::name, Eq(machine->get_name())),
+                               mpt::match_what(HasSubstr("Could not load snapshot 'suspend'"))));
+
+    // the instance stays suspended: the snapshot is kept for recovery and nothing shut it down
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
+
+    const auto processes = process_factory->process_list();
+    EXPECT_TRUE(std::none_of(processes.cbegin(), processes.cend(), [](const auto& info) {
+        return info.command.contains("qemu-img") && info.arguments.contains("-d") &&
+               info.arguments.contains(suspend_tag);
+    }));
+
+    dead_process.waitForFinished(5000); // let QProcess reap the child normally afterwards
+}
+
+TEST_F(QemuBackend, unparseableQmpOutputIsLoggedAndSkipped)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    process_factory->register_callback([this](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") &&
+            !process->arguments().contains(
+                "-dump-vmstate")) // we only care about the actual vm process
+        {
+            EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                emit process->state_changed(QProcess::Running);
+                emit process->started();
+            });
+
+            EXPECT_CALL(*process, write(_)).WillRepeatedly([process](const QByteArray& data) {
+                auto json = boost::json::parse(std::string_view(data));
+                if (value_to<std::string>(json.at("execute")) == "qmp_capabilities")
+                {
+                    EXPECT_CALL(*process, read_all_standard_output())
+                        .WillRepeatedly(Return("{\"QMP\": {\"version\": {}}}\n"
+                                               "{\"truncated hand\n"
+                                               "{\"return\": {}}\n"));
+                    emit process->ready_read_standard_output();
+                }
+
+                return data.size();
+            });
+        }
+        else
+        {
+            handle_external_process_calls(process);
+        }
+    });
+
+    auto machine = make_vm_with_settable_state(mock_monitor);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
+
+    EXPECT_CALL(mock_monitor, on_resume());
+    logger_scope.mock_logger->screen_logs(mpl::Level::warning);
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "unparseable QMP output, skipping line");
+
+    machine->start(); // the unparseable line is skipped; the handshake still completes
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::starting);
+    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::running));
+    machine->set_running();
+}
+
+TEST_F(QemuBackend, liveQemuProcessIsNotReportedDeadDuringResumeWait)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    // A child that stays alive for the duration of the wait: mock_process with more than one
+    // argument blocks reading its standard input, which is never fed
+    QProcess live_process;
+    live_process.start("mock_process", {"0", "hold"});
+    ASSERT_TRUE(live_process.waitForStarted(5000));
+    ASSERT_GT(live_process.processId(), 0);
+    const auto live_pid = static_cast<qint64>(live_process.processId());
+
+    mpt::MockProcess* qemu_process{nullptr};
+    process_factory->register_callback([this, &qemu_process, live_pid](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") &&
+            !process->arguments().contains(
+                "-dump-vmstate")) // we only care about the actual vm process
+        {
+            qemu_process = process;
+            EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                emit process->state_changed(QProcess::Running);
+                emit process->started();
+            });
+            EXPECT_CALL(*process, process_id()).WillRepeatedly(Return(live_pid));
+            // a live QEMU that has not completed the handshake yet: no QMP output at all
+            EXPECT_CALL(*process, wait_for_ready_read(_)).WillRepeatedly(Return(false));
+        }
+        else
+        {
+            handle_external_process_calls(process);
+        }
+    });
+
+    auto machine = make_vm_with_settable_state(mock_monitor);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
+    machine->qmp_resume_timeout = std::chrono::milliseconds(200);
+
+    EXPECT_CALL(mock_monitor, on_resume());
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(AnyNumber());
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(
+        mpl::Level::error,
+        "Qemu quit unexpectedly while resuming from a suspended state",
+        testing::Exactly(0));
+
+    machine->start(); // the OS-level probe must keep reporting the process as alive
+
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::starting);
+
+    machine->set_running(); // as the daemon would once ready; keeps the destructor quiet
+
+    live_process.kill();
+    ASSERT_TRUE(live_process.waitForFinished(5000));
+}
+
+TEST_F(QemuBackend, freshStartAfterResumeTimeoutIsNotMarkedSuspended)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    // A child that stays alive for the duration of the resume wait, so that the wait times out
+    QProcess live_process;
+    live_process.start("mock_process", {"0", "hold"});
+    ASSERT_TRUE(live_process.waitForStarted(5000));
+    const auto live_pid = static_cast<qint64>(live_process.processId());
+
+    // A child that has already exited, for the fresh start's qemu to die before any QMP output
+    QProcess dead_process;
+    dead_process.start("mock_process", {"0"});
+    ASSERT_TRUE(dead_process.waitForStarted(5000));
+    ASSERT_TRUE(child_has_exited(dead_process));
+    const auto dead_pid = static_cast<qint64>(dead_process.processId());
+
+    auto vm_start_count = std::make_shared<int>(0);
+    mpt::MockProcess* qemu_process{nullptr};
+    process_factory->register_callback(
+        [this, &qemu_process, live_pid, dead_pid, vm_start_count](mpt::MockProcess* process) {
+            if (process->program().contains("qemu-system-") &&
+                !process->arguments().contains(
+                    "-dump-vmstate")) // we only care about the actual vm process
+            {
+                qemu_process = process;
+                EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                    emit process->state_changed(QProcess::Running);
+                    emit process->started();
+                });
+
+                if ((*vm_start_count)++ == 0) // the resume: a live, silent QEMU
+                {
+                    EXPECT_CALL(*process, process_id()).WillRepeatedly(Return(live_pid));
+                    EXPECT_CALL(*process, wait_for_ready_read(_)).WillRepeatedly(Return(false));
+                }
+                else // the fresh start: the qemu dies before any QMP output
+                {
+                    EXPECT_CALL(*process, process_id()).WillRepeatedly(Return(dead_pid));
+                    EXPECT_CALL(*process, wait_for_ready_read(_)).Times(0);
+                }
+            }
+            else
+            {
+                handle_external_process_calls(process);
+            }
+        });
+
+    auto machine = make_vm_with_settable_state(mock_monitor);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
+    machine->qmp_resume_timeout = std::chrono::milliseconds(200);
+
+    EXPECT_CALL(mock_monitor, on_resume()).Times(2);
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(AnyNumber());
+    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::suspended)).Times(0);
+    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::stopped)).Times(2);
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::info,
+                                         "Timed out waiting for QMP to confirm the resume");
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "process finished with exit code 1");
+
+    // the resume wait times out; the daemon's async readiness flow would take over
+    machine->start();
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::starting);
+
+    // simulated recovery shutdown of the half-started instance: stopped, snapshot deleted
+    mp::AutoJoinThread shutdown_thread{
+        [&machine] { machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff); }};
+    while (machine->fetch_state() != mp::VirtualMachine::State::stopped)
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    MP_EXPECT_THROW_THAT(machine->wait_for_cloud_init(1ms),
+                         mp::StartException,
+                         Property(&mp::StartException::name, Eq(machine->get_name())));
+
+    // a fresh start on the same VM object: the per-start suspend flag must not send it into the
+    // resume wait, whose death path would mark this snapshot-less instance as suspended
+    EXPECT_NO_THROW(machine->start());
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::starting);
+
+    if (machine->fetch_state() == mp::VirtualMachine::State::starting)
+    {
+        // the fresh-boot qemu dies: upstream's normal failed-start path applies (not a suspended
+        // restore); on_shutdown waits for the readiness check, as upstream sequences it
+        mp::AutoJoinThread finishing_thread{[qemu_process]() {
+            mp::ProcessState exit_state;
+            exit_state.exit_code = 1;
+            emit qemu_process->finished(exit_state);
+        }};
+        while (machine->fetch_state() != mp::VirtualMachine::State::stopped)
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        MP_EXPECT_THROW_THAT(machine->wait_for_cloud_init(1ms),
+                             mp::StartException,
+                             Property(&mp::StartException::name, Eq(machine->get_name())));
+    }
+
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::stopped);
+
+    live_process.kill();
+    ASSERT_TRUE(live_process.waitForFinished(5000));
+    dead_process.waitForFinished(5000); // let QProcess reap the child normally afterwards
+}
+
+TEST_F(QemuBackend, splitQmpHandshakeReplyIsReassembled)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    mpt::MockProcess* qemu_process{nullptr};
+    process_factory->register_callback([this, &qemu_process](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") &&
+            !process->arguments().contains(
+                "-dump-vmstate")) // we only care about the actual vm process
+        {
+            qemu_process = process;
+            EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                emit process->state_changed(QProcess::Running);
+                emit process->started();
+            });
+            EXPECT_CALL(*process, write(_)).WillRepeatedly(Return(0));
+
+            // the handshake reply is split across two reads
+            EXPECT_CALL(*process, wait_for_ready_read(_))
+                .WillOnce([process](auto...) {
+                    EXPECT_CALL(*process, read_all_standard_output())
+                        .WillOnce(Return("{\"QMP\": {\"version\": {\"qemu\": {\"major\": 10, "
+                                         "\"micro\": 0, \"minor\": 2}}}}\n{\"return\": {"));
+                    emit process->ready_read_standard_output();
+                    return true;
+                })
+                .WillOnce([process](auto...) {
+                    EXPECT_CALL(*process, read_all_standard_output()).WillOnce(Return("}}\n"));
+                    emit process->ready_read_standard_output();
+                    return true;
+                })
+                .WillRepeatedly(Return(false));
+        }
+        else
+        {
+            handle_external_process_calls(process);
+        }
+    });
+
+    auto machine = make_vm_with_settable_state(mock_monitor);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
+    machine->qmp_resume_timeout = std::chrono::milliseconds(300);
+
+    EXPECT_CALL(mock_monitor, on_resume());
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::info,
+                                         "Timed out waiting for QMP to confirm the resume",
+                                         testing::Exactly(0));
+    logger_scope.mock_logger->expect_log(mpl::Level::warning,
+                                         "unparseable QMP output, skipping line",
+                                         testing::Exactly(0));
+
+    const auto began = std::chrono::steady_clock::now();
+    machine->start(); // the split reply is reassembled and completes the handshake
+    EXPECT_LT(std::chrono::steady_clock::now() - began, std::chrono::seconds{2});
+
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::starting);
+    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::running));
+    machine->set_running();
+}
+
+TEST_F(QemuBackend, resumeWaitTimesOutWithInstantPump)
+{
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+
+    QProcess live_process;
+    live_process.start("mock_process", {"0", "hold"});
+    ASSERT_TRUE(live_process.waitForStarted(5000));
+    const auto live_pid = static_cast<qint64>(live_process.processId());
+
+    mpt::MockProcess* qemu_process{nullptr};
+    process_factory->register_callback([this, &qemu_process, live_pid](mpt::MockProcess* process) {
+        if (process->program().contains("qemu-system-") &&
+            !process->arguments().contains(
+                "-dump-vmstate")) // we only care about the actual vm process
+        {
+            qemu_process = process;
+            EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                emit process->state_changed(QProcess::Running);
+                emit process->started();
+            });
+            EXPECT_CALL(*process, process_id()).WillRepeatedly(Return(live_pid));
+            // a pump that returns immediately with no output must never see a negative timeout
+            EXPECT_CALL(*process, wait_for_ready_read(_)).WillRepeatedly([](int msecs) {
+                EXPECT_GE(msecs, 0);
+                return true;
+            });
+        }
+        else
+        {
+            handle_external_process_calls(process);
+        }
+    });
+
+    auto machine = make_vm_with_settable_state(mock_monitor);
+    ASSERT_EQ(machine->fetch_state(), mp::VirtualMachine::State::suspended);
+    machine->qmp_resume_timeout = std::chrono::milliseconds(200);
+
+    EXPECT_CALL(mock_monitor, on_resume());
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _)).Times(AnyNumber());
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::info,
+                                         "Timed out waiting for QMP to confirm the resume");
+
+    const auto began = std::chrono::steady_clock::now();
+    machine->start(); // exits via the timeout path: no hang past the deadline
+
+    EXPECT_GE(std::chrono::steady_clock::now() - began, std::chrono::milliseconds{150});
+    EXPECT_LT(std::chrono::steady_clock::now() - began, std::chrono::seconds{2});
+    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::starting);
+
+    machine->set_running(); // as the daemon would once ready; keeps the destructor quiet
+
+    live_process.kill();
+    ASSERT_TRUE(live_process.waitForFinished(5000));
 }

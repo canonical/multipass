@@ -233,10 +233,10 @@ protected:
     bool shutdown_while_starting = false;
     std::condition_variable state_wait;
     std::mutex state_mutex;
+    std::string saved_error_msg = "";
 
 private:
     VirtualMachine::State state;
-    std::string saved_error_msg = "";
     std::unique_ptr<SSHSession> ssh_session = nullptr;
     SnapshotMap snapshots;
     std::shared_ptr<Snapshot> head_snapshot = nullptr;

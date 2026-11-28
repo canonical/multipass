@@ -23,6 +23,7 @@
 
 #include <multipass/constants.h>
 #include <multipass/exceptions/ip_unavailable_exception.h>
+#include <multipass/exceptions/start_exception.h>
 #include <multipass/exceptions/virtual_machine_state_exceptions.h>
 #include <multipass/file_ops.h>
 #include <multipass/format.h>
@@ -41,6 +42,12 @@
 #include <QRegularExpression>
 #include <QString>
 #include <QTemporaryFile>
+
+#include <cerrno>
+#include <csignal>
+#include <limits>
+#include <sys/wait.h>
+#include <thread>
 
 #include <cassert>
 
@@ -63,6 +70,52 @@ constexpr int kill_process_timeout = 5000; // unit: ms, 5 seconds timeout for ki
 QString get_vm_machine(const boost::json::value& metadata)
 {
     return mp::lookup_or<QString>(metadata, machine_type_key, {});
+}
+
+// QProcess only learns that a child died once the Qt event loop delivers the notification, which
+// can be arbitrarily delayed. Ask the OS directly instead.
+bool qemu_process_is_alive(const mp::Process& process)
+{
+    const auto pid = process.process_id();
+    if (pid <= 0) // nothing to check (e.g. the process has not started yet)
+        return true;
+
+    if (pid > static_cast<qint64>(std::numeric_limits<pid_t>::max()))
+    {
+        // Defensive: a pid like this cannot name a real child on this platform
+        mpl::warn(qUtf8Printable(process.program()),
+                  "cannot check process {}: pid out of range; assuming alive",
+                  pid);
+        return true;
+    }
+
+    const auto os_pid = static_cast<pid_t>(pid);
+#ifdef WNOWAIT
+    siginfo_t info{};
+    int ret = 0;
+    do
+        ret = waitid(P_PID, os_pid, &info, WEXITED | WNOHANG | WNOWAIT);
+    while (ret == -1 && errno == EINTR);
+
+    if (ret == -1)
+    {
+        // ECHILD: the pid is not (or no longer) an unwaited-for child of ours, i.e. it already
+        // exited and was reaped. Anything else is unexpected: assume alive and let the usual
+        // QProcess-based mechanisms decide.
+        return errno != ECHILD;
+    }
+
+    // WNOWAIT leaves the exit status consumable, so QProcess can still reap the child and emit
+    // its finished signal afterwards. With WNOHANG, an exited child is reported with its pid in
+    // si_pid, while a child that has not exited leaves si_pid zeroed.
+    return info.si_pid == 0;
+#else
+    // WNOWAIT, which is needed to inspect a child without consuming its exit status, is not
+    // available on this platform: fall back to a zero-signal kill existence check. Zombie
+    // detection is best-effort there (an exited-but-unreaped child still counts as existing);
+    // the usual QProcess-based mechanisms remain the authority.
+    return kill(os_pid, 0) == 0 || errno != ESRCH;
+#endif
 }
 
 QStringList get_arguments(const boost::json::value& metadata)
@@ -272,6 +325,11 @@ mp::QemuVirtualMachine::~QemuVirtualMachine()
 
 void mp::QemuVirtualMachine::start()
 {
+    qmp_negotiated = false;
+    resume_in_flight = false;
+    is_starting_from_suspend = false;
+    qmp_pending_output.clear();
+
     initialize_vm_process();
 
     if (fetch_state() == State::suspended)
@@ -320,7 +378,90 @@ void mp::QemuVirtualMachine::start()
         }
     }
 
+    // While the resume is in flight, the finished/error handlers must leave the state alone:
+    // the wait below owns it (a finished signal can be delivered from inside its own
+    // wait_for_ready_read, and there is no readiness check running yet to sequence against).
+    if (is_starting_from_suspend)
+        resume_in_flight = true;
+
     vm_process->write(QByteArray::fromStdString(serialize(qmp_execute_json("qmp_capabilities"))));
+
+    // The handshake reply proves QEMU is alive and that -loadvm has been processed (QEMU
+    // handles it before its main loop dispatches commands, and drops QMP events until the
+    // handshake). A QEMU that dies instead fails the start here, leaving the suspended state
+    // intact.
+    if (is_starting_from_suspend)
+        wait_for_resume();
+}
+
+void mp::QemuVirtualMachine::wait_for_resume()
+{
+    const auto deadline = std::chrono::steady_clock::now() + qmp_resume_timeout;
+
+    while (!qmp_negotiated)
+    {
+        // Compute and clamp the remaining time once per iteration: handing a negative timeout to
+        // QProcess would make it wait indefinitely.
+        const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline - std::chrono::steady_clock::now());
+        if (remaining <= std::chrono::milliseconds{0})
+        {
+            // QEMU is alive but has not completed the handshake yet: leave the rest of the
+            // startup to the usual asynchronous readiness handling.
+            resume_in_flight = false;
+            mpl::info(vm_name, "Timed out waiting for QMP to confirm the resume");
+            return;
+        }
+
+        if (!vm_process || !qemu_process_is_alive(*vm_process))
+        {
+            // Capture what QEMU reported before dying: stderr may already have been drained by
+            // the ready-read handler (saved_error_msg), or may still be buffered.
+            const auto buffered = vm_process
+                                    ? QString::fromUtf8(vm_process->read_all_standard_error())
+                                    : QString{};
+            const auto output = buffered.isEmpty() ? QString::fromStdString(saved_error_msg)
+                                                   : buffered;
+
+            if (const auto exit_code = vm_process ? vm_process->process_state().exit_code
+                                                  : std::nullopt;
+                exit_code && *exit_code != 0)
+                mpl::error(vm_name,
+                           "Qemu quit unexpectedly with exit code {} while resuming from a "
+                           "suspended state, with output:\n{}",
+                           *exit_code,
+                           output);
+            else
+                mpl::error(vm_name,
+                           "Qemu quit unexpectedly while resuming from a suspended state, with "
+                           "output:\n{}",
+                           output);
+
+            // The wait owns the state while the resume is in flight: hand it back and leave the
+            // instance suspended, with its snapshot intact, so that the resume can be retried.
+            resume_in_flight = false;
+            update_shutdown_status = false; // the reap below must not shut the instance down
+            set_state(State::suspended);
+
+            // Reap through QProcess, so the finished handler reports the exit code; nothing is
+            // left pending and the destructor has no process to worry about.
+            if (vm_process)
+            {
+                if (vm_process->running())
+                    vm_process->wait_for_finished(0);
+                vm_process.reset(nullptr);
+            }
+            update_shutdown_status = true; // the next start needs the error handlers active again
+
+            throw StartException{
+                vm_name,
+                fmt::format("qemu quit unexpectedly while resuming from a suspended state{}",
+                            output.isEmpty() ? std::string{} : fmt::format(":\n{}", output))};
+        }
+
+        if (!vm_process->wait_for_ready_read(remaining))
+            std::this_thread::sleep_for(10ms); // avoid spinning on a silent (but alive) QEMU
+    }
 }
 
 void mp::QemuVirtualMachine::shutdown(ShutdownPolicy shutdown_policy)
@@ -512,49 +653,67 @@ void mp::QemuVirtualMachine::initialize_vm_process()
     QObject::connect(vm_process.get(), &Process::ready_read_standard_output, [this]() {
         auto qmp_output = vm_process->read_all_standard_output();
         mpl::debug(vm_name, "QMP: {}", qmp_output);
-        // Skip non-JSON output.
-        const auto lines = qmp_output.split('\n');
-        const auto json_line = std::find_if(lines.cbegin(), lines.cend(), [](const QString& line) {
-            return line.startsWith('{');
-        });
-        if (json_line == lines.cend())
-            return;
-        auto qmp_object = boost::json::parse(json_line->toStdString()).as_object();
-
-        if (auto event = qmp_object.if_contains("event"))
+        // A message can be split across reads: accumulate the chunks and process only complete
+        // lines, keeping any trailing partial line for the next read.
+        qmp_pending_output += qmp_output;
+        const auto lines = qmp_pending_output.split('\n');
+        qmp_pending_output = lines.last();
+        for (auto line = lines.cbegin(); line != lines.cend() - 1; ++line)
         {
-            const auto state = fetch_state();
-            auto event_str = value_to<std::string>(*event);
-            if (event_str == "RESET" && state != State::restarting)
+            if (!line->startsWith('{'))
+                continue;
+
+            boost::json::value parsed;
+            try
             {
-                mpl::info(vm_name, "VM restarting");
-                on_restart();
+                parsed = boost::json::parse(line->toStdString());
             }
-            else if (event_str == "POWERDOWN")
+            catch (const boost::system::system_error&) // a complete line can still be garbage
             {
-                mpl::info(vm_name, "VM powering down");
+                mpl::warn(vm_name, "unparseable QMP output, skipping line");
+                continue;
             }
-            else if (event_str == "SHUTDOWN")
+            auto qmp_object = parsed.as_object();
+
+            if (auto event = qmp_object.if_contains("event"))
             {
-                mpl::info(vm_name, "VM shut down");
-            }
-            else if (event_str == "STOP")
-            {
-                mpl::info(vm_name, "VM suspending");
-            }
-            else if (event_str == "RESUME")
-            {
-                mpl::info(vm_name, "VM suspended");
-                if (state == State::suspending || state == State::running)
+                const auto state = fetch_state();
+                auto event_str = value_to<std::string>(*event);
+                if (event_str == "RESET" && state != State::restarting)
                 {
-                    vm_process->kill();
-                    on_suspend();
+                    mpl::info(vm_name, "VM restarting");
+                    on_restart();
+                }
+                else if (event_str == "POWERDOWN")
+                {
+                    mpl::info(vm_name, "VM powering down");
+                }
+                else if (event_str == "SHUTDOWN")
+                {
+                    mpl::info(vm_name, "VM shut down");
+                }
+                else if (event_str == "STOP")
+                {
+                    mpl::info(vm_name, "VM suspending");
+                }
+                else if (event_str == "RESUME")
+                {
+                    mpl::info(vm_name, "VM execution resumed");
+                    if (state == State::suspending || state == State::running)
+                    {
+                        vm_process->kill();
+                        on_suspend();
+                    }
                 }
             }
-        }
-        else if (auto error = qmp_object.if_contains("error"))
-        {
-            mpl::error(vm_name, "QMP error: {}", value_to<std::string>(error->at("desc")));
+            else if (auto error = qmp_object.if_contains("error"))
+            {
+                mpl::error(vm_name, "QMP error: {}", value_to<std::string>(error->at("desc")));
+            }
+            else if (qmp_object.contains("return"))
+            {
+                qmp_negotiated = true;
+            }
         }
     });
 
@@ -586,16 +745,23 @@ void mp::QemuVirtualMachine::initialize_vm_process()
                                                               error_string)};
                              mpl::log_message(log_level, vm_name, error_msg);
                              save_error_msg(error_msg);
-                             on_error();
+                             if (!resume_in_flight) // the resume wait owns the state meanwhile
+                                 on_error();
                          }
                      });
 
     QObject::connect(vm_process.get(), &Process::finished, [this](ProcessState process_state) {
+        if (resume_in_flight)
+            return; // the resume wait owns the state; its death path handles a died QEMU
+
         if (process_state.exit_code)
         {
-            mpl::info(vm_name,
-                      "process finished with exit code {}",
-                      process_state.exit_code.value());
+            // QEMU exiting with a non-zero code means it gave up unexpectedly: surface it.
+            const auto level = *process_state.exit_code == 0 ? mpl::Level::info : mpl::Level::error;
+            mpl::log_message(
+                level,
+                vm_name,
+                fmt::format("process finished with exit code {}", *process_state.exit_code));
         }
         const auto state = fetch_state();
         if (process_state.error)
@@ -637,6 +803,9 @@ void mp::QemuVirtualMachine::connect_vm_signals()
         &QemuVirtualMachine::on_delete_memory_snapshot,
         this,
         [this] {
+            if (!vm_process) // the wait may have queued this before the process went away
+                return;
+
             mpl::debug(vm_name, "Deleted memory snapshot");
             vm_process->write(QByteArray::fromStdString(
                 serialize(hmc_to_qmp_json(QString("delvm ") + suspend_tag))));
@@ -651,6 +820,9 @@ void mp::QemuVirtualMachine::connect_vm_signals()
         &QemuVirtualMachine::on_reset_network,
         this,
         [this] {
+            if (!vm_process) // the wait may have queued this before the process went away
+                return;
+
             mpl::debug(vm_name, "Resetting the network");
 
             auto qmp = qmp_execute_json("set_link");

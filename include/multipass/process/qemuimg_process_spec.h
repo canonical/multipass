@@ -19,6 +19,8 @@
 
 #include <multipass/process/process_spec.h>
 
+#include <filesystem>
+
 #include <QString>
 #include <QStringList>
 
