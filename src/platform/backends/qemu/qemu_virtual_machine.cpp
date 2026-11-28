@@ -442,8 +442,11 @@ void mp::QemuVirtualMachine::suspend()
             // the VM is still running
             const auto error_msg = std::exchange(savevm_error, std::nullopt).value();
             update_shutdown_status = was_updating_shutdown_status;
-            if (cached_state() == State::suspending)
-                set_state(State::running);
+            if (state == State::suspending)
+            {
+                state = State::running;
+                handle_state_update();
+            }
             throw std::runtime_error{fmt::format("Failed to suspend {}: {}", vm_name, error_msg)};
         }
 
