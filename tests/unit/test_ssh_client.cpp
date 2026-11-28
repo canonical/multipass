@@ -27,12 +27,41 @@
 #include <multipass/ssh/plain_ssh_session.h>
 #include <multipass/ssh/ssh_client.h>
 
+#ifndef MULTIPASS_PLATFORM_WINDOWS
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+
+#include <array>
+#include <atomic>
+
 namespace mp = multipass;
 namespace mpt = multipass::test;
 namespace mpl = multipass::logging;
 
 namespace
 {
+#ifndef MULTIPASS_PLATFORM_WINDOWS
+// Points the given fd (stdout or stderr) at a path for the lifetime of the object
+struct RedirectFd
+{
+    RedirectFd(int fd, const char* path) : fd{fd}, saved{dup(fd)}
+    {
+        const auto target = open(path, O_WRONLY);
+        dup2(target, fd);
+        close(target);
+    }
+
+    ~RedirectFd()
+    {
+        dup2(saved, fd);
+        close(saved);
+    }
+
+    int fd, saved;
+};
+#endif
+
 struct SSHClient : public testing::Test
 {
     mp::SSHClient make_ssh_client()
@@ -111,6 +140,65 @@ TEST_F(SSHClient, DISABLE_ON_WINDOWS(execPollingWorksAsExpected))
     EXPECT_EQ(client.exec({{"foo"}}), SSH_OK);
     EXPECT_EQ(poll_count, 1);
 }
+
+#ifndef MULTIPASS_PLATFORM_WINDOWS
+TEST_F(SSHClient, execDiscardsOutputRedirectedToDevNull)
+{
+    // On macOS poll() reports POLLNVAL for /dev/null, so libssh's connector never writes to it
+    // and the unread channel data would keep the client looping forever. Such streams must be
+    // drained by the client itself.
+    std::array<std::atomic<int>, 2> reads{};
+    REPLACE(ssh_channel_read_nonblocking, [&reads](ssh_channel, void*, uint32_t, int is_stderr) {
+        return reads[is_stderr]++ == 0 ? 5 : 0;
+    });
+    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
+        *val = 0;
+        return SSH_OK;
+    });
+    mock_ssh_test_fixture.is_eof.returnValue(false);
+    REPLACE(ssh_event_dopoll, [this](auto...) {
+        mock_ssh_test_fixture.is_eof.returnValue(true);
+        return SSH_OK;
+    });
+    auto client = make_ssh_client();
+
+    {
+        RedirectFd out{STDOUT_FILENO, "/dev/null"};
+        RedirectFd err{STDERR_FILENO, "/dev/null"};
+        EXPECT_EQ(client.exec({{"foo"}}), SSH_OK);
+    }
+
+    EXPECT_GT(reads[0], 0);
+    EXPECT_GT(reads[1], 0);
+}
+
+TEST_F(SSHClient, execDoesNotDrainOutputNotRedirectedToDevNull)
+{
+    int reads{0};
+    REPLACE(ssh_channel_read_nonblocking, [&reads](auto...) {
+        ++reads;
+        return 0;
+    });
+    REPLACE(ssh_channel_get_exit_state, [](ssh_channel_struct*, unsigned int* val, char**, int*) {
+        *val = 0;
+        return SSH_OK;
+    });
+    mock_ssh_test_fixture.is_eof.returnValue(false);
+    REPLACE(ssh_event_dopoll, [this](auto...) {
+        mock_ssh_test_fixture.is_eof.returnValue(true);
+        return SSH_OK;
+    });
+    auto client = make_ssh_client();
+
+    {
+        RedirectFd out{STDOUT_FILENO, "/dev/zero"}; // a character device, but not /dev/null
+        RedirectFd err{STDERR_FILENO, "/dev/zero"};
+        EXPECT_EQ(client.exec({{"foo"}}), SSH_OK);
+    }
+
+    EXPECT_EQ(reads, 0);
+}
+#endif
 
 TEST_F(SSHClient, throwsWhenUnableToOpenSession)
 {

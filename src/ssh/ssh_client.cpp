@@ -29,6 +29,11 @@
 #include <thread>
 #endif
 
+#ifndef MULTIPASS_PLATFORM_WINDOWS
+#include <sys/stat.h>
+#endif
+
+#include <array>
 #include <functional>
 
 namespace mp = multipass;
@@ -49,6 +54,27 @@ mp::SSHClient::ChannelUPtr make_channel(ssh_session session)
 
     return channel;
 }
+
+#ifndef MULTIPASS_PLATFORM_WINDOWS
+// libssh's connector waits for POLLOUT before it writes to the output fd, but on macOS poll()
+// reports POLLNVAL for /dev/null (and never POLLOUT), so the connector never writes anything.
+// The channel data stays unread, the channel never reports EOF, and the exec loop spins forever.
+bool is_dev_null(int fd)
+{
+    struct stat fd_stat, null_stat;
+    return fstat(fd, &fd_stat) == 0 && S_ISCHR(fd_stat.st_mode) &&
+           stat("/dev/null", &null_stat) == 0 && fd_stat.st_rdev == null_stat.st_rdev;
+}
+
+// Throw away whatever the remote command wrote to a stream that is redirected to /dev/null
+void discard_channel_data(ssh_channel channel, int is_stderr)
+{
+    std::array<char, 4096> buffer;
+    const auto size = static_cast<uint32_t>(buffer.size());
+    while (MP_LIBSSH.ssh_channel_read_nonblocking(channel, buffer.data(), size, is_stderr) > 0)
+        ;
+}
+#endif
 
 std::unique_ptr<mp::PlainSSHSession> make_session(const std::string& host,
                                                   int port,
@@ -115,34 +141,49 @@ void mp::SSHClient::handle_ssh_events()
     MP_LIBSSH.ssh_connector_set_in_fd(connector_in.get(), fileno(stdin));
     MP_LIBSSH.ssh_event_add_connector(event.get(), connector_in.get());
 
-    // stdout
-    ConnectorUPtr connector_out{MP_LIBSSH.ssh_connector_new(*ssh_session),
-                                [](ssh_connector c) { MP_LIBSSH.ssh_connector_free(c); }};
-    MP_LIBSSH.ssh_connector_set_out_fd(connector_out.get(), fileno(stdout));
-    MP_LIBSSH.ssh_connector_set_in_channel(connector_out.get(),
-                                           channel.get(),
-                                           SSH_CONNECTOR_STDOUT);
-    MP_LIBSSH.ssh_event_add_connector(event.get(), connector_out.get());
+    // stdout and stderr. A stream redirected to /dev/null gets no connector, its data is
+    // discarded in the loop below instead (see is_dev_null)
+    const bool discard_out = is_dev_null(fileno(stdout));
+    const bool discard_err = is_dev_null(fileno(stderr));
 
-    // stderr
-    ConnectorUPtr connector_err{MP_LIBSSH.ssh_connector_new(*ssh_session),
-                                [](ssh_connector c) { MP_LIBSSH.ssh_connector_free(c); }};
-    MP_LIBSSH.ssh_connector_set_out_fd(connector_err.get(), fileno(stderr));
-    MP_LIBSSH.ssh_connector_set_in_channel(connector_err.get(),
-                                           channel.get(),
-                                           SSH_CONNECTOR_STDERR);
-    MP_LIBSSH.ssh_event_add_connector(event.get(), connector_err.get());
+    ConnectorUPtr connector_out{nullptr, [](ssh_connector c) { MP_LIBSSH.ssh_connector_free(c); }};
+    if (!discard_out)
+    {
+        connector_out.reset(MP_LIBSSH.ssh_connector_new(*ssh_session));
+        MP_LIBSSH.ssh_connector_set_out_fd(connector_out.get(), fileno(stdout));
+        MP_LIBSSH.ssh_connector_set_in_channel(connector_out.get(),
+                                               channel.get(),
+                                               SSH_CONNECTOR_STDOUT);
+        MP_LIBSSH.ssh_event_add_connector(event.get(), connector_out.get());
+    }
+
+    ConnectorUPtr connector_err{nullptr, [](ssh_connector c) { MP_LIBSSH.ssh_connector_free(c); }};
+    if (!discard_err)
+    {
+        connector_err.reset(MP_LIBSSH.ssh_connector_new(*ssh_session));
+        MP_LIBSSH.ssh_connector_set_out_fd(connector_err.get(), fileno(stderr));
+        MP_LIBSSH.ssh_connector_set_in_channel(connector_err.get(),
+                                               channel.get(),
+                                               SSH_CONNECTOR_STDERR);
+        MP_LIBSSH.ssh_event_add_connector(event.get(), connector_err.get());
+    }
 
     while (MP_LIBSSH.ssh_channel_is_open(channel.get()) &&
            !MP_LIBSSH.ssh_channel_is_eof(channel.get()))
     {
         MP_LIBSSH.ssh_event_dopoll(event.get(), 60000);
+        if (discard_out)
+            discard_channel_data(channel.get(), 0);
+        if (discard_err)
+            discard_channel_data(channel.get(), 1);
         console->handle_runtime_events();
     }
 
     MP_LIBSSH.ssh_event_remove_connector(event.get(), connector_in.get());
-    MP_LIBSSH.ssh_event_remove_connector(event.get(), connector_out.get());
-    MP_LIBSSH.ssh_event_remove_connector(event.get(), connector_err.get());
+    if (connector_out)
+        MP_LIBSSH.ssh_event_remove_connector(event.get(), connector_out.get());
+    if (connector_err)
+        MP_LIBSSH.ssh_event_remove_connector(event.get(), connector_err.get());
 #else
     auto stdout_thread = std::thread([this]() {
         while (MP_LIBSSH.ssh_channel_is_open(channel.get()) &&
