@@ -349,8 +349,7 @@ TEST_F(QemuBackend, destroyingMachineFallsBackToPowerdownWhenSavevmFails)
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
 
-    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::running));
-    machine->set_running();
+    machine->state = mp::VirtualMachine::State::running;
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     logger_scope.mock_logger->expect_log(mpl::Level::error, "Failed to suspend");
@@ -380,8 +379,7 @@ TEST_F(QemuBackend, suspendThrowsAndKeepsRunningWhenSavevmFails)
     EXPECT_CALL(mock_monitor, on_resume());
     machine->start();
 
-    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::running));
-    machine->set_running();
+    machine->state = mp::VirtualMachine::State::running;
 
     logger_scope.mock_logger->screen_logs(mpl::Level::error);
     // the destructor will try (and fail) again
@@ -394,7 +392,7 @@ TEST_F(QemuBackend, suspendThrowsAndKeepsRunningWhenSavevmFails)
                          std::runtime_error,
                          mpt::match_what(HasSubstr("Migration is disabled")));
 
-    EXPECT_EQ(machine->fetch_state(), mp::VirtualMachine::State::running);
+    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::running);
     EXPECT_FALSE(*powerdown_written);
 
     // let the destructor take the powerdown path quietly
