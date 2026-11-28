@@ -180,6 +180,59 @@ struct QemuBackend : public mpt::TestWithMockedBinPath
         }
     };
 
+    static constexpr auto savevm_error_reply =
+        "{\"return\": \"Error: Migration is disabled when VirtFS export path '/home/ubuntu/mnt' "
+        "is mounted in the guest\"}";
+
+    // Like handle_qemu_system, but savevm fails; the flag is set on system_powerdown
+    static auto handle_qemu_system_savevm_error(std::shared_ptr<bool> powerdown_written)
+    {
+        return [powerdown_written](mpt::MockProcess* process) {
+            if (!process->program().contains("qemu-system"))
+                return;
+
+            EXPECT_CALL(*process, start()).WillRepeatedly([process] {
+                emit process->state_changed(QProcess::Running);
+                emit process->started();
+            });
+
+            // any wait before powerdown would be the 5 min hang
+            EXPECT_CALL(*process, wait_for_finished(_))
+                .WillRepeatedly([powerdown_written](int msecs) {
+                    if (!*powerdown_written)
+                        ADD_FAILURE() << "waited " << msecs << "ms for finish before powerdown";
+                    return true;
+                });
+
+            EXPECT_CALL(*process, write(_))
+                .WillRepeatedly([process, powerdown_written](const QByteArray& data) {
+                    auto json = boost::json::parse(std::string_view(data));
+                    auto execute = value_to<std::string>(json.at("execute"));
+
+                    if (execute == "system_powerdown")
+                    {
+                        *powerdown_written = true;
+                        EXPECT_CALL(*process, wait_for_finished(_)).WillOnce([process](auto...) {
+                            mp::ProcessState exit_state{.exit_code = 0, .error = std::nullopt};
+                            emit process->finished(exit_state);
+                            return true;
+                        });
+                    }
+                    else if (execute == "human-monitor-command" &&
+                             value_to<std::string>(json.at("arguments").at("command-line")) ==
+                                 "savevm suspend")
+                    {
+                        EXPECT_CALL(*process, read_all_standard_output())
+                            .WillRepeatedly(Return(savevm_error_reply));
+                        EXPECT_CALL(*process, kill()).Times(0);
+                        emit process->ready_read_standard_output();
+                    }
+
+                    return data.size();
+                });
+        };
+    }
+
     auto expected_qemu_img_path()
     {
         return QDir(QCoreApplication::applicationDirPath()).filePath("qemu-img");
@@ -276,6 +329,73 @@ TEST_F(QemuBackend, machineStartSuspendSendsMonitoringEvent)
     EXPECT_CALL(mock_monitor, on_suspend());
     EXPECT_CALL(mock_monitor, persist_state_for(_, _));
     machine->suspend();
+}
+
+TEST_F(QemuBackend, destroyingMachineFallsBackToPowerdownWhenSavevmFails)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    auto powerdown_written = std::make_shared<bool>(false);
+    process_factory->register_callback(handle_qemu_system_savevm_error(powerdown_written));
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
+    EXPECT_CALL(mock_monitor, on_resume());
+    machine->start();
+
+    machine->state = mp::VirtualMachine::State::running;
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "Failed to suspend");
+
+    EXPECT_CALL(mock_monitor, on_suspend()).Times(0);
+    machine.reset();
+
+    EXPECT_TRUE(*powerdown_written);
+}
+
+TEST_F(QemuBackend, suspendThrowsAndKeepsRunningWhenSavevmFails)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+
+    auto powerdown_written = std::make_shared<bool>(false);
+    process_factory->register_callback(handle_qemu_system_savevm_error(powerdown_written));
+
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    EXPECT_CALL(mock_monitor, persist_state_for(_, _));
+    EXPECT_CALL(mock_monitor, on_resume());
+    machine->start();
+
+    machine->state = mp::VirtualMachine::State::running;
+
+    logger_scope.mock_logger->screen_logs(mpl::Level::error);
+    // the destructor will try (and fail) again
+    logger_scope.mock_logger->expect_log(mpl::Level::error, "Failed to suspend", AtLeast(1));
+
+    EXPECT_CALL(mock_monitor, on_suspend()).Times(0);
+    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::suspending));
+    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::running));
+    MP_EXPECT_THROW_THAT(machine->suspend(),
+                         std::runtime_error,
+                         mpt::match_what(HasSubstr("Migration is disabled")));
+
+    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::running);
+    EXPECT_FALSE(*powerdown_written);
+
+    // let the destructor take the powerdown path quietly
+    EXPECT_CALL(mock_monitor, persist_state_for).Times(AnyNumber());
 }
 
 TEST_F(QemuBackend, QMPErrorGetsLogged)

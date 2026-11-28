@@ -29,6 +29,8 @@
 #include <QStringList>
 
 #include <chrono>
+#include <optional>
+#include <string>
 #include <unordered_map>
 
 namespace multipass
@@ -114,6 +116,8 @@ private:
     bool update_shutdown_status{true};
     bool is_starting_from_suspend{false};
     bool force_shutdown{false};
+    bool savevm_pending{false};
+    std::optional<std::string> savevm_error;
     std::mutex vm_signal_mutex;
     bool vm_signals_connected{false};
     std::chrono::steady_clock::time_point network_deadline;
