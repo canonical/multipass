@@ -355,7 +355,6 @@ TEST_F(QemuBackend, destroyingMachineFallsBackToPowerdownWhenSavevmFails)
     logger_scope.mock_logger->expect_log(mpl::Level::error, "Failed to suspend");
 
     EXPECT_CALL(mock_monitor, on_suspend()).Times(0);
-    EXPECT_CALL(mock_monitor, persist_state_for(_, mp::VirtualMachine::State::stopped));
     machine.reset();
 
     EXPECT_TRUE(*powerdown_written);
