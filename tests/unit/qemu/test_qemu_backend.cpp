@@ -667,6 +667,47 @@ TEST_F(QemuBackend, forceShutdownKillsProcessAndLogs)
     EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
 }
 
+TEST_F(QemuBackend, processDeathIsReportedAfterSuspendForceStopAndStart)
+{
+    EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {
+        return std::move(mock_qemu_platform);
+    });
+
+    std::vector<mpt::MockProcess*> vm_processes;
+    process_factory->register_callback([&vm_processes](mpt::MockProcess* process) {
+        handle_qemu_system(process);
+        if (process->program().contains("qemu-system") &&
+            !process->arguments().contains("-dump-vmstate"))
+            vm_processes.push_back(process);
+    });
+
+    NiceMock<mpt::MockVMStatusMonitor> mock_monitor;
+    mp::QemuVirtualMachineFactory backend{data_dir.path(), az_manager};
+    auto machine = backend.create_virtual_machine(default_description, key_provider, mock_monitor);
+
+    machine->start();
+    machine->state = mp::VirtualMachine::State::running;
+    machine->suspend();
+    ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::suspended);
+
+    machine->shutdown(mp::VirtualMachine::ShutdownPolicy::Poweroff); // stop --force
+    ASSERT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
+
+    machine->start();
+    ASSERT_EQ(vm_processes.size(), 2u);
+    machine->state = mp::VirtualMachine::State::running;
+
+    // qemu dies behind our back
+    EXPECT_CALL(mock_monitor, on_shutdown());
+    mp::ProcessState exit_state{
+        std::nullopt,
+        mp::ProcessState::Error{QProcess::Crashed, QStringLiteral("killed")}};
+    emit vm_processes.back()->error_occurred(QProcess::Crashed, "killed");
+    emit vm_processes.back()->finished(exit_state);
+
+    EXPECT_EQ(machine->current_state(), mp::VirtualMachine::State::off);
+}
+
 TEST_F(QemuBackend, forceShutdownNoProcessLogs)
 {
     EXPECT_CALL(*mock_qemu_platform_factory, make_qemu_platform(_, _)).WillOnce([this](auto&&...) {

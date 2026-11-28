@@ -272,11 +272,14 @@ void mp::QemuVirtualMachine::start()
 {
     initialize_vm_process();
 
+    // suspend() turns this off so that killing qemu after savevm is not reported as a shutdown.
+    // Any new process must report its own end again, whatever state the VM was started from.
+    update_shutdown_status = true;
+
     if (state == State::suspended)
     {
         mpl::info(vm_name, "Resuming from a suspended state");
 
-        update_shutdown_status = true;
         is_starting_from_suspend = true;
         network_deadline = std::chrono::steady_clock::now() + 5s;
     }
